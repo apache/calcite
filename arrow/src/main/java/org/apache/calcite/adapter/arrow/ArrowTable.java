@@ -43,17 +43,27 @@ import org.apache.arrow.gandiva.expression.Condition;
 import org.apache.arrow.gandiva.expression.ExpressionTree;
 import org.apache.arrow.gandiva.expression.TreeBuilder;
 import org.apache.arrow.gandiva.expression.TreeNode;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static java.lang.Double.parseDouble;
 import static java.lang.Float.parseFloat;
@@ -69,16 +79,18 @@ public class ArrowTable extends AbstractTable
   private final @Nullable RelProtoDataType protoRowType;
   /** Arrow schema. (In Calcite terminology, more like a row type than a Schema.) */
   private final Schema schema;
-  private final ArrowFileReader arrowFileReader;
+  private final File arrowFile;
+  private final Queue<FileChannel> channelPool = new ConcurrentLinkedQueue<>();
 
-  ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
+  ArrowTable(@Nullable RelProtoDataType protoRowType, File arrowFile,
+      ArrowFileReader arrowFileReader) {
     try {
       this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
     } catch (IOException e) {
       throw Util.toUnchecked(e);
     }
     this.protoRowType = protoRowType;
-    this.arrowFileReader = arrowFileReader;
+    this.arrowFile = arrowFile;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -148,7 +160,10 @@ public class ArrowTable extends AbstractTable
       }
     }
 
-    return new ArrowEnumerable(arrowFileReader, fields, projector, filter);
+    final FileChannel channel = borrowChannel();
+    final ArrowFileReader reader = createReader(channel);
+    final Runnable onClose = () -> returnChannel(channel);
+    return new ArrowEnumerable(reader, fields, projector, filter, onClose);
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -198,6 +213,85 @@ public class ArrowTable extends AbstractTable
 
     return TreeBuilder.makeFunction(
         token.operator, treeNodes, new ArrowType.Bool());
+  }
+
+  /** Borrows a {@link FileChannel} from the pool, or opens a new one
+   * if the pool is empty. */
+  private FileChannel borrowChannel() {
+    FileChannel channel = channelPool.poll();
+    if (channel != null) {
+      try {
+        channel.position(0);
+        return channel;
+      } catch (IOException e) {
+        // Channel is broken, fall through to create a new one.
+      }
+    }
+    try {
+      return new FileInputStream(arrowFile).getChannel();
+    } catch (FileNotFoundException e) {
+      throw Util.toUnchecked(e);
+    }
+  }
+
+  /** Returns a {@link FileChannel} to the pool for reuse. */
+  private void returnChannel(FileChannel channel) {
+    channelPool.offer(channel);
+  }
+
+  /** Creates a new {@link ArrowFileReader} that wraps the given channel
+   * without owning it (i.e. closing the reader will not close the channel). */
+  private static ArrowFileReader createReader(FileChannel channel) {
+    return new ArrowFileReader(
+        new SeekableReadChannel(new NonClosingByteChannel(channel)),
+        new RootAllocator());
+  }
+
+  /** A {@link SeekableByteChannel} wrapper that delegates all operations
+   * to the underlying channel but makes {@link #close()} a no-op,
+   * so the pooled {@link FileChannel} survives reader disposal. */
+  private static class NonClosingByteChannel implements SeekableByteChannel {
+    private final FileChannel delegate;
+
+    NonClosingByteChannel(FileChannel delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override public int read(ByteBuffer dst) throws IOException {
+      return delegate.read(dst);
+    }
+
+    @Override public int write(ByteBuffer src) throws IOException {
+      return delegate.write(src);
+    }
+
+    @Override public long position() throws IOException {
+      return delegate.position();
+    }
+
+    @Override public SeekableByteChannel position(long newPosition)
+        throws IOException {
+      delegate.position(newPosition);
+      return this;
+    }
+
+    @Override public long size() throws IOException {
+      return delegate.size();
+    }
+
+    @Override public SeekableByteChannel truncate(long size)
+        throws IOException {
+      delegate.truncate(size);
+      return this;
+    }
+
+    @Override public boolean isOpen() {
+      return delegate.isOpen();
+    }
+
+    @Override public void close() {
+      // No-op: the underlying channel is managed by the pool.
+    }
   }
 
   private static TreeNode makeLiteralNode(String literal, String type) {

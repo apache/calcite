@@ -110,7 +110,7 @@ class ArrowSchema extends AbstractSchema {
       final String tableName =
           trim(file.getName(), ".arrow").toUpperCase(Locale.ROOT);
       final ArrowTable table =
-          new ArrowTable(null, arrowFileReader);
+          new ArrowTable(null, arrowFile, arrowFileReader);
       tables.put(tableName, table);
     }
 

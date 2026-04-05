@@ -536,7 +536,9 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("UNION does not work")
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6298">[CALCITE-6298]
+   * Support UNION in Arrow adapter</a>. */
   @Test void testArrowUnion() {
     String sql = "(select \"intField\"\n"
         + "from arrowdata\n"
@@ -561,6 +563,58 @@ class ArrowAdapterTest {
         .query(sql)
         .returns(result)
         .explainContains(plan);
+  }
+
+  /** <p>Tests three-way UNION to verify that multiple concurrent scans
+   * on the same table work correctly. */
+  @Test void testArrowUnionThreeWay() {
+    String sql = "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 1)\n"
+        + "  union \n"
+        + "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 2)\n"
+        + "  union \n"
+        + "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 3)\n";
+    String result = "intField=1\nintField=2\nintField=3\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6298">[CALCITE-6298]
+   * Support UNION in Arrow adapter</a>.
+   *
+   * <p>Tests four-way UNION ALL to verify that repeated scans
+   * on the same table work correctly without deduplication. */
+  @Test void testArrowUnionAllFourWay() {
+    String sql = "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 1)\n"
+        + "  union all\n"
+        + "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 1)\n"
+        + "  union all\n"
+        + "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 2)\n"
+        + "  union all\n"
+        + "(select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 2)\n";
+    String result = "intField=1\nintField=1\nintField=2\nintField=2\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result);
   }
 
   @Test void testFieldWithSpace() {
