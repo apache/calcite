@@ -208,6 +208,7 @@ void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
                 s.pos()));
         list.add(dt);
     }
+    AddRegularPostfixes(list)
 }
 
 /** Parses the NULL-safe "<=>" equal operator used in MySQL. */

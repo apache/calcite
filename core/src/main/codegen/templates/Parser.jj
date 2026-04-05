@@ -3774,6 +3774,24 @@ SqlNode Expression(ExprContext exprContext) :
     list = Expression2(exprContext) { return SqlParserUtil.toTree(list); }
 }
 
+void AddRegularPostfixes(List<Object> list) :
+{
+    SqlNode ext;
+}
+{
+    (
+        LOOKAHEAD(2) <DOT>
+        ext = RowExpressionExtension() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(ext);
+        }
+    |
+        AddBracketPostfix(list)
+    )*
+}
+
 void AddExpression2b(List<Object> list, ExprContext exprContext) :
 {
     SqlNode e;
@@ -3791,13 +3809,61 @@ void AddExpression2b(List<Object> list, ExprContext exprContext) :
     e = Expression3(exprContext) {
         list.add(e);
     }
-    (
-        LOOKAHEAD(2) <DOT>
-        ext = RowExpressionExtension() {
+    AddRegularPostfixes(list)
+    [
+        LOOKAHEAD(2, <COLON> SimpleIdentifier(),
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON>
+        ext = SimpleIdentifier() {
             list.add(
                 new SqlParserUtil.ToTreeListItem(
                     SqlStdOperatorTable.DOT, getPos()));
             list.add(ext);
+        }
+        AddRegularPostfixes(list)
+    |
+        LOOKAHEAD(2, <COLON> <LBRACKET>,
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON>
+        AddBracketAccess(list)
+        AddRegularPostfixes(list)
+    ]
+}
+
+void AddBracketAccess(List<Object> list) :
+{
+    SqlNode e;
+    SqlOperator itemOp;
+}
+{
+    <LBRACKET>
+    ( <OFFSET> { itemOp = SqlLibraryOperators.OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <ORDINAL> { itemOp = SqlLibraryOperators.ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <SAFE_OFFSET> { itemOp = SqlLibraryOperators.SAFE_OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <SAFE_ORDINAL> { itemOp = SqlLibraryOperators.SAFE_ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | { itemOp = SqlStdOperatorTable.ITEM; } e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    )
+    <RBRACKET> {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(
+                itemOp, getPos()));
+        list.add(e);
+    }
+}
+
+void AddBracketPostfix(List<Object> list) :
+{
+    SqlIdentifier p;
+}
+{
+    AddBracketAccess(list)
+    (
+        LOOKAHEAD(2) <DOT>
+        p = SimpleIdentifier() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(p);
         }
     )*
 }
@@ -3823,9 +3889,7 @@ List<Object> Expression2(ExprContext exprContext) :
     final List<Object> list3 = new ArrayList();
     SqlNodeList nodeList;
     SqlNode e;
-    SqlOperator itemOp;
     SqlOperator op;
-    SqlIdentifier p;
     final Span s = span();
 }
 {
@@ -3962,29 +4026,6 @@ List<Object> Expression2(ExprContext exprContext) :
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
                 }
                 AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
-            |
-                <LBRACKET>
-                ( <OFFSET> { itemOp = SqlLibraryOperators.OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <ORDINAL> { itemOp = SqlLibraryOperators.ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <SAFE_OFFSET> { itemOp = SqlLibraryOperators.SAFE_OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <SAFE_ORDINAL> { itemOp = SqlLibraryOperators.SAFE_ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | { itemOp = SqlStdOperatorTable.ITEM; } e = Expression(ExprContext.ACCEPT_SUB_QUERY)
-                )
-                <RBRACKET> {
-                    list.add(
-                        new SqlParserUtil.ToTreeListItem(
-                            itemOp, getPos()));
-                    list.add(e);
-                }
-                (
-                    LOOKAHEAD(2) <DOT>
-                    p = SimpleIdentifier() {
-                        list.add(
-                            new SqlParserUtil.ToTreeListItem(
-                                SqlStdOperatorTable.DOT, getPos()));
-                        list.add(p);
-                    }
-                )*
             |
                 {
                     checkNonQueryExpression(exprContext);
@@ -7012,13 +7053,15 @@ List<SqlNode> JsonNameAndValue() :
         <VALUE>
     |
         <COMMA> {
-            if (kvMode) {
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalComma());
             }
         }
     |
         <COLON> {
-            if (kvMode) {
+            // If ':' is used for field access, JSON constructors must use
+            // VALUE syntax instead of ':'.
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalColon());
             }
         }
