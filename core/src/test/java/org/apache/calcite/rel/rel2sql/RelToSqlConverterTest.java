@@ -11944,6 +11944,36 @@ class RelToSqlConverterTest {
     sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
   }
 
+  @Test void testPostgresqlRoundTripCorrelatedProjectWithSemiJoinRules() {
+    final String query = correlatedProjectQuery7440();
+
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+        CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+        CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+        CoreRules.SEMI_JOIN_JOIN_TRANSPOSE);
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    sql(generated).withPostgresql().exec();
+  }
+
+  private static String correlatedProjectQuery7440() {
+    return "WITH product_keys AS (\n"
+        + "  SELECT p.\"product_id\",\n"
+        + "         (SELECT MAX(p3.\"product_id\")\n"
+        + "          FROM \"foodmart\".\"product\" p3\n"
+        + "          WHERE p3.\"product_id\" = p.\"product_id\") AS \"mx\"\n"
+        + "  FROM \"foodmart\".\"product\" p\n"
+        + ")\n"
+        + "SELECT DISTINCT pk.\"product_id\"\n"
+        + "FROM product_keys pk\n"
+        + "LEFT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "WHERE pk.\"product_id\" IN (\n"
+        + "  SELECT p4.\"product_id\"\n"
+        + "  FROM \"foodmart\".\"product\" p4\n"
+        + ")";
+  }
+
   @Test void testNotBetween() {
     Sql f = fixture().withConvertletTable(new SqlRexConvertletTable() {
       @Override public @Nullable SqlRexConvertlet get(SqlCall call) {
