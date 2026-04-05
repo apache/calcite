@@ -31,8 +31,6 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -1557,35 +1555,11 @@ public abstract class OperandTypes {
         }
         return false;
       }
-      // Insert implicit casts for operands whose SqlTypeName differs
-      // from the inferred key/value type.
-      coerceOperands(callBinding, argTypes,
-          componentType.left, componentType.right);
-      return true;
-    }
-
-    /** Casts operands whose {@code SqlTypeName} differs from the
-     * target key or value type. Operands at even positions are keys,
-     * odd positions are values. */
-    private static void coerceOperands(SqlCallBinding callBinding,
-        List<RelDataType> operandTypes,
-        RelDataType keyType, RelDataType valueType) {
-      final SqlValidator validator = callBinding.getValidator();
-      final SqlCall call = callBinding.getCall();
-      final List<SqlNode> operands = call.getOperandList();
-      for (int i = 0; i < operands.size(); i++) {
-        final RelDataType targetType = i % 2 == 0 ? keyType : valueType;
-        if (operandTypes.get(i).getSqlTypeName()
-            != targetType.getSqlTypeName()) {
-          final SqlNode castNode =
-              SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
-                  operands.get(i),
-                  SqlTypeUtil.convertTypeToSpec(targetType)
-                      .withNullable(targetType.isNullable()));
-          call.setOperand(i, castNode);
-          validator.setValidatedNodeType(castNode, targetType);
-        }
+      if (callBinding.isTypeCoercionEnabled()) {
+        callBinding.getValidator().getTypeCoercion()
+            .collectionFunctionCoercion(callBinding);
       }
+      return true;
     }
 
     /**

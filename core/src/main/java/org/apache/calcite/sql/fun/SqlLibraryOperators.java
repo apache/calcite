@@ -1460,20 +1460,6 @@ public abstract class SqlLibraryOperators {
       type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     }
 
-    // make explicit CAST for array elements and inserted element to the biggest type
-    // if array component type not equals to inserted element type
-    if (!componentType.equalsSansFieldNames(elementType)) {
-      // 0, 1 is the operand index to be CAST
-      // For array_append/array_prepend, 0 is the array arg and 1 is the inserted element
-      if (componentType.equalsSansFieldNames(type)) {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 1);
-      } else {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 0);
-      }
-    }
-
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
   }
 
@@ -1581,9 +1567,6 @@ public abstract class SqlLibraryOperators {
     final RelDataType elementType2 = operandTypes.get(2);
     requireNonNull(componentType, () -> "componentType of " + arrayType);
 
-    // we don't need to do leastRestrictive on componentType and elementType,
-    // because in operand checker we limit the elementType such that it equals the array component
-    // type. So we use componentType directly.
     RelDataType type =
         opBinding.getTypeFactory().leastRestrictive(
             ImmutableList.of(componentType, elementType2));
@@ -1592,15 +1575,6 @@ public abstract class SqlLibraryOperators {
     // The spec says that "ARRAY_INSERT may pad the array with NULL values if the
     // position is large", it implies that in the result the element type is always nullable.
     type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
-    // make explicit CAST for array elements and inserted element to the biggest type
-    // if array component type is not equal to the inserted element type
-    if (!componentType.equalsSansFieldNamesAndNullability(elementType2)) {
-      // For array_insert, 0 is the array arg and 2 is the inserted element
-      SqlValidatorUtil.
-          adjustTypeForArrayFunctions(type, opBinding, 2);
-      SqlValidatorUtil.
-          adjustTypeForArrayFunctions(type, opBinding, 0);
-    }
     boolean nullable = arrayType.isNullable() || elementType1.isNullable();
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, nullable);
   }
