@@ -1555,11 +1555,9 @@ public abstract class OperandTypes {
         }
         return false;
       }
-      // Coerce operands to the least restrictive key/value types via
-      // the TypeCoercion framework.
       if (callBinding.isTypeCoercionEnabled()) {
-        TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
-        typeCoercion.collectionFunctionCoercion(callBinding);
+        callBinding.getValidator().getTypeCoercion()
+            .collectionFunctionCoercion(callBinding);
       }
       return true;
     }

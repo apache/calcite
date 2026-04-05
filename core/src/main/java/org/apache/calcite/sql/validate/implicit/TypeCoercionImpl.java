@@ -692,22 +692,15 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
 
   @Override public boolean collectionFunctionCoercion(SqlCallBinding binding) {
     final SqlCall call = binding.getCall();
-    final SqlKind kind = call.getKind();
-    switch (kind) {
+    switch (call.getKind()) {
     case MAP_VALUE_CONSTRUCTOR:
-      // MAP value constructor (MAP['k1', v1, ...]) coerces when types
-      // differ including precision (e.g. CHAR(5) -> CHAR(10)).
       return mapCoercion(binding, false);
     case ARRAY_APPEND:
     case ARRAY_PREPEND:
-      return arrayAppendPrependCoercion(binding);
+      return arrayElementCoercion(binding, 1);
     case ARRAY_INSERT:
-      return arrayInsertCoercion(binding);
+      return arrayElementCoercion(binding, 2);
     default:
-      // Spark-style MAP() function has SqlKind.OTHER_FUNCTION.
-      // It only coerces when the SqlTypeName differs (e.g. TINYINT vs
-      // INTEGER), not for same-type precision differences like
-      // CHAR(5) vs CHAR(10).
       if ("MAP".equals(call.getOperator().getName())) {
         return mapCoercion(binding, true);
       }
@@ -716,18 +709,17 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerces operands of a MAP constructor or MAP function to the least
-   * restrictive key/value types. Keys are at even positions, values at odd
-   * positions.
+   * Coerces operands of a MAP constructor to the least restrictive key/value
+   * types. Keys are at even positions, values at odd positions.
    *
-   * @param binding             Call binding
-   * @param typeNameCheckOnly   If {@code true}, only coerce when the
-   *   {@link SqlTypeName} differs (lenient — used by the Spark MAP function).
-   *   If {@code false}, coerce whenever types are not equal sans field names
-   *   (strict — used by the MAP value constructor).
+   * <p>The MAP value constructor ({@code MAP['k1', v1, ...]}) compares types
+   * via {@link RelDataType#equalsSansFieldNames}, so CHAR(5) vs CHAR(10)
+   * triggers a cast.  The Spark-style {@code MAP()} function only compares
+   * {@link SqlTypeName}, so same-type-name differences are left alone.
+   *
+   * @param typeNameOnly if true, only coerce when SqlTypeName differs
    */
-  private boolean mapCoercion(SqlCallBinding binding,
-      boolean typeNameCheckOnly) {
+  private boolean mapCoercion(SqlCallBinding binding, boolean typeNameOnly) {
     final SqlCall call = binding.getCall();
     final SqlValidatorScope scope = binding.getScope();
     final List<RelDataType> operandTypes =
@@ -745,10 +737,10 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     boolean coerced = false;
     for (int i = 0; i < call.operandCount(); i++) {
       final RelDataType targetType = i % 2 == 0 ? keyType : valueType;
-      final boolean needsCoercion = typeNameCheckOnly
+      final boolean needsCast = typeNameOnly
           ? operandTypes.get(i).getSqlTypeName() != targetType.getSqlTypeName()
           : !operandTypes.get(i).equalsSansFieldNames(targetType);
-      if (needsCoercion) {
+      if (needsCast) {
         coerced = coerceOperandType(scope, call, i, targetType) || coerced;
       }
     }
@@ -756,11 +748,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerces operands of ARRAY_APPEND or ARRAY_PREPEND so that the element
-   * type matches the array component type (or both are widened to the least
-   * restrictive common type).
+   * Coerces the array operand (index 0) and the scalar element operand
+   * (at {@code elementIndex}) of ARRAY_APPEND, ARRAY_PREPEND or ARRAY_INSERT
+   * to the least restrictive common type.
    */
-  private boolean arrayAppendPrependCoercion(SqlCallBinding binding) {
+  private boolean arrayElementCoercion(SqlCallBinding binding,
+      int elementIndex) {
     final SqlCall call = binding.getCall();
     final SqlValidatorScope scope = binding.getScope();
     final RelDataType arrayType = binding.getOperandType(0);
@@ -768,7 +761,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     if (componentType == null) {
       return false;
     }
-    final RelDataType elementType = binding.getOperandType(1);
+    final RelDataType elementType = binding.getOperandType(elementIndex);
     final RelDataType targetType =
         factory.leastRestrictive(
             ImmutableList.of(componentType, elementType));
@@ -776,52 +769,22 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return false;
     }
     boolean coerced = false;
-    if (!componentType.equalsSansFieldNames(targetType)) {
-      // Array elements need widening — coerce the array operand
-      coerced = coerceCollectionOperandElementType(scope, call, 0, targetType);
+    if (!SqlTypeUtil.equalSansNullability(factory, componentType, targetType)) {
+      coerced = coerceArrayOperand(scope, call, 0, targetType);
     }
-    if (!elementType.equalsSansFieldNames(targetType)) {
-      // Scalar element needs widening
-      coerced = coerceOperandType(scope, call, 1, targetType) || coerced;
-    }
-    return coerced;
-  }
-
-  /**
-   * Coerces operands of ARRAY_INSERT so that the inserted element type matches
-   * the array component type (or both are widened).
-   */
-  private boolean arrayInsertCoercion(SqlCallBinding binding) {
-    final SqlCall call = binding.getCall();
-    final SqlValidatorScope scope = binding.getScope();
-    final RelDataType arrayType = binding.getOperandType(0);
-    final RelDataType componentType = arrayType.getComponentType();
-    if (componentType == null) {
-      return false;
-    }
-    final RelDataType elementType = binding.getOperandType(2);
-    final RelDataType targetType =
-        factory.leastRestrictive(
-            ImmutableList.of(componentType, elementType));
-    if (targetType == null) {
-      return false;
-    }
-    boolean coerced = false;
-    if (!componentType.equalsSansFieldNamesAndNullability(targetType)) {
-      coerced = coerceCollectionOperandElementType(scope, call, 0, targetType);
-    }
-    if (!elementType.equalsSansFieldNamesAndNullability(targetType)) {
-      coerced = coerceOperandType(scope, call, 2, targetType) || coerced;
+    if (!SqlTypeUtil.equalSansNullability(factory, elementType, targetType)) {
+      coerced =
+          coerceOperandType(scope, call, elementIndex, targetType) || coerced;
     }
     return coerced;
   }
 
   /**
-   * Coerces the element type of a collection (array) operand. If the operand
-   * is an array literal (e.g. {@code ARRAY[1, 2]}), each element is coerced
-   * individually. Otherwise the entire operand is wrapped in a CAST.
+   * Coerces an array operand's element type to {@code targetElementType}.
+   * If the operand is an array literal ({@code ARRAY[1, 2]}), each element
+   * is coerced individually; otherwise the operand is cast as a whole.
    */
-  private boolean coerceCollectionOperandElementType(
+  private boolean coerceArrayOperand(
       @Nullable SqlValidatorScope scope,
       SqlCall call,
       int index,
@@ -829,7 +792,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     final SqlNode operand = call.getOperandList().get(index);
     if (operand instanceof SqlCall
         && "ARRAY".equals(((SqlCall) operand).getOperator().getName())) {
-      // For array literals, coerce each element individually
       final SqlCall arrayCall = (SqlCall) operand;
       boolean coerced = false;
       for (int i = 0; i < arrayCall.operandCount(); i++) {
@@ -838,7 +800,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       }
       return coerced;
     }
-    // For non-literal arrays, cast the whole operand to the target array type
     final RelDataType operandType =
         validator.deriveType(requireNonNull(scope, "scope"), operand);
     final RelDataType targetArrayType =

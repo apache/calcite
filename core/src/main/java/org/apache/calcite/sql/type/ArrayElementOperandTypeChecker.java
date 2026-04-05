@@ -21,7 +21,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import com.google.common.collect.ImmutableList;
 
@@ -96,11 +95,9 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
 
       return false;
     }
-    // Coerce operands to the least restrictive type via the TypeCoercion
-    // framework rather than mutating operands as a side effect.
     if (callBinding.isTypeCoercionEnabled()) {
-      TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
-      typeCoercion.collectionFunctionCoercion(callBinding);
+      callBinding.getValidator().getTypeCoercion()
+          .collectionFunctionCoercion(callBinding);
     }
     return true;
   }

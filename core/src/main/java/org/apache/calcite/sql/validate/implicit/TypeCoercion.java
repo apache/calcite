@@ -201,15 +201,9 @@ public interface TypeCoercion {
       List<SqlTypeFamily> expectedFamilies);
 
   /**
-   * Type coercion for collection functions such as {@code ARRAY_APPEND},
-   * {@code ARRAY_PREPEND}, {@code ARRAY_INSERT}, and {@code MAP} constructor.
-   *
-   * <p>When the element type does not match the array component type (or the
-   * map key/value types are heterogeneous), coerces operands to the least
-   * restrictive common type.
-   *
-   * <p>This centralizes coercion that was previously scattered as side effects
-   * inside operand type checkers and return type inference methods.
+   * Coerces operands of collection-related functions and constructors
+   * ({@code ARRAY_APPEND}, {@code ARRAY_PREPEND}, {@code ARRAY_INSERT},
+   * {@code MAP} constructor) to the least restrictive common type.
    */
   boolean collectionFunctionCoercion(SqlCallBinding binding);
 

@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -78,11 +77,9 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
       }
       return false;
     }
-    // Coerce operands to the least restrictive key/value types via
-    // the TypeCoercion framework.
     if (callBinding.isTypeCoercionEnabled()) {
-      TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
-      typeCoercion.collectionFunctionCoercion(callBinding);
+      callBinding.getValidator().getTypeCoercion()
+          .collectionFunctionCoercion(callBinding);
     }
     return true;
   }
