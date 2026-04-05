@@ -18,6 +18,32 @@
 !set outputformat mysql
 !use scott
 
+# 5 test cases for [CALCITE-7443]  Incorrect simplification for large interval
+SELECT -(INTERVAL -2147483648 months);
+java.lang.ArithmeticException: integer overflow
+
+!error
+
+SELECT INTERVAL 2147483647 years;
+java.lang.ArithmeticException: integer overflow
+
+!error
+
+SELECT -(INTERVAL -9223372036854775.808 SECONDS);
+java.lang.ArithmeticException: long overflow
+
+!error
+
+SELECT INTERVAL 3000000 months * 1000;
+java.lang.ArithmeticException: integer overflow
+
+!error
+
+SELECT INTERVAL 3000000 months / .0001;
+java.lang.ArithmeticException: Overflow
+
+!error
+
 select deptno, (select min(empno) from "scott".emp where deptno = dept.deptno) as x from "scott".dept;
 +--------+------+
 | DEPTNO | X    |
