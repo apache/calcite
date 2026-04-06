@@ -7043,7 +7043,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
         + "group by grouping sets ((1), (^name^, deptno))")
-        .withConformance(strict).fails("Column 'NAME' not found in any table")
+        .withConformance(strict)
+        .fails("Column 'NAME' not found in any table; did you mean 'ENAME'\\?")
         .withConformance(lenient).ok();
     sql("select ^e.deptno^ from emp as e\n"
         + "join dept as d on e.deptno = d.deptno group by 1")

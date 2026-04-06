@@ -161,21 +161,20 @@ public class SqlNameMatchers {
     if (normalizedCandidateName.equals(normalizedName)) {
       return false;
     }
-    if (normalizedCandidateName.length() == normalizedName.length() + 1
-        && (normalizedCandidateName.startsWith(normalizedName)
-            || normalizedCandidateName.endsWith(normalizedName))) {
-      return false;
-    }
     if (!name.equals(name.trim()) || !candidateName.equals(candidateName.trim())) {
       if (candidateName.trim().equalsIgnoreCase(name.trim())) {
         return false;
       }
     }
-    if (!allowDigitOnlyDifference
-        && hasOnlyDigitDifference(normalizedName, normalizedCandidateName)) {
-      return false;
+    if (!allowDigitOnlyDifference) {
+      if (hasOnlyDigitDifference(normalizedName, normalizedCandidateName)) {
+        return false;
+      }
+      if (digitCount(name) != digitCount(candidateName)) {
+        return false;
+      }
     }
-    return digitCount(name) == digitCount(candidateName);
+    return true;
   }
 
   /** Returns the best near-match suggestion for a name. */
