@@ -193,7 +193,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
-  private List<String> findCaseInsensitiveColumnSuggestions(String columnName,
+  private ImmutableList<String> findCaseInsensitiveColumnSuggestions(String columnName,
       SqlIdentifier identifier) {
     final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
     final Map<String, ScopeChild> map =
@@ -210,7 +210,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       }
     }
     suggestions.sort(String::compareTo);
-    return suggestions;
+    return ImmutableList.copyOf(suggestions);
   }
 
   private List<String> findColumnSuggestions(String columnName) {
@@ -295,15 +295,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return null;
   }
 
-  private static List<String> fieldNames(RelDataType rowType) {
+  private static ImmutableList<String> fieldNames(RelDataType rowType) {
     if (!rowType.isStruct()) {
       return ImmutableList.of();
     }
-    final List<String> names = new ArrayList<>();
+    final ImmutableList.Builder<String> names = ImmutableList.builder();
     for (RelDataTypeField field : rowType.getFieldList()) {
       names.add(field.getName());
     }
-    return names;
+    return names.build();
   }
 
   private static List<String> simpleNames(Iterable<? extends SqlMoniker> monikers) {
