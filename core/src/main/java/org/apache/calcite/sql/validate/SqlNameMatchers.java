@@ -188,8 +188,8 @@ public class SqlNameMatchers {
 
   private static @Nullable String bestMatch(String name, Iterable<String> candidateNames,
       boolean allowDigitOnlyDifference) {
-    final List<String> matches = bestMatches(name, candidateNames,
-        allowDigitOnlyDifference);
+    final List<String> matches =
+        bestMatches(name, candidateNames, allowDigitOnlyDifference);
     return matches.isEmpty() ? null : matches.get(0);
   }
 
