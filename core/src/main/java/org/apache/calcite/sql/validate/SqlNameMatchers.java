@@ -81,6 +81,11 @@ public class SqlNameMatchers {
 
   /** Returns the best near-match suggestions for a name. */
   public static List<String> bestMatches(String name, Iterable<String> candidateNames) {
+    return bestMatches(name, candidateNames, true);
+  }
+
+  private static List<String> bestMatches(String name, Iterable<String> candidateNames,
+      boolean allowDigitOnlyDifference) {
     final String normalizedName = normalize(name);
     // Keep the same thresholds as Ruby's did_you_mean spell checker: Jaro-Winkler
     // broadens typo recall, and the length-scaled Levenshtein limit keeps hints conservative.
@@ -94,6 +99,11 @@ public class SqlNameMatchers {
         continue;
       }
       final String normalizedCandidateName = normalize(candidateName);
+      if (!isEligibleEditDistanceMatch(name, candidateName,
+          normalizedName, normalizedCandidateName, allowDigitOnlyDifference)) {
+        ordinal++;
+        continue;
+      }
       final int distance =
           LEVENSHTEIN_DISTANCE.apply(normalizedCandidateName, normalizedName);
       final double similarity =
@@ -124,7 +134,7 @@ public class SqlNameMatchers {
       }
     }
     if (bestDistance != Integer.MAX_VALUE) {
-      final List<String> corrections = new ArrayList<>();
+      final Set<String> corrections = new LinkedHashSet<>();
       for (MatchResult match : matches) {
         if (match.distance == bestDistance) {
           corrections.add(match.candidateName);
@@ -142,9 +152,45 @@ public class SqlNameMatchers {
     return ImmutableList.of();
   }
 
+  private static boolean isEligibleEditDistanceMatch(
+      String name, String candidateName, String normalizedName,
+      String normalizedCandidateName, boolean allowDigitOnlyDifference) {
+    if (normalizedName.length() <= 1 || normalizedCandidateName.length() <= 1) {
+      return false;
+    }
+    if (normalizedCandidateName.equals(normalizedName)) {
+      return false;
+    }
+    if (normalizedCandidateName.length() == normalizedName.length() + 1
+        && (normalizedCandidateName.startsWith(normalizedName)
+            || normalizedCandidateName.endsWith(normalizedName))) {
+      return false;
+    }
+    if (!name.equals(name.trim()) || !candidateName.equals(candidateName.trim())) {
+      if (candidateName.trim().equalsIgnoreCase(name.trim())) {
+        return false;
+      }
+    }
+    if (!allowDigitOnlyDifference
+        && hasOnlyDigitDifference(normalizedName, normalizedCandidateName)) {
+      return false;
+    }
+    return digitCount(name) == digitCount(candidateName);
+  }
+
   /** Returns the best near-match suggestion for a name. */
   public static @Nullable String bestMatch(String name, Iterable<String> candidateNames) {
-    final List<String> matches = bestMatches(name, candidateNames);
+    return bestMatch(name, candidateNames, true);
+  }
+
+  static @Nullable String bestObjectMatch(String name, Iterable<String> candidateNames) {
+    return bestMatch(name, candidateNames, false);
+  }
+
+  private static @Nullable String bestMatch(String name, Iterable<String> candidateNames,
+      boolean allowDigitOnlyDifference) {
+    final List<String> matches = bestMatches(name, candidateNames,
+        allowDigitOnlyDifference);
     return matches.isEmpty() ? null : matches.get(0);
   }
 
@@ -179,7 +225,7 @@ public class SqlNameMatchers {
         }
       }
       final @Nullable String firstSuggestion =
-          bestMatch(names.get(0), candidateNames);
+          bestObjectMatch(names.get(0), candidateNames);
       if (firstSuggestion != null) {
         return new NameSuggestion(ImmutableList.of(), names.get(0), firstSuggestion);
       }
@@ -202,7 +248,7 @@ public class SqlNameMatchers {
             ImmutableList.<String>builder().addAll(prefixNames).add(exactMatch).build();
         continue;
       }
-      final @Nullable String suggestion = bestMatch(name, candidateNames);
+      final @Nullable String suggestion = bestObjectMatch(name, candidateNames);
       return suggestion == null ? null
           : new NameSuggestion(prefixNames, name, suggestion);
     }
@@ -244,6 +290,36 @@ public class SqlNameMatchers {
     return name.toLowerCase(Locale.ROOT);
   }
 
+  private static int digitCount(String name) {
+    int digitCount = 0;
+    for (int i = 0; i < name.length(); i++) {
+      if (Character.isDigit(name.charAt(i))) {
+        digitCount++;
+      }
+    }
+    return digitCount;
+  }
+
+  private static boolean hasOnlyDigitDifference(String name, String candidateName) {
+    if (name.length() != candidateName.length()) {
+      return false;
+    }
+    boolean sawDigitDifference = false;
+    for (int i = 0; i < name.length(); i++) {
+      final char c1 = name.charAt(i);
+      final char c2 = candidateName.charAt(i);
+      if (c1 == c2) {
+        continue;
+      }
+      if (!Character.isDigit(c1) || !Character.isDigit(c2)) {
+        return false;
+      }
+      sawDigitDifference = true;
+    }
+    return sawDigitDifference;
+  }
+
+  /** Ranked candidate retained while sorting edit-distance suggestions. */
   private static class MatchResult {
     private final String candidateName;
     private final String normalizedCandidateName;

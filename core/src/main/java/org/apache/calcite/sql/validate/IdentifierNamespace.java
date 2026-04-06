@@ -186,7 +186,7 @@ public class IdentifierNamespace extends AbstractNamespace {
             candidateNames.add(hintNames.get(hintNames.size() - 1));
           }
           final String suggestion =
-              SqlNameMatchers.bestMatch(missingName, candidateNames);
+              SqlNameMatchers.bestObjectMatch(missingName, candidateNames);
           if (suggestion != null) {
             throw validator.newValidationError(id,
                 RESOURCE.objectNotFoundWithinDidYouMean(missingName,

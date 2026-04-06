@@ -193,6 +193,26 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
+  private List<String> findCaseInsensitiveColumnSuggestions(String columnName,
+      SqlIdentifier identifier) {
+    final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
+    final Map<String, ScopeChild> map =
+        findQualifyingTableNames(columnName, identifier, liberalMatcher);
+    if (map.isEmpty()) {
+      return ImmutableList.of();
+    }
+    final List<String> suggestions = new ArrayList<>();
+    for (ScopeChild entry : map.values()) {
+      final RelDataTypeField field =
+          liberalMatcher.field(entry.namespace.getRowType(), columnName);
+      if (field != null) {
+        suggestions.add(field.getName());
+      }
+    }
+    suggestions.sort(String::compareTo);
+    return suggestions;
+  }
+
   private List<String> findColumnSuggestions(String columnName) {
     final List<SqlMoniker> columnNames = new ArrayList<>();
     findAllColumnNames(columnNames);
@@ -217,31 +237,68 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       return caseInsensitiveSuggestion;
     }
     if (prefix.names.size() == 1) {
+      if (prefix.names.get(0).length() <= 2) {
+        return null;
+      }
       final List<SqlMoniker> aliases = new ArrayList<>();
       findAliases(aliases);
-      return SqlNameMatchers.bestMatch(prefix.names.get(0), simpleNames(aliases));
+      return SqlNameMatchers.bestObjectMatch(prefix.names.get(0), simpleNames(aliases));
     }
     final SqlNameMatchers.NameSuggestion suggestion =
         SqlNameMatchers.bestObjectName(validator.catalogReader, prefix.names);
     return suggestion == null ? null : suggestion.suggestion;
   }
 
+  private @Nullable String findCaseInsensitiveFieldSuggestion(
+      SqlValidatorNamespace namespace, List<String> names) {
+    final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
+    final ResolvedImpl resolved = new ResolvedImpl();
+    resolveInNamespace(namespace, false, names, liberalMatcher, Path.EMPTY, resolved);
+    if (resolved.count() == 0) {
+      return null;
+    }
+    final Step step = Util.last(resolved.resolves.get(0).path.steps());
+    return step.name;
+  }
+
   private @Nullable String findFieldSuggestion(SqlValidatorNamespace namespace,
       SqlNameMatcher nameMatcher, List<String> names) {
     SqlValidatorNamespace currentNamespace = namespace;
+    final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
     for (String name : names) {
+      final RelDataType rowType = currentNamespace.getRowType();
+      if (!rowType.isStruct()) {
+        return null;
+      }
       final ResolvedImpl resolved = new ResolvedImpl();
       resolveInNamespace(currentNamespace, false, ImmutableList.of(name), nameMatcher,
           Path.EMPTY, resolved);
       if (resolved.count() == 0) {
-        return SqlNameMatchers.bestMatch(name, fieldNames(currentNamespace.getRowType()));
+        final ResolvedImpl liberalResolved = new ResolvedImpl();
+        resolveInNamespace(currentNamespace, false, ImmutableList.of(name),
+            liberalMatcher, Path.EMPTY, liberalResolved);
+        if (liberalResolved.count() == 1) {
+          currentNamespace = liberalResolved.only().namespace;
+          continue;
+        }
+        if (liberalResolved.count() == 0) {
+          return SqlNameMatchers.bestMatch(name, fieldNames(rowType));
+        }
+      } else if (resolved.count() > 1) {
+        return null;
+      } else {
+        currentNamespace = resolved.only().namespace;
+        continue;
       }
-      currentNamespace = resolved.only().namespace;
+      return null;
     }
     return null;
   }
 
   private static List<String> fieldNames(RelDataType rowType) {
+    if (!rowType.isStruct()) {
+      return ImmutableList.of();
+    }
     final List<String> names = new ArrayList<>();
     for (RelDataTypeField field : rowType.getFieldList()) {
       names.add(field.getName());
@@ -333,6 +390,13 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       switch (map.size()) {
       case 0:
         if (nameMatcher.isCaseSensitive()) {
+          final List<String> caseInsensitiveSuggestions =
+              findCaseInsensitiveColumnSuggestions(columnName, identifier);
+          if (!caseInsensitiveSuggestions.isEmpty()) {
+            throw validator.newValidationError(identifier,
+                RESOURCE.columnNotFoundDidYouMean(columnName,
+                    Util.sepList(caseInsensitiveSuggestions, "', '")));
+          }
           final List<String> suggestions = findColumnSuggestions(columnName);
           if (!suggestions.isEmpty()) {
             throw validator.newValidationError(identifier,
@@ -411,7 +475,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           if (nameMatcher.isCaseSensitive()) {
             final @Nullable String suggestion =
                 fromNs instanceof SchemaNamespace
-                    ? SqlNameMatchers.bestMatch(Util.last(prefix1.names),
+                    ? SqlNameMatchers.bestObjectMatch(Util.last(prefix1.names),
                         fieldNames(fromNs.getRowType()))
                     : findTableSuggestion(prefix1);
             if (suggestion != null) {
@@ -499,6 +563,17 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       switch (resolved.count()) {
       case 0:
         if (nameMatcher.isCaseSensitive()) {
+          final @Nullable String caseInsensitiveSuggestion =
+              findCaseInsensitiveFieldSuggestion(requireNonNull(fromNs, "fromNs"),
+                  suffix.names);
+          if (caseInsensitiveSuggestion != null) {
+            int k = size - 1;
+            final SqlIdentifier prefix = identifier.getComponent(0, i);
+            final SqlIdentifier suffix3 = identifier.getComponent(i, k + 1);
+            throw validator.newValidationError(suffix3,
+                RESOURCE.columnNotFoundInTableDidYouMean(suffix3.toString(),
+                    prefix.toString(), caseInsensitiveSuggestion));
+          }
           final @Nullable String suggestion =
               findFieldSuggestion(requireNonNull(fromNs, "fromNs"), nameMatcher,
                   suffix.names);
