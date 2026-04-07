@@ -652,7 +652,23 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
     final RelDataType type1 = binding.getOperandType(0);
     final RelDataType collectionType = binding.getOperandType(1);
-    final RelDataType type2 = collectionType.getComponentType();
+    RelDataType type2 = collectionType.getComponentType();
+
+    // Determine whether the right-hand side is a subquery or a collection.
+    final boolean isSubQuery = binding.operand(1) instanceof SqlSelect;
+
+    if (type2 == null) {
+      if (!isSubQuery) {
+        return false;
+      }
+      // Subquery path: derive type2 from the first output column.
+      type2 =
+              SqlTypeUtil.flattenRecordType(binding.getTypeFactory(), collectionType, null)
+          .getFieldList()
+          .get(0)
+          .getType();
+    }
+
     requireNonNull(type2, "type2");
     final SqlCall sqlCall = binding.getCall();
     final SqlValidatorScope scope = binding.getScope();
@@ -674,16 +690,23 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     }
     final RelDataType rightWidenType =
         binding.getTypeFactory().enforceTypeWithNullability(widenType, type2.isNullable());
-    RelDataType collectionWidenType =
-        binding.getTypeFactory().createArrayType(rightWidenType, -1);
-    collectionWidenType =
-        binding
-            .getTypeFactory()
-            .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
-    boolean coercedRight =
-        coerceOperandType(scope, sqlCall, 1, collectionWidenType);
-    if (coercedRight) {
-      updateInferredType(node2, collectionWidenType);
+    boolean coercedRight;
+    if (isSubQuery) {
+      // For subquery, cast the output column directly.
+      // There is no array wrapper to reconstruct.
+      coercedRight = false;
+    } else {
+      // For collection (ARRAY[...]), reconstruct the array type with the
+      // widened component type before coercing the operand.
+      RelDataType collectionWidenType =
+          binding.getTypeFactory().createArrayType(rightWidenType, -1);
+      collectionWidenType =
+          binding.getTypeFactory()
+              .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
+      coercedRight = coerceOperandType(scope, sqlCall, 1, collectionWidenType);
+      if (coercedRight) {
+        updateInferredType(node2, collectionWidenType);
+      }
     }
     return coercedLeft || coercedRight;
   }

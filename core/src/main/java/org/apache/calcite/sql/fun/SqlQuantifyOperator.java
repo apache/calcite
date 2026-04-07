@@ -90,7 +90,15 @@ public class SqlQuantifyOperator extends SqlInOperator {
     if (typeForCollectionArgument != null) {
       return typeForCollectionArgument;
     }
-    return super.deriveType(validator, scope, call);
+    // Right-hand side is a subquery. tryDeriveTypeForCollection is skipped,
+    // so trigger coercion explicitly here.
+    final RelDataType returnType = super.deriveType(validator, scope, call);
+    if (validator.config().typeCoercionEnabled()) {
+      validator.getTypeCoercion()
+          .quantifyOperationCoercion(
+              new SqlCallBinding(validator, scope, call));
+    }
+    return returnType;
   }
 
   /**
