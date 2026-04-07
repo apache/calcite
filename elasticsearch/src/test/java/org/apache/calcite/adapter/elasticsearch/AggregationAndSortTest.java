@@ -115,21 +115,15 @@ class AggregationAndSortTest {
     return connection;
   }
 
-  /**
-   * Currently the patterns like below will be converted to Search in range
-   * which is not supported in elastic search adapter.
-   * (val1 >= 10 and val1 <= 20)
-   * (val1 <= 10 or val1 >=20)
-   * (val1 <= 10) or (val1 > 15 and val1 <= 20)
-   * So disable this test case until the translation from Search in range
-   * to rang Query in ES is implemented.
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4645">[CALCITE-4645]
+   * In Elasticsearch adapter, a range predicate should be translated to a range query</a>.
    */
   @Test void searchInRange() {
-    Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
     CalciteAssert.that()
         .with(AggregationAndSortTest::createConnection)
         .query("select count(*) from view where val1 >= 10 and val1 <=20")
-        .returns("EXPR$0=1\n");
+        .returns("EXPR$0=0\n");
 
     CalciteAssert.that()
         .with(AggregationAndSortTest::createConnection)
@@ -140,6 +134,21 @@ class AggregationAndSortTest {
         .with(AggregationAndSortTest::createConnection)
         .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
         .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from view where val1 = 1 or (val1 > 15 and val1 <= 20)")
+        .returns("EXPR$0=1\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from view where cat1 <= 'e' and cat1 >= 'a'")
+        .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from view where cat4 >= '2017-12-22' and cat4 <= '2018-02-01'")
+        .returns("EXPR$0=1\n");
   }
 
   @Test void countStar() {
