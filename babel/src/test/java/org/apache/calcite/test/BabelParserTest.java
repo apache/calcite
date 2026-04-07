@@ -400,6 +400,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("select v::variant^:^field from t")
         .fails("(?s).*Encountered \":.*\".*");
   }
+
   /** Tests parsing MySQL-style "<=>" equal operator. */
   @Test void testParseNullSafeEqual()  {
     // x <=> y
