@@ -4868,4 +4868,13 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.FIRST_KNOWN)
           .withOperandHandler(
               OperandHandlers.of(SqlLibraryOperators::transformConvert));
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_MONTHS_BETWEEN =
+      new SqlFunction("MONTHS_BETWEEN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
 }
