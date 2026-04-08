@@ -445,6 +445,14 @@ public class JdbcSchema extends JdbcBaseSchema implements Schema, Wrapper {
     default:
       break;
     }
+    // CALCITE-6654: Some JDBC drivers (Oracle, PostgreSQL, MSSQL) report
+    // DECIMAL/NUMERIC columns without explicit precision as precision=0.
+    // Treat this as unspecified precision/scale to avoid IllegalArgumentException.
+    if (precision == 0 && sqlTypeName == SqlTypeName.DECIMAL) {
+      precision = RelDataType.PRECISION_NOT_SPECIFIED;
+      scale = RelDataType.SCALE_NOT_SPECIFIED;
+    }
+
     if (precision >= 0
         && scale >= 0
         && sqlTypeName.allowsPrecScale(true, true)) {
