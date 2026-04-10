@@ -21,14 +21,12 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
-import org.apache.calcite.util.Bug;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
@@ -86,8 +84,13 @@ class AggregationAndSortTest {
   }
 
   private static Connection createConnection() throws SQLException {
+    return createConnectionWithConformance("JAVA", "DEFAULT");
+  }
+
+  private static Connection createConnectionWithConformance(String lex, String conformance)
+      throws SQLException {
     final Connection connection =
-        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+        DriverManager.getConnection("jdbc:calcite:lex=" + lex + ";conformance=" + conformance);
     final SchemaPlus root =
         connection.unwrap(CalciteConnection.class).getRootSchema();
 
@@ -468,9 +471,11 @@ class AggregationAndSortTest {
             + "cat6=null; cat5=2\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4868">[CALCITE-4868]
+   * Elasticsearch adapter fails if GROUP BY is followed by ORDER BY</a>.
+   */
   @Test void testOrderByWithGroupBy() {
-    // Once CALCITE-4868 is fixed, we can enable this test
-    Assumptions.assumeTrue(Bug.CALCITE_4868_FIXED, "CALCITE-4868");
     CalciteAssert.that()
         .with(AggregationAndSortTest::createConnection)
         .query("select cat6, cat5 from view group by cat6, cat5 "
@@ -478,5 +483,33 @@ class AggregationAndSortTest {
         .returns("cat6=null; cat5=2\n"
             + "cat6=null; cat5=1\n"
             + "cat6=text1; cat5=null\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4868">[CALCITE-4868]
+   * Elasticsearch adapter fails if GROUP BY is followed by ORDER BY</a>.
+   */
+  @Test void testSortAggregation() {
+    // Test ORDER BY alias (isSortByAlias)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5, max(val1) as MAX_VAL1 from view"
+            + " group by cat5 order by MAX_VAL1 desc, cat5 desc")
+        .returns("cat5=2; MAX_VAL1=7.0\ncat5=1; MAX_VAL1=1.0\ncat5=null; MAX_VAL1=null\n");
+
+    // Test ORDER BY ordinal (isSortByOrdinal)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5, max(val1) as MAX_VAL1 from view"
+            + " group by cat5 order by 2 desc, 1 desc")
+        .returns("cat5=2; MAX_VAL1=7.0\ncat5=1; MAX_VAL1=1.0\ncat5=null; MAX_VAL1=null\n");
+
+    // Test GROUP BY alias (isGroupByAlias) with ORDER BY alias
+    // Uses BABEL conformance which supports GROUP BY alias
+    CalciteAssert.that()
+        .with(() -> createConnectionWithConformance("JAVA", "BABEL"))
+        .query("select cat5 as CAT, max(val1) as MAX_VAL1 from view"
+            + " group by CAT order by MAX_VAL1 desc, CAT desc")
+        .returns("CAT=2; MAX_VAL1=7.0\nCAT=1; MAX_VAL1=1.0\nCAT=null; MAX_VAL1=null\n");
   }
 }
