@@ -6428,9 +6428,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       setValidatedNodeType(measure, type);
 
       fields.add(alias, type);
-      sqlNodes.add(
-          SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
-              new SqlIdentifier(alias, SqlParserPos.ZERO)));
+      sqlNodes.add(expand);
     }
 
     SqlNodeList list = new SqlNodeList(sqlNodes, measures.getParserPosition());
