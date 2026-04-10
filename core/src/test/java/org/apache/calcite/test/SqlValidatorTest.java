@@ -2482,7 +2482,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql).fails("DISTINCT/ALL not allowed with "
         + "COUNT\\(DISTINCT `A`\\.`DEPTNO`\\) function");
 
-    final String simpleMatchRecognize = "SELECT *\n"
+    // Test case for [CALCITE-7466] https://issues.apache.org/jira/browse/CALCITE-7466
+    // Unparse of `MATCH_RECOGNIZE` produces duplicate aliases
+    final String sql2 = "SELECT *\n"
         + "FROM emp\n"
         + "MATCH_RECOGNIZE (\n"
         + "  MEASURES\n"
@@ -2492,16 +2494,86 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "    A AS A.empno = 123\n"
         + ") AS T";
 
-    final String simpleMatchRecognizeExpected = "SELECT *\n"
+    final String expected2 = "SELECT *\n"
         + "FROM `EMP` MATCH_RECOGNIZE(\n"
         + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
         + "PATTERN (`A` `B`)\n"
         + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
 
-    sql(simpleMatchRecognize)
-        .rewritesTo(simpleMatchRecognizeExpected);
+    sql(sql2)
+        .rewritesTo(expected2);
 
-    sql(simpleMatchRecognizeExpected)
+    sql(expected2)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7467] https://issues.apache.org/jira/browse/CALCITE-7467
+    // `MATCH_RECOGNIZE` does not support alias for table before
+    final String sql3 = "SELECT *\n"
+        + "FROM sales.emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+    final String expected3 = "SELECT `T`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql3)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected3);
+    sql(expected3)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Identifier with alias for table before MATCH_RECOGNIZE should pass parser
+    final String sql4 = "SELECT *\n"
+        + "FROM sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+
+    final String expected4 = "SELECT `T`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql4)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected4);
+    sql(expected4)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Identifier with alias for table before MATCH_RECOGNIZE should pass parser
+    final String sql5 = "SELECT emp.empno, T.*\n"
+        + "FROM emp JOIN sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T on emp.deptno = T.deptno";
+    final String expected5 =
+        "SELECT `EMP`.`EMPNO`, `T`.`DEPTNO`\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`\n"
+            + "INNER JOIN `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+            + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+            + "PATTERN (`A` `B`)\n"
+            + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T` ON CAST(`EMP`.`DEPTNO` AS BIGINT) = `T`.`DEPTNO`";
+
+    sql(sql5)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected5);
+    sql(expected5)
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
