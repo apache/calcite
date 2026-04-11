@@ -171,7 +171,7 @@ reporting {
     reports {
         if (enableJacoco) {
             val jacocoAggregateTestReport by creating(JacocoCoverageReport::class) {
-                testType.set(TestSuiteType.UNIT_TEST)
+                testSuiteName = "test"
             }
         }
     }
@@ -262,7 +262,8 @@ dependencies {
     }
     if (enableJacoco) {
         for (p in subprojects) {
-            if (p.name != "bom") {
+            val hasTests = p.file("src/test/java").isDirectory || p.file("src/test/kotlin").isDirectory
+            if (p.name != "bom" && hasTests) {
                 jacocoAggregation(p)
             }
         }
@@ -380,6 +381,7 @@ allprojects {
             val testRuntimeOnly by configurations
             testImplementation(platform("org.junit:junit-bom"))
             testImplementation("org.junit.jupiter:junit-jupiter")
+            testRuntimeOnly("org.junit.platform:junit-platform-launcher")
             testImplementation("org.hamcrest:hamcrest")
             if (project.props.bool("junit4", default = false)) {
                 // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
@@ -496,8 +498,12 @@ allprojects {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
-        dirMode = "775".toInt(8)
-        fileMode = "664".toInt(8)
+        dirPermissions {
+            unix("775")
+        }
+        filePermissions {
+            unix("664")
+        }
     }
 
     tasks {
