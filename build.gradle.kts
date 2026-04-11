@@ -536,8 +536,12 @@ allprojects {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
-        dirMode = "775".toInt(8)
-        fileMode = "664".toInt(8)
+        dirPermissions {
+            unix("775")
+        }
+        filePermissions {
+            unix("664")
+        }
     }
 
     tasks {
