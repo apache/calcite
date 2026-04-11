@@ -21339,6 +21339,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionAllToFilterRuleWithLimit">
+    <Resource name="sql">
+      <![CDATA[(SELECT mgr, comm FROM emp LIMIT 2)
+UNION ALL
+(SELECT mgr, comm FROM emp LIMIT 2)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalSort(fetch=[2])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalSort(fetch=[2])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnionEliminatorRuleIntersect">
     <Resource name="planBefore">
       <![CDATA[

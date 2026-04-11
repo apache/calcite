@@ -11450,6 +11450,18 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
    * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionAllToFilterRuleWithLimit() {
+    final String sql = "(SELECT mgr, comm FROM emp LIMIT 2)\n"
+        + "UNION ALL\n"
+        + "(SELECT mgr, comm FROM emp LIMIT 2)\n";
+    sql(sql)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
   @Test void testUnionToFilterRuleWithNestedLimit() {
     final String sql = "SELECT comm FROM (SELECT mgr, comm FROM emp LIMIT 2) t\n"
         + "WHERE comm > 5\n"
