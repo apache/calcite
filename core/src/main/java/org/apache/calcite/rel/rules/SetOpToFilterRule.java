@@ -22,7 +22,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -205,11 +207,33 @@ public class SetOpToFilterRule
         // Skip non-deterministic conditions or those containing subqueries
         return Pair.of(input, null);
       }
-      return Pair.of(filter.getInput().stripped(), filter.getCondition());
+      final RelNode source = filter.getInput().stripped();
+      if (containsSortInProjectFilterChain(source)) {
+        return Pair.of(input, null);
+      }
+      return Pair.of(source, filter.getCondition());
+    }
+    if (containsSortInProjectFilterChain(input)) {
+      return Pair.of(input, null);
     }
     // For non-filter inputs, use TRUE literal as default condition.
     return Pair.of(input.stripped(),
         input.getCluster().getRexBuilder().makeLiteral(true));
+  }
+
+  private static boolean containsSortInProjectFilterChain(RelNode input) {
+    RelNode current = input.stripped();
+    while (true) {
+      if (current instanceof Sort) {
+        return true;
+      }
+      if (current instanceof Project
+          || current instanceof Filter) {
+        current = current.getInput(0).stripped();
+        continue;
+      }
+      return false;
+    }
   }
 
   /**

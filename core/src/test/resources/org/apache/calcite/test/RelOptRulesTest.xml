@@ -21498,6 +21498,50 @@ LogicalUnion(all=[false])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionToFilterRuleWithLimit">
+    <Resource name="sql">
+      <![CDATA[(SELECT mgr, comm FROM emp LIMIT 2)
+UNION
+(SELECT mgr, comm FROM emp LIMIT 2)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalSort(fetch=[2])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalSort(fetch=[2])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnionToFilterRuleWithNestedLimit">
+    <Resource name="sql">
+      <![CDATA[SELECT comm FROM (SELECT mgr, comm FROM emp LIMIT 2) t
+WHERE comm > 5
+UNION
+SELECT comm FROM (SELECT mgr, comm FROM emp LIMIT 2) t
+WHERE comm > 10
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[>($0, 5)])
+    LogicalProject(COMM=[$1])
+      LogicalSort(fetch=[2])
+        LogicalProject(MGR=[$3], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 10)])
+    LogicalProject(COMM=[$1])
+      LogicalSort(fetch=[2])
+        LogicalProject(MGR=[$3], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnionToFilterRuleWithNonDeterministicProject">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm, rand() FROM emp WHERE mgr = 12
