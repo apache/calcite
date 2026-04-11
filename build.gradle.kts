@@ -289,7 +289,8 @@ dependencies {
     }
     if (enableJacoco) {
         for (p in subprojects) {
-            if (p.name != "bom") {
+            val hasTests = p.file("src/test/java").isDirectory || p.file("src/test/kotlin").isDirectory
+            if (p.name != "bom" && hasTests) {
                 jacocoAggregation(p)
             }
         }
