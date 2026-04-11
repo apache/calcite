@@ -9184,4 +9184,35 @@ SELECT 1 FROM emp where sal > 200 and emp.deptno=dept.deptno);
 (3 rows)
 
 !ok
+
+# Test case for [CALCITE-7437] SOME/ANY subquery throws RuntimeException
+SELECT deptno, deptno > SOME(SELECT sal FROM emp) AS b FROM dept;
++--------+-------+
+| DEPTNO | B     |
++--------+-------+
+|     10 | false |
+|     20 | false |
+|     30 | false |
+|     40 | false |
++--------+-------+
+(4 rows)
+
+!ok
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):DECIMAL(7, 2) NOT NULL], expr#5=[>($t4, $t0)], expr#6=[IS TRUE($t5)], expr#7=[0], expr#8=[<>($t1, $t7)], expr#9=[AND($t6, $t8)], expr#10=[>($t1, $t2)], expr#11=[null:BOOLEAN], expr#12=[IS NOT TRUE($t5)], expr#13=[AND($t10, $t11, $t8, $t12)], expr#14=[<=($t1, $t2)], expr#15=[AND($t5, $t8, $t12, $t14)], expr#16=[OR($t9, $t13, $t15)], DEPTNO=[$t3], B=[$t16])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{}], m=[MIN($5)], c=[COUNT()], d=[COUNT($5)])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+!}
+
+# Case 2: incompatible types (VARCHAR vs SMALLINT).
+# Before fix: java.lang.RuntimeException: while resolving method
+#             'gt[class java.lang.String, short]' in class SqlFunctions
+# After fix: incompatibleValueType validation error
+SELECT deptno, dname > SOME(SELECT empno FROM emp) AS b FROM dept;
+For input string: "ACCOUNTING"
+!error
 # End sub-query.iq
