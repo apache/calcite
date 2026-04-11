@@ -2482,7 +2482,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql).fails("DISTINCT/ALL not allowed with "
         + "COUNT\\(DISTINCT `A`\\.`DEPTNO`\\) function");
 
-    sql("SELECT *\n"
+    final String simpleMatchRecognize = "SELECT *\n"
         + "FROM emp\n"
         + "MATCH_RECOGNIZE (\n"
         + "  MEASURES\n"
@@ -2490,12 +2490,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  PATTERN (A B)\n"
         + "  DEFINE\n"
         + "    A AS A.empno = 123\n"
-        + ") AS T")
-        .rewritesTo("SELECT *\n"
-            + "FROM `EMP` MATCH_RECOGNIZE(\n"
-            + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
-            + "PATTERN (`A` `B`)\n"
-            + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T`");
+        + ") AS T";
+
+    final String simpleMatchRecognizeExpected = "SELECT *\n"
+        + "FROM `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(simpleMatchRecognize)
+        .rewritesTo(simpleMatchRecognizeExpected);
+
+    sql(simpleMatchRecognizeExpected)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testIntervalTimeUnitEnumeration() {

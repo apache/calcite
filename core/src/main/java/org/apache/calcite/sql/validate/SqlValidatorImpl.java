@@ -6483,11 +6483,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       inferUnknownTypes(booleanType, scope, expand);
       expand.validate(this, scope);
 
-      // Some extra work need required here.
       // In PREV, NEXT, FINAL and LAST, only one pattern variable is allowed.
-      sqlNodes.add(
-          SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
-              new SqlIdentifier(alias, SqlParserPos.ZERO)));
+      // It is already parsed into AS operator, see PatternDefinition in Parser.jj
+      sqlNodes.add(expand);
 
       final RelDataType type = deriveType(scope, expand);
       if (!SqlTypeUtil.inBooleanFamily(type)) {
