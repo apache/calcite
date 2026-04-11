@@ -198,7 +198,7 @@ reporting {
     reports {
         if (enableJacoco) {
             val jacocoAggregateTestReport by creating(JacocoCoverageReport::class) {
-                testType.set(TestSuiteType.UNIT_TEST)
+                testSuiteName = "test"
             }
         }
     }
@@ -419,6 +419,7 @@ allprojects {
             val testRuntimeOnly by configurations
             testImplementation(platform("org.junit:junit-bom"))
             testImplementation("org.junit.jupiter:junit-jupiter")
+            testRuntimeOnly("org.junit.platform:junit-platform-launcher")
             testImplementation("org.hamcrest:hamcrest")
             if (project.props.bool("junit4", default = false)) {
                 // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
