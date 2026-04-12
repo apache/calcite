@@ -21607,6 +21607,30 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionToFilterRuleWithSortLimit">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[>($1, 5)])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[2])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[2])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[>($1, 5)])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[2])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnionToFilterRuleWithSortOnly">
     <Resource name="planBefore">
       <![CDATA[
@@ -21686,6 +21710,20 @@ LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[OR(=($0, 12), =($1, 5))])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnionToFilterRuleWithUnmergeableFirstInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[>($1, 5)])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[2])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>
