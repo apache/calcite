@@ -230,7 +230,7 @@ public class SetOpToFilterRule
       }
       if (current instanceof Project
           || current instanceof Filter) {
-        current = current.getInput(0);
+        current = current.getInput(0).stripped();
         continue;
       }
       return false;
