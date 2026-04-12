@@ -2640,7 +2640,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case MATCH_RECOGNIZE:
       registerMatchRecognize(parentScope, usingScope,
           (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
-      return node;
+      return newNode;
 
     case PIVOT:
       registerPivot(parentScope, usingScope, (SqlPivot) node, enclosingNode,

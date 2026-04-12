@@ -2575,6 +2575,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected5);
     sql(expected5)
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7471] https://issues.apache.org/jira/browse/CALCITE-7471
+    // Alias is not auto generated for `MATCH_RECOGNIZE`
+    final String sql6 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+
+    final String expected6 = "SELECT `EXPR$0`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `EXPR$0`";
+
+    sql(sql6)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected6);
+
+    sql(expected6)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testIntervalTimeUnitEnumeration() {
