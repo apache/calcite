@@ -208,12 +208,12 @@ public class SetOpToFilterRule
         return Pair.of(input, null);
       }
       final RelNode source = filter.getInput().stripped();
-      if (containsSortInProjectFilterChain(source)) {
+      if (containsLimitOrOffsetInProjectFilterChain(source)) {
         return Pair.of(input, null);
       }
       return Pair.of(source, filter.getCondition());
     }
-    if (containsSortInProjectFilterChain(input)) {
+    if (containsLimitOrOffsetInProjectFilterChain(input)) {
       return Pair.of(input, null);
     }
     // For non-filter inputs, use TRUE literal as default condition.
@@ -221,15 +221,16 @@ public class SetOpToFilterRule
         input.getCluster().getRexBuilder().makeLiteral(true));
   }
 
-  private static boolean containsSortInProjectFilterChain(RelNode input) {
+  private static boolean containsLimitOrOffsetInProjectFilterChain(RelNode input) {
     RelNode current = input.stripped();
     while (true) {
       if (current instanceof Sort) {
-        return true;
+        Sort sort = (Sort) current;
+        return sort.fetch != null || sort.offset != null;
       }
       if (current instanceof Project
           || current instanceof Filter) {
-        current = current.getInput(0).stripped();
+        current = current.getInput(0);
         continue;
       }
       return false;

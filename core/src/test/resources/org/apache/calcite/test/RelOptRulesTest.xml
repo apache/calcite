@@ -21607,6 +21607,30 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionToFilterRuleWithSortOnly">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[>($1, 5)])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[>($1, 5)])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnionToFilterRuleWithSubqueryProject">
     <Resource name="sql">
       <![CDATA[SELECT 1, (SELECT COUNT(*) FROM dept)
