@@ -131,8 +131,8 @@ public class SetOpToFilterRule
     final RelBuilder builder = call.builder();
     final RelNode firstClause = inputs.get(0).stripped();
     final List<RelCollation> firstCollations = mq.collations(firstClause);
-    Pair<RelNode, @Nullable RexNode> first = extractSourceAndCond(firstClause,
-        firstCollations != null
+    Pair<RelNode, @Nullable RexNode> first =
+        extractSourceAndCond(firstClause, firstCollations != null
             && firstCollations.stream().anyMatch(c -> c != RelCollations.EMPTY));
 
     // Groups conditions by their source relational node and input position.
