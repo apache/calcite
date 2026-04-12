@@ -34,7 +34,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.test.RexImplicationCheckerFixtures;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
@@ -153,6 +155,14 @@ class RexBuilderTest {
 
     assertNotEquals(node, ensuredNode);
     assertEquals(ensuredNode.getType(), typeFactory.createSqlType(SqlTypeName.INTEGER));
+  }
+
+  @Test void testTry_to_dateForSf() {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+    RexNode node =
+        builder.call(SqlLibraryOperators.TRY_TO_DATE_SF, builder.literal("2013-12-05 01:02:03"),
+            builder.literal("YYYY-MM-DD HH24:MI:SS"));
+    assertEquals(node.getType().isNullable(), true);
   }
 
   @Test public void testToTimestampFunctionReturnType() {
