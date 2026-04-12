@@ -117,7 +117,15 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.*;
+import org.apache.calcite.util.AnchorType;
+import org.apache.calcite.util.Comment;
+import org.apache.calcite.util.CommentType;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimestampString;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -129,7 +137,15 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -14600,7 +14616,7 @@ class RelToSqlConverterDMTest {
     builder.scan("employee");
     RexNode literalRex = builder.literal(10);
     RexNode castNode =
-        rexBuilder.makeAbstractCast(typeFactory.createSqlType(SqlTypeName.DECIMAL, 18,4),
+        rexBuilder.makeAbstractCast(typeFactory.createSqlType(SqlTypeName.DECIMAL, 18, 4),
             literalRex, false);
     RexNode finalNode =  builder.alias(castNode, "test");
     Set<Comment> commentList = new HashSet<>();
@@ -14609,7 +14625,7 @@ class RelToSqlConverterDMTest {
         "skip_simplify",
         AnchorType.LEFT,
         CommentType.SINGLE));
-    RexNode finalRex= finalNode.copy(commentList);
+    RexNode finalRex = finalNode.copy(commentList);
 
     RelNode relNode = builder
         .project(
@@ -14617,8 +14633,8 @@ class RelToSqlConverterDMTest {
             finalRex)
         .build();
 
-    final String expectedBiqQuery = "SELECT employee_id, -- skip_simplify\n " +
-        "CAST(10 AS NUMERIC) AS test\nFROM foodmart.employee";
+    final String expectedBiqQuery = "SELECT employee_id, -- skip_simplify\n "
+        + "CAST(10 AS NUMERIC) AS test\nFROM foodmart.employee";
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
