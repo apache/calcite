@@ -157,7 +157,7 @@ class RexBuilderTest {
     assertEquals(ensuredNode.getType(), typeFactory.createSqlType(SqlTypeName.INTEGER));
   }
 
-  @Test void testTry_to_dateForSf() {
+  @Test void testTryToDateForSf() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
     RexNode node =
         builder.call(SqlLibraryOperators.TRY_TO_DATE_SF, builder.literal("2013-12-05 01:02:03"),
