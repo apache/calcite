@@ -2077,7 +2077,13 @@ public class RelBuilder {
 
     // Simplify expressions.
     if (config.simplify()) {
-      nodeList.replaceAll(e -> simplifier.simplifyPreservingType(e));
+      nodeList.replaceAll(e -> {
+        boolean skipSimplify = e.getComment() != null
+            && !e.getComment().isEmpty()
+            && "skip_simplify".equals(
+            e.getComment().iterator().next().getComment());
+        return skipSimplify ? e : simplifier.simplifyPreservingType(e);
+      });
     }
 
     // Replace null names with generated aliases.
