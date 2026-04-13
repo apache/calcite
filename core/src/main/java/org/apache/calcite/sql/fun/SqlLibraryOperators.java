@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -2331,6 +2332,17 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TRY_TO_DATE",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING, OperandTypes.STRING_STRING_BOOLEAN),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_TO_DATE_SF =
+      new SqlFunction("TRY_TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(RelDataTypeImpl.proto(SqlTypeName.DATE, true)),
           null,
           OperandTypes.or(
               OperandTypes.STRING,
