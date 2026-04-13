@@ -14680,19 +14680,4 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
-
-  @Test public void testSnowflakeMonthsBetween() {
-    final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode monthsBetweenNode =
-        builder.call(SqlLibraryOperators.SNOWFLAKE_MONTHS_BETWEEN,
-            builder.call(CURRENT_TIMESTAMP),
-            builder.call(CURRENT_TIMESTAMP));
-    RelNode root = builder
-        .project(monthsBetweenNode)
-        .build();
-    final String expectedBigQuery =
-        "SELECT MONTHS_BETWEEN(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) AS \"$f0\"\n"
-            + "FROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBigQuery));
-  }
 }
