@@ -95,6 +95,10 @@ public class ArrayInsertOperandTypeChecker extends SameOperandTypeChecker {
       return false;
     }
 
+    if (callBinding.isTypeCoercionEnabled()) {
+      callBinding.getValidator().getTypeCoercion()
+          .collectionFunctionCoercion(callBinding);
+    }
     return true;
   }
 }
