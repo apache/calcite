@@ -42,6 +42,8 @@ val testH2 by configurations.creating(integrationTestConfig)
 val testOracle by configurations.creating(integrationTestConfig)
 val testPostgresql by configurations.creating(integrationTestConfig)
 val testMysql by configurations.creating(integrationTestConfig)
+val testMssql by configurations.creating(integrationTestConfig)
+val testPostgresql42 by configurations.creating(integrationTestConfig)
 
 dependencies {
     api(project(":linq4j"))
@@ -86,6 +88,8 @@ dependencies {
     testMysql("mysql:mysql-connector-java")
     testOracle("com.oracle.ojdbc:ojdbc8")
     testPostgresql("org.postgresql:postgresql")
+    testMssql("com.microsoft.sqlserver:mssql-jdbc:${property("mssql-jdbc.version")}")
+    testPostgresql42("org.postgresql:postgresql:${property("postgresql-test.version")}")
 
     testImplementation(project(":testkit"))
     testImplementation("net.bytebuddy:byte-buddy")
@@ -96,8 +100,6 @@ dependencies {
     testImplementation("org.hsqldb:hsqldb::jdk8")
     testImplementation("sqlline:sqlline")
     testImplementation("com.oracle.ojdbc:ojdbc8")
-    testImplementation("org.postgresql:postgresql:42.7.3")
-    testImplementation("com.microsoft.sqlserver:mssql-jdbc:12.4.2.jre11")
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
@@ -296,4 +298,14 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
     integTestAll {
         dependsOn(task)
     }
+}
+
+tasks.register("integTestCalcite6654", Test::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Integration tests for CALCITE-6654 decimal precision fix"
+    include("org/apache/calcite/jdbc/JdbcSchemaDecimalBugTest.class")
+    systemProperty("calcite.integration.tests", "true")
+    classpath += configurations.getAt("testPostgresql42")
+    classpath += configurations.getAt("testMssql")
+    classpath += configurations.getAt("testOracle")
 }

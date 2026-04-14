@@ -445,30 +445,20 @@ public class JdbcSchema extends JdbcBaseSchema implements Schema, Wrapper {
     default:
       break;
     }
+    // CALCITE-6654: Some JDBC drivers (Oracle, PostgreSQL, MSSQL) report
+    // DECIMAL/NUMERIC columns without explicit precision as precision=0.
+    // Treat this as unspecified precision/scale to avoid IllegalArgumentException.
+    if (precision == 0 && sqlTypeName == SqlTypeName.DECIMAL) {
+      precision = RelDataType.PRECISION_NOT_SPECIFIED;
+      scale = RelDataType.SCALE_NOT_SPECIFIED;
+    }
+
     if (precision >= 0
         && scale >= 0
         && sqlTypeName.allowsPrecScale(true, true)) {
-
-      // Fix for CALCITE-6654:
-      // Oracle, Postgres and MSSQL report precision=0 for DECIMAL/NUMERIC
-      // columns without explicit precision. Calcite rejects precision=0
-      // since 1.38.0. Treat as unspecified precision.
-      if (precision == 0 && isAffectedTypeForMissingPrecision(sqlTypeName)) {
-        return typeFactory.createSqlType(sqlTypeName);
-      }
-
       return typeFactory.createSqlType(sqlTypeName, precision, scale);
-
     } else if (precision >= 0 && sqlTypeName.allowsPrecNoScale()) {
-
-      // Fix for CALCITE-6654:
-      // Oracle returns scale=-127 for NUMBER without precision
-      if (precision == 0 && isAffectedTypeForMissingPrecision(sqlTypeName)) {
-        return typeFactory.createSqlType(sqlTypeName);
-      }
-
       return typeFactory.createSqlType(sqlTypeName, precision);
-
     } else {
       assert sqlTypeName.allowsNoPrecNoScale();
       return typeFactory.createSqlType(sqlTypeName);
@@ -584,13 +574,6 @@ public class JdbcSchema extends JdbcBaseSchema implements Schema, Wrapper {
         Map<String, Object> operand) {
       return JdbcSchema.create(parentSchema, name, operand);
     }
-  }
-
-  private static boolean isAffectedTypeForMissingPrecision(SqlTypeName sqlTypeName) {
-    // Only DECIMAL is known to report precision=0 for columns without
-    // explicit precision in Oracle (NUMBER), Postgres (NUMERIC) and MSSQL (DECIMAL).
-    // All three map to SqlTypeName.DECIMAL in Calcite's type system.
-    return sqlTypeName == SqlTypeName.DECIMAL;
   }
 
   /** Do not use. */
