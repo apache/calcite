@@ -60,7 +60,7 @@ EXPR$0
 false
 !ok
 
-#Test string function split_part
+#Test string function split_part, validated on Postgres
 select split_part('abc~@~def~@~ghi', '~@~', 2);
 EXPR$0
 def
@@ -69,6 +69,41 @@ def
 select split_part('abc,def,ghi,jkl', ',', -2);
 EXPR$0
 ghi
+!ok
+
+select split_part('abc.def', '.', 1);
+EXPR$0
+abc
+!ok
+
+select split_part('abc.def', '', 1);
+EXPR$0
+abc.def
+!ok
+
+select split_part('abc.def', '', 2);
+EXPR$0
+
+!ok
+
+select split_part(NULL, '.', 1);
+EXPR$0
+null
+!ok
+
+select split_part(NULL, NULL, NULL);
+EXPR$0
+null
+!ok
+
+select split_part('abc.abc', '.', NULL);
+EXPR$0
+null
+!ok
+
+select split_part('abc', NULL, 1);
+EXPR$0
+null
 !ok
 
 # Test string_to_array function
