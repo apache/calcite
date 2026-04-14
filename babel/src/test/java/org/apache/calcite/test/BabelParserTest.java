@@ -315,16 +315,16 @@ class BabelParserTest extends SqlParserTest {
         });
 
     // Bracket after :: binds to the type, not as subscript on the cast result
-    sql("select v::varchar[1] from t")
-        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
-    f.sql("select v::varchar[1] from t")
-        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
+    sql("select v::varchar array[1] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1]\nFROM `T`");
+    f.sql("select v::varchar array[1] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1]\nFROM `T`");
 
     // Explicit parentheses make no difference — bracket still binds to the type
-    sql("select (v::varchar)[1] from t")
-        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
-    f.sql("select (v::varchar)[1] from t")
-        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
+    sql("select (v::varchar array)[1] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1]\nFROM `T`");
+    f.sql("select (v::varchar array)[1] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1]\nFROM `T`");
 
     // Array type with bracket
     sql("select v::integer array[1] from t")
@@ -339,16 +339,16 @@ class BabelParserTest extends SqlParserTest {
         .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
 
     // Multiple brackets bind to the type
-    sql("select v::varchar[1][2] from t")
-        .ok("SELECT `V` :: VARCHAR[1][2]\nFROM `T`");
-    f.sql("select v::varchar[1][2] from t")
-        .ok("SELECT `V` :: VARCHAR[1][2]\nFROM `T`");
+    sql("select v::varchar array[1][2] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1][2]\nFROM `T`");
+    f.sql("select v::varchar array[1][2] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1][2]\nFROM `T`");
 
     // Expression on the LHS of ::
-    sql("select (v + 1)::integer[1] from t")
-        .ok("SELECT (`V` + 1) :: INTEGER[1]\nFROM `T`");
-    f.sql("select (v + 1)::integer[1] from t")
-        .ok("SELECT (`V` + 1) :: INTEGER[1]\nFROM `T`");
+    sql("select (v + 1)::integer array[1] from t")
+        .ok("SELECT (`V` + 1) :: INTEGER ARRAY[1]\nFROM `T`");
+    f.sql("select (v + 1)::integer array[1] from t")
+        .ok("SELECT (`V` + 1) :: INTEGER ARRAY[1]\nFROM `T`");
 
     // Plain dot: [n].field correctly means subscript-then-field
     sql("select v.field[1].field2 from t")
@@ -357,22 +357,22 @@ class BabelParserTest extends SqlParserTest {
         .ok("SELECT ((`V`.`FIELD`)[1].`FIELD2`)\nFROM `T`");
 
     // With ::, [n].field is consumed as part of the type
-    sql("select v::varchar[1].field from t")
-        .ok("SELECT `V` :: (VARCHAR[1].`FIELD`)\nFROM `T`");
-    f.sql("select v:field::varchar[1].field2 from t")
-        .ok("SELECT (`V`.`FIELD`) :: (VARCHAR[1].`FIELD2`)\nFROM `T`");
+    sql("select v::varchar array[1].field from t")
+        .ok("SELECT `V` :: (VARCHAR ARRAY[1].`FIELD`)\nFROM `T`");
+    f.sql("select v:field::varchar array[1].field2 from t")
+        .ok("SELECT (`V`.`FIELD`) :: (VARCHAR ARRAY[1].`FIELD2`)\nFROM `T`");
 
     // Explicit parentheses around :: let [n].field apply to the cast result
-    sql("select (v::varchar)[1].field from t")
-        .ok("SELECT (`V` :: VARCHAR[1].`FIELD`)\nFROM `T`");
-    f.sql("select (v:field::varchar)[1].field2 from t")
-        .ok("SELECT ((`V`.`FIELD`) :: VARCHAR[1].`FIELD2`)\nFROM `T`");
+    sql("select (v::varchar array)[1].field from t")
+        .ok("SELECT (`V` :: VARCHAR ARRAY[1].`FIELD`)\nFROM `T`");
+    f.sql("select (v:field::varchar array)[1].field2 from t")
+        .ok("SELECT ((`V`.`FIELD`) :: VARCHAR ARRAY[1].`FIELD2`)\nFROM `T`");
 
     // Bracket on the result of :: cast
-    sql("select v::integer[1] from t")
-        .ok("SELECT `V` :: INTEGER[1]\nFROM `T`");
-    f.sql("select v:field::integer[1] from t")
-        .ok("SELECT (`V`.`FIELD`) :: INTEGER[1]\nFROM `T`");
+    sql("select v::integer array[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+    f.sql("select v:field::integer array[1] from t")
+        .ok("SELECT (`V`.`FIELD`) :: INTEGER ARRAY[1]\nFROM `T`");
 
     // Dot/bracket access combined with infix cast
     sql("select v.field::integer,\n"
