@@ -1004,11 +1004,18 @@ public class SqlFunctions {
 
   /** SQL {@code SPLIT_PART(string, string, int)} function. */
   public static String splitPart(String s, String delimiter, int n) {
-    if (Strings.isNullOrEmpty(s) || Strings.isNullOrEmpty(delimiter)) {
+    // Function is strict, so arguments cannot be null
+    if (s.isEmpty()) {
       return "";
     }
 
-    String[] parts = s.split(delimiter, -1);
+
+    String[] parts;
+    if (delimiter.isEmpty()) {
+      parts = new String[] { s };
+    } else {
+      parts = s.split(Pattern.quote(delimiter), -1);
+    }
     int partCount = parts.length;
 
     if (n < 0) {
@@ -1021,8 +1028,6 @@ public class SqlFunctions {
 
     return parts[n - 1];
   }
-
-
 
   /** SQL {@code SPLIT(string)} function. */
   public static List<String> split(String s) {

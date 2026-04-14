@@ -1085,14 +1085,17 @@ class SqlFunctionsTest {
 
     assertThat(SqlFunctions.splitPart("abc,,ghi", ",", 2), is(""));
     assertThat(SqlFunctions.splitPart("", ",", 1), is(""));
-    assertThat(SqlFunctions.splitPart("abc", "", 1), is(""));
-
-    assertThat(SqlFunctions.splitPart(null, ",", 1), is(""));
-    assertThat(SqlFunctions.splitPart("abc,def", null, 1), is(""));
+    // Tested on Postgres 17: empty delimiter
+    assertThat(SqlFunctions.splitPart("abc", "", 1), is("abc"));
+    assertThat(SqlFunctions.splitPart("abc", "", 2), is(""));
     assertThat(SqlFunctions.splitPart("abc,def", ",", 0), is(""));
 
     assertThat(SqlFunctions.splitPart("abc,def", ",", 3), is(""));
     assertThat(SqlFunctions.splitPart("abc,def", ",", -3), is(""));
+
+    // Test case for https://issues.apache.org/jira/browse/CALCITE-7468
+    // The SPLIT_PART implementation is incorrect for regex patterns
+    assertThat(SqlFunctions.splitPart("abc.def", ".", 1), is("abc"));
   }
 
   @Test void testByteString() {
