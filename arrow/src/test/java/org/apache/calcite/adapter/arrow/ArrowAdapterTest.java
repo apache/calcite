@@ -1109,4 +1109,88 @@ class ArrowAdapterTest {
         .returns(result)
         .explainContains(plan);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7472">[CALCITE-7472]
+   * Arrow adapter should support LIKE operator push down</a>. */
+  @Test void testArrowProjectFieldsWithLikePrefixFilter() {
+    String sql = "select \"stringField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"stringField\" like '1%'";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(stringField=[$3])\n"
+        + "    ArrowFilter(condition=[LIKE($3, '1%')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], "
+        + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]])\n\n";
+    String result = "stringField=1\nstringField=10\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7472">[CALCITE-7472]
+   * Arrow adapter should support LIKE operator push down</a>. */
+  @Test void testArrowProjectFieldsWithLikeSuffixFilter() {
+    String sql = "select \"stringField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"stringField\" like '%5'";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(stringField=[$3])\n"
+        + "    ArrowFilter(condition=[LIKE($3, '%5')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], "
+        + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(5)  // 5, 15, 25, 35, 45
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7472">[CALCITE-7472]
+   * Arrow adapter should support LIKE operator push down</a>. */
+  @Test void testArrowProjectFieldsWithLikeContainsFilter() {
+    String sql = "select \"stringField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"stringField\" like '%2%'";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(stringField=[$3])\n"
+        + "    ArrowFilter(condition=[LIKE($3, '%2%')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]],"
+        + " fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(14)  // 2, 12, 20-29, 32, 42
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7472">[CALCITE-7472]
+   * Arrow adapter should support LIKE operator push down</a>. */
+  @Test void testArrowProjectFieldsWithLikeSingleCharFilter() {
+    String sql = "select \"stringField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"stringField\" like '1_'";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(stringField=[$3])\n"
+        + "    ArrowFilter(condition=[LIKE($3, '1_')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], "
+        + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]])\n\n";
+    String result = "stringField=10\nstringField=11\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
 }

@@ -144,6 +144,8 @@ class ArrowTranslator {
       return ConditionToken.unary(fieldNames.get(inputRef.getIndex()), "istrue");
     case NOT:
       return translateUnary("isfalse", (RexCall) node);
+    case LIKE:
+      return translateBinary("like", null, (RexCall) node);
     default:
       throw new UnsupportedOperationException("Unsupported operator " + node);
     }
