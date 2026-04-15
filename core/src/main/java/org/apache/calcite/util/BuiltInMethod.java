@@ -245,6 +245,8 @@ public enum BuiltInMethod {
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
   MATCH_UTILS_LAST_WITH_SYMBOL(MatchUtils.class, "lastWithSymbol", String.class,
       List.class, List.class, int.class),
+  MATCH_UTILS_LAST_WITH_SYMBOL_OR_LAST(MatchUtils.class, "lastWithSymbolOrLast", String.class,
+      List.class, int.class),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
       List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,

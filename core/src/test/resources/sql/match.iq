@@ -140,6 +140,22 @@ C    EMPID
 
 !ok
 
+# Test Simple LAST with expanded column name
+# Test case for CALCITE-7474, the behavior is similar to BigQuery
+select *
+from "hr"."emps" match_recognize (
+    order by "empid" desc
+    measures "commission" as c,
+    LAST("hr"."emps"."empid") as empid
+    pattern (s up)
+    define up as up."commission" < prev(up."commission"));
+C    EMPID
+---- -----
+1000   100
+ 500   200
+
+!ok
+
 # Test LAST with Classifier
 select *
 from "hr"."emps" match_recognize (

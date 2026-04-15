@@ -27,7 +27,7 @@ public class MatchUtils {
   }
 
   /**
-   * Returns the row with the highest index whose corresponding symbol matches, null otherwise.
+   * Returns the highest index whose corresponding symbol matches, -1 otherwise.
    *
    * @param symbol Target Symbol
    * @param rows List of passed rows
@@ -42,6 +42,23 @@ public class MatchUtils {
       }
     }
     return -1;
+  }
+
+  /**
+   * Returns the highest index whose corresponding symbol matches, startIndex otherwise.
+   *
+   * @param symbol Target Symbol
+   * @param symbols Corresponding symbols to rows
+   * @return index or startIndex
+   */
+  public static int lastWithSymbolOrLast(String symbol, List<String> symbols,
+      int startIndex) {
+    for (int i = startIndex; i >= 0; i--) {
+      if (symbol.equals(symbols.get(i))) {
+        return i;
+      }
+    }
+    return startIndex;
   }
 
   public static void print(int s) {
