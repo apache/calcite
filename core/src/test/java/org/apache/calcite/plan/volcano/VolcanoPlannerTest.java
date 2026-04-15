@@ -42,7 +42,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
