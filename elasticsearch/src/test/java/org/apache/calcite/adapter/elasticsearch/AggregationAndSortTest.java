@@ -512,4 +512,47 @@ class AggregationAndSortTest {
             + " group by CAT order by MAX_VAL1 desc, CAT desc")
         .returns("CAT=2; MAX_VAL1=7.0\nCAT=1; MAX_VAL1=1.0\nCAT=null; MAX_VAL1=null\n");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5124">[CALCITE-5124]
+   * LIMIT won't work when GROUP BY two or more columns in Elasticsearch Adapter</a>.
+   */
+  @Test void testGroupByAggregationLimit() {
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat4 limit 1")
+        .returnsCount(1);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat4 limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat1, cat4 limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1 from view group by val1 limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat4 limit 2")
+        .returns("val1=null; cat4=1576108800000\nval1=1; cat4=1514764800000\n");
+
+    // Test GROUP BY alias with LIMIT (requires BABEL conformance)
+    CalciteAssert.that()
+        .with(() -> createConnectionWithConformance("JAVA", "BABEL"))
+        .query("select val1 as V, cat4 as C from view group by V, C limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(() -> createConnectionWithConformance("JAVA", "BABEL"))
+        .query("select cat5 as CAT, max(val1) as MAX_VAL1 from view"
+            + " group by CAT order by MAX_VAL1 desc, CAT desc limit 2")
+        .returns("CAT=2; MAX_VAL1=7.0\nCAT=1; MAX_VAL1=1.0\n");
+  }
 }
