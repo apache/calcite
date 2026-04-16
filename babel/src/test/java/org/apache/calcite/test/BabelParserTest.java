@@ -316,9 +316,13 @@ class BabelParserTest extends SqlParserTest {
     sql("select (v + 1)::integer array[1] from t")
         .ok("SELECT (`V` + 1) :: INTEGER ARRAY[1]\nFROM `T`");
 
-    // Access after a plain expression remains subscript-then-field.
+    // These cases make the postfix contrast explicit for the baseline parser
+    // behavior on this branch; the core bracket path is covered separately in
+    // SqlParserTest.
     sql("select v.field[1].field2 from t")
         .ok("SELECT (`V`.`FIELD`[1].`FIELD2`)\nFROM `T`");
+    sql("select arr.field.func() from t")
+        .ok("SELECT `ARR`.`FIELD`.`FUNC`()\nFROM `T`");
 
     // With ::, [n].field is parsed as part of the target type unless grouped.
     sql("select v::varchar array[1].field from t")
