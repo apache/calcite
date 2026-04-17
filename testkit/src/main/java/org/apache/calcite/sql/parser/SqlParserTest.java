@@ -2397,6 +2397,19 @@ public class SqlParserTest {
     }
   }
 
+  @Test void testColonFieldAccessRejectsMemberFunctionCalls() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("v:field.func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("v:[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("obj['x']:nested.func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("v:field[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+  }
+
   @Test void testFunctionInFunction() {
     expr("ln(power(2,2))")
         .ok("LN(POWER(2, 2))");
@@ -7923,6 +7936,8 @@ public class SqlParserTest {
     sql("SELECT tbl.foo(0).col.bar(2, 3) FROM tbl")
         .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`(2, 3))\n"
             + "FROM `TBL`");
+    expr("rr[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
   }
 
   @Test void testUnicodeLiteral() {
