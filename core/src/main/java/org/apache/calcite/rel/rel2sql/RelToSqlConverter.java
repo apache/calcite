@@ -772,6 +772,7 @@ public class RelToSqlConverter extends SqlImplementor
     // "select a, b, sum(x) from ( ... ) group by a, b"
     final boolean ignoreClauses = e.getInput() instanceof Project;
     final Result x = visitInput(e, 0, isAnon(), ignoreClauses, clauseSet);
+    parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
