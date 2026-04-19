@@ -2306,6 +2306,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         scope = getMeasureScope(((SelectScope) scope).getNode());
       }
       inferUnknownTypes(inferredType, scope, ((SqlCall) node).operand(0));
+    } else if (node.isA(SqlKind.QUERY)) {
+      // Do not descend into subqueries. Each query (SELECT, VALUES,
+      // etc.) calls inferUnknownTypes during its own validation.
     } else if (node instanceof SqlCall) {
       final SqlCall call = (SqlCall) node;
       final SqlOperandTypeInference operandTypeInference =
