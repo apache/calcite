@@ -110,8 +110,7 @@ public class AggregateRemoveDuplicateKeysRule
     // Build new agg calls. SINGLE_VALUE calls for removed keys are placed first so
     // their output indices are contiguous with the retained group-key columns:
     //
-    //   new aggregate output layout
-    //   ─────────────────────────────────────────────────────────────────────────
+    // new aggregate output layout:
     //   [0 .. retainedCount-1]                           retained group keys
     //   [retainedCount .. retainedCount+removedCount-1]  SINGLE_VALUE calls
     //   [retainedCount + removedCount .. ...]            original aggregate calls
