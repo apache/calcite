@@ -7836,6 +7836,34 @@ public class SqlParserTest {
             + "FROM `TBL`");
   }
 
+  @Test void testBracketPostfixDoesNotAllowMemberFunction() {
+    // Bracket postfixes allow ".field" but not suffix member calls like ".func()".
+    sql("SELECT arr[1].func^(^) FROM tbl")
+        .fails(ANY);
+  }
+
+  @Test void testDotPostfixAllowsMemberFunction() {
+    // Plain dot chains still support suffix member functions.
+    sql("SELECT arr.field.func() FROM tbl")
+        .ok("SELECT `ARR`.`FIELD`.`FUNC`()\n"
+            + "FROM `TBL`");
+  }
+
+  @Test void testBracketPostfixPreservesExistingAccessForms() {
+    // Regression marker for the bracket-access path that was moved out of the
+    // infix loop: simple item access, item-then-field, and nested item access
+    // should all keep parsing the same way.
+    sql("SELECT arr[1] FROM tbl")
+        .ok("SELECT `ARR`[1]\n"
+            + "FROM `TBL`");
+    sql("SELECT arr[1].field FROM tbl")
+        .ok("SELECT (`ARR`[1].`FIELD`)\n"
+            + "FROM `TBL`");
+    sql("SELECT arr[1][2] FROM tbl")
+        .ok("SELECT `ARR`[1][2]\n"
+            + "FROM `TBL`");
+  }
+
   @Test void testUnicodeLiteral() {
     // Note that here we are constructing a SQL statement which directly
     // contains Unicode characters (not SQL Unicode escape sequences).  The

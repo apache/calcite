@@ -301,6 +301,47 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testColonFieldAccessWithInfixCast() {
+    // Brackets after :: bind to the type, not as subscripts on the cast result.
+    sql("select v::varchar array[1] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1]\nFROM `T`");
+    sql("select (v::varchar array)[1] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1]\nFROM `T`");
+    sql("select v::integer array[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+    sql("select (v::integer array)[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+    sql("select v::varchar array[1][2] from t")
+        .ok("SELECT `V` :: VARCHAR ARRAY[1][2]\nFROM `T`");
+    sql("select (v + 1)::integer array[1] from t")
+        .ok("SELECT (`V` + 1) :: INTEGER ARRAY[1]\nFROM `T`");
+
+    // These cases make the postfix contrast explicit for the baseline parser
+    // behavior on this branch; the core bracket path is covered separately in
+    // SqlParserTest.
+    sql("select v.field[1].field2 from t")
+        .ok("SELECT (`V`.`FIELD`[1].`FIELD2`)\nFROM `T`");
+    sql("select arr.field.func() from t")
+        .ok("SELECT `ARR`.`FIELD`.`FUNC`()\nFROM `T`");
+
+    // With ::, [n].field is parsed as part of the target type unless grouped.
+    sql("select v::varchar array[1].field from t")
+        .ok("SELECT `V` :: (VARCHAR ARRAY[1].`FIELD`)\nFROM `T`");
+    sql("select (v::varchar array)[1].field from t")
+        .ok("SELECT (`V` :: VARCHAR ARRAY[1].`FIELD`)\nFROM `T`");
+
+    sql("select v.field::integer,\n"
+            + "  arr[1].field::varchar,\n"
+            + "  v.field.field2::integer,\n"
+            + "  v.field[2]::integer\n"
+            + "from t")
+        .ok("SELECT `V`.`FIELD` :: INTEGER,"
+            + " (`ARR`[1].`FIELD`) :: VARCHAR,"
+            + " `V`.`FIELD`.`FIELD2` :: INTEGER,"
+            + " `V`.`FIELD`[2] :: INTEGER\n"
+            + "FROM `T`");
+  }
+
   /** Tests parsing MySQL-style "<=>" equal operator. */
   @Test void testParseNullSafeEqual()  {
     // x <=> y
