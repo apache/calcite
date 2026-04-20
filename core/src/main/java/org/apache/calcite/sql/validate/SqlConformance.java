@@ -665,6 +665,13 @@ public interface SqlConformance {
   boolean checkedArithmetic();
 
   /**
+   * Whether the implementation uses the nullable form of DIVIDE.
+   * Most SQL dialects will produce a runtime exception on division by zero,
+   * but some dialects return NULL instead (e.g. sqlite).
+   */
+  boolean nullableDivide();
+
+  /**
    * True when the unsigned versions of integer types are supported.
    */
   boolean supportsUnsignedTypes();

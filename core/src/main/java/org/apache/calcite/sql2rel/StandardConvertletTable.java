@@ -156,6 +156,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         (cx, call) -> convertIsDistinctFrom(cx, call, true));
 
     registerOp(SqlStdOperatorTable.PLUS, this::convertPlus);
+    registerOp(SqlStdOperatorTable.DIVIDE_0_NULL, this::convertDivide0Null);
 
     registerOp(SqlStdOperatorTable.MINUS,
         (cx, call) -> {
@@ -409,6 +410,25 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             return cx.getRexBuilder().makeFieldAccess(expr, 0);
           });
     }
+  }
+
+  /** Converts DIVIDE_0_NULL operators to DIVIDE if the result is floating point.
+   * We can only do this after type inference; DIVIDE_0_NULL was inserted before type inference. */
+  private RexNode convertDivide0Null(
+      @UnknownInitialization StandardConvertletTable this,
+      SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final RexNode left = cx.convertExpression(call.getOperandList().get(0));
+    final RexNode right = cx.convertExpression(call.getOperandList().get(1));
+    final RelDataType returnType = cx.getValidator().getValidatedNodeType(call);
+    SqlOperator operator = call.getOperator();
+    if (SqlTypeName.APPROX_TYPES.contains(returnType.getSqlTypeName())
+        || SqlTypeName.INTERVAL_TYPES.contains(returnType.getSqlTypeName())) {
+      // Replace with standard divide
+      operator = SqlStdOperatorTable.DIVIDE;
+    }
+    return rexBuilder.makeCall(call.getParserPosition(), returnType,
+        operator, ImmutableList.of(left, right));
   }
 
   /** Converts ALL or SOME operators. */
