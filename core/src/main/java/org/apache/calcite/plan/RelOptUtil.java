@@ -304,6 +304,22 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Returns the set of variables used by an expression or its
+   * descendants.
+   *
+   * <p>The set may contain "duplicates" (variables with different ids that,
+   * when resolved, will reference the same source relational expression).
+   *
+   * <p>The item type is the same as
+   * {@link org.apache.calcite.rex.RexCorrelVariable#id}.
+   */
+  public static Set<CorrelationId> getVariablesUsed(RexNode node) {
+    CorrelationCollector visitor = new CorrelationCollector();
+    node.accept(visitor.vuv);
+    return visitor.vuv.variables;
+  }
+
+  /**
    * Returns the set of variables used by the given list of sub-queries and its descendants.
    *
    * @param subQueries The sub-queries containing correlation variables
