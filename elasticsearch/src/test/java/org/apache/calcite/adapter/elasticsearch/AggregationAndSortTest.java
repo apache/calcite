@@ -555,4 +555,15 @@ class AggregationAndSortTest {
             + " group by CAT order by MAX_VAL1 desc, CAT desc limit 2")
         .returns("CAT=2; MAX_VAL1=7.0\nCAT=1; MAX_VAL1=1.0\n");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6757">[CALCITE-6757]
+   * Elasticsearch adapter returns wrong result when aggregating sub-query with aggregation</a>.
+   */
+  @Test void testAggregateWithSubquery() {
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from (select cat5, sum(val1) from view group by cat5) as alias")
+        .returns("EXPR$0=3\n");
+  }
 }
