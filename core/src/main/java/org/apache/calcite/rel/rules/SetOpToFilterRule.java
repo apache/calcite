@@ -18,12 +18,17 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -117,13 +122,18 @@ public class SetOpToFilterRule
 
   private static void match(RelOptRuleCall call) {
     final SetOp setOp = call.rel(0);
+    final RelMetadataQuery mq = call.getMetadataQuery();
     final List<RelNode> inputs = setOp.getInputs();
     if (setOp.all || inputs.size() < 2) {
       return;
     }
 
     final RelBuilder builder = call.builder();
-    Pair<RelNode, @Nullable RexNode> first = extractSourceAndCond(inputs.get(0).stripped());
+    final RelNode firstClause = inputs.get(0).stripped();
+    final List<RelCollation> firstCollations = mq.collations(firstClause);
+    Pair<RelNode, @Nullable RexNode> first =
+        extractSourceAndCond(firstClause, firstCollations != null
+            && firstCollations.stream().anyMatch(c -> c != RelCollations.EMPTY));
 
     // Groups conditions by their source relational node and input position.
     // - Key: Pair of (sourceRelNode, inputPosition)
@@ -143,7 +153,14 @@ public class SetOpToFilterRule
 
     for (int i = 1; i < inputs.size(); i++) {
       final RelNode input = inputs.get(i).stripped();
-      final Pair<RelNode, @Nullable RexNode> pair = extractSourceAndCond(input);
+      boolean isSorted = false;
+      final List<RelCollation> inputCollations = mq.collations(input);
+      if (inputCollations != null
+          && inputCollations.stream().anyMatch(c -> c != RelCollations.EMPTY)
+          && inputCollations.equals(firstCollations)) {
+        isSorted = true;
+      }
+      final Pair<RelNode, @Nullable RexNode> pair = extractSourceAndCond(input, isSorted);
       sourceToConds.computeIfAbsent(Pair.of(pair.left, pair.right != null ? null : i),
           k -> new ArrayList<>()).add(pair.right);
     }
@@ -197,7 +214,8 @@ public class SetOpToFilterRule
     throw new IllegalStateException("unreachable code");
   }
 
-  private static Pair<RelNode, @Nullable RexNode> extractSourceAndCond(RelNode input) {
+  private static Pair<RelNode, @Nullable RexNode> extractSourceAndCond(RelNode input,
+      boolean isSorted) {
     if (input instanceof Filter) {
       Filter filter = (Filter) input;
       if (!RexUtil.isDeterministic(filter.getCondition())
@@ -205,11 +223,35 @@ public class SetOpToFilterRule
         // Skip non-deterministic conditions or those containing subqueries
         return Pair.of(input, null);
       }
-      return Pair.of(filter.getInput().stripped(), filter.getCondition());
+      final RelNode source = filter.getInput().stripped();
+      if (containsBlockingSortInProjectFilterChain(source, isSorted)) {
+        return Pair.of(input, null);
+      }
+      return Pair.of(source, filter.getCondition());
+    }
+    if (containsBlockingSortInProjectFilterChain(input, isSorted)) {
+      return Pair.of(input, null);
     }
     // For non-filter inputs, use TRUE literal as default condition.
     return Pair.of(input.stripped(),
         input.getCluster().getRexBuilder().makeLiteral(true));
+  }
+
+  private static boolean containsBlockingSortInProjectFilterChain(RelNode input,
+      boolean isSorted) {
+    RelNode current = input.stripped();
+    while (true) {
+      if (current instanceof Sort) {
+        Sort sort = (Sort) current;
+        return !isSorted && (sort.fetch != null || sort.offset != null);
+      }
+      if (current instanceof Project
+          || current instanceof Filter) {
+        current = current.getInput(0).stripped();
+        continue;
+      }
+      return false;
+    }
   }
 
   /**

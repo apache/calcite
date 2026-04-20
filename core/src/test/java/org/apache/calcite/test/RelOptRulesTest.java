@@ -11436,6 +11436,119 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionToFilterRuleWithLimit() {
+    final String sql = "(SELECT mgr, comm FROM emp LIMIT 2)\n"
+        + "UNION\n"
+        + "(SELECT mgr, comm FROM emp LIMIT 2)\n";
+    sql(sql)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionAllToFilterRuleWithLimit() {
+    final String sql = "(SELECT mgr, comm FROM emp LIMIT 2)\n"
+        + "UNION ALL\n"
+        + "(SELECT mgr, comm FROM emp LIMIT 2)\n";
+    sql(sql)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionToFilterRuleWithNestedLimit() {
+    final String sql = "SELECT comm FROM (SELECT mgr, comm FROM emp LIMIT 2) t\n"
+        + "WHERE comm > 5\n"
+        + "UNION\n"
+        + "SELECT comm FROM (SELECT mgr, comm FROM emp LIMIT 2) t\n"
+        + "WHERE comm > 10\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionToFilterRuleWithSortOnly() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelNode left = b.scan("EMP")
+          .project(b.field("MGR"), b.field("COMM"))
+          .sort(b.field(0))
+          .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field(1), b.literal(5)))
+          .build();
+      final RelNode right = b.scan("EMP")
+          .project(b.field("MGR"), b.field("COMM"))
+          .sort(b.field(0))
+          .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field(1), b.literal(10)))
+          .build();
+      return b.push(left)
+          .push(right)
+          .union(false, 2)
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionToFilterRuleWithSortLimit() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelNode left = b.scan("EMP")
+          .project(b.field("MGR"), b.field("COMM"))
+          .sortLimit(10, 2, b.field(0))
+          .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field(1), b.literal(5)))
+          .build();
+      final RelNode right = b.scan("EMP")
+          .project(b.field("MGR"), b.field("COMM"))
+          .sortLimit(10, 2, b.field(0))
+          .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field(1), b.literal(10)))
+          .build();
+      return b.push(left)
+          .push(right)
+          .union(false, 2)
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7463">[CALCITE-7463]
+   * UnionToFilterRule incorrectly rewrites UNION with LIMIT</a>. */
+  @Test void testUnionToFilterRuleWithUnmergeableFirstInput() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelNode left = b.scan("EMP")
+          .project(b.field("MGR"), b.field("COMM"))
+          .sortLimit(10, 2, b.field(0))
+          .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field(1), b.literal(5)))
+          .build();
+      final RelNode right = b.scan("EMP")
+          .project(b.field("MGR"), b.field("COMM"))
+          .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field(1), b.literal(10)))
+          .build();
+      return b.push(left)
+          .push(right)
+          .union(false, 2)
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
    * Create an optimization rule to eliminate UNION
    * from the same source with different filters</a>. */
