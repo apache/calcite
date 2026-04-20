@@ -332,6 +332,76 @@ class FileAdapterTest {
     sql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4460">[CALCITE-4460]
+   * Support custom delimiter when parsing CSV tables</a>.
+   *
+   * <p>Reads a pipe-delimited file via CsvTableFactory with a custom
+   * separator. */
+  @Test void testCsvCustomSeparatorPipe() {
+    final String sql = "select * from CUSTOM_SEPARATOR.PIPE_DEPTS";
+    sql("custom-separator", sql)
+        .returns("DEPTNO=10; NAME=Sales",
+            "DEPTNO=20; NAME=Marketing",
+            "DEPTNO=30; NAME=Accounts")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4460">[CALCITE-4460]
+   * Support custom delimiter when parsing CSV tables</a>.
+   *
+   * <p>Verifies that a multi-character separator is rejected. */
+  @Test void testCsvCustomSeparatorInvalidMultiChar() throws SQLException {
+    Properties info = new Properties();
+    info.put("model",
+        "inline:"
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'TEST',\n"
+            + "  schemas: [\n"
+            + "    {\n"
+            + "      name: 'TEST',\n"
+            + "      tables: [\n"
+            + "        {\n"
+            + "          name: 'BAD',\n"
+            + "          type: 'custom',\n"
+            + "          factory: 'org.apache.calcite.adapter.file.CsvTableFactory',\n"
+            + "          operand: {\n"
+            + "            file: 'sales-csv/DEPTS.csv',\n"
+            + "            separator: '||'\n"
+            + "          }\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}");
+    try {
+      Connection connection =
+          DriverManager.getConnection("jdbc:calcite:", info);
+      connection.close();
+      throw new AssertionError("expected error");
+    } catch (RuntimeException e) {
+      Throwable cause = e;
+      while (cause.getCause() != null) {
+        cause = cause.getCause();
+      }
+      assertThat(cause.getMessage(),
+          is("Invalid separator '||'. "
+              + "Separator must be a single character."));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4460">[CALCITE-4460]
+   * Support custom delimiter when parsing CSV tables</a>.
+   *
+   * <p>Verifies that omitting the separator defaults to comma. */
+  @Test void testCsvDefaultSeparatorBackwardCompat() {
+    final String sql = "select * from CUSTOM_TABLE.EMPS";
+    sql("model-with-custom-table", sql).ok();
+  }
+
   @Test void testPushDownProject() {
     final String sql = "explain plan for select * from EMPS";
     final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "

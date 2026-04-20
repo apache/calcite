@@ -54,8 +54,12 @@ class CsvStreamReader extends CSVReader implements Closeable {
   public static final long DEFAULT_MONITOR_DELAY = 2000;
 
   CsvStreamReader(Source source) {
+    this(source, CSVParser.DEFAULT_SEPARATOR);
+  }
+
+  CsvStreamReader(Source source, char separator) {
     this(source,
-        CSVParser.DEFAULT_SEPARATOR,
+        separator,
         CSVParser.DEFAULT_QUOTE_CHARACTER,
         CSVParser.DEFAULT_ESCAPE_CHARACTER,
         DEFAULT_SKIP_LINES,
@@ -106,7 +110,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
   /**
    * Reads the next line from the buffer and converts to a string array.
    *
-   * @return a string array with each comma-separated element as a separate entry.
+   * @return a string array with each delimited element as a separate entry.
    *
    * @throws IOException if bad things happen during the read
    */

@@ -47,9 +47,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class CsvTranslatableTable extends CsvTable
     implements QueryableTable, TranslatableTable {
-  /** Creates a CsvTable. */
+  /** Creates a CsvTranslatableTable. */
   CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType) {
     super(source, protoRowType);
+  }
+
+  /** Creates a CsvTranslatableTable with a custom separator. */
+  CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType,
+      char separator) {
+    super(source, protoRowType, separator);
   }
 
   @Override public String toString() {
@@ -65,7 +71,8 @@ public class CsvTranslatableTable extends CsvTable
       @Override public Enumerator<Object> enumerator() {
         JavaTypeFactory typeFactory = root.getTypeFactory();
         return new CsvEnumerator<>(source, cancelFlag,
-            getFieldTypes(typeFactory), ImmutableIntList.of(fields));
+            getFieldTypes(typeFactory), ImmutableIntList.of(fields),
+            separator);
       }
     };
   }
