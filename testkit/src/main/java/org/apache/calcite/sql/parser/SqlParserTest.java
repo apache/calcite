@@ -43,6 +43,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.test.IntervalTest;
 import org.apache.calcite.tools.Hoist;
 import org.apache.calcite.util.Bug;
@@ -630,6 +631,12 @@ public class SqlParserTest {
       SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
   private static final SqlDialect REDSHIFT =
       SqlDialect.DatabaseProduct.REDSHIFT.getDialect();
+  private static final SqlConformance COLON_FIELD =
+      new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+        @Override public boolean isColonFieldAccessAllowed() {
+          return true;
+        }
+      };
 
   /** Creates the test fixture that determines the behavior of tests.
    * Sub-classes that, say, test different parser implementations should
@@ -644,6 +651,10 @@ public class SqlParserTest {
 
   protected SqlParserFixture expr(String sql) {
     return sql(sql).expression(true);
+  }
+
+  protected boolean allowsDoubleColonInColonFieldAccessMode() {
+    return false;
   }
 
   /** Converts a string to linux format (LF line endings rather than CR-LF),
@@ -2308,6 +2319,95 @@ public class SqlParserTest {
   @Test void testFunctionCallWithDot() {
     expr("foo(a,b).c")
         .ok("(`FOO`(`A`, `B`).`C`)");
+  }
+
+  @Test void testColonFieldAccessMode() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    final SqlParserFixture sql = fixture().withConformance(COLON_FIELD);
+    expr("v^:^field")
+        .fails("(?s).*Encountered \":.*\".*");
+    expr.sql("v:field")
+        .ok("(`V`.`FIELD`)");
+    expr.sql("v:field.nested")
+        .ok("((`V`.`FIELD`).`NESTED`)");
+    expr.sql("v:['field name']")
+        .ok("`V`['field name']");
+    expr.sql("arr[1]:field")
+        .ok("(`ARR`[1].`FIELD`)");
+    expr.sql("obj['x']:nested")
+        .ok("(`OBJ`['x'].`NESTED`)");
+    sql.sql(
+        "select v:field, v:['field name'], arr[1]:field, obj['x']:nested from t")
+        .ok("SELECT (`V`.`FIELD`), `V`['field name'], (`ARR`[1].`FIELD`), "
+            + "(`OBJ`['x'].`NESTED`)\n"
+            + "FROM `T`");
+    if (!allowsDoubleColonInColonFieldAccessMode()) {
+      expr.sql("v^:^:field")
+          .fails("(?s).*Encountered \":.*\".*");
+    }
+  }
+
+  @Test void testColonFieldAccessEdgeCases() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("v:field['leaf']")
+        .ok("(`V`.`FIELD`)['leaf']");
+    expr.sql("v:['field name'].leaf")
+        .ok("(`V`['field name'].`LEAF`)");
+    expr.sql("v:[OFFSET(1)]")
+        .ok("`V`[OFFSET(1)]");
+    expr.sql("v:[ORDINAL(1)]")
+        .ok("`V`[ORDINAL(1)]");
+    expr.sql("v:[SAFE_OFFSET(1)]")
+        .ok("`V`[SAFE_OFFSET(1)]");
+    expr.sql("v:[SAFE_ORDINAL(1)]")
+        .ok("`V`[SAFE_ORDINAL(1)]");
+    expr.sql("v:[i + 1]")
+        .ok("`V`[(`I` + 1)]");
+    expr.sql("v:[OFFSET(1)].field")
+        .ok("(`V`[OFFSET(1)].`FIELD`)");
+    expr.sql("v:[OFFSET(1)][SAFE_ORDINAL(2)]")
+        .ok("`V`[OFFSET(1)][SAFE_ORDINAL(2)]");
+    expr.sql("v:field[OFFSET(1)]")
+        .ok("(`V`.`FIELD`)[OFFSET(1)]");
+    expr.sql("arr[1]:field[2]")
+        .ok("(`ARR`[1].`FIELD`)[2]");
+    expr.sql("v.field:nested")
+        .ok("(`V`.`FIELD`.`NESTED`)");
+    expr.sql("obj['x']:nested['y']")
+        .ok("(`OBJ`['x'].`NESTED`)['y']");
+    expr.sql("a = b:field")
+        .ok("(`A` = (`B`.`FIELD`))");
+    expr.sql("a + b:field")
+        .ok("(`A` + (`B`.`FIELD`))");
+    expr.sql("a * arr[1]:field")
+        .ok("(`A` * (`ARR`[1].`FIELD`))");
+    expr.sql("foo(v:field, arr[1]:field, obj['x']:nested['y'])")
+        .ok("`FOO`((`V`.`FIELD`), (`ARR`[1].`FIELD`), (`OBJ`['x'].`NESTED`)['y'])");
+    expr.sql("v:field^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    expr.sql("v:['field name']^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    expr.sql("v:[i + 1]^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    if (!allowsDoubleColonInColonFieldAccessMode()) {
+      expr.sql("v^:^:(field)")
+          .fails("(?s).*Encountered \":.*\".*");
+    }
+  }
+
+  @Test void testColonFieldAccessRejectsMemberFunctionCalls() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("v:field.func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("v:[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("obj['x']:nested.func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("v:field[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
   }
 
   @Test void testFunctionInFunction() {
@@ -6688,7 +6788,9 @@ public class SqlParserTest {
             + "Was expecting one of:\n"
             + "    <EOF> \n"
             + "    \"\\(\" \\.\\.\\.\n"
-            + "    \"\\.\" \\.\\.\\..*");
+            + "    \"\\[\" \\.\\.\\.\n"
+            + "    \"\\.\" \\.\\.\\.\n"
+            + ".*");
     expr("interval '1-2' year ^to^ day")
         .fails(ANY);
     expr("interval '1-2' year ^to^ hour")
@@ -7834,6 +7936,8 @@ public class SqlParserTest {
     sql("SELECT tbl.foo(0).col.bar(2, 3) FROM tbl")
         .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`(2, 3))\n"
             + "FROM `TBL`");
+    expr("rr[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
   }
 
   @Test void testUnicodeLiteral() {
@@ -9138,6 +9242,23 @@ public class SqlParserTest {
         .ok("JSON_OBJECT(KEY `KEY` VALUE `VALUE` NULL ON NULL)");
   }
 
+  @Test void testJsonObjectInColonFieldAccessMode() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("json_object(key v:field value arr[1]:field)")
+        .ok("JSON_OBJECT(KEY (`V`.`FIELD`) VALUE (`ARR`[1].`FIELD`) NULL ON NULL)");
+    expr.sql("json_object(key v:field.field value col)")
+        .ok("JSON_OBJECT(KEY ((`V`.`FIELD`).`FIELD`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_object(v:field value 1)")
+        .ok("JSON_OBJECT(KEY (`V`.`FIELD`) VALUE 1 NULL ON NULL)");
+    expr.sql("json_object(v:field^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_object('foo': col^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_object('foo'^,^ 'bar')")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+  }
+
   @Test void testJsonType() {
     expr("json_type('11.56')")
         .ok("JSON_TYPE('11.56')");
@@ -9206,6 +9327,24 @@ public class SqlParserTest {
         .ok("JSON_OBJECTAGG(KEY `K_COLUMN` VALUE "
             + "JSON_OBJECT(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL) "
             + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test void testJsonObjectAggInColonFieldAccessMode() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("json_objectagg(key v:[SAFE_OFFSET(1)] value obj['x']:nested['y'])")
+        .ok("JSON_OBJECTAGG(KEY `V`[SAFE_OFFSET(1)] VALUE "
+            + "(`OBJ`['x'].`NESTED`)['y'] NULL ON NULL)");
+    expr.sql("json_objectagg(key v:field.field value col)")
+        .ok("JSON_OBJECTAGG(KEY ((`V`.`FIELD`).`FIELD`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_objectagg(v:field value col)")
+        .ok("JSON_OBJECTAGG(KEY (`V`.`FIELD`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_objectagg(v:field^,^ col)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_objectagg('k': [1]^,^ v)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_objectagg('k'^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
   }
 
   /** Test case for

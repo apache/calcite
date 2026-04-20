@@ -232,6 +232,10 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isColonFieldAccessAllowed() {
+    return false;
+  }
+
   @Override public boolean isBangEqualAllowed() {
     switch (this) {
     case LENIENT:

@@ -25,6 +25,7 @@ import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
@@ -51,6 +52,10 @@ class BabelParserTest extends SqlParserTest {
     return super.fixture()
         .withTester(new BabelTesterImpl())
         .withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY));
+  }
+
+  @Override protected boolean allowsDoubleColonInColonFieldAccessMode() {
+    return true;
   }
 
   /** Tests that the Babel parser correctly parses a CAST to INTERVAL type
@@ -299,6 +304,56 @@ class BabelParserTest extends SqlParserTest {
     String expected = "SELECT `X` :: " + sqlType.toUpperCase(Locale.ROOT) + "\n"
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)";
     sql(sql).ok(expected);
+  }
+
+  @Test void testPostfixAccessWithInfixCast() {
+    final SqlParserFixture f =
+        fixture().withConformance(new SqlAbstractConformance() {
+          @Override public boolean isColonFieldAccessAllowed() {
+            return true;
+          }
+        });
+
+    // Without parentheses, trailing postfixes after :: are consumed as part of
+    // the type.
+    sql("select v::varchar array[1].field from t")
+        .ok("SELECT `V` :: (VARCHAR ARRAY[1].`FIELD`)\nFROM `T`");
+    f.sql("select v:field::varchar array[1].field2 from t")
+        .ok("SELECT (`V`.`FIELD`) :: (VARCHAR ARRAY[1].`FIELD2`)\nFROM `T`");
+
+    // Parenthesizing the cast lets the same postfixes apply to the cast
+    // result instead.
+    sql("select (v::varchar array)[1].field from t")
+        .ok("SELECT (`V` :: VARCHAR ARRAY[1].`FIELD`)\nFROM `T`");
+    f.sql("select (v:field::varchar array)[1].field2 from t")
+        .ok("SELECT ((`V`.`FIELD`) :: VARCHAR ARRAY[1].`FIELD2`)\nFROM `T`");
+
+    // Postfix access is also accepted directly after :: in ordinary field/item
+    // chains.
+    sql("select v.field::integer,\n"
+            + "  arr[1].field::varchar,\n"
+            + "  v.field.field2::integer,\n"
+            + "  v.field[2]::integer\n"
+            + "from t")
+        .ok("SELECT `V`.`FIELD` :: INTEGER,"
+            + " (`ARR`[1].`FIELD`) :: VARCHAR,"
+            + " `V`.`FIELD`.`FIELD2` :: INTEGER,"
+            + " `V`.`FIELD`[2] :: INTEGER\n"
+            + "FROM `T`");
+    f.sql("select v:field::integer,\n"
+            + "  arr[1]:field::varchar,\n"
+            + "  v:field.field2::integer,\n"
+            + "  v:field[2]::integer\n"
+            + "from t")
+        .ok("SELECT (`V`.`FIELD`) :: INTEGER,"
+            + " (`ARR`[1].`FIELD`) :: VARCHAR,"
+            + " ((`V`.`FIELD`).`FIELD2`) :: INTEGER,"
+            + " (`V`.`FIELD`)[2] :: INTEGER\n"
+            + "FROM `T`");
+
+    // Double-colon followed by colon field access is not allowed
+    f.sql("select v::variant^:^field from t")
+        .fails("(?s).*Encountered \":.*\".*");
   }
 
   /** Tests parsing MySQL-style "<=>" equal operator. */

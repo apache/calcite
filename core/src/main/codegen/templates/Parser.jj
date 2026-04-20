@@ -3787,6 +3787,48 @@ SqlNode Expression(ExprContext exprContext) :
     list = Expression2(exprContext) { return SqlParserUtil.toTree(list); }
 }
 
+/** Parses regular postfixes such as {@code a.b}, {@code a[1]} and
+ * {@code a[1].b}. Shared by the main expression grammar and Babel's
+ * infix cast. */
+void AddRegularPostfixes(List<Object> list) :
+{
+    SqlNode ext;
+}
+{
+    (
+        LOOKAHEAD(2) <DOT>
+        ext = RowExpressionExtension() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(ext);
+        }
+    |
+        AddBracketPostfix(list)
+    )*
+}
+
+/** Parses postfixes that are allowed after colon field access, for example
+ * {@code v:field.nested} or {@code v:[1]['x']}. Unlike regular postfixes,
+ * this path does not allow member-style calls such as {@code v:field.func()}. */
+void AddColonPostfixes(List<Object> list) :
+{
+    SqlIdentifier p;
+}
+{
+    (
+        LOOKAHEAD(2) <DOT>
+        p = SimpleIdentifier() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(p);
+        }
+    |
+        AddBracketAccess(list)
+    )*
+}
+
 void AddExpression2b(List<Object> list, ExprContext exprContext) :
 {
     SqlNode e;
@@ -3804,13 +3846,69 @@ void AddExpression2b(List<Object> list, ExprContext exprContext) :
     e = Expression3(exprContext) {
         list.add(e);
     }
-    (
-        LOOKAHEAD(2) <DOT>
-        ext = RowExpressionExtension() {
+    AddRegularPostfixes(list)
+    [
+        // Parse one colon-access step, for example {@code v:field} or
+        // {@code v:[1]}. After that, keep using regular postfixes such as
+        // {@code v:field.nested} or {@code v:field[1]}. A second ':' is
+        // currently rejected.
+        LOOKAHEAD(2, <COLON> SimpleIdentifier(),
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON>
+        ext = SimpleIdentifier() {
             list.add(
                 new SqlParserUtil.ToTreeListItem(
                     SqlStdOperatorTable.DOT, getPos()));
             list.add(ext);
+        }
+        AddColonPostfixes(list)
+    |
+        LOOKAHEAD(2, <COLON> <LBRACKET>,
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON>
+        AddBracketAccess(list)
+        AddColonPostfixes(list)
+    ]
+}
+
+/** Parses one bracket access, for example {@code arr[1]} or
+ * {@code arr[OFFSET(1)]}. */
+void AddBracketAccess(List<Object> list) :
+{
+    SqlNode e;
+    SqlOperator itemOp;
+}
+{
+    <LBRACKET>
+    ( <OFFSET> { itemOp = SqlLibraryOperators.OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <ORDINAL> { itemOp = SqlLibraryOperators.ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <SAFE_OFFSET> { itemOp = SqlLibraryOperators.SAFE_OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <SAFE_ORDINAL> { itemOp = SqlLibraryOperators.SAFE_ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | { itemOp = SqlStdOperatorTable.ITEM; } e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    )
+    <RBRACKET> {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(
+                itemOp, getPos()));
+        list.add(e);
+    }
+}
+
+/** Parses bracket access plus any following dot suffixes, for example
+ * {@code arr[1].field}. */
+void AddBracketPostfix(List<Object> list) :
+{
+    SqlIdentifier p;
+}
+{
+    AddBracketAccess(list)
+    (
+        LOOKAHEAD(2) <DOT>
+        p = SimpleIdentifier() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(p);
         }
     )*
 }
@@ -3836,9 +3934,7 @@ List<Object> Expression2(ExprContext exprContext) :
     final List<Object> list3 = new ArrayList();
     SqlNodeList nodeList;
     SqlNode e;
-    SqlOperator itemOp;
     SqlOperator op;
-    SqlIdentifier p;
     final Span s = span();
 }
 {
@@ -3975,29 +4071,6 @@ List<Object> Expression2(ExprContext exprContext) :
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
                 }
                 AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
-            |
-                <LBRACKET>
-                ( <OFFSET> { itemOp = SqlLibraryOperators.OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <ORDINAL> { itemOp = SqlLibraryOperators.ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <SAFE_OFFSET> { itemOp = SqlLibraryOperators.SAFE_OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <SAFE_ORDINAL> { itemOp = SqlLibraryOperators.SAFE_ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | { itemOp = SqlStdOperatorTable.ITEM; } e = Expression(ExprContext.ACCEPT_SUB_QUERY)
-                )
-                <RBRACKET> {
-                    list.add(
-                        new SqlParserUtil.ToTreeListItem(
-                            itemOp, getPos()));
-                    list.add(e);
-                }
-                (
-                    LOOKAHEAD(2) <DOT>
-                    p = SimpleIdentifier() {
-                        list.add(
-                            new SqlParserUtil.ToTreeListItem(
-                                SqlStdOperatorTable.DOT, getPos()));
-                        list.add(p);
-                    }
-                )*
             |
                 {
                     checkNonQueryExpression(exprContext);
@@ -7025,13 +7098,15 @@ List<SqlNode> JsonNameAndValue() :
         <VALUE>
     |
         <COMMA> {
-            if (kvMode) {
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalComma());
             }
         }
     |
         <COLON> {
-            if (kvMode) {
+            // If ':' is used for field access, JSON constructors must use
+            // VALUE syntax instead of ':'.
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalColon());
             }
         }
