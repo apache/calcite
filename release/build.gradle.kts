@@ -30,6 +30,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 plugins {
+    base
     id("com.github.vlsi.stage-vote-release")
 }
 
