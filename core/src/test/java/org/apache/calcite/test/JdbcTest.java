@@ -6541,6 +6541,17 @@ public class JdbcTest {
               is("TABLE_SCHEM=adhoc; TABLE_CATALOG=null\n"));
         }
 
+        // schemas (qualified, non-existent)
+        try (ResultSet r = metaData.getSchemas(null, "nonexistent")) {
+          assertThat(CalciteAssert.toString(r), is(""));
+        }
+
+        // schemas (qualified, missing)
+        try (ResultSet r = metaData.getSchemas(null, "adho%")) {
+          assertThat(CalciteAssert.toString(r),
+              is("TABLE_SCHEM=adhoc; TABLE_CATALOG=null\n"));
+        }
+
         // table types
         try (ResultSet r = metaData.getTableTypes()) {
           assertThat(CalciteAssert.toString(r),
