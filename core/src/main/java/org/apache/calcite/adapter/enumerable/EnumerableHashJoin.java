@@ -99,9 +99,9 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
         variablesSet, joinType);
   }
 
-  @Override public EnumerableHashJoin copy(RelTraitSet traitSet, RexNode condition,
-      RelNode left, RelNode right, JoinRelType joinType,
-      boolean semiJoinDone) {
+  @Override public EnumerableHashJoin copy(RelTraitSet traitSet,
+      RexNode condition, RelNode left, RelNode right, Set<CorrelationId> variablesSet,
+      JoinRelType joinType, boolean semiJoinDone) {
     return new EnumerableHashJoin(getCluster(), traitSet, left, right,
         condition, variablesSet, joinType);
   }
