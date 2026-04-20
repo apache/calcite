@@ -23,10 +23,12 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -263,8 +265,42 @@ class ElasticsearchRules {
       super(config);
     }
 
+    /**
+     * Checks if the relational expression or any of its inputs
+     * is an Aggregate (LogicalAggregate or ElasticsearchAggregate).
+     * This prevents nested aggregations from being pushed down to Elasticsearch.
+     */
+    private static boolean containsAggregate(RelNode node) {
+      // Handle RelSubset by checking its best or original node
+      if (node instanceof RelSubset) {
+        RelSubset subset = (RelSubset) node;
+        RelNode best = subset.getBest();
+        if (best != null) {
+          return containsAggregate(best);
+        }
+        RelNode original = subset.getOriginal();
+        if (original != null) {
+          return containsAggregate(original);
+        }
+        return false;
+      }
+      if (node instanceof Aggregate) {
+        return true;
+      }
+      for (RelNode input : node.getInputs()) {
+        if (containsAggregate(input)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     @Override public @Nullable RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
+
+      if (containsAggregate(agg.getInput())) {
+        return null;
+      }
       final RelTraitSet traitSet = agg.getTraitSet().replace(out);
       try {
         return new ElasticsearchAggregate(
