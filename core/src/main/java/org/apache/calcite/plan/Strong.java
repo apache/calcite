@@ -370,6 +370,7 @@ public class Strong {
     map.put(SqlKind.TIMESTAMP_ADD, Policy.ANY);
     map.put(SqlKind.TIMESTAMP_DIFF, Policy.ANY);
     map.put(SqlKind.ITEM, Policy.ANY);
+    map.put(SqlKind.POWER, Policy.ANY);
 
     // Assume that any other expressions cannot be simplified.
     for (SqlKind k

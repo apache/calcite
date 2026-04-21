@@ -118,6 +118,17 @@ public final class SqlBasicFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM, call -> SqlMonotonicity.NOT_MONOTONIC, false);
   }
 
+  /** Creates a {@code SqlBasicFunction} whose name is the same as its kind. */
+  public static SqlBasicFunction create(SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory category) {
+    return new SqlBasicFunction(kind.name(), kind,
+        SqlSyntax.FUNCTION, true, returnTypeInference, null,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
+        category, call -> SqlMonotonicity.NOT_MONOTONIC, false);
+  }
+
   /** Creates a {@code SqlBasicFunction}
    * with kind {@link SqlKind#OTHER_FUNCTION}
    * and category {@link SqlFunctionCategory#NUMERIC}. */

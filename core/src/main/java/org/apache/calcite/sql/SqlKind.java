@@ -347,6 +347,9 @@ public enum SqlKind {
    */
   PATTERN_CONCAT,
 
+  /** Exponentiation. **/
+  POWER,
+
   // comparison operators
 
   /** {@code IN} operator. */
