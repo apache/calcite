@@ -1,0 +1,100 @@
+Subject: [PATCH] Support for Top clause with PERCENT and WITH TIES
+---
+Index: core/src/main/java/org/apache/calcite/sql/dialect/PostgresqlSqlDialect.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/core/src/main/java/org/apache/calcite/sql/dialect/PostgresqlSqlDialect.java b/core/src/main/java/org/apache/calcite/sql/dialect/PostgresqlSqlDialect.java
+--- a/core/src/main/java/org/apache/calcite/sql/dialect/PostgresqlSqlDialect.java	(revision 1a060c40834f4c330eaa97762fe6e7e1184df87d)
++++ b/core/src/main/java/org/apache/calcite/sql/dialect/PostgresqlSqlDialect.java	(date 1776318302581)
+@@ -38,6 +38,7 @@
+ import org.apache.calcite.sql.SqlWriter;
+ import org.apache.calcite.sql.fun.SqlCase;
+ import org.apache.calcite.sql.fun.SqlFloorFunction;
++import org.apache.calcite.sql.fun.SqlLibraryOperators;
+ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+ import org.apache.calcite.sql.parser.SqlParserPos;
+ import org.apache.calcite.sql.type.SqlTypeName;
+@@ -401,4 +402,46 @@
+   @Override public boolean supportsGroupByLiteral() {
+     return false;
+   }
++
++  /**
++   * PostgreSQL supports "FETCH FIRST n ROWS WITH TIES" syntax which is used
++   * when the fetch clause contains a WITH_TIES operator.
++   * This method overrides the base unparseOffsetFetch to handle WITH_TIES
++   * for PostgreSQL while delegating regular offset/fetch to the parent.
++   */
++  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
++      @Nullable SqlNode fetch) {
++    if (fetch instanceof SqlCall
++        && ((SqlCall) fetch).getOperator() == SqlLibraryOperators.WITH_TIES) {
++      if (offset != null) {
++        writer.newlineAndIndent();
++        final SqlWriter.Frame offsetFrame =
++            writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
++        writer.keyword("OFFSET");
++        offset.unparse(writer, -1, -1);
++        writer.keyword("ROWS");
++        writer.endList(offsetFrame);
++      }
++      unparseFetchWithTies(writer, (SqlCall) fetch);
++    } else {
++      super.unparseOffsetFetch(writer, offset, fetch);
++    }
++  }
++
++  /**
++   * Helper method to unparse "FETCH FIRST n ROWS WITH TIES" syntax for PostgreSQL.
++   */
++  private static void unparseFetchWithTies(SqlWriter writer, SqlCall fetchWithTies) {
++    final SqlNode fetchValue = fetchWithTies.operand(0);
++    writer.newlineAndIndent();
++    final SqlWriter.Frame fetchFrame =
++        writer.startList(SqlWriter.FrameTypeEnum.FETCH);
++    writer.keyword("FETCH");
++    writer.keyword("FIRST");
++    fetchValue.unparse(writer, -1, -1);
++    writer.keyword("ROWS");
++    writer.keyword("WITH");
++    writer.keyword("TIES");
++    writer.endList(fetchFrame);
++  }
+ }
+Index: core/src/main/java/org/apache/calcite/sql/fun/SqlLibraryOperators.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/core/src/main/java/org/apache/calcite/sql/fun/SqlLibraryOperators.java b/core/src/main/java/org/apache/calcite/sql/fun/SqlLibraryOperators.java
+--- a/core/src/main/java/org/apache/calcite/sql/fun/SqlLibraryOperators.java	(revision 1a060c40834f4c330eaa97762fe6e7e1184df87d)
++++ b/core/src/main/java/org/apache/calcite/sql/fun/SqlLibraryOperators.java	(date 1776233519307)
+@@ -4889,4 +4889,26 @@
+           null,
+           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+           SqlFunctionCategory.TIMEDATE);
++
++  /** The "TOP_PERCENT(n)" function represents SQL Server's
++   * {@code SELECT TOP (n) PERCENT} clause. The operand is the percent value.
++   * During rel-to-sql conversion, this is transformed into
++   * {@code FETCH NEXT (SELECT CAST(CEIL(COUNT(*) * n / 100.0) AS BIGINT) FROM table) ROWS ONLY}. */
++  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
++  public static final SqlFunction PERCENT =
++      SqlBasicFunction.create("PERCENT",
++          ReturnTypes.BIGINT_NULLABLE,
++          OperandTypes.NUMERIC,
++          SqlFunctionCategory.NUMERIC);
++
++  /** The "TOP_WITH_TIES(n)" function represents SQL Server's
++   * {@code SELECT TOP (n) WITH TIES} clause. The operand is the fetch count.
++   * During rel-to-sql conversion, this is unparsed as
++   * {@code FETCH FIRST n ROWS WITH TIES}. */
++  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
++  public static final SqlFunction WITH_TIES =
++      SqlBasicFunction.create("WITH_TIES",
++          ReturnTypes.BIGINT_NULLABLE,
++          OperandTypes.NUMERIC,
++          SqlFunctionCategory.NUMERIC);
+ }
