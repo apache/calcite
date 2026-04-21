@@ -9184,4 +9184,25 @@ SELECT 1 FROM emp where sal > 200 and emp.deptno=dept.deptno);
 (3 rows)
 
 !ok
+
+WITH t1(id, sal) as (VALUES (1, 10), (2, 20), (3, 30)),
+t2(id, sal) as (VALUES (2, 20), (2, 200), (3, 30)),
+t3(id, sal) as (VALUES (3, 30), (4, 40)),
+t4(id, sal) as (VALUES (2, 200), (5, 50))
+select * from
+t1,
+lateral(
+  select t2.id, t2.sal from t2 join t3 on exists(
+    select t4.id from t4 where t4.id=t1.id and t4.sal=t2.sal
+  )
+);
++----+-----+-----+------+
+| ID | SAL | ID0 | SAL0 |
++----+-----+-----+------+
+|  2 |  20 |   2 |  200 |
+|  2 |  20 |   2 |  200 |
++----+-----+-----+------+
+(2 rows)
+
+!ok
 # End sub-query.iq

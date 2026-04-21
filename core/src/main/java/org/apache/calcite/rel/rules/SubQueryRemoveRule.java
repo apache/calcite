@@ -1041,6 +1041,7 @@ public class SubQueryRemoveRule
     //
     // In such a case $cor0.DNAME need to be accounted as input form left side.
     final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
+    variablesSet.retainAll(join.getVariablesSet());
     for (CorrelationId id : variablesSet) {
       ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, e.rel);
       inputSet = ImmutableBitSet.union(ImmutableList.of(requiredColumns, inputSet));

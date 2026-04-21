@@ -297,7 +297,9 @@ public abstract class Prepare {
     // storage.
     root = root.withRel(flattenTypes(root.rel, true));
 
-    if (this.context.config().forceDecorrelate()) {
+    // TopDownGeneralDecorrelator cannot be used until the subquerys are completely removed.
+    if (this.context.config().forceDecorrelate()
+        && !this.context.config().topDownGeneralDecorrelationEnabled()) {
       // Sub-query decorrelation.
       root = root.withRel(decorrelate(sqlToRelConverter, sqlQuery, root.rel));
     }
