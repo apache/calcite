@@ -1381,12 +1381,12 @@ from v;
 # ORDER BY expression with SELECT DISTINCT
 select distinct deptno, job
 from "scott".emp
-order by substring(job from 2 for 1), -deptno;
+order by substring(job from 2 for 1), -deptno, job;
 +--------+-----------+
 | DEPTNO | JOB       |
 +--------+-----------+
-|     30 | SALESMAN  |
 |     30 | MANAGER   |
+|     30 | SALESMAN  |
 |     20 | MANAGER   |
 |     10 | MANAGER   |
 |     30 | CLERK     |

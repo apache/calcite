@@ -7782,6 +7782,7 @@ WHERE d.deptno IN (
   LIMIT 10
   OFFSET 2
 )
+ORDER BY d.deptno
 LIMIT 2
 OFFSET 1;
 +--------+----------+---------+
@@ -7802,6 +7803,7 @@ WHERE d.deptno IN (
   FROM emp e
   WHERE d.deptno = e.deptno
 )
+ORDER BY d.deptno
 OFFSET 1;
 +--------+----------+---------+
 | DEPTNO | DNAME    | LOC     |
@@ -7822,6 +7824,7 @@ WHERE d.deptno IN (
   WHERE d.deptno = e.deptno
   OFFSET 2
 )
+ORDER BY d.deptno
 OFFSET 1;
 +--------+----------+---------+
 | DEPTNO | DNAME    | LOC     |
@@ -8930,16 +8933,16 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], expr#8=[0:BIGINT], e
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t4)], expr#6=[0], expr#7=[CASE($t5, $t4, $t6)], proj#0..1=[{exprs}], EXPR$0=[$t7])
       EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[left])
-        EnumerableAggregate(group=[{0, 1}])
+        EnumerableAggregate(group=[{0}], $f3=[ANY_VALUE($1)])
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], COMM=[$t6], $f3=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
-        EnumerableAggregate(group=[{0, 1}], EXPR$0=[COUNT()])
-          EnumerableNestedLoopJoin(condition=[OR(AND(IS NULL($3), $1), =($3, $0))], joinType=[inner])
-            EnumerableAggregate(group=[{0, 1}])
-              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], COMM=[$t6], $f3=[$t8])
-                EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableAggregate(group=[{2}], $f3=[ANY_VALUE($3)], EXPR$0=[COUNT()])
+          EnumerableNestedLoopJoin(condition=[OR(AND(IS NULL($1), $3), =($1, $2))], joinType=[inner])
             EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], COMM=[$t6])
               EnumerableTableScan(table=[[scott, EMP]])
+            EnumerableAggregate(group=[{0}], $f3=[ANY_VALUE($1)])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], COMM=[$t6], $f3=[$t8])
+                EnumerableTableScan(table=[[scott, EMP]])
 !plan
 !}
 

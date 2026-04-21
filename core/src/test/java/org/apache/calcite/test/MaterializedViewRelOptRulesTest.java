@@ -1134,11 +1134,14 @@ class MaterializedViewRelOptRulesTest {
             + "from \"emps\"\n"
             + "join \"depts\" on \"depts\".\"deptno\" = \"empid\" group by \"empid\", \"depts\".\"deptno\"")
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0=[{inputs}], empid=[$t0], empid0=[$t0])\n"
-            + "  EnumerableAggregate(group=[{1}])\n"
-            + "    EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
-            + "      EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "      EnumerableTableScan(table=[[hr, depts]])")
+            + "EnumerableAggregate(group=[{0}], deptno=[ANY_VALUE($1)])\n"
+            + "  EnumerableMergeJoin(condition=[=($0, $1)], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])\n"
+            + "        EnumerableTableScan(table=[[hr, depts]])")
         .ok();
   }
 

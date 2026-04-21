@@ -77,6 +77,7 @@ public class RelOptRules {
           CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT,
           CoreRules.AGGREGATE_CASE_TO_FILTER,
           CoreRules.AGGREGATE_REDUCE_FUNCTIONS,
+          CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS,
           CoreRules.FILTER_AGGREGATE_TRANSPOSE,
           CoreRules.PROJECT_WINDOW_TRANSPOSE,
           CoreRules.MATCH,

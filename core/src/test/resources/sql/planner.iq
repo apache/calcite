@@ -556,10 +556,10 @@ select empno, ename from emp where empno >= 150;
 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2:BIGINT], expr#4=[=($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
   EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT()])
     EnumerableUnion(all=[true])
-      EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT()])
+      EnumerableAggregate(group=[{0}], ENAME=[ANY_VALUE($1)], agg#1=[COUNT()])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[10], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
           EnumerableTableScan(table=[[scott, EMP]])
-      EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT()])
+      EnumerableAggregate(group=[{0}], ENAME=[ANY_VALUE($1)], agg#1=[COUNT()])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[150], expr#10=[>=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan

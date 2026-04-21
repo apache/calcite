@@ -45,7 +45,7 @@ LogicalAggregate(group=[{0, 1, 2}], C=[COUNT()])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{0}], ENAME=[SINGLE_VALUE($1)], JOB=[SINGLE_VALUE($2)], C=[COUNT()])
+LogicalAggregate(group=[{0}], ENAME=[ANY_VALUE($1)], JOB=[ANY_VALUE($2)], C=[COUNT()])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -65,7 +65,7 @@ LogicalAggregate(group=[{0, 1}], C=[COUNT()])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{0}], NAME=[SINGLE_VALUE($1)], C=[COUNT()])
+LogicalAggregate(group=[{0}], NAME=[ANY_VALUE($1)], C=[COUNT()])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>

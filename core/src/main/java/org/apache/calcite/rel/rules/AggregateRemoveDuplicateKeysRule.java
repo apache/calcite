@@ -36,7 +36,7 @@ import java.util.List;
  * {@link Aggregate} when the later keys are functionally determined by the
  * earlier retained keys.
  *
- * <p>The original output schema is preserved by adding {@code SINGLE_VALUE}
+ * <p>The original output schema is preserved by adding {@code ANY_VALUE}
  * aggregate calls for removed grouping keys and then projecting the row back
  * into the original field order.
  *
@@ -56,7 +56,7 @@ import java.util.List;
  * <p>After optimization:
  * <pre>
  * LogicalProject(DEPTNO=[$0], NAME=[$1], C=[$2])
- *   LogicalAggregate(group=[{0}], NAME=[SINGLE_VALUE($1)], C=[COUNT()])
+ *   LogicalAggregate(group=[{0}], NAME=[ANY_VALUE($1)], C=[COUNT()])
  *     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
  * </pre>
  */
@@ -107,13 +107,12 @@ public class AggregateRemoveDuplicateKeysRule
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(aggregate.getInput());
 
-    // Build new agg calls. SINGLE_VALUE calls for removed keys are placed first so
+    // Build new agg calls. ANY_VALUE calls for removed keys are placed first so
     // their output indices are contiguous with the retained group-key columns:
     //
-    //   new aggregate output layout
-    //   ─────────────────────────────────────────────────────────────────────────
+    // new aggregate output layout:
     //   [0 .. retainedCount-1]                           retained group keys
-    //   [retainedCount .. retainedCount+removedCount-1]  SINGLE_VALUE calls
+    //   [retainedCount .. retainedCount+removedCount-1]  ANY_VALUE calls
     //   [retainedCount + removedCount .. ...]            original aggregate calls
     //
     final List<String> inputFieldNames = aggregate.getInput().getRowType().getFieldNames();
@@ -121,7 +120,7 @@ public class AggregateRemoveDuplicateKeysRule
     for (int removedKeyPos : removedPos) {
       final int inputIdx = groupKeys.get(removedKeyPos);
       newAggCalls.add(
-          relBuilder.aggregateCall(SqlStdOperatorTable.SINGLE_VALUE,
+          relBuilder.aggregateCall(SqlStdOperatorTable.ANY_VALUE,
                   relBuilder.field(inputIdx))
               .as(inputFieldNames.get(inputIdx)));
     }
