@@ -4911,4 +4911,15 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction HAVERSINE =
+      new SqlFunction(
+          "HAVERSINE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.SYSTEM);
 }
