@@ -327,9 +327,10 @@ public abstract class SqlImplementor {
     for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
       final Result result = visitInput(rel, input.i);
       if (node == null) {
-        node = result.asSelect();
+        node = result.maybeExpandStar(result.asSelect());
       } else {
-        node = operator.createCall(POS, node, result.asSelect());
+        node =
+            operator.createCall(POS, node, result.maybeExpandStar(result.asSelect()));
       }
     }
     if (node == null) {
@@ -2026,6 +2027,13 @@ public abstract class SqlImplementor {
         } else {
           newContext = aliasContext(aliases, qualified);
         }
+        if (!dialect.supportGenerateSelectStar(rel.getInput(0))) {
+          final List<SqlNode> expandedSelectList = new ArrayList<>();
+          for (int i = 0; i < newContext.fieldCount; i++) {
+            expandedSelectList.add(newContext.field(i));
+          }
+          select.setSelectList(new SqlNodeList(expandedSelectList, POS));
+        }
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
           needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
@@ -2367,8 +2375,40 @@ public abstract class SqlImplementor {
       case MERGE:
         return maybeStrip(node);
       default:
-        return maybeStrip(asSelect());
+        return maybeStrip(maybeExpandStar(asSelect()));
       }
+    }
+
+    /** If the dialect does not support {@code SELECT *} and the select list
+     * is {@link SqlNodeList#SINGLETON_STAR}, replaces it with explicit column
+     * references derived from the result's aliases. */
+    SqlSelect maybeExpandStar(SqlSelect select) {
+      if (expectedRel != null
+          && !expectedRel.getInputs().isEmpty()
+          && select.getSelectList().equals(SqlNodeList.SINGLETON_STAR)
+          && !dialect.supportGenerateSelectStar(expectedRel.getInput(0))) {
+        boolean qualified =
+            !dialect.hasImplicitTableAlias() || aliases.size() > 1;
+        final Context ctx = aliasContext(aliases, qualified);
+        final List<SqlNode> expandedList = new ArrayList<>();
+        for (int i = 0; i < ctx.fieldCount; i++) {
+          expandedList.add(ctx.field(i));
+        }
+        return new SqlSelect(select.getParserPosition(),
+            (SqlNodeList) select.getOperandList().get(0),
+            new SqlNodeList(expandedList, POS),
+            select.getFrom(),
+            select.getWhere(),
+            select.getGroup(),
+            select.getHaving(),
+            select.getWindowList(),
+            select.getQualify(),
+            select.getOrderList(),
+            select.getOffset(),
+            select.getFetch(),
+            select.getHints());
+      }
+      return select;
     }
 
     /** Converts a non-query node into a SELECT node. Set operators (UNION,
@@ -2381,7 +2421,7 @@ public abstract class SqlImplementor {
       case VALUES:
         return maybeStrip(node);
       default:
-        return maybeStrip(asSelect());
+        return maybeStrip(maybeExpandStar(asSelect()));
       }
     }
 
