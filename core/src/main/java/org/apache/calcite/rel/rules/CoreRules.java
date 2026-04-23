@@ -66,6 +66,12 @@ public class CoreRules {
   public static final AggregateProjectMergeRule AGGREGATE_PROJECT_MERGE =
       AggregateProjectMergeRule.Config.DEFAULT.toRule();
 
+    /** Rule that removes redundant grouping keys from an {@link Aggregate}
+     * when they are functionally determined by earlier grouping keys. */
+  public static final AggregateRemoveDuplicateKeysRule
+      AGGREGATE_REMOVE_DUPLICATE_KEYS =
+      AggregateRemoveDuplicateKeysRule.Config.DEFAULT.toRule();
+
   /** Rule that removes constant keys from an {@link Aggregate}. */
   public static final AggregateProjectPullUpConstantsRule
       AGGREGATE_PROJECT_PULL_UP_CONSTANTS =
