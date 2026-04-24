@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -33,6 +34,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
@@ -184,7 +186,7 @@ public class ArrowTable extends AbstractTable
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
-    throw new UnsupportedOperationException();
+    return new ArrowQueryable<>(queryProvider, schema, this, tableName);
   }
 
   @Override public Type getElementType() {
@@ -260,6 +262,40 @@ public class ArrowTable extends AbstractTable
     } else {
       throw new IllegalArgumentException("Invalid literal " + literal
           + ", type " + type);
+    }
+  }
+
+  /**
+   * Implementation of {@link Queryable} based on a {@link ArrowTable}.
+   *
+   * @param <T> element type
+   */
+  public static class ArrowQueryable<T> extends AbstractTableQueryable<T> {
+    ArrowQueryable(QueryProvider queryProvider, SchemaPlus schema,
+        ArrowTable table, String tableName) {
+      super(queryProvider, schema, table, tableName);
+    }
+
+    @Override public Enumerator<T> enumerator() {
+      throw new UnsupportedOperationException("enumerator");
+    }
+
+    private ArrowTable getTable() {
+      return (ArrowTable) table;
+    }
+
+    /**
+     * Executes a query with projection and filter conditions.
+     *
+     * @param fields projection fields
+     * @param conditions filter conditions
+     * @return result as enumerable
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public Enumerable<Object> query(List<Integer> fields,
+        List<List<List<String>>> conditions) {
+      final ImmutableIntList fieldList = ImmutableIntList.copyOf(fields);
+      return getTable().query(null, fieldList, conditions);
     }
   }
 }
