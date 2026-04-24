@@ -17,6 +17,9 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -40,6 +43,10 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.test.Matchers.isListOf;
@@ -93,6 +100,69 @@ class ArrowAdapterTest {
 
     assertThat(relDataType.getFieldNames(),
         isListOf("intField", "stringField", "floatField", "longField"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6291">[CALCITE-6291]
+   * Support converting ArrowTable to Queryable</a>.
+   */
+  @Test void testArrowTableAsQueryable() {
+    ArrowSchema arrowSchema = new ArrowSchema(arrowDataDirectory);
+    Map<String, Table> tableMap = arrowSchema.getTableMap();
+    ArrowTable arrowTable = (ArrowTable) tableMap.get("ARROWDATA");
+
+    // asQueryable can accept null QueryProvider and SchemaPlus for testing
+    Queryable<?> queryable = arrowTable.asQueryable(null, null, "ARROWDATA");
+
+    // Verify that asQueryable returns a non-null Queryable
+    assert queryable != null : "asQueryable should return a non-null Queryable";
+
+    // Verify that the Queryable is an instance of ArrowQueryable
+    assert queryable instanceof ArrowTable.ArrowQueryable
+        : "asQueryable should return an instance of ArrowQueryable";
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6291">[CALCITE-6291]
+   * Support converting ArrowTable to Queryable</a>.
+   */
+  @Test void testArrowQueryableQueryWithData() {
+    ArrowSchema arrowSchema = new ArrowSchema(arrowDataDirectory);
+    Map<String, Table> tableMap = arrowSchema.getTableMap();
+    ArrowTable arrowTable = (ArrowTable) tableMap.get("ARROWDATA");
+
+    @SuppressWarnings("unchecked")
+    ArrowTable.ArrowQueryable<Object> queryable =
+        (ArrowTable.ArrowQueryable<Object>) arrowTable.asQueryable(null, null, "ARROWDATA");
+
+    // Query with projection on all fields (0, 1, 2, 3) and no filter conditions
+    List<Integer> fields = Arrays.asList(0, 1, 2, 3);
+    List<List<List<String>>> conditions = Collections.emptyList();
+
+    Enumerable<Object> enumerable = queryable.query(fields, conditions);
+
+    // Fetch the first 6 rows using enumerator
+    List<Object> results = new ArrayList<>();
+    Enumerator<Object> enumerator = enumerable.enumerator();
+    int count = 0;
+    while (enumerator.moveNext() && count < 6) {
+      results.add(enumerator.current());
+      count++;
+    }
+    enumerator.close();
+
+    assert results.size() == 6 : "Expected 6 rows, got " + results.size();
+
+    // Verify each row is an Object array with 4 fields
+    for (int i = 0; i < 6; i++) {
+      Object[] row = (Object[]) results.get(i);
+      assert row.length == 4 : "Expected 4 fields, got " + row.length;
+      assert row[0].equals(i) : "Expected intField=" + i + ", got " + row[0];
+      // stringField may be Text or String type, convert to String for comparison
+      String stringValue = row[1].toString();
+      assert stringValue.equals(String.valueOf(i))
+          : "Expected stringField=" + i + ", got " + stringValue;
+    }
   }
 
   @Test void testArrowProjectAllFields() {
