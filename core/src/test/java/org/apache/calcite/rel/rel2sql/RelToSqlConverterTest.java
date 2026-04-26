@@ -2019,12 +2019,12 @@ class RelToSqlConverterTest {
         + "    \"foodmart\".\"department\",\n"
         + "    UNNEST(SPLIT (\"department_description\", ',')) AS UNNESTVALUES";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", "
-        + "SPLIT(\"$cor0\".\"department_description\", ','), \"t10\".\"col_0\" AS \"UNNESTALIAS\"\n"
+    final String expected = "SELECT \"t0\".\"department_id\", "
+        + "SPLIT(\"t0\".\"department_description\", ','), \"t10\".\"col_0\" AS \"UNNESTALIAS\"\n"
         + "FROM (SELECT \"department_id\", \"department_description\", "
         + "SPLIT(\"department_description\", ',') AS \"$f2\"\n"
-        + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
-        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f2\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\",\n"
+        + "LATERAL UNNEST((SELECT \"t0\".\"$f2\"\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"col_0\")";
     sql(sql).withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
   }
@@ -8116,9 +8116,9 @@ class RelToSqlConverterTest {
     final String query = "select * from \"product\",\n"
         + "lateral table(RAMP(\"product\".\"product_id\"))";
     final String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
+        + "FROM \"foodmart\".\"product\" AS \"t0\",\n"
         + "LATERAL (SELECT *\n"
-        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"t\"";
+        + "FROM TABLE(RAMP(\"t0\".\"product_id\"))) AS \"t\"";
     sql(query).ok(expected);
   }
 
@@ -11485,12 +11485,12 @@ class RelToSqlConverterTest {
         + "  SELECT MIN(D_INNER.DEPTNO)\n"
         + "  FROM DEPT D_INNER\n"
         + "  WHERE D_INNER.DEPTNO = E.DEPTNO)";
-    final String expected = "SELECT \"$cor1\".\"EMPNO\"\n"
-        + "FROM \"SCOTT\".\"EMP\" AS \"$cor1\",\n"
+    final String expected = "SELECT \"t0\".\"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"t0\",\n"
         + "LATERAL (SELECT *\nFROM \"SCOTT\".\"DEPT\"\n"
-        + "WHERE \"$cor1\".\"DEPTNO\" = \"DEPTNO\") AS \"t\"\n"
+        + "WHERE \"t0\".\"DEPTNO\" = \"DEPTNO\") AS \"t\"\n"
         + "WHERE \"t\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
-        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"$cor1\".\"DEPTNO\")";
+        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"t0\".\"DEPTNO\")";
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(JoinToCorrelateRule.class);
     builder.addRuleClass(FilterCorrelateRule.class);
@@ -12116,6 +12116,7 @@ class RelToSqlConverterTest {
         CoreRules.SEMI_JOIN_JOIN_TRANSPOSE);
 
     final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    assertFalse(generated.contains("\"$cor"));
     sql(generated).withPostgresql().exec();
   }
 

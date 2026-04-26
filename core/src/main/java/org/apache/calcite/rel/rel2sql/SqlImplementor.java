@@ -807,6 +807,7 @@ public abstract class SqlImplementor {
       case ALL:
         if (rex instanceof RexSubQuery) {
           subQuery = (RexSubQuery) rex;
+          registerSubQueryCorrelations(subQuery);
           sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
           final List<RexNode> operands = subQuery.operands;
           SqlNode op0;
@@ -834,6 +835,7 @@ public abstract class SqlImplementor {
       case UNIQUE:
       case SCALAR_QUERY:
         subQuery = (RexSubQuery) rex;
+        registerSubQueryCorrelations(subQuery);
         sqlSubQuery =
             implementor().visitRoot(subQuery.rel).asQueryOrValues();
         return subQuery.getOperator().createCall(POS, sqlSubQuery);
@@ -876,6 +878,12 @@ public abstract class SqlImplementor {
         }
 
         return callToSql(program, (RexCall) rex, false);
+      }
+    }
+
+    private void registerSubQueryCorrelations(RexSubQuery subQuery) {
+      for (CorrelationId id : RelOptUtil.getVariablesUsed(subQuery.rel)) {
+        implementor().correlTableMap.putIfAbsent(id, this);
       }
     }
 
@@ -1598,17 +1606,9 @@ public abstract class SqlImplementor {
   }
 
   protected Context getAliasContext(RexCorrelVariable variable) {
-    Context context = correlTableMap.get(variable.id);
-    if (context == null) {
-      if (correlTableMap.isEmpty()) {
-        context =
-            aliasContext(ImmutableMap.of(variable.id.getName(), variable.getType()), true);
-      }
-      if (context != null) {
-        correlTableMap.put(variable.id, context);
-      }
-    }
-    return requireNonNull(context, () -> "variable " + variable.id + " is not found");
+    return requireNonNull(
+        correlTableMap.get(variable.id),
+        () -> "variable " + variable.id + " is not found");
   }
 
   /** Simple implementation of {@link Context} that cannot handle sub-queries
