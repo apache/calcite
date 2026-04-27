@@ -4209,6 +4209,41 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).withDecorrelate(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7405">[CALCITE-7405]
+   * Correlated subquery where outer tree is affected by bloat optimization
+   * causing project fusion</a>. */
+  @Test void testCorrelationInProjectionWithBloatFusion() {
+    final String sql = "select e1.sal + "
+        + "(select sum(e2.sal) from emp e2 where e2.deptno = d.deptno)\n"
+        + "from dept d join emp e1 on  d.deptno + 1 = e1.deptno";
+    sql(sql)
+        .withExpand(false)
+        .withDecorrelate(false)
+        .withConfig(srcc ->
+            srcc.addRelBuilderConfigTransform(rbc ->
+                rbc.withBloat(100).withPushJoinCondition(true)))
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7405">[CALCITE-7405]
+   * Correlated subquery using a compound expression from input projection that is not ultimately
+   * projected by query, and where outer tree is affected by bloat optimization causing project
+   * fusion and elimination of compound expression required by correlation</a>. */
+  @Test void testCorrelationInProjectionWithBloatFusionAndCompoundNonProjectedCorrelation() {
+    final String sql = "select d2.name, "
+        + "(select sum(e.sal) from emp e where e.deptno = d2.compound)\n"
+        + "from (select d.name, d.deptno + 1 as compound from dept d) as d2";
+    sql(sql)
+        .withExpand(false)
+        .withDecorrelate(false)
+        .withConfig(srcc ->
+            srcc.addRelBuilderConfigTransform(rbc ->
+                rbc.withBloat(100)))
+        .ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();

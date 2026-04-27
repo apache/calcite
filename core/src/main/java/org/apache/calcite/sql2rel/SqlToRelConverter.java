@@ -3774,9 +3774,10 @@ public class SqlToRelConverter {
       final RelNode inputRel = bb.root();
 
       // Project the expressions required by agg and having.
-      RelNode intermediateProject = relBuilder.push(inputRel)
-          .projectNamed(preExprs.leftList(), preExprs.rightList(), false)
-          .build();
+      // Using LogicalProject.create to avoid bloat optimizations in RelBuilder.
+      RelNode intermediateProject =
+          LogicalProject.create(inputRel, ImmutableList.of(), preExprs.leftList(),
+              preExprs.rightList(), ImmutableSet.of());
       final RelNode r2;
       // deal with correlation
       final CorrelationUse p = getCorrelationUse(bb, intermediateProject);
@@ -3790,7 +3791,9 @@ public class SqlToRelConverter {
                 true, ImmutableSet.of(p.id))
             .build();
       } else {
-        r2 = intermediateProject;
+        r2 = relBuilder.push(inputRel)
+                  .projectNamed(preExprs.leftList(), preExprs.rightList(), false)
+                  .build();
       }
       bb.setRoot(r2, false);
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
@@ -5025,10 +5028,10 @@ public class SqlToRelConverter {
         SqlValidatorUtil.uniquify(fieldNames,
             catalogReader.nameMatcher().isCaseSensitive());
 
-    relBuilder.push(bb.root())
-        .projectNamed(exprs, uniqueFieldNames, true);
-
-    RelNode project = relBuilder.build();
+    // Using LogicalProject.create to avoid bloat optimizations in RelBuilder.
+    RelNode project =
+        LogicalProject.create(bb.root(), ImmutableList.of(), exprs, uniqueFieldNames,
+            ImmutableSet.of());
 
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, project);
@@ -5042,7 +5045,7 @@ public class SqlToRelConverter {
               ImmutableSet.of(p.id))
           .build();
     } else {
-      r = project;
+      r = relBuilder.push(bb.root()).projectNamed(exprs, uniqueFieldNames, true).build();
     }
 
     bb.setRoot(r, false);
