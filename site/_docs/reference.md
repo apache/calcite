@@ -1682,6 +1682,7 @@ charSet:
 
 timeZone:
       WITHOUT TIME ZONE
+  |   WITH TIME ZONE
   |   WITH LOCAL TIME ZONE
 {% endhighlight %}
 
