@@ -4371,6 +4371,34 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinUsingWithConformanceOracle">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, name
+FROM emp JOIN dept using (deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinUsingWithConformancePresto">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, name
+FROM emp JOIN dept using (deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinUsingWithGroupingSets">
     <Resource name="sql">
       <![CDATA[select deptno, grouping(deptno),
@@ -5000,6 +5028,20 @@ LogicalProject(C=[$0], N=[$3])
             LogicalAggregate(group=[{0}])
               LogicalProject($f2=[+($0, 1)])
                 LogicalValues(tuples=[[{ 4 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftJoinUsingWithConformanceOracle">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, name
+FROM emp LEFT OUTER JOIN dept using (deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -7396,6 +7438,20 @@ GROUP BY ROLLUP(deptno)]]>
 LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testRightJoinUsingWithConformanceOracle">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, name
+FROM emp RIGHT OUTER JOIN dept using (deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[COALESCE($7, $9)], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
