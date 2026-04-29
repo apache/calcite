@@ -6092,4 +6092,45 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select distinct deptno, deptno, empno, 1, 'a' from emp order by rand(), 1";
     sql(sql).ok();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7085">[CALCITE-7085]
+   * JOIN USING with unqualified common column fails in a conformance where
+   * allowQualifyingCommonColumn is false (e.g. Oracle, Presto)</a>. */
+  @Test void testJoinUsingWithConformanceOracle() {
+    final String sql = "SELECT deptno, name\n"
+        + "FROM emp JOIN dept using (deptno)";
+    sql(sql).withConformance(SqlConformanceEnum.ORACLE_10).ok();
+  }
+
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7085">[CALCITE-7085]
+   * JOIN USING with unqualified common column fails in a conformance where
+   * allowQualifyingCommonColumn is false (e.g. Oracle, Presto)</a>. */
+  @Test void testLeftJoinUsingWithConformanceOracle() {
+    final String sql = "SELECT deptno, name\n"
+        + "FROM emp LEFT OUTER JOIN dept using (deptno)";
+    sql(sql).withConformance(SqlConformanceEnum.ORACLE_10).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7085">[CALCITE-7085]
+   * JOIN USING with unqualified common column fails in a conformance where
+   * allowQualifyingCommonColumn is false (e.g. Oracle, Presto)</a>. */
+  @Test void testRightJoinUsingWithConformanceOracle() {
+    final String sql = "SELECT deptno, name\n"
+        + "FROM emp RIGHT OUTER JOIN dept using (deptno)";
+    sql(sql).withConformance(SqlConformanceEnum.ORACLE_10).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7085">[CALCITE-7085]
+   * JOIN USING with unqualified common column fails in a conformance where
+   * allowQualifyingCommonColumn is false (e.g. Oracle, Presto)</a>. */
+  @Test void testJoinUsingWithConformancePresto() {
+    final String sql = "SELECT deptno, name\n"
+        + "FROM emp JOIN dept using (deptno)";
+    sql(sql).withConformance(SqlConformanceEnum.PRESTO).ok();
+  }
 }
