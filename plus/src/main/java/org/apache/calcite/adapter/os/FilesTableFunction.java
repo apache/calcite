@@ -44,8 +44,7 @@ import static java.util.Objects.requireNonNull;
 public class FilesTableFunction {
 
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000L);
-  private static final String SINGLE_QUOTE =
-      "Path with single quote characters are not supported";
+
   private FilesTableFunction() {
   }
 
@@ -87,9 +86,28 @@ public class FilesTableFunction {
         // %p file name (including argument)
       }
 
+      /** Wraps {@code path} in single quotes for use in a shell command,
+       * throwing if it contains a single quote. */
+      private String quotePath() {
+        return "'" + validatePath(path) + "'";
+      }
+
+      /** Checks that {@code path} is valid and will not cause mischief. */
+      private String validatePath(String path) {
+        if (path.contains("'")) {
+          throw new IllegalArgumentException(
+              "Path with single quote characters is not supported");
+        }
+        if (path.startsWith("-")) {
+          throw new IllegalArgumentException(
+              "Path with leading dash character is not supported");
+        }
+        return path;
+      }
+
       private Enumerable<String> sourceLinux() {
         final String[] args = {
-            "find", path, "-printf", ""
+            "find", "--", validatePath(path), "-printf", ""
               + "%A@\\0" // access_time
               + "%b\\0" // block_count
               + "%C@\\0" // change_time
@@ -115,12 +133,9 @@ public class FilesTableFunction {
       }
 
       private Enumerable<String> sourceMacOs() {
-        if (path.contains("'")) {
-          throw new IllegalArgumentException(SINGLE_QUOTE);
-        }
         // BSD stat format specifiers: https://man.freebsd.org/cgi/man.cgi?query=stat
-        final String[] args = {"/bin/sh", "-c", "find '" + path
-              + "' | xargs stat -f "
+        final String[] args = {"/bin/sh", "-c", "find -- " + quotePath()
+              + " -print0 | xargs -0 stat -f "
               + "%a%n" // access_time
               + "%b%n" // block_count
               + "%c%n" // change_time
@@ -146,14 +161,11 @@ public class FilesTableFunction {
       }
 
       private Enumerable<String> sourceGnuStat() {
-        if (path.contains("'")) {
-          throw new IllegalArgumentException(SINGLE_QUOTE);
-        }
         // GNU stat format specifiers:
         // https://www.gnu.org/software/coreutils/manual/html_node/stat-invocation.html
         // format string must have exactly 20 lines per file to match the schema
-        final String[] args = {"/bin/sh", "-c", "find '" + path
-              + "' | xargs stat -c '"
+        final String[] args = {"/bin/sh", "-c", "find -- " + quotePath()
+              + " -print0 | xargs -0 stat -c '"
               + "%X\n" // access_time
               + "%b\n" // block_count
               + "%Z\n" // change_time

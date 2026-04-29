@@ -149,6 +149,22 @@ class OsAdapterTest {
             "type=f");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7496">[CALCITE-7496]
+   * The 'files(path)' table function should not allow paths with a leading
+   * dash</a>.
+   *
+   * <p>GNU {@code find} treats an argument beginning with '{@code -}' as an
+   * expression primary rather than a filesystem path. This can cause mischief.
+   * This test verifies that leading-dash paths are rejected using the harmless
+   * {@code -name} expression.
+   */
+  @Test void testFilesLeadingDashPath() {
+    assumeFalse(Util.isWindows(), "Skip: the 'files' table does not work on Windows");
+    sql("select * from files('-name')")
+        .throws_("Path with leading dash character is not supported");
+  }
+
   @Test void testPs() {
     assumeFalse(Util.isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
