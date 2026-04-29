@@ -76,9 +76,11 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 
 /**
@@ -6132,5 +6134,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "SELECT deptno, name\n"
         + "FROM emp JOIN dept using (deptno)";
     sql(sql).withConformance(SqlConformanceEnum.PRESTO).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7304">[CALCITE-7304]
+   * Floor/Ceil can not simplify with WEEK TimeUnit</a>. */
+  @Test void testSimplifyNestedFloorWeekFromSql() {
+    final String sql = "select floor(floor(hiredate TO DAY) TO WEEK) from emp";
+    final RelNode rel = sql(sql).toRel();
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final RelNode optimized = planner.findBestExp();
+    final String plan = RelOptUtil.toString(optimized);
+    // After PROJECT_REDUCE_EXPRESSIONS, nested floor(floor(x TO DAY) TO WEEK)
+    // should be simplified to floor(x TO WEEK).
+    assertThat(plan, not(containsString("FLOOR(FLOOR")));
+    assertThat(plan, containsString("FLOOR($4, FLAG(WEEK))"));
   }
 }

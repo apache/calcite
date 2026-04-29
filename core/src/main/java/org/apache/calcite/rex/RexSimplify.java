@@ -2687,6 +2687,20 @@ public class RexSimplify {
         break;
       }
       break;
+    case WEEK:
+      switch (inner) {
+      case WEEK:
+      case DAY:
+      case HOUR:
+      case MINUTE:
+      case SECOND:
+      case MILLISECOND:
+      case MICROSECOND:
+        return true;
+      default:
+        break;
+      }
+      break;
     case QUARTER:
       switch (inner) {
       case QUARTER:
