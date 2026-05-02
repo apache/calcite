@@ -149,6 +149,16 @@ class SqlHintsConverterTest {
 
   //~ Tests ------------------------------------------------------------------
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7498">[CALCITE-7498]
+   * The parser rejects the example hints from the documentation</a>. */
+  @Test void testDocumentationExample() {
+    final String sql = "SELECT /*+ hint1, hint2(a='1', b='2') */ *\n"
+        + "FROM emp /*+ hint3(5, 'x') */\n"
+        + "JOIN dept /*+ hint4(c=id), hint5 */\n"
+        + "ON emp.deptno = dept.deptno";
+    sql(sql).ok();
+  }
+
   @Test void testQueryHint() {
     final String sql = HintTools.withHint("select /*+ %s */ *\n"
         + "from emp e1\n"
@@ -1064,6 +1074,12 @@ class SqlHintsConverterTest {
               .hintStrategy(
                   "preserved_project", HintStrategy.builder(
                HintPredicates.PROJECT).excludedRules(CoreRules.FILTER_PROJECT_TRANSPOSE).build())
+          // meaningless hints for the example in the documentation
+        .hintStrategy("hint1", HintPredicates.JOIN)
+        .hintStrategy("hint2", HintPredicates.JOIN)
+        .hintStrategy("hint3", HintPredicates.TABLE_SCAN)
+        .hintStrategy("hint4", HintPredicates.TABLE_SCAN)
+        .hintStrategy("hint5", HintPredicates.TABLE_SCAN)
         .build();
     }
 

@@ -3532,11 +3532,11 @@ optionKey:
   |   stringLiteral
 
 optionVal:
-      stringLiteral
+      simpleIdentifier
+  |   stringLiteral
 
 hintOption:
       simpleIdentifier
-   |  numericLiteral
    |  stringLiteral
 {% endhighlight %}
 

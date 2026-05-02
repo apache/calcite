@@ -151,7 +151,7 @@ public class SqlHint extends SqlCall {
       for (int i = 0; i < options.size() - 1; i += 2) {
         final SqlNode k = options.get(i);
         final SqlNode v = options.get(i + 1);
-        attrs.put(getOptionKeyAsString(k), ((SqlLiteral) v).getValueAs(String.class));
+        attrs.put(getOptionAsString(k), getOptionAsString(v));
       }
       return ImmutableMap.copyOf(attrs);
     } else {
@@ -204,7 +204,7 @@ public class SqlHint extends SqlCall {
 
   //~ Tools ------------------------------------------------------------------
 
-  private static String getOptionKeyAsString(SqlNode node) {
+  private static String getOptionAsString(SqlNode node) {
     assert node instanceof SqlIdentifier || SqlUtil.isLiteral(node);
     if (node instanceof SqlIdentifier) {
       return ((SqlIdentifier) node).getSimple();
