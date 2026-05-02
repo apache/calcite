@@ -58,6 +58,22 @@ Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDocumentationExample">
+    <Resource name="sql">
+      <![CDATA[SELECT /*+ hint1, hint2(a='1', b='2') */ *
+FROM emp /*+ hint3(5, 'x') */
+JOIN dept /*+ hint4(c=id), hint5 */
+ON emp.deptno = dept.deptno]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[HINT1 inheritPath:[]], [HINT2 inheritPath:[] options:{A=1, B=2}]]
+LogicalJoin:[[HINT1 inheritPath:[0]], [HINT2 inheritPath:[0] options:{A=1, B=2}]]
+TableScan:[[HINT3 inheritPath:[] options:[5, x]]]
+TableScan:[[HINT4 inheritPath:[] options:{C=ID}], [HINT5 inheritPath:[]]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterHints">
     <Resource name="sql">
       <![CDATA[select /*+ resource(parallelism='3') */ avg(sal) as avg_sal, deptno

@@ -9368,6 +9368,23 @@ public class SqlParserTest {
     sql(sql2).ok(expected);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7498">[CALCITE-7498]
+   * The parser rejects the example hints from the documentation</a>. */
+  @Test void testDocumentationExample() {
+    final String sql = "SELECT /*+ hint1, hint2(a='1', b='2') */ *\n"
+        + "FROM emp /*+ hint3(5, 'x') */\n"
+        + "JOIN dept /*+ hint4(c=id), hint5 */\n"
+        + "ON emp.deptno = dept.deptno";
+    final String expected = "SELECT\n"
+        + "/*+ `HINT1`, `HINT2`(`A` = '1', `B` = '2') */\n"
+        + "*\n"
+        + "FROM `EMP`\n"
+        + "/*+ `HINT3`(5, 'x') */\n"
+        + "INNER JOIN `DEPT`\n"
+        + "/*+ `HINT4`(`C` = `ID`), `HINT5` */ ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testQueryHint() {
     final String sql1 = "select "
         + "/*+ properties(k1='v1', k2='v2', 'a.b.c'='v3'), "
