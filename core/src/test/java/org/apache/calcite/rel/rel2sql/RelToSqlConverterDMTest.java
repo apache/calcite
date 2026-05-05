@@ -31,6 +31,9 @@ import org.apache.calcite.plan.ViewChildProjectRelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -39,6 +42,7 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -14665,6 +14669,35 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testFetchFirstRowsWithTies() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fetchWithTies =
+        builder.call(SqlLibraryOperators.WITH_TIES, builder.literal(5));
+    final RelNode scan = builder.scan("EMP").build();
+    final RelCollation collation = RelCollations.of(new RelFieldCollation(1));
+    final RelNode root = LogicalSort.create(scan, collation, null, fetchWithTies);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY \"ENAME\"\n"
+        + "FETCH FIRST 5 ROWS WITH TIES";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testFetchFirstRowsWithTiesAndOffset() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fetchWithTies =
+        builder.call(SqlLibraryOperators.WITH_TIES, builder.literal(5));
+    final RelNode scan = builder.scan("EMP").build();
+    final RelCollation collation = RelCollations.of(new RelFieldCollation(1));
+    final RexNode offset = builder.literal(3);
+    final RelNode root = LogicalSort.create(scan, collation, offset, fetchWithTies);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY \"ENAME\"\n"
+        + "OFFSET 3 ROWS\n"
+        + "FETCH FIRST 5 ROWS WITH TIES";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
 
   @Test public void testSkipSimplify() {
     final RelBuilder builder = foodmartRelBuilder();

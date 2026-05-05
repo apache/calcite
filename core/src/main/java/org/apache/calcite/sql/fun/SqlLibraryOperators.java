@@ -4932,4 +4932,26 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "TOP_PERCENT(n)" function represents SQL Server's
+   * {@code SELECT TOP (n) PERCENT} clause. The operand is the percent value.
+   * During rel-to-sql conversion, this is transformed into
+   * {@code FETCH NEXT (SELECT CAST(CEIL(COUNT(*) * n / 100.0) AS BIGINT) FROM table) ROWS ONLY}. */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction PERCENT =
+      SqlBasicFunction.create("PERCENT",
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "TOP_WITH_TIES(n)" function represents SQL Server's
+   * {@code SELECT TOP (n) WITH TIES} clause. The operand is the fetch count.
+   * During rel-to-sql conversion, this is unparsed as
+   * {@code FETCH FIRST n ROWS WITH TIES}. */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction WITH_TIES =
+      SqlBasicFunction.create("WITH_TIES",
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 }
