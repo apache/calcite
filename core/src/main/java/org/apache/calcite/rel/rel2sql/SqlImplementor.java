@@ -99,6 +99,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
@@ -2177,24 +2178,25 @@ public abstract class SqlImplementor {
       if (node == null) {
         return false;
       }
-      if (node.getKind() == SqlKind.WINDOW) {
-        return true;
-      }
-      if (node instanceof SqlSelect) {
-        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-        for (SqlNode child : selectList) {
-          if (containsOver(child)) {
-            return true;
+      final boolean[] result = {false};
+      node.accept(new SqlBasicVisitor<Void>() {
+        @Override public Void visit(SqlCall call) {
+          if (result[0]) {
+            return null;
           }
-        }
-      } else if (node instanceof SqlBasicCall) {
-        for (SqlNode operand : ((SqlBasicCall) node).getOperandList()) {
-          if (containsOver(operand)) {
-            return true;
+          if (call.getKind() == SqlKind.WINDOW) {
+            result[0] = true;
+            return null;
           }
+          for (SqlNode operand : call.getOperandList()) {
+            if (operand != null) {
+              operand.accept(this);
+            }
+          }
+          return null;
         }
-      }
-      return false;
+      });
+      return result[0];
     }
 
     /** Returns whether an {@link Aggregate} contains nested operands that

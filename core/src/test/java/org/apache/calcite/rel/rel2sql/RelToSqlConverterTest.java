@@ -5960,6 +5960,34 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     sql(query1).optimize(rules, null).ok(expected10);
     sql(query1).ok(expected11);
+
+    String query2 = " SELECT "
+        + "SUM (\"daily_sales\") OVER (PARTITION BY \"product_name\") AS \"sales\" "
+        + "FROM ( SELECT \"product_name\", "
+        + "CASE WHEN SUM(\"product_id\") OVER (PARTITION BY \"product_name\") > 0 "
+        + "THEN 1 ELSE 0 END AS \"daily_sales\" "
+        + "FROM \"product\" ) subquery";
+    String expected20 = "SELECT "
+        + "SUM(\"daily_sales\") "
+        + "OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"sales\"\n"
+        + "FROM (SELECT \"product_name\", "
+        + "CASE WHEN (SUM(\"product_id\") OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) > 0 THEN 1 ELSE 0 END "
+        + "AS \"daily_sales\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t1\"";
+    String expected21 = "SELECT "
+        + "SUM(\"daily_sales\") "
+        + "OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"sales\"\n"
+        + "FROM (SELECT \"product_name\", "
+        + "CASE WHEN (SUM(\"product_id\") "
+        + "OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) > 0 THEN 1 ELSE 0 END "
+        + "AS \"daily_sales\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"";
+    sql(query2).optimize(rules, null).ok(expected20);
+    sql(query2).ok(expected21);
   }
 
   /** Test case for
