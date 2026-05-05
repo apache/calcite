@@ -1751,6 +1751,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    LOGGER.debug("REGEXP_SIMILAR unparse — operand count: {}, source call: {}",
+        call.operandCount(), call);
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec, call.getOperator().getName());
     writer.sep(",");
@@ -1816,8 +1818,25 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseRegexStringForIfRegexReplace(
       SqlWriter writer, SqlCall call, String operatorName) {
     SqlCharStringLiteral secondOperand = call.getOperandList().size() == 3
-        ? modifyIfRegexpContainsSecondOperand(call) : call.operand(1);
+        ? modifyIfRegexpContainsSecondOperand(call) : anchorRegexForFullMatch(call.operand(1));
     unparseRegexLiteral(writer, secondOperand, operatorName);
+  }
+
+  /**
+   * Wraps the regex pattern with '^' and '$' anchors for full-string matching.
+   * Teradata REGEXP_SIMILAR always performs a full-string match, so the BigQuery
+   * REGEXP_CONTAINS equivalent must be anchored.
+   */
+  private static SqlCharStringLiteral anchorRegexForFullMatch(SqlNode patternNode) {
+    String pattern = removeLeadingAndTrailingSingleQuotes(patternNode.toString());
+    LOGGER.debug("REGEXP_SIMILAR full-match anchor check — original pattern: [{}]", pattern);
+    if (!(pattern.startsWith("^") && pattern.endsWith("$"))) {
+      pattern = "^" + pattern + "$";
+      LOGGER.debug("REGEXP_SIMILAR full-match anchor check — anchored pattern:  [{}]", pattern);
+    } else {
+      LOGGER.debug("REGEXP_SIMILAR full-match anchor check — pattern already anchored, skipping");
+    }
+    return SqlLiteral.createCharString(pattern, SqlParserPos.ZERO);
   }
 
   private SqlCharStringLiteral modifyIfRegexpContainsSecondOperand(SqlCall call) {
