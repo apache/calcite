@@ -10067,8 +10067,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   @Test void testReduceAggregateFunctionsByGroup() {
     final String sql = "select sal, max(sal) as sal_max, min(sal) as sal_min,\n"
-        + "avg(sal) sal_avg, any_value(sal) as sal_val, first_value(sal) as sal_first,\n"
-        + "last_value(sal) as sal_last\n"
+        + "avg(sal) sal_avg, any_value(sal) as sal_val\n"
         + "from emp group by sal, deptno";
     sql(sql).withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS, CoreRules.PROJECT_MERGE).check();
   }

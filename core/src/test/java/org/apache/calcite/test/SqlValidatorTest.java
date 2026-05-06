@@ -3374,7 +3374,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-820">[CALCITE-820]
    * Validate that window functions have OVER clause</a>, and
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1340">[CALCITE-1340]
-   * Window aggregates give invalid errors</a>. */
+   * Window aggregates give invalid errors</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7485">[CALCITE-7485]
+   * FIRST_VALUE/LAST_VALUE should only be defined for window aggregates</a>.
+   * */
   @Test void testWindowFunctionsWithoutOver() {
     winSql("select sum(empno)\n"
         + "from emp\n"
@@ -3397,6 +3400,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winSql("select ^nth_value(sal, 2)^\n"
         + "from emp")
         .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^first_value(sal)^\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^last_value(sal)^\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    // With alias, first_value and last_value without OVER should also fail
+    winSql("select ^first_value(sal)^ as sal_first\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^last_value(sal)^ as sal_last\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    // In GROUP BY context, first_value and last_value without OVER should fail
+    winSql("select sal, ^first_value(sal)^ as sal_first\n"
+        + "from emp group by sal, deptno")
+        .fails("OVER clause is necessary for window functions");
+
+    // first_value and last_value with OVER clause should succeed
+    winSql("select first_value(sal) over (order by empno)\n"
+        + "from emp")
+        .ok();
+
+    winSql("select last_value(sal) over (order by empno)\n"
+        + "from emp")
+        .ok();
   }
 
   @Test void testOverInPartitionBy() {
