@@ -15836,30 +15836,38 @@ public class SqlOperatorTest {
             + "between 0 and 1", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7485">[CALCITE-7485]
+   * FIRST_VALUE/LAST_VALUE should only be defined for window aggregates</a>.
+   */
   @Test void testPercentileContBigQueryFunc() {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.PERCENTILE_CONT2, SqlOperatorFixture.VmName.EXPAND)
         .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkType("percentile_cont(1, .5)",
+    f.checkType("percentile_cont(1, .5) over ()",
         "DOUBLE NOT NULL");
-    f.checkType("percentile_cont(.5, .5 RESPECT NULLS)", "DOUBLE NOT NULL");
-    f.checkType("percentile_cont(1, .5 IGNORE NULLS)", "DOUBLE NOT NULL");
-    f.checkType("percentile_cont(2+3, .5 IGNORE NULLS)", "DOUBLE NOT NULL");
-    f.checkFails("^percentile_cont(1, 1.5)^",
+    f.checkType("percentile_cont(.5, .5 RESPECT NULLS) over ()", "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(1, .5 IGNORE NULLS) over ()", "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(2+3, .5 IGNORE NULLS) over ()", "DOUBLE NOT NULL");
+    f.checkFails("^percentile_cont(1, 1.5)^ over ()",
         "Argument to function 'PERCENTILE_CONT' must be a numeric literal "
             + "between 0 and 1", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7485">[CALCITE-7485]
+   * FIRST_VALUE/LAST_VALUE should only be defined for window aggregates</a>.
+   */
   @Test void testPercentileDiscBigQueryFunc() {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.PERCENTILE_DISC2, SqlOperatorFixture.VmName.EXPAND)
         .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkType("percentile_disc(1, .5)",
+    f.checkType("percentile_disc(1, .5) over ()",
         "INTEGER NOT NULL");
-    f.checkType("percentile_disc(1, .5 RESPECT NULLS)", "INTEGER NOT NULL");
-    f.checkType("percentile_disc(0.75, .5 IGNORE NULLS)", "DECIMAL(3, 2) NOT NULL");
-    f.checkType("percentile_disc(2+3, .5 IGNORE NULLS)", "INTEGER NOT NULL");
-    f.checkFails("^percentile_disc(1, 1.5)^",
+    f.checkType("percentile_disc(1, .5 RESPECT NULLS) over ()", "INTEGER NOT NULL");
+    f.checkType("percentile_disc(0.75, .5 IGNORE NULLS) over ()", "DECIMAL(3, 2) NOT NULL");
+    f.checkType("percentile_disc(2+3, .5 IGNORE NULLS) over ()", "INTEGER NOT NULL");
+    f.checkFails("^percentile_disc(1, 1.5)^ over ()",
         "Argument to function 'PERCENTILE_DISC' must be a numeric literal "
             + "between 0 and 1", false);
   }

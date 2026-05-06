@@ -6210,6 +6210,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new FieldNamespace(this, field.getType());
   }
 
+  @Override public boolean isInWindow() {
+    return inWindow;
+  }
+
   @Override public void validateWindow(
       SqlNode windowOrId,
       SqlValidatorScope scope,
@@ -6832,7 +6836,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         break;
       case 2:
         assert op.allowsNullTreatment();
-        assert op.requiresOver();
         assert op.requiresGroupOrder() == Optionality.FORBIDDEN;
         break;
       default:
