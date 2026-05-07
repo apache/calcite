@@ -181,6 +181,8 @@ public enum BuiltInMethod {
       Integer.class, int.class, int.class, BigDecimal.class, RoundingMode.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),
   REMOVE_ALL(ExtendedEnumerable.class, "removeAll", Collection.class),
+  UPDATE(ExtendedEnumerable.class, "update", List.class, Function1.class,
+      Function1.class, Function1.class),
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
   SCHEMA_GET_TABLE(Schema.class, "getTable", String.class),
   SCHEMA_PLUS_ADD_TABLE(SchemaPlus.class, "add", String.class, Table.class),

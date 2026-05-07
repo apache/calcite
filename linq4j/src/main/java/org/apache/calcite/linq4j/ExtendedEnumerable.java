@@ -548,6 +548,32 @@ public interface ExtendedEnumerable<TSource> {
   <C extends Collection<? super TSource>> C removeAll(C sink);
 
   /**
+   * Updates rows of {@code sink} based on the contents of this sequence.
+   *
+   * <p>For each element {@code x} of this sequence, {@code sourceKeySelector}
+   * computes a key, and {@code sourceTransform} computes a replacement row.
+   * Then for each element {@code y} of {@code sink}, {@code sinkKeySelector}
+   * computes a key; if it matches a key produced from this sequence, {@code y}
+   * is replaced (in place) with the corresponding replacement row.
+   *
+   * <p>The sink is a {@link List} so that elements can be replaced
+   * in place while preserving order.
+   *
+   * @param sink              List to be updated in place
+   * @param sinkKeySelector   Function that extracts a key from a sink row
+   * @param sourceKeySelector Function that extracts a key from a source row
+   * @param transform         Function that produces the replacement row from a
+   *                          source row
+   * @param <TKey>            Key type
+   * @return Number of rows replaced
+   */
+  <TKey> long update(
+      List<TSource> sink,
+      Function1<TSource, TKey> sinkKeySelector,
+      Function1<TSource, TKey> sourceKeySelector,
+      Function1<TSource, TSource> transform);
+
+  /**
    * Correlates the elements of two sequences based on
    * matching keys. The default equality comparer is used to compare
    * keys.
