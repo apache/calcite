@@ -27,6 +27,7 @@ import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.TableAliasTrait;
 import org.apache.calcite.plan.ViewChildProjectRelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -2794,6 +2795,9 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(arrayNode, "EXPR$"))
         .uncollect(new ArrayList<String>(Collections.singleton("element")), true)
         .build();
+    unCollectNode = unCollectNode.
+            copy(unCollectNode.getTraitSet().plus(new TableAliasTrait("unnest$")),
+                unCollectNode.getInputs());
     RelNode projectNode = builder
         .push(unCollectNode)
         .filter(
