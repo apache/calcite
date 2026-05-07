@@ -197,17 +197,32 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
 void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
 {
     final SqlDataTypeSpec dt;
+    SqlNode e, p;
 }
 {
     <INFIX_CAST> {
         checkNonQueryExpression(exprContext);
     }
     dt = DataType() {
-        list.add(
-            new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_CAST,
-                s.pos()));
-        list.add(dt);
+        SqlNode leftOperand = SqlParserUtil.toTree(list);
+        list.clear();
+        SqlNode castNode = SqlLibraryOperators.INFIX_CAST.createCall(
+        s.pos(), leftOperand, dt);
+        list.add(castNode);
     }
+    (   <LBRACKET>
+        e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+        <RBRACKET> {
+            SqlNode current = (SqlNode) list.remove(list.size() - 1);
+            list.add(SqlStdOperatorTable.ITEM.createCall(getPos(), current, e));
+        }
+    |
+        <DOT>
+        p = SimpleIdentifier() {
+            SqlNode current = (SqlNode) list.remove(list.size() - 1);
+            list.add(SqlStdOperatorTable.DOT.createCall(getPos(), current, p));
+        }
+    )*
 }
 
 /** Parses the NULL-safe "<=>" equal operator used in MySQL. */

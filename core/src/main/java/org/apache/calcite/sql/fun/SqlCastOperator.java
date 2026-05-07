@@ -18,10 +18,12 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
@@ -46,6 +48,13 @@ class SqlCastOperator extends SqlBinaryOperator {
     super("::", SqlKind.CAST, 94, true, null, InferTypes.FIRST_KNOWN, null);
   }
 
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    writer.sep("(");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.keyword("::");
+    call.operand(1).unparse(writer, 0, 0);
+    writer.sep(")");
+  }
   @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     return SqlStdOperatorTable.CAST.inferReturnType(opBinding);
