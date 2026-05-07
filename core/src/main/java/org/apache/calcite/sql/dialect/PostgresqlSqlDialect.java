@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -407,5 +408,47 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByLiteral() {
     return false;
+  }
+
+  /**
+   * PostgreSQL supports "FETCH FIRST n ROWS WITH TIES" syntax which is used
+   * when the fetch clause contains a WITH_TIES operator.
+   * This method overrides the base unparseOffsetFetch to handle WITH_TIES
+   * for PostgreSQL while delegating regular offset/fetch to the parent.
+   */
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    if (fetch instanceof SqlCall
+        && ((SqlCall) fetch).getOperator() == SqlLibraryOperators.WITH_TIES) {
+      if (offset != null) {
+        writer.newlineAndIndent();
+        final SqlWriter.Frame offsetFrame =
+            writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
+        writer.keyword("OFFSET");
+        offset.unparse(writer, -1, -1);
+        writer.keyword("ROWS");
+        writer.endList(offsetFrame);
+      }
+      unparseFetchWithTies(writer, (SqlCall) fetch);
+    } else {
+      super.unparseOffsetFetch(writer, offset, fetch);
+    }
+  }
+
+  /**
+   * Helper method to unparse "FETCH FIRST n ROWS WITH TIES" syntax for PostgreSQL.
+   */
+  private static void unparseFetchWithTies(SqlWriter writer, SqlCall fetchWithTies) {
+    final SqlNode fetchValue = fetchWithTies.operand(0);
+    writer.newlineAndIndent();
+    final SqlWriter.Frame fetchFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.FETCH);
+    writer.keyword("FETCH");
+    writer.keyword("FIRST");
+    fetchValue.unparse(writer, -1, -1);
+    writer.keyword("ROWS");
+    writer.keyword("WITH");
+    writer.keyword("TIES");
+    writer.endList(fetchFrame);
   }
 }

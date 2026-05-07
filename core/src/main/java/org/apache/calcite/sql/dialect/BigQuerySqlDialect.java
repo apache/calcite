@@ -1071,7 +1071,20 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep("AS");
     int ordinalIndex =
         unnestOperator.withOrdinality ? call.operandCount() - 1 : call.operandCount();
-    call.operand(ordinalIndex - 1).unparse(writer, leftPrec, rightPrec);
+
+    // BigQuery has two distinct behaviors based on whether array<primitive>
+    // or array<struct> is being unnested.
+    // 1. if array<primitive> is being unnested, then only one field alias is expected.
+    //    In that case there is no table alias, the field alias is used directly.
+    // 2. if array<struct> is being unnested, then multiple field aliases are expected.
+    //    In that case the first field alias is used as a table alias and the rest of the aliases
+    //    are used as field aliases.
+    List<SqlNode> fieldAliases = call.getOperandList().subList(1, ordinalIndex);
+    if (fieldAliases.get(0).toString().startsWith("unnest$")) {
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
     if (unnestOperator.withOrdinality) {
       writer.literal("WITH OFFSET");
       writer.sep("AS");
