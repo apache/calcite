@@ -278,14 +278,14 @@ public class JdbcFrontLinqBackTest {
     final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
-        .returnsUnordered(
-            "empid=0; deptno=0; name=first; salary=0.0; commission=null");
+        .returnsUnordered("empid=0; deptno=0; name=first; salary=0.0; commission=null");
     with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
         .updates(4);
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returnsUnordered("C=5");
-    final String deleteSql = "delete from \"foo\".\"bar\" "
-        + "where \"deptno\" = 10";
+    with.query("select count(*) as c from \"foo\".\"bar\" where \"deptno\" = 10")
+        .returnsUnordered("C=3");
+    final String deleteSql = "delete from \"foo\".\"bar\" where \"deptno\" = 10";
     with.query(deleteSql)
         .updates(3);
     final String sql = "select \"name\", count(*) as c\n"

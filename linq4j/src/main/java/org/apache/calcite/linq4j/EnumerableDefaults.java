@@ -61,6 +61,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -4397,6 +4398,40 @@ public abstract class EnumerableDefaults {
     source.into(tempList);
     sink.removeAll(tempList);
     return sink;
+  }
+
+  /**
+   * Default implementation of
+   * {@link ExtendedEnumerable#update(List, Function1, Function1, Function1)}.
+   *
+   * <p>Builds a map from source-row keys to replacement rows in a single pass
+   * over the source, then performs a single pass over the sink, replacing
+   * matched rows in place.
+   */
+  public static <T, TKey> long update(
+      Enumerable<T> source,
+      List<T> sink,
+      Function1<T, TKey> sinkKeySelector,
+      Function1<T, TKey> sourceKeySelector,
+      Function1<T, T> sourceTransform) {
+    final Map<TKey, T> updateMap = new HashMap<>();
+    try (Enumerator<T> e = source.enumerator()) {
+      while (e.moveNext()) {
+        final T row = e.current();
+        updateMap.put(sourceKeySelector.apply(row), sourceTransform.apply(row));
+      }
+    }
+    long updateCount = 0;
+    final ListIterator<T> it = sink.listIterator();
+    while (it.hasNext()) {
+      final T current = it.next();
+      final T newRow = updateMap.get(sinkKeySelector.apply(current));
+      if (newRow != null) {
+        it.set(newRow);
+        updateCount++;
+      }
+    }
+    return updateCount;
   }
 
   /**
