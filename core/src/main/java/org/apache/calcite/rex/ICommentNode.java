@@ -25,23 +25,11 @@ import java.util.Set;
  * Abstract base class for nodes that can hold comments (for example in the Rex
  * tree or attached to {@link org.apache.calcite.rel.type.RelDataType}).
  */
-public abstract class CommentNode implements ICommentNode {
-
-  private final Set<Comment> comment;
-
-  public Set<Comment> getComment() {
-    return comment;
+public interface ICommentNode {
+  default Set<Comment> getComment() {
+    return new HashSet<>();
   }
-
-  protected CommentNode() {
-    this.comment = new HashSet<>();
+  default ICommentNode copy(Set<Comment> comments) {
+    return this;
   }
-
-  /** Visible across packages for {@link org.apache.calcite.rel.type.RelDataTypeImpl} and Rex nodes. */
-  public CommentNode(Set<Comment> comment) {
-    this.comment = comment;
-  }
-
-  /** Returns a copy of this node with the given comments. */
-  public abstract CommentNode copy(Set<Comment> comments);
 }

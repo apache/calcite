@@ -18,11 +18,14 @@ package org.apache.calcite.jdbc;
 
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.util.Comment;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Record type based on a Java class. The fields of the type are the fields
@@ -37,6 +40,15 @@ public class JavaRecordType extends RelRecordType {
   public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
     super(fields);
     this.clazz = Objects.requireNonNull(clazz, "clazz");
+  }
+
+  public JavaRecordType(List<RelDataTypeField> fields, Class clazz, Set<Comment> comments) {
+    super(StructKind.FULLY_QUALIFIED, fields, false, comments);
+    this.clazz = Objects.requireNonNull(clazz, "clazz");
+  }
+
+  @Override public JavaRecordType copy(Set<Comment> comments) {
+    return new JavaRecordType(fieldList, clazz, comments);
   }
 
   @Override public boolean equals(@Nullable Object obj) {

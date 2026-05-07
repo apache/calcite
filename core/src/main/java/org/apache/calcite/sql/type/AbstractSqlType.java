@@ -21,12 +21,15 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.util.Comment;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Abstract base class for SQL implementations of {@link RelDataType}.
@@ -52,12 +55,22 @@ public abstract class AbstractSqlType
       SqlTypeName typeName,
       boolean isNullable,
       @Nullable List<? extends RelDataTypeField> fields) {
-    super(fields);
+    this(typeName, isNullable, fields, new HashSet<>());
+  }
+
+  protected AbstractSqlType(
+      SqlTypeName typeName,
+      boolean isNullable,
+      @Nullable List<? extends RelDataTypeField> fields,
+      Set<Comment> comments) {
+    super(comments, fields);
     this.typeName = Objects.requireNonNull(typeName, "typeName");
     this.isNullable = isNullable || (typeName == SqlTypeName.NULL);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public abstract AbstractSqlType copy(Set<Comment> comments);
 
   @Override public SqlTypeName getSqlTypeName() {
     return typeName;

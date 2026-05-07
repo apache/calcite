@@ -19,7 +19,9 @@ package org.apache.calcite.piglet;
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.Comment;
 
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,6 +35,14 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
 
   DynamicTupleRecordType(RelDataTypeFactory typeFactory) {
     super(typeFactory);
+  }
+
+  private DynamicTupleRecordType(DynamicTupleRecordType other, Set<Comment> comments) {
+    super(other, comments);
+  }
+
+  @Override public DynamicTupleRecordType copy(Set<Comment> comments) {
+    return new DynamicTupleRecordType(this, comments);
   }
 
   @Override public RelDataTypeField getField(String fieldName,

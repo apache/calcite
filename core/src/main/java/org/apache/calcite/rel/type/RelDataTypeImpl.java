@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.rex.CommentNode;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Comment;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -34,9 +36,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -48,8 +52,11 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>Identity is based upon the {@link #digest} field, which each derived class
  * should set during construction.
+ *
+ * <p>Optional {@linkplain org.apache.calcite.util.Comment comments} are stored in {@link CommentNode}
+ * and are not part of {@link #equals} or {@link #hashCode}.
  */
-public abstract class RelDataTypeImpl
+public abstract class RelDataTypeImpl extends CommentNode
     implements RelDataType, RelDataTypeFamily {
 
   /**
@@ -70,6 +77,19 @@ public abstract class RelDataTypeImpl
    * @param fieldList List of fields
    */
   protected RelDataTypeImpl(@Nullable List<? extends RelDataTypeField> fieldList) {
+    this(new HashSet<>(), fieldList);
+  }
+
+  /**
+   * Creates a RelDataTypeImpl with comments.
+   *
+   * @param comments  Comments to attach (stored by reference, like
+   *                  {@link org.apache.calcite.rex.RexLiteral})
+   * @param fieldList List of fields
+   */
+  protected RelDataTypeImpl(Set<Comment> comments,
+      @Nullable List<? extends RelDataTypeField> fieldList) {
+    super(comments);
     if (fieldList != null) {
       // Create a defensive copy of the list.
       this.fieldList = ImmutableList.copyOf(fieldList);
@@ -89,6 +109,8 @@ public abstract class RelDataTypeImpl
   protected RelDataTypeImpl() {
     this(null);
   }
+
+  @Override public abstract RelDataTypeImpl copy(Set<Comment> comments);
 
   //~ Methods ----------------------------------------------------------------
 

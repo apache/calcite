@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.util.Comment;
 import org.apache.calcite.util.SerializableCharset;
 
 import com.google.common.base.Preconditions;
@@ -25,7 +26,9 @@ import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval
@@ -101,13 +104,32 @@ public class BasicSqlType extends AbstractSqlType {
       int scale,
       @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset) {
-    super(typeName, nullable, null);
+    this(typeSystem, typeName, nullable, precision, scale, collation, wrappedCharset,
+        new HashSet<>());
+  }
+
+  /** Internal constructor with comments (for subclasses such as {@link BasicSqlTypeWithFormat}). */
+  protected BasicSqlType(
+      RelDataTypeSystem typeSystem,
+      SqlTypeName typeName,
+      boolean nullable,
+      int precision,
+      int scale,
+      @Nullable SqlCollation collation,
+      @Nullable SerializableCharset wrappedCharset,
+      Set<Comment> comments) {
+    super(typeName, nullable, null, comments);
     this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
     this.precision = precision;
     this.scale = scale;
     this.collation = collation;
     this.wrappedCharset = wrappedCharset;
     computeDigest();
+  }
+
+  @Override public BasicSqlType copy(Set<Comment> comments) {
+    return new BasicSqlType(typeSystem, typeName, isNullable, precision, scale, collation,
+        wrappedCharset, comments);
   }
 
   /** Throws if {@code typeName} does not allow the given combination of
@@ -130,7 +152,7 @@ public class BasicSqlType extends AbstractSqlType {
       return this;
     }
     return new BasicSqlType(this.typeSystem, this.typeName, nullable,
-        this.precision, this.scale, this.collation, this.wrappedCharset);
+        this.precision, this.scale, this.collation, this.wrappedCharset, getComment());
   }
 
   /**
@@ -143,7 +165,7 @@ public class BasicSqlType extends AbstractSqlType {
     Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
     return new BasicSqlType(this.typeSystem, this.typeName, this.isNullable,
         this.precision, this.scale, collation,
-        SerializableCharset.forCharset(charset));
+        SerializableCharset.forCharset(charset), getComment());
   }
 
   @Override public int getPrecision() {

@@ -19,6 +19,10 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.util.Comment;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
@@ -41,7 +45,13 @@ public class ArraySqlType extends AbstractSqlType {
    */
   public ArraySqlType(SqlTypeName sqlTypeName,
       RelDataType elementType, boolean isNullable, long maxCardinality) {
-    super(sqlTypeName, isNullable, null);
+    this(sqlTypeName, elementType, isNullable, maxCardinality, new HashSet<>());
+  }
+
+  public ArraySqlType(SqlTypeName sqlTypeName,
+      RelDataType elementType, boolean isNullable, long maxCardinality,
+      Set<Comment> comments) {
+    super(sqlTypeName, isNullable, null, comments);
     this.elementType = requireNonNull(elementType, "elementType");
     this.maxCardinality = maxCardinality;
     computeDigest();
@@ -53,6 +63,10 @@ public class ArraySqlType extends AbstractSqlType {
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
     this(SqlTypeName.ARRAY, elementType, isNullable, -1);
+  }
+
+  @Override public ArraySqlType copy(Set<Comment> comments) {
+    return new ArraySqlType(getSqlTypeName(), elementType, isNullable(), maxCardinality, comments);
   }
 
   //~ Methods ----------------------------------------------------------------

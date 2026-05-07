@@ -17,11 +17,14 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.Comment;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * SQL Period type.
@@ -33,9 +36,18 @@ public class PeriodSqlType extends AbstractSqlType {
    * from a factory method.
    */
   public PeriodSqlType(boolean isNullable, @Nullable List<? extends RelDataTypeField> fields) {
-    super(SqlTypeName.PERIOD, isNullable, fields);
+    this(isNullable, fields, new HashSet<>());
+  }
+
+  public PeriodSqlType(boolean isNullable, @Nullable List<? extends RelDataTypeField> fields,
+      Set<Comment> comments) {
+    super(SqlTypeName.PERIOD, isNullable, fields, comments);
     assert checkValidOperands(fields);
     computeDigest();
+  }
+
+  @Override public PeriodSqlType copy(Set<Comment> comments) {
+    return new PeriodSqlType(isNullable(), fieldList, comments);
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

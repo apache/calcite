@@ -17,10 +17,15 @@
 package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.util.Comment;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Type of the cartesian product of two or more sets of records.
@@ -43,13 +48,25 @@ public class RelCrossType extends RelDataTypeImpl {
   public RelCrossType(
       List<RelDataType> types,
       List<RelDataTypeField> fields) {
-    super(fields);
+    this(types, fields, new HashSet<>());
+  }
+
+  @SuppressWarnings("method.invocation.invalid")
+  public RelCrossType(
+      List<RelDataType> types,
+      List<RelDataTypeField> fields,
+      Set<Comment> comments) {
+    super(comments, fields);
     this.types = ImmutableList.copyOf(types);
     assert types.size() >= 1;
     for (RelDataType type : types) {
       assert !(type instanceof RelCrossType);
     }
     computeDigest();
+  }
+
+  @Override public RelCrossType copy(Set<Comment> comments) {
+    return new RelCrossType(types, requireNonNull(fieldList, "fieldList"), comments);
   }
 
   //~ Methods ----------------------------------------------------------------

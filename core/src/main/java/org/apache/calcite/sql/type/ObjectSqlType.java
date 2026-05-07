@@ -22,10 +22,13 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Comment;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -59,7 +62,17 @@ public class ObjectSqlType extends AbstractSqlType {
       boolean nullable,
       List<? extends RelDataTypeField> fields,
       RelDataTypeComparability comparability) {
-    super(typeName, nullable, fields);
+    this(typeName, sqlIdentifier, nullable, fields, comparability, new HashSet<>());
+  }
+
+  public ObjectSqlType(
+      SqlTypeName typeName,
+      @Nullable SqlIdentifier sqlIdentifier,
+      boolean nullable,
+      List<? extends RelDataTypeField> fields,
+      RelDataTypeComparability comparability,
+      Set<Comment> comments) {
+    super(typeName, nullable, fields, comments);
     this.sqlIdentifier = sqlIdentifier;
     this.comparability = comparability;
     computeDigest();
@@ -74,6 +87,11 @@ public class ObjectSqlType extends AbstractSqlType {
         nullable,
         fields,
         RelDataTypeComparability.NONE);
+  }
+
+  @Override public ObjectSqlType copy(Set<Comment> comments) {
+    return new ObjectSqlType(typeName, sqlIdentifier, isNullable(), fieldList, comparability,
+        comments);
   }
 
   //~ Methods ----------------------------------------------------------------
