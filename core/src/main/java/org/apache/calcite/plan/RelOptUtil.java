@@ -70,6 +70,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -3363,6 +3364,12 @@ public abstract class RelOptUtil {
       @Override public RexNode visitInputRef(RexInputRef ref) {
         return project.getProjects().get(ref.getIndex());
       }
+
+      @Override public RexNode visitLambda(RexLambda lambda) {
+        // Lambda body references are at a different scope level.
+        // Do not remap indices inside lambda body against this project.
+        return lambda;
+      }
     };
   }
 
@@ -3385,6 +3392,12 @@ public abstract class RelOptUtil {
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
         return projects.get(ref.getIndex());
+      }
+
+      @Override public RexNode visitLambda(RexLambda lambda) {
+        // Lambda body references are at a different scope level.
+        // Do not remap indices inside lambda body against this calc.
+        return lambda;
       }
     };
   }

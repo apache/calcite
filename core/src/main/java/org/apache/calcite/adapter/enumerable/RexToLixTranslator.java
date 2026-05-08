@@ -1861,9 +1861,14 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         new ParameterExpression[rexLambdaRefs.size()];
     for (int i = 0; i < rexLambdaRefs.size(); i++) {
       final RexLambdaRef rexLambdaRef = rexLambdaRefs.get(i);
+      // Declare lambda parameters as 'final' so that Janino can capture them
+      // from nested anonymous classes (e.g., nested lambdas like x -> y -> x + y).
+      // Janino requires captured local variables to be explicitly final,
+      // unlike javac which supports effectively-final variables.
       parameterExpressions[i] =
           Expressions.parameter(
-              typeFactory.getJavaClass(rexLambdaRef.getType()), rexLambdaRef.getName());
+              Modifier.FINAL, typeFactory.getJavaClass(rexLambdaRef.getType()),
+              rexLambdaRef.getName());
     }
 
     // Generate code for lambda expression body

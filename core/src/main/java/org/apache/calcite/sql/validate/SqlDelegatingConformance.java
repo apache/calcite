@@ -158,6 +158,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowQualifyingCommonColumn();
   }
 
+  @Override public boolean allowLambdaClosure() {
+    return delegate.allowLambdaClosure();
+  }
+
   @Override public boolean isValueAllowed() {
     return delegate.isValueAllowed();
   }

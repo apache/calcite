@@ -9945,6 +9945,11 @@ public class SqlParserTest {
 
     sql("select 1 || (a, b) ^->^ a + b")
         .fails(errorMessage2);
+
+    // Nested lambda: inner lambda in a function call within the outer lambda body
+    sql("select higher_order_func(x -> higher_order_func(y -> x + y, 1), 1) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(`X` -> `HIGHER_ORDER_FUNC`(`Y` -> (`X` + `Y`), 1), 1)\n"
+            + "FROM `T`");
   }
 
   /**

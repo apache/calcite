@@ -182,6 +182,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  /** Test case for nested lambda: inner lambda references outer lambda
+   * parameter. Verifies that 'x' in the inner lambda is resolved from the
+   * outer lambda scope, not treated as a table column name. */
+  @Test void testNestedLambdaExpression() {
+    final String sql =
+        "select \"EXISTS\"(array(1,2,3), x -> \"EXISTS\"(array(1,2,3), y -> x + y = 4))";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withSql(sql)
+        .ok();
+  }
+
   @Test void testDotLiteralAfterRow() {
     final String sql = "select row(1,2).\"EXPR$1\" from emp";
     sql(sql).ok();
