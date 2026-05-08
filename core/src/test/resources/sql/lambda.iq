@@ -102,3 +102,46 @@ select "EXISTS"(array[array[1, 2], array[3, 4]], x -> x[1] = 1);
 (1 row)
 
 !ok
+
+# [CALCITE-6242] Enhance lambda closure parsing
+select *
+ from (select array(1, 2, 3) as arr) as t1 inner join
+     (select 1 as v) as t2 on "EXISTS"(arr, x -> x = t2.v);
++-----------+---+
+| ARR       | V |
++-----------+---+
+| [1, 2, 3] | 1 |
++-----------+---+
+(1 row)
+
+!ok
+
+# Nested lambda: x -> (y -> x + y).
+# The inner closure 'x' refers to the outer lambda parameter,
+# and must not be treated like a table column name.
+# For x in (1,2,3) and y in (1,2,3), x + y = 4 holds (e.g. 1+3, 2+2, 3+1).
+select "EXISTS"(array(1, 2, 3), x -> "EXISTS"(array(1, 2, 3), y -> x + y = 4));
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# Nested lambda with a FROM clause whose column is also named 'x'.
+# The inner closure 'x' must resolve to the outer lambda parameter
+# (values 1,2,3), NOT to the table column 'x' (value 100).
+# If 'x' were resolved as the column, 100 + y = 4 would never hold
+# and the result would be false.
+select "EXISTS"(array(1, 2, 3), x -> "EXISTS"(array(1, 2, 3), y -> x + y = 4)) as r
+ from (select 100 as x) as t;
++------+
+| R    |
++------+
+| true |
++------+
+(1 row)
+
+!ok

@@ -8607,7 +8607,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
-   * Allow lambda expressions in SQL queries</a>. */
+   * Allow lambda expressions in SQL queries</a>.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6242">[CALCITE-6242]
+   * Enhance lambda closure parsing</a>.
+   * */
   @Test void testHigherOrderFunction() {
     final SqlValidatorFixture s = fixture()
         .withOperatorTable(MockSqlOperatorTable.standard().extend());
@@ -8621,6 +8624,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
     s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)")
         .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^emp.deptno^) from emp")
+        .ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
+        .ok();
 
     // test for type check
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^x + 1^)")
@@ -8638,13 +8645,70 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply '(?s).*HIGHER_ORDER_FUNCTION' to arguments of type "
             + "'HIGHER_ORDER_FUNCTION\\(<INTEGER>, <FUNCTION\\(ANY, ANY, ANY\\) -> ANY>\\)'.*");
 
-    // test for illegal parameters
-    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^emp.deptno^) from emp")
-        .fails("Param 'EMP\\.DEPTNO' not found in lambda expression "
-            + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `EMP`\\.`DEPTNO`'");
+  }
+
+  /** Test case for lambda closure conformance checking.
+   * Tests that lambda expressions can or cannot access variables from enclosing
+   * scopes based on the SQL conformance level.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6242">[CALCITE-6242]
+   * Enhance lambda closure parsing</a>.
+   * */
+  @Test void testLambdaClosureConformance() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(MockSqlOperatorTable.standard().extend());
+
+    // Lambda accessing outer scope variable (closure)
+    // In DEFAULT conformance, closure is allowed
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + deptno) from emp")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok();
+
+    // In STRICT_92, closure is NOT allowed
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
-        .fails("Param 'DEPTNO' not found in lambda expression "
-            + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `DEPTNO`'");
+        .withConformance(SqlConformanceEnum.STRICT_92)
+        .fails("Lambda closure is not allowed in this conformance: "
+            + "reference to 'DEPTNO' from enclosing scope");
+
+    // In STRICT_99, closure is NOT allowed
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
+        .withConformance(SqlConformanceEnum.STRICT_99)
+        .fails("Lambda closure is not allowed in this conformance: "
+            + "reference to 'DEPTNO' from enclosing scope");
+
+    // In STRICT_2003, closure is NOT allowed
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
+        .withConformance(SqlConformanceEnum.STRICT_2003)
+        .fails("Lambda closure is not allowed in this conformance: "
+            + "reference to 'DEPTNO' from enclosing scope");
+
+    // In BABEL conformance, closure is allowed
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + deptno) from emp")
+        .withConformance(SqlConformanceEnum.BABEL)
+        .ok();
+
+    // In LENIENT conformance, closure is allowed
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + deptno) from emp")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+
+    // Lambda using only its own parameters (no closure) - should always work
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1) from emp")
+        .withConformance(SqlConformanceEnum.STRICT_92)
+        .ok();
+
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> y) from emp")
+        .withConformance(SqlConformanceEnum.STRICT_92)
+        .ok();
+
+    // Test with qualified column name in closure
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + emp.deptno) from emp")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok();
+
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^emp.deptno^) from emp")
+        .withConformance(SqlConformanceEnum.STRICT_92)
+        .fails("Lambda closure is not allowed in this conformance: "
+            + "reference to 'EMP.DEPTNO' from enclosing scope");
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7193">[CALCITE-7193]
@@ -8732,6 +8796,126 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select (select ? + 1 as c from (values (0)) as t(x) order by c)"
         + " from (values (0)) as u(y)")
         .assertBindType(is("RecordType(INTEGER ?0)"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6242">[CALCITE-6242]
+   * Enhance lambda closure parsing</a>.
+   * Tests that nested lambda expressions validate correctly: in the
+   * expression {@code x -> EXISTS(arr, y -> x + y = 4)}, the inner lambda
+   * references 'x' from the outer lambda's scope. 'x' should not be treated
+   * like a table column name. */
+  @Test void testNestedLambdaClosure() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.SPARK);
+
+    // Nested lambda: inner lambda references outer lambda parameter
+    sql("select \"EXISTS\"(array(1,2,3), x -> \"EXISTS\"(array(1,2,3), y -> x + y = 4))")
+        .withOperatorTable(opTable)
+        .ok();
+
+    // Nested lambda with FROM clause: outer lambda parameter 'x' should resolve
+    // from the outer lambda scope, not as a table column
+    sql("select \"EXISTS\"(array(1,2,3), x -> \"EXISTS\"(array(1,2,3), y -> x + y > deptno))"
+        + " from emp")
+        .withOperatorTable(opTable)
+        .ok();
+
+    // In STRICT mode, inner lambda referencing outer lambda param is treated
+    // as closure and is rejected
+    sql("select \"EXISTS\"(array(1,2,3), x -> \"EXISTS\"(array(1,2,3), y -> ^x^ + y = 4))"
+        + " from emp")
+        .withOperatorTable(opTable)
+        .withConformance(SqlConformanceEnum.STRICT_2003)
+        .fails("Lambda closure is not allowed in this conformance: "
+            + "reference to 'X' from enclosing scope");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6242">[CALCITE-6242]
+   * Enhance lambda closure parsing</a>.
+   * Tests that lambda parameter names follow the same case-sensitivity
+   * rules as other identifiers, including quoting. */
+  @Test void testLambdaParameterCaseSensitivity() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.SPARK);
+
+    // Case-insensitive mode with UNCHANGED casing:
+    // parameter defined as 'x', referenced as 'X' should match
+    final SqlValidatorFixture insensitive = fixture()
+        .withCaseSensitive(false)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .withOperatorTable(opTable);
+
+    insensitive.withSql("select \"EXISTS\"(array(1,2,3), x -> x + 1 > 0)").ok();
+    insensitive.withSql("select \"EXISTS\"(array(1,2,3), x -> X + 1 > 0)").ok();
+    insensitive.withSql("select \"EXISTS\"(array(1,2,3), X -> x + 1 > 0)").ok();
+
+    // Nested lambda: inner lambda references outer parameter with different case
+    insensitive.withSql("select \"EXISTS\"(array(1,2,3),"
+        + " x -> \"EXISTS\"(array(1,2,3), y -> X + y = 4))").ok();
+
+    // Case-sensitive mode with UNCHANGED casing:
+    // parameter defined as 'x', referenced as 'X' should NOT match
+    final SqlValidatorFixture sensitive = fixture()
+        .withCaseSensitive(true)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .withQuoting(Quoting.DOUBLE_QUOTE)
+        .withOperatorTable(opTable);
+
+    // Same case: should work
+    sensitive.withSql("select \"EXISTS\"(array(1,2,3), x -> x + 1 > 0)").ok();
+
+    // Different case: should fail in case-sensitive mode
+    sensitive.withSql("select \"EXISTS\"(array(1,2,3), x -> ^X^ + 1 > 0)")
+        .fails("Column 'X' not found in any table");
+
+    // Quoted parameter names: quoting preserves case
+    // In default config (unquotedCasing=TO_UPPER), quoted lowercase stays lowercase
+    final SqlValidatorFixture defaultFixture = fixture()
+        .withOperatorTable(opTable);
+
+    // Unquoted parameter 'x' is converted to 'X', unquoted reference 'x' is also 'X'
+    defaultFixture.withSql("select \"EXISTS\"(array(1,2,3), x -> x + 1 > 0)").ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6242">[CALCITE-6242]
+   * Enhance lambda closure parsing</a>.
+   * Tests that duplicate lambda parameter names are rejected, both within
+   * a single lambda and across nested lambdas (shadowing). */
+  @Test void testLambdaDuplicateParameterName() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.SPARK);
+    final SqlValidatorFixture f = fixture().withOperatorTable(opTable);
+
+    // Same parameter name used twice in one lambda
+    f.withSql("select HIGHER_ORDER_FUNCTION(1, (x, ^x^) -> x + 1)")
+        .fails("Duplicate lambda parameter 'X'");
+
+    // Same parameter name in nested lambdas (shadowing)
+    f.withSql("select \"EXISTS\"(array(1,2,3),"
+        + " x -> \"EXISTS\"(array(1,2,3), ^x^ -> x + 1 > 0))")
+        .fails("Duplicate lambda parameter 'X'");
+
+    // Different parameter names: should work
+    f.withSql("select \"EXISTS\"(array(1,2,3),"
+        + " x -> \"EXISTS\"(array(1,2,3), y -> x + y = 4))").ok();
+
+    // Case-insensitive: x and X are same parameter (shadowing detected)
+    final SqlValidatorFixture insensitive = fixture()
+        .withCaseSensitive(false)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .withOperatorTable(opTable);
+    insensitive.withSql("select \"EXISTS\"(array(1,2,3),"
+        + " x -> \"EXISTS\"(array(1,2,3), ^X^ -> X + 1 > 0))")
+        .fails("Duplicate lambda parameter 'X'");
+
+    // Case-sensitive mode: x and X are different parameters (no shadowing)
+    final SqlValidatorFixture sensitive = fixture()
+        .withCaseSensitive(true)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .withQuoting(Quoting.DOUBLE_QUOTE)
+        .withOperatorTable(opTable);
+    sensitive.withSql("select \"EXISTS\"(array(1,2,3),"
+        + " x -> \"EXISTS\"(array(1,2,3), X -> X + 1 > 0))").ok();
   }
 
   @Test void testPercentileFunctionsBigQuery() {
