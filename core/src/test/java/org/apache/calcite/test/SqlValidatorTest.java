@@ -1531,6 +1531,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARIANT");
   }
 
+  @Test void testColonFieldAccess() {
+    final SqlConformance colonMode =
+        new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+          @Override public boolean isColonFieldAccessAllowed() {
+            return true;
+          }
+        };
+
+    expr("cast(1 as variant):a.b[0].c")
+        .withConformance(colonMode)
+        .columnType("VARIANT");
+
+    sql("select ^skill^:type from dept_nested")
+        .withConformance(colonMode)
+        .fails("(?s).*Incompatible types.*");
+
+    sql("select ^bogus^:field from dept_nested")
+        .withConformance(colonMode)
+        .fails("(?s).*Column 'BOGUS' not found.*");
+  }
+
   @Test void testCastRegisteredType() {
     expr("cast(123 as ^customBigInt^)")
         .fails("Unknown identifier 'CUSTOMBIGINT'");
@@ -10405,6 +10426,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "TABLE -\n"
         + "UNNEST -\n"
         + "\n"
+        + "COLON -\n"
         + "CURRENT_VALUE -\n"
         + "DEFAULT -\n"
         + "DOT -\n"

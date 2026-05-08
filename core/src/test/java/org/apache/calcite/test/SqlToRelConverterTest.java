@@ -190,6 +190,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testColonFieldAccess() {
+    final SqlConformance colonMode =
+        new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+          @Override public boolean isColonFieldAccessAllowed() {
+            return true;
+          }
+        };
+    final String sql = "select cast(empno as variant):a.b['c'][0] from emp";
+    sql(sql).withConformance(colonMode).ok();
+  }
+
   @Test void testRowValueConstructorWithSubQuery() {
     final String sql = "select ROW("
         + "(select deptno\n"

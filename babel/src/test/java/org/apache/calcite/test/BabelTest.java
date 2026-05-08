@@ -175,7 +175,7 @@ class BabelTest {
 
     // Postgres cast is invalid with core parser
     p.sql("select 1 ^:^: integer as x")
-        .fails("(?s).*Encountered \":\" at .*");
+        .fails("(?s).*Encountered \":[^\"]*\" at .*");
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7310">
