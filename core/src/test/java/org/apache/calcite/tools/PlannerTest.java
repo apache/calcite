@@ -44,6 +44,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintPredicates;
+import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -75,6 +77,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.test.schemata.tpch.TpchSchema;
@@ -554,6 +557,33 @@ class PlannerTest {
         equalTo("EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "  EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7506">[CALCITE-7506]
+   * RelWriterImpl does not output hints</a>. */
+  @Test void testHints() throws Exception {
+    HintStrategyTable hintTable = HintStrategyTable.builder()
+        .hintStrategy("hint", HintPredicates.PROJECT).build();
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+        .sqlToRelConverterConfig(SqlToRelConverter.CONFIG.withHintStrategyTable(hintTable))
+        .build();
+    Planner planner = Frameworks.getPlanner(config);
+    final String sql = "select /*+ hint */ * from \"emps\" order by \"emps\".\"deptno\"";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).project();
+    String explain =
+        Util.toLinux(
+            RelOptUtil.dumpPlan("", convert, SqlExplainFormat.TEXT,
+            SqlExplainLevel.ALL_ATTRIBUTES));
+    // Cannot check for exact equality since ALL_ATTRIBUTES prints node ids,
+    // which change from run to run
+    assertThat(explain,
+        containsString("LogicalSort(sort0=[$1], dir0=[ASC])[[HINT inheritPath:[]]]: "
+            + "rowcount = 100.0, cumulative cost = {300.0 rows, 15337.544595161893 cpu, 0.0 io}"));
   }
 
   /** Test case for
