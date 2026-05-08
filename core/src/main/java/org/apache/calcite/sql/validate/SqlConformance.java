@@ -261,6 +261,18 @@ public interface SqlConformance {
   boolean allowHyphenInUnquotedTableName();
 
   /**
+   * Whether {@code :} is allowed as a field/item access operator.
+   *
+   * <p>If true, expressions such as {@code v:field} and {@code v:['field']}
+   * are accepted. In this mode, {@code JSON_OBJECT} and {@code JSON_OBJECTAGG}
+   * must use the {@code KEY ... VALUE} form rather than {@code :} or
+   * comma-pair syntax.
+   */
+  default boolean isColonFieldAccessAllowed() {
+    return false;
+  }
+
+  /**
    * Whether the bang-equal token != is allowed as an alternative to &lt;&gt; in
    * the parser.
    *

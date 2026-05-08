@@ -2312,6 +2312,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP_OR_VARIANT, 1, true);
 
   /**
+   * Colon operator, '<code>:</code>', used for variant path access.
+   */
+  public static final SqlOperator COLON = new SqlColonOperator();
+
+  /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".
    */
   public static final SqlArrayValueConstructor ARRAY_VALUE_CONSTRUCTOR =

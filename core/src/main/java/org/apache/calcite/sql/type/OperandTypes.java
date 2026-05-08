@@ -614,6 +614,38 @@ public abstract class OperandTypes {
           .or(OperandTypes.family(SqlTypeFamily.VARIANT))
           .or(OperandTypes.family(SqlTypeFamily.ANY));
 
+  /**
+   * Operand type-checking strategy for the colon operator: first operand
+   * must be {@code VARIANT} (or {@code ANY}); the second operand is a
+   * path expression and is not type-checked.
+   */
+  public static final SqlOperandTypeChecker COLON =
+      new SqlOperandTypeChecker() {
+        @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          final RelDataType baseType = callBinding.getOperandType(0);
+          switch (baseType.getSqlTypeName()) {
+          case VARIANT:
+          case ANY:
+            return true;
+          default:
+            if (throwOnFailure) {
+              throw callBinding.getValidator().newValidationError(
+                  callBinding.operand(0), RESOURCE.incompatibleTypes());
+            }
+            return false;
+          }
+        }
+
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.of(2);
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return "<VARIANT>:<PATH>";
+        }
+      };
+
   public static final SqlOperandTypeChecker STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER =
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),

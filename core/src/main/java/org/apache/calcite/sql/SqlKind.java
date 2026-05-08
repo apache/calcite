@@ -204,6 +204,9 @@ public enum SqlKind {
   /** Item expression. */
   ITEM,
 
+  /** Colon path access. */
+  COLON,
+
   /** {@code UNION} relational operator. */
   UNION,
 

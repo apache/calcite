@@ -87,6 +87,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowHyphenInUnquotedTableName();
   }
 
+  @Override public boolean isColonFieldAccessAllowed() {
+    return delegate.isColonFieldAccessAllowed();
+  }
+
   @Override public boolean isBangEqualAllowed() {
     return delegate.isBangEqualAllowed();
   }

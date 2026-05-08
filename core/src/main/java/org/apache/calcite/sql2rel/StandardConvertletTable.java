@@ -288,6 +288,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             call.operand(1).toString(), false));
     // "ITEM"
     registerOp(SqlStdOperatorTable.ITEM, this::convertItem);
+    // "COLON"
+    registerOp(SqlStdOperatorTable.COLON, (cx, call) -> convertColon(cx, call));
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
@@ -1160,6 +1162,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     RelDataType type = rexBuilder.deriveReturnType(op, exprs);
     return rexBuilder.makeCall(call.getParserPosition(), type, op, RexUtil.flatten(exprs, op));
+  }
+
+  private RexNode convertColon(
+      @UnknownInitialization StandardConvertletTable this,
+      SqlRexContext cx,
+      SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    RexNode result = cx.convertExpression(call.operand(0));
+    final SqlNodeList path = (SqlNodeList) call.operand(1);
+    for (SqlNode segment : path) {
+      final RexNode key = segment instanceof SqlIdentifier
+          ? rexBuilder.makeLiteral(((SqlIdentifier) segment).getSimple())
+          : cx.convertExpression(segment);
+      result = rexBuilder.makeCall(SqlStdOperatorTable.ITEM, result, key);
+    }
+    return result;
   }
 
   /**
