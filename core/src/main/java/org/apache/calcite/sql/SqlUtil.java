@@ -1136,7 +1136,7 @@ public abstract class SqlUtil {
       final SqlHint sqlHint = (SqlHint) node;
       final String hintName = sqlHint.getName();
 
-      final RelHint.Builder builder = RelHint.builder(hintName);
+      final RelHint.Builder builder = RelHint.builder(hintName).position(node.getParserPosition());
       switch (sqlHint.getOptionFormat()) {
       case EMPTY:
         // do nothing.

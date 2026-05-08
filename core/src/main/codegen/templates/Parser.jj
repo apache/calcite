@@ -1304,11 +1304,13 @@ SqlNodeList ParenthesizedLiteralOptionCommaList() :
 
 void AddHint(List<SqlNode> hints) :
 {
+    final Span s;
     final SqlIdentifier hintName;
     final SqlNodeList hintOptions;
     final SqlHint.HintOptionFormat optionFormat;
 }
 {
+    { s = span(); }
     hintName = SimpleIdentifier()
     (
        LOOKAHEAD(5)
@@ -1335,7 +1337,7 @@ void AddHint(List<SqlNode> hints) :
     )
     {
         hints.add(
-           new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions,
+           new SqlHint(s.end(this), hintName, hintOptions,
                optionFormat));
     }
 }

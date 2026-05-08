@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.hint;
 
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -86,6 +88,7 @@ import static java.util.Objects.requireNonNull;
 public class RelHint {
   //~ Instance fields --------------------------------------------------------
 
+  public final SqlParserPos pos;
   public final ImmutableList<Integer> inheritPath;
   public final String hintName;
   public final List<String> listOptions;
@@ -96,16 +99,19 @@ public class RelHint {
   /**
    * Creates a {@code RelHint}.
    *
+   * @param pos         Parser position
    * @param inheritPath Hint inherit path
    * @param hintName    Hint name
    * @param listOption  Hint options as string list
    * @param kvOptions   Hint options as string key value pair
    */
   private RelHint(
+      SqlParserPos pos,
       Iterable<Integer> inheritPath,
       String hintName,
       @Nullable List<String> listOption,
       @Nullable Map<String, String> kvOptions) {
+    this.pos = pos;
     this.inheritPath = ImmutableList.copyOf(inheritPath);
     this.hintName = requireNonNull(hintName, "hintName");
     this.listOptions = listOption == null ? ImmutableList.of() : ImmutableList.copyOf(listOption);
@@ -127,7 +133,7 @@ public class RelHint {
    */
   public RelHint copy(List<Integer> inheritPath) {
     requireNonNull(inheritPath, "inheritPath");
-    return new RelHint(inheritPath, hintName, listOptions, kvOptions);
+    return new RelHint(pos, inheritPath, hintName, listOptions, kvOptions);
   }
 
   @Override public boolean equals(@Nullable Object o) {
@@ -138,13 +144,26 @@ public class RelHint {
       return false;
     }
     RelHint hint = (RelHint) o;
+    // Note: two hints can be equal if they have different position,
+    // for preserving backwards compatibility with old behaviors
     return inheritPath.equals(hint.inheritPath)
         && hintName.equals(hint.hintName)
         && Objects.equals(listOptions, hint.listOptions)
         && Objects.equals(kvOptions, hint.kvOptions);
   }
 
+  /** True if the two hints are identical, including position. */
+  public boolean identical(RelHint hint) {
+    return inheritPath.equals(hint.inheritPath)
+        && hintName.equals(hint.hintName)
+        && Objects.equals(listOptions, hint.listOptions)
+        && Objects.equals(kvOptions, hint.kvOptions)
+        && pos.equals(hint.pos);
+  }
+
   @Override public int hashCode() {
+    // Note: hash does not include position, required by the backwards-compatible definition
+    // of equality.
     return Objects.hash(this.hintName, this.inheritPath,
         this.listOptions, this.kvOptions);
   }
@@ -171,6 +190,7 @@ public class RelHint {
 
   /** Builder for {@link RelHint}. */
   public static class Builder {
+    private SqlParserPos pos;
     private final String hintName;
     private List<Integer> inheritPath;
 
@@ -178,6 +198,7 @@ public class RelHint {
     private Map<String, String> kvOptions;
 
     private Builder(String hintName) {
+      this.pos = SqlParserPos.ZERO;
       this.listOptions = new ArrayList<>();
       this.kvOptions = new LinkedHashMap<>();
       this.hintName = hintName;
@@ -187,6 +208,12 @@ public class RelHint {
     /** Sets up the inherit path with given integer list. */
     public Builder inheritPath(Iterable<Integer> inheritPath) {
       this.inheritPath = ImmutableList.copyOf(inheritPath);
+      return this;
+    }
+
+    /** Sets up the parser position. */
+    public Builder position(SqlParserPos pos) {
+      this.pos = pos;
       return this;
     }
 
@@ -234,7 +261,8 @@ public class RelHint {
     }
 
     public RelHint build() {
-      return new RelHint(this.inheritPath, this.hintName, this.listOptions, this.kvOptions);
+      return new RelHint(this.pos, this.inheritPath,
+          this.hintName, this.listOptions, this.kvOptions);
     }
   }
 }
