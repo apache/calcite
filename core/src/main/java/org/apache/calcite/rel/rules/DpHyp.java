@@ -86,9 +86,10 @@ public class DpHyp {
     int size = hyperGraph.getInputs().size();
     for (int i = 0; i < size; i++) {
       long singleNode = LongBitmap.newBitmap(i);
-      LOGGER.debug("Initialize the dp table. Node {{}} is:\n {}",
-          i,
-          RelOptUtil.toString(hyperGraph.getInput(i)));
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Initialize the dp table. Node {{}} is:\n {}", i,
+            RelOptUtil.toString(hyperGraph.getInput(i)));
+      }
       dpTable.put(singleNode, hyperGraph.getInput(i));
       resultInputOrder.put(
           singleNode,
@@ -280,15 +281,17 @@ public class DpHyp {
         winOrder = ImmutableList.copyOf(unionOrder);
       }
     }
-    LOGGER.debug("Found set {} and {}, connected by condition {}. [cost={}, rows={}]",
-        LongBitmap.printBitmap(csg),
-        LongBitmap.printBitmap(cmp),
-        RexUtil.composeConjunction(
-            builder.getRexBuilder(),
-            edges.stream()
-                .map(edge -> edge.getCondition()).collect(Collectors.toList())),
-        mq.getCumulativeCost(winPlan),
-        mq.getRowCount(winPlan));
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Found set {} and {}, connected by condition {}. [cost={}, rows={}]",
+          LongBitmap.printBitmap(csg),
+          LongBitmap.printBitmap(cmp),
+          RexUtil.composeConjunction(
+              builder.getRexBuilder(),
+              edges.stream()
+                  .map(edge -> edge.getCondition()).collect(Collectors.toList())),
+          mq.getCumulativeCost(winPlan),
+          mq.getRowCount(winPlan));
+    }
 
     RelNode oriPlan = dpTable.get(csg | cmp);
     boolean dpTableUpdated = true;
@@ -306,7 +309,7 @@ public class DpHyp {
     }
 
     assert winOrder != null;
-    if (dpTableUpdated) {
+    if (dpTableUpdated && LOGGER.isDebugEnabled()) {
       LOGGER.debug("Dp table is updated. The better plan for subgraph {} now is:\n {}",
           LongBitmap.printBitmap(csg | cmp),
           RelOptUtil.toString(winPlan));
@@ -323,7 +326,10 @@ public class DpHyp {
       LOGGER.error("The optimal plan was not generated because the enumeration ended prematurely");
       return null;
     }
-    LOGGER.debug("Enumeration completed. The best plan is:\n {}", RelOptUtil.toString(orderedJoin));
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Enumeration completed. The best plan is:\n {}",
+          RelOptUtil.toString(orderedJoin));
+    }
     ImmutableList<HyperGraph.NodeState> resultOrder = resultInputOrder.get(wholeGraph);
     assert resultOrder != null && resultOrder.size() == size;
 
