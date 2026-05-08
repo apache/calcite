@@ -149,6 +149,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowQualifyingCommonColumn();
   }
 
+  @Override public boolean allowLambdaClosure() {
+    return SqlConformanceEnum.DEFAULT.allowLambdaClosure();
+  }
+
   @Override public boolean allowAliasUnnestItems() {
     return SqlConformanceEnum.DEFAULT.allowAliasUnnestItems();
   }

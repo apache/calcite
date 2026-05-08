@@ -119,8 +119,18 @@ public class RexBiVisitorImpl<@Nullable R, P> implements RexBiVisitor<R, P> {
     return null;
   }
 
+  /**
+   * Visits a lambda expression. When {@code deep} is true, recurses into
+   * the lambda body so that analysis visitors (e.g. InputFinder) can discover
+   * field references inside the lambda. When {@code deep} is false, returns
+   * null without recursing — this is the shallow traversal mode used by
+   * visitors that only need top-level information.
+   */
   @Override public R visitLambda(RexLambda lambda, P arg) {
-    return null;
+    if (!deep) {
+      return null;
+    }
+    return lambda.getExpression().accept(this, arg);
   }
 
   @Override public R visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex, P arg) {
