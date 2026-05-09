@@ -142,7 +142,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_APPEND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_COMPACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINED_BY_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINS_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_EXCEPT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_INSERT;
@@ -151,6 +153,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_JOIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MAX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MIN;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_OVERLAP_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_POSITION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_PREPEND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REMOVE;
@@ -1118,6 +1121,10 @@ public class RexImpTable {
       defineMethod(SUBSTRING_INDEX, BuiltInMethod.SUBSTRING_INDEX.method, NullPolicy.STRICT);
       define(ARRAY_CONCAT, new ArrayConcatImplementor());
       define(SORT_ARRAY, new SortArrayImplementor());
+      defineMethod(ARRAY_CONTAINS_OP, BuiltInMethod.ARRAY_CONTAINS_OP.method, NullPolicy.NONE);
+      defineMethod(ARRAY_CONTAINED_BY_OP, BuiltInMethod.ARRAY_CONTAINED_BY_OP.method,
+          NullPolicy.NONE);
+      defineMethod(ARRAY_OVERLAP_OP, BuiltInMethod.ARRAY_OVERLAP_OP.method, NullPolicy.NONE);
       final MethodImplementor isEmptyImplementor =
           new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.STRICT,
               false);

@@ -582,6 +582,9 @@ data: {
     binaryOperatorsTokens: [
       "< INFIX_CAST: \"::\" >"
       "< NULL_SAFE_EQUAL: \"<=>\" >"
+      "< ARRAY_CONTAINS_OP: \"@>\" >"
+      "< ARRAY_CONTAINED_BY_OP: \"<@\" >"
+      "< ARRAY_OVERLAP_OP: \"&&\" >"
     ]
 
     # Custom identifier token.
@@ -601,6 +604,9 @@ data: {
     extraBinaryExpressions: [
       "InfixCast"
       "NullSafeEqual"
+      "ArrayContainsOp"
+      "ArrayContainedByOp"
+      "ArrayOverlapOp"
     ]
 
     # List of files in @includes directory that have parser method

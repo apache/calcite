@@ -2800,4 +2800,22 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.TIMESTAMP),
               OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
           SqlFunctionCategory.TIMEDATE);
+
+  /** PostgreSQL array {@code @>} operator: array contains. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlBinaryOperator ARRAY_CONTAINS_OP =
+      new SqlBinaryOperator("@>", SqlKind.OTHER, 30, true,
+          ReturnTypes.BOOLEAN_NULLABLE, null, OperandTypes.ANY_ANY);
+
+  /** PostgreSQL array {@code <@} operator: array is contained by. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlBinaryOperator ARRAY_CONTAINED_BY_OP =
+      new SqlBinaryOperator("<@", SqlKind.OTHER, 30, true,
+          ReturnTypes.BOOLEAN_NULLABLE, null, OperandTypes.ANY_ANY);
+
+  /** PostgreSQL array {@code &&} operator: array overlap. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlBinaryOperator ARRAY_OVERLAP_OP =
+      new SqlBinaryOperator("&&", SqlKind.OTHER, 30, true,
+          ReturnTypes.BOOLEAN_NULLABLE, null, OperandTypes.ANY_ANY);
 }
