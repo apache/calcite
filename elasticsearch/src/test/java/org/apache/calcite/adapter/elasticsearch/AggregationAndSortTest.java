@@ -566,4 +566,52 @@ class AggregationAndSortTest {
         .query("select count(*) from (select cat5, sum(val1) from view group by cat5) as alias")
         .returns("EXPR$0=3\n");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4232">[CALCITE-4232]
+   * Elasticsearch IN Query is not supported</a>.
+   */
+  @Test void testInPredicate() {
+    // Single value IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 in ('a')")
+        .returns("cat1=a\n");
+
+    // IN with non-existing values returns empty result (0 documents)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 in ('x', 'y', 'z')")
+        .returnsCount(0);
+
+    // Partial match IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 in ('a', 'x')")
+        .returns("cat1=a\n");
+
+    // NOT IN all existing values, only null cat1 remains (ES terms behavior)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 not in ('a', 'b')")
+        .returns("cat1=null\n");
+
+    // Integer type IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5 from view where cat5 in (1, 2)")
+        .returnsUnordered("cat5=1", "cat5=2");
+
+    // IN with integer type and non-existing value returns empty result
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5 from view where cat5 in (999)")
+        .returnsCount(0);
+
+    // Long type IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1 from view where val1 in (1, 7)")
+        .returnsUnordered("val1=1", "val1=7");
+  }
 }
