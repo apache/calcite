@@ -1023,6 +1023,24 @@ List<SqlNode> FunctionParameterList(ExprContext exprContext) :
     }
 }
 
+void AllOrDistinctOrDistinctOn(List<SqlLiteral> keywords, List<SqlNode> distinctOnList) :
+{
+    final Span s;
+    final SqlNodeList distinctOn;
+}
+{
+    <ALL> { keywords.add(SqlSelectKeyword.ALL.symbol(getPos())); }
+|
+    <DISTINCT> { s = span(); }
+    (
+        <ON> <LPAREN>
+        distinctOn = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+        <RPAREN>
+        { distinctOnList.addAll(distinctOn.getList()); }
+    )?
+    { keywords.add(SqlSelectKeyword.DISTINCT.symbol(s.end(this))); }
+}
+
 SqlLiteral AllOrDistinct() :
 {
 }
@@ -1389,6 +1407,7 @@ SqlSelect SqlSelect() :
     final SqlNode qualify;
     final SqlNodeList by;
     final List<SqlNode> hints = new ArrayList<SqlNode>();
+    final List<SqlNode> distinctOnList = new ArrayList<SqlNode>();
     final Span s;
 }
 {
@@ -1400,9 +1419,15 @@ SqlSelect SqlSelect() :
             keywords.add(SqlSelectKeyword.STREAM.symbol(getPos()));
         }
     )?
+<#if parser.includeDistinctOn!default.parser.includeDistinctOn>
+    (
+        AllOrDistinctOrDistinctOn(keywords, distinctOnList)
+    )?
+<#else>
     (
         keyword = AllOrDistinct() { keywords.add(keyword); }
     )?
+</#if>
     {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
@@ -1431,10 +1456,14 @@ SqlSelect SqlSelect() :
         }
     )
     {
+        final SqlNodeList distinctOn = distinctOnList.isEmpty()
+            ? null
+            : new SqlNodeList(distinctOnList, Span.of(distinctOnList).pos());
         final SqlSelect select = new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, windowDecls, qualify,
-            null, null, null, new SqlNodeList(hints, getPos()));
+            null, null, null, new SqlNodeList(hints, getPos()),
+            distinctOn);
         SqlByRewriter.rewrite(select, by);
         return select;
     }

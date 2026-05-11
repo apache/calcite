@@ -681,4 +681,14 @@ public interface SqlConformance {
    * True when the unsigned versions of integer types are supported.
    */
   boolean supportsUnsignedTypes();
+
+  /**
+   * Whether {@code SELECT DISTINCT ON} is allowed.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isDistinctOnAllowed();
 }
