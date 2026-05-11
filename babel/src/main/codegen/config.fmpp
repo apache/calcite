@@ -618,6 +618,7 @@ data: {
     includeParsingStringLiteralAsArrayLiteral: true
     includeIntervalWithoutQualifier: true
     includeSelectBy: true
+    includeDistinctOn: true
   }
 }
 

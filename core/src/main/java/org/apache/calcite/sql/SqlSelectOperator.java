@@ -78,7 +78,8 @@ public class SqlSelectOperator extends SqlOperator {
         (SqlNodeList) operands[8],
         operands[9],
         operands[10],
-        (SqlNodeList) operands[11]);
+        (SqlNodeList) operands[11],
+        operands.length > 12 ? (SqlNodeList) operands[12] : null);
   }
 
   /**
@@ -114,7 +115,8 @@ public class SqlSelectOperator extends SqlOperator {
         orderBy,
         offset,
         fetch,
-        hints);
+        hints,
+        null);
   }
 
   @Override public <R> void acceptCall(
@@ -149,6 +151,13 @@ public class SqlSelectOperator extends SqlOperator {
     for (int i = 0; i < select.keywordList.size(); i++) {
       final SqlNode keyword = select.keywordList.get(i);
       keyword.unparse(writer, 0, 0);
+    }
+    if (select.isDistinctOn()) {
+      writer.keyword("ON");
+      final SqlWriter.Frame frame =
+          writer.startList("(", ")");
+      castNonNull(select.distinctOn).unparse(writer, 0, 0);
+      writer.endList(frame);
     }
     writer.topN(select.fetch, select.offset);
     final SqlNodeList selectClause = select.selectList;

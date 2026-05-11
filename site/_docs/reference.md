@@ -205,7 +205,7 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
+      SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT [ ON '(' expression [, expression ]* ')' ] ]
           { starWithExclude | projectItem [, projectItem ]* }
       [ BY expression [, expression ]* ]
       FROM tableExpression
@@ -214,12 +214,21 @@ select:
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
       [ QUALIFY booleanExpression ]
+      [ ORDER BY orderItem [, orderItem ]* ]
+      [ LIMIT expression [ OFFSET expression ] ]
 
 The optional, non-standard `BY` clause groups and orders the query by
 the specified expressions, and automatically adds them to the SELECT list
 for naming and positional reference. But `SELECT ... BY` cannot be combined
 with an explicit `GROUP BY` or `ORDER BY` clause in the same query.
 `SELECT ... BY` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeSelectBy` to `true`.
+
+The optional `DISTINCT ON` clause is a PostgreSQL extension that allows you to
+eliminate duplicate rows based on specified expressions, keeping the first row
+in each group as determined by the `ORDER BY` clause. This is recognized only
+when the Babel parser is enabled. It sets the generated parser configuration flag
+`includeDistinctOn` to `true`. When using `DISTINCT ON`, the expressions in the
+`DISTINCT ON` clause must match the beginning of the `ORDER BY` clause.
 
 For example:
 
@@ -235,6 +244,16 @@ FROM emp
 GROUP BY deptno
 ORDER BY deptno
 {% endhighlight %}
+
+Example of `DISTINCT ON`:
+
+{% highlight sql %}
+SELECT DISTINCT ON (deptno) empno, ename, deptno
+FROM emp
+ORDER BY deptno, empno
+{% endhighlight %}
+
+This query keeps only the first employee (ordered by empno) in each department.
 
 selectWithoutFrom:
       SELECT [ ALL | DISTINCT ]
