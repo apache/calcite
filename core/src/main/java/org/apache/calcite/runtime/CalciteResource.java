@@ -505,6 +505,12 @@ public interface CalciteResource {
   @BaseMessage("QUALIFY expression ''{0}'' must contain a window function")
   ExInst<SqlValidatorException> qualifyExpressionMustContainWindowFunction(String a0);
 
+  @BaseMessage("SELECT DISTINCT ON requires an ORDER BY clause")
+  ExInst<SqlValidatorException> distinctOnRequiresOrderBy();
+
+  @BaseMessage("SELECT DISTINCT ON expressions must match initial ORDER BY expressions")
+  ExInst<SqlValidatorException> distinctOnOrderByMismatch();
+
   @BaseMessage("ROW/RANGE not allowed with RANK, DENSE_RANK, ROW_NUMBER, PERCENTILE_CONT/DISC or LAG/LEAD functions")
   ExInst<SqlValidatorException> rankWithFrame();
 

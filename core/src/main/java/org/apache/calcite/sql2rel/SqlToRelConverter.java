@@ -720,6 +720,9 @@ public class SqlToRelConverter {
     if (r instanceof Project) {
       return requiredCollation(((Project) r).getInput());
     }
+    if (r instanceof Filter) {
+      return requiredCollation(((Filter) r).getInput());
+    }
     if (r instanceof Delta) {
       return requiredCollation(((Delta) r).getInput());
     }
@@ -813,12 +816,18 @@ public class SqlToRelConverter {
         select.getQualify());
 
     if (select.isDistinct()) {
-      distinctify(bb, true);
+      if (!select.isDistinctOn()) {
+        distinctify(bb, true);
+      }
     }
 
-    convertOrder(
-        select, bb, collation, orderExprList, select.getOffset(),
-        select.getFetch());
+    if (select.isDistinctOn()) {
+      convertOrder(select, bb, collation, orderExprList, null, null);
+    } else {
+      convertOrder(
+          select, bb, collation, orderExprList, select.getOffset(),
+          select.getFetch());
+    }
 
     if (select.hasHints()) {
       final List<RelHint> hints = SqlUtil.getRelHint(hintStrategies, select.getHints());
@@ -838,6 +847,20 @@ public class SqlToRelConverter {
               }), true);
     } else {
       bb.setRoot(bb.root(), true);
+    }
+
+    if (select.isDistinctOn()) {
+      convertDistinctOn(bb, select, collationList);
+      final @Nullable RexNode offsetExpr = select.getOffset() == null
+          ? null : convertExpression(select.getOffset());
+      final @Nullable RexNode fetchExpr = select.getFetch() == null
+          ? null : convertExpression(select.getFetch());
+      if (offsetExpr != null || fetchExpr != null) {
+        bb.setRoot(
+            LogicalSort.create(bb.root(), RelCollations.EMPTY,
+                offsetExpr, fetchExpr),
+            false);
+      }
     }
   }
 
@@ -1019,6 +1042,77 @@ public class SqlToRelConverter {
     bb.setRoot(
         LogicalProject.create(aggregate, ImmutableList.of(), topExprs,
             rel.getRowType().getFieldNames(), ImmutableSet.of()), false);
+  }
+
+  /**
+   * Converts a SELECT DISTINCT ON clause into a relational expression
+   * using ROW_NUMBER() window function.
+   */
+  private void convertDistinctOn(Blackboard bb, SqlSelect select,
+      List<RelFieldCollation> collationList) {
+    if (bb.root == null) {
+      throw new IllegalArgumentException("rel must not be null");
+    }
+    final SqlNodeList distinctOn = requireNonNull(select.getDistinctOn(), "distinctOn");
+
+    relBuilder.push(bb.root());
+    final RelDataType inputRowType = bb.root().getRowType();
+
+    // Build PARTITION BY expressions from DISTINCT ON.
+    // DISTINCT ON expressions are a prefix of ORDER BY,
+    // so we can use the field indices from collationList.
+    final List<RexNode> partitionKeys = new ArrayList<>();
+    for (int i = 0; i < distinctOn.size(); i++) {
+      RelFieldCollation fieldCollation = collationList.get(i);
+      partitionKeys.add(
+          rexBuilder.makeInputRef(inputRowType, fieldCollation.getFieldIndex()));
+    }
+
+    // Build ORDER BY expressions for the window function
+    final List<RexFieldCollation> orderKeys = new ArrayList<>();
+    for (RelFieldCollation fieldCollation : collationList) {
+      RexNode ref = rexBuilder.makeInputRef(inputRowType, fieldCollation.getFieldIndex());
+      final Set<SqlKind> kinds = new HashSet<>();
+      if (fieldCollation.getDirection() == RelFieldCollation.Direction.DESCENDING) {
+        kinds.add(SqlKind.DESCENDING);
+      }
+      switch (fieldCollation.nullDirection) {
+      case FIRST:
+        kinds.add(SqlKind.NULLS_FIRST);
+        break;
+      case LAST:
+        kinds.add(SqlKind.NULLS_LAST);
+        break;
+      default:
+        break;
+      }
+      orderKeys.add(new RexFieldCollation(ref, kinds));
+    }
+
+    final RelDataType bigintType =
+        typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RexNode rowNumber =
+        rexBuilder.makeOver(bigintType, SqlStdOperatorTable.ROW_NUMBER, ImmutableList.of(),
+        partitionKeys, ImmutableList.copyOf(orderKeys),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.CURRENT_ROW,
+        RexWindowExclusion.EXCLUDE_NO_OTHER, true, true, false, false, false);
+
+    // Add ROW_NUMBER as the last column
+    final List<RexNode> fields = new ArrayList<>(relBuilder.fields());
+    fields.add(rowNumber);
+    relBuilder.project(fields);
+
+    // Filter rn = 1
+    relBuilder.filter(
+        relBuilder.equals(
+            Util.last(relBuilder.fields()),
+            relBuilder.literal(BigDecimal.ONE)));
+
+    // Remove the ROW_NUMBER column
+    relBuilder.project(
+        Util.skipLast(relBuilder.fields()));
+
+    bb.setRoot(relBuilder.build(), false);
   }
 
   /**

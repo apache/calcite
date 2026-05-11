@@ -6039,4 +6039,35 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select distinct deptno, deptno, empno, 1, 'a' from emp order by rand(), 1";
     sql(sql).ok();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnSimple() {
+    final String sql = "SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno, empno";
+    sql(sql).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnMultiple() {
+    final String sql = "SELECT DISTINCT ON (deptno, job) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno, job, hiredate DESC";
+    sql(sql).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnWithLimit() {
+    final String sql = "SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno, empno\n"
+        + "LIMIT 5";
+    sql(sql).ok();
+  }
 }

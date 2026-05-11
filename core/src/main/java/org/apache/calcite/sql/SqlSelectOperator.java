@@ -37,14 +37,19 @@ import static java.util.Objects.requireNonNull;
  * <p>Operands are:
  *
  * <ul>
- * <li>0: distinct ({@link SqlLiteral})</li>
+ * <li>0: keywordList ({@link SqlNodeList})</li>
  * <li>1: selectClause ({@link SqlNodeList})</li>
  * <li>2: fromClause ({@link SqlCall} to "join" operator)</li>
  * <li>3: whereClause ({@link SqlNode})</li>
- * <li>4: havingClause ({@link SqlNode})</li>
- * <li>5: groupClause ({@link SqlNode})</li>
+ * <li>4: groupClause ({@link SqlNodeList})</li>
+ * <li>5: havingClause ({@link SqlNode})</li>
  * <li>6: windowClause ({@link SqlNodeList})</li>
- * <li>7: orderClause ({@link SqlNode})</li>
+ * <li>7: qualifyClause ({@link SqlNode})</li>
+ * <li>8: orderClause ({@link SqlNodeList})</li>
+ * <li>9: offsetClause ({@link SqlNode})</li>
+ * <li>10: fetchClause ({@link SqlNode})</li>
+ * <li>11: hints ({@link SqlNodeList})</li>
+ * <li>12: distinctOn ({@link SqlNodeList})</li>
  * </ul>
  */
 public class SqlSelectOperator extends SqlOperator {
@@ -80,7 +85,8 @@ public class SqlSelectOperator extends SqlOperator {
         (SqlNodeList) operands[8],
         operands[9],
         operands[10],
-        (SqlNodeList) operands[11]);
+        (SqlNodeList) operands[11],
+        operands.length > 12 ? (SqlNodeList) operands[12] : null);
   }
 
   /**
@@ -116,7 +122,8 @@ public class SqlSelectOperator extends SqlOperator {
         orderBy,
         offset,
         fetch,
-        hints);
+        hints,
+        null);
   }
 
   @Override public <R> void acceptCall(
@@ -151,6 +158,13 @@ public class SqlSelectOperator extends SqlOperator {
     for (int i = 0; i < select.keywordList.size(); i++) {
       final SqlNode keyword = select.keywordList.get(i);
       keyword.unparse(writer, 0, 0);
+    }
+    if (select.isDistinctOn()) {
+      writer.keyword("ON");
+      final SqlWriter.Frame frame =
+          writer.startList("(", ")");
+      castNonNull(select.distinctOn).unparse(writer, 0, 0);
+      writer.endList(frame);
     }
     writer.topN(select.fetch, select.offset);
     final SqlNodeList selectClause = select.selectList;

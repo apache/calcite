@@ -6507,7 +6507,50 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     f.withSql(qualifyOnMultipleWindowFunctions).ok();
   }
 
-  /** Negative tests for the {@code QUALIFY} clause. */
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnPositive() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    f.withSql("SELECT DISTINCT ON (deptno) empno, ename FROM emp ORDER BY deptno, empno")
+        .ok();
+
+    f.withSql("SELECT DISTINCT ON (deptno, job) empno FROM emp ORDER BY deptno, job, hiredate")
+        .ok();
+
+    f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno DESC")
+        .ok();
+
+    f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno NULLS FIRST")
+        .ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnNegative() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    // DISTINCT ON requires ORDER BY
+    f.withSql("^SELECT DISTINCT ON (deptno) empno FROM emp^")
+        .fails("SELECT DISTINCT ON requires an ORDER BY clause");
+
+    // ORDER BY must contain all DISTINCT ON expressions as prefix
+    f.withSql("SELECT DISTINCT ON (deptno, job) empno FROM emp ORDER BY ^deptno^")
+        .fails("SELECT DISTINCT ON expressions must match initial ORDER BY expressions");
+
+    // ORDER BY prefix must match exactly
+    f.withSql("SELECT DISTINCT ON (deptno, job) empno FROM emp ORDER BY ^job^, deptno")
+        .fails("SELECT DISTINCT ON expressions must match initial ORDER BY expressions");
+
+    // DISTINCT ON with extra ORDER BY is ok
+    f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno, job")
+        .ok();
+  }
+
   @Test void testQualifyNegative() {
     final SqlValidatorFixture f =
         fixture().withConformance(SqlConformanceEnum.LENIENT);

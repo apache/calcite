@@ -43,6 +43,7 @@ public class SqlSelect extends SqlCall {
   public static final int WHERE_OPERAND = 3;
   public static final int HAVING_OPERAND = 5;
   public static final int QUALIFY_OPERAND = 7;
+  public static final int DISTINCT_ON_OPERAND = 12;
 
   SqlNodeList keywordList;
   SqlNodeList selectList;
@@ -56,6 +57,7 @@ public class SqlSelect extends SqlCall {
   @Nullable SqlNode offset;
   @Nullable SqlNode fetch;
   @Nullable SqlNodeList hints;
+  @Nullable SqlNodeList distinctOn;
   boolean hasByClause;
 
   //~ Constructors -----------------------------------------------------------
@@ -72,7 +74,8 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNodeList orderBy,
       @Nullable SqlNode offset,
       @Nullable SqlNode fetch,
-      @Nullable SqlNodeList hints) {
+      @Nullable SqlNodeList hints,
+      @Nullable SqlNodeList distinctOn) {
     super(pos);
     this.keywordList = requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
@@ -88,10 +91,29 @@ public class SqlSelect extends SqlCall {
     this.offset = offset;
     this.fetch = fetch;
     this.hints = hints;
+    this.distinctOn = distinctOn;
     this.hasByClause = false;
   }
 
-  /** deprecated, without {@code qualify}. */
+  /** Constructor without {@code distinctOn}; distinctOn defaults to null. */
+  public SqlSelect(SqlParserPos pos,
+      @Nullable SqlNodeList keywordList,
+      SqlNodeList selectList,
+      @Nullable SqlNode from,
+      @Nullable SqlNode where,
+      @Nullable SqlNodeList groupBy,
+      @Nullable SqlNode having,
+      @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNode qualify,
+      @Nullable SqlNodeList orderBy,
+      @Nullable SqlNode offset,
+      @Nullable SqlNode fetch,
+      @Nullable SqlNodeList hints) {
+    this(pos, keywordList, selectList, from, where, groupBy, having,
+        windowDecls, qualify, orderBy, offset, fetch, hints, null);
+  }
+
+  /** deprecated, without {@code qualify} and {@code distinctOn}. */
   @Deprecated // to be removed before 2.0
   public SqlSelect(SqlParserPos pos,
       @Nullable SqlNodeList keywordList,
@@ -106,7 +128,7 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNode fetch,
       @Nullable SqlNodeList hints) {
     this(pos, keywordList, selectList, from, where, groupBy, having,
-        windowDecls, null, orderBy, offset, fetch, hints);
+        windowDecls, null, orderBy, offset, fetch, hints, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -122,7 +144,8 @@ public class SqlSelect extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints);
+        groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints,
+        distinctOn);
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
@@ -159,6 +182,12 @@ public class SqlSelect extends SqlCall {
       break;
     case 10:
       fetch = operand;
+      break;
+    case 11:
+      hints = (SqlNodeList) operand;
+      break;
+    case 12:
+      distinctOn = (SqlNodeList) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -326,5 +355,17 @@ public class SqlSelect extends SqlCall {
 
   public boolean isKeywordPresent(SqlSelectKeyword targetKeyWord) {
     return getModifierNode(targetKeyWord) != null;
+  }
+
+  public boolean isDistinctOn() {
+    return distinctOn != null && !distinctOn.isEmpty();
+  }
+
+  public @Nullable SqlNodeList getDistinctOn() {
+    return distinctOn;
+  }
+
+  public void setDistinctOn(@Nullable SqlNodeList distinctOn) {
+    this.distinctOn = distinctOn;
   }
 }
