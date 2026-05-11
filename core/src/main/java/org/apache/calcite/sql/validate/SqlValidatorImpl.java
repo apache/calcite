@@ -123,7 +123,6 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -568,8 +567,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return false;
   }
 
-  private static Map<String, String> getFieldAliases(final SelectScope scope) {
-    final ImmutableMap.Builder<String, String> fieldAliases = new ImmutableMap.Builder<>();
+  private static ImmutableSet<String> getFieldsAliased(final SelectScope scope) {
+    final ImmutableSet.Builder<String> result = new ImmutableSet.Builder<>();
 
     for (SqlNode selectItem : scope.getNode().getSelectList()) {
       if (selectItem instanceof SqlCall) {
@@ -580,12 +579,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
 
         final SqlIdentifier fieldIdentifier = call.operand(0);
-        fieldAliases.put(fieldIdentifier.getSimple(),
-            ((SqlIdentifier) call.operand(1)).getSimple());
+        result.add(fieldIdentifier.names.get(fieldIdentifier.names.size() - 1));
       }
     }
 
-    return fieldAliases.build();
+    return result.build();
   }
 
   /** Returns the set of field names in the join condition specified by USING
@@ -2640,7 +2638,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case MATCH_RECOGNIZE:
       registerMatchRecognize(parentScope, usingScope,
           (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
-      return node;
+      return newNode;
 
     case PIVOT:
       registerPivot(parentScope, usingScope, (SqlPivot) node, enclosingNode,
@@ -6212,6 +6210,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new FieldNamespace(this, field.getType());
   }
 
+  @Override public boolean isInWindow() {
+    return inWindow;
+  }
+
   @Override public void validateWindow(
       SqlNode windowOrId,
       SqlValidatorScope scope,
@@ -6428,9 +6430,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       setValidatedNodeType(measure, type);
 
       fields.add(alias, type);
-      sqlNodes.add(
-          SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
-              new SqlIdentifier(alias, SqlParserPos.ZERO)));
+      sqlNodes.add(expand);
     }
 
     SqlNodeList list = new SqlNodeList(sqlNodes, measures.getParserPosition());
@@ -6485,11 +6485,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       inferUnknownTypes(booleanType, scope, expand);
       expand.validate(this, scope);
 
-      // Some extra work need required here.
       // In PREV, NEXT, FINAL and LAST, only one pattern variable is allowed.
-      sqlNodes.add(
-          SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
-              new SqlIdentifier(alias, SqlParserPos.ZERO)));
+      // It is already parsed into AS operator, see PatternDefinition in Parser.jj
+      sqlNodes.add(expand);
 
       final RelDataType type = deriveType(scope, expand);
       if (!SqlTypeUtil.inBooleanFamily(type)) {
@@ -6838,7 +6836,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         break;
       case 2:
         assert op.allowsNullTreatment();
-        assert op.requiresOver();
         assert op.requiresGroupOrder() == Optionality.FORBIDDEN;
         break;
       default:
@@ -7524,7 +7521,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
-      final Map<String, String> fieldAliases = getFieldAliases(scope);
+      final Set<String> fieldAliases = getFieldsAliased(scope);
 
       for (String name : commonColumnNames) {
         if (matcher.matches(identifier.getSimple(), name)) {
@@ -7541,13 +7538,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
           assert qualifiedNode.size() == 2;
 
-          // If there is an alias for the column, no need to wrap the coalesce with an AS operator
-          boolean haveAlias = fieldAliases.containsKey(name);
-
           final SqlCall coalesceCall =
               SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO, qualifiedNode.get(0),
                   qualifiedNode.get(1));
 
+          // If there is an alias for the column, no need to wrap the coalesce with an AS operator
+          boolean haveAlias = fieldAliases.contains(name);
           if (haveAlias) {
             return coalesceCall;
           } else {
@@ -8229,17 +8225,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     int firstLastCount;
     int prevNextCount;
     int aggregateCount;
+    int argIndex;
+    int argCount;
 
     PatternValidator(boolean isMeasure) {
-      this(isMeasure, 0, 0, 0);
+      this(isMeasure, 0, 0, 0, 0, 0);
     }
 
     PatternValidator(boolean isMeasure, int firstLastCount, int prevNextCount,
-        int aggregateCount) {
+        int aggregateCount, int index, int argCount) {
       this.isMeasure = isMeasure;
       this.firstLastCount = firstLastCount;
       this.prevNextCount = prevNextCount;
       this.aggregateCount = aggregateCount;
+      this.argIndex = index;
+      this.argCount = argCount;
     }
 
     @Override public Set<String> visit(SqlCall call) {
@@ -8285,13 +8285,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             Static.RESOURCE.patternRunningFunctionInDefine(call.toString()));
       }
 
-      for (SqlNode node : operands) {
+      for (int i = 0; i < operands.size(); i++) {
+        SqlNode node = operands.get(i);
         if (node != null) {
           vars.addAll(
               requireNonNull(
                   node.accept(
                       new PatternValidator(isMeasure, firstLastCount, prevNextCount,
-                          aggregateCount)),
+                          aggregateCount, i, operands.size())),
                   () -> "node.accept(PatternValidator) for node " + node));
         }
       }
@@ -8333,7 +8334,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public Set<String> visit(SqlLiteral literal) {
-      return ImmutableSet.of();
+      if ((this.argCount == 1 || this.argIndex < this.argCount - 1)
+          && (this.firstLastCount > 0 || this.prevNextCount > 0)
+          && !SqlUtil.isNull(literal)) {
+        return ImmutableSet.of(requireNonNull(literal.toValue()));
+      } else {
+        return ImmutableSet.of();
+      }
     }
 
     @Override public Set<String> visit(SqlIntervalQualifier qualifier) {

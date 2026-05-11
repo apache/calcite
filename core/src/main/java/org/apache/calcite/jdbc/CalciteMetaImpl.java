@@ -354,9 +354,7 @@ public class CalciteMetaImpl extends MetaImpl {
     } else {
       typeFilter = v1 -> typeList.contains(v1.tableType);
     }
-    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
-    Enumerable<MetaTable> tables = schemas(catalog)
-        .where(schemaMatcher)
+    Enumerable<MetaTable> tables = schemas(catalog, new LikePattern(schemaPattern.s))
         .selectMany(schema -> tables(schema, new LikePattern(tableNamePattern.s)))
         .where(typeFilter);
     return createResultSet(tables,
@@ -374,11 +372,9 @@ public class CalciteMetaImpl extends MetaImpl {
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {
-    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     final Predicate1<MetaColumn> columnMatcher =
         namedMatcher(columnNamePattern);
-    return createResultSet(schemas(catalog)
-            .where(schemaMatcher)
+    return createResultSet(schemas(catalog, new LikePattern(schemaPattern.s))
             .selectMany(schema -> tables(schema, new LikePattern(tableNamePattern.s)))
             .selectMany(this::columns)
             .where(columnMatcher),
@@ -404,11 +400,18 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   Enumerable<MetaSchema> schemas(final String catalog) {
-    return Linq4j.asEnumerable(
-        getConnection().rootSchema.getSubSchemaMap().values())
-        .select((Function1<CalciteSchema, MetaSchema>) calciteSchema ->
-            new CalciteMetaSchema(calciteSchema, catalog,
-                calciteSchema.getName()))
+    return schemas(catalog, LikePattern.any());
+  }
+
+  Enumerable<MetaSchema> schemas(final String catalog, final LikePattern pattern) {
+    final CalciteSchema root = getConnection().rootSchema;
+    return Linq4j.asEnumerable(root.subSchemas().getNames(pattern))
+        .select((Function1<String, MetaSchema>) name -> {
+          final CalciteSchema schema =
+              requireNonNull(root.getSubSchema(name, true),
+                  () -> "sub-schema " + name + " is not found (case sensitive)");
+          return new CalciteMetaSchema(schema, catalog, schema.getName());
+        })
         .orderBy((Function1<MetaSchema, Comparable>) metaSchema ->
             (Comparable) FlatLists.of(Util.first(metaSchema.tableCatalog, ""),
                 metaSchema.tableSchem));
@@ -524,8 +527,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   @Override public MetaResultSet getSchemas(ConnectionHandle ch, String catalog,
       Pat schemaPattern) {
-    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
-    return createResultSet(schemas(catalog).where(schemaMatcher),
+    return createResultSet(schemas(catalog, new LikePattern(schemaPattern.s)),
         MetaSchema.class, SCHEMA_COLUMNS);
   }
 
@@ -543,9 +545,7 @@ public class CalciteMetaImpl extends MetaImpl {
       String catalog,
       Pat schemaPattern,
       Pat functionNamePattern) {
-    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
-    return createResultSet(schemas(catalog)
-            .where(schemaMatcher)
+    return createResultSet(schemas(catalog, new LikePattern(schemaPattern.s))
             .selectMany(schema -> functions(schema, catalog, matcher(functionNamePattern)))
             .orderBy(x ->
                 (Comparable) FlatLists.of(

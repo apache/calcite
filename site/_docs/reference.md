@@ -1318,6 +1318,12 @@ also offer the following operations:
   as equivalent to `variant['field']`.  Note, however, that the field notation
   is subject to the capitalization rules of the SQL dialect, so for correct
   operation the field may need to be quoted: `variant."field"`
+- path access using the colon notation: `variant:field`, with bracket
+  segments (`variant:['key']`, `variant:[0]`) and chains
+  (`variant:a.b['c'][0]`). The result is always a nullable `VARIANT`.
+  The colon operator is opt-in via the `isColonFieldAccessAllowed`
+  conformance flag; when enabled, JSON object constructors must use the
+  `KEY ... VALUE` form.
 
 The runtime types do not need to match exactly the compile-time types.
 As a compiler front-end, Calcite does not mandate exactly how the runtime types
@@ -1682,6 +1688,7 @@ charSet:
 
 timeZone:
       WITHOUT TIME ZONE
+  |   WITH TIME ZONE
   |   WITH LOCAL TIME ZONE
 {% endhighlight %}
 
@@ -3531,11 +3538,11 @@ optionKey:
   |   stringLiteral
 
 optionVal:
-      stringLiteral
+      simpleIdentifier
+  |   stringLiteral
 
 hintOption:
       simpleIdentifier
-   |  numericLiteral
    |  stringLiteral
 {% endhighlight %}
 

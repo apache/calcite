@@ -1077,6 +1077,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
                   () -> "value for " + literal).toString()));
     case DATE:
     case TIME:
+    case TIME_TZ:
     case TIME_WITH_LOCAL_TIME_ZONE:
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -1085,6 +1086,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       javaClass = int.class;
       break;
     case TIMESTAMP:
+    case TIMESTAMP_TZ:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:

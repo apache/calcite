@@ -858,6 +858,17 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testColonFieldAccess">
+    <Resource name="sql">
+      <![CDATA[select cast(empno as variant):a.b['c'][0] from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[ITEM(ITEM(ITEM(ITEM(CAST($0):VARIANT NOT NULL, 'a'), 'b'), 'c'), 0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCompositeInUncorrelatedSubQueryRex">
     <Resource name="sql">
       <![CDATA[select empno from emp where (empno, deptno) in (select deptno - 10, deptno from dept)]]>

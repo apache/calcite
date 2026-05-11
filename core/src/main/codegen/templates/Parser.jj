@@ -1261,9 +1261,14 @@ void AddKeyValueOption(List<SqlNode> list) :
         key = StringLiteral()
     )
     <EQ>
-    value = StringLiteral() {
-        list.add(key);
-        list.add(value);
+    (
+        value = StringLiteral()
+    |
+        value = SimpleIdentifier()
+    )
+    {
+         list.add(key);
+         list.add(value);
     }
 }
 
@@ -1299,11 +1304,13 @@ SqlNodeList ParenthesizedLiteralOptionCommaList() :
 
 void AddHint(List<SqlNode> hints) :
 {
+    final Span s;
     final SqlIdentifier hintName;
     final SqlNodeList hintOptions;
     final SqlHint.HintOptionFormat optionFormat;
 }
 {
+    { s = span(); }
     hintName = SimpleIdentifier()
     (
        LOOKAHEAD(5)
@@ -1330,7 +1337,7 @@ void AddHint(List<SqlNode> hints) :
     )
     {
         hints.add(
-           new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions,
+           new SqlHint(s.end(this), hintName, hintOptions,
                optionFormat));
     }
 }
@@ -2331,7 +2338,10 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
             [ tableRef = ExtendTable(tableRef) ]
             tableRef = Over(tableRef)
             [ tableRef = Snapshot(tableRef) ]
-            [ tableRef = MatchRecognize(tableRef) ]
+            [
+              LOOKAHEAD(3)
+              tableRef = MatchRecognize(tableRef)
+            ]
         )
     |
         LOOKAHEAD(2)
@@ -2339,7 +2349,10 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         tableRef = ParenthesizedExpression(exprContext)
         tableRef = Over(tableRef)
         tableRef = addLateral(tableRef, lateral)
-        [ tableRef = MatchRecognize(tableRef) ]
+        [
+          LOOKAHEAD(3)
+          tableRef = MatchRecognize(tableRef)
+        ]
     |
         LOOKAHEAD(2)
         [ <LATERAL> ] // "LATERAL" is implicit with "UNNEST", so ignore
@@ -3251,6 +3264,7 @@ void AddUnpivotValue(List<SqlNode> list) :
 SqlMatchRecognize MatchRecognize(SqlNode tableRef) :
 {
     final Span s, s0, s1, s2;
+    final SqlIdentifier aliasBeforeMatch;
     final SqlNodeList measureList;
     final SqlNodeList partitionList;
     final SqlNodeList orderList;
@@ -3265,6 +3279,12 @@ SqlMatchRecognize MatchRecognize(SqlNode tableRef) :
     final SqlLiteral isStrictEnds;
 }
 {
+    [
+      <AS> aliasBeforeMatch = SimpleIdentifier() {
+          tableRef = SqlStdOperatorTable.AS.createCall(
+              Span.of(tableRef).end(this), tableRef, aliasBeforeMatch);
+      }
+    ]
     <MATCH_RECOGNIZE> { s = span(); checkNotJoin(tableRef); } <LPAREN>
     (
         <PARTITION> { s2 = span(); } <BY>
@@ -3774,6 +3794,83 @@ SqlNode Expression(ExprContext exprContext) :
     list = Expression2(exprContext) { return SqlParserUtil.toTree(list); }
 }
 
+/** Adds an optional trailing colon path to the expression under
+ * construction, for example {@code :field.nested}, {@code :['field']} or
+ * {@code :item[1].price}. Dot-separated path segments are parsed as simple
+ * identifiers, but unquoted segment spelling is preserved for case-sensitive
+ * variant key lookup. Bracketed segments are literals (string for exact key
+ * access, integer for array index); arbitrary expressions are not allowed. */
+void AddOptionalColonPath(List<Object> list) :
+{
+    SqlParserPos colonPos;
+    List<SqlNode> segments;
+    Span s;
+    SqlIdentifier p;
+}
+{
+    [
+        LOOKAHEAD(2, <COLON> ( SimpleIdentifier() | <LBRACKET> ),
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON> {
+            colonPos = getPos();
+            segments = new ArrayList<SqlNode>();
+            s = span();
+        }
+        (
+            p = SimpleIdentifier() {
+                segments.add(p.getParserPosition().isQuoted()
+                    ? p
+                    : new SqlIdentifier(getToken(0).image, p.getParserPosition()));
+            }
+        |
+            ColonBracketSegment(segments)
+        )
+        (
+            LOOKAHEAD(2) <DOT>
+            p = SimpleIdentifier() {
+                segments.add(p.getParserPosition().isQuoted()
+                    ? p
+                    : new SqlIdentifier(getToken(0).image, p.getParserPosition()));
+            }
+        |
+            ColonBracketSegment(segments)
+        )*
+        {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.COLON, colonPos));
+            list.add(new SqlNodeList(segments, s.end(this)));
+        }
+    ]
+}
+
+/** Parses one bracketed segment of a colon path: {@code ['field']} for key
+ * access, or {@code [n]} for array index. */
+void ColonBracketSegment(List<SqlNode> segments) :
+{
+    SqlNode lit;
+    SqlIdentifier id;
+}
+{
+    <LBRACKET>
+    (
+        lit = StringLiteral() { segments.add(lit); }
+    |
+        <UNSIGNED_INTEGER_LITERAL> {
+            segments.add(SqlLiteral.createExactNumeric(token.image, getPos()));
+        }
+    |
+        LOOKAHEAD(SimpleIdentifier() <RBRACKET>)
+        id = SimpleIdentifier() {
+            throw SqlUtil.newContextException(id.getParserPosition(),
+                RESOURCE.unknownIdentifier(id.toString()));
+        }
+    )
+    <RBRACKET>
+}
+
+/** Parses an expression atom with its dot-access chain and at most one
+ * trailing colon path. */
 void AddExpression2b(List<Object> list, ExprContext exprContext) :
 {
     SqlNode e;
@@ -3800,6 +3897,7 @@ void AddExpression2b(List<Object> list, ExprContext exprContext) :
             list.add(ext);
         }
     )*
+    AddOptionalColonPath(list)
 }
 
 /**
@@ -3985,6 +4083,7 @@ List<Object> Expression2(ExprContext exprContext) :
                         list.add(p);
                     }
                 )*
+                AddOptionalColonPath(list)
             |
                 {
                     checkNonQueryExpression(exprContext);
@@ -4583,6 +4682,8 @@ SqlCreate SqlCreate() :
 {
     <CREATE> { s = span(); }
     [
+        // Allow downstream projects implement different syntax, for instance CREATE OR REPLACE
+        LOOKAHEAD(2)
         <OR> <REPLACE> {
             replace = true;
         }
@@ -7012,13 +7113,13 @@ List<SqlNode> JsonNameAndValue() :
         <VALUE>
     |
         <COMMA> {
-            if (kvMode) {
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalComma());
             }
         }
     |
         <COLON> {
-            if (kvMode) {
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalColon());
             }
         }
@@ -7492,7 +7593,7 @@ SqlCall MatchRecognizeCallWithModifier() :
 {
     final Span s;
     final SqlOperator runningOp;
-    final SqlNode func;
+    final SqlNode e;
 }
 {
     (
@@ -7501,8 +7602,8 @@ SqlCall MatchRecognizeCallWithModifier() :
         <FINAL> { runningOp = SqlStdOperatorTable.FINAL; }
     )
     { s = span(); }
-    func = NamedFunctionCall() {
-        return runningOp.createCall(s.end(func), func);
+    e = Expression3(ExprContext.ACCEPT_NON_QUERY) {
+        return runningOp.createCall(s.end(e), e);
     }
 }
 

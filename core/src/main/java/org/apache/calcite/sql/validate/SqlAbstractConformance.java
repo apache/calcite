@@ -85,6 +85,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }
 
+  @Override public boolean isColonFieldAccessAllowed() {
+    return SqlConformanceEnum.DEFAULT.isColonFieldAccessAllowed();
+  }
+
   @Override public boolean isMinusAllowed() {
     return SqlConformanceEnum.DEFAULT.isMinusAllowed();
   }

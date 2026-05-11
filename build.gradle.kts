@@ -198,7 +198,7 @@ reporting {
     reports {
         if (enableJacoco) {
             val jacocoAggregateTestReport by creating(JacocoCoverageReport::class) {
-                testType.set(TestSuiteType.UNIT_TEST)
+                testSuiteName = "test"
             }
         }
     }
@@ -289,7 +289,8 @@ dependencies {
     }
     if (enableJacoco) {
         for (p in subprojects) {
-            if (p.name != "bom") {
+            val hasTests = p.file("src/test/java").isDirectory || p.file("src/test/kotlin").isDirectory
+            if (p.name != "bom" && hasTests) {
                 jacocoAggregation(p)
             }
         }
@@ -418,6 +419,7 @@ allprojects {
             val testRuntimeOnly by configurations
             testImplementation(platform("org.junit:junit-bom"))
             testImplementation("org.junit.jupiter:junit-jupiter")
+            testRuntimeOnly("org.junit.platform:junit-platform-launcher")
             testImplementation("org.hamcrest:hamcrest")
             if (project.props.bool("junit4", default = false)) {
                 // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
@@ -432,7 +434,7 @@ allprojects {
 
     if (!skipAutostyle) {
         apply(plugin = "com.github.autostyle")
-        autostyle {
+        configure<com.github.autostyle.gradle.AutostyleExtension> {
             kotlinGradle {
                 license()
                 ktlint()
@@ -471,7 +473,7 @@ allprojects {
             }
         }
         plugins.withId("org.jetbrains.kotlin.jvm") {
-            autostyle {
+            configure<com.github.autostyle.gradle.AutostyleExtension> {
                 kotlin {
                     licenseHeader(rootProject.ide.licenseHeader)
                     ktlint {
@@ -535,8 +537,12 @@ allprojects {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
-        dirMode = "775".toInt(8)
-        fileMode = "664".toInt(8)
+        dirPermissions {
+            unix("775")
+        }
+        filePermissions {
+            unix("664")
+        }
     }
 
     tasks {
@@ -609,7 +615,7 @@ allprojects {
         }
 
         if (!skipAutostyle) {
-            autostyle {
+            configure<com.github.autostyle.gradle.AutostyleExtension> {
                 java {
                     filter.exclude(*javaccGeneratedPatterns +
                             "**/test/java/*.java" +
@@ -889,17 +895,6 @@ allprojects {
                     showStandardStreams = true
                 }
                 exclude("**/*Suite*")
-                if (JavaVersion.current() >= JavaVersion.VERSION_23) {
-                    // Subject.doAs is deprecated and does not work in JDK 23
-                    // and higher unless the (also deprecated) SecurityManager
-                    // is enabled. However, we depend on libraries Avatica and
-                    // Hadoop for our remote driver and Pig and Spark
-                    // adapters. So as a workaround we require enabling the
-                    // security manager on JDK 23 and higher. See
-                    // [CALCITE-6587], [CALCITE-6590] (Avatica), [HADOOP-19212],
-                    // https://openjdk.org/jeps/411.
-                    jvmArgs("-Djava.security.manager=allow")
-                }
                 jvmArgs("-Xmx1536m")
                 jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
                 // Pass the property to tests

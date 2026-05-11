@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Static;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -135,6 +136,10 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
+    if (requiresOver() && !validator.isInWindow()) {
+      throw validator.newValidationError(call,
+          Static.RESOURCE.absentOverClause());
+    }
     super.validateCall(call, validator, scope, operandScope);
     validator.validateAggregateParams(call, null, null, null, scope);
   }

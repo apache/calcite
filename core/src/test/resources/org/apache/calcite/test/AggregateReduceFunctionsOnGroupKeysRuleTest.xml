@@ -1,0 +1,80 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<Root>
+  <TestCase name="testAggregateFunctionOfGroupByKeys">
+    <Resource name="sql">
+      <![CDATA[select sal, max(sal) as sal_max, min(sal) as sal_min,
+avg(sal) sal_avg, any_value(sal) as sal_val
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SAL_MAX=[$2], SAL_MIN=[$3], SAL_AVG=[$4], SAL_VAL=[$5])
+  LogicalAggregate(group=[{0, 1}], SAL_MAX=[MAX($0)], SAL_MIN=[MIN($0)], SAL_AVG=[AVG($0)], SAL_VAL=[ANY_VALUE($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SAL_MAX=[$2], SAL_MIN=[$3], SAL_AVG=[$4], SAL_VAL=[$5])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SAL0=[$0], SAL1=[$0], SAL2=[$0], SAL3=[$0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateFunctionOfGroupByKeysNoChange">
+    <Resource name="sql">
+      <![CDATA[select sal, max(comm) as comm_max
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], COMM_MAX=[$2])
+  LogicalAggregate(group=[{0, 1}], COMM_MAX=[MAX($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateFunctionOfGroupByKeysPartial">
+    <Resource name="sql">
+      <![CDATA[select sal, max(sal) as sal_max, sum(comm) as comm_sum
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SAL_MAX=[$2], COMM_SUM=[$3])
+  LogicalAggregate(group=[{0, 1}], SAL_MAX=[MAX($0)], COMM_SUM=[SUM($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SAL_MAX=[$2], COMM_SUM=[$3])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SAL0=[$0], COMM_SUM=[$2])
+    LogicalAggregate(group=[{0, 1}], COMM_SUM=[SUM($2)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+</Root>

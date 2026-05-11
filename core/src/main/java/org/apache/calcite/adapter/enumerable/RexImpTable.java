@@ -22,7 +22,6 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
@@ -4173,43 +4172,27 @@ public class RexImpTable {
 
       final String alpha = ((RexPatternFieldRef) call.getOperands().get(0)).getAlpha();
 
-      // TODO: verify if the variable is needed
-      @SuppressWarnings("unused")
-      final BinaryExpression lastIndex =
-          Expressions.subtract(
-              Expressions.call(rows, BuiltInMethod.COLLECTION_SIZE.method),
-              Expressions.constant(1));
-
       // Just take the last one, if exists
       if ("*".equals(alpha)) {
         setInputGetterIndex(translator, i);
-        // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
-        final RexPatternFieldRef ref = (RexPatternFieldRef) node;
-        final RexPatternFieldRef newRef =
-            new RexPatternFieldRef(ref.getAlpha(),
-                ref.getIndex(),
-                translator.typeFactory.createTypeWithNullability(ref.getType(),
-                    true));
-        final Expression expression = translator.translate(newRef, NullAs.NULL);
-        setInputGetterIndex(translator, null);
-        return expression;
       } else {
         // Alpha != "*" so we have to search for a specific one to find and use that, if found
+        // otherwise pick the last one
         setInputGetterIndex(translator,
-            Expressions.call(BuiltInMethod.MATCH_UTILS_LAST_WITH_SYMBOL.method,
-                Expressions.constant(alpha), rows, symbols, i));
-
-        // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
-        final RexPatternFieldRef ref = (RexPatternFieldRef) node;
-        final RexPatternFieldRef newRef =
-            new RexPatternFieldRef(ref.getAlpha(),
-                ref.getIndex(),
-                translator.typeFactory.createTypeWithNullability(ref.getType(),
-                    true));
-        final Expression expression = translator.translate(newRef, NullAs.NULL);
-        setInputGetterIndex(translator, null);
-        return expression;
+            Expressions.call(BuiltInMethod.MATCH_UTILS_LAST_WITH_SYMBOL_OR_LAST.method,
+                Expressions.constant(alpha), symbols, i));
       }
+
+      // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
+      final RexPatternFieldRef ref = (RexPatternFieldRef) node;
+      final RexPatternFieldRef newRef =
+          new RexPatternFieldRef(ref.getAlpha(),
+              ref.getIndex(),
+              translator.typeFactory.createTypeWithNullability(ref.getType(),
+                  true));
+      final Expression expression = translator.translate(newRef, NullAs.NULL);
+      setInputGetterIndex(translator, null);
+      return expression;
     }
 
     private static void setInputGetterIndex(RexToLixTranslator translator, @Nullable Expression o) {

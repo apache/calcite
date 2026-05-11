@@ -38,8 +38,8 @@ import java.util.List;
 public class ConvertToChecked extends RelHomogeneousShuttle {
   final ConvertRexToChecked converter;
 
-  public ConvertToChecked(RexBuilder builder) {
-    this.converter = new ConvertRexToChecked(builder);
+  public ConvertToChecked(RexBuilder builder, boolean allArithmetic) {
+    this.converter = new ConvertRexToChecked(builder, allArithmetic);
   }
 
   @Override public RelNode visit(RelNode other) {
@@ -48,14 +48,36 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
   }
 
   /**
-   * Visitor which rewrites an expression tree such that all
-   * arithmetic operations that produce numeric values use checked arithmetic.
+   * Visitor which rewrites an expression tree such that arithmetic operations
+   * use checked arithmetic.
    */
   class ConvertRexToChecked extends RexShuttle {
     private final RexBuilder builder;
+    // If true all arithmetic operations are converted.
+    // Otherwise, only arithmetic operations on INTERVAL values is checked.
+    private final boolean allArithmetic;
 
+    /**
+     * Create a visitor which converts all arithmetic operations to checked.
+     *
+     * @deprecated Use #ConvertRexToChecked(RexBuilder, boolean).
+     */
+    @Deprecated
     ConvertRexToChecked(RexBuilder builder) {
+      this(builder, true);
+    }
+
+    /**
+     * Create a converter that replaces arithmetic with checked arithmetic.
+     *
+     * @param builder         RexBuilder to use.
+     * @param allArithmetic   If true all exact arithmetic operations are converted to checked.
+     *                        If false, only operations that produce INTERVAL-typed results
+     *                        are converted to checked.
+     */
+    ConvertRexToChecked(RexBuilder builder, boolean allArithmetic) {
       this.builder = builder;
+      this.allArithmetic = allArithmetic;
     }
 
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
@@ -72,6 +94,22 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
       List<RexNode> clonedOperands = visitList(call.operands, update);
       SqlKind kind = call.getKind();
       SqlOperator operator = call.getOperator();
+      SqlTypeName resultType = call.getType().getSqlTypeName();
+      boolean anyOperandIsInterval = false;
+      for (RexNode op : call.getOperands()) {
+        if (SqlTypeName.INTERVAL_TYPES.contains(op.getType().getSqlTypeName())) {
+          anyOperandIsInterval = true;
+          break;
+        }
+      }
+      boolean resultIsInterval = SqlTypeName.INTERVAL_TYPES.contains(resultType);
+      boolean rewrite =
+          // Do not rewrite operator if the type is e.g., DOUBLE or DATE
+          (this.allArithmetic && SqlTypeName.EXACT_TYPES.contains(resultType))
+          // But always rewrite if the type is an INTERVAL and any operand is INTERVAL
+          // This will not rewrite date subtraction, for example
+          || (resultIsInterval && anyOperandIsInterval);
+
       switch (kind) {
       case PLUS:
         operator = SqlStdOperatorTable.CHECKED_PLUS;
@@ -91,8 +129,7 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
       default:
         break;
       }
-      SqlTypeName resultType = call.getType().getSqlTypeName();
-      if (resultType == SqlTypeName.DECIMAL) {
+      if (resultType == SqlTypeName.DECIMAL && this.allArithmetic) {
         // Checked decimal arithmetic is implemented using unchecked
         // arithmetic followed by a CAST, which is always checked
         RexCall result;
@@ -102,8 +139,9 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
           result = call;
         }
         return builder.makeCast(call.getParserPosition(), call.getType(), result);
-      } else if (!SqlTypeName.EXACT_TYPES.contains(resultType)) {
-        // Do not rewrite operator if the type is e.g., DOUBLE or DATE
+      }
+
+      if (!rewrite) {
         operator = call.getOperator();
       }
       update[0] = update[0] || operator != call.getOperator();

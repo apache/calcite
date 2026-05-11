@@ -1531,6 +1531,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARIANT");
   }
 
+  @Test void testColonFieldAccess() {
+    final SqlConformance colonMode =
+        new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+          @Override public boolean isColonFieldAccessAllowed() {
+            return true;
+          }
+        };
+
+    expr("cast(1 as variant):a.b[0].c")
+        .withConformance(colonMode)
+        .columnType("VARIANT");
+
+    sql("select ^skill^:type from dept_nested")
+        .withConformance(colonMode)
+        .fails("(?s).*Incompatible types.*");
+
+    sql("select ^bogus^:field from dept_nested")
+        .withConformance(colonMode)
+        .fails("(?s).*Column 'BOGUS' not found.*");
+  }
+
   @Test void testCastRegisteredType() {
     expr("cast(123 as ^customBigInt^)")
         .fails("Unknown identifier 'CUSTOMBIGINT'");
@@ -2468,7 +2489,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql).fails("In UNPIVOT, cannot derive type for axis 'A0'");
   }
 
-  @Test void testMatchRecognizeWithDistinctAggregation() {
+  @Test void testMatchRecognize() {
     final String sql = "SELECT *\n"
         + "FROM emp\n"
         + "MATCH_RECOGNIZE (\n"
@@ -2481,13 +2502,259 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + ") AS T";
     sql(sql).fails("DISTINCT/ALL not allowed with "
         + "COUNT\\(DISTINCT `A`\\.`DEPTNO`\\) function");
+
+    // Test case for [CALCITE-7466] https://issues.apache.org/jira/browse/CALCITE-7466
+    // Unparse of `MATCH_RECOGNIZE` produces duplicate aliases
+    final String sql2 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+
+    final String expected2 = "SELECT *\n"
+        + "FROM `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql2)
+        .rewritesTo(expected2);
+
+    sql(expected2)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7467] https://issues.apache.org/jira/browse/CALCITE-7467
+    // `MATCH_RECOGNIZE` does not support alias for table before
+    final String sql3 = "SELECT *\n"
+        + "FROM sales.emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+    final String expected3 = "SELECT `T`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql3)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected3);
+    sql(expected3)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Identifier with alias for table before MATCH_RECOGNIZE should pass parser
+    final String sql4 = "SELECT *\n"
+        + "FROM sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+
+    final String expected4 = "SELECT `T`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql4)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected4);
+    sql(expected4)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Identifier with alias for table before MATCH_RECOGNIZE should pass parser
+    final String sql5 = "SELECT emp.empno, T.*\n"
+        + "FROM emp JOIN sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T on emp.deptno = T.deptno";
+    final String expected5 =
+        "SELECT `EMP`.`EMPNO`, `T`.`DEPTNO`\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`\n"
+            + "INNER JOIN `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+            + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+            + "PATTERN (`A` `B`)\n"
+            + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T` ON CAST(`EMP`.`DEPTNO` AS BIGINT) = `T`.`DEPTNO`";
+
+    sql(sql5)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected5);
+    sql(expected5)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7471] https://issues.apache.org/jira/browse/CALCITE-7471
+    // Alias is not auto generated for `MATCH_RECOGNIZE`
+    final String sql6 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+
+    final String expected6 = "SELECT `EXPR$0`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `EXPR$0`";
+
+    sql(sql6)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected6);
+
+    sql(expected6)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7480] https://issues.apache.org/jira/browse/CALCITE-7480
+    // Unparse of MATCH_RECOGNIZE with PARTITION BY or ORDER BY produces invalid SQL
+    // Accepted by BigQuery (both simple and expanded column name under ORDER BY, PARTITION BY)
+    // Oracle accepts only simple column name
+    final String sql7 = "SELECT *\n"
+        + "FROM sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  PARTITION BY empno\n"
+        + "  ORDER BY deptno\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+    final String expected7 = "SELECT `T`.`EMPNO`, `T`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+        + "PARTITION BY `EMP_ALIAS`.`EMPNO`\n"
+        + "ORDER BY `EMP_ALIAS`.`DEPTNO`\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql7)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected7);
+    sql(expected7)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    final String sql8 = "SELECT *\n"
+        + "FROM (SELECT empno, deptno from sales.emp)\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  PARTITION BY empno\n"
+        + "  ORDER BY deptno\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+    final String expected8 = "SELECT `EXPR$0`.`EMPNO`, `EXPR$0`.`DEPTNO`\n"
+        + "FROM (SELECT `EMP`.`EMPNO`, `EMP`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) AS `EXPR$1` MATCH_RECOGNIZE(\n"
+        + "PARTITION BY `EXPR$1`.`EMPNO`\n"
+        + "ORDER BY `EXPR$1`.`DEPTNO`\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `EXPR$0`";
+
+    sql(sql8)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected8);
+    sql(expected8)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7465] https://issues.apache.org/jira/browse/CALCITE-7465
+    // Unparse of MATCH_RECOGNIZE MEASURES might produce unparsable sql
+    // Accepted by Snowflake (it doesn't accept FINAL or RUNNING before non function measure)
+    final String sql9 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    A.deptno AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+    final String expected9 = "SELECT `EXPR$0`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL `A`.`DEPTNO` AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `EXPR$0`";
+
+    sql(sql9)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected9);
+    sql(expected9)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    final String sql10 = "SELECT deptno\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    A.deptno AS deptno\n"
+        + "ALL ROWS PER MATCH\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+    final String expected10 = "SELECT `EXPR$0`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES RUNNING `A`.`DEPTNO` AS `DEPTNO`\n"
+        + "ALL ROWS PER MATCH\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `EXPR$0`";
+
+    sql(sql10)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected10);
+    sql(expected10)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7486] https://issues.apache.org/jira/browse/CALCITE-7486
+    // Operators in MATCH_RECOGNIZE don't support SqlLiterals
+    // Accepted by Snowflake
+    final String sql11 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    FIRST(DOWN.empno + DOWN.deptno + 1) AS bottom_total"
+        + "  PATTERN (DOWN{2,})\n"
+        + "  DEFINE\n"
+        + "    DOWN AS PREV(EMP.EMPNO + 2, 0) < 1"
+        + ")";
+
+    final String expected11 = "SELECT `EXPR$0`.`BOTTOM_TOTAL`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL (FIRST(`DOWN`.`EMPNO` + `DOWN`.`DEPTNO`, 0) + FIRST(1, 0)) AS `BOTTOM_TOTAL`\n"
+        + "PATTERN (`DOWN` { 2, })\n"
+        + "DEFINE `DOWN` AS LAST(`EMP`.`EMPNO`, 0) + PREV(2, 0) < 1) AS `EXPR$0`";
+
+    sql(sql11)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected11);
+    sql(expected11)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testIntervalTimeUnitEnumeration() {
     // Since there is validation code relaying on the fact that the
     // enumerated time unit ordinals in SqlIntervalQualifier starts with 0
     // and ends with 5, this test is here to make sure that if someone
-    // changes how the time untis are setup, an early feedback will be
+    // changes how the time units are setup, an early feedback will be
     // generated by this test.
     assertThat(TimeUnit.YEAR.ordinal(), is(0));
     assertThat(TimeUnit.MONTH.ordinal(), is(1));
@@ -3107,7 +3374,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-820">[CALCITE-820]
    * Validate that window functions have OVER clause</a>, and
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1340">[CALCITE-1340]
-   * Window aggregates give invalid errors</a>. */
+   * Window aggregates give invalid errors</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7485">[CALCITE-7485]
+   * FIRST_VALUE/LAST_VALUE should only be defined for window aggregates</a>.
+   * */
   @Test void testWindowFunctionsWithoutOver() {
     winSql("select sum(empno)\n"
         + "from emp\n"
@@ -3130,6 +3400,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winSql("select ^nth_value(sal, 2)^\n"
         + "from emp")
         .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^first_value(sal)^\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^last_value(sal)^\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    // With alias, first_value and last_value without OVER should also fail
+    winSql("select ^first_value(sal)^ as sal_first\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^last_value(sal)^ as sal_last\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    // In GROUP BY context, first_value and last_value without OVER should fail
+    winSql("select sal, ^first_value(sal)^ as sal_first\n"
+        + "from emp group by sal, deptno")
+        .fails("OVER clause is necessary for window functions");
+
+    // first_value and last_value with OVER clause should succeed
+    winSql("select first_value(sal) over (order by empno)\n"
+        + "from emp")
+        .ok();
+
+    winSql("select last_value(sal) over (order by empno)\n"
+        + "from emp")
+        .ok();
   }
 
   @Test void testOverInPartitionBy() {
@@ -10159,6 +10460,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "TABLE -\n"
         + "UNNEST -\n"
         + "\n"
+        + "COLON -\n"
         + "CURRENT_VALUE -\n"
         + "DEFAULT -\n"
         + "DOT -\n"

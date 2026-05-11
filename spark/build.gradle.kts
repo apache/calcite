@@ -14,10 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.apache.hadoop") {
+            // minimum hadoop version working on jdk 24+
+            useVersion("3.4.3")
+        }
+    }
+}
+
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("org.apache.spark:spark-core_2.10") {
+    api("org.apache.spark:spark-core_2.13") {
         exclude("org.slf4j", "slf4j-log4j12")
                 .because("conflicts with log4j-slf4j-impl")
         exclude("org.slf4j", "slf4j-reload4j")
@@ -34,4 +43,10 @@ dependencies {
 
     testImplementation(project(":testkit"))
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+
+    tasks.withType<Test>().configureEach {
+        if (JavaVersion.current() >= JavaVersion.VERSION_17) {
+            jvmArgs("--add-exports=java.base/sun.nio.ch=ALL-UNNAMED")
+        }
+    }
 }

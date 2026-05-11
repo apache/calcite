@@ -295,6 +295,12 @@ public interface SqlValidator {
       SqlValidatorScope scope,
       @Nullable SqlCall call);
 
+  /** Returns whether the validator is currently validating within a window
+   * expression. */
+  default boolean isInWindow() {
+    return false;
+  }
+
   /**
    * Validates a MATCH_RECOGNIZE clause.
    *

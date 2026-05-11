@@ -5753,6 +5753,19 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7490">[CALCITE-7490]
+   * PruneEmptyRules is ineffective for window statements</a>. */
+  @Test void testEmptyWindow() {
+    final String sql = "select count(*) over () from emp where false";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
+            CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .withRule(PruneEmptyRules.WINDOW_INSTANCE,
+            PruneEmptyRules.PROJECT_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5117">[CALCITE-5117]
    * Optimize the EXISTS sub-query by Metadata RowCount</a>. */
   @Test void testExistsWithAtLeastOneRowSubQuery() {
@@ -10054,8 +10067,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   @Test void testReduceAggregateFunctionsByGroup() {
     final String sql = "select sal, max(sal) as sal_max, min(sal) as sal_min,\n"
-        + "avg(sal) sal_avg, any_value(sal) as sal_val, first_value(sal) as sal_first,\n"
-        + "last_value(sal) as sal_last\n"
+        + "avg(sal) sal_avg, any_value(sal) as sal_val\n"
         + "from emp group by sal, deptno";
     sql(sql).withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS, CoreRules.PROJECT_MERGE).check();
   }
@@ -11395,6 +11407,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  // If the PROJECT clause contains non-deterministic expressions,
+  // they will not be merged.
+  @Test void testUnionToFilterRuleWithNonDeterministicProject() {
+    final String sql = "SELECT mgr, comm, rand() FROM emp WHERE mgr = 12\n"
+        + "UNION\n"
+        + "SELECT mgr, comm, rand() FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  // If the projection contains a subquery, merging will not be performed.
+  @Test void testUnionToFilterRuleWithSubqueryProject() {
+    final String sql = "SELECT 1, (SELECT COUNT(*) FROM dept)\n"
+        + "FROM emp WHERE mgr = 12\n"
+        + "UNION\n"
+        + "SELECT 1, (SELECT COUNT(*) FROM dept)\n"
+        + "FROM emp WHERE comm = 5\n";
+
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
    * Create an optimization rule to eliminate UNION
@@ -12282,4 +12320,93 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE)
         .checkUnchanged();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7497">[CALCITE-7497]
+   * Enable Lambda supports constant folding</a>.
+   */
+  @Test void testReduceLambdaBodyConstantFolding() {
+    final String sql = "select \"EXISTS\"(ARRAY[1, 2, 3], x -> x > 1 + 2)";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7497">[CALCITE-7497]
+   * Enable Lambda supports constant folding</a>.
+   *
+   * <p>Boolean constant expression {@code 1 < 2} in lambda body should be
+   * folded to {@code true}. */
+  @Test void testReduceLambdaBodyBooleanConstantFolding() {
+    final String sql = "select \"EXISTS\"(ARRAY[1, 2, 3], x -> x > 1 AND 1 < 2)";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7497">[CALCITE-7497]
+   * Enable Lambda supports constant folding</a>.
+   *
+   * <p>Negative constant arithmetic {@code -1 * -2} in lambda body should be
+   * folded to {@code 2}. */
+  @Test void testReduceLambdaBodyNegativeConstantFolding() {
+    final String sql = "select \"EXISTS\"(ARRAY[1, 2, 3], x -> x > -1 * -2)";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7497">[CALCITE-7497]
+   * Enable Lambda supports constant folding</a>.
+   *
+   * <p>MOD function with constant arguments {@code MOD(10, 3)} in lambda body
+   * should be folded to {@code 1}. */
+  @Test void testReduceLambdaBodyModConstantFolding() {
+    final String sql = "select \"EXISTS\"(ARRAY[1, 2, 3], x -> x > MOD(10, 3))";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7497">[CALCITE-7497]
+   * Enable Lambda supports constant folding</a>.
+   *
+   * <p>OR-connected constant expressions {@code 1 + 2} and {@code 10 - 3}
+   * in lambda body should each be folded independently. */
+  @Test void testReduceLambdaBodyOrConstantFolding() {
+    final String sql = "select \"EXISTS\"(ARRAY[1, 2, 3], x -> x > 1 + 2 OR x < 10 - 3)";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7497">[CALCITE-7497]
+   * Enable Lambda supports constant folding</a>.
+   *
+   * <p>Deeply nested constant expression {@code (1 + 2) * (3 + 4)} in lambda
+   * body should be fully folded to {@code 21}. */
+  @Test void testReduceLambdaBodyDeepNestedConstantFolding() {
+    final String sql = "select \"EXISTS\"(ARRAY[1, 2, 3], x -> x > (1 + 2) * (3 + 4))";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
 }

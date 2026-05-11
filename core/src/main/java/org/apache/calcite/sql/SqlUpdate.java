@@ -47,8 +47,8 @@ public class SqlUpdate extends SqlCall {
               (SqlNodeList) operands[1],
               (SqlNodeList) operands[2],
               operands[3],
-              null,
-              (SqlIdentifier) operands[4]);
+              (SqlSelect) operands[4],
+              (SqlIdentifier) operands[5]);
         }
       };
 
@@ -93,7 +93,7 @@ public class SqlUpdate extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, targetColumnList,
-        sourceExpressionList, condition, alias);
+        sourceExpressionList, condition, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -113,7 +113,7 @@ public class SqlUpdate extends SqlCall {
       condition = operand;
       break;
     case 4:
-      sourceExpressionList = requireNonNull((SqlNodeList) operand);
+      sourceSelect = (SqlSelect) operand;
       break;
     case 5:
       alias = (SqlIdentifier) operand;

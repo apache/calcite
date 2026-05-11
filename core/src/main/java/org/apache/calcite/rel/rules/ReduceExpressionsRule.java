@@ -1189,6 +1189,19 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     @Override public Void visitLambda(RexLambda lambda) {
+      // A lambda as a whole is not a constant (it contains lambda parameter
+      // references), but its body may contain constant sub-expressions (e.g.
+      // the "1 + 2" in "x -> x > 1 + 2").  Recursively analyze the body so
+      // that those inner constants are discovered and later replaced by
+      // RexReplacer (which already recurses into lambda bodies via
+      // RexShuttle.visitLambda).
+      final int stackSizeBefore = stack.size();
+      lambda.getExpression().accept(this);
+      // Discard whatever the body analysis pushed onto the stack – the lambda
+      // itself is not a constant from the outer context's point of view.
+      while (stack.size() > stackSizeBefore) {
+        stack.remove(stack.size() - 1);
+      }
       return pushVariable();
     }
 

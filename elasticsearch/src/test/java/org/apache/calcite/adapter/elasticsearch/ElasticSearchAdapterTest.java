@@ -23,7 +23,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
 import org.apache.http.HttpHost;
@@ -33,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
@@ -651,7 +649,6 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void testFilterSortDesc() {
-    Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
     final String sql = "select * from zips\n"
         + "where pop BETWEEN 95000 AND 100000\n"
         + "order by state desc, pop";

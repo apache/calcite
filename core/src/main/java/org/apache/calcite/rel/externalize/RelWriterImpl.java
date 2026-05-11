@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.Spacer;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
@@ -105,6 +107,12 @@ public class RelWriterImpl implements RelWriter {
     }
     switch (detailLevel) {
     case ALL_ATTRIBUTES:
+      if (rel instanceof Hintable) {
+        List<RelHint> hints = ((Hintable) rel).getHints();
+        if (!hints.isEmpty()) {
+          s.append(hints);
+        }
+      }
       s.append(": rowcount = ")
           .append(mq.getRowCount(rel))
           .append(", cumulative cost = ")

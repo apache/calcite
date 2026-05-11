@@ -208,8 +208,12 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     // due to ES aggregation format. fields in "order by" clause should go first
     // if "order by" is missing. order in "group by" is un-important
+    // Only include fields that are actually in groupBy list, exclude aggregation aliases
     final Set<String> orderedGroupBy = new LinkedHashSet<>();
-    orderedGroupBy.addAll(sort.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
+    sort.stream()
+        .map(Map.Entry::getKey)
+        .filter(groupBy::contains)
+        .forEach(orderedGroupBy::add);
     orderedGroupBy.addAll(groupBy);
 
     // construct nested aggregations node(s)

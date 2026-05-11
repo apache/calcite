@@ -3136,6 +3136,27 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7456">[CALCITE-7456]
+   * Enable the TRY_CAST function to support the MSSQL dialect</a>. */
+  @Test void testMssqlTryCast() {
+    final String query = "select try_cast(\"product_name\" as date) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT TRY_CAST([product_name] AS DATE)\n"
+        + "FROM [foodmart].[product]";
+
+    sql(query).withLibrary(SqlLibrary.MSSQL).withMssql().ok(expected);
+  }
+
+  @Test void testSafeCastToMssqlTryCast() {
+    final String query = "select safe_cast(\"product_name\" as date) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT TRY_CAST([product_name] AS DATE)\n"
+        + "FROM [foodmart].[product]";
+
+    sql(query).withLibrary(SqlLibrary.BIG_QUERY).withMssql().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6150">[CALCITE-6150]
    * JDBC adapter for ClickHouse generates incorrect SQL for certain units in
    * the EXTRACT function</a>. Also tests other units in other dialects,
@@ -5939,6 +5960,34 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     sql(query1).optimize(rules, null).ok(expected10);
     sql(query1).ok(expected11);
+
+    String query2 = " SELECT "
+        + "SUM (\"daily_sales\") OVER (PARTITION BY \"product_name\") AS \"sales\" "
+        + "FROM ( SELECT \"product_name\", "
+        + "CASE WHEN SUM(\"product_id\") OVER (PARTITION BY \"product_name\") > 0 "
+        + "THEN 1 ELSE 0 END AS \"daily_sales\" "
+        + "FROM \"product\" ) subquery";
+    String expected20 = "SELECT "
+        + "SUM(\"daily_sales\") "
+        + "OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"sales\"\n"
+        + "FROM (SELECT \"product_name\", "
+        + "CASE WHEN (SUM(\"product_id\") OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) > 0 THEN 1 ELSE 0 END "
+        + "AS \"daily_sales\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t1\"";
+    String expected21 = "SELECT "
+        + "SUM(\"daily_sales\") "
+        + "OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"sales\"\n"
+        + "FROM (SELECT \"product_name\", "
+        + "CASE WHEN (SUM(\"product_id\") "
+        + "OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) > 0 THEN 1 ELSE 0 END "
+        + "AS \"daily_sales\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"";
+    sql(query2).optimize(rules, null).ok(expected20);
+    sql(query2).ok(expected21);
   }
 
   /** Test case for
@@ -7322,8 +7371,8 @@ class RelToSqlConverterTest {
         + "MEASURES "
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL COUNT(\"UP\".\"net_weight\") AS \"UP_CNT\", "
-        + "FINAL COUNT(\"*\".\"net_weight\") AS \"DOWN_CNT\", "
-        + "FINAL (RUNNING COUNT(\"*\".\"net_weight\")) AS \"RUNNING_CNT\"\n"
+        + "FINAL COUNT(\"product\".\"net_weight\") AS \"DOWN_CNT\", "
+        + "FINAL (RUNNING COUNT(\"product\".\"net_weight\")) AS \"RUNNING_CNT\"\n"
         + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
@@ -9482,6 +9531,168 @@ class RelToSqlConverterTest {
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withPostgresql().ok(expectedPostgres);
+  }
+
+  private static final SqlDialect NO_STAR_DIALECT =
+      new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT) {
+        @Override public boolean supportGenerateSelectStar(RelNode relNode) {
+          return false;
+        }
+      };
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Bare TableScan. */
+  @Test void testNoSelectStarWithBareTableScan() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .build();
+    final String expected = "SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\","
+        + " \"HIREDATE\", \"SAL\", \"COMM\", \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Filter without Project. */
+  @Test void testNoSelectStarWithFilterOnly() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.equals(b.field("DEPTNO"), b.literal(10)))
+        .build();
+    final String expected = "SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\","
+        + " \"HIREDATE\", \"SAL\", \"COMM\", \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPTNO\" = 10";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Sort without Project. */
+  @Test void testNoSelectStarWithSortOnly() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .sort(b.field("EMPNO"))
+        .build();
+    final String expected = "SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\","
+        + " \"HIREDATE\", \"SAL\", \"COMM\", \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY \"EMPNO\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Aggregate without Project. */
+  @Test void testNoSelectStarWithAggregateOnly() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(b.groupKey("DEPTNO"),
+            b.count(false, "CNT"))
+        .build();
+    final String expected = "SELECT \"DEPTNO\", COUNT(*) AS \"CNT\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Sort over Filter. */
+  @Test void testNoSelectStarWithSortAndFilter() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.equals(b.field("DEPTNO"), b.literal(10)))
+        .sort(b.field("EMPNO"))
+        .build();
+    final String expected = "SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\","
+        + " \"HIREDATE\", \"SAL\", \"COMM\", \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPTNO\" = 10\n"
+        + "ORDER BY \"EMPNO\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Limit (fetch). */
+  @Test void testNoSelectStarWithLimit() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .limit(0, 5)
+        .build();
+    final String expected = "SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\","
+        + " \"HIREDATE\", \"SAL\", \"COMM\", \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Sort over Union. */
+  @Test void testNoSelectStarWithUnion() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      b.scan("EMP").project(b.field("EMPNO"), b.field("ENAME"));
+      b.scan("EMP").project(b.field("EMPNO"), b.field("ENAME"));
+      return b.union(true).sort(b.field("EMPNO")).build();
+    };
+    final String expected = "SELECT \"EMPNO\", \"ENAME\"\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"EMPNO\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "ORDER BY \"EMPNO\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Join. */
+  @Test void testNoSelectStarWithJoin() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            b.equals(b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")))
+        .build();
+    final String expected = "SELECT"
+        + " \"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\","
+        + " \"EMP\".\"MGR\", \"EMP\".\"HIREDATE\", \"EMP\".\"SAL\","
+        + " \"EMP\".\"COMM\", \"EMP\".\"DEPTNO\","
+        + " \"DEPT\".\"DEPTNO\","
+        + " \"DEPT\".\"DNAME\", \"DEPT\".\"LOC\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "INNER JOIN \"scott\".\"DEPT\""
+        + " ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
+   * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
+   * Project (regression test for the original visit(Project) path). */
+  @Test void testNoSelectStarWithProject() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("EMPNO"), b.field("ENAME"))
+        .build();
+    final String expected = "SELECT \"EMPNO\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
   }
 
   /** Test case for

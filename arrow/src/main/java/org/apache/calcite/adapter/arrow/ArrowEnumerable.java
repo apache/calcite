@@ -35,22 +35,26 @@ class ArrowEnumerable extends AbstractEnumerable<Object> {
   private final ImmutableIntList fields;
   private final @Nullable Projector projector;
   private final @Nullable Filter filter;
-
+  private final Runnable onClose;
 
   ArrowEnumerable(ArrowFileReader arrowFileReader, ImmutableIntList fields,
-      @Nullable Projector projector, @Nullable Filter filter) {
+      @Nullable Projector projector, @Nullable Filter filter,
+      Runnable onClose) {
     this.arrowFileReader = arrowFileReader;
     this.projector = projector;
     this.filter = filter;
     this.fields = fields;
+    this.onClose = onClose;
   }
 
   @Override public Enumerator<Object> enumerator() {
     try {
       if (projector != null) {
-        return new ArrowProjectEnumerator(arrowFileReader, fields, projector);
+        return new ArrowProjectEnumerator(arrowFileReader, fields, projector,
+            onClose);
       } else if (filter != null) {
-        return new ArrowFilterEnumerator(arrowFileReader, fields, filter);
+        return new ArrowFilterEnumerator(arrowFileReader, fields, filter,
+            onClose);
       }
       throw new IllegalArgumentException(
           "The arrow enumerator must have either a filter or a projection");

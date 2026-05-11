@@ -237,8 +237,12 @@ public class RexShuttle implements RexVisitor<RexNode> {
   }
 
   @Override public RexNode visitLambda(RexLambda lambda) {
-    lambda.getExpression().accept(this);
-    return lambda;
+    RexNode oldBody = lambda.getExpression();
+    RexNode newBody = oldBody.accept(this);
+    if (newBody == oldBody) {
+      return lambda;
+    }
+    return new RexLambda(lambda.getParameters(), newBody);
   }
 
   @Override public RexNode visitLambdaRef(RexLambdaRef lambdaRef) {

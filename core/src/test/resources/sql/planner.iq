@@ -146,9 +146,40 @@ EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
           EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
 !set planner-rules original
+!use blank
+
+# Test case for [CALCITE-7501] Assertion error in alias expansion for LEFT JOIN USING
+CREATE TABLE D(sk_cid INT, dt DATE, dm_sym VARCHAR, fhd DATE);
+(0 rows modified)
+
+!update
+
+CREATE TABLE F(sk_cid INT);
+(0 rows modified)
+
+!update
+
+CREATE TABLE S(sk_sid INT, sym VARCHAR);
+(0 rows modified)
+
+!update
+
+SELECT
+   d.dt as dtn,
+   fhd as sk_fhd
+FROM D
+JOIN S
+   ON S.sym = D.dm_sym
+LEFT JOIN F USING (sk_cid);
++-----+--------+
+| DTN | SK_FHD |
++-----+--------+
++-----+--------+
+(0 rows)
+
+!ok
 
 # Add tests for [CALCITE-6985] to verify AggregateMinMaxToLimitRule handles empty tables correctly
-!use blank
 create table t_empty (id int);
 (0 rows modified)
 

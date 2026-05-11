@@ -33,6 +33,7 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 
 import java.util.ArrayList;
@@ -215,7 +216,8 @@ class PredicateAnalyzer {
      * @return true if it isSearchWithPoints or isSearchWithComplementedPoints, other false
      */
     static boolean canBeTranslatedToTermsQuery(RexCall search) {
-      return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
+      return isSearchWithPoints(search) || isSearchWithComplementedPoints(search)
+          || isSearchWithRange(search);
     }
 
     static boolean isSearchWithPoints(RexCall search) {
@@ -228,6 +230,12 @@ class PredicateAnalyzer {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       return sarg.isComplementedPoints();
+    }
+
+    static boolean isSearchWithRange(RexCall search) {
+      RexLiteral literal = (RexLiteral) search.getOperands().get(1);
+      final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
+      return !sarg.isPoints() && !sarg.isComplementedPoints();
     }
 
     @Override public Expression visitCall(RexCall call) {
@@ -406,8 +414,10 @@ class PredicateAnalyzer {
       case SEARCH:
         if (isSearchWithComplementedPoints(call)) {
           return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
-        } else {
+        } else if (isSearchWithPoints(call)) {
           return QueryExpression.create(pair.getKey()).in(pair.getValue());
+        } else {
+          return QueryExpression.create(pair.getKey()).range(pair.getValue());
         }
       default:
         break;
@@ -601,6 +611,8 @@ class PredicateAnalyzer {
 
     public abstract QueryExpression notIn(LiteralExpression literal);
 
+    public abstract QueryExpression range(LiteralExpression literal);
+
     public abstract QueryExpression notEquals(LiteralExpression literal);
 
     public abstract QueryExpression gt(LiteralExpression literal);
@@ -761,6 +773,10 @@ class PredicateAnalyzer {
     @Override public QueryExpression notIn(LiteralExpression literal) {
       throw new PredicateAnalyzerException("notIn cannot be applied to a compound expression");
     }
+
+    @Override public QueryExpression range(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("range cannot be applied to a compound expression");
+    }
   }
 
   /**
@@ -898,6 +914,67 @@ class PredicateAnalyzer {
       Iterable<?> iterable = (Iterable<?>) literal.value();
       builder = boolQuery().mustNot(termsQuery(getFieldReference(), iterable));
       return this;
+    }
+
+    @Override public QueryExpression range(LiteralExpression literal) {
+      final Sarg<?> sarg = requireNonNull(literal.literal.getValueAs(Sarg.class), "Sarg");
+      final Set<? extends Range<?>> ranges = sarg.rangeSet.asRanges();
+
+      if (ranges.isEmpty()) {
+        throw new PredicateAnalyzerException("Range query expects at least one range");
+      }
+
+      if (ranges.size() == 1) {
+        // Single range, create a simple range query
+        final Range<?> range = ranges.iterator().next();
+        builder = createRangeQuery(range, literal);
+      } else {
+        // Multiple ranges, create bool query with should clauses (OR)
+        final BoolQueryBuilder boolQuery = boolQuery();
+        for (Range<?> range : ranges) {
+          boolQuery.should(createRangeQuery(range, literal));
+        }
+        builder = boolQuery;
+      }
+      return this;
+    }
+
+    private RangeQueryBuilder createRangeQuery(Range<?> range, LiteralExpression literal) {
+      final RangeQueryBuilder rangeQuery = rangeQuery(getFieldReference());
+
+      // Handle lower bound
+      if (range.hasLowerBound()) {
+        final Object lowerValue =
+            literal.sargPointValue(range.lowerEndpoint(),
+                literal.literal.getType().getSqlTypeName());
+        if (range.lowerBoundType() == BoundType.CLOSED) {
+          rangeQuery.gte(lowerValue);
+        } else {
+          rangeQuery.gt(lowerValue);
+        }
+        // Directly check if lower bound endpoint is GregorianCalendar
+        if (range.lowerEndpoint() instanceof GregorianCalendar) {
+          rangeQuery.format("date_time");
+        }
+      }
+
+      // Handle upper bound
+      if (range.hasUpperBound()) {
+        final Object upperValue =
+            literal.sargPointValue(range.upperEndpoint(),
+                literal.literal.getType().getSqlTypeName());
+        if (range.upperBoundType() == BoundType.CLOSED) {
+          rangeQuery.lte(upperValue);
+        } else {
+          rangeQuery.lt(upperValue);
+        }
+        // Directly check if upper bound endpoint is GregorianCalendar
+        if (range.upperEndpoint() instanceof GregorianCalendar) {
+          rangeQuery.format("date_time");
+        }
+      }
+
+      return rangeQuery;
     }
   }
 

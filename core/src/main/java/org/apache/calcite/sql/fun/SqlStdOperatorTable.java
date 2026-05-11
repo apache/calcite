@@ -1023,7 +1023,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           80,
           ReturnTypes.ARG0,
           InferTypes.RETURN_TYPE,
-          OperandTypes.NUMERIC_OR_INTERVAL);
+          OperandTypes.SIGNED_OR_INTERVAL);
 
   /**
    * Checked version of prefix arithmetic minus operator, '<code>-</code>'.
@@ -2310,6 +2310,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlOperator ITEM =
       new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP_OR_VARIANT, 1, true);
+
+  /**
+   * Colon operator, '<code>:</code>', used for variant path access.
+   */
+  public static final SqlOperator COLON = new SqlColonOperator();
 
   /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".

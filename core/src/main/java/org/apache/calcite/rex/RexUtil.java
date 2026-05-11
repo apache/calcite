@@ -2412,6 +2412,23 @@ public class RexUtil {
     }
   }
 
+  /** Returns whether an expression references a {@link RexCorrelVariable}
+   * whose id is in {@code ids}, either directly (typically through a
+   * {@link RexFieldAccess}) or transitively via the inner plan of a
+   * {@link RexSubQuery}. */
+  public static boolean containsCorrelation(RexNode condition,
+      Set<CorrelationId> ids) {
+    if (ids.isEmpty()) {
+      return false;
+    }
+    try {
+      condition.accept(new CorrelationFinder(ids));
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
   /**
    * Given an expression, it will swap the table references contained in its
    * {@link RexTableInputRef} using the contents in the map.
@@ -3116,14 +3133,28 @@ public class RexUtil {
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
    * applied to an expression that contains a {@link RexCorrelVariable}. */
   private static class CorrelationFinder extends RexVisitorImpl<Void> {
-    static final CorrelationFinder INSTANCE = new CorrelationFinder();
+    static final CorrelationFinder INSTANCE = new CorrelationFinder(null);
 
-    private CorrelationFinder() {
+    /** Optional filter: when non-null, only correlation ids in this set
+     * trigger a match; when null, every correlation id matches. */
+    private final @Nullable Set<CorrelationId> ids;
+
+    /**
+     * Creates a CorrelationFinder.
+     *
+     * @param ids correlation ids to look for; pass {@code null} to match any
+     *            {@link RexCorrelVariable} regardless of its id
+     */
+    private CorrelationFinder(@Nullable Set<CorrelationId> ids) {
       super(true);
+      this.ids = ids;
     }
 
     @Override public Void visitCorrelVariable(RexCorrelVariable var) {
-      throw Util.FoundOne.NULL;
+      if (ids == null || ids.contains(var.id)) {
+        throw Util.FoundOne.NULL;
+      }
+      return null;
     }
 
     @Override public Void visitSubQuery(RexSubQuery subQuery) {
@@ -3135,8 +3166,16 @@ public class RexUtil {
         operand.accept(this);
       }
 
-      if (!RelOptUtil.getVariablesUsed(subQuery.rel).isEmpty()) {
-        throw Util.FoundOne.NULL;
+      Set<CorrelationId> used = RelOptUtil.getVariablesUsed(subQuery.rel);
+      if (!used.isEmpty()) {
+        if (ids == null) {
+          throw Util.FoundOne.NULL;
+        }
+        for (CorrelationId id : used) {
+          if (ids.contains(id)) {
+            throw Util.FoundOne.NULL;
+          }
+        }
       }
       return null;
     }

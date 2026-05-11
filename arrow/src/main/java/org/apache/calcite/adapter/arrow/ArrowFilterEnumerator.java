@@ -45,10 +45,14 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
   private @Nullable SelectionVector selectionVector;
   private int selectionVectorIndex;
 
-  ArrowFilterEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields, Filter filter) {
+  private final Runnable onClose;
+
+  ArrowFilterEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields,
+      Filter filter, Runnable onClose) {
     super(arrowFileReader, fields);
     this.allocator = new RootAllocator(Long.MAX_VALUE);
     this.filter = filter;
+    this.onClose = onClose;
   }
 
   @Override void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
@@ -98,6 +102,8 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
       filter.close();
     } catch (GandivaException e) {
       throw Util.toUnchecked(e);
+    } finally {
+      onClose.run();
     }
   }
 }

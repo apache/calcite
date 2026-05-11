@@ -42,8 +42,12 @@ allprojects {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
-        dirMode = "775".toInt(8)
-        fileMode = "664".toInt(8)
+        dirPermissions {
+            unix("775")
+        }
+        filePermissions {
+            unix("664")
+        }
     }
 
     java {
@@ -58,13 +62,14 @@ fun Project.applyKotlinProjectConventions() {
     }
 
     tasks.withType<KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "1.8"
+        compilerOptions {
+            jvmTarget.set(
+                    org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
         }
     }
     if (!skipAutostyle) {
         apply(plugin = "com.github.autostyle")
-        autostyle {
+        configure<com.github.autostyle.gradle.AutostyleExtension> {
             kotlin {
                 ktlint()
                 trimTrailingWhitespace()

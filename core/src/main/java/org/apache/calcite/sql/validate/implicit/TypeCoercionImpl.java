@@ -651,41 +651,114 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    */
   @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
     final RelDataType type1 = binding.getOperandType(0);
-    final RelDataType collectionType = binding.getOperandType(1);
-    final RelDataType type2 = collectionType.getComponentType();
-    requireNonNull(type2, "type2");
-    final SqlCall sqlCall = binding.getCall();
-    final SqlValidatorScope scope = binding.getScope();
+    final RelDataType type2 = binding.getOperandType(1);
     final SqlNode node1 = binding.operand(0);
     final SqlNode node2 = binding.operand(1);
-    RelDataType widenType = commonTypeForBinaryComparison(type1, type2);
-    if (widenType == null) {
-      widenType = getTightestCommonType(type1, type2);
-    }
-    if (widenType == null) {
+    final SqlValidatorScope scope = binding.getScope();
+
+    // Check column counts match for struct types, consistent with inOperationCoercion.
+    if (type1.isStruct()
+        && type2.isStruct()
+        && type1.getFieldCount() != type2.getFieldCount()) {
       return false;
     }
-    final RelDataType leftWidenType =
-        binding.getTypeFactory().enforceTypeWithNullability(widenType, type1.isNullable());
-    boolean coercedLeft =
-        coerceOperandType(scope, sqlCall, 0, leftWidenType);
-    if (coercedLeft) {
-      updateInferredType(node1, leftWidenType);
+
+    int colCount = type1.isStruct() ? type1.getFieldCount() : 1;
+    RelDataType[] argTypes = new RelDataType[2];
+    argTypes[0] = type1;
+    final boolean isSubQuery = node2 instanceof SqlSelect;
+    // For subquery, use the row type directly.
+    // For collection, use the component type for comparison, not the collection.
+    if (isSubQuery) {
+      argTypes[1] = type2;
+    } else {
+      RelDataType componentType = type2.getComponentType();
+      if (componentType == null) {
+        return false;
+      }
+      argTypes[1] = componentType;
     }
-    final RelDataType rightWidenType =
-        binding.getTypeFactory().enforceTypeWithNullability(widenType, type2.isNullable());
-    RelDataType collectionWidenType =
-        binding.getTypeFactory().createArrayType(rightWidenType, -1);
-    collectionWidenType =
-        binding
-            .getTypeFactory()
-            .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
-    boolean coercedRight =
-        coerceOperandType(scope, sqlCall, 1, collectionWidenType);
-    if (coercedRight) {
-      updateInferredType(node2, collectionWidenType);
+    boolean coerced = false;
+
+    // Find the common types for RHS and LHS columns,
+    // following the same rules as inOperationCoercion.
+    List<RelDataType> widenTypes = new ArrayList<>();
+    for (int i = 0; i < colCount; i++) {
+      final int i2 = i;
+      List<RelDataType> columnIthTypes = new AbstractList<RelDataType>() {
+        @Override public RelDataType get(int index) {
+          return argTypes[index].isStruct()
+              ? argTypes[index].getFieldList().get(i2).getType()
+              : argTypes[index];
+        }
+
+        @Override public int size() {
+          return argTypes.length;
+        }
+      };
+
+      RelDataType widenType =
+          commonTypeForBinaryComparison(columnIthTypes.get(0), columnIthTypes.get(1));
+      if (widenType == null) {
+        widenType = getTightestCommonType(columnIthTypes.get(0), columnIthTypes.get(1));
+      }
+      if (widenType == null) {
+        // Cannot find any common type, return early.
+        return false;
+      }
+      widenTypes.add(widenType);
     }
-    return coercedLeft || coercedRight;
+    assert widenTypes.size() == colCount;
+
+    // Coerce LHS operand.
+    if (!type1.isStruct()) {
+      coerced = coerceOperandType(scope, binding.getCall(), 0, widenTypes.get(0)) || coerced;
+    }
+
+    for (int i = 0; i < widenTypes.size(); i++) {
+      RelDataType desired = widenTypes.get(i);
+      // LHS may be a ROW value.
+      if (node1.getKind() == SqlKind.ROW) {
+        assert node1 instanceof SqlCall;
+        if (coerceOperandType(scope, (SqlCall) node1, i, desired)) {
+          updateInferredColumnType(
+              requireNonNull(scope, "scope"),
+              node1, i, widenTypes.get(i));
+          coerced = true;
+        }
+      }
+
+      // RHS: subquery uses rowTypeCoercion (consistent with inOperationCoercion),
+      // collection reconstructs the array type.
+      if (isSubQuery) {
+        // Use rowTypeCoercion on the subquery output column,
+        // consistent with how inOperationCoercion handles the subquery case.
+        SqlValidatorScope scope1 = validator.getSelectScope((SqlSelect) node2);
+        RelDataType source = validator.getValidatedNodeType(node2);
+        RelDataType target = binding.getTypeFactory()
+            .createTypeWithNullability(desired, source.isNullable() || desired.isNullable());
+        coerced = rowTypeCoercion(scope1, node2, i, target) || coerced;
+      } else {
+        // Collection path (e.g. ARRAY, MULTISET): coerce the whole collection
+        // operand once, reconstructing the collection type with the widened
+        // component type
+        RelDataType componentType = argTypes[1];
+        final RelDataType rightWidenType =
+            binding.getTypeFactory()
+                .enforceTypeWithNullability(desired, componentType.isNullable());
+        RelDataType collectionWidenType =
+            binding.getTypeFactory().createArrayType(rightWidenType, -1);
+        collectionWidenType =
+            binding.getTypeFactory()
+                .enforceTypeWithNullability(collectionWidenType, type2.isNullable());
+        if (coerceOperandType(scope, binding.getCall(), 1, collectionWidenType)) {
+          updateInferredType(node2, collectionWidenType);
+          coerced = true;
+        }
+      }
+    }
+
+    return coerced;
   }
 
   @Override public boolean builtinFunctionCoercion(

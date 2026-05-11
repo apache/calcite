@@ -3724,6 +3724,70 @@ class RexProgramTest extends RexProgramTestBase {
         "COALESCE(?0.decimal0, ?0.decimal1)");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7499">[CALCITE-7499]
+   * COALESCE doesn't take into account leastRestrictiveType for input args</a>. */
+  @Test void testSimplifyCoalescePreservesLeastRestrictiveReturnType() {
+    final RelDataType tinyint = typeFactory.createSqlType(SqlTypeName.TINYINT);
+    final RelDataType tinyintNullable = nullable(tinyint);
+
+    checkSimplify(
+        coalesce(nullInt,
+            literal(BigDecimal.ONE, tInt()),
+            literal(BigDecimal.valueOf(2L), tBigInt())),
+        "1:BIGINT");
+
+    checkSimplify(
+        coalesce(nullSmallInt,
+            literal(BigDecimal.ONE, tSmallInt()),
+            literal(BigDecimal.valueOf(2L), tBigInt())),
+        "1:BIGINT");
+
+    checkSimplify(
+        coalesce(nullSmallInt,
+            literal(BigDecimal.ONE, tSmallInt()),
+            literal(BigDecimal.valueOf(42L), tInt())),
+        "1");
+
+    checkSimplify(
+        coalesce(null_(tinyintNullable),
+            literal(BigDecimal.valueOf(7L), tinyint),
+            literal(BigDecimal.valueOf(42L), tInt())),
+        "7");
+
+    checkSimplify(
+        coalesce(null_(tinyintNullable),
+            literal(BigDecimal.valueOf(7L), tinyint),
+            literal(BigDecimal.valueOf(42L), tBigInt())),
+        "7:BIGINT");
+
+    // Two narrow operands then a wide one.
+    checkSimplify(
+        coalesce(nullSmallInt,
+            literal(BigDecimal.valueOf(11L), tSmallInt()),
+            literal(BigDecimal.valueOf(22L), tInt()),
+            literal(BigDecimal.valueOf(33L), tBigInt())),
+        "11:BIGINT");
+
+    // ---- DECIMAL: precision widening (same scale, so the underlying BigDecimal value is
+    final RelDataType dec5_2 = typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 2);
+    final RelDataType dec10_2 = typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 2);
+    checkSimplify(
+        coalesce(null_(nullable(dec5_2)),
+            literal(new BigDecimal("1.23"), dec5_2),
+            literal(new BigDecimal("9876543.21"), dec10_2)),
+        "1.23:DECIMAL(10, 2)");
+
+    // ---- TIMESTAMP: precision widening ----
+    final RelDataType ts0 = typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 0);
+    checkSimplify(
+        coalesce(rexBuilder.makeNullLiteral(nullable(ts0)),
+            rexBuilder.makeTimestampLiteral(new TimestampString("2026-01-01 00:00:00"), 0),
+            rexBuilder.makeTimestampLiteral(
+                new TimestampString("2026-01-01 00:00:00.123"), 3)),
+        "2026-01-01 00:00:00:TIMESTAMP(3)");
+  }
+
   @Test void simplifyNull() {
     checkSimplify3(nullBool, "null:BOOLEAN", "false", "true");
     // null int must not be simplified to false

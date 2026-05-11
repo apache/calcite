@@ -66,6 +66,12 @@ public class CoreRules {
   public static final AggregateProjectMergeRule AGGREGATE_PROJECT_MERGE =
       AggregateProjectMergeRule.Config.DEFAULT.toRule();
 
+    /** Rule that removes redundant grouping keys from an {@link Aggregate}
+     * when they are functionally determined by earlier grouping keys. */
+  public static final AggregateRemoveDuplicateKeysRule
+      AGGREGATE_REMOVE_DUPLICATE_KEYS =
+      AggregateRemoveDuplicateKeysRule.Config.DEFAULT.toRule();
+
   /** Rule that removes constant keys from an {@link Aggregate}. */
   public static final AggregateProjectPullUpConstantsRule
       AGGREGATE_PROJECT_PULL_UP_CONSTANTS =
@@ -92,6 +98,12 @@ public class CoreRules {
    * an {@link Aggregate} to simpler forms. */
   public static final AggregateReduceFunctionsRule AGGREGATE_REDUCE_FUNCTIONS =
       AggregateReduceFunctionsRule.Config.DEFAULT.toRule();
+
+  /** Rule that eliminates aggregate functions of GROUP BY keys
+   * in an {@link Aggregate}. */
+  public static final AggregateReduceFunctionsOnGroupKeysRule
+      AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS =
+      AggregateReduceFunctionsOnGroupKeysRule.Config.DEFAULT.toRule();
 
   /** Rule that matches an {@link Aggregate} on an {@link Aggregate},
    * and merges into a single Aggregate if the top aggregate's group key is a
@@ -284,7 +296,7 @@ public class CoreRules {
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
    * <p>It does not allow a Filter to be pushed past the Project if
-   * {@link RexUtil#containsCorrelation there is a correlation condition}
+   * {@link RexUtil#containsCorrelation(org.apache.calcite.rex.RexNode) there is a correlation condition}
    * anywhere in the Filter, since in some cases it can prevent a
    * {@link Correlate} from being de-correlated.
    */

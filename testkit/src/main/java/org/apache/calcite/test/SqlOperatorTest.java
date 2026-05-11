@@ -15836,30 +15836,38 @@ public class SqlOperatorTest {
             + "between 0 and 1", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7485">[CALCITE-7485]
+   * FIRST_VALUE/LAST_VALUE should only be defined for window aggregates</a>.
+   */
   @Test void testPercentileContBigQueryFunc() {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.PERCENTILE_CONT2, SqlOperatorFixture.VmName.EXPAND)
         .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkType("percentile_cont(1, .5)",
+    f.checkType("percentile_cont(1, .5) over ()",
         "DOUBLE NOT NULL");
-    f.checkType("percentile_cont(.5, .5 RESPECT NULLS)", "DOUBLE NOT NULL");
-    f.checkType("percentile_cont(1, .5 IGNORE NULLS)", "DOUBLE NOT NULL");
-    f.checkType("percentile_cont(2+3, .5 IGNORE NULLS)", "DOUBLE NOT NULL");
-    f.checkFails("^percentile_cont(1, 1.5)^",
+    f.checkType("percentile_cont(.5, .5 RESPECT NULLS) over ()", "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(1, .5 IGNORE NULLS) over ()", "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(2+3, .5 IGNORE NULLS) over ()", "DOUBLE NOT NULL");
+    f.checkFails("^percentile_cont(1, 1.5)^ over ()",
         "Argument to function 'PERCENTILE_CONT' must be a numeric literal "
             + "between 0 and 1", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7485">[CALCITE-7485]
+   * FIRST_VALUE/LAST_VALUE should only be defined for window aggregates</a>.
+   */
   @Test void testPercentileDiscBigQueryFunc() {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.PERCENTILE_DISC2, SqlOperatorFixture.VmName.EXPAND)
         .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkType("percentile_disc(1, .5)",
+    f.checkType("percentile_disc(1, .5) over ()",
         "INTEGER NOT NULL");
-    f.checkType("percentile_disc(1, .5 RESPECT NULLS)", "INTEGER NOT NULL");
-    f.checkType("percentile_disc(0.75, .5 IGNORE NULLS)", "DECIMAL(3, 2) NOT NULL");
-    f.checkType("percentile_disc(2+3, .5 IGNORE NULLS)", "INTEGER NOT NULL");
-    f.checkFails("^percentile_disc(1, 1.5)^",
+    f.checkType("percentile_disc(1, .5 RESPECT NULLS) over ()", "INTEGER NOT NULL");
+    f.checkType("percentile_disc(0.75, .5 IGNORE NULLS) over ()", "DECIMAL(3, 2) NOT NULL");
+    f.checkType("percentile_disc(2+3, .5 IGNORE NULLS) over ()", "INTEGER NOT NULL");
+    f.checkFails("^percentile_disc(1, 1.5)^ over ()",
         "Argument to function 'PERCENTILE_DISC' must be a numeric literal "
             + "between 0 and 1", false);
   }
@@ -16558,6 +16566,26 @@ public class SqlOperatorTest {
             + "'1970-01-01 01:23:46'])^",
         "Values passed to = SOME operator must have compatible types",
         false);
+
+    // Subquery path: type coercion between column and subquery output column.
+    f.checkBoolean(
+        "1 = some (select 1 from (values(1)) as t(x))", true);
+    f.checkBoolean(
+        "1.0 = some (select 1 from (values(1)))", true);
+    f.checkNull(
+        "1 = some (values(cast(null as integer)))");
+
+    f.checkBoolean("array[1] = some (array[array[1]])", true);
+    f.checkBoolean("array[1.0] = some (array[array[1]])", true);
+    // Test subquery with nested types
+    f.checkBoolean("array[1] = some (select array[1.0] from (values(1)))", true);
+
+    // Ensure invalid coercion still fails
+    f.enableTypeCoercion(false).checkFails(
+        "^array[1] = some (array['a'])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
+
   }
 
   @Test void testAnyValueFunc() {
@@ -16864,6 +16892,28 @@ public class SqlOperatorTest {
     f.checkNull("CAST(4294967295 AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
 
     f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
+  }
+
+  @Test void testUnsignedArithmetic() {
+    final SqlOperatorFixture f = fixture();
+    // Test case for [CALCITE-7360] The meaning of negation for unsigned numbers is not defined
+    f.checkFails("^-CAST (100 AS INT UNSIGNED)^",
+        "Cannot apply '-' to arguments of type '-<INTEGER UNSIGNED>'\\. "
+            + "Supported form\\(s\\): '-<INTEGER>'\\n"
+            + "'-<APPROXIMATE_NUMERIC>'\\n"
+            + "'-<DECIMAL>'\\n"
+            + "'-<DATETIME_INTERVAL>'", false);
+    f.checkScalar("CAST(2 AS INT UNSIGNED)", "2", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) + CAST(2 AS INT UNSIGNED)", "4",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) + CAST(2 AS TINYINT UNSIGNED)", "4",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) + 2", "4", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) - 2", "0", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) - CAST(2 AS TINYINT UNSIGNED)", "0",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) * 2", "4", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) / 2", "1", "INTEGER UNSIGNED NOT NULL");
   }
 
   /**

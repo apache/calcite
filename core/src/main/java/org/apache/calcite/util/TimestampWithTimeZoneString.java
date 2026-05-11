@@ -173,7 +173,7 @@ public class TimestampWithTimeZoneString
   }
 
   @Override public int compareTo(TimestampWithTimeZoneString o) {
-    return v.compareTo(o.v);
+    return this.pt.getCalendar().compareTo(o.pt.getCalendar());
   }
 
   public TimestampWithTimeZoneString round(int precision) {

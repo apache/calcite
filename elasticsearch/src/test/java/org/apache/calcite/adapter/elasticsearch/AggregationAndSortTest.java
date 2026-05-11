@@ -21,14 +21,12 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
-import org.apache.calcite.util.Bug;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
@@ -86,8 +84,13 @@ class AggregationAndSortTest {
   }
 
   private static Connection createConnection() throws SQLException {
+    return createConnectionWithConformance("JAVA", "DEFAULT");
+  }
+
+  private static Connection createConnectionWithConformance(String lex, String conformance)
+      throws SQLException {
     final Connection connection =
-        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+        DriverManager.getConnection("jdbc:calcite:lex=" + lex + ";conformance=" + conformance);
     final SchemaPlus root =
         connection.unwrap(CalciteConnection.class).getRootSchema();
 
@@ -115,21 +118,15 @@ class AggregationAndSortTest {
     return connection;
   }
 
-  /**
-   * Currently the patterns like below will be converted to Search in range
-   * which is not supported in elastic search adapter.
-   * (val1 >= 10 and val1 <= 20)
-   * (val1 <= 10 or val1 >=20)
-   * (val1 <= 10) or (val1 > 15 and val1 <= 20)
-   * So disable this test case until the translation from Search in range
-   * to rang Query in ES is implemented.
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4645">[CALCITE-4645]
+   * In Elasticsearch adapter, a range predicate should be translated to a range query</a>.
    */
   @Test void searchInRange() {
-    Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
     CalciteAssert.that()
         .with(AggregationAndSortTest::createConnection)
         .query("select count(*) from view where val1 >= 10 and val1 <=20")
-        .returns("EXPR$0=1\n");
+        .returns("EXPR$0=0\n");
 
     CalciteAssert.that()
         .with(AggregationAndSortTest::createConnection)
@@ -140,6 +137,21 @@ class AggregationAndSortTest {
         .with(AggregationAndSortTest::createConnection)
         .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
         .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from view where val1 = 1 or (val1 > 15 and val1 <= 20)")
+        .returns("EXPR$0=1\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from view where cat1 <= 'e' and cat1 >= 'a'")
+        .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from view where cat4 >= '2017-12-22' and cat4 <= '2018-02-01'")
+        .returns("EXPR$0=1\n");
   }
 
   @Test void countStar() {
@@ -459,9 +471,11 @@ class AggregationAndSortTest {
             + "cat6=null; cat5=2\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4868">[CALCITE-4868]
+   * Elasticsearch adapter fails if GROUP BY is followed by ORDER BY</a>.
+   */
   @Test void testOrderByWithGroupBy() {
-    // Once CALCITE-4868 is fixed, we can enable this test
-    Assumptions.assumeTrue(Bug.CALCITE_4868_FIXED, "CALCITE-4868");
     CalciteAssert.that()
         .with(AggregationAndSortTest::createConnection)
         .query("select cat6, cat5 from view group by cat6, cat5 "
@@ -469,5 +483,135 @@ class AggregationAndSortTest {
         .returns("cat6=null; cat5=2\n"
             + "cat6=null; cat5=1\n"
             + "cat6=text1; cat5=null\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4868">[CALCITE-4868]
+   * Elasticsearch adapter fails if GROUP BY is followed by ORDER BY</a>.
+   */
+  @Test void testSortAggregation() {
+    // Test ORDER BY alias (isSortByAlias)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5, max(val1) as MAX_VAL1 from view"
+            + " group by cat5 order by MAX_VAL1 desc, cat5 desc")
+        .returns("cat5=2; MAX_VAL1=7.0\ncat5=1; MAX_VAL1=1.0\ncat5=null; MAX_VAL1=null\n");
+
+    // Test ORDER BY ordinal (isSortByOrdinal)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5, max(val1) as MAX_VAL1 from view"
+            + " group by cat5 order by 2 desc, 1 desc")
+        .returns("cat5=2; MAX_VAL1=7.0\ncat5=1; MAX_VAL1=1.0\ncat5=null; MAX_VAL1=null\n");
+
+    // Test GROUP BY alias (isGroupByAlias) with ORDER BY alias
+    // Uses BABEL conformance which supports GROUP BY alias
+    CalciteAssert.that()
+        .with(() -> createConnectionWithConformance("JAVA", "BABEL"))
+        .query("select cat5 as CAT, max(val1) as MAX_VAL1 from view"
+            + " group by CAT order by MAX_VAL1 desc, CAT desc")
+        .returns("CAT=2; MAX_VAL1=7.0\nCAT=1; MAX_VAL1=1.0\nCAT=null; MAX_VAL1=null\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5124">[CALCITE-5124]
+   * LIMIT won't work when GROUP BY two or more columns in Elasticsearch Adapter</a>.
+   */
+  @Test void testGroupByAggregationLimit() {
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat4 limit 1")
+        .returnsCount(1);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat4 limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat1, cat4 limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1 from view group by val1 limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1, cat4 from view group by val1, cat4 limit 2")
+        .returns("val1=null; cat4=1576108800000\nval1=1; cat4=1514764800000\n");
+
+    // Test GROUP BY alias with LIMIT (requires BABEL conformance)
+    CalciteAssert.that()
+        .with(() -> createConnectionWithConformance("JAVA", "BABEL"))
+        .query("select val1 as V, cat4 as C from view group by V, C limit 2")
+        .returnsCount(2);
+
+    CalciteAssert.that()
+        .with(() -> createConnectionWithConformance("JAVA", "BABEL"))
+        .query("select cat5 as CAT, max(val1) as MAX_VAL1 from view"
+            + " group by CAT order by MAX_VAL1 desc, CAT desc limit 2")
+        .returns("CAT=2; MAX_VAL1=7.0\nCAT=1; MAX_VAL1=1.0\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6757">[CALCITE-6757]
+   * Elasticsearch adapter returns wrong result when aggregating sub-query with aggregation</a>.
+   */
+  @Test void testAggregateWithSubquery() {
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select count(*) from (select cat5, sum(val1) from view group by cat5) as alias")
+        .returns("EXPR$0=3\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4232">[CALCITE-4232]
+   * Elasticsearch IN Query is not supported</a>.
+   */
+  @Test void testInPredicate() {
+    // Single value IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 in ('a')")
+        .returns("cat1=a\n");
+
+    // IN with non-existing values returns empty result (0 documents)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 in ('x', 'y', 'z')")
+        .returnsCount(0);
+
+    // Partial match IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 in ('a', 'x')")
+        .returns("cat1=a\n");
+
+    // NOT IN all existing values, only null cat1 remains (ES terms behavior)
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat1 not in ('a', 'b')")
+        .returns("cat1=null\n");
+
+    // Integer type IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5 from view where cat5 in (1, 2)")
+        .returnsUnordered("cat5=1", "cat5=2");
+
+    // IN with integer type and non-existing value returns empty result
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat5 from view where cat5 in (999)")
+        .returnsCount(0);
+
+    // Long type IN
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select val1 from view where val1 in (1, 7)")
+        .returnsUnordered("val1=1", "val1=7");
   }
 }

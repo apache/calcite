@@ -81,6 +81,35 @@ class JdbcAdapterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5161">[CALCITE-5161]
+   * NPE when inserting a null value into a decimal column</a>. */
+  @Test void testInsertNull() {
+    // Insert data with null values
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("insert into \"foodmart\".\"promotion\" "
+            + "values (9999, 111, 'Test', NULL, NULL, NULL, NULL)")
+        .updates(1);
+
+    // Verify data was inserted
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("select \"promotion_id\", \"promotion_district_id\", \"promotion_name\", "
+            + "\"media_type\", \"cost\", \"start_date\", \"end_date\" "
+            + "from \"foodmart\".\"promotion\" where \"promotion_id\" = 9999")
+        .returns("promotion_id=9999; promotion_district_id=111; promotion_name=Test; "
+            + "media_type=null; cost=null; start_date=null; end_date=null\n");
+
+    // Delete the inserted data
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("delete from \"foodmart\".\"promotion\" where \"promotion_id\" = 9999")
+        .updates(1);
+
+    // Verify data was deleted
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("select count(*) as c from \"foodmart\".\"promotion\" where \"promotion_id\" = 9999")
+        .returns("C=0\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6462">[CALCITE-6462]
    * VolcanoPlanner internal valid may throw exception when log trace is enabled</a>. */
   @Test void testVolcanoPlannerInternalValid() {

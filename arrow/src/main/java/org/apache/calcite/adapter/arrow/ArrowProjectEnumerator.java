@@ -31,11 +31,13 @@ import java.io.IOException;
  */
 class ArrowProjectEnumerator extends AbstractArrowEnumerator {
   private final Projector projector;
+  private final Runnable onClose;
 
   ArrowProjectEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields,
-      Projector projector) {
+      Projector projector, Runnable onClose) {
     super(arrowFileReader, fields);
     this.projector = projector;
+    this.onClose = onClose;
   }
 
   @Override protected void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
@@ -71,6 +73,8 @@ class ArrowProjectEnumerator extends AbstractArrowEnumerator {
       projector.close();
     } catch (GandivaException e) {
       throw Util.toUnchecked(e);
+    } finally {
+      onClose.run();
     }
   }
 }

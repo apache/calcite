@@ -43,6 +43,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.test.IntervalTest;
 import org.apache.calcite.tools.Hoist;
 import org.apache.calcite.util.Bug;
@@ -630,6 +631,12 @@ public class SqlParserTest {
       SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
   private static final SqlDialect REDSHIFT =
       SqlDialect.DatabaseProduct.REDSHIFT.getDialect();
+  private static final SqlConformance COLON_FIELD =
+      new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+        @Override public boolean isColonFieldAccessAllowed() {
+          return true;
+        }
+      };
 
   /** Creates the test fixture that determines the behavior of tests.
    * Sub-classes that, say, test different parser implementations should
@@ -2308,6 +2315,116 @@ public class SqlParserTest {
   @Test void testFunctionCallWithDot() {
     expr("foo(a,b).c")
         .ok("(`FOO`(`A`, `B`).`C`)");
+  }
+
+  @Test void testColonFieldAccessMode() {
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    final SqlParserFixture sql = fixture().withConformance(COLON_FIELD);
+    // Colon field access is rejected in the default conformance.
+    expr("v^:^field")
+        .fails("(?s).*Encountered \":.*\".*");
+    // Core forms: identifier, dotted identifier chain, bracketed string key,
+    // bracketed integer index.
+    expr.sql("v:field")
+        .ok("(`V`:`field`)");
+    expr.sql("v:type")
+        .ok("(`V`:`type`)");
+    expr.sql("v:key")
+        .ok("(`V`:`key`)");
+    expr.sql("v:camelCase")
+        .ok("(`V`:`camelCase`)");
+    expr.sql("v:OWNER")
+        .ok("(`V`:`OWNER`)");
+    expr.sql("v:field.nested")
+        .ok("(`V`:`field`.`nested`)");
+    expr.sql("v:['field name']")
+        .ok("(`V`:['field name'])");
+    expr.sql("v:[1]")
+        .ok("(`V`:[1])");
+    expr.sql("v:[^empno^]")
+        .fails("(?s).*Unknown identifier 'EMPNO'.*");
+    // Bracket segments chain directly after an identifier or another bracket.
+    expr.sql("v:item[1]")
+        .ok("(`V`:`item`[1])");
+    expr.sql("v:item[^key^]")
+        .fails("(?s).*Unknown identifier 'KEY'.*");
+    expr.sql("v:item[^type^]")
+        .fails("(?s).*Unknown identifier 'TYPE'.*");
+    expr.sql("v:item[1].price")
+        .ok("(`V`:`item`[1].`price`)");
+    expr.sql("v:['key'][0]")
+        .ok("(`V`:['key'][0])");
+    // Colon attaches to any expression with an outer bracket or identifier.
+    expr.sql("arr[1]:field")
+        .ok("(`ARR`[1]:`field`)");
+    expr.sql("obj['x']:nested")
+        .ok("(`OBJ`['x']:`nested`)");
+    sql.sql(
+        "select v:field, v:['field name'], arr[1]:field, obj['x']:nested from t")
+        .ok("SELECT (`V`:`field`), (`V`:['field name']), (`ARR`[1]:`field`), "
+            + "(`OBJ`['x']:`nested`)\n"
+            + "FROM `T`");
+  }
+
+  @Test void testColonFieldAccessEdgeCases() {
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    // Mixed identifier / bracket chains are accepted.
+    expr.sql("v:field['leaf']")
+        .ok("(`V`:`field`['leaf'])");
+    expr.sql("v:['field name'].leaf")
+        .ok("(`V`:['field name'].`leaf`)");
+    expr.sql("v:field^.^['leaf']")
+        .fails("(?s).*Encountered \"\\. \\[\".*");
+    expr.sql("v:field[2]")
+        .ok("(`V`:`field`[2])");
+    expr.sql("arr[1]:field[2]")
+        .ok("(`ARR`[1]:`field`[2])");
+    expr.sql("v.field:nested")
+        .ok("(`V`.`FIELD`:`nested`)");
+    expr.sql("obj['x']:nested['y']")
+        .ok("(`OBJ`['x']:`nested`['y'])");
+    // Colon has postfix binding: the left operand is the whole expression atom.
+    expr.sql("a = b:field")
+        .ok("(`A` = (`B`:`field`))");
+    expr.sql("a + b:field")
+        .ok("(`A` + (`B`:`field`))");
+    expr.sql("a * arr[1]:field")
+        .ok("(`A` * (`ARR`[1]:`field`))");
+    // Colon attaches to non-identifier bases too: literals and function calls
+    // that already form a self-delimited expression atom.
+    expr.sql("null:field")
+        .ok("(NULL:`field`)");
+    expr.sql("foo(a):field")
+        .ok("(`FOO`(`A`):`field`)");
+    expr.sql("foo(v:field, arr[1]:field, obj['x']:nested['y'])")
+        .ok("`FOO`((`V`:`field`), (`ARR`[1]:`field`), (`OBJ`['x']:`nested`['y']))");
+    // Only one colon per expression; no nested colon paths.
+    expr.sql("v:field^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    expr.sql("v:['field name']^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    // Expressions (function calls, arithmetic) are not allowed inside
+    // colon-path brackets; only string, identifier and integer literals.
+    expr.sql("v:[^OFFSET^(1)]")
+        .fails("(?s).*OFFSET.*");
+    expr.sql("v:[^1.5^]")
+        .fails("(?s).*Encountered \"1\\.5\".*");
+    expr.sql("v:[^1e0^]")
+        .fails("(?s).*Encountered \"1e0\".*");
+    expr.sql("v:[^i^ + 1]")
+        .fails("(?s).*Encountered \"i.*");
+  }
+
+  @Test void testColonFieldAccessRejectsMemberFunctionCalls() {
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("v:field.func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("v:[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("obj['x']:nested.func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
+    expr.sql("v:field[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
   }
 
   @Test void testFunctionInFunction() {
@@ -6688,6 +6805,7 @@ public class SqlParserTest {
             + "Was expecting one of:\n"
             + "    <EOF> \n"
             + "    \"\\(\" \\.\\.\\.\n"
+            + "    \":\" \\.\\.\\.\n"
             + "    \"\\.\" \\.\\.\\..*");
     expr("interval '1-2' year ^to^ day")
         .fails(ANY);
@@ -7834,6 +7952,8 @@ public class SqlParserTest {
     sql("SELECT tbl.foo(0).col.bar(2, 3) FROM tbl")
         .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`(2, 3))\n"
             + "FROM `TBL`");
+    expr("rr[1].func^(^)")
+        .fails("(?s).*Encountered \"\\(\".*");
   }
 
   @Test void testUnicodeLiteral() {
@@ -9138,6 +9258,27 @@ public class SqlParserTest {
         .ok("JSON_OBJECT(KEY `KEY` VALUE `VALUE` NULL ON NULL)");
   }
 
+  @Test void testJsonObjectInColonFieldAccessMode() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("json_object(key v:field value arr[1]:field)")
+        .ok("JSON_OBJECT(KEY (`V`:`field`) VALUE (`ARR`[1]:`field`) NULL ON NULL)");
+    expr.sql("json_object(key v:field.field value col)")
+        .ok("JSON_OBJECT(KEY (`V`:`field`.`field`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_object(v:field value 1)")
+        .ok("JSON_OBJECT(KEY (`V`:`field`) VALUE 1 NULL ON NULL)");
+    expr.sql("json_object(v:field^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_object('foo': col^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_object('foo'^,^ 'bar')")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    // Colon mode reserves ':' for field access, so JSON colon-pair syntax
+    // must use the KEY ... VALUE form instead.
+    expr.sql("json_object('foo'^:^ 'bar')")
+        .fails("(?s).*Unexpected symbol ':'. Was expecting 'VALUE'.*");
+  }
+
   @Test void testJsonType() {
     expr("json_type('11.56')")
         .ok("JSON_TYPE('11.56')");
@@ -9206,6 +9347,22 @@ public class SqlParserTest {
         .ok("JSON_OBJECTAGG(KEY `K_COLUMN` VALUE "
             + "JSON_OBJECT(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL) "
             + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test void testJsonObjectAggInColonFieldAccessMode() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("json_objectagg(key v:['key'] value obj['x']:nested['y'])")
+        .ok("JSON_OBJECTAGG(KEY (`V`:['key']) VALUE "
+            + "(`OBJ`['x']:`nested`['y']) NULL ON NULL)");
+    expr.sql("json_objectagg(key v:field.field value col)")
+        .ok("JSON_OBJECTAGG(KEY (`V`:`field`.`field`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_objectagg(v:field value col)")
+        .ok("JSON_OBJECTAGG(KEY (`V`:`field`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_objectagg(v:field^,^ col)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    expr.sql("json_objectagg('k'^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
   }
 
   /** Test case for
@@ -9366,6 +9523,23 @@ public class SqlParserTest {
 
     final String sql2 = "SELECT * FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
     sql(sql2).ok(expected);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7498">[CALCITE-7498]
+   * The parser rejects the example hints from the documentation</a>. */
+  @Test void testDocumentationExample() {
+    final String sql = "SELECT /*+ hint1, hint2(a='1', b='2') */ *\n"
+        + "FROM emp /*+ hint3(5, 'x') */\n"
+        + "JOIN dept /*+ hint4(c=id), hint5 */\n"
+        + "ON emp.deptno = dept.deptno";
+    final String expected = "SELECT\n"
+        + "/*+ `HINT1`, `HINT2`(`A` = '1', `B` = '2') */\n"
+        + "*\n"
+        + "FROM `EMP`\n"
+        + "/*+ `HINT3`(5, 'x') */\n"
+        + "INNER JOIN `DEPT`\n"
+        + "/*+ `HINT4`(`C` = `ID`), `HINT5` */ ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+    sql(sql).ok(expected);
   }
 
   @Test void testQueryHint() {

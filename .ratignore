@@ -50,3 +50,7 @@ site/favicon.ico
 
 # jenv
 .jenv-version
+
+# Kotlin compiler session and log files
+**/.kotlin/sessions/kotlin-compiler*.salive
+**/.kotlin/errors/errors*.log

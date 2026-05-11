@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
@@ -236,6 +237,19 @@ public abstract class PruneEmptyRules {
       RemoveEmptySingleRule.RemoveEmptySingleRuleConfig.AGGREGATE.toRule();
 
   /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.Window}
+   * to empty if its child is empty.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Window(Empty) becomes Empty
+   * </ul>
+   */
+  public static final RelOptRule WINDOW_INSTANCE =
+      RemoveEmptySingleRule.RemoveEmptySingleRuleConfig.WINDOW.toRule();
+
+  /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Join}
    * to empty if its left child is empty.
    *
@@ -366,6 +380,9 @@ public abstract class PruneEmptyRules {
       RemoveEmptySingleRuleConfig AGGREGATE = ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyAggregate")
           .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal);
+      RemoveEmptySingleRuleConfig WINDOW = ImmutableRemoveEmptySingleRuleConfig.of()
+          .withDescription("PruneEmptyWindow")
+          .withOperandFor(Window.class, singleRel -> true);
 
       @Override default RemoveEmptySingleRule toRule() {
         return new RemoveEmptySingleRule(this);

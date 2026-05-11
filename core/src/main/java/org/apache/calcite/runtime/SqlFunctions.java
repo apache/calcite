@@ -1004,11 +1004,18 @@ public class SqlFunctions {
 
   /** SQL {@code SPLIT_PART(string, string, int)} function. */
   public static String splitPart(String s, String delimiter, int n) {
-    if (Strings.isNullOrEmpty(s) || Strings.isNullOrEmpty(delimiter)) {
+    // Function is strict, so arguments cannot be null
+    if (s.isEmpty()) {
       return "";
     }
 
-    String[] parts = s.split(delimiter, -1);
+
+    String[] parts;
+    if (delimiter.isEmpty()) {
+      parts = new String[] { s };
+    } else {
+      parts = s.split(Pattern.quote(delimiter), -1);
+    }
     int partCount = parts.length;
 
     if (n < 0) {
@@ -1021,8 +1028,6 @@ public class SqlFunctions {
 
     return parts[n - 1];
   }
-
-
 
   /** SQL {@code SPLIT(string)} function. */
   public static List<String> split(String s) {
@@ -2971,8 +2976,12 @@ public class SqlFunctions {
     if ((b0 & b1 & q) >= 0) {
       return q;
     } else {
-      throw new ArithmeticException("integer overflow");
+      throw new ArithmeticException("long overflow");
     }
+  }
+
+  public static double checkedDivide(int b0, double b1) {
+    return b0 / b1;
   }
 
   public static UByte checkedDivide(UByte b0, UByte b1) {
@@ -2989,6 +2998,16 @@ public class SqlFunctions {
 
   public static ULong checkedDivide(ULong b0, ULong b1) {
     return ULong.valueOf(UnsignedType.toBigInteger(b0).divide(UnsignedType.toBigInteger(b1)));
+  }
+
+  // The definition of this function must match the divide function with the same signature
+  public static int checkedDivide(int b0, BigDecimal b1) {
+    return BigDecimal.valueOf(b0)
+        .divide(b1, RoundingMode.HALF_DOWN).intValueExact();
+  }
+
+  public static BigDecimal checkedDivide(BigDecimal b0, BigDecimal b1) {
+    return b0.divide(b1, RoundingMode.HALF_DOWN);
   }
 
   // *
@@ -3111,6 +3130,10 @@ public class SqlFunctions {
 
   public static ULong checkedMultiply(ULong b0, ULong b1) {
     return ULong.valueOf(UnsignedType.toBigInteger(b0).multiply(UnsignedType.toBigInteger(b1)));
+  }
+
+  public static BigDecimal checkedMultiply(BigDecimal b0, long b1) {
+    return b0.multiply(BigDecimal.valueOf(b1));
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to long values. */
