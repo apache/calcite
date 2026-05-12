@@ -168,4 +168,8 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   @Override public boolean supportsUnsignedTypes() {
     return SqlConformanceEnum.DEFAULT.supportsUnsignedTypes();
   }
+
+  @Override public boolean isDistinctOnAllowed() {
+    return SqlConformanceEnum.DEFAULT.isDistinctOnAllowed();
+  }
 }

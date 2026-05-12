@@ -4808,6 +4808,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
 
+    if (!config.conformance().isDistinctOnAllowed()) {
+      throw newValidationError(select, RESOURCE.distinctOnNotAllowed());
+    }
+
     SqlNodeList orderList = select.getOrderList();
     if (orderList == null || orderList.isEmpty()) {
       throw newValidationError(select, RESOURCE.distinctOnRequiresOrderBy());

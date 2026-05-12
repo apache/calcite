@@ -527,4 +527,14 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean isDistinctOnAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

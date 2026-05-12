@@ -1401,9 +1401,15 @@ SqlSelect SqlSelect() :
             keywords.add(SqlSelectKeyword.STREAM.symbol(getPos()));
         }
     )?
+<#if parser.includeDistinctOn!default.parser.includeDistinctOn>
     (
         AllOrDistinctOrDistinctOn(keywords, distinctOnList)
     )?
+<#else>
+    (
+        keyword = AllOrDistinct() { keywords.add(keyword); }
+    )?
+</#if>
     {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }

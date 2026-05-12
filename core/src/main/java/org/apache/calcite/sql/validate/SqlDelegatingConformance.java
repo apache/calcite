@@ -173,4 +173,8 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean supportsUnsignedTypes() {
     return delegate.supportsUnsignedTypes();
   }
+
+  @Override public boolean isDistinctOnAllowed() {
+    return delegate.isDistinctOnAllowed();
+  }
 }
