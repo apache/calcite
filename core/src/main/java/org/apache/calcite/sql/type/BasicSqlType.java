@@ -205,6 +205,13 @@ public class BasicSqlType extends AbstractSqlType {
         sb.append(getScale());
       }
       sb.append(')');
+    } else if (printScale && typeName == SqlTypeName.DECIMAL) {
+      // Include scale in the digest when precision is not specified (CALCITE-5212).
+      sb.append('(');
+      sb.append(PRECISION_NOT_SPECIFIED);
+      sb.append(", ");
+      sb.append(scale);
+      sb.append(')');
     }
     if (!withDetail) {
       return;

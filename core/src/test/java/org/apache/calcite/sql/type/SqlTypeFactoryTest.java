@@ -19,6 +19,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
 
@@ -35,7 +36,9 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -237,6 +240,27 @@ class SqlTypeFactoryTest {
     assertThat(SqlTypeUtil.comparePrecision(p0, p1), is(expectedComparison));
     assertThat(SqlTypeUtil.comparePrecision(p0, p0), is(0));
     assertThat(SqlTypeUtil.comparePrecision(p1, p1), is(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5212">[CALCITE-5212]
+   * Decimal with scale but unspecified precision collides in type cache</a>. */
+  @Test void testCreateSqlTypeDecimalUnspecifiedPrecisionWithScale() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataTypeFactory tf = f.typeFactory;
+    final int pUn = RelDataType.PRECISION_NOT_SPECIFIED;
+    RelDataType d5 = tf.createSqlType(SqlTypeName.DECIMAL, pUn, 5);
+    RelDataType d3 = tf.createSqlType(SqlTypeName.DECIMAL, pUn, 3);
+    assertEquals(5, d5.getScale());
+    assertEquals(3, d3.getScale());
+    assertNotEquals(d5, d3);
+    assertNotEquals(d5.getFullTypeString(), d3.getFullTypeString());
+    // Order independence: first created shape must not be returned for another scale.
+    SqlTypeFactoryImpl tf2 = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType d3b = tf2.createSqlType(SqlTypeName.DECIMAL, pUn, 3);
+    RelDataType d5b = tf2.createSqlType(SqlTypeName.DECIMAL, pUn, 5);
+    assertEquals(3, d3b.getScale());
+    assertEquals(5, d5b.getScale());
   }
 
   /** Test case for
