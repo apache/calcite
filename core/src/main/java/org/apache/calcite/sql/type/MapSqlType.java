@@ -18,6 +18,10 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.util.Comment;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * SQL map type.
@@ -36,12 +40,22 @@ public class MapSqlType extends AbstractSqlType {
    */
   public MapSqlType(
       RelDataType keyType, RelDataType valueType, boolean isNullable) {
-    super(SqlTypeName.MAP, isNullable, null);
+    this(keyType, valueType, isNullable, new HashSet<>());
+  }
+
+  public MapSqlType(
+      RelDataType keyType, RelDataType valueType, boolean isNullable,
+      Set<Comment> comments) {
+    super(SqlTypeName.MAP, isNullable, null, comments);
     assert keyType != null;
     assert valueType != null;
     this.keyType = keyType;
     this.valueType = valueType;
     computeDigest();
+  }
+
+  @Override public MapSqlType copy(Set<Comment> comments) {
+    return new MapSqlType(keyType, valueType, isNullable(), comments);
   }
 
   //~ Methods ----------------------------------------------------------------

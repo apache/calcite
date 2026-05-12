@@ -20,8 +20,11 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.Comment;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Function type.
@@ -33,10 +36,19 @@ public class FunctionSqlType extends AbstractSqlType {
 
   public FunctionSqlType(
       RelDataType parameterType, RelDataType returnType) {
-    super(SqlTypeName.FUNCTION, true, null);
+    this(parameterType, returnType, new HashSet<>());
+  }
+
+  public FunctionSqlType(
+      RelDataType parameterType, RelDataType returnType, Set<Comment> comments) {
+    super(SqlTypeName.FUNCTION, true, null, comments);
     this.parameterType = Objects.requireNonNull(parameterType, "parameterType");
     this.returnType = Objects.requireNonNull(returnType, "returnType");
     computeDigest();
+  }
+
+  @Override public FunctionSqlType copy(Set<Comment> comments) {
+    return new FunctionSqlType(parameterType, returnType, comments);
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

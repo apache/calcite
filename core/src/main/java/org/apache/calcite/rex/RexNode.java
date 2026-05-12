@@ -59,6 +59,8 @@ public abstract class RexNode extends CommentNode {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public abstract RexNode copy(Set<Comment> comments);
+
   public abstract RelDataType getType();
 
   /**

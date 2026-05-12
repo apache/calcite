@@ -17,8 +17,12 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Comment;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Measure SQL type.
@@ -29,8 +33,17 @@ import com.google.common.collect.ImmutableList;
 public class MeasureSqlType extends ApplySqlType {
   /** Private constructor. */
   private MeasureSqlType(RelDataType elementType, boolean isNullable) {
-    super(SqlTypeName.MEASURE, isNullable, ImmutableList.of(elementType));
+    this(elementType, isNullable, new HashSet<>());
+  }
+
+  private MeasureSqlType(RelDataType elementType, boolean isNullable,
+      Set<Comment> comments) {
+    super(SqlTypeName.MEASURE, isNullable, ImmutableList.of(elementType), comments);
     computeDigest();
+  }
+
+  @Override public MeasureSqlType copy(Set<Comment> comments) {
+    return new MeasureSqlType(getMeasureElementType(), isNullable(), comments);
   }
 
   @Override public RelDataType getMeasureElementType() {

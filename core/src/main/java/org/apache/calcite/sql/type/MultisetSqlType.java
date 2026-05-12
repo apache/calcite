@@ -19,6 +19,10 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.util.Comment;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
@@ -37,10 +41,19 @@ public class MultisetSqlType extends AbstractSqlType {
    * from a factory method.
    */
   public MultisetSqlType(RelDataType elementType, boolean isNullable) {
-    super(SqlTypeName.MULTISET, isNullable, null);
+    this(elementType, isNullable, new HashSet<>());
+  }
+
+  public MultisetSqlType(RelDataType elementType, boolean isNullable,
+      Set<Comment> comments) {
+    super(SqlTypeName.MULTISET, isNullable, null, comments);
     assert elementType != null;
     this.elementType = elementType;
     computeDigest();
+  }
+
+  @Override public MultisetSqlType copy(Set<Comment> comments) {
+    return new MultisetSqlType(elementType, isNullable(), comments);
   }
 
   //~ Methods ----------------------------------------------------------------

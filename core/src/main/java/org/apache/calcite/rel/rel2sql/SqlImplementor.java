@@ -997,8 +997,12 @@ public abstract class SqlImplementor {
     }
 
     private static boolean isMatching(RexFieldAccess lastAccess, SqlNode sqlNode) {
-      return sqlNode instanceof SqlIdentifier
-              && sqlNode.toString().split("\\.")[1].equals(lastAccess.getField().getName());
+      if (!(sqlNode instanceof SqlIdentifier)) {
+        return false;
+      }
+      SqlIdentifier identifier = (SqlIdentifier) sqlNode;
+      String name = identifier.names.get(identifier.names.size() - 1);
+      return name.equals(lastAccess.getField().getName());
     }
 
     private SqlNode callToSql(@Nullable RexProgram program, RexCall call0,
@@ -1864,7 +1868,7 @@ public abstract class SqlImplementor {
           if (mappedSqlNode != null) {
             return mappedSqlNode;
           }
-          return new SqlIdentifier(!qualified
+          return new SqlIdentifier(!qualified || alias.getKey().startsWith("unnest$")
               ? ImmutableList.of(field.getName())
               : ImmutableList.of(alias.getKey(), field.getName()),
               POS);

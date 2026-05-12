@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.rex.ICommentNode;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -36,7 +37,7 @@ import java.util.List;
  * different type classes into one. Inelegant, but since our type system was
  * defined before the advent of Java generics, it avoids a lot of typecasting.
  */
-public interface RelDataType {
+public interface RelDataType extends ICommentNode {
   int SCALE_NOT_SPECIFIED = Integer.MIN_VALUE;
   int PRECISION_NOT_SPECIFIED = -1;
 
