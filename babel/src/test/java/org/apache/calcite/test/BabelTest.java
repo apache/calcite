@@ -522,6 +522,35 @@ class BabelTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement</a>. */
+  @Test void testDistinctOn() {
+    final SqlValidatorFixture v = Fixtures.forValidator()
+        .withParserConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withConformance(SqlConformanceEnum.BABEL);
+
+    // Basic DISTINCT ON
+    v.withSql("select distinct on (deptno) empno, ename from emp order by deptno, empno")
+        .ok();
+
+    // DISTINCT ON with multiple columns
+    v.withSql("select distinct on (deptno, job) empno, ename from emp order by deptno, job, empno")
+        .ok();
+
+    // DISTINCT ON with expression
+    v.withSql("select distinct on (deptno) empno, sal * 12 as annual_sal from emp order by deptno, sal desc")
+        .ok();
+
+    // DISTINCT ON without ORDER BY should fail
+    v.withSql("^select distinct on (deptno) empno from emp^")
+        .fails("SELECT DISTINCT ON requires an ORDER BY clause");
+
+    // DISTINCT ON with ORDER BY mismatch should fail
+    v.withSql("select distinct on (deptno) empno from emp order by ^empno^")
+        .fails("SELECT DISTINCT ON expressions must match initial ORDER BY expressions");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
    * Add age function (enabled in PostgreSQL library)</a>. */
   @Test void testAgeFunction() {
