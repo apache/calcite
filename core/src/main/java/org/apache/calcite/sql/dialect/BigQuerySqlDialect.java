@@ -1817,8 +1817,14 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexStringForIfRegexReplace(
       SqlWriter writer, SqlCall call, String operatorName) {
-    SqlCharStringLiteral secondOperand = call.getOperandList().size() == 3
-        ? modifyIfRegexpContainsSecondOperand(call) : anchorRegexForFullMatch(call.operand(1));
+    SqlCharStringLiteral secondOperand;
+    if (call.getOperandList().size() == 3) {
+      secondOperand = modifyIfRegexpContainsSecondOperand(call);
+    } else if ("REGEXP_SIMILAR".equals(operatorName)) {
+      secondOperand = anchorRegexForFullMatch(call.operand(1));
+    } else {
+      secondOperand = call.operand(1);
+    }
     unparseRegexLiteral(writer, secondOperand, operatorName);
   }
 
