@@ -1871,7 +1871,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   public void unparseRegexLiteral(SqlWriter writer, SqlNode operand, String operatorName) {
     String val = ((SqlCharStringLiteral) operand).toValue();
-    val = val.startsWith("'") ? val : quoteStringLiteral(val);
+    val = val.startsWith("r'") ? val.replaceFirst("r'", "'")
+        : val.startsWith("'") ? val : quoteStringLiteral(val);
     val = operatorName.equals("REGEXP_INSTR") ? "r" + val : val;
     writer.literal(val);
   }

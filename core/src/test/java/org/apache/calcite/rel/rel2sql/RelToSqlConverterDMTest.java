@@ -14735,4 +14735,16 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testForRegexpContains() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode regexpContainsNode =
+        builder.call(SqlLibraryOperators.REGEXP_CONTAINS,  builder.literal("Mike Bird"),
+            builder.literal("r'^[a-zA-Z ]*$'"));
+    final RelNode root = builder.project(regexpContainsNode).build();
+
+    final String expectedQuery = "SELECT REGEXP_CONTAINS('Mike Bird', r'^[a-zA-Z ]*$') AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedQuery));
+  }
 }
