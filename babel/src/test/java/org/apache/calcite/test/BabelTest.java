@@ -538,8 +538,8 @@ class BabelTest {
         .ok();
 
     // DISTINCT ON with expression
-    v.withSql("select distinct on (deptno) empno, sal * 12 as annual_sal from emp order by deptno, sal desc")
-        .ok();
+    v.withSql("select distinct on (deptno) empno, sal * 12 as annual_sal "
+            + "from emp order by deptno, sal desc").ok();
 
     // DISTINCT ON without ORDER BY should fail
     v.withSql("^select distinct on (deptno) empno from emp^")
