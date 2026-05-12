@@ -40,9 +40,10 @@ data: {
   # FMPP will use the declaration from default_config.fmpp.
   parser: {
     # Generated parser implementation package and class name.
-    package: "org.apache.calcite.sql.parser.impl",
-    class: "SqlParserImpl",
-
+    package: "org.apache.calcite.sql.parser.impl"
+    class: "SqlParserImpl"
+    includeDistinctOn: true
+    
     # List of files in @includes directory that have parser method
     # implementations for parsing custom SQL statements, literals or types
     # given as part of "statementParserMethods", "literalParserMethods" or
@@ -50,8 +51,6 @@ data: {
     implementationFiles: [
       "parserImpls.ftl"
     ]
-
-    includeDistinctOn: true
   }
 }
 

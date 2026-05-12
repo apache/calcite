@@ -99,7 +99,6 @@ data: {
     implementationFiles: [
       "parserImpls.ftl"
     ]
-
     includeDistinctOn: true
   }
 }
