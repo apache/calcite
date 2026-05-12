@@ -6549,6 +6549,63 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // DISTINCT ON with extra ORDER BY is ok
     f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno, job")
         .ok();
+
+    // Duplicate expressions in DISTINCT ON are allowed but must be matched in ORDER BY
+    f.withSql("SELECT DISTINCT ON (deptno, deptno) deptno, empno FROM emp ORDER BY deptno, deptno")
+        .ok();
+
+    // DISTINCT ON with expression
+    f.withSql("SELECT DISTINCT ON (empno % 2) empno, ename FROM emp ORDER BY empno % 2")
+        .ok();
+
+    // Empty DISTINCT ON is not allowed (parse error)
+    f.withSql("SELECT DISTINCT ON ((^)^) deptno FROM emp")
+        .fails("(?s)Encountered \"\\)\" at .*");
+
+    // DISTINCT ON can reference alias (like ORDER BY)
+    f.withSql("SELECT DISTINCT ON (x) empno AS x, deptno FROM emp ORDER BY x")
+        .ok();
+
+    // DISTINCT ON with alias-column name clash: alias in SELECT takes precedence
+    f.withSql("SELECT DISTINCT ON (deptno) empno AS deptno, deptno AS d FROM emp ORDER BY deptno")
+        .ok();
+
+    // DISTINCT ON with qualified column reference
+    f.withSql("SELECT DISTINCT ON (e.deptno) e.deptno AS x, e.empno FROM emp AS e ORDER BY e.deptno")
+        .ok();
+
+    // Integer literal in both DISTINCT ON and ORDER BY matches at validator
+    // (ordinal resolution happens later in SqlToRelConverter)
+    f.withSql("SELECT DISTINCT ON (2) empno, ename FROM emp ORDER BY 2")
+        .ok();
+
+    // Expressions in DISTINCT ON (not ordinals)
+    f.withSql("SELECT DISTINCT ON (empno % 2, CHAR_LENGTH(ename)) empno, ename FROM emp ORDER BY empno % 2, CHAR_LENGTH(ename)")
+        .ok();
+
+    // DISTINCT ON referencing non-projected column requires ORDER BY
+    f.withSql("^SELECT DISTINCT ON (deptno) empno, ename FROM emp^")
+        .fails("SELECT DISTINCT ON requires an ORDER BY clause");
+
+    // DISTINCT ON with aggregate query
+    f.withSql("SELECT DISTINCT ON (deptno) deptno, SUM(sal) FROM emp GROUP BY deptno ORDER BY deptno")
+        .ok();
+
+    // DISTINCT ON with aggregate expression
+    f.withSql("SELECT DISTINCT ON (SUM(sal)) deptno, SUM(sal) FROM emp GROUP BY deptno ORDER BY SUM(sal)")
+        .ok();
+
+    // DISTINCT ON with aggregate query and alias
+    f.withSql("SELECT DISTINCT ON (sum_sal) deptno, SUM(sal) AS sum_sal FROM emp GROUP BY deptno ORDER BY sum_sal")
+        .ok();
+
+    // DISTINCT ON with USING join (requires qualified reference due to Calcite limitation)
+    f.withSql("SELECT DISTINCT ON (emp.deptno) * FROM emp JOIN dept USING (deptno) ORDER BY emp.deptno")
+        .ok();
+
+    // DISTINCT ON with NATURAL join (requires qualified reference due to Calcite limitation)
+    f.withSql("SELECT DISTINCT ON (emp.deptno) * FROM emp NATURAL JOIN dept ORDER BY emp.deptno")
+        .ok();
   }
 
   @Test void testQualifyNegative() {
