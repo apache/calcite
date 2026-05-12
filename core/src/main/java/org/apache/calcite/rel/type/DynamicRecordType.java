@@ -16,11 +16,32 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.util.Comment;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
+import java.util.Set;
+
 /**
  * Specific type of RelRecordType that corresponds to a dynamic table,
  * where columns are created as they are requested.
  */
 public abstract class DynamicRecordType extends RelDataTypeImpl {
+
+  /** Default constructor; dynamic fields are held by the subclass. */
+  protected DynamicRecordType() {
+    super();
+  }
+
+  /**
+   * Subclass constructor for dynamic record types that store fields outside of
+   * {@link RelDataTypeImpl#fieldList} (for example in a {@link RelDataTypeHolder}).
+   */
+  protected DynamicRecordType(Set<Comment> comments,
+      @Nullable List<? extends RelDataTypeField> fieldList) {
+    super(comments, fieldList);
+  }
 
   // The prefix string for dynamic star column name
   public static final String DYNAMIC_STAR_PREFIX = "**";
@@ -35,5 +56,7 @@ public abstract class DynamicRecordType extends RelDataTypeImpl {
   public static boolean isDynamicStarColName(String name) {
     return name.startsWith(DYNAMIC_STAR_PREFIX);
   }
+
+  @Override public abstract DynamicRecordType copy(Set<Comment> comments);
 
 }

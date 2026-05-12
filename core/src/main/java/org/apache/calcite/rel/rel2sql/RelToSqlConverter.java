@@ -1634,7 +1634,7 @@ public class RelToSqlConverter extends SqlImplementor
       CTEDefinationTrait cteDefinationTrait = e.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
       TableAliasTrait tableAliasTrait = e.getTraitSet().getTrait(TableAliasTraitDef.instance);
 
-      SqlWithItem sqlWithItem = createSqlWithItem(cteDefinationTrait, result);
+      SqlWithItem sqlWithItem = createSqlWithItem(cteDefinationTrait, result, e);
 
       if (tableAliasTrait != null) {
         result = applyTableAlias(sqlWithItem, tableAliasTrait, e, result);
@@ -1931,18 +1931,22 @@ public class RelToSqlConverter extends SqlImplementor
     } else {
       unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
     }
-    final List<SqlNode> operands =
-        createAsFullOperands(e.getRowType(), unnestNode,
-            requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
+    String alias = null;
     TableAliasTrait tableAliasTrait = e.getTraitSet().getTrait(TableAliasTraitDef.instance);
+    if (tableAliasTrait != null) {
+      alias = tableAliasTrait.getTableAlias();
+    }
     SubQueryAliasTrait subQueryAliasTrait =
         e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
-    if (tableAliasTrait != null) {
-      operands.add(new SqlIdentifier(tableAliasTrait.getTableAlias(), POS));
-    }
     if (subQueryAliasTrait != null) {
-      operands.add(new SqlIdentifier(subQueryAliasTrait.getSubQueryAlias(), POS));
+      alias = subQueryAliasTrait.getSubQueryAlias();
     }
+    if (alias == null) {
+      alias = requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node);
+    }
+    final List<SqlNode> operands =
+        createAsFullOperands(e.getRowType(), unnestNode, alias);
+
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
     return result(asNode, ImmutableList.of(Clause.FROM), e, null);
   }
@@ -2072,9 +2076,10 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   private SqlNode updateSqlWithNode(SqlImplementor.Result result) {
-    SqlSelect sqlSelect = null;
-    if (result.node instanceof SqlSelect) {
-      sqlSelect = (SqlSelect) result.node;
+    SqlNode sqlSelect = null;
+    if (result.node instanceof SqlSelect
+        || result.node instanceof SqlDelete || result.node instanceof SqlUpdate) {
+      sqlSelect = result.node;
     } else {
       sqlSelect = wrapSelect(result.node);
     }
@@ -2269,9 +2274,15 @@ public class RelToSqlConverter extends SqlImplementor
    * @param result - The relational algebra result node
    * @return SqlWithItem - The constructed SqlWithItem for the CTE
    */
-  private SqlWithItem createSqlWithItem(CTEDefinationTrait cteDefinationTrait, Result result) {
+  private SqlWithItem createSqlWithItem(CTEDefinationTrait cteDefinationTrait, Result result, RelNode e) {
     SqlIdentifier withName = new SqlIdentifier(cteDefinationTrait.getCteName(), POS);
-    SqlNodeList columnList = identifierList(new ArrayList<>());
+    SqlNodeList columnList;
+    if (cteDefinationTrait.hasExplicitColumns()) {
+      List<String> fieldNames = e.getRowType().getFieldNames();
+      columnList = identifierList(fieldNames);
+    } else {
+      columnList = identifierList(new ArrayList<>());
+    }
     return new SqlWithItem(POS, withName, columnList, result.node);
   }
 }

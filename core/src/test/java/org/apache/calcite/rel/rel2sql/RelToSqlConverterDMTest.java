@@ -27,10 +27,14 @@ import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.TableAliasTrait;
 import org.apache.calcite.plan.ViewChildProjectRelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -39,6 +43,7 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -2793,6 +2798,9 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(arrayNode, "EXPR$"))
         .uncollect(new ArrayList<String>(Collections.singleton("element")), true)
         .build();
+    unCollectNode = unCollectNode.
+            copy(unCollectNode.getTraitSet().plus(new TableAliasTrait("unnest$")),
+                unCollectNode.getInputs());
     RelNode projectNode = builder
         .push(unCollectNode)
         .filter(
@@ -3229,7 +3237,7 @@ class RelToSqlConverterDMTest {
     final String expectedPostgresql = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\n"
-        + "SELECT 2 AS \"a\", 'yy' AS \"b\") AS \"t\"";
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
@@ -12224,7 +12232,7 @@ class RelToSqlConverterDMTest {
         .build();
 
     // add CTE definition trait
-    final CTEDefinationTrait cteTrait = new CTEDefinationTrait(true, "RUNDATE");
+    final CTEDefinationTrait cteTrait = new CTEDefinationTrait(true, "RUNDATE", false);
     final RelTraitSet cteRelTraitSet = rundate.getTraitSet().plus(cteTrait);
     final RelNode cteRelNodeWithRelTrait = rundate.copy(cteRelTraitSet, rundate.getInputs());
 
@@ -13920,6 +13928,48 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
+  @Test public void testObjectName() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectName =
+        builder.call(SqlLibraryOperators.OBJECT_NAME);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectName, "objectName"))
+        .build();
+    final String expectedSql = "SELECT OBJECT_NAME() AS [objectName]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testErrorLine() {
+    final RelBuilder builder = relBuilder();
+    final RexNode errorLine =
+        builder.call(SqlLibraryOperators.ERROR_LINE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(errorLine, "errorLine"))
+        .build();
+    final String expectedSql = "SELECT ERROR_LINE() AS [errorLine]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testGenerateErrorLine() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateErrorLine =
+        builder.call(SqlLibraryOperators.GENERATE_ERROR_LINE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(generateErrorLine, "generateErrorLine"))
+        .build();
+    final String expectedSql = "SELECT @@ERROR.STACK_TRACE[OFFSET(0)].LINE AS generateErrorLine"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testObjectIdFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode objectId =
@@ -14417,6 +14467,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedSql));
   }
 
+  @Test public void testHaversineFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode haversineNode =
+        builder.call(SqlLibraryOperators.HAVERSINE,
+            builder.literal(40.7127),
+            builder.literal(-74.0059),
+            builder.literal(34.05),
+            builder.literal(-118.25));
+    final RelNode root = builder.project(haversineNode).build();
+
+    final String expectedQuery = "SELECT HAVERSINE(40.7127, -74.0059, 34.05, -118.25) AS [$f0]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedQuery));
+  }
+
   @Test public void testTimestampMinusIntervalWithFormat() {
     final RelBuilder builder = relBuilder();
     RexBuilder rexBuilder = builder.getRexBuilder();
@@ -14611,6 +14676,35 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testFetchFirstRowsWithTies() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fetchWithTies =
+        builder.call(SqlLibraryOperators.WITH_TIES, builder.literal(5));
+    final RelNode scan = builder.scan("EMP").build();
+    final RelCollation collation = RelCollations.of(new RelFieldCollation(1));
+    final RelNode root = LogicalSort.create(scan, collation, null, fetchWithTies);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY \"ENAME\"\n"
+        + "FETCH FIRST 5 ROWS WITH TIES";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testFetchFirstRowsWithTiesAndOffset() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fetchWithTies =
+        builder.call(SqlLibraryOperators.WITH_TIES, builder.literal(5));
+    final RelNode scan = builder.scan("EMP").build();
+    final RelCollation collation = RelCollations.of(new RelFieldCollation(1));
+    final RexNode offset = builder.literal(3);
+    final RelNode root = LogicalSort.create(scan, collation, offset, fetchWithTies);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY \"ENAME\"\n"
+        + "OFFSET 3 ROWS\n"
+        + "FETCH FIRST 5 ROWS WITH TIES";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
 
   @Test public void testSkipSimplify() {
     final RelBuilder builder = foodmartRelBuilder();

@@ -19,6 +19,7 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.type.SqlTypeExplicitPrecedenceList;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Comment;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Implementation of {@link RelDataType} for a dynamic table.
@@ -43,6 +45,20 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   public DynamicRecordTypeImpl(RelDataTypeFactory typeFactory) {
     this.holder = new RelDataTypeHolder(typeFactory);
     computeDigest();
+  }
+
+  /**
+   * Copy constructor sharing the same field holder (for example when only
+   * {@linkplain Comment comments} change).
+   */
+  protected DynamicRecordTypeImpl(DynamicRecordTypeImpl other, Set<Comment> comments) {
+    super(comments, null);
+    this.holder = other.holder;
+    computeDigest();
+  }
+
+  @Override public DynamicRecordTypeImpl copy(Set<Comment> comments) {
+    return new DynamicRecordTypeImpl(this, comments);
   }
 
   @Override public List<RelDataTypeField> getFieldList() {

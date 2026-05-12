@@ -3011,7 +3011,7 @@ public class RelBuilderTest {
                 builder.alias(builder.literal(20), "twenty"),
                 builder.alias(builder.literal(30), "thirty"),
                 builder.alias(builder.literal(40), "fourty")).build();
-    RelTrait traitSet = new CTEDefinationTrait(true, "CTE1");
+    RelTrait traitSet = new CTEDefinationTrait(true, "CTE1", false);
     RelTraitSet relTraitSet = root.getTraitSet().plus(traitSet);
     builder.push(root.copy(relTraitSet, root.getInputs()));
     RelNode rel =

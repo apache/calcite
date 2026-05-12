@@ -263,6 +263,11 @@ public class RexSimplify {
    * Verify adds an overhead that is only acceptable for a top-level call.
    */
   RexNode simplify(RexNode e, RexUnknownAs unknownAs) {
+    boolean skipSimplify = !e.getComment().isEmpty()
+        && "skip_simplify".equals(((Comment) e.getComment().iterator().next()).getComment());
+    if (skipSimplify) {
+      return e;
+    }
     if (STRONG.isNull(e)) {
       // Only boolean NULL (aka UNKNOWN) can be converted to FALSE. Even in
       // unknownAs=FALSE mode, we must not convert a NULL integer (say) to FALSE

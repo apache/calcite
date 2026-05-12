@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Comment;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -47,9 +48,11 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -653,7 +656,17 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         boolean nullable,
         @Nullable Charset charset,
         @Nullable SqlCollation collation) {
-      super(fieldsOf(clazz));
+      this(clazz, nullable, charset, collation, new HashSet<>());
+    }
+
+    @SuppressWarnings("argument.type.incompatible")
+    public JavaType(
+        Class clazz,
+        boolean nullable,
+        @Nullable Charset charset,
+        @Nullable SqlCollation collation,
+        Set<Comment> comments) {
+      super(comments, fieldsOf(clazz));
       this.clazz = clazz;
       this.nullable = nullable;
       assert (charset != null) == SqlTypeUtil.inCharFamily(this)
@@ -661,6 +674,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       this.charset = charset;
       this.collation = collation;
       computeDigest();
+    }
+
+    @Override public JavaType copy(Set<Comment> comments) {
+      return new JavaType(clazz, nullable, charset, collation, comments);
     }
 
     public Class getJavaClass() {

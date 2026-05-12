@@ -18,6 +18,7 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Comment;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -25,8 +26,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -54,7 +57,12 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
    * @param nullable Whether this record type allows null values
    */
   public RelRecordType(StructKind kind, List<RelDataTypeField> fields, boolean nullable) {
-    super(fields);
+    this(kind, fields, nullable, new HashSet<>());
+  }
+
+  public RelRecordType(StructKind kind, List<RelDataTypeField> fields, boolean nullable,
+      Set<Comment> comments) {
+    super(comments, fields);
     this.nullable = nullable;
     this.kind = requireNonNull(kind, "kind");
     if (fields.size() > THRESHOLD) {
@@ -89,6 +97,10 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
    */
   public RelRecordType(List<RelDataTypeField> fields) {
     this(StructKind.FULLY_QUALIFIED, fields, false);
+  }
+
+  @Override public RelRecordType copy(Set<Comment> comments) {
+    return new RelRecordType(kind, requireNonNull(fieldList, "fieldList"), nullable, comments);
   }
 
   //~ Methods ----------------------------------------------------------------

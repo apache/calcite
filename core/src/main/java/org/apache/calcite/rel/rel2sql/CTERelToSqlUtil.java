@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -35,6 +36,7 @@ import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlUnpivot;
+import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -93,6 +95,12 @@ public class CTERelToSqlUtil {
     }
     if (sqlSelect instanceof SqlSelect && ((SqlSelect) sqlSelect).getWhere() != null) {
       fetchSqlWithSelectList(Arrays.asList(((SqlSelect) sqlSelect).getWhere()), sqlNodes);
+    }
+    if (sqlSelect instanceof SqlDelete && ((SqlDelete) sqlSelect).getSourceSelect() != null) {
+      fetchSqlWithItems(((SqlDelete) sqlSelect).getSourceSelect(), sqlNodes);
+    }
+    if (sqlSelect instanceof SqlUpdate && ((SqlUpdate) sqlSelect).getSourceSelect() != null) {
+      fetchSqlWithItems(((SqlUpdate) sqlSelect).getSourceSelect(), sqlNodes);
     }
     return sqlNodes;
   }
@@ -237,6 +245,35 @@ public class CTERelToSqlUtil {
         SqlBasicCall setOpCall = (SqlBasicCall) sqlNode;
         for (SqlNode operand : setOpCall.getOperandList()) {
           updateSqlNode(operand);
+        }
+      } else if (sqlNode instanceof SqlDelete) {
+        SqlDelete sqlDelete = (SqlDelete) sqlNode;
+        // Handle targetTable
+        SqlNode targetTable = sqlDelete.getTargetTable();
+        processFromNode(sqlDelete, targetTable);
+        if (isNestedCte(targetTable)
+            && targetTable instanceof SqlBasicCall
+            && ((SqlBasicCall) targetTable).getOperator() instanceof SqlAsOperator) {
+          updateNode(targetTable);
+        }
+        if (sqlDelete.getCondition() != null) {
+          updateNode(sqlDelete.getCondition());
+        }
+      } else if (sqlNode instanceof SqlUpdate) {
+        SqlUpdate sqlUpdate = (SqlUpdate) sqlNode;
+        // Handle targetTable
+        SqlNode targetTable = sqlUpdate.getTargetTable();
+        processFromNode(sqlUpdate, targetTable);
+        if (sqlUpdate.getSourceSelect() != null) {
+          updateSqlNode(sqlUpdate.getSourceSelect());
+        }
+        if (isNestedCte(targetTable)
+            && targetTable instanceof SqlBasicCall
+            && ((SqlBasicCall) targetTable).getOperator() instanceof SqlAsOperator) {
+          updateNode(targetTable);
+        }
+        if (sqlUpdate.getCondition() != null) {
+          updateNode(sqlUpdate.getCondition());
         }
       }
     }

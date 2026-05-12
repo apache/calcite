@@ -568,6 +568,9 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference VARIANT =
       ReturnTypes.explicit(SqlTypeName.VARIANT);
 
+  public static final SqlReturnTypeInference XML =
+      ReturnTypes.explicit(SqlTypeName.XML);
+
   /**
    * Type-inference strategy that always returns "VARCHAR(2000)" with nulls
    * allowed if any of the operands allow nulls.

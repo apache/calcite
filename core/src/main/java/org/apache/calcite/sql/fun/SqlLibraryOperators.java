@@ -331,6 +331,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction HAVERSINE =
+      new SqlFunction(
+          "HAVERSINE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.SYSTEM);
+
   /** The "NVL2(value, value, value)" function. */
   @LibraryOperator(libraries = {ORACLE, SPARK})
   public static final SqlBasicFunction NVL2 =
@@ -377,6 +388,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.VARIADIC,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction MSSQL_VALUE =
+      new SqlFunction("MSSQL_VALUE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_NULLABLE,
+          null,
+          STRING_STRING,
+          SqlFunctionCategory.STRING);
+
 
   /** The "LENGTH(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, SPARK})
@@ -4231,6 +4252,28 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM).withSyntax(SqlSyntax.FUNCTION_ID);
 
   @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction OBJECT_NAME =
+       new SqlFunction("OBJECT_NAME", SqlKind.OTHER_FUNCTION,
+           ReturnTypes.VARCHAR, null,
+           OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ERROR_LINE =
+       new SqlFunction("ERROR_LINE", SqlKind.OTHER_FUNCTION,
+           ReturnTypes.INTEGER, null,
+           OperandTypes.NILADIC, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_ERROR_LINE =
+      SqlBasicFunction
+          .create(
+              "@@error.stack_trace[OFFSET(0)].line",
+              ReturnTypes.INTEGER,
+              OperandTypes.NILADIC,
+              SqlFunctionCategory.SYSTEM)
+          .withFunctionType(SqlFunctionCategory.SYSTEM).withSyntax(SqlSyntax.FUNCTION_ID);
+
+  @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction OBJECT_ID =
       new SqlFunction(
           "OBJECT_ID",
@@ -4889,4 +4932,26 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "TOP_PERCENT(n)" function represents SQL Server's
+   * {@code SELECT TOP (n) PERCENT} clause. The operand is the percent value.
+   * During rel-to-sql conversion, this is transformed into
+   * {@code FETCH NEXT (SELECT CAST(CEIL(COUNT(*) * n / 100.0) AS BIGINT) FROM table) ROWS ONLY}. */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction PERCENT =
+      SqlBasicFunction.create("PERCENT",
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "TOP_WITH_TIES(n)" function represents SQL Server's
+   * {@code SELECT TOP (n) WITH TIES} clause. The operand is the fetch count.
+   * During rel-to-sql conversion, this is unparsed as
+   * {@code FETCH FIRST n ROWS WITH TIES}. */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction WITH_TIES =
+      SqlBasicFunction.create("WITH_TIES",
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 }

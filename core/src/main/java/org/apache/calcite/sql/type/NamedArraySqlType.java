@@ -19,12 +19,15 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Comment;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * NamedArraySqlType represents a User defined array type.
@@ -35,9 +38,20 @@ public class NamedArraySqlType extends ArraySqlType {
   public NamedArraySqlType(
       SqlTypeName sqlTypeName, RelDataType elementType, boolean isNullable,
       List<String> typeName, long maxCardinality) {
-    super(sqlTypeName, elementType, isNullable, maxCardinality);
+    this(sqlTypeName, elementType, isNullable, typeName, maxCardinality, new HashSet<>());
+  }
+
+  public NamedArraySqlType(
+      SqlTypeName sqlTypeName, RelDataType elementType, boolean isNullable,
+      List<String> typeName, long maxCardinality, Set<Comment> comments) {
+    super(sqlTypeName, elementType, isNullable, maxCardinality, comments);
     this.typeName = ImmutableList.copyOf(typeName);
     computeDigest();
+  }
+
+  @Override public NamedArraySqlType copy(Set<Comment> comments) {
+    return new NamedArraySqlType(getSqlTypeName(), getComponentType(), isNullable(), typeName,
+        getMaxCardinality(), comments);
   }
 
   @Override public @Nullable SqlIdentifier getSqlIdentifier() {

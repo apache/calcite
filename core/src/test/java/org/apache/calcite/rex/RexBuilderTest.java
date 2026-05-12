@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Comment;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
@@ -57,6 +58,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -1064,6 +1066,15 @@ class RexBuilderTest {
   private static class UDT extends RelDataTypeImpl {
     UDT() {
       this.digest = "(udt)NOT NULL";
+    }
+
+    UDT(Set<Comment> comments) {
+      super(comments, null);
+      this.digest = "(udt)NOT NULL";
+    }
+
+    @Override public UDT copy(Set<Comment> comments) {
+      return new UDT(comments);
     }
 
     @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

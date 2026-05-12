@@ -27,8 +27,11 @@ import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.util.Comment;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.
@@ -48,10 +51,21 @@ public class IntervalSqlType extends AbstractSqlType {
   public IntervalSqlType(RelDataTypeSystem typeSystem,
       SqlIntervalQualifier intervalQualifier,
       boolean isNullable) {
-    super(intervalQualifier.typeName(), isNullable, null);
+    this(typeSystem, intervalQualifier, isNullable, new HashSet<>());
+  }
+
+  public IntervalSqlType(RelDataTypeSystem typeSystem,
+      SqlIntervalQualifier intervalQualifier,
+      boolean isNullable,
+      Set<Comment> comments) {
+    super(intervalQualifier.typeName(), isNullable, null, comments);
     this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
     this.intervalQualifier = Objects.requireNonNull(intervalQualifier, "intervalQualifier");
     computeDigest();
+  }
+
+  @Override public IntervalSqlType copy(Set<Comment> comments) {
+    return new IntervalSqlType(typeSystem, intervalQualifier, isNullable(), comments);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -18,8 +18,12 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Comment;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /** Type that applies generic type to type parameters. */
 abstract class ApplySqlType extends AbstractSqlType {
@@ -27,9 +31,16 @@ abstract class ApplySqlType extends AbstractSqlType {
 
   ApplySqlType(SqlTypeName typeName, boolean isNullable,
       Iterable<? extends RelDataType> types) {
-    super(typeName, isNullable, null);
+    this(typeName, isNullable, types, new HashSet<>());
+  }
+
+  ApplySqlType(SqlTypeName typeName, boolean isNullable,
+      Iterable<? extends RelDataType> types, Set<Comment> comments) {
+    super(typeName, isNullable, null, comments);
     this.types = ImmutableList.copyOf(types);
   }
+
+  @Override public abstract ApplySqlType copy(Set<Comment> comments);
 
   //~ Methods ----------------------------------------------------------------
 
