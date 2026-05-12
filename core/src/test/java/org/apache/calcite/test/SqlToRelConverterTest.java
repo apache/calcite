@@ -6047,7 +6047,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "SELECT DISTINCT ON (deptno) empno, ename\n"
         + "FROM emp\n"
         + "ORDER BY deptno, empno";
-    sql(sql).ok();
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
   /** Test case of
@@ -6057,7 +6057,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "SELECT DISTINCT ON (deptno, job) empno, ename\n"
         + "FROM emp\n"
         + "ORDER BY deptno, job, hiredate DESC";
-    sql(sql).ok();
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
   /** Test case of
@@ -6068,6 +6068,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "FROM emp\n"
         + "ORDER BY deptno, empno\n"
         + "LIMIT 5";
-    sql(sql).ok();
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 }
