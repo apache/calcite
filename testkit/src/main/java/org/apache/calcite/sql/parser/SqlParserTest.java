@@ -1286,7 +1286,7 @@ public class SqlParserTest {
     final String expected1 = "SELECT *\n"
         + "FROM `T`\n"
         + "WHERE ((`PRICE` > 5) "
-        + "AND ((`PRICE` BETWEEN ASYMMETRIC (1 + 2) AND ((3 * 4) + `PRICE`)) "
+        + "AND (((`PRICE` BETWEEN ASYMMETRIC (1 + 2) AND ((3 * 4) + `PRICE`))) "
         + "IS NULL))";
     sql(sql1).ok(expected1);
 
