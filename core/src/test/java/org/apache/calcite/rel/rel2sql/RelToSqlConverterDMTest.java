@@ -92,6 +92,7 @@ import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
 import org.apache.calcite.sql.fun.GeneratorTableFunction;
 import org.apache.calcite.sql.fun.HiveLateralViewExplodeFunction;
 import org.apache.calcite.sql.fun.HiveTableValueFunction;
+import org.apache.calcite.sql.fun.JsonTupleFunction;
 import org.apache.calcite.sql.fun.SqlAddMonths;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -11030,6 +11031,23 @@ class RelToSqlConverterDMTest {
         builder.functionScan(new HiveLateralViewExplodeFunction(tableFunRowType), 0, operands).build();
     final String expectedQuery = "SELECT *\n"
         + "FROM TABLE(LATERAL VIEW EXPLODE(MAP['key_name', 'value_name']))";
+
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testLateralViewJsonTupleFunction() {
+    final RelBuilder builder = foodmartRelBuilder();
+    Map<String, RelDataType> tableFunRowType = new HashMap<>();
+    builder.scan("employee");
+    RexNode operand =
+        builder.call(
+            new JsonTupleFunction(tableFunRowType), builder.field(1), builder.literal(
+                "key1"),
+            builder.literal("key2"));
+    RelNode root =
+        builder.project(operand).build();
+    final String expectedQuery = "SELECT JSON_TUPLE(full_name, 'key1', 'key2') $f0\n"
+        + "FROM foodmart.employee";
 
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
   }
