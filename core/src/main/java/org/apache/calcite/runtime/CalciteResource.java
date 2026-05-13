@@ -810,11 +810,20 @@ public interface CalciteResource {
   @BaseMessage("EXCLUDE/EXCEPT clause must follow a STAR expression")
   ExInst<CalciteException> selectExcludeRequiresStar();
 
+  @BaseMessage("REPLACE clause must follow a STAR expression")
+  ExInst<CalciteException> selectReplaceRequiresStar();
+
   @BaseMessage("SELECT * EXCLUDE/EXCEPT list contains unknown column(s): {0}")
   ExInst<SqlValidatorException> selectStarExcludeListContainsUnknownColumns(String columns);
 
   @BaseMessage("SELECT * EXCLUDE/EXCEPT list cannot exclude all columns")
   ExInst<SqlValidatorException> selectStarExcludeCannotExcludeAllColumns();
+
+  @BaseMessage("SELECT * REPLACE list contains unknown column(s): {0}")
+  ExInst<SqlValidatorException> selectStarReplaceListContainsUnknownColumns(String columns);
+
+  @BaseMessage("SELECT * REPLACE list contains duplicate column(s): {0}")
+  ExInst<SqlValidatorException> selectStarReplaceListContainsDuplicateColumns(String columns);
 
   @BaseMessage("Group function ''{0}'' can only appear in GROUP BY clause")
   ExInst<SqlValidatorException> groupFunctionMustAppearInGroupByClause(String funcName);

@@ -80,6 +80,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlStarExclude;
+import org.apache.calcite.sql.SqlStarReplace;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.SqlUnknownLiteral;
@@ -123,7 +124,9 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
@@ -645,13 +648,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SelectScope scope, SqlNode node) {
     final SqlIdentifier identifier;
     final SqlNodeList excludeList;
+    final SqlNodeList replaceList;
     if (node instanceof SqlStarExclude) {
       final SqlStarExclude starExclude = (SqlStarExclude) node;
       identifier = starExclude.getStarIdentifier();
       excludeList = starExclude.getExcludeList();
+      replaceList = null;
+    } else if (node instanceof SqlStarReplace) {
+      final SqlStarReplace starReplace = (SqlStarReplace) node;
+      identifier = starReplace.getStarIdentifier();
+      excludeList = null;
+      replaceList = starReplace.getReplaceList();
     } else if (node instanceof SqlIdentifier) {
       identifier = (SqlIdentifier) node;
       excludeList = null;
+      replaceList = null;
     } else {
       return false;
     }
@@ -663,6 +674,38 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final boolean[] excludeMatched = new boolean[excludeIdentifiers.size()];
     final SqlNameMatcher nameMatcher =
         scope.validator.catalogReader.nameMatcher();
+    if (replaceList != null) {
+      final Set<String> replaceSeen = new HashSet<>();
+      for (SqlNode replaceNode : replaceList) {
+        final SqlCall call = (SqlCall) replaceNode;
+        final SqlIdentifier aliasId = (SqlIdentifier) call.operand(1);
+        final String aliasName =
+            aliasId.isSimple() ? aliasId.getSimple()
+                : aliasId.names.get(aliasId.names.size() - 1);
+        if (!replaceSeen.add(aliasName.toUpperCase(Locale.ROOT))) {
+          throw newValidationError(aliasId,
+              RESOURCE.selectStarReplaceListContainsDuplicateColumns(aliasName));
+        }
+        if (!aliasId.isSimple()) {
+          final int starPrefixSize = identifier.names.size() - 1;
+          final int aliasPrefixSize = aliasId.names.size() - 1;
+          if (aliasPrefixSize != starPrefixSize) {
+            throw newValidationError(aliasId,
+                RESOURCE.selectStarReplaceListContainsUnknownColumns(aliasName));
+          }
+          for (int i = 0; i < starPrefixSize; i++) {
+            if (!nameMatcher.matches(identifier.names.get(i), aliasId.names.get(i))) {
+              throw newValidationError(aliasId,
+                  RESOURCE.selectStarReplaceListContainsUnknownColumns(aliasName));
+            }
+          }
+        }
+      }
+    }
+    final Map<String, SqlNode> replaceMap = extractReplaceMap(replaceList);
+    final boolean[] replaceMatched =
+        replaceMap.isEmpty() ? new boolean[0]
+            : new boolean[replaceMap.size()];
     final int originalSize = selectItems.size();
     final SqlParserPos startPosition = identifier.getParserPosition();
     final int fieldsBeforeStar = fields.size();
@@ -709,6 +752,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             if (shouldExcludeField(excludeList, exp, nameMatcher)) {
               continue;
             }
+            final SqlNode replacement =
+                findReplacement(columnName, replaceMap, nameMatcher);
+            if (replacement != null) {
+              recordReplaceMatch(columnName, replaceMap, nameMatcher, replaceMatched);
+              final SqlNode aliasedReplacement =
+                  SqlStdOperatorTable.AS.createCall(
+                      SqlParserPos.sum(
+                          ImmutableList.of(
+                          replacement.getParserPosition(),
+                          exp.getParserPosition())),
+                      replacement,
+                      new SqlIdentifier(columnName, exp.getParserPosition()));
+              addToSelectList(
+                  selectItems,
+                  aliases,
+                  fields,
+                  aliasedReplacement,
+                  scope,
+                  includeSystemVars);
+              continue;
+            }
             // Don't add expanded rolled up columns
             if (!isRolledUpColumn(exp, scope)) {
               addOrExpandField(
@@ -745,6 +809,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched);
       throwIfExcludeEliminatesAllColumns(excludeIdentifiers, fieldsBeforeStar,
           fields, identifier);
+      throwIfUnknownReplaceColumns(replaceMap, replaceMatched);
       return true;
 
     default:
@@ -781,6 +846,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           if (shouldExcludeField(excludeList, columnId, resolvedNameMatcher)) {
             continue;
           }
+          final SqlNode replacement =
+              findReplacement(columnName, replaceMap, resolvedNameMatcher);
+          if (replacement != null) {
+            recordReplaceMatch(columnName, replaceMap, resolvedNameMatcher,
+                replaceMatched);
+            final SqlNode aliasedReplacement =
+                SqlStdOperatorTable.AS.createCall(
+                    SqlParserPos.sum(
+                        ImmutableList.of(
+                        replacement.getParserPosition(),
+                        columnId.getParserPosition())),
+                    replacement,
+                    new SqlIdentifier(columnName, columnId.getParserPosition()));
+            addToSelectList(
+                selectItems,
+                aliases,
+                fields,
+                aliasedReplacement,
+                scope,
+                includeSystemVars);
+            continue;
+          }
+          // No replacement for this column; keep the original field.
+          // If the REPLACE list contains unknown columns, they will be
+          // reported by throwIfUnknownReplaceColumns after the loop.
           // TODO: do real implicit collation here
           addOrExpandField(
               selectItems,
@@ -797,6 +887,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched);
       throwIfExcludeEliminatesAllColumns(excludeIdentifiers, fieldsBeforeStar,
           fields, identifier);
+      throwIfUnknownReplaceColumns(replaceMap, replaceMatched);
       return true;
     }
   }
@@ -900,6 +991,79 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         && fields.size() == fieldsBeforeStar) {
       throw newValidationError(identifier,
           RESOURCE.selectStarExcludeCannotExcludeAllColumns());
+    }
+  }
+
+  private static Map<String, SqlNode> extractReplaceMap(@Nullable SqlNodeList replaceList) {
+    if (replaceList == null) {
+      return ImmutableMap.of();
+    }
+    final ImmutableMap.Builder<String, SqlNode> builder = ImmutableMap.builder();
+    for (SqlNode node : replaceList) {
+      assert node instanceof SqlCall;
+      final SqlCall call = (SqlCall) node;
+      assert call.getOperator() == SqlStdOperatorTable.AS
+          && call.operandCount() == 2;
+      final SqlNode nameNode = call.operand(1);
+      assert nameNode instanceof SqlIdentifier;
+      final SqlIdentifier nameId = (SqlIdentifier) nameNode;
+      builder.put(nameId.isSimple() ? nameId.getSimple()
+          : nameId.names.get(nameId.names.size() - 1), call);
+    }
+    return builder.build();
+  }
+
+  private static @Nullable SqlNode findReplacement(String columnName,
+      Map<String, SqlNode> replaceMap, SqlNameMatcher nameMatcher) {
+    for (Map.Entry<String, SqlNode> entry : replaceMap.entrySet()) {
+      if (nameMatcher.matches(entry.getKey(), columnName)) {
+        final SqlNode value = entry.getValue();
+        return value instanceof SqlCall ? ((SqlCall) value).operand(0) : value;
+      }
+    }
+    return null;
+  }
+
+  private static void recordReplaceMatch(String columnName,
+      Map<String, SqlNode> replaceMap, SqlNameMatcher nameMatcher,
+      boolean[] matched) {
+    int i = 0;
+    for (Map.Entry<String, SqlNode> entry : replaceMap.entrySet()) {
+      if (!matched[i]
+          && nameMatcher.matches(entry.getKey(), columnName)) {
+        matched[i] = true;
+      }
+      i++;
+    }
+  }
+
+  private void throwIfUnknownReplaceColumns(Map<String, SqlNode> replaceMap,
+      boolean[] replaceMatched) {
+    if (replaceMap.isEmpty()) {
+      return;
+    }
+    final List<String> unknownReplaceNames = new ArrayList<>();
+    int firstUnknownIndex = -1;
+    int i = 0;
+    for (Map.Entry<String, SqlNode> entry : replaceMap.entrySet()) {
+      if (!replaceMatched[i]) {
+        if (firstUnknownIndex < 0) {
+          firstUnknownIndex = i;
+        }
+        unknownReplaceNames.add(entry.getKey());
+      }
+      i++;
+    }
+    if (firstUnknownIndex >= 0) {
+      final SqlNode firstUnknownExpr =
+          Iterables.get(replaceMap.values(), firstUnknownIndex);
+      final SqlNode errorNode = firstUnknownExpr instanceof SqlCall
+          ? ((SqlCall) firstUnknownExpr).operand(1)
+          : firstUnknownExpr;
+      throw newValidationError(
+          errorNode,
+          RESOURCE.selectStarReplaceListContainsUnknownColumns(
+              String.join(", ", unknownReplaceNames)));
     }
   }
 

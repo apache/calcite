@@ -244,9 +244,13 @@ starWithExclude:
       *
   |   * EXCLUDE '(' column [, column ]* ')'
 
+starWithReplace:
+      *
+  |   * REPLACE '(' expression AS column [, expression AS column ]* ')'
+
 Note:
 
-* `SELECT * EXCLUDE (...)` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeStarExclude` to `true` (the standard parser leaves that flag `false`), which allows a `STAR` token followed by `EXCLUDE` (or the alias `EXCEPT`) and a parenthesized identifier list to be parsed into a `SqlStarExclude` node and ensures validators respect the exclusion list when expanding the projection. Reusing the same parser configuration elsewhere enables the same syntax for other components that need it.
+* `SELECT * EXCLUDE (...)` and `SELECT * REPLACE (...)` are recognized only when the Babel parser is enabled. `EXCLUDE` (or the alias `EXCEPT`) removes the specified columns from the star expansion; `REPLACE` substitutes the given expressions for the matching columns while keeping the original column order. For `REPLACE`, the column alias must either be a simple identifier or, for a table-qualified star such as `t.*`, a qualified identifier whose prefix matches the star's table alias.
 
 projectItem:
       expression [ [ AS ] columnAlias ]

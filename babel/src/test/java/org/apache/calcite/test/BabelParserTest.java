@@ -162,6 +162,24 @@ class BabelParserTest extends SqlParserTest {
     sql(sql3).ok(expected3);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7532">
+   * [CALCITE-7532] Support the syntax SELECT * REPLACE(expr as column)</a>.
+   * */
+  @Test void testStarReplace() {
+    final String sql = "select * replace(empno + 1 as empno) from emp";
+    final String expected = "SELECT * REPLACE ((`EMPNO` + 1) AS `EMPNO`)\n"
+        + "FROM `EMP`";
+    sql(sql).ok(expected);
+
+    final String sql2 = "select e.* replace(e.empno + 1 as e.empno, e.sal * 2 as e.sal)"
+        + " from emp e join dept d on e.deptno = d.deptno";
+    final String expected2 = "SELECT `E`.* REPLACE ((`E`.`EMPNO` + 1) AS `E`.`EMPNO`,"
+        + " (`E`.`SAL` * 2) AS `E`.`SAL`)\n"
+        + "FROM `EMP` AS `E`\n"
+        + "INNER JOIN `DEPT` AS `D` ON (`E`.`DEPTNO` = `D`.`DEPTNO`)";
+    sql(sql2).ok(expected2);
+  }
+
   /** Tests that there are no reserved keywords. */
   @Disabled
   @Test void testKeywords() {
