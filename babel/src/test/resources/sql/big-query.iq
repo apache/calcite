@@ -27,6 +27,8 @@
 # The DATETIME() and TIMESTAMP() functions are also substituted so that they
 # produce values that BigQuery would call DATETIME and TIMESTAMP.
 #
+# Note: scott-big-query sets the TIME ZONE to UTC for deterministic test results
+# for tests that involve TIME ZONE
 !use scott-big-query
 !set outputformat mysql
 
@@ -591,19 +593,18 @@ FROM t;
 !ok
 !}
 
-!if (false) {
-WITH Input AS (SELECT TIMESTAMP("2008-12-25 05:30:00+00") AS timestamp_value)
+# Test case for [CALCITE-7522] Allow EXTRACT(interval FROM tz) to operate on TIMESTAMP WITH TIME ZONE
 SELECT
-  EXTRACT(DAY FROM timestamp_value AT TIME ZONE "UTC") AS the_day_utc,
-  EXTRACT(DAY FROM timestamp_value AT TIME ZONE "America/Los_Angeles") AS the_day_california
-FROM Input;
+  EXTRACT(DAY FROM TIMESTAMP WITH TIME ZONE '2008-12-25 20:30:00 UTC') AS the_day_utc,
+  EXTRACT(DAY FROM TIMESTAMP WITH TIME ZONE '2008-12-25 20:30:00 America/Los_Angeles') AS the_day_california;
 +-------------+--------------------+
 | the_day_utc | the_day_california |
 +-------------+--------------------+
-| 25          | 24                 |
+|          25 |                 26 |
 +-------------+--------------------+
+(1 row)
+
 !ok
-!}
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
