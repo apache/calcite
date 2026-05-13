@@ -286,4 +286,50 @@ select d1.* except(d1.dname) from dept d1 except(select d2.* except(d2.dname) fr
 
 !ok
 
+# SELECT * REPLACE(expr AS column)
+select * replace(empno + 1 as empno) from emp where empno = 7369;
++-------+-------+-------+------+------------+--------+------+--------+
+| EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |
++-------+-------+-------+------+------------+--------+------+--------+
+|  7370 | SMITH | CLERK | 7902 | 1980-12-17 | 800.00 |      |     20 |
++-------+-------+-------+------+------------+--------+------+--------+
+(1 row)
+
+!ok
+
+select * replace(sal * 2 as sal, upper(ename) as ename) from emp where empno = 7369;
++-------+-------+-------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-------+------+------------+---------+------+--------+
+|  7369 | SMITH | CLERK | 7902 | 1980-12-17 | 1600.00 |      |     20 |
++-------+-------+-------+------+------------+---------+------+--------+
+(1 row)
+
+!ok
+
+select e.* replace(e.empno + 1 as e.empno)
+from emp e join dept d on e.deptno = d.deptno
+where e.empno = 7782;
++-------+-------+---------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+---------+------+------------+---------+------+--------+
+|  7783 | CLARK | MANAGER | 7839 | 1981-06-09 | 2450.00 |      |     10 |
++-------+-------+---------+------+------------+---------+------+--------+
+(1 row)
+
+!ok
+
+select empno replace(empno + 1 as empno) from emp;
+REPLACE clause must follow a STAR expression
+!error
+
+select * replace(empno + 1 as foo) from emp;
+SELECT * REPLACE list contains unknown column(s): FOO
+!error
+
+select e.* replace(e.empno + 1 as d.deptno)
+from emp e join dept d on e.deptno = d.deptno;
+SELECT * REPLACE list contains unknown column(s): DEPTNO
+!error
+
 # End select.iq
