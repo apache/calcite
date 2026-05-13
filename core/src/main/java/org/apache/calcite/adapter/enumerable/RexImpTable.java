@@ -142,9 +142,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_APPEND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_COMPACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINED_BY_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINS_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_EXCEPT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_INSERT;
@@ -153,7 +151,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_JOIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MAX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MIN;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_OVERLAP_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_POSITION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_PREPEND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REMOVE;
@@ -192,6 +189,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_SPARK;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINED_BY_OP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINS_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINS_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONVERT_ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSD;
@@ -266,6 +265,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OVERLAP_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
@@ -1121,10 +1121,14 @@ public class RexImpTable {
       defineMethod(SUBSTRING_INDEX, BuiltInMethod.SUBSTRING_INDEX.method, NullPolicy.STRICT);
       define(ARRAY_CONCAT, new ArrayConcatImplementor());
       define(SORT_ARRAY, new SortArrayImplementor());
-      defineMethod(ARRAY_CONTAINS_OP, BuiltInMethod.ARRAY_CONTAINS_OP.method, NullPolicy.NONE);
-      defineMethod(ARRAY_CONTAINED_BY_OP, BuiltInMethod.ARRAY_CONTAINED_BY_OP.method,
-          NullPolicy.NONE);
-      defineMethod(ARRAY_OVERLAP_OP, BuiltInMethod.ARRAY_OVERLAP_OP.method, NullPolicy.NONE);
+      // PostgreSQL containment and overlap operators
+      // Uses type dispatch to support multiple operand types (ARRAY, RANGE, JSONB)
+      define(CONTAINS_OP,
+          new ContainmentOpImplementor(BuiltInMethod.ARRAY_CONTAINS_OP.method));
+      define(CONTAINED_BY_OP,
+          new ContainmentOpImplementor(BuiltInMethod.ARRAY_CONTAINED_BY_OP.method));
+      define(OVERLAP_OP,
+          new ContainmentOpImplementor(BuiltInMethod.ARRAY_OVERLAP_OP.method));
       final MethodImplementor isEmptyImplementor =
           new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.STRICT,
               false);
@@ -4693,6 +4697,26 @@ public class RexImpTable {
             Expressions.new_(method.getDeclaringClass());
         return Expressions.call(target, method, argValueList0);
       }
+    }
+  }
+
+  /** Implementor for PostgreSQL containment and overlap operators.
+   *
+   * <p>Currently supports ARRAY types only.
+   */
+  private static class ContainmentOpImplementor extends AbstractRexCallImplementor {
+
+    private final Method method;
+
+    ContainmentOpImplementor(Method method) {
+      super("containment_op", NullPolicy.NONE, false);
+      this.method = method;
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return new MethodImplementor(method, nullPolicy, false)
+          .implementSafe(translator, call, argValueList);
     }
   }
 

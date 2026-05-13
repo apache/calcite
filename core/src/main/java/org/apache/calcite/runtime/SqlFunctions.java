@@ -6971,7 +6971,7 @@ public class SqlFunctions {
     return new ArrayList<>(result);
   }
 
-  /** Support for the PostgreSQL array {@code @>} (contains) operator. */
+  /** Support for the PostgreSQL {@code @>} (contains) operator. */
   public static @Nullable Boolean arrayContainsOp(List list1, List list2) {
     if (list1 == null || list2 == null) {
       return null;
@@ -6979,7 +6979,7 @@ public class SqlFunctions {
     return new HashSet<>(list1).containsAll(list2);
   }
 
-  /** Support for the PostgreSQL array {@code <@} (contained by) operator. */
+  /** Support for the PostgreSQL {@code <@} (contained by) operator. */
   public static @Nullable Boolean arrayContainedByOp(List list1, List list2) {
     if (list1 == null || list2 == null) {
       return null;
@@ -6987,7 +6987,7 @@ public class SqlFunctions {
     return new HashSet<>(list2).containsAll(list1);
   }
 
-  /** Support for the PostgreSQL array {@code &&} (overlap) operator. */
+  /** Support for the PostgreSQL {@code &&} (overlap) operator. */
   public static @Nullable Boolean arrayOverlapOp(List list1, List list2) {
     if (list1 == null || list2 == null) {
       return null;

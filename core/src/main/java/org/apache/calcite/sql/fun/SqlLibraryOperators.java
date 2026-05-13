@@ -2801,21 +2801,53 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
           SqlFunctionCategory.TIMEDATE);
 
-  /** PostgreSQL array {@code @>} operator: array contains. */
+  /**
+   * The PostgreSQL {@code @>} (contains) operator.
+   *
+   * <p>This operator is polymorphic in PostgreSQL:
+   * <ul>
+   *   <li>ARRAY: checks if left array contains all elements of right array</li>
+   *   <li>RANGE: checks if left range contains the right value/range</li>
+   *   <li>JSONB: checks if left JSON document contains the right JSON document</li>
+   * </ul>
+   *
+   * @see <a href="https://www.postgresql.org/docs/current/functions-array.html">
+   * PostgreSQL Array Functions</a>
+   * @see <a href="https://www.postgresql.org/docs/current/rangetypes.html">
+   * PostgreSQL Range Types</a>
+   * @see <a href="https://www.postgresql.org/docs/current/functions-json.html">
+   * PostgreSQL JSON Functions</a>
+   */
   @LibraryOperator(libraries = {POSTGRESQL})
-  public static final SqlBinaryOperator ARRAY_CONTAINS_OP =
+  public static final SqlBinaryOperator CONTAINS_OP =
       new SqlBinaryOperator("@>", SqlKind.OTHER, 30, true,
           ReturnTypes.BOOLEAN_NULLABLE, null, OperandTypes.ANY_ANY);
 
-  /** PostgreSQL array {@code <@} operator: array is contained by. */
+  /**
+   * The PostgreSQL {@code <@} (contained by) operator.
+   *
+   * <p>This operator is polymorphic in PostgreSQL:
+   * <ul>
+   *   <li>ARRAY: checks if left array is contained by right array</li>
+   *   <li>RANGE: checks if left range is contained by right range</li>
+   * </ul>
+   */
   @LibraryOperator(libraries = {POSTGRESQL})
-  public static final SqlBinaryOperator ARRAY_CONTAINED_BY_OP =
+  public static final SqlBinaryOperator CONTAINED_BY_OP =
       new SqlBinaryOperator("<@", SqlKind.OTHER, 30, true,
           ReturnTypes.BOOLEAN_NULLABLE, null, OperandTypes.ANY_ANY);
 
-  /** PostgreSQL array {@code &&} operator: array overlap. */
+  /**
+   * The PostgreSQL {@code &&} (overlap) operator.
+   *
+   * <p>This operator is polymorphic in PostgreSQL:
+   * <ul>
+   *   <li>ARRAY: checks if two arrays have elements in common</li>
+   *   <li>RANGE: checks if two ranges overlap</li>
+   * </ul>
+   */
   @LibraryOperator(libraries = {POSTGRESQL})
-  public static final SqlBinaryOperator ARRAY_OVERLAP_OP =
+  public static final SqlBinaryOperator OVERLAP_OP =
       new SqlBinaryOperator("&&", SqlKind.OTHER, 30, true,
           ReturnTypes.BOOLEAN_NULLABLE, null, OperandTypes.ANY_ANY);
 }

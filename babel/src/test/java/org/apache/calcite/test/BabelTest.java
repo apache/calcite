@@ -567,30 +567,47 @@ class BabelTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7512">[CALCITE-7512]
-   * Support array operators for PostgreSQL</a>. */
-  @Test void testArrayContainsOp() {
-    // @> operator: array contains
+   * Support containment and overlap operators for PostgreSQL</a>. */
+  @Test void testPostgresContainmentAndOverlapOperators() {
+    // Test @> operator: contains
     checkSqlResult("standard,postgresql",
         "SELECT ARRAY[1,2,3] @> ARRAY[1,2]",
         "EXPR$0=true\n");
     checkSqlResult("standard,postgresql",
         "SELECT ARRAY[1,2,3] @> ARRAY[4]",
         "EXPR$0=false\n");
+    checkSqlResult("standard,postgresql",
+        "SELECT ARRAY[1,2,3] @> ARRAY[1,2,3]",
+        "EXPR$0=true\n");
 
-    // <@ operator: array is contained by
+    // Test <@ operator: contained by
     checkSqlResult("standard,postgresql",
         "SELECT ARRAY[1,2] <@ ARRAY[1,2,3]",
         "EXPR$0=true\n");
     checkSqlResult("standard,postgresql",
         "SELECT ARRAY[4] <@ ARRAY[1,2,3]",
         "EXPR$0=false\n");
+    checkSqlResult("standard,postgresql",
+        "SELECT ARRAY[1,2,3] <@ ARRAY[1,2,3]",
+        "EXPR$0=true\n");
 
-    // && operator: array overlap
+    // Test && operator: overlap
     checkSqlResult("standard,postgresql",
         "SELECT ARRAY[1,2] && ARRAY[2,3]",
         "EXPR$0=true\n");
     checkSqlResult("standard,postgresql",
         "SELECT ARRAY[1,2] && ARRAY[3,4]",
         "EXPR$0=false\n");
+    checkSqlResult("standard,postgresql",
+        "SELECT ARRAY[1,2] && ARRAY[1,3]",
+        "EXPR$0=true\n");
+
+    // Test NULL handling
+    checkSqlResult("standard,postgresql",
+        "SELECT ARRAY[1,2] @> NULL",
+        "EXPR$0=null\n");
+    checkSqlResult("standard,postgresql",
+        "SELECT NULL <@ ARRAY[1,2,3]",
+        "EXPR$0=null\n");
   }
 }

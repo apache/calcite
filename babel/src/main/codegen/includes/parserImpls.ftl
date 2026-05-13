@@ -222,41 +222,41 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
     AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }
 
-/** Parses the array contains operator. */
-void ArrayContainsOp(List<Object> list, ExprContext exprContext, Span s) :
+/** Parses the contains operator. */
+void ContainsOp(List<Object> list, ExprContext exprContext, Span s) :
 {
 }
 {
-    <ARRAY_CONTAINS_OP> {
+    <CONTAINS_OP> {
         checkNonQueryExpression(exprContext);
         list.add(new SqlParserUtil.ToTreeListItem(
-            SqlLibraryOperators.ARRAY_CONTAINS_OP, getPos()));
+            SqlLibraryOperators.CONTAINS_OP, getPos()));
     }
     AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }
 
-/** Parses the array contained-by operator. */
-void ArrayContainedByOp(List<Object> list, ExprContext exprContext, Span s) :
+/** Parses the contained-by operator. */
+void ContainedByOp(List<Object> list, ExprContext exprContext, Span s) :
 {
 }
 {
-    <ARRAY_CONTAINED_BY_OP> {
+    <CONTAINED_BY_OP> {
         checkNonQueryExpression(exprContext);
         list.add(new SqlParserUtil.ToTreeListItem(
-            SqlLibraryOperators.ARRAY_CONTAINED_BY_OP, getPos()));
+            SqlLibraryOperators.CONTAINED_BY_OP, getPos()));
     }
     AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }
 
-/** Parses the array "&&" (overlap) operator. */
-void ArrayOverlapOp(List<Object> list, ExprContext exprContext, Span s) :
+/** Parses the overlap operator. */
+void OverlapOp(List<Object> list, ExprContext exprContext, Span s) :
 {
 }
 {
-    <ARRAY_OVERLAP_OP> {
+    <OVERLAP_OP> {
         checkNonQueryExpression(exprContext);
         list.add(new SqlParserUtil.ToTreeListItem(
-            SqlLibraryOperators.ARRAY_OVERLAP_OP, getPos()));
+            SqlLibraryOperators.OVERLAP_OP, getPos()));
     }
     AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }
