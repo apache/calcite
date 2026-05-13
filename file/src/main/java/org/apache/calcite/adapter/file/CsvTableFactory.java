@@ -48,8 +48,19 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final Source source = Sources.file(base, fileName);
+    String separatorString = (String) operand.get("separator");
+    final char separator;
+    if (separatorString == null) {
+      separator = ',';
+    } else if (separatorString.length() == 1) {
+      separator = separatorString.charAt(0);
+    } else {
+      throw new IllegalArgumentException(
+          "Invalid separator '" + separatorString
+              + "'. Separator must be a single character.");
+    }
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new CsvTranslatableTable(source, protoRowType);
+    return new CsvTranslatableTable(source, protoRowType, separator);
   }
 }

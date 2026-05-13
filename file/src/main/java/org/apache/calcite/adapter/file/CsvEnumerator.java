@@ -27,6 +27,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.trace.CalciteLogger;
 
+
 import au.com.bytecode.opencsv.CSVReader;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -116,11 +117,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       List<RelDataType> fieldTypes, List<Integer> fields) {
     //noinspection unchecked
     this(source, cancelFlag, false, null,
-        (RowConverter<E>) converter(fieldTypes, fields));
+        (RowConverter<E>) converter(fieldTypes, fields), au.com.bytecode.opencsv.CSVParser.DEFAULT_SEPARATOR);
   }
 
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
-      @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter) {
+      @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter, char separator) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
     this.filterValues =
@@ -128,9 +129,9 @@ public class CsvEnumerator<E> implements Enumerator<E> {
             : ImmutableNullableList.copyOf(filterValues);
     try {
       if (stream) {
-        this.reader = new CsvStreamReader(source);
+        this.reader = new CsvStreamReader(source, separator);
       } else {
-        this.reader = openCsv(source);
+        this.reader = openCsv(source, separator);
       }
       this.reader.readNext(); // skip header row
     } catch (IOException e) {
@@ -157,13 +158,20 @@ public class CsvEnumerator<E> implements Enumerator<E> {
    * of a CSV file. */
   public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
       Source source, @Nullable List<RelDataType> fieldTypes, Boolean stream) {
+    return deduceRowType(typeFactory, source, fieldTypes, stream, au.com.bytecode.opencsv.CSVParser.DEFAULT_SEPARATOR);
+  }
+
+  /** Deduces the names and types of a table's columns by reading the first line
+   * of a CSV file. */
+  public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
+      Source source, @Nullable List<RelDataType> fieldTypes, Boolean stream, char separator) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     if (stream) {
       names.add(FileSchemaFactory.ROWTIME_COLUMN_NAME);
       types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
     }
-    try (CSVReader reader = openCsv(source)) {
+    try (CSVReader reader = openCsv(source, separator)) {
       String[] strings = reader.readNext();
       if (strings == null) {
         strings = new String[]{"EmptyFileHasNoColumns:boolean"};
@@ -248,8 +256,12 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   static CSVReader openCsv(Source source) throws IOException {
+    return openCsv(source, au.com.bytecode.opencsv.CSVParser.DEFAULT_SEPARATOR);
+  }
+
+  static CSVReader openCsv(Source source, char separator) throws IOException {
     requireNonNull(source, "source");
-    return new CSVReader(source.reader());
+    return new CSVReader(source.reader(), separator);
   }
 
   @Override public E current() {
