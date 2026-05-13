@@ -34,6 +34,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.Connection;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -118,6 +119,8 @@ class BabelQuidemTest extends QuidemTest {
                   ConnectionFactories.addType("TIMESTAMP", typeFactory ->
                       typeFactory.createSqlType(
                           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)))
+              // Set the time zone for deterministic results
+              .with(CalciteConnectionProperty.TIME_ZONE, ZoneId.of("UTC").toString())
               .connect();
         case "scott-postgresql":
           return CalciteAssert.that()
