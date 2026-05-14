@@ -299,7 +299,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
     expr("^TIMESTAMP WITH TIME ZONE '12-21-99, 12:30:00'^")
-        .fails("(?s).*Illegal TIMESTAMP literal.*");
+        .fails("(?s).*Illegal TIMESTAMP WITH TIME ZONE literal.*");
   }
 
   /**
