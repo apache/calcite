@@ -68,7 +68,7 @@ public class TimestampWithTimeZoneString
 
     if (pos == -1) {
       throw RESOURCE.illegalLiteral("TIMESTAMP WITH LOCAL TIME ZONE", v,
-              RESOURCE.badFormat(TIMESTAMP_FORMAT_STRING).str()).ex();
+              RESOURCE.badFormat(TIMESTAMP_FORMAT_STRING + " zone").str()).ex();
     }
 
     String tsStr = v.substring(0, pos);
