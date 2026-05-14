@@ -3413,6 +3413,20 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(timestampLTZChar1.equals(timestampLTZChar4), is(true));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7526">[CALCITE-7526]
+   * Incorrect TIMESTAMP WITH TIME ZONE produces wrong error message</a>. */
+  @Test void testMalformedTimezone() {
+    try {
+      new TimestampWithTimeZoneString("2011-07-20T10:34:56America/Los_Angeles");
+    } catch (Exception ex) {
+      assertThat(
+          ex.getMessage(), is("Illegal TIMESTAMP WITH LOCAL TIME ZONE literal "
+          + "'2011-07-20T10:34:56America/Los_Angeles': not in format 'yyyy-MM-dd HH:mm:ss zone'"));
+      return;
+    }
+    fail("Should not be reached");
+  }
+
   @Test void testSimplifyLiterals() {
     final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
     final RexLiteral literalDef = rexBuilder.makeLiteral("def");
