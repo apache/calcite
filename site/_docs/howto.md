@@ -1065,6 +1065,15 @@ See instructions in
 ## Processing JIRA account requests
 Here are some email templates that can be used when processing requests for adding a JIRA account as a contributor.
 
+To add a JIRA account as a Calcite contributor, go to the
+[project roles page](https://issues.apache.org/jira/plugins/servlet/project-config/CALCITE/roles),
+use the "Add users to a role" button for the "Contributors" role, and add the
+user's JIRA username. Members of this role can be assigned Calcite JIRA issues.
+
+When adding a new Calcite committer, also add their JIRA account to the
+"Committers" role. When adding a new Calcite PMC member, also add their
+JIRA account to the "PMC" and "Administrators" roles.
+
 ### Account added to contributor list
 {% highlight text %}
 Hello [INSERT NAME HERE],
