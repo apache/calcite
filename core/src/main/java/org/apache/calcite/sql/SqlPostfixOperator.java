@@ -70,8 +70,7 @@ public class SqlPostfixOperator extends SqlOperator {
    * is higher than this operator's leftPrec (28), so without an explicit
    * parenthesization they would be rendered without wrapping parens.
    */
-  @Override public void unparse(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     assert call.operandCount() == 1;
     SqlNode operand = call.operand(0);
     if (operand instanceof SqlCall) {

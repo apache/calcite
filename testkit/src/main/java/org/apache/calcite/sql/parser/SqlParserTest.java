@@ -1140,6 +1140,17 @@ public class SqlParserTest {
     expr("a not like b is not null")
         .ok("((`A` NOT LIKE `B`) IS NOT NULL)");
 
+    // IN / NOT IN have higher precedence than IS NULL / IS NOT NULL;
+    // the IN sub-expression must be parenthesized in the unparse output
+    expr("a in (1, 2) is null")
+        .ok("(((`A` IN (1, 2))) IS NULL)");
+    expr("a in (1, 2) is not null")
+        .ok("(((`A` IN (1, 2))) IS NOT NULL)");
+    expr("a not in (1, 2) is null")
+        .ok("(((`A` NOT IN (1, 2))) IS NULL)");
+    expr("a not in (1, 2) is not null")
+        .ok("(((`A` NOT IN (1, 2))) IS NOT NULL)");
+
     // = has higher precedence than NOT
     expr("NOT a = b")
         .ok("(NOT (`A` = `B`))");
