@@ -10778,6 +10778,34 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMultiJoinOptimizeBushyThreeFactorCondition">
+    <Resource name="sql">
+      <![CDATA[select e1.ename from emp e1, dept d, emp e2
+where e1.deptno = d.deptno and e2.deptno = d.deptno
+and d.deptno = case when e1.sal > 1000 then e2.empno else e1.empno end]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[AND(=($18, $9), =($9, CASE(>($5, 1000), $11, $0)), =($7, $9))], isFullOuterJoin=[false], joinTypes=[[INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalProject(EMPNO0=[$11], ENAME0=[$12], JOB0=[$13], MGR0=[$14], HIREDATE0=[$15], SAL0=[$16], COMM0=[$17], DEPTNO1=[$18], SLACKER0=[$19], DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+    LogicalFilter(condition=[=($0, CASE(>($16, 1000), $2, $11))])
+      LogicalJoin(condition=[=($18, $0)], joinType=[inner])
+        LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultipleDistinctWithGrouping">
     <Resource name="sql">
       <![CDATA[SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)
