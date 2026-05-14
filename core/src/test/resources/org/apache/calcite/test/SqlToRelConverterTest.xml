@@ -1727,6 +1727,26 @@ LogicalDelta
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCteUsedWithAndWithoutSnapshot">
+    <Resource name="sql">
+      <![CDATA[with cte as (select * from products_temporal)
+select * from cte
+union all
+select * from cte for system_time as of
+  TIMESTAMP '2011-01-02 00:00:00']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+  LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+    LogicalSnapshot(period=[2011-01-02 00:00:00])
+      LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCube">
     <Resource name="sql">
       <![CDATA[select 1
@@ -3820,6 +3840,26 @@ LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), IS TRUE(=($0, $1)))])
       <![CDATA[select empno is not distinct from deptno
 from (values (cast(null as int), 1),
              (2, cast(null as int))) as emp(empno, deptno)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinCteOverTemporalTable">
+    <Resource name="sql">
+      <![CDATA[with cte as (select * from products_temporal)
+select stream * from orders
+join cte for system_time as of orders.rowtime
+on orders.productid = cte.productid]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7], SYS_START_LOCAL_TIMESTAMP=[$8], SYS_END_LOCAL_TIMESTAMP=[$9])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalFilter(condition=[=($cor0.PRODUCTID, $0)])
+        LogicalSnapshot(period=[$cor0.ROWTIME])
+          LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+            LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testJoinExpandAndDecorrelation">
@@ -7921,6 +7961,52 @@ LogicalProject(EXPR$0=[$1])
   LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
     LogicalProject(DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSnapshotOnCteOverNonTemporalTable">
+    <Resource name="sql">
+      <![CDATA[with cte as (select * from emp)
+select * from cte for system_time as of
+  TIMESTAMP '2011-01-02 00:00:00']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalSnapshot(period=[2011-01-02 00:00:00])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSnapshotOnCteOverTemporalTable">
+    <Resource name="sql">
+      <![CDATA[with cte as (select * from products_temporal)
+select * from cte for system_time as of
+   TIMESTAMP '2026-01-01 00:00:00']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+  LogicalSnapshot(period=[2026-01-01 00:00:00])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSnapshotOnNestedCteOverTemporalTable">
+    <Resource name="sql">
+      <![CDATA[with cte1 as (select * from products_temporal),
+     cte2 as (select * from cte1)
+select * from cte2 for system_time as of
+  TIMESTAMP '2011-01-02 00:00:00']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+  LogicalSnapshot(period=[2011-01-02 00:00:00])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], SYS_START_LOCAL_TIMESTAMP=[$5], SYS_END_LOCAL_TIMESTAMP=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
 ]]>
     </Resource>
   </TestCase>
