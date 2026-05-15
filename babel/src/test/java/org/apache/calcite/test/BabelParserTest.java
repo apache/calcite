@@ -625,6 +625,11 @@ class BabelParserTest extends SqlParserTest {
     f.sql("DISCARD TEMP").same();
   }
 
+  @Test void testColonUnparse() {
+    final SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.expression().sql("1::INT").ok("(1 :: INTEGER)");
+  }
+
   @Test void testSparkLeftAntiJoin() {
     final SqlParserFixture f = fixture().withDialect(SparkSqlDialect.DEFAULT);
     final String sql = "select a.cid, a.cname, count(1) as amount\n"
