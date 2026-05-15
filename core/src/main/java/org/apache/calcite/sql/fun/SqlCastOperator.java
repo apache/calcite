@@ -49,12 +49,13 @@ class SqlCastOperator extends SqlBinaryOperator {
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    writer.sep("(");
+    writer.print("(");
     call.operand(0).unparse(writer, 0, 0);
     writer.keyword("::");
     call.operand(1).unparse(writer, 0, 0);
-    writer.sep(")");
+    writer.print(")");
   }
+
   @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     return SqlStdOperatorTable.CAST.inferReturnType(opBinding);
