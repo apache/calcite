@@ -62,7 +62,15 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.rex.*;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateTimeFormat;
@@ -80,7 +88,17 @@ import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
-import org.apache.calcite.sql.fun.*;
+import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
+import org.apache.calcite.sql.fun.GeneratorTableFunction;
+import org.apache.calcite.sql.fun.HiveLateralViewExplodeFunction;
+import org.apache.calcite.sql.fun.HiveTableValueFunction;
+import org.apache.calcite.sql.fun.JsonTupleFunction;
+import org.apache.calcite.sql.fun.SqlAddMonths;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.TeradataStrtokSplitToTableFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -11016,13 +11034,13 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
   }
 
-  @Test
-  public void testLateralViewJsonTupleFunction() {
+  @Test public void testLateralViewJsonTupleFunction() {
     final RelBuilder builder = foodmartRelBuilder();
     Map<String, RelDataType> tableFunRowType = new HashMap<>();
     builder.scan("employee");
     RexNode operand =
-        builder.call(new JsonTupleFunction(tableFunRowType), builder.field(1), builder.literal(
+        builder.call(
+            new JsonTupleFunction(tableFunRowType), builder.field(1), builder.literal(
                 "key1"),
             builder.literal("key2"));
     RelNode root =
