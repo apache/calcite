@@ -76,6 +76,20 @@ public class BasicSqlType extends AbstractSqlType {
       int precision) {
     this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED, null,
         null);
+  }
+
+  /**
+   * Constructs a type with precision/length and nullability.
+   *
+   * @param typeSystem Type system
+   * @param typeName Type name
+   * @param isNullable Whether the type is nullable
+   * @param precision Precision (called length for some types)
+   */
+  public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
+      boolean isNullable, int precision) {
+    this(typeSystem, typeName, isNullable, precision, SCALE_NOT_SPECIFIED,
+        null, null);
     checkPrecScale(typeName, true, false);
   }
 
