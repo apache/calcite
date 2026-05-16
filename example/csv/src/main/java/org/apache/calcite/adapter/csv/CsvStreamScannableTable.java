@@ -65,7 +65,7 @@ public class CsvStreamScannableTable extends CsvScannableTable
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, true, null,
-            CsvEnumerator.arrayConverter(fieldTypes, fields, true));
+            CsvEnumerator.arrayConverter(fieldTypes, fields, true), ',');
       }
     };
   }
