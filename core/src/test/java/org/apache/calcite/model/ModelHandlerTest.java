@@ -21,15 +21,25 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.util.Sources;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Properties;
 import java.util.Set;
+import java.util.function.Predicate;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
 
@@ -54,6 +64,140 @@ public class ModelHandlerTest {
     Set<String> tables = scott.tables().getNames(new LikePattern("%"));
     assertThat(tables, is(ImmutableSet.of("EMP", "DEPT", "BONUS", "SALGRADE")));
     assertThat(h.defaultSchemaName(), is("SCOTT"));
+  }
+
+  @Test void testDenyUdfClass() {
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    SecurityException e =
+        assertThrows(SecurityException.class, () ->
+            ModelHandler.addFunctions(root, "lookup", ImmutableList.of(),
+                "javax.naming.InitialContext", "doLookup", false));
+    assertThat(e.getMessage(), containsString("javax.naming."));
+    assertThat(e.getMessage(), containsString("denylist"));
+  }
+
+  @Test void testCustomFilterPassedToConstructor() {
+    // A ModelHandler built with a stricter filter must reject classes
+    // its filter denies, even ones the standard filter would allow.
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    // java.lang.String is not in the standard denylist; the custom
+    // filter denies the whole java.lang. package.
+    ClassNameFilter strict = ClassNameFilter.of("java.lang.");
+    String model = "inline:{"
+        + "  version: '1.0',"
+        + "  defaultSchema: 'X',"
+        + "  schemas: [ {"
+        + "    name: 'X',"
+        + "    functions: [ {"
+        + "      name: 'F',"
+        + "      className: 'java.lang.String'"
+        + "    } ]"
+        + "  } ]"
+        + "}";
+    Throwable e =
+        assertThrows(RuntimeException.class, () ->
+            new ModelHandler(root, model, strict));
+    while (e != null && !(e instanceof SecurityException)) {
+      e = e.getCause();
+    }
+    assertThat("expected SecurityException in chain", e, notNullValue());
+    assertThat(e.getMessage(), containsString("java.lang."));
+  }
+
+  @Test void testAddFunctionsWithExplicitFilterDeniesClass() {
+    // The filter-taking overload of addFunctions must reject any class
+    // its filter denies.
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    SecurityException e =
+        assertThrows(SecurityException.class, () ->
+            ModelHandler.addFunctions(ClassNameFilter.standard(), root,
+                "lookup", "javax.naming.InitialContext", "doLookup", false));
+    assertThat(e.getMessage(), containsString("javax.naming."));
+  }
+
+  @Test void testDenyFactory() {
+    String model = "inline:{"
+        + "  version: '1.0',"
+        + "  defaultSchema: 'X',"
+        + "  schemas: [ {"
+        + "    name: 'X',"
+        + "    type: 'custom',"
+        + "    factory: 'javax.naming.InitialContext'"
+        + "  } ]"
+        + "}";
+    Properties info = new Properties();
+    info.setProperty("model", model);
+    Exception e =
+        assertThrows(Exception.class, () -> {
+          try (Connection ignored =
+                   DriverManager.getConnection("jdbc:calcite:", info)) {
+            // unreachable
+          }
+        });
+    Throwable cause = e;
+    while (cause != null && !(cause instanceof SecurityException)) {
+      cause = cause.getCause();
+    }
+    assertThat("expected a SecurityException in the chain",
+        cause != null, is(true));
+    assertThat(requireNonNull(cause, "cause").getMessage(),
+        containsString("javax.naming."));
+  }
+
+  @Test void testStaticFieldRefIsCheckedAgainstClass() {
+    // Avatica accepts "ClassName#FIELD" for plugin references; the filter
+    // must reject the class portion regardless of which field is named.
+    SecurityException e =
+        assertThrows(SecurityException.class, () ->
+            ClassNameFilter.standard().check(
+                "java.lang.Runtime#anything"));
+    assertThat(e.getMessage(), containsString("java.lang.Runtime"));
+  }
+
+  @Test void testLegitFactoryClassIsAllowed() {
+    // Sanity: a class outside the denylist passes (no exception).
+    ClassNameFilter.standard().check(
+        "org.apache.calcite.adapter.jdbc.JdbcSchema$Factory");
+    ClassNameFilter.standard().check(
+        "org.apache.calcite.schema.impl.AbstractSchema$Factory");
+    ClassNameFilter.standard().check(
+        "org.apache.calcite.adapter.jdbc.JdbcSchema$Factory#INSTANCE");
+  }
+
+  @Test void testPredicateContract() {
+    // ClassNameFilter implements Predicate<String>: true means "allowed".
+    Predicate<String> filter = ClassNameFilter.standard();
+    assertThat(filter.test(null), is(true));
+    assertThat(filter.test("javax.naming.InitialContext"), is(false));
+    assertThat(filter.test("java.lang.Runtime#getRuntime"), is(false));
+    assertThat(
+        filter.test(
+        "org.apache.calcite.adapter.jdbc.JdbcSchema$Factory"), is(true));
+  }
+
+  @Test void testFactoryMethodsCacheInstances() {
+    // standard() returns a single cached instance.
+    assertThat(ClassNameFilter.standard(),
+        sameInstance(ClassNameFilter.standard()));
+    // of() returns the same instance for equal inputs.
+    ClassNameFilter a = ClassNameFilter.of("com.evil.");
+    ClassNameFilter b = ClassNameFilter.of("com.evil.");
+    assertThat(a, sameInstance(b));
+    // Different inputs produce different instances.
+    ClassNameFilter c = ClassNameFilter.of("com.evil.,com.example.");
+    assertThat(a, not(sameInstance(c)));
+    // The cached filter behaves as configured.
+    assertThat(a.test("com.evil.Payload"), is(false));
+    assertThat(a.test("javax.naming.InitialContext"), is(true));
+  }
+
+  @Test void testAppendCombinesPatternStrings() {
+    // The denylist extension wired into ClassNameFilter.standard() works
+    // by string concatenation through ClassNameFilter.append.
+    assertThat(ClassNameFilter.append("a.,b.", ""), is("a.,b."));
+    assertThat(ClassNameFilter.append("", "c.,d."), is("c.,d."));
+    assertThat(ClassNameFilter.append("a.", "b."), is("a.,b."));
+    assertThat(ClassNameFilter.append("", ""), is(""));
   }
 
 }
