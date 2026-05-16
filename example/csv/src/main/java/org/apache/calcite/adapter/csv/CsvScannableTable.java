@@ -58,7 +58,7 @@ public class CsvScannableTable extends CsvTable
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, null,
-            CsvEnumerator.arrayConverter(fieldTypes, fields, false));
+            CsvEnumerator.arrayConverter(fieldTypes, fields, false), ',');
       }
     };
   }

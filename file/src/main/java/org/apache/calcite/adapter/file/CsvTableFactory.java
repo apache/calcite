@@ -25,6 +25,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
+import au.com.bytecode.opencsv.CSVParser;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
@@ -50,6 +52,17 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
     final Source source = Sources.file(base, fileName);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new CsvTranslatableTable(source, protoRowType);
+    final String separatorStr = (String) operand.get("separator");
+    final char separator;
+    if (separatorStr == null) {
+      separator = CSVParser.DEFAULT_SEPARATOR;
+    } else if (separatorStr.length() == 1) {
+      separator = separatorStr.charAt(0);
+    } else {
+      throw new IllegalArgumentException(
+          "Invalid separator '" + separatorStr
+              + "'. Separator must be a single character.");
+    }
+    return new CsvTranslatableTable(source, protoRowType, separator);
   }
 }

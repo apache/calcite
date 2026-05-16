@@ -273,6 +273,26 @@ sqlline> select distinct deptno from depts;
 3 rows selected (0.985 seconds)
 {% endhighlight %}
 
+### CSV Custom Separator
+
+When using `CsvTableFactory` to define a table in a model, you can specify an
+optional `separator` operand to use a custom delimiter.
+
+{% highlight json %}
+{
+  "name": "PIPE_DEPTS",
+  "type": "custom",
+  "factory": "org.apache.calcite.adapter.file.CsvTableFactory",
+  "operand": {
+    "file": "sales-csv/PIPE_DELIMITED.csv",
+    "separator": "|"
+  }
+}
+{% endhighlight %}
+
+The separator must be a single character. If not specified, it defaults to a
+comma.
+
 ## JSON files and model-free browsing
 
 Some files describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:

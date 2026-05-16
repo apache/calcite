@@ -23,6 +23,8 @@ import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
+import au.com.bytecode.opencsv.CSVParser;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -142,7 +144,8 @@ class FileSchema extends AbstractSchema {
     }
     final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
     if (sourceSansCsv != null) {
-      final Table table = new CsvTranslatableTable(source, null);
+      final Table table =
+          new CsvTranslatableTable(source, null, CSVParser.DEFAULT_SEPARATOR);
       builder.put(Util.first(tableName, sourceSansCsv.path()), table);
       return true;
     }
