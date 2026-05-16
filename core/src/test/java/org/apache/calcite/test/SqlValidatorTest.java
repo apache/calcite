@@ -6562,7 +6562,122 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     f.withSql(qualifyOnMultipleWindowFunctions).ok();
   }
 
-  /** Negative tests for the {@code QUALIFY} clause. */
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnNotAllowed() {
+    // DISTINCT ON is not allowed under default SQL conformance
+    sql("^SELECT DISTINCT ON (deptno) empno FROM emp^ ORDER BY deptno")
+        .fails("SELECT DISTINCT ON is not supported under the current SQL conformance level");
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnPositive() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    f.withSql("SELECT DISTINCT ON (deptno) empno, ename FROM emp ORDER BY deptno, empno")
+        .ok();
+
+    f.withSql("SELECT DISTINCT ON (deptno, job) empno FROM emp ORDER BY deptno, job, hiredate")
+        .ok();
+
+    f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno DESC")
+        .ok();
+
+    f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno NULLS FIRST")
+        .ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnNegative() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    // DISTINCT ON requires ORDER BY
+    f.withSql("^SELECT DISTINCT ON (deptno) empno FROM emp^")
+        .fails("SELECT DISTINCT ON requires an ORDER BY clause");
+
+    // ORDER BY must contain all DISTINCT ON expressions as prefix
+    f.withSql("SELECT DISTINCT ON (deptno, job) empno FROM emp ORDER BY ^deptno^")
+        .fails("SELECT DISTINCT ON expressions must match initial ORDER BY expressions");
+
+    // ORDER BY prefix must match exactly
+    f.withSql("SELECT DISTINCT ON (deptno, job) empno FROM emp ORDER BY ^job^, deptno")
+        .fails("SELECT DISTINCT ON expressions must match initial ORDER BY expressions");
+
+    // DISTINCT ON with extra ORDER BY is ok
+    f.withSql("SELECT DISTINCT ON (deptno) empno FROM emp ORDER BY deptno, job")
+        .ok();
+
+    // Duplicate expressions in DISTINCT ON are allowed but must be matched in ORDER BY
+    f.withSql("SELECT DISTINCT ON (deptno, deptno) deptno, empno FROM emp ORDER BY deptno, deptno")
+        .ok();
+
+    // DISTINCT ON with expression
+    f.withSql("SELECT DISTINCT ON (empno % 2) empno, ename FROM emp ORDER BY empno % 2")
+        .ok();
+
+    // Empty DISTINCT ON is not allowed (parse error)
+    f.withSql("SELECT DISTINCT ON ((^)^) deptno FROM emp")
+        .fails("(?s)Encountered \"\\)\" at .*");
+
+    // DISTINCT ON can reference alias (like ORDER BY)
+    f.withSql("SELECT DISTINCT ON (x) empno AS x, deptno FROM emp ORDER BY x")
+        .ok();
+
+    // DISTINCT ON with alias-column name clash: alias in SELECT takes precedence
+    f.withSql("SELECT DISTINCT ON (deptno) empno AS deptno, deptno AS d FROM emp ORDER BY deptno")
+        .ok();
+
+    // DISTINCT ON with qualified column reference
+    f.withSql("SELECT DISTINCT ON (e.deptno) e.deptno AS x, e.empno "
+            + "FROM emp AS e ORDER BY e.deptno")
+        .ok();
+
+    // Integer literal in both DISTINCT ON and ORDER BY matches at validator
+    // (ordinal resolution happens later in SqlToRelConverter)
+    f.withSql("SELECT DISTINCT ON (2) empno, ename FROM emp ORDER BY 2")
+        .ok();
+
+    // Expressions in DISTINCT ON (not ordinals)
+    f.withSql("SELECT DISTINCT ON (empno % 2, CHAR_LENGTH(ename)) empno, ename "
+            + "FROM emp ORDER BY empno % 2, CHAR_LENGTH(ename)")
+        .ok();
+
+    // DISTINCT ON referencing non-projected column requires ORDER BY
+    f.withSql("^SELECT DISTINCT ON (deptno) empno, ename FROM emp^")
+        .fails("SELECT DISTINCT ON requires an ORDER BY clause");
+
+    // DISTINCT ON with aggregate query
+    f.withSql("SELECT DISTINCT ON (deptno) deptno, SUM(sal) "
+            + "FROM emp GROUP BY deptno ORDER BY deptno")
+        .ok();
+
+    // DISTINCT ON with aggregate expression
+    f.withSql("SELECT DISTINCT ON (SUM(sal)) deptno, SUM(sal) "
+            + "FROM emp GROUP BY deptno ORDER BY SUM(sal)")
+        .ok();
+
+    // DISTINCT ON with aggregate query and alias
+    f.withSql("SELECT DISTINCT ON (sum_sal) deptno, SUM(sal) AS sum_sal "
+            + "FROM emp GROUP BY deptno ORDER BY sum_sal")
+        .ok();
+
+    // DISTINCT ON with USING join (requires qualified reference due to Calcite limitation)
+    f.withSql("SELECT DISTINCT ON (emp.deptno) * "
+            + "FROM emp JOIN dept USING (deptno) ORDER BY emp.deptno")
+        .ok();
+
+    // DISTINCT ON with NATURAL join (requires qualified reference due to Calcite limitation)
+    f.withSql("SELECT DISTINCT ON (emp.deptno) * FROM emp NATURAL JOIN dept ORDER BY emp.deptno")
+        .ok();
+  }
+
   @Test void testQualifyNegative() {
     final SqlValidatorFixture f =
         fixture().withConformance(SqlConformanceEnum.LENIENT);

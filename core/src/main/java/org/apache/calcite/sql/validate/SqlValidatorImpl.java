@@ -3069,8 +3069,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (orderList != null) {
         // If the query is 'SELECT DISTINCT', restrict the columns
         // available to the ORDER BY clause.
+        // DISTINCT ON is an exception: ORDER BY may reference columns
+        // not in the SELECT list.
         final SqlValidatorScope selectScope3 =
-            select.isDistinct()
+            (select.isDistinct() && !select.isDistinctOn())
                 ? new AggregatingSelectScope(selectScope, select, true)
                 : selectScope2;
         OrderByScope orderScope =
@@ -4265,6 +4267,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // dialects you can refer to columns of the select list, e.g.
     // "SELECT empno AS x FROM emp ORDER BY x"
     validateOrderList(select);
+    validateDistinctOnClause(select);
 
     if (shouldCheckForRollUp(from)) {
       checkRollUpInSelectList(select);
@@ -4797,6 +4800,54 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(qualifyNode,
           RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
     }
+  }
+
+  protected void validateDistinctOnClause(SqlSelect select) {
+    SqlNodeList distinctOn = select.getDistinctOn();
+    if (distinctOn == null || distinctOn.isEmpty()) {
+      return;
+    }
+
+    if (!config.conformance().isDistinctOnAllowed()) {
+      throw newValidationError(select, RESOURCE.distinctOnNotAllowed());
+    }
+
+    SqlNodeList orderList = select.getOrderList();
+    if (orderList == null || orderList.isEmpty()) {
+      throw newValidationError(select, RESOURCE.distinctOnRequiresOrderBy());
+    }
+
+    if (orderList.size() < distinctOn.size()) {
+      throw newValidationError(orderList.get(orderList.size() - 1),
+          RESOURCE.distinctOnOrderByMismatch());
+    }
+
+    final SqlValidatorScope orderScope = getOrderScope(select);
+    for (int i = 0; i < distinctOn.size(); i++) {
+      SqlNode distinctOnExpr = expand(distinctOn.get(i), orderScope);
+      SqlNode orderItem = orderList.get(i);
+      SqlNode orderExpr = stripOrderByModifiers(orderItem);
+      orderExpr = expand(orderExpr, orderScope);
+      if (!SqlNode.equalDeep(distinctOnExpr, orderExpr, Litmus.IGNORE)) {
+        throw newValidationError(orderItem, RESOURCE.distinctOnOrderByMismatch());
+      }
+    }
+  }
+
+  /** Strips ASC, DESC, NULLS FIRST, NULLS LAST from an ORDER BY item. */
+  private static SqlNode stripOrderByModifiers(SqlNode orderExpr) {
+    while (orderExpr instanceof SqlCall) {
+      SqlCall call = (SqlCall) orderExpr;
+      SqlKind kind = call.getKind();
+      if (kind == SqlKind.DESCENDING
+          || kind == SqlKind.NULLS_FIRST
+          || kind == SqlKind.NULLS_LAST) {
+        orderExpr = call.operand(0);
+      } else {
+        break;
+      }
+    }
+    return orderExpr;
   }
 
   protected void validateMustFilterRequirements(SqlSelect select, SelectNamespace ns) {

@@ -6198,6 +6198,104 @@ public class SqlParserTest {
     sql(sql).fails("(?s).*Encountered \"QUALIFY\" at .*");
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOn() {
+    final String sql = "SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno, empno";
+
+    final String expected = "SELECT DISTINCT ON (`DEPTNO`) `EMPNO`, `ENAME`\n"
+        + "FROM `EMP`\n"
+        + "ORDER BY `DEPTNO`, `EMPNO`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnMultiple() {
+    final String sql = "SELECT DISTINCT ON (deptno, job) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno, job, hiredate DESC";
+
+    final String expected = "SELECT DISTINCT ON (`DEPTNO`, `JOB`) `EMPNO`, `ENAME`\n"
+        + "FROM `EMP`\n"
+        + "ORDER BY `DEPTNO`, `JOB`, `HIREDATE` DESC";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnWithEverything() {
+    final String sql = "SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "FROM emp\n"
+        + "WHERE deptno > 3\n"
+        + "GROUP BY deptno, empno, ename\n"
+        + "HAVING COUNT(*) > 1\n"
+        + "ORDER BY deptno, empno\n"
+        + "LIMIT 5\n";
+
+    final String expected = "SELECT DISTINCT ON (`DEPTNO`) `EMPNO`, `ENAME`\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`DEPTNO` > 3)\n"
+        + "GROUP BY `DEPTNO`, `EMPNO`, `ENAME`\n"
+        + "HAVING (COUNT(*) > 1)\n"
+        + "ORDER BY `DEPTNO`, `EMPNO`\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnWithOffset() {
+    final String sql = "SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno, empno\n"
+        + "OFFSET 10 ROWS\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+
+    final String expected = "SELECT DISTINCT ON (`DEPTNO`) `EMPNO`, `ENAME`\n"
+        + "FROM `EMP`\n"
+        + "ORDER BY `DEPTNO`, `EMPNO`\n"
+        + "OFFSET 10 ROWS\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnWithExpression() {
+    final String sql = "SELECT DISTINCT ON (deptno + 1) empno, ename\n"
+        + "FROM emp\n"
+        + "ORDER BY deptno + 1, empno";
+
+    final String expected = "SELECT DISTINCT ON ((`DEPTNO` + 1)) `EMPNO`, `ENAME`\n"
+        + "FROM `EMP`\n"
+        + "ORDER BY (`DEPTNO` + 1), `EMPNO`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
+   * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */
+  @Test void testDistinctOnWithJoin() {
+    final String sql = "SELECT DISTINCT ON (e.deptno) e.empno, d.dname\n"
+        + "FROM emp AS e JOIN dept AS d ON e.deptno = d.deptno\n"
+        + "ORDER BY e.deptno, e.empno";
+
+    final String expected = "SELECT DISTINCT ON (`E`.`DEPTNO`) "
+        + "`E`.`EMPNO`, `D`.`DNAME`\n"
+        + "FROM `EMP` AS `E`\n"
+        + "INNER JOIN `DEPT` AS `D` ON (`E`.`DEPTNO` = `D`.`DEPTNO`)\n"
+        + "ORDER BY `E`.`DEPTNO`, `E`.`EMPNO`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testNullTreatment() {
     sql("select lead(x) respect nulls over (w) from t")
         .ok("SELECT (LEAD(`X`) RESPECT NULLS OVER (`W`))\n"

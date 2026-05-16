@@ -619,6 +619,7 @@ data: {
     includeIntervalWithoutQualifier: true
     includeStarExclude: true
     includeSelectBy: true
+    includeDistinctOn: true
   }
 }
 

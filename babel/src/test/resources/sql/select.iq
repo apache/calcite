@@ -286,4 +286,82 @@ select d1.* except(d1.dname) from dept d1 except(select d2.* except(d2.dname) fr
 
 !ok
 
+# [CALCITE-5406] Support the SELECT DISTINCT ON statement for PostgreSQL dialect
+
+# Test basic DISTINCT ON
+SELECT DISTINCT ON (deptno) empno, ename, deptno
+FROM emp
+ORDER BY deptno, empno;
++-------+-------+--------+
+| EMPNO | ENAME | DEPTNO |
++-------+-------+--------+
+|  7782 | CLARK |     10 |
+|  7369 | SMITH |     20 |
+|  7499 | ALLEN |     30 |
++-------+-------+--------+
+(3 rows)
+
+!ok
+
+# Test DISTINCT ON with descending order
+SELECT DISTINCT ON (deptno) empno, ename, sal, deptno
+FROM emp
+ORDER BY deptno, sal DESC, empno;
++-------+-------+---------+--------+
+| EMPNO | ENAME | SAL     | DEPTNO |
++-------+-------+---------+--------+
+|  7839 | KING  | 5000.00 |     10 |
+|  7788 | SCOTT | 3000.00 |     20 |
+|  7698 | BLAKE | 2850.00 |     30 |
++-------+-------+---------+--------+
+(3 rows)
+
+!ok
+
+# Test DISTINCT ON with multiple columns
+SELECT DISTINCT ON (deptno, job) empno, ename, deptno, job
+FROM emp
+ORDER BY deptno, job, empno;
++-------+--------+--------+-----------+
+| EMPNO | ENAME  | DEPTNO | JOB       |
++-------+--------+--------+-----------+
+|  7934 | MILLER |     10 | CLERK     |
+|  7782 | CLARK  |     10 | MANAGER   |
+|  7839 | KING   |     10 | PRESIDENT |
+|  7788 | SCOTT  |     20 | ANALYST   |
+|  7369 | SMITH  |     20 | CLERK     |
+|  7566 | JONES  |     20 | MANAGER   |
+|  7900 | JAMES  |     30 | CLERK     |
+|  7698 | BLAKE  |     30 | MANAGER   |
+|  7499 | ALLEN  |     30 | SALESMAN  |
++-------+--------+--------+-----------+
+(9 rows)
+
+!ok
+
+# Test DISTINCT ON with expression
+SELECT DISTINCT ON (deptno) empno, ename, sal * 12 AS annual_sal, deptno
+FROM emp
+ORDER BY deptno, sal DESC, empno;
++-------+-------+------------+--------+
+| EMPNO | ENAME | ANNUAL_SAL | DEPTNO |
++-------+-------+------------+--------+
+|  7788 | SCOTT |   36000.00 |     20 |
+|  7839 | KING  |   60000.00 |     10 |
+|  7698 | BLAKE |   34200.00 |     30 |
++-------+-------+------------+--------+
+(3 rows)
+
+!ok
+
+# Test DISTINCT ON unparse
+SELECT DISTINCT ON (deptno) empno, ename, deptno
+FROM emp
+ORDER BY deptno, empno;
+
+SELECT DISTINCT ON ("DEPTNO") "EMP"."EMPNO", "EMP"."ENAME", "EMP"."DEPTNO"
+FROM "scott"."EMP" AS "EMP"
+ORDER BY "DEPTNO", "EMPNO"
+!explain-validated-on all
+
 # End select.iq
