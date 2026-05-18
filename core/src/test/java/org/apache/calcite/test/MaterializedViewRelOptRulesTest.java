@@ -251,6 +251,44 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+  @Test void testAggregateGroupSets1() {
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"emps\" group by cube(\"empid\",\"deptno\")",
+        "select count(*) + 1 as c, \"deptno\"\n"
+            + "from \"emps\" group by cube(\"empid\",\"deptno\")")
+        .checkingThatResultContains("EnumerableCalc("
+            + "expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t2, $t4)], $f0=[$t5], deptno=[$t1])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+  @Test void testAggregateGroupSets2() {
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"emps\" group by cube(\"empid\",\"deptno\")",
+        "select count(*) + 1 as c, \"deptno\"\n"
+            + "from \"emps\" group by rollup(\"empid\",\"deptno\")")
+        .noMat();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+  @Test void testAggregateGroupSetsRollUp() {
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"emps\" group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c, \"deptno\"\n"
+            + "from \"emps\" group by cube(\"empid\",\"deptno\")")
+        .checkingThatResultContains("EnumerableCalc("
+            + "expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
+            + "  EnumerableAggregate(group=[{0, 1}], "
+            + "groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
   @Test void testAggregateMaterializationAggregateFuncs9() {
     sql("select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), "
             + "count(*) + 1 as c, sum(\"empid\") as s\n"

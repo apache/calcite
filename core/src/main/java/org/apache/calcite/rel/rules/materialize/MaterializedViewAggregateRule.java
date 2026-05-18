@@ -103,10 +103,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       return false;
     }
     Aggregate aggregate = (Aggregate) node;
-    if (aggregate.getGroupType() != Aggregate.Group.SIMPLE) {
-      // TODO: Rewriting with grouping sets not supported yet
-      return false;
-    }
     return isValidRelNodePlan(aggregate.getInput(), mq);
   }
 
@@ -187,7 +183,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
             aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
     final Aggregate newViewNode =
         aggregateViewNode.copy(aggregateViewNode.getTraitSet(),
-            relBuilder.build(), groupSet.build(), null,
+            relBuilder.build(), groupSet.build(),
+            aggregateViewNode.getGroupType() == Aggregate.Group.SIMPLE
+                ? null
+                : aggregateViewNode.getGroupSets(),
             aggregateViewNode.getAggCallList());
 
     relBuilder.push(newViewNode);
@@ -388,6 +387,24 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       EquivalenceClasses queryEC) {
     final Aggregate queryAggregate = (Aggregate) node;
     final Aggregate viewAggregate = (Aggregate) viewNode;
+
+    final boolean queryHasGroupingSets =
+        queryAggregate.getGroupType() != Aggregate.Group.SIMPLE;
+    final boolean viewHasGroupingSets =
+        viewAggregate.getGroupType() != Aggregate.Group.SIMPLE;
+
+    if (viewHasGroupingSets && !queryHasGroupingSets) {
+      // View produces extra rows (subtotals) that the query doesn't need.
+      return null;
+    }
+
+    if (queryHasGroupingSets && viewHasGroupingSets) {
+      // Both have grouping sets. Only support exact match for now.
+      if (!queryAggregate.getGroupSets().equals(viewAggregate.getGroupSets())) {
+        return null;
+      }
+    }
+
     // Get group by references and aggregate call input references needed
     final ImmutableBitSet.Builder indexes = ImmutableBitSet.builder();
     final ImmutableBitSet references;
@@ -523,12 +540,16 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     final List<RexNode> inputViewExprs = new ArrayList<>(relBuilder.fields());
     if (forceRollup
         || queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
-        || matchModality == MatchModality.VIEW_PARTIAL) {
+        || matchModality == MatchModality.VIEW_PARTIAL
+        || (queryHasGroupingSets && !viewHasGroupingSets)) {
       if (containsDistinctAgg) {
         // Cannot rollup DISTINCT aggregate
         return null;
       }
       // Target is coarser level of aggregation. Generate an aggregate.
+      final int[] queryGroupPosToNewGroupPos =
+          new int[queryAggregate.getGroupCount()];
+      java.util.Arrays.fill(queryGroupPosToNewGroupPos, -1);
       final ImmutableMultimap.Builder<Integer, Integer> rewritingMappingB =
           ImmutableMultimap.builder();
       final ImmutableBitSet.Builder groupSetB = ImmutableBitSet.builder();
@@ -556,6 +577,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
             exprsLineage.put(ref, k);
           }
           // We create the new node pointing to the index
+          queryGroupPosToNewGroupPos[i] = inputViewExprs.size();
           groupSetB.set(inputViewExprs.size());
           rewritingMappingB.put(inputViewExprs.size(), i);
           additionalViewExprs.add(
@@ -573,11 +595,29 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
             // No matching group by column, we bail out
             return null;
           }
+          queryGroupPosToNewGroupPos[i] = k;
           groupSetB.set(k);
           rewritingMappingB.put(k, i);
         }
       }
       final ImmutableBitSet groupSet = groupSetB.build();
+      final List<ImmutableBitSet> newGroupSets;
+      if (queryHasGroupingSets) {
+        newGroupSets = new ArrayList<>();
+        for (ImmutableBitSet queryGroupSet : queryAggregate.getGroupSets()) {
+          ImmutableBitSet.Builder newGroupSet = ImmutableBitSet.builder();
+          for (int inputColIdx : queryGroupSet) {
+            int outputPos = queryAggregate.getGroupSet().indexOf(inputColIdx);
+            if (outputPos < 0 || queryGroupPosToNewGroupPos[outputPos] < 0) {
+              return null;
+            }
+            newGroupSet.set(queryGroupPosToNewGroupPos[outputPos]);
+          }
+          newGroupSets.add(newGroupSet.build());
+        }
+      } else {
+        newGroupSets = ImmutableList.of(groupSet);
+      }
       final List<AggCall> aggregateCalls = new ArrayList<>();
       for (Ord<AggregateCall> ord : Ord.zip(queryAggregate.getAggCallList())) {
         final int sourceIdx = queryAggregate.getGroupCount() + ord.i;
@@ -617,7 +657,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         relBuilder.project(inputViewExprs);
       }
       relBuilder
-          .aggregate(relBuilder.groupKey(groupSet), aggregateCalls);
+          .aggregate(relBuilder.groupKey(groupSet, newGroupSets), aggregateCalls);
       if (prevNode == relBuilder.peek()
           && groupSet.cardinality() != relBuilder.peek().getRowType().getFieldCount()) {
         // Aggregate was not inserted but we need to prune columns
