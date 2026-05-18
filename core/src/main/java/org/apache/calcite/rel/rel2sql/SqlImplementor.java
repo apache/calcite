@@ -2737,6 +2737,12 @@ public abstract class SqlImplementor {
       if (rel instanceof Project && rel.getInput(0) instanceof Project) {
         Project topProject = (Project) rel;
         Project bottomProject = (Project) rel.getInput(0);
+        if (bottomProject.getInput() instanceof LogicalFilter
+            && clauses.contains(Clause.QUALIFY)
+            && hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection(topProject)) {
+          return true;
+        }
+
         List<RexNode> mergedNodes =
             RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(), bottomProject, bloat);
         if (mergedNodes == null) {
