@@ -1764,15 +1764,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    LOGGER.debug("REGEXP_SIMILAR unparse — operand count: {}, source call: {}",
-        call.operandCount(), call);
-    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    writer.print("CAST(");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec, call.getOperator().getName());
-    writer.sep(",");
-    writer.literal("1");
-    writer.sep(",");
-    writer.literal("0");
-    writer.endFunCall(ifFrame);
+    writer.print(" AS INT64)");
   }
 
   private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
@@ -1848,12 +1842,8 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   private static SqlCharStringLiteral anchorRegexForFullMatch(SqlNode patternNode) {
     String pattern = removeLeadingAndTrailingSingleQuotes(patternNode.toString());
-    LOGGER.debug("REGEXP_SIMILAR full-match anchor check — original pattern: [{}]", pattern);
     if (!(pattern.startsWith("^") && pattern.endsWith("$"))) {
       pattern = "^" + pattern + "$";
-      LOGGER.debug("REGEXP_SIMILAR full-match anchor check — anchored pattern:  [{}]", pattern);
-    } else {
-      LOGGER.debug("REGEXP_SIMILAR full-match anchor check — pattern already anchored, skipping");
     }
     return SqlLiteral.createCharString(pattern, SqlParserPos.ZERO);
   }

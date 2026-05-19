@@ -9268,8 +9268,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000' , "
-        + "r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('12-12-2000' , "
+        + "r'^\\d\\d-\\w{2}-\\d{4}$') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('12-12-2000' rlike r'^\\d\\d-\\w{2}-\\d{4}$', 1, 0)"
@@ -9289,8 +9289,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike BIrd' , "
-        + "r'^(?i)MikE B(i|y)RD$'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('Mike BIrd' , "
+        + "r'^(?i)MikE B(i|y)RD$') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
@@ -9310,7 +9310,7 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('Mike' , r'Mike') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike' rlike r'(?x)M i k e', 1, 0)"
@@ -9331,8 +9331,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike Bird' , "
-        + "r'Mike B(i|y)RD'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('Mike Bird' , "
+        + "r'Mike B(i|y)RD') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
@@ -10776,7 +10776,7 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedBiqQuery = "SELECT "
-        + "IF(REGEXP_CONTAINS('12-12-2000' , r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS regexpLike, "
+        + "CAST(REGEXP_CONTAINS('12-12-2000' , r'^\\d\\d-\\w{2}-\\d{4}$') AS INT64) AS regexpLike, "
         + "REGEXP_EXTRACT('Calcite', '\\.', 'DM.') AS regexpExtract, "
         + "REGEXP_REPLACE('Calcite', '\\.', 'DM.') AS regexpReplace\n"
         + "FROM scott.EMP";
