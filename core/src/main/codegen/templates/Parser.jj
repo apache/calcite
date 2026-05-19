@@ -3715,8 +3715,12 @@ SqlNode Query(ExprContext exprContext) :
     final List<Object> list = new ArrayList<Object>();
 }
 {
-    [ withList = WithList() ]
-    e = LeafQuery(exprContext) { list.add(e); }
+    (
+        withList = WithList()
+        e = LeafQueryOrExpr(exprContext) { list.add(e); }
+    |
+        e = LeafQuery(exprContext) { list.add(e); }
+    )
     ( AddSetOpQuery(list, exprContext) )*
     { return addWith(withList, SqlParserUtil.toTree(list)); }
 }
