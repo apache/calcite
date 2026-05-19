@@ -2827,6 +2827,22 @@ public class SqlParserTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7533">[CALCITE-7533]
+   * Parser rejects parenthesized query as the body of a WITH clause</a>. */
+  @Test void testWithParenthesizedBody() {
+    final String sql = "select * from (\n"
+        + "  with q as (select 1 as id)\n"
+        + "  (select id from q) union all (select id from q)) t";
+    final String expected = "SELECT *\n"
+        + "FROM (WITH `Q` AS (SELECT 1 AS `ID`) SELECT `ID`\n"
+        + "FROM `Q`\n"
+        + "UNION ALL\n"
+        + "SELECT `ID`\n"
+        + "FROM `Q`) AS `T`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5252">[CALCITE-5252]
    * JDBC adapter sometimes miss parentheses around SELECT in WITH_ITEM body</a>. */
   @Test void testWithAsUnion() {
