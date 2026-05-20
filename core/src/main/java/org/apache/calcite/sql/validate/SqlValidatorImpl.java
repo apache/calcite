@@ -6638,7 +6638,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private PairList<String, RelDataType> validateMeasure(SqlMatchRecognize mr,
       MatchRecognizeScope scope, boolean allRows) {
-    final List<String> aliases = new ArrayList<>();
+    final Set<String> aliases = new HashSet<>();
     final List<SqlNode> sqlNodes = new ArrayList<>();
     final SqlNodeList measures = mr.getMeasureList();
     final PairList<String, RelDataType> fields = PairList.of();
@@ -6646,7 +6646,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode measure : measures) {
       assert measure instanceof SqlCall;
       final String alias = SqlValidatorUtil.alias(measure, aliases.size());
-      aliases.add(alias);
+      if (!aliases.add(alias)) {
+        throw RESOURCE.measureAliasDuplicate(alias).ex();
+      }
 
       SqlNode expand = expand(measure, scope);
       expand = navigationInMeasure(expand, allRows);

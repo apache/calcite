@@ -2760,6 +2760,59 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected11);
     sql(expected11)
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    // Test cases for [CALCITE-7538] https://issues.apache.org/jira/browse/CALCITE-7538
+    // SqlValidatorImpl should reject MATCH_RECOGNIZE with duplicate MEASURE alias
+    final String sql12 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    A.deptno AS deptno,\n"
+        + "    A.deptno AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+
+    sql(sql12)
+        .fails("Duplicate name 'DEPTNO' in MATCH_RECOGNIZE MEASURE alias list");
+
+    final String sql13 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    A.deptno AS deptno,\n"
+        + "    A.deptno AS DePtNo\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+
+    sql(sql13)
+        .fails("Duplicate name 'DEPTNO' in MATCH_RECOGNIZE MEASURE alias list");
+
+    final String sql14 = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    A.deptno AS deptno,\n"
+        + "    A.deptno AS \"DePtNo\"\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ")";
+
+    final String expected14 = "SELECT `EXPR$0`.`DEPTNO`, `EXPR$0`.`DePtNo`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL `A`.`DEPTNO` AS `DEPTNO`, FINAL `A`.`DEPTNO` AS `DePtNo`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `EXPR$0`";
+
+    sql(sql14)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected14);
+    sql(expected14)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testIntervalTimeUnitEnumeration() {
