@@ -8449,6 +8449,38 @@ class RelToSqlConverterTest {
         .withDoris().ok(expectedStarRocks);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7537">[CALCITE-7537]
+   * Invalid Postgres SQL generated for right-deep comma join trees</a>.
+   *
+   * <p>As {@link #testCommaCrossJoin3way()}, but with a right-deep join tree.
+   * The SQL parser produces left-deep trees, so we use {@link RelBuilder}
+   * to construct: {@code Join(DEPT, Join(BONUS, SALGRADE))}.
+   *
+   * <p>A right-deep cross join should produce the same flat comma-separated
+   * FROM list as a left-deep one. */
+  @Test void testCommaCrossJoin3wayRightDeep() {
+    // Use tables with no overlapping column names to avoid SELECT * expansion
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("DEPT")
+            .scan("BONUS")
+            .scan("SALGRADE")
+            .join(JoinRelType.INNER) // Join(BONUS, SALGRADE)
+            .join(JoinRelType.INNER) // Join(DEPT, Join(BONUS, SALGRADE))
+            .build();
+    final String expectedMysql = "SELECT *\n"
+        + "FROM `scott`.`DEPT`,\n"
+        + "`scott`.`BONUS`,\n"
+        + "`scott`.`SALGRADE`";
+    final String expectedPostgresql = "SELECT *\n"
+        + "FROM \"scott\".\"DEPT\",\n"
+        + "\"scott\".\"BONUS\",\n"
+        + "\"scott\".\"SALGRADE\"";
+    relFn(relFn)
+        .withMysql().ok(expectedMysql)
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
   /** As {@link #testCommaCrossJoin3way()}, but shows that if there is a
    * {@code LEFT JOIN} in the FROM clause, we can't use comma-join. */
   @Test void testLeftJoinPreventsCommaJoin() {
