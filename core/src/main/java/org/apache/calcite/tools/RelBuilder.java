@@ -2077,13 +2077,7 @@ public class RelBuilder {
 
     // Simplify expressions.
     if (config.simplify()) {
-      nodeList.replaceAll(e -> {
-        boolean skipSimplify = e.getComment() != null
-            && !e.getComment().isEmpty()
-            && "skip_simplify".equals(
-            e.getComment().iterator().next().getComment());
-        return skipSimplify ? e : simplifier.simplifyPreservingType(e);
-      });
+      nodeList.replaceAll(e -> e.getSkipSimplifier() ? e : simplifier.simplifyPreservingType(e));
     }
 
     // Replace null names with generated aliases.
@@ -2408,8 +2402,9 @@ public class RelBuilder {
         comments.addAll(operand.getComment());
       });
       comments.addAll(call.getComment());
+      boolean skipSimplifier = call.getSkipSimplifier();
       if (i >= 0) {
-        exprList.set(i, call.getOperands().get(0).copy(comments));
+        exprList.set(i, call.getOperands().get(0).copy(comments).setSkipSimplifier(skipSimplifier));
       }
       NlsString value = (NlsString) ((RexLiteral) call.getOperands().get(1)).getValue();
       return castNonNull(value)

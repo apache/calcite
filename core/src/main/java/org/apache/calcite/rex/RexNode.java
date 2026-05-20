@@ -48,6 +48,7 @@ public abstract class RexNode extends CommentNode {
 
   // Effectively final. Set in each sub-class constructor, and never re-set.
   protected @MonotonicNonNull String digest;
+  protected boolean skipSimplifier = false;
 
   public RexNode() {
     super();
@@ -94,6 +95,25 @@ public abstract class RexNode extends CommentNode {
    */
   public SqlKind getKind() {
     return SqlKind.OTHER;
+  }
+
+  /**
+   * Returns the skipSimplifier of node this is.
+   *
+   * @return Node kind, never null
+   */
+  public boolean getSkipSimplifier() {
+    return skipSimplifier;
+  }
+
+  /**
+   * Returns the RexNode with updated skipSimplifier flag value.
+   *
+   * @return this
+   */
+  public RexNode setSkipSimplifier(boolean skipSimplifier) {
+    this.skipSimplifier = skipSimplifier;
+    return this;
   }
 
   @Override public String toString() {
