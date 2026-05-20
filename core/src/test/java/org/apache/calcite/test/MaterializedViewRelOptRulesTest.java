@@ -252,7 +252,23 @@ class MaterializedViewRelOptRulesTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
-   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>.
+   *
+   * <p>Query: {@code SELECT count(*) + 1 AS c, deptno FROM emps GROUP BY CUBE(empid, deptno)}
+   *
+   * <p>Without MV:
+   * <pre>
+   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
+   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[COUNT()])
+   *       EnumerableTableScan(table=[[hr, emps]])
+   * </pre>
+   *
+   * <p>With MV: query matches the MV definition exactly (same grouping sets),
+   * so it can be rewritten to scan MV0 directly.
+   * <pre>
+   *   EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t2, $t4)], $f0=[$t5], deptno=[$t1])
+   *     EnumerableTableScan(table=[[hr, MV0]])
+   * </pre> */
   @Test void testAggregateGroupSets1() {
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"emps\" group by cube(\"empid\",\"deptno\")",
@@ -265,7 +281,21 @@ class MaterializedViewRelOptRulesTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
-   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>.
+   *
+   * <p>Query: {@code SELECT count(*) + 1 AS c, deptno FROM emps GROUP BY ROLLUP(empid, deptno)}
+   *
+   * <p>Without MV:
+   * <pre>
+   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
+   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], agg#0=[COUNT()])
+   *       EnumerableTableScan(table=[[hr, emps]])
+   * </pre>
+   *
+   * <p>With MV: the MV is defined as CUBE, which produces an extra grouping set
+   * {@code {deptno}} that the query does not need. Current implementation only
+   * supports exact match when both query and MV have grouping sets, so it
+   * cannot be rewritten. */
   @Test void testAggregateGroupSets2() {
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"emps\" group by cube(\"empid\",\"deptno\")",
@@ -275,7 +305,25 @@ class MaterializedViewRelOptRulesTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
-   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>.
+   *
+   * <p>Query: {@code SELECT count(*) + 1 AS c, deptno FROM emps GROUP BY CUBE(empid, deptno)}
+   *
+   * <p>Without MV:
+   * <pre>
+   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
+   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[COUNT()])
+   *       EnumerableTableScan(table=[[hr, emps]])
+   * </pre>
+   *
+   * <p>With MV: the MV is a simple GROUP BY, which is finer-grained than the
+   * query's CUBE. An additional aggregate is introduced on top of MV0 to
+   * roll up the subtotals.
+   * <pre>
+   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
+   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])
+   *       EnumerableTableScan(table=[[hr, MV0]])
+   * </pre> */
   @Test void testAggregateGroupSetsRollUp() {
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"emps\" group by \"empid\", \"deptno\"",
