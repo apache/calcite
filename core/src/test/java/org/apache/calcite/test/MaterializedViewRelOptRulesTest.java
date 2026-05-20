@@ -266,7 +266,8 @@ class MaterializedViewRelOptRulesTest {
    * <p>With MV: query matches the MV definition exactly (same grouping sets),
    * so it can be rewritten to scan MV0 directly.
    * <pre>
-   *   EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t2, $t4)], $f0=[$t5], deptno=[$t1])
+   *   EnumerableCalc(
+   *   expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t2, $t4)], $f0=[$t5], deptno=[$t1])
    *     EnumerableTableScan(table=[[hr, MV0]])
    * </pre> */
   @Test void testAggregateGroupSets1() {
