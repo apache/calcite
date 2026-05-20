@@ -1479,13 +1479,16 @@ class RelToSqlConverterDMTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSpark = "SELECT TRIM(' ' FROM ' str ')\nFROM foodmart"
         + ".reserve_employee";
+    final String expectedPostgres = "SELECT TRIM(' str ')\nFROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
       .ok(expectedSpark)
       .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withPostgresql()
+        .ok(expectedPostgres);
   }
 
   @Test void testHiveSparkAndBqTrimWithBoth() {
@@ -14731,5 +14734,17 @@ class RelToSqlConverterDMTest {
         + "CAST(10 AS NUMERIC) AS test\nFROM foodmart.employee";
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpContains() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode regexpContainsNode =
+        builder.call(SqlLibraryOperators.REGEXP_CONTAINS,  builder.literal("Mike Bird"),
+            builder.literal("r'^[a-zA-Z ]*$'"));
+    final RelNode root = builder.project(regexpContainsNode).build();
+
+    final String expectedQuery = "SELECT REGEXP_CONTAINS('Mike Bird', r'^[a-zA-Z ]*$') AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedQuery));
   }
 }
