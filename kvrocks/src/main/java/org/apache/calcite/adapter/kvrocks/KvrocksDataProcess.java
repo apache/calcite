@@ -20,7 +20,12 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -28,6 +33,7 @@ import java.util.regex.Pattern;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.StreamEntry;
 import redis.clients.jedis.StreamEntryID;
+import redis.clients.jedis.commands.ProtocolCommand;
 
 import static java.util.Objects.requireNonNull;
 
@@ -82,6 +88,11 @@ public class KvrocksDataProcess {
       return parseValues(jedis.hvals(tableName));
     case STREAM:
       return readStream();
+    case JSON:
+      return readJson();
+    case BLOOM:
+      throw new UnsupportedOperationException(
+          "Kvrocks Bloom filters cannot be scanned as relational rows");
     default:
       return new ArrayList<>();
     }
@@ -97,6 +108,16 @@ public class KvrocksDataProcess {
       }
     }
     return rows;
+  }
+
+  /** Reads a native Kvrocks JSON value via JSON.GET. */
+  private List<Object[]> readJson() {
+    String value =
+        commandResponseToString(jedis.sendCommand(KvrocksCommand.JSON_GET, tableName));
+    if (value == null) {
+      return new ArrayList<>();
+    }
+    return Collections.singletonList(parseRow(value));
   }
 
   /** Reads entries from a Kvrocks Stream via XRANGE. */
@@ -167,5 +188,32 @@ public class KvrocksDataProcess {
       throw new RuntimeException("Failed to parse JSON value: " + value, e);
     }
     return row;
+  }
+
+  private static @Nullable String commandResponseToString(
+      @Nullable Object response) {
+    if (response == null) {
+      return null;
+    }
+    if (response instanceof byte[]) {
+      return StandardCharsets.UTF_8.decode(
+          ByteBuffer.wrap((byte[]) response)).toString();
+    }
+    return response.toString();
+  }
+
+  /** Kvrocks module commands not exposed by Jedis 3.3. */
+  private enum KvrocksCommand implements ProtocolCommand {
+    JSON_GET("JSON.GET");
+
+    private final byte[] raw;
+
+    KvrocksCommand(String command) {
+      this.raw = command.getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override public byte[] getRaw() {
+      return raw;
+    }
   }
 }

@@ -19,10 +19,11 @@ package org.apache.calcite.adapter.kvrocks;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Data types supported by Kvrocks.
+ * Data types returned by the Kvrocks {@code TYPE} command.
  *
- * <p>Kvrocks supports all classic Redis data types plus additional types
- * such as JSON, Stream, and Bloom Filter.
+ * <p>The adapter can scan most enumerable Kvrocks structures. Bloom filters
+ * are recognized so callers receive a clear unsupported error instead of
+ * silently getting an empty result.
  */
 public enum KvrocksDataType {
 
@@ -47,7 +48,7 @@ public enum KvrocksDataType {
   /** Native JSON document storage (since Kvrocks 2.7). */
   JSON("ReJSON-RL"),
 
-  /** Probabilistic membership filter (since Kvrocks 2.6). */
+  /** Probabilistic membership filter (since Kvrocks 2.6), not enumerable. */
   BLOOM("MBbloom--");
 
   private final String typeName;
