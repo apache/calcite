@@ -25,7 +25,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -112,12 +111,14 @@ public class KvrocksDataProcess {
 
   /** Reads a native Kvrocks JSON value via JSON.GET. */
   private List<Object[]> readJson() {
+    List<Object[]> rows = new ArrayList<>();
     String value =
         commandResponseToString(jedis.sendCommand(KvrocksCommand.JSON_GET, tableName));
     if (value == null) {
-      return new ArrayList<>();
+      return rows;
     }
-    return Collections.singletonList(parseRow(value));
+    rows.add(parseRow(value));
+    return rows;
   }
 
   /** Reads entries from a Kvrocks Stream via XRANGE. */
@@ -206,14 +207,14 @@ public class KvrocksDataProcess {
   private enum KvrocksCommand implements ProtocolCommand {
     JSON_GET("JSON.GET");
 
-    private final byte[] raw;
+    private final String command;
 
     KvrocksCommand(String command) {
-      this.raw = command.getBytes(StandardCharsets.UTF_8);
+      this.command = command;
     }
 
     @Override public byte[] getRaw() {
-      return raw;
+      return command.getBytes(StandardCharsets.UTF_8);
     }
   }
 }
