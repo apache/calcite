@@ -192,7 +192,7 @@ class JdbcSchemaDecimalBugTest {
            ResultSet rs =
                st.executeQuery("SELECT * FROM \"oracle\".\"TEST_NUMBERS\"")) {
         while (rs.next()) {
-          //drain
+          // drain
         }
       }
     }
@@ -201,6 +201,7 @@ class JdbcSchemaDecimalBugTest {
   /**
    * PostgreSQL {@code NUMERIC} without precision (e.g. {@code col NUMERIC})
    * must not cause Calcite to throw.
+   *
    * <p>PostgreSQL reports {@code precision=0, scale=0} for such columns.
    */
   @Test void postgresNumericWithoutPrecisionShouldNotThrow() throws Exception {
