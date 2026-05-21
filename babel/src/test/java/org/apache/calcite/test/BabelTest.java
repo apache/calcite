@@ -275,6 +275,79 @@ class BabelTest {
         .fails("SELECT \\* EXCLUDE/EXCEPT list cannot exclude all columns");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7532">
+   * [CALCITE-7532] Support the syntax SELECT * REPLACE(expr as column)</a>. */
+  @Test void testStarReplaceValidation() {
+    final SqlValidatorFixture fixture = Fixtures.forValidator()
+        .withParserConfig(p -> p.withParserFactory(SqlBabelParserImpl.FACTORY));
+
+    fixture.withSql("select * replace(empno + 1 as empno) from emp")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("EMPNO", "ENAME", "JOB", "MGR",
+              "HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER")));
+          // Verify that EMPNO type is still INTEGER (or similar)
+          assertThat(type.getFieldList().get(0).getType().getSqlTypeName().getName(),
+              is("INTEGER"));
+        });
+
+    fixture.withSql("select * replace(empno + 1 as empno, sal * 2 as sal) from emp")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("EMPNO", "ENAME", "JOB", "MGR",
+              "HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER")));
+        });
+
+    // REPLACE with a completely different type
+    fixture.withSql("select * replace('fixed' as empno) from emp")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("EMPNO", "ENAME", "JOB", "MGR",
+              "HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER")));
+          // EMPNO was INTEGER, now replaced by a CHAR literal
+          assertThat(type.getFieldList().get(0).getType().getSqlTypeName().getName(),
+              is("CHAR"));
+        });
+
+    // Same column replaced twice
+    fixture.withSql("select * replace(empno + 1 as empno, 'fixed' as ^empno^) from emp")
+        .fails("SELECT \\* REPLACE list contains duplicate column\\(s\\): EMPNO");
+
+    // Unknown column in REPLACE list
+    fixture.withSql("select * replace(empno + 1 as ^foo^) from emp")
+        .fails("SELECT \\* REPLACE list contains unknown column\\(s\\): FOO");
+
+    // Table-qualified star with REPLACE
+    fixture.withSql("select e.* replace(e.empno + 1 as e.empno)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("EMPNO", "ENAME", "JOB", "MGR",
+              "HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER")));
+        });
+
+    // REPLACE with unknown qualified column
+    fixture.withSql("select e.* replace(e.empno + 1 as ^d.deptno^)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .fails("SELECT \\* REPLACE list contains unknown column\\(s\\): DEPTNO");
+  }
+
   /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
    * frames. */
   @Test void testTimeFrames() {

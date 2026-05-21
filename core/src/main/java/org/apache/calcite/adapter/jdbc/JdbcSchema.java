@@ -456,7 +456,14 @@ public class JdbcSchema extends JdbcBaseSchema implements Schema, Wrapper {
     if (precision >= 0
         && scale >= 0
         && sqlTypeName.allowsPrecScale(true, true)) {
-      return typeFactory.createSqlType(sqlTypeName, precision, scale);
+      int p = precision;
+      // Some JDBC drivers (e.g. PostgreSQL) report column size 0 for NUMERIC /
+      // DECIMAL columns without explicit precision in DDL. Calcite rejects
+      // DECIMAL(0, scale) (see SqlTypeFactoryImpl#createSqlType).
+      if (p == 0 && sqlTypeName == SqlTypeName.DECIMAL) {
+        p = typeFactory.getTypeSystem().getDefaultPrecision(sqlTypeName);
+      }
+      return typeFactory.createSqlType(sqlTypeName, p, scale);
     } else if (precision >= 0 && sqlTypeName.allowsPrecNoScale()) {
       return typeFactory.createSqlType(sqlTypeName, precision);
     } else {

@@ -66,7 +66,7 @@ public class CsvFilterableTable extends CsvTable
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
-            CsvEnumerator.arrayConverter(fieldTypes, fields, false));
+            CsvEnumerator.arrayConverter(fieldTypes, fields, false), ',');
       }
     };
   }

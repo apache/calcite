@@ -66,7 +66,8 @@ public class CsvTranslatableTable extends CsvTable
             source,
             cancelFlag,
             getFieldTypes(typeFactory),
-            ImmutableIntList.of(fields));
+            ImmutableIntList.of(fields),
+            ',');
       }
     };
   }

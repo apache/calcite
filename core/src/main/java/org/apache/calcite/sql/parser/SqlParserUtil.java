@@ -65,6 +65,8 @@ import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.IllformedLocaleException;
@@ -403,21 +405,34 @@ public final class SqlParserUtil {
 
   public static SqlTimestampTzLiteral parseTimestampTzLiteral(
       String s, SqlParserPos pos) {
-    // We expect the string to end in a timezone.
-    int lastSpace = s.lastIndexOf(" ");
-    if (lastSpace >= 0) {
+    // We expect the string to to contain exactly two spaces:
+    // - one between date and time
+    // - one between time and timezone
+    long spaces = s.chars().filter(c -> c == ' ').count();
+    if (spaces == 2) {
+      int lastSpace = s.lastIndexOf(" ");
       final String timeZone = s.substring(lastSpace + 1);
       final String timestamp = s.substring(0, lastSpace);
-      TimeZone tz = TimeZone.getTimeZone(timeZone);
-      if (tz != null) {
-        SqlTimestampLiteral ts = parseTimestampLiteral(SqlTypeName.TIMESTAMP, timestamp, pos);
-        TimestampWithTimeZoneString tsz = new TimestampWithTimeZoneString(ts.getTimestamp(), tz);
-        return SqlLiteral.createTimestamp(tsz, ts.getPrec(), pos);
+      try {
+        ZoneId zoneId = ZoneId.of(timeZone);
+        TimeZone tz = TimeZone.getTimeZone(zoneId);
+        if (tz != null) {
+          SqlTimestampLiteral ts = parseTimestampLiteral(SqlTypeName.TIMESTAMP, timestamp, pos);
+          TimestampWithTimeZoneString tsz = new TimestampWithTimeZoneString(ts.getTimestamp(), tz);
+          return SqlLiteral.createTimestamp(tsz, ts.getPrec(), pos);
+        }
+      } catch (DateTimeException e) {
+        String message = e.getMessage();
+        if (message == null) {
+          message = "Error parsing TIME ZONE";
+        }
+        throw SqlUtil.newContextException(pos,
+            RESOURCE.illegalLiteral("TIMESTAMP WITH TIME ZONE", s, message));
       }
     }
     throw SqlUtil.newContextException(pos,
         RESOURCE.illegalLiteral("TIMESTAMP WITH TIME ZONE", s,
-            RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
+            RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING + " zone").str()));
   }
 
   private static SqlTimestampLiteral parseTimestampLiteral(SqlTypeName typeName,

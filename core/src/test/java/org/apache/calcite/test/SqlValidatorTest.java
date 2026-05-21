@@ -299,7 +299,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
     expr("^TIMESTAMP WITH TIME ZONE '12-21-99, 12:30:00'^")
-        .fails("(?s).*Illegal TIMESTAMP literal.*");
+        .fails("(?s).*Illegal TIMESTAMP WITH TIME ZONE literal.*");
   }
 
   /**
@@ -1322,13 +1322,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("values 1.0 + ^NULL^")
         .withTypeCoercion(false)
         .fails("(?s).*Illegal use of .NULL.*");
+    // SELECT produces DECIMAL(3, 1) because inferUnknownTypes infers
+    // NULL as DECIMAL(2, 1) via FIRST_KNOWN, and DECIMAL(2,1) + DECIMAL(2,1)
+    // = DECIMAL(3, 1)
+    sql("select 1.0 + NULL from (values (0)) as t(x)")
+        .columnType("DECIMAL(3, 1)");
     expr("values 1.0 + NULL")
-        .columnType("DECIMAL(2, 1)");
+        .columnType("DECIMAL(3, 1)");
     expr("1.0 + ^NULL^")
         .withTypeCoercion(false)
         .fails("(?s).*Illegal use of .NULL.*");
+    sql("select 1.0 + NULL from (values (0)) as t(x)")
+        .columnType("DECIMAL(3, 1)");
     expr("1.0 + NULL")
-        .columnType("DECIMAL(2, 1)");
+        .columnType("DECIMAL(3, 1)");
 
     // FIXME: SQL:2003 does not allow raw NULL in IN clause
     expr("1 in (1, null, 2)").ok();
@@ -1602,9 +1609,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("LOCALTIME").ok(); // fix sqlcontext later.
     wholeExpr("LOCALTIME(1+2)")
         .fails("Argument to function 'LOCALTIME' must be a literal");
-    wholeExpr("LOCALTIME(NULL)")
+    // With type coercion disabled, inferUnknownTypes rejects NULL before
+    // LOCALTIME can validate. SELECT produces the same error.
+    sql("select LOCALTIME(^NULL^) from (values (0)) as t(x)")
         .withTypeCoercion(false)
-        .fails("Argument to function 'LOCALTIME' must not be NULL");
+        .fails("(?s).*Illegal use of .NULL.*");
+    expr("LOCALTIME(^NULL^)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
     wholeExpr("LOCALTIME(NULL)")
         .fails("Argument to function 'LOCALTIME' must not be NULL");
     wholeExpr("LOCALTIME(CAST(NULL AS INTEGER))")
@@ -8225,6 +8237,78 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7457">[CALCITE-7457]
+   * VALUES and SELECT produce different validation results for the same expression</a>.
+   */
+  @Test void testSelectVsValuesValidation() {
+    sql("select 1.0 + NULL from (values (0)) as t(x)")
+        .columnType("DECIMAL(3, 1)");
+    expr("1.0 + NULL")
+        .columnType("DECIMAL(3, 1)");
+
+    sql("select 1 + ? from (values (0)) as t(x)").ok();
+    expr("1 + ?").ok();
+
+    sql("select 1 + ^NULL^ from (values (0)) as t(x)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+    expr("1 + ^NULL^")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+
+    sql("select LOCALTIME(^NULL^) from (values (0)) as t(x)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+    expr("LOCALTIME(^NULL^)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+  }
+
+  /**
+   * Verifies that {@code inferUnknownTypes} works for all subqueries
+   * from {@link org.apache.calcite.sql.SqlKind#QUERY}.
+   */
+  @Test void testInferTypesForEveryQueryKindAsSubquery() {
+    // SELECT as scalar subquery
+    sql("select (select ? + 1 from (values (0)) as t(x))"
+        + " from (values (0)) as u(y)")
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+
+    // VALUES as scalar subquery
+    sql("select (values (? + 1)) from (values (0)) as u(y)")
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+
+    // UNION as subquery
+    sql("select * from (values (1)) as t(x)"
+        + " where x in (select ? + 1 from (values (0)) as u(y)"
+        + "             union all select ? + 1 from (values (0)) as v(z))")
+        .assertBindType(is("RecordType(INTEGER ?0, INTEGER ?1)"));
+
+    // INTERSECT as subquery
+    sql("select * from (values (1)) as t(x)"
+        + " where x in (select ? + 1 from (values (0)) as u(y)"
+        + "             intersect select ? + 1 from (values (0)) as v(z))")
+        .assertBindType(is("RecordType(INTEGER ?0, INTEGER ?1)"));
+
+    // EXCEPT as subquery
+    sql("select * from (values (1)) as t(x)"
+        + " where x in (select ? + 1 from (values (0)) as u(y)"
+        + "             except select ? + 1 from (values (0)) as v(z))")
+        .assertBindType(is("RecordType(INTEGER ?0, INTEGER ?1)"));
+
+    // WITH as scalar subquery
+    sql("select (with t(a) as (values (? + 1)) select a from t)"
+        + " from (values (0)) as u(y)")
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+
+    // ORDER_BY as scalar subquery
+    sql("select (select ? + 1 as c from (values (0)) as t(x) order by c)"
+        + " from (values (0)) as u(y)")
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+  }
+
   @Test void testPercentileFunctionsBigQuery() {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
     final String sql = "select\n"
@@ -8405,15 +8489,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "   overlaps (date '1-2-3', date '1-2-3')^\n"
         + "or false")
         .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
-    // row with 3 arguments as right argument to overlaps
+    // row with 3 arguments as right argument to overlaps.
+    // validateValues checks ROW structure before OVERLAPS validates,
+    // producing "Unequal number of entries in ROW expressions".
+    // SELECT produces the same error.
+    sql("select true or"
+        + " (date '1-2-3', date '1-2-3')"
+        + " overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^"
+        + " or false from (values (0)) as t(x)")
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
     expr("true\n"
-        + "or ^(date '1-2-3', date '1-2-3')\n"
-        + "  overlaps (date '1-2-3', date '1-2-3', date '1-2-3')^\n"
+        + "or (date '1-2-3', date '1-2-3')\n"
+        + "  overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^\n"
         + "or false")
-        .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
-    expr("^period (date '1-2-3', date '1-2-3')\n"
-        + "   overlaps (date '1-2-3', date '1-2-3', date '1-2-3')^")
-        .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
+    // SELECT produces the same error for mismatched ROW sizes
+    sql("select period (date '1-2-3', date '1-2-3')"
+        + " overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^"
+        + " from (values (0)) as t(x)")
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
+    expr("period (date '1-2-3', date '1-2-3')\n"
+        + "   overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^")
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
     expr("true\n"
         + "or ^(1, 2) overlaps (2, 3)^\n"
         + "or false")

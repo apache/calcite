@@ -1624,6 +1624,48 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7530">[CALCITE-7530]
+   * FOR SYSTEM_TIME AS OF on CTE causes NPE while validation</a>. */
+  @Test void testSnapshotOnCteOverTemporalTable() {
+    final String sql = "with cte as (select * from products_temporal)\n"
+        + "select * from cte for system_time as of\n"
+        + "   TIMESTAMP '2026-01-01 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test void testJoinCteOverTemporalTable() {
+    final String sql = "with cte as (select * from products_temporal)\n"
+        + "select stream * from orders\n"
+        + "join cte for system_time as of orders.rowtime\n"
+        + "on orders.productid = cte.productid";
+    sql(sql).ok();
+  }
+
+  @Test void testSnapshotOnNestedCteOverTemporalTable() {
+    final String sql = "with cte1 as (select * from products_temporal),\n"
+        + "     cte2 as (select * from cte1)\n"
+        + "select * from cte2 for system_time as of\n"
+        + "  TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test void testCteUsedWithAndWithoutSnapshot() {
+    final String sql = "with cte as (select * from products_temporal)\n"
+        + "select * from cte\n"
+        + "union all\n"
+        + "select * from cte for system_time as of\n"
+        + "  TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test void testSnapshotOnCteOverNonTemporalTable() {
+    final String sql = "with cte as (select * from emp)\n"
+        + "select * from cte for system_time as of\n"
+        + "  TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1732">[CALCITE-1732]
    * IndexOutOfBoundsException when using LATERAL TABLE with more than one
