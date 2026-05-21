@@ -252,89 +252,72 @@ class MaterializedViewRelOptRulesTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
-   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>.
-   *
-   * <p>Query: {@code SELECT count(*) + 1 AS c, deptno FROM emps GROUP BY CUBE(empid, deptno)}
-   *
-   * <p>Without MV:
-   * <pre>
-   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
-   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[COUNT()])
-   *       EnumerableTableScan(table=[[hr, emps]])
-   * </pre>
-   *
-   * <p>With MV: query matches the MV definition exactly (same grouping sets),
-   * so it can be rewritten to scan MV0 directly.
-   * <pre>
-   *   EnumerableCalc(
-   *   expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t2, $t4)], $f0=[$t5], deptno=[$t1])
-   *     EnumerableTableScan(table=[[hr, MV0]])
-   * </pre> */
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
   @Test void testAggregateGroupSets1() {
+    final String query = "select count(*) + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by cube(\"empid\",\"deptno\")";
+
+    // Without materialization: aggregate directly over the base table.
+    fixture(query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]]",
+            "EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+
+    // With materialization: exact match on grouping sets, so the query can
+    // be rewritten to scan MV0 directly.
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"emps\" group by cube(\"empid\",\"deptno\")",
-        "select count(*) + 1 as c, \"deptno\"\n"
-            + "from \"emps\" group by cube(\"empid\",\"deptno\")")
-        .checkingThatResultContains("EnumerableCalc("
-            + "expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t2, $t4)], $f0=[$t5], deptno=[$t1])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        query)
+        .checkingThatResultContains(
+            "EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
-   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>.
-   *
-   * <p>Query: {@code SELECT count(*) + 1 AS c, deptno FROM emps GROUP BY ROLLUP(empid, deptno)}
-   *
-   * <p>Without MV:
-   * <pre>
-   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
-   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], agg#0=[COUNT()])
-   *       EnumerableTableScan(table=[[hr, emps]])
-   * </pre>
-   *
-   * <p>With MV: the MV is defined as CUBE, which produces an extra grouping set
-   * {@code {deptno}} that the query does not need. Current implementation only
-   * supports exact match when both query and MV have grouping sets, so it
-   * cannot be rewritten. */
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
   @Test void testAggregateGroupSets2() {
+    final String query = "select count(*) + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by rollup(\"empid\",\"deptno\")";
+
+    // Without materialization: aggregate directly over the base table.
+    fixture(query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]]",
+            "EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+
+    // With materialization: the MV is defined as CUBE, which produces an extra
+    // grouping set {deptno} that the query does not need. Cannot rewrite.
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"emps\" group by cube(\"empid\",\"deptno\")",
-        "select count(*) + 1 as c, \"deptno\"\n"
-            + "from \"emps\" group by rollup(\"empid\",\"deptno\")")
+        query)
         .noMat();
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
-   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>.
-   *
-   * <p>Query: {@code SELECT count(*) + 1 AS c, deptno FROM emps GROUP BY CUBE(empid, deptno)}
-   *
-   * <p>Without MV:
-   * <pre>
-   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
-   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[COUNT()])
-   *       EnumerableTableScan(table=[[hr, emps]])
-   * </pre>
-   *
-   * <p>With MV: the MV is a simple GROUP BY, which is finer-grained than the
-   * query's CUBE. An additional aggregate is introduced on top of MV0 to
-   * roll up the subtotals.
-   * <pre>
-   *   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])
-   *     EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])
-   *       EnumerableTableScan(table=[[hr, MV0]])
-   * </pre> */
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
   @Test void testAggregateGroupSetsRollUp() {
+    final String query = "select count(*) + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by cube(\"empid\",\"deptno\")";
+
+    // Without materialization: aggregate directly over the base table.
+    fixture(query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]]",
+            "EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+
+    // With materialization: the MV is a simple GROUP BY, which is finer-grained
+    // than the query's CUBE. An additional aggregate is introduced on top of MV0
+    // to roll up the subtotals.
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"emps\" group by \"empid\", \"deptno\"",
-        "select count(*) + 1 as c, \"deptno\"\n"
-            + "from \"emps\" group by cube(\"empid\",\"deptno\")")
-        .checkingThatResultContains("EnumerableCalc("
-            + "expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
-            + "  EnumerableAggregate(group=[{0, 1}], "
-            + "groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])")
+        query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], "
+                + "groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])",
+            "EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
