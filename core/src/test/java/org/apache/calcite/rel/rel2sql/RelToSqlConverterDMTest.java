@@ -122,9 +122,6 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.AnchorType;
-import org.apache.calcite.util.Comment;
-import org.apache.calcite.util.CommentType;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -150,7 +147,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -14715,14 +14711,8 @@ class RelToSqlConverterDMTest {
     RexNode castNode =
         rexBuilder.makeAbstractCast(typeFactory.createSqlType(SqlTypeName.DECIMAL, 18, 4),
             literalRex, false);
-    RexNode finalNode =  builder.alias(castNode, "test");
-    Set<Comment> commentList = new HashSet<>();
-    commentList.add(
-        new Comment(
-        "skip_simplify",
-        AnchorType.LEFT,
-        CommentType.SINGLE));
-    RexNode finalRex = finalNode.copy(commentList);
+    RexNode finalNode = builder.alias(castNode, "test");
+    RexNode finalRex = finalNode.copy(new HashSet<>()).setSkipSimplifier(true);
 
     RelNode relNode = builder
         .project(
@@ -14730,7 +14720,7 @@ class RelToSqlConverterDMTest {
             finalRex)
         .build();
 
-    final String expectedBiqQuery = "SELECT employee_id, -- skip_simplify\n "
+    final String expectedBiqQuery = "SELECT employee_id, "
         + "CAST(10 AS NUMERIC) AS test\nFROM foodmart.employee";
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
