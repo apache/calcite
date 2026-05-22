@@ -202,7 +202,13 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
+    if (call.getOperator() == SqlLibraryOperators.UUIDV4) {
+      // UUIDV4() → NEWID() in SQL Server, which returns a random RFC 4122
+      // version 4 UUID.
+      super.unparseCall(writer,
+          SqlLibraryOperators.NEWID.createCall(call.getParserPosition()),
+          leftPrec, rightPrec);
+    } else if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       if (call.operandCount() != 3) {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }

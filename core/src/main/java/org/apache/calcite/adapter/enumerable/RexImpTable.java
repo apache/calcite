@@ -349,6 +349,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UN_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.URL_DECODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.URL_ENCODE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UUIDV4;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UUIDV7;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
@@ -871,6 +873,8 @@ public class RexImpTable implements RexImplementorTable {
       defineReflective(RAND_INTEGER, BuiltInMethod.RAND_INTEGER.method,
           BuiltInMethod.RAND_INTEGER_SEED.method);
       defineReflective(RANDOM, BuiltInMethod.RAND.method);
+      defineReflective(UUIDV4, BuiltInMethod.UUIDV4.method);
+      defineReflective(UUIDV7, BuiltInMethod.UUIDV7.method);
 
       defineMethod(ACOS, BuiltInMethod.ACOS.method, NullPolicy.STRICT);
       defineMethod(ACOSD, BuiltInMethod.ACOSD.method, NullPolicy.STRICT);

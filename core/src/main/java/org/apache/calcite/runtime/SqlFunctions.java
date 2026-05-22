@@ -138,6 +138,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -327,6 +328,38 @@ public class SqlFunctions {
       throw new IllegalStateException(message);
     }
     return condition;
+  }
+
+  /** Generates a random UUID (version 4). Implements the SQL UUIDV4() function. */
+  @NonDeterministic
+  public static UUID uuidv4() {
+    return UUID.randomUUID();
+  }
+
+  /**
+   * Generates a time-ordered UUID (version 7). Implements the SQL UUIDV7() function.
+   *
+   * <p>This static helper is a single-call, stateless variant: it produces a
+   * valid RFC 9562 UUID v7 but does not guarantee monotonic ordering across
+   * multiple calls in the same millisecond. For proper per-query monotonicity
+   * the code-generator uses {@link UuidFunction#uuidv7()} instead.
+   *
+   * <p>128-bit layout: 48-bit unix_ts_ms | 4-bit ver=7 | 12-bit rand_a |
+   * 2-bit var=10 | 62-bit rand_b.
+   */
+  @NonDeterministic
+  public static UUID uuidv7() {
+    final ThreadLocalRandom rng = ThreadLocalRandom.current();
+    final long millis = System.currentTimeMillis();
+    // rand_a: 12 random bits (bits [11:0] of MSB)
+    final long randA = rng.nextLong() & 0x0FFFL;
+    // rand_b: 62 random bits (bits [61:0] of LSB)
+    final long randB = rng.nextLong() & 0x3FFF_FFFF_FFFF_FFFFL;
+    // MSB: timestamp(48) | version(4)=7 | rand_a(12)
+    final long msb = (millis << 16) | 0x7000L | randA;
+    // LSB: variant(2)=0b10 | rand_b(62)
+    final long lsb = 0x8000_0000_0000_0000L | randB;
+    return new UUID(msb, lsb);
   }
 
   public static String uuidToString(UUID uuid) {
