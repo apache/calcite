@@ -362,6 +362,40 @@ from dept_nested_expanded as d,
  UNNEST(d.employees) as t(employee)]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasUnnestArrayPlanWithoutColumnList">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e.empno
+from dept_nested_expanded as d,
+ UNNEST(d.employees) as e]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAliasUnnestScalarArrayPlanWithoutColumnList">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, a
+from dept_nested_expanded as d,
+ UNNEST(d.admins) as a]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], A=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(ADMINS=[$cor0.ADMINS])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAliasWithinGroupingSets">
     <Resource name="sql">
       <![CDATA[SELECT empno / 2 AS x

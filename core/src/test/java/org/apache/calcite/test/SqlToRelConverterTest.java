@@ -1939,6 +1939,26 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withConformance(SqlConformanceEnum.PRESTO).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7546">[CALCITE-7546]
+   * NullPointerException in SqlToRelConverter for UNNEST(array) AS alias under
+   * conformance with allowAliasUnnestItems=true</a>.
+   */
+  @Test void testAliasUnnestArrayPlanWithoutColumnList() {
+    final String sql = "select d.deptno, e.empno\n"
+        + "from dept_nested_expanded as d,\n"
+        + " UNNEST(d.employees) as e";
+    sql(sql).withConformance(SqlConformanceEnum.PRESTO).ok();
+  }
+
+  @Test void testAliasUnnestScalarArrayPlanWithoutColumnList() {
+    final String sql = "select d.deptno, a\n"
+        + "from dept_nested_expanded as d,\n"
+        + " UNNEST(d.admins) as a";
+    sql(sql).withConformance(SqlConformanceEnum.PRESTO).ok();
+  }
+
   @Test void testArrayOfRecord() {
     sql("select employees[1].detail.skills[2+3].desc from dept_nested").ok();
   }
