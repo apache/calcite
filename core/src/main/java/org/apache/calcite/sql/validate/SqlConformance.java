@@ -375,6 +375,7 @@ public interface SqlConformance {
    * fields of T if T is a STRUCT type.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#PRESTO};
    * false otherwise.
    */

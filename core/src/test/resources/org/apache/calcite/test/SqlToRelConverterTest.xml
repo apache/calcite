@@ -345,7 +345,41 @@ from dept_nested_expanded as d CROSS JOIN
  UNNEST(d.admins, d.employees) as t(e, k)]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasUnnestArrayPlanWithDoubleColumnBigQuery">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2, 3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e, k.empno
+from dept_nested_expanded as d CROSS JOIN
+ UNNEST(d.admins, d.employees) as t(e, k)]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAliasUnnestArrayPlanWithSingleColumn">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select d.deptno, employee.empno
+from dept_nested_expanded as d,
+ UNNEST(d.employees) as t(employee)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAliasUnnestArrayPlanWithSingleColumnBigQuery">
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])

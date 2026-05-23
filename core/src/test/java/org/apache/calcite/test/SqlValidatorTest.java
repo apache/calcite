@@ -8816,6 +8816,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "\\('EMPNO', 'ENAME', 'DETAIL'\\), whereas alias list has 1 columns");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7547">[CALCITE-7547]
+   * BIG_QUERY conformance should allow field access on
+   * UNNEST(array_of_struct) AS alias</a>.
+   */
+  @Test void testAliasUnnestMultipleArraysBigQuery() {
+    // for accessing a field in STRUCT type unnested from array
+    sql("select e.ENAME\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.employees) as t(e)")
+        .withConformance(SqlConformanceEnum.BIG_QUERY).columnType("VARCHAR(10) NOT NULL");
+
+    // for unnesting multiple arrays at the same time
+    sql("select d.deptno, e, k.empno, l.\"unit\", l.\"X\" * l.\"Y\"\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees, d.offices) as t(e, k, l)")
+        .withConformance(SqlConformanceEnum.BIG_QUERY).ok();
+
+    // Make sure validation fails properly given illegal select items
+    sql("select d.deptno, ^e^.some_column, k.empno\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees) as t(e, k)")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .fails("Table 'E' not found");
+    sql("select d.deptno, e.detail, ^unknown^.detail\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.employees) as t(e)")
+        .withConformance(SqlConformanceEnum.BIG_QUERY).fails("Incompatible types");
+  }
+
   @Test void testUnnestArray() {
     sql("select*from unnest(array[1])")
         .columnType("INTEGER NOT NULL");

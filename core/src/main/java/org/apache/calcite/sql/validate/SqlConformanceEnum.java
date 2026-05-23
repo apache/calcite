@@ -435,6 +435,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   @Override public boolean allowAliasUnnestItems() {
     switch (this) {
+    case BIG_QUERY:
     case PRESTO:
       return true;
     default:
