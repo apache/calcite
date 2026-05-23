@@ -1941,6 +1941,32 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withConformance(SqlConformanceEnum.PRESTO).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7547">[CALCITE-7547]
+   * BIG_QUERY conformance should allow field access on
+   * UNNEST(array_of_struct) AS alias</a>.
+   */
+  @Test void testAliasUnnestArrayPlanWithSingleColumnBigQuery() {
+    final String sql = "select d.deptno, employee.empno\n"
+        + "from dept_nested_expanded as d,\n"
+        + " UNNEST(d.employees) as t(employee)";
+    sql(sql).withConformance(SqlConformanceEnum.BIG_QUERY).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7547">[CALCITE-7547]
+   * BIG_QUERY conformance should allow field access on
+   * UNNEST(array_of_struct) AS alias</a>.
+   */
+  @Test void testAliasUnnestArrayPlanWithDoubleColumnBigQuery() {
+    final String sql = "select d.deptno, e, k.empno\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees) as t(e, k)";
+    sql(sql).withConformance(SqlConformanceEnum.BIG_QUERY).ok();
+  }
+
   @Test void testArrayOfRecord() {
     sql("select employees[1].detail.skills[2+3].desc from dept_nested").ok();
   }
