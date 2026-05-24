@@ -328,6 +328,20 @@ LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasUnnestArrayLiteralPlanWithoutColumnList">
+    <Resource name="sql">
+      <![CDATA[select t
+from UNNEST(ARRAY[1, 2, 3]) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(T=[$0])
+  Uncollect
+    LogicalProject(EXPR$0=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAliasUnnestArrayPlanWithDoubleColumn">
     <Resource name="plan">
       <![CDATA[
