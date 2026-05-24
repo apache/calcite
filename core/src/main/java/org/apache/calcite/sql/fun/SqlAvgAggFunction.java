@@ -17,12 +17,17 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlConstantValueAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -31,8 +36,13 @@ import static com.google.common.base.Preconditions.checkArgument;
  * which go into it. It has precisely one argument of numeric type
  * (<code>int</code>, <code>long</code>, <code>float</code>, <code>
  * double</code>), and the result is the same type.
+ *
+ * <p>For statistical functions (STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP),
+ * this function implements {@link SqlConstantValueAggFunction} to support
+ * optimization when applied to constant GROUP BY keys.
  */
-public class SqlAvgAggFunction extends SqlAggFunction {
+public class SqlAvgAggFunction extends SqlAggFunction
+    implements SqlConstantValueAggFunction {
 
   //~ Constructors -----------------------------------------------------------
 
@@ -85,5 +95,20 @@ public class SqlAvgAggFunction extends SqlAggFunction {
     STDDEV_SAMP,
     VAR_POP,
     VAR_SAMP
+  }
+
+  @Override public @Nullable RexNode getConstantResult(RexBuilder rexBuilder,
+      RelDataType returnType) {
+    // Only statistical functions (variance and standard deviation) return 0 for constant values.
+    // AVG and other functions should not be optimized through this interface.
+    switch (kind) {
+    case STDDEV_POP:
+    case STDDEV_SAMP:
+    case VAR_POP:
+    case VAR_SAMP:
+      return rexBuilder.makeLiteral(0, returnType, true);
+    default:
+      return null;
+    }
   }
 }

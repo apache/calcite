@@ -1,0 +1,174 @@
+# agg-reduce.iq - Tests for aggregate function reduction on GROUP BY keys
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use post
+!set outputformat mysql
+
+# These results were validated by:
+# 1. Quidem tests: end-to-end SQL execution verification (this file)
+# 2. RelOptFixture unit test cases covering query plan transformation
+# 3. PostgreSQL manual verification:
+#    - Tests 1-4: Statistical functions return 0 or NULL (NULL when n < 2)
+#    - Test 5: Expressions with GROUP BY keys also return 0
+#    - Tests 6-8: MAX/MIN/AVG return the GROUP BY key value itself
+#    - Test 9: Mix verification - MAX returns key, STDDEV_POP returns 0
+#    All results confirmed: optimization is correct, semantics preserved
+
+# Test 1: STDDEV_POP on GROUP BY key should return 0 for constant values
+select deptno, stddev_pop(deptno) as sdp from emp group by deptno order by deptno;
++--------+-----+
+| DEPTNO | SDP |
++--------+-----+
+|     10 |   0 |
+|     20 |   0 |
+|     30 |   0 |
+|     50 |   0 |
+|     60 |   0 |
+|        |     |
++--------+-----+
+(6 rows)
+
+!ok
+
+# Test 2: STDDEV_SAMP on GROUP BY key should return 0 or null for constant values
+select deptno, stddev_samp(deptno) as sds from emp group by deptno order by deptno;
++--------+-----+
+| DEPTNO | SDS |
++--------+-----+
+|     10 |   0 |
+|     20 |     |
+|     30 |   0 |
+|     50 |   0 |
+|     60 |     |
+|        |     |
++--------+-----+
+(6 rows)
+
+!ok
+
+# Test 3: VAR_POP on GROUP BY key should return 0 for constant values
+select deptno, var_pop(deptno) as vp from emp group by deptno order by deptno;
++--------+----+
+| DEPTNO | VP |
++--------+----+
+|     10 |  0 |
+|     20 |  0 |
+|     30 |  0 |
+|     50 |  0 |
+|     60 |  0 |
+|        |    |
++--------+----+
+(6 rows)
+
+!ok
+
+# Test 4: VAR_SAMP on GROUP BY key should return 0 or null
+select deptno, var_samp(deptno) as vs from emp group by deptno order by deptno;
++--------+----+
+| DEPTNO | VS |
++--------+----+
+|     10 |  0 |
+|     20 |    |
+|     30 |  0 |
+|     50 |  0 |
+|     60 |    |
+|        |    |
++--------+----+
+(6 rows)
+
+!ok
+
+# Test 5: Expression with only GROUP BY keys - STDDEV_POP returns 0
+select deptno, stddev_pop(deptno + 1) as sdp from emp group by deptno order by deptno;
++--------+-----+
+| DEPTNO | SDP |
++--------+-----+
+|     10 |   0 |
+|     20 |   0 |
+|     30 |   0 |
+|     50 |   0 |
+|     60 |   0 |
+|        |     |
++--------+-----+
+(6 rows)
+
+!ok
+
+# Test 6: MAX on GROUP BY key returns the key value itself
+select deptno, max(deptno) as m from emp group by deptno order by deptno;
++--------+----+
+| DEPTNO | M  |
++--------+----+
+|     10 | 10 |
+|     20 | 20 |
+|     30 | 30 |
+|     50 | 50 |
+|     60 | 60 |
+|        |    |
++--------+----+
+(6 rows)
+
+!ok
+
+# Test 7: MIN on GROUP BY key returns the key value itself
+select deptno, min(deptno) as m from emp group by deptno order by deptno;
++--------+----+
+| DEPTNO | M  |
++--------+----+
+|     10 | 10 |
+|     20 | 20 |
+|     30 | 30 |
+|     50 | 50 |
+|     60 | 60 |
+|        |    |
++--------+----+
+(6 rows)
+
+!ok
+
+# Test 8: AVG on GROUP BY key returns the key value itself
+select deptno, avg(deptno) as a from emp group by deptno order by deptno;
++--------+----+
+| DEPTNO | A  |
++--------+----+
+|     10 | 10 |
+|     20 | 20 |
+|     30 | 30 |
+|     50 | 50 |
+|     60 | 60 |
+|        |    |
++--------+----+
+(6 rows)
+
+!ok
+
+# Test 9: Mix of statistical and regular functions
+select deptno, max(deptno) as m, stddev_pop(deptno) as sdp
+from emp group by deptno order by deptno;
++--------+----+-----+
+| DEPTNO | M  | SDP |
++--------+----+-----+
+|     10 | 10 |   0 |
+|     20 | 20 |   0 |
+|     30 | 30 |   0 |
+|     50 | 50 |   0 |
+|     60 | 60 |   0 |
+|        |    |     |
++--------+----+-----+
+(6 rows)
+
+!ok

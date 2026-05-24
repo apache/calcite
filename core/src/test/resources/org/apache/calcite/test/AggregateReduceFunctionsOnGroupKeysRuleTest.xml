@@ -321,4 +321,287 @@ LogicalAggregate(group=[{0}], COMM_MAX=[MAX($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMultipleStatisticalFunctions">
+    <Resource name="sql">
+      <![CDATA[select sal, stddev_samp(sal) as sd, stddev_pop(sal) as sdp,
+var_pop(sal) as vp, var_samp(sal) as vs
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SD=[$2], SDP=[$3], VP=[$4], VS=[$5])
+  LogicalAggregate(group=[{0, 1}], SD=[STDDEV_SAMP($0)], SDP=[STDDEV_POP($0)], VP=[VAR_POP($0)], VS=[VAR_SAMP($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SD=[$2], SDP=[$3], VP=[$4], VS=[$5])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CAST(0):INTEGER], SDP=[0], VP=[0], VS=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionNullableExpression">
+    <Resource name="sql">
+      <![CDATA[select comm, stddev_samp(comm + 1) as sd
+from empnullables group by comm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], SD=[STDDEV_SAMP($1)])
+  LogicalProject(COMM=[$6], $f1=[+($6, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(COMM=[$0], SD=[CASE(IS NULL($0), null:INTEGER, 0)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(COMM=[$6], $f1=[+($6, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionNullableGroupKey">
+    <Resource name="sql">
+      <![CDATA[select comm, stddev_pop(comm) as sdp
+from empnullables group by comm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], SDP=[STDDEV_POP($0)])
+  LogicalProject(COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(COMM=[$0], SDP=[CASE(IS NULL($0), null:INTEGER, 0)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionStddevPopOfGroupByKey">
+    <Resource name="sql">
+      <![CDATA[select sal, stddev_pop(sal) as sdp
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SDP=[$2])
+  LogicalAggregate(group=[{0, 1}], SDP=[STDDEV_POP($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SDP=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SDP=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionStddevSampOfGroupByKey">
+    <Resource name="sql">
+      <![CDATA[select sal, stddev_samp(sal) as sd
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SD=[$2])
+  LogicalAggregate(group=[{0, 1}], SD=[STDDEV_SAMP($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SD=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CAST(0):INTEGER])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionVarPopOfGroupByKey">
+    <Resource name="sql">
+      <![CDATA[select sal, var_pop(sal) as vp
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], VP=[$2])
+  LogicalAggregate(group=[{0, 1}], VP=[VAR_POP($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], VP=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VP=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionVarSampOfGroupByKey">
+    <Resource name="sql">
+      <![CDATA[select sal, var_samp(sal) as vs
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], VS=[$2])
+  LogicalAggregate(group=[{0, 1}], VS=[VAR_SAMP($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], VS=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithBinaryExpression">
+    <Resource name="sql">
+      <![CDATA[select sal, var_pop(sal + deptno) as vp
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], VP=[$2])
+  LogicalAggregate(group=[{0, 1}], VP=[VAR_POP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[+($5, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], VP=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VP=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[+($5, $7)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithComplexMixNoOptimization">
+    <Resource name="sql">
+      <![CDATA[select sal, stddev_samp(sal * 2 + comm) as sd
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SD=[$2])
+  LogicalAggregate(group=[{0, 1}], SD=[STDDEV_SAMP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[+(*($5, 2), $6)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithConstantExpression">
+    <Resource name="sql">
+      <![CDATA[select sal, stddev_pop(2 * sal + 100) as sdp
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SDP=[$2])
+  LogicalAggregate(group=[{0, 1}], SDP=[STDDEV_POP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[+(*(2, $5), 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SDP=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SDP=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[+(*(2, $5), 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithMixedColumnsNoOptimization">
+    <Resource name="sql">
+      <![CDATA[select sal, stddev_pop(sal + comm) as sdp
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SDP=[$2])
+  LogicalAggregate(group=[{0, 1}], SDP=[STDDEV_POP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[+($5, $6)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithMultipleGroupByKeys">
+    <Resource name="sql">
+      <![CDATA[select sal, var_samp(sal * deptno) as vs
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], VS=[$2])
+  LogicalAggregate(group=[{0, 1}], VS=[VAR_SAMP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[*($5, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], VS=[$2])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[*($5, $7)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithNonGroupByColumnNoOptimization">
+    <Resource name="sql">
+      <![CDATA[select sal, var_pop(comm) as vp
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], VP=[$2])
+  LogicalAggregate(group=[{0, 1}], VP=[VAR_POP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStatisticalFunctionWithPartialExpressionNoOptimization">
+    <Resource name="sql">
+      <![CDATA[select sal, var_samp(sal * empno) as vs
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], VS=[$2])
+  LogicalAggregate(group=[{0, 1}], VS=[VAR_SAMP($2)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[*($5, $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>

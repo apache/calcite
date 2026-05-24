@@ -149,6 +149,120 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7493">[CALCITE-7493]
+   * Support constant-result aggregates (e.g., STDDEV_POP, STDDEV) over GROUP BY keys</a>. */
+  @Test void testStatisticalFunctionStddevSampOfGroupByKey() {
+    // STDDEV_SAMP of a constant (GROUP BY key) is 0.
+    String sql = "select sal, stddev_samp(sal) as sd\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionStddevPopOfGroupByKey() {
+    // STDDEV_POP of a constant (GROUP BY key) is 0.
+    String sql = "select sal, stddev_pop(sal) as sdp\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionVarPopOfGroupByKey() {
+    // VAR_POP of a constant (GROUP BY key) is 0.
+    String sql = "select sal, var_pop(sal) as vp\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionVarSampOfGroupByKey() {
+    // VAR_SAMP of a constant (GROUP BY key) is 0
+    // (variance of all identical values is 0).
+    String sql = "select sal, var_samp(sal) as vs\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testMultipleStatisticalFunctions() {
+    // Test multiple statistical functions together.
+    String sql = "select sal, stddev_samp(sal) as sd, stddev_pop(sal) as sdp,\n"
+        + "var_pop(sal) as vp, var_samp(sal) as vs\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionWithBinaryExpression() {
+    // Variance of binary expression (sal + deptno) where all operands are GROUP BY keys.
+    // Since all values are constant within each group, variance is 0.
+    String sql = "select sal, var_pop(sal + deptno) as vp\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionWithConstantExpression() {
+    // Variance of expression with constant (2*sal + 100) where sal is a GROUP BY key.
+    // Since all values are constant within each group, variance is 0.
+    String sql = "select sal, stddev_pop(2 * sal + 100) as sdp\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionWithMultipleGroupByKeys() {
+    // Variance of expression combining multiple GROUP BY keys (sal * deptno).
+    // Since all values are constant within each group, variance is 0.
+    String sql = "select sal, var_samp(sal * deptno) as vs\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionWithNonGroupByColumnNoOptimization() {
+    // Negative test: expression contains only non-GROUP BY column (comm).
+    // The rule should NOT optimize because comm is not a constant within the group.
+    String sql = "select sal, var_pop(comm) as vp\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testStatisticalFunctionWithMixedColumnsNoOptimization() {
+    // Negative test: expression mixes GROUP BY column (sal) and non-GROUP BY column (comm).
+    // The rule should NOT optimize because comm is not a constant within the group.
+    String sql = "select sal, stddev_pop(sal + comm) as sdp\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testStatisticalFunctionWithPartialExpressionNoOptimization() {
+    // Negative test: expression combines a GROUP BY key (sal) with non-GROUP BY column (empno).
+    // The rule should NOT optimize because empno is not constant within the group.
+    String sql = "select sal, var_samp(sal * empno) as vs\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testStatisticalFunctionWithComplexMixNoOptimization() {
+    // Negative test: complex expression with only GROUP BY column (sal) but
+    // also referencing non-GROUP BY column (comm) in multiplication.
+    String sql = "select sal, stddev_samp(sal * 2 + comm) as sd\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testStatisticalFunctionNullableGroupKey() {
+    // Test NULL semantics: when GROUP BY key is nullable, STDDEV(key) should
+    // handle NULL correctly. The optimization wraps result in
+    // CASE WHEN key IS NULL THEN NULL ELSE 0 END
+    String sql = "select comm, stddev_pop(comm) as sdp\n"
+        + "from empnullables group by comm";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testStatisticalFunctionNullableExpression() {
+    // Test NULL semantics for expressions: when expression is nullable,
+    // STDDEV(expr) should return NULL when expr is NULL.
+    // Optimization wraps result in CASE to preserve NULL semantics
+    String sql = "select comm, stddev_samp(comm + 1) as sd\n"
+        + "from empnullables group by comm";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
   @AfterAll static void checkActualAndReferenceFiles() {
     fixture().diffRepos.checkActualAndReferenceFiles();
   }
