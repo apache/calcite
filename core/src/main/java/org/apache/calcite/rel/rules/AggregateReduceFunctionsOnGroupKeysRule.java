@@ -31,7 +31,9 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlConstantValueAggFunction;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -52,11 +54,18 @@ import java.util.List;
  * arguments exist in the aggregate's group set or are deterministic
  * expressions involving only group set columns and constants:
  * <ul>
- *   <li>{@code MAX}</li>
- *   <li>{@code MIN}</li>
- *   <li>{@code AVG}</li>
- *   <li>{@code ANY_VALUE}</li>
+ *   <li>{@code MAX} - the GROUP BY key value itself</li>
+ *   <li>{@code MIN} - the GROUP BY key value itself</li>
+ *   <li>{@code AVG} - the GROUP BY key value itself</li>
+ *   <li>{@code ANY_VALUE} - the GROUP BY key value itself</li>
+ *   <li>Functions implementing {@link SqlConstantValueAggFunction} such as
+ *       {@code STDDEV_POP}, {@code STDDEV_SAMP}, {@code VAR_POP}, {@code VAR_SAMP}
+ *       - return their constant result</li>
  * </ul>
+ *
+ * <p>Aggregate functions that implement {@link SqlConstantValueAggFunction}
+ * declare what value to return when applied to constant (GROUP BY key) arguments.
+ * This enables the rule to optimize them without hard-coded type checks.
  *
  * <p>Note: This optimization preserves NULL semantics correctly. For aggregate
  * functions like MAX, MIN, and ANY_VALUE, NULL values in the source columns or
@@ -144,6 +153,8 @@ public class AggregateReduceFunctionsOnGroupKeysRule
       return null;
     }
     final SqlKind kind = call.getAggregation().getKind();
+    final boolean isConstantValueAgg =
+        call.getAggregation() instanceof SqlConstantValueAggFunction;
     switch (kind) {
     case AVG:
     case MAX:
@@ -151,7 +162,9 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     case ANY_VALUE:
       break;
     default:
-      return null;
+      if (!isConstantValueAgg) {
+        return null;
+      }
     }
     final List<Integer> argList = call.getArgList();
     if (argList.size() != 1) {
@@ -163,6 +176,29 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     if (aggregate.getGroupSet().get(arg)) {
       final int groupIndex = aggregate.getGroupSet().asList().indexOf(arg);
       RexNode ref = RexInputRef.of(groupIndex, aggregate.getRowType().getFieldList());
+
+      // For functions that return a constant value when applied to constant (GROUP BY key)
+      // arguments, delegate to the function's own implementation
+      if (isConstantValueAgg) {
+        final @Nullable RexNode constantResult =
+            ((SqlConstantValueAggFunction) call.getAggregation())
+                .getConstantResult(rexBuilder, call.getType());
+        if (constantResult != null) {
+          // Handle NULL semantics: if the GROUP BY key is nullable and the constant value
+          // is non-null (e.g., 0 for STDDEV functions), wrap in CASE to return NULL when
+          // the key is NULL, since aggregate functions skip NULL inputs
+          if (ref.getType().isNullable()) {
+            return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref),
+                rexBuilder.makeNullLiteral(call.getType()),
+                constantResult);
+          }
+          return constantResult;
+        }
+      }
+
+      // For other aggregate functions (MAX, MIN, AVG, ANY_VALUE),
+      // the value of a constant is the constant itself
       if (!ref.getType().equals(call.getType())) {
         ref = rexBuilder.makeCast(call.getParserPosition(), call.getType(), ref);
       }
@@ -192,6 +228,29 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     if (translated == null) {
       return null;
     }
+
+    // For functions that return a constant value when applied to constant expressions,
+    // delegate to the function's own implementation
+    if (isConstantValueAgg) {
+      final @Nullable RexNode constantResult =
+          ((SqlConstantValueAggFunction) call.getAggregation())
+              .getConstantResult(rexBuilder, call.getType());
+      if (constantResult != null) {
+        // Handle NULL semantics: if the expression is nullable and the constant value
+        // is non-null (e.g., 0 for STDDEV functions), wrap in CASE to return NULL when
+        // the expression evaluates to NULL, since aggregate functions skip NULL inputs
+        if (translated.getType().isNullable()) {
+          return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, translated),
+              rexBuilder.makeNullLiteral(call.getType()),
+              constantResult);
+        }
+        return constantResult;
+      }
+    }
+
+    // For other aggregate functions (MAX, MIN, AVG, ANY_VALUE),
+    // return the translated expression
     if (!translated.getType().equals(call.getType())) {
       return rexBuilder.makeCast(call.getParserPosition(), call.getType(), translated);
     }
