@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
  * "if (c0) e0 else if (c1) e1 ... else if (c<sub>n-1</sub>) e<sub>n-1</sub>".
  */
 public class ConditionalExpression extends AbstractNode {
-  final List<Node> expressionList;
+  public final List<Node> expressionList;
 
   public ConditionalExpression(List<Node> expressionList, Type type) {
     super(ExpressionType.Conditional, type);
