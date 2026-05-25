@@ -5090,28 +5090,42 @@ public class RelBuilderTest {
             hasTree(expected));
   }
 
-  @Test void testSimpleRightCorrelateViaJoinThrowsException() {
-    assertThrows(IllegalArgumentException.class,
-        () -> buildSimpleCorrelateWithJoin(JoinRelType.RIGHT),
-        "Right outer joins with correlated ids are invalid even if id is not used.");
+  @Test void testSimpleRightCorrelateViaJoin() {
+    RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.RIGHT);
+    final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[right], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
   }
 
-  @Test void testSimpleFullCorrelateViaJoinThrowsException() {
-    assertThrows(IllegalArgumentException.class,
-        () -> buildSimpleCorrelateWithJoin(JoinRelType.FULL),
-        "Full outer joins with correlated ids are invalid even if id is not used.");
+  @Test void testSimpleFullCorrelateViaJoin() {
+    RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.FULL);
+    final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[full], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
   }
 
-  @Test void testRightCorrelateViaJoinThrowsException() {
-    assertThrows(IllegalArgumentException.class,
-        () -> buildCorrelateWithJoin(JoinRelType.RIGHT),
-        "Right outer joins with correlated ids are invalid.");
+  @Test void testRightCorrelateViaJoin() {
+    RelNode root = buildCorrelateWithJoin(JoinRelType.RIGHT);
+    final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[right], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.EMPNO, 'NaN')])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
   }
 
-  @Test void testFullCorrelateViaJoinThrowsException() {
-    assertThrows(IllegalArgumentException.class,
-        () -> buildCorrelateWithJoin(JoinRelType.FULL),
-        "Full outer joins with correlated ids are invalid.");
+  @Test void testFullCorrelateViaJoin() {
+    RelNode root = buildCorrelateWithJoin(JoinRelType.FULL);
+    final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[full], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.EMPNO, 'NaN')])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type) {
