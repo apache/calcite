@@ -85,7 +85,7 @@ public class SqlPostfixOperator extends SqlOperator {
         return;
       }
     }
-    operand.unparse(writer, leftPrec, getLeftPrec());
+    operand.unparse(writer, getLeftPrec(), getRightPrec());
     writer.keyword(getName());
   }
 

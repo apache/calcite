@@ -263,9 +263,7 @@ public class RexSimplify {
    * Verify adds an overhead that is only acceptable for a top-level call.
    */
   RexNode simplify(RexNode e, RexUnknownAs unknownAs) {
-    boolean skipSimplify = !e.getComment().isEmpty()
-        && "skip_simplify".equals(((Comment) e.getComment().iterator().next()).getComment());
-    if (skipSimplify) {
+    if (e.skipSimplifier) {
       return e;
     }
     if (STRONG.isNull(e)) {
