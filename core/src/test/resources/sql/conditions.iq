@@ -595,4 +595,21 @@ where 5 < cast(deptno as integer) OR 5 >= cast(deptno as integer) OR deptno IS N
 EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# Probe: CAST(int_expr AS BOOLEAN) in a WHERE clause exercises the recursion
+# path of RexCall.isAlwaysTrue/False through the CAST case.
+!use scott-babel
+
+with t(a) as (values (0), (1), (2))
+select * from t where cast(a + 1 as boolean);
++---+
+| A |
++---+
+| 0 |
+| 1 |
+| 2 |
++---+
+(3 rows)
+
+!ok
+
 # End conditions.iq

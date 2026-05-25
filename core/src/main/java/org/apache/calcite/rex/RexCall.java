@@ -219,6 +219,12 @@ public class RexCall extends RexNode {
   @Override public boolean isAlwaysTrue() {
     // "c IS NOT NULL" occurs when we expand EXISTS.
     // This reduction allows us to convert it to a semi-join.
+    // Only boolean-valued calls can be always-true; e.g. CAST(TRUE AS INTEGER)
+    // evaluates to 1 (INTEGER), not a boolean, even though its operand is
+    // always true.
+    if (getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      return false;
+    }
     switch (getKind()) {
     case IS_NOT_NULL:
       return !operands.get(0).getType().isNullable();
@@ -241,6 +247,10 @@ public class RexCall extends RexNode {
   }
 
   @Override public boolean isAlwaysFalse() {
+    // Only boolean-valued calls can be always-false; see isAlwaysTrue().
+    if (getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      return false;
+    }
     switch (getKind()) {
     case IS_NULL:
       return !operands.get(0).getType().isNullable();
