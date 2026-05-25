@@ -4131,6 +4131,55 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7542">[CALCITE-7542]
+   * RexCall.isAlwaysTrue()/isAlwaysFalse() incorrectly returns true
+   * for CAST(boolean AS non-boolean)</a>. */
+  @Test void testIsAlwaysTrueCastBooleanToInteger() {
+    // CAST(TRUE AS INTEGER) is not a boolean expression; isAlwaysTrue() must be false.
+    final RexNode castTrueToInt = abstractCast(trueLiteral, tInt());
+    assertThat("CAST(TRUE AS INTEGER).isAlwaysTrue()",
+        castTrueToInt.isAlwaysTrue(), is(false));
+    assertThat("CAST(TRUE AS INTEGER).isAlwaysFalse()",
+        castTrueToInt.isAlwaysFalse(), is(false));
+  }
+
+  @Test void testIsAlwaysFalseCastBooleanToInteger() {
+    // CAST(FALSE AS INTEGER) is not a boolean expression; isAlwaysFalse() must be false.
+    final RexNode castFalseToInt = abstractCast(falseLiteral, tInt());
+    assertThat("CAST(FALSE AS INTEGER).isAlwaysFalse()",
+        castFalseToInt.isAlwaysFalse(), is(false));
+    assertThat("CAST(FALSE AS INTEGER).isAlwaysTrue()",
+        castFalseToInt.isAlwaysTrue(), is(false));
+  }
+
+  @Test void testIsAlwaysTrueCastBooleanToBoolean() {
+    // CAST(TRUE AS BOOLEAN) preserves the always-true property.
+    final RexNode castTrueToBool = abstractCast(trueLiteral, tBool());
+    assertThat("CAST(TRUE AS BOOLEAN).isAlwaysTrue()",
+        castTrueToBool.isAlwaysTrue(), is(true));
+  }
+
+  @Test void testIsAlwaysFalseCastBooleanToBoolean() {
+    // CAST(FALSE AS BOOLEAN) preserves the always-false property.
+    final RexNode castFalseToBool = abstractCast(falseLiteral, tBool());
+    assertThat("CAST(FALSE AS BOOLEAN).isAlwaysFalse()",
+        castFalseToBool.isAlwaysFalse(), is(true));
+  }
+
+  @Test void testIsAlwaysTrueFalseCastNonBooleanCallToBoolean() {
+    // CAST(1 + 1 AS BOOLEAN): the inner operand is a non-literal, non-boolean
+    // RexCall. isAlwaysTrue()/isAlwaysFalse() must safely return false on the
+    // recursive call rather than crashing — the contract is "ask freely, get
+    // a safe false for non-boolean expressions," matching RexLiteral and the
+    // RexNode base class.
+    final RexNode castIntExprToBool = abstractCast(plus(literal(1), literal(1)), tBool());
+    assertThat("CAST(1 + 1 AS BOOLEAN).isAlwaysTrue()",
+        castIntExprToBool.isAlwaysTrue(), is(false));
+    assertThat("CAST(1 + 1 AS BOOLEAN).isAlwaysFalse()",
+        castIntExprToBool.isAlwaysFalse(), is(false));
+  }
+
+  /** Unit tests for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2438">[CALCITE-2438]
    * RexCall#isAlwaysTrue returns incorrect result</a>. */
   @Test void testIsAlwaysTrueAndFalseXisNullisNotNullisFalse() {
