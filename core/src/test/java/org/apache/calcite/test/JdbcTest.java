@@ -5968,6 +5968,17 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7407">[CALCITE-7407]
+   * Illegal use of dynamic parameter with ||</a>. */
+  @Test void testPreparedStatementConcatDynamicParameter() {
+    CalciteAssert.hr()
+        .query("select \"name\" from \"hr\".\"emps\"\n"
+            + "where \"name\" = (? || 'odore')")
+        .consumesPreparedStatement(p -> p.setString(1, "The"))
+        .returns("name=Theodore\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2061">[CALCITE-2061]
    * Dynamic parameters in offset/fetch</a>. */
   @Test void testPreparedOffsetFetch() throws Exception {

@@ -284,7 +284,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
             }
             return type;
           }),
-          null,
+          InferTypes.RETURN_TYPE,
           OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
 
 
