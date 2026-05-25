@@ -4465,20 +4465,16 @@ public class RelBuilder {
 
   /**
    * Checks for {@link CorrelationId}, then validates the id is not used on left,
-   * and finally checks if id is actually used on right.
+   * and finally checks whether the join should be converted to a {@link Correlate}.
    *
-   * @return true if a correlate id is present and used
+   * @return true if the join should be converted to a Correlate; false if it should remain a Join
    *
-   * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
-   *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
+   * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side
    */
   private boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
       JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
     if (variablesSet.size() != 1) {
       return false;
-    }
-    if (!config.convertCorrelateToJoin()) {
-      return true;
     }
     CorrelationId id = Iterables.getOnlyElement(variablesSet);
     if (!RelOptUtil.notContainsCorrelation(leftNode, id, Litmus.IGNORE)) {
@@ -4490,12 +4486,14 @@ public class RelBuilder {
     case ASOF:
     case RIGHT:
     case FULL:
-      throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
+      return false;
     default:
-      return !RelOptUtil.correlationColumns(
-          Iterables.getOnlyElement(variablesSet),
-          rightRel).isEmpty();
+      break;
     }
+    if (!config.convertCorrelateToJoin()) {
+      return true;
+    }
+    return !RelOptUtil.correlationColumns(id, rightRel).isEmpty();
   }
 
 
