@@ -2751,6 +2751,13 @@ public abstract class SqlImplementor {
           return true;
         }
       }
+
+      if (rel instanceof Project
+          && clauses.contains(SqlImplementor.Clause.QUALIFY)
+          && node instanceof SqlSelect
+          && hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection((Project) rel)) {
+        return true;
+      }
       return false;
     }
 

@@ -7972,6 +7972,35 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testQualifySubQueryKeepsOrderByAliasNotInFinalProjection() {
+    final String sql = ""
+        + "SELECT y.\"employee_id\", y.\"hire_date\", y.\"department_id\" AS new_department_id\n"
+        + "FROM (\n"
+        + "  SELECT e.\"employee_id\", e.\"hire_date\", e.\"department_id\", COUNT(*) AS total_count\n"
+        + "  FROM \"foodmart\".\"employee\" e\n"
+        + "  WHERE e.\"employee_id\" IN (\n"
+        + "    SELECT \"employee_id\"\n"
+        + "    FROM \"foodmart\".\"employee\"\n"
+        + "    WHERE \"department_id\" NOT IN (1, 4))\n"
+        + "  GROUP BY e.\"employee_id\", e.\"hire_date\", e.\"department_id\"\n"
+        + ") y\n"
+        + "QUALIFY ROW_NUMBER() OVER (\n"
+        + "  PARTITION BY y.\"employee_id\", y.\"hire_date\"\n"
+        + "  ORDER BY y.total_count DESC) = 1";
+
+    final String expected = "SELECT employee_id, hire_date, "
+        + "department_id AS NEW_DEPARTMENT_ID\nFROM foodmart.employee\n"
+        + "WHERE employee_id IN (SELECT employee_id\nFROM foodmart.employee\n"
+        + "WHERE NOT (department_id = 1 OR department_id = 4))\n"
+        + "GROUP BY employee_id, hire_date, department_id\n"
+        + "QUALIFY (ROW_NUMBER() OVER (PARTITION BY employee_id, hire_date "
+        + "ORDER BY COUNT(*) IS NULL DESC, COUNT(*) DESC)) = 1";
+
+    sql(sql)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
