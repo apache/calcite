@@ -10178,6 +10178,30 @@ class RelToSqlConverterTest {
     final String expected2 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = 'calcite', "
         + "\"product_id\" = 10\nWHERE \"product_id\" = 1";
     sql(sql2).ok(expected2);
+
+    final String sql3 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = 'calcite'\n"
+        + "where exists (\n"
+        + "   select 1 from \"foodmart\".\"product_class\")";
+    final String expected3 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = "
+        + "'calcite'\nWHERE EXISTS (SELECT *\nFROM \"foodmart\".\"product_class\")";
+    sql(sql3).ok(expected3);
+  }
+
+  @Test void testDelete() {
+    final String sql0 = "delete from \"foodmart\".\"product\"\n"
+        + "where exists (\n"
+        + "   select 1 from \"foodmart\".\"product_class\")";
+    final String expected0 = "DELETE FROM \"foodmart\".\"product\"\n"
+        + "WHERE EXISTS (SELECT *\nFROM \"foodmart\".\"product_class\")";
+    sql(sql0).ok(expected0);
+
+    final String sql1 = "delete from \"foodmart\".\"product\"\n"
+        + "where not exists (\n"
+        + "   select 1 from \"foodmart\".\"product_class\")";
+    final String expected1 = "DELETE FROM \"foodmart\".\"product\"\n"
+        + "WHERE NOT EXISTS (SELECT *\nFROM \"foodmart\".\"product_class\")";
+    sql(sql1).ok(expected1);
   }
 
   /**
