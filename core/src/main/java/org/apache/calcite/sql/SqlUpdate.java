@@ -202,8 +202,7 @@ public class SqlUpdate extends SqlCall {
     writer.endList(setFrame);
     SqlNode condition = this.condition;
     if (condition != null) {
-      writer.sep("WHERE");
-      condition.unparse(writer, opLeft, opRight);
+      SqlUtil.unparseWhereClause(writer, condition, opLeft, opRight);
     }
     writer.endList(frame);
   }

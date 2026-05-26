@@ -455,6 +455,49 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Unparses a WHERE clause.
+   *
+   * <p>Unparsing the condition in a {@link SqlWriter.FrameTypeEnum#WHERE_LIST}
+   * frame lets sub-queries in predicates recognize that they need
+   * parentheses.
+   *
+   * @param writer   Writer
+   * @param where WHERE condition
+   * @param leftPrec Left precedence
+   * @param rightPrec Right precedence
+   */
+  public static void unparseWhereClause(SqlWriter writer, SqlNode where,
+      int leftPrec, int rightPrec) {
+    writer.sep("WHERE");
+
+    if (!writer.isAlwaysUseParentheses()) {
+      SqlNode node = where;
+
+      // Decide whether to split on ORs or ANDs.
+      SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
+      if ((node instanceof SqlCall)
+          && node.getKind() == SqlKind.OR) {
+        whereSep = SqlStdOperatorTable.OR;
+      }
+
+      // Unroll whereClause.
+      final List<SqlNode> list = new ArrayList<>(0);
+      while (node.getKind() == whereSep.kind) {
+        assert node instanceof SqlCall;
+        final SqlCall call1 = (SqlCall) node;
+        list.add(0, call1.operand(1));
+        node = call1.operand(0);
+      }
+      list.add(0, node);
+
+      writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
+          new SqlNodeList(list, where.getParserPosition()));
+    } else {
+      where.unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  /**
    * Concatenates string literals.
    *
    * <p>This method takes an array of arguments, since pairwise concatenation

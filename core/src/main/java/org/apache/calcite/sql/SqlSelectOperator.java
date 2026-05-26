@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -24,7 +23,6 @@ import org.apache.calcite.sql.util.SqlVisitor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -175,34 +173,7 @@ public class SqlSelectOperator extends SqlOperator {
 
     SqlNode where = select.where;
     if (where != null) {
-      writer.sep("WHERE");
-
-      if (!writer.isAlwaysUseParentheses()) {
-        SqlNode node = where;
-
-        // decide whether to split on ORs or ANDs
-        SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
-        if ((node instanceof SqlCall)
-            && node.getKind() == SqlKind.OR) {
-          whereSep = SqlStdOperatorTable.OR;
-        }
-
-        // unroll whereClause
-        final List<SqlNode> list = new ArrayList<>(0);
-        while (node.getKind() == whereSep.kind) {
-          assert node instanceof SqlCall;
-          final SqlCall call1 = (SqlCall) node;
-          list.add(0, call1.operand(1));
-          node = call1.operand(0);
-        }
-        list.add(0, node);
-
-        // unparse in a WHERE_LIST frame
-        writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
-            new SqlNodeList(list, where.getParserPosition()));
-      } else {
-        where.unparse(writer, 0, 0);
-      }
+      SqlUtil.unparseWhereClause(writer, where, 0, 0);
     }
     if (select.groupBy != null) {
       SqlNodeList groupBy =
