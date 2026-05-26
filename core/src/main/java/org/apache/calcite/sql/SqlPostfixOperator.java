@@ -58,6 +58,37 @@ public class SqlPostfixOperator extends SqlOperator {
     return SqlSyntax.POSTFIX;
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Overridden to parenthesize {@code IN} / {@code NOT IN} / {@code BETWEEN}
+   * operands so that expressions such as {@code (col IN (1)) IS NOT NULL} are
+   * emitted with explicit parentheses rather than the ambiguous
+   * {@code col IN (1) IS NOT NULL}.
+   *
+   * <p>{@code IN}, {@code NOT IN} and {@code BETWEEN} all share prec=32, which
+   * is higher than this operator's leftPrec (28), so without an explicit
+   * parenthesization they would be rendered without wrapping parens.
+   */
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    assert call.operandCount() == 1;
+    SqlNode operand = call.operand(0);
+    if (operand instanceof SqlCall) {
+      SqlKind operandKind = ((SqlCall) operand).getOperator().getKind();
+      if (operandKind == SqlKind.IN
+          || operandKind == SqlKind.NOT_IN
+          || operandKind == SqlKind.BETWEEN) {
+        final SqlWriter.Frame frame = writer.startList("(", ")");
+        operand.unparse(writer, 0, 0);
+        writer.endList(frame);
+        writer.keyword(getName());
+        return;
+      }
+    }
+    operand.unparse(writer, getLeftPrec(), getRightPrec());
+    writer.keyword(getName());
+  }
+
   @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{1} {0}";

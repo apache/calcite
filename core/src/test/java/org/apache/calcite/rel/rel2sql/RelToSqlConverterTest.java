@@ -7920,6 +7920,39 @@ class RelToSqlConverterTest {
     sql(query).withPresto().ok(expectedPresto);
   }
 
+  @Test void testMergeUsingSubqueryWithQualify() {
+    final String sql = "MERGE INTO \"foodmart\".\"salary\" AS A\n"
+        + "USING (\n"
+        + "  SELECT \"employee_id\", \"department_id\", PAY_DATE, SALARY_PAID_\n"
+        + "  FROM (\n"
+        + "    SELECT \n"
+        + "      AWS.\"employee_id\", \n"
+        + "      AWS.\"department_id\", \n"
+        + "      X.\"time_id\" AS PAY_DATE, \n"
+        + "      AWS.\"salary\" AS SALARY_PAID_, \n"
+        + "      COUNT(*) AS ANZAHL\n"
+        + "    FROM \"foodmart\".\"employee\" AS AWS\n"
+        + "    INNER JOIN \"foodmart\".\"time_by_day\" AS X ON TRUE\n"
+        + "    GROUP BY AWS.\"employee_id\", AWS.\"department_id\", X.\"time_id\", AWS.\"salary\"\n"
+        + "  ) AS y\n"
+        + "  QUALIFY (ROW_NUMBER() OVER (PARTITION BY \"employee_id\" ORDER BY ANZAHL DESC)) = 1\n"
+        + ") AS b\n"
+        + "ON A.\"employee_id\" = b.\"employee_id\"\n"
+        + "WHEN MATCHED THEN UPDATE SET \"salary_paid\" = b.SALARY_PAID_";
+
+    final String expectedBigQuery = "MERGE INTO foodmart.salary\n"
+        + "USING (SELECT employee.employee_id, employee.department_id, time_by_day.time_id AS PAY_DATE, employee.salary AS SALARY_PAID_\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.time_by_day ON TRUE\n"
+        + "GROUP BY employee.employee_id, employee.department_id, PAY_DATE, SALARY_PAID_\n"
+        + "QUALIFY (ROW_NUMBER() OVER (PARTITION BY employee.employee_id ORDER BY COUNT(*) IS NULL DESC, COUNT(*) DESC)) = 1) AS t3\n"
+        + "ON t3.employee_id = salary.employee_id\n"
+        + "WHEN MATCHED AND t3.employee_id = salary.employee_id THEN UPDATE SET salary_paid = t3.SALARY_PAID_";
+    sql(sql)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test void testLeftJoinForAmbiguityColumn() {
     final String sql = "SELECT d.deptno, e.deptno\n"
         + "FROM dept d\n"

@@ -40,6 +40,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -48,6 +49,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
@@ -298,6 +302,9 @@ public class PostgresqlSqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(concat);
       break;
+    case TRIM:
+      unparseTrim(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -404,6 +411,37 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
     return rewriteMaxMin(aggCall, relDataType);
+  }
+
+  private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
+    SqlNode valueToTrim = call.operand(1);
+    requireNonNull(valueToTrim, "valueToTrim in unparseTrim() must not be null");
+    String value = removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+
+    // If the trimmed character is a non-space character, add it to the target SQL.
+    // eg: TRIM(BOTH 'A' from 'ABCD'
+    // Output Query: TRIM('ABC', 'A')
+    if (!value.matches("\\s+")) {
+      writer.literal(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(trimFrame);
   }
 
   @Override public boolean supportsGroupByLiteral() {
