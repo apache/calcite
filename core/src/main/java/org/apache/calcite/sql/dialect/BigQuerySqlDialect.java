@@ -1764,9 +1764,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    writer.print("CAST(");
+    final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec, call.getOperator().getName());
-    writer.print(" AS INT64)");
+    writer.sep("AS");
+    writer.literal("INT64");
+    writer.endFunCall(castFrame);
   }
 
   private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
