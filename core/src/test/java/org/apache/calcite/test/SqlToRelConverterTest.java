@@ -2213,6 +2213,24 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7562">[CALCITE-7562]
+   * SqlToRel misses CAST in case IN expression without type coercion</a>. */
+  @Test void testInDateColumnWithoutTypeCoercion() {
+    final String sql =
+        "select * from emp_b where birthdate in ('2000-06-30', '2000-09-27')";
+    sql(sql).withTypeCoercion(false).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7562">[CALCITE-7562]
+   * SqlToRel misses CAST in case IN expression without type coercion</a>. */
+  @Test void testInDateColumnWithTypeCoercion() {
+    final String sql =
+        "select * from emp_b where birthdate in ('2000-06-30', '2000-09-27')";
+    sql(sql).ok();
+  }
+
   @Test void testInValueListLong() {
     // Go over the default threshold of 20 to force a sub-query.
     final String sql = "select empno from emp where deptno in"
