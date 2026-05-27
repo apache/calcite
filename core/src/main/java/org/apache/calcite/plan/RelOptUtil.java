@@ -3346,6 +3346,21 @@ public abstract class RelOptUtil {
       // function? Possibly. But it's invalid SQL, so don't go there.
       return null;
     }
+    // [CALCITE-7551] Refuse to merge if it would duplicate a
+    // non-deterministic expression (e.g. RAND()).
+    final List<RexNode> bottom = project.getProjects();
+    final int[] refs = new int[bottom.size()];
+    new RexVisitorImpl<Void>(true) {
+      @Override public Void visitInputRef(RexInputRef ref) {
+        refs[ref.getIndex()]++;
+        return null;
+      }
+    }.visitEach(nodes);
+    for (int i = 0; i < refs.length; i++) {
+      if (refs[i] > 1 && !RexUtil.isDeterministic(bottom.get(i))) {
+        return null;
+      }
+    }
     final List<RexNode> list = pushPastProject(nodes, project);
     final int bottomCount = RexUtil.nodeCount(project.getProjects());
     final int topCount = RexUtil.nodeCount(nodes);
