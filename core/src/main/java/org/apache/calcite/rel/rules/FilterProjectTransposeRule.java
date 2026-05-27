@@ -165,6 +165,13 @@ public class FilterProjectTransposeRule
       // it can be pushed down. For now we don't support this.
       return;
     }
+    // Pushing the filter below the project would split a single
+    // non-deterministic evaluation (e.g. RAND()) into two: one consumed by
+    // the new filter condition, and the original still produced by the
+    // project above. Refuse to transpose in that case.
+    if (!project.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
+      return;
+    }
     // convert the filter to one that references the child of the project
     RexNode newCondition =
         RelOptUtil.pushPastProjectUnlessBloat(filter.getCondition(), project, config.bloat());

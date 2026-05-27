@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -147,6 +148,21 @@ public class JoinProjectTransposeRule
       leftJoinChild = join.getLeft();
     }
     if (rightProject != null && rightProject.containsOver()) {
+      rightProject = null;
+      rightJoinChild = join.getRight();
+    }
+
+    // Skip projects that contain non-deterministic expressions
+    // (e.g. RAND). The merge below inlines projected expressions
+    // into the join condition via expandLocalRef, which would
+    // duplicate every non-deterministic call referenced more than once.
+    if (leftProject != null
+        && !leftProject.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
+      leftProject = null;
+      leftJoinChild = join.getLeft();
+    }
+    if (rightProject != null
+        && !rightProject.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
       rightProject = null;
       rightJoinChild = join.getRight();
     }

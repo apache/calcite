@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
@@ -71,6 +72,15 @@ public class SemiJoinProjectTransposeRule
   @Override public void onMatch(RelOptRuleCall call) {
     final Join semiJoin = call.rel(0);
     final Project project = call.rel(1);
+
+    // Skip when the project contains a non-deterministic expression
+    // (e.g. RAND). Pulling such a project above the semi-join inlines
+    // its expressions into the join condition via expandLocalRef and
+    // then re-emits the projection above, splitting one evaluation
+    // into many. See [CALCITE-7551].
+    if (!project.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
+      return;
+    }
 
     // Convert the LHS semi-join keys to reference the child projection
     // expression; all projection expressions must be RexInputRefs,

@@ -6179,4 +6179,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     assertThat(plan, not(containsString("FLOOR(FLOOR")));
     assertThat(plan, containsString("FLOOR($4, FLAG(WEEK))"));
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Non-deterministic expressions (e.g. {@code RAND()}) should not be
+   * duplicated when projections are merged</a>. */
+  @Test void testRandNotDuplicatedInProjectionMerge() {
+    final String sql = "select a, a + 1 as b from (select rand() as a)";
+    sql(sql).ok();
+  }
 }

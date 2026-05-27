@@ -5906,6 +5906,20 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterProjectTransposeShouldIgnoreNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select rand() as a from emp)
+where a > 0 and a < 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(A=[$0])
+  LogicalFilter(condition=[AND(>($0, CAST(0):DOUBLE NOT NULL), <($0, CAST(1):DOUBLE NOT NULL))])
+    LogicalProject(A=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterReduceCrash">
     <Resource name="sql">
       <![CDATA[SELECT + 54 FROM emp WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) NOT BETWEEN ( NULL ) AND 89]]>
@@ -8445,6 +8459,16 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
     LogicalJoin(condition=[=($1, $3)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinProjectTransposeShouldIgnoreNonDeterministic">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[SEARCH($1, Sarg[(0.0E0:DOUBLE..1.0E0:DOUBLE)]:DOUBLE)], joinType=[inner])
+  LogicalProject(EMPNO=[$0], r=[RAND()])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -11947,6 +11971,18 @@ LogicalProject(EXPR$0=[+($0, 1)])
 })])
   LogicalProject(X=[ARRAY(1, 2, 3)])
     LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectMergeShouldIgnoreNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select a, a + 1 as b from (select rand() as a from emp)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(A=[$0], B=[+($0, 1)])
+  LogicalProject(A=[RAND()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -17971,6 +18007,16 @@ LogicalProject(DNAME=[$1])
       LogicalAggregate(group=[{0}])
         LogicalProject($f0=[*(2, $0)])
           LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSemiJoinProjectTransposeShouldIgnoreNonDeterministic">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[SEARCH($1, Sarg[(0.0E0:DOUBLE..1.0E0:DOUBLE)]:DOUBLE)], joinType=[semi])
+  LogicalProject(EMPNO=[$0], r=[RAND()])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
   </TestCase>
