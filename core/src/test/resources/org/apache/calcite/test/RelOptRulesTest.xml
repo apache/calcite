@@ -8511,6 +8511,24 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], R=[$3], EXPR$1=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinProjectTransposeWithUnrelatedNonDeterministic">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+  LogicalProject(r=[RAND()], DEPTNO=[$7])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(r=[RAND()], DEPTNO=[$7], DEPTNO0=[$8], DNAME=[$9], LOC=[$10])
+  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinPushTransitivePredicatesNullabilityIssue">
     <Resource name="sql">
       <![CDATA[WITH
@@ -18028,6 +18046,24 @@ LogicalJoin(condition=[SEARCH($1, Sarg[(0.0E0:DOUBLE..1.0E0:DOUBLE)]:DOUBLE)], j
   LogicalProject(EMPNO=[$0], r=[RAND()])
     LogicalTableScan(table=[[scott, EMP]])
   LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSemiJoinProjectTransposeWithUnrelatedNonDeterministic">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($1, $2)], joinType=[semi])
+  LogicalProject(r=[RAND()], DEPTNO=[$7])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(r=[RAND()], DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $8)], joinType=[semi])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
   </TestCase>

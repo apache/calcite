@@ -40,6 +40,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -113,6 +114,22 @@ public class JoinProjectTransposeRule
 
   //~ Methods ----------------------------------------------------------------
 
+  /** Returns whether {@code conditionRefs} (input references of the join
+   * condition, expressed against the join's combined output) references a
+   * non-deterministic expression of {@code project}, whose first output
+   * field is at {@code offset} in that combined output. */
+  private static boolean referencesNonDeterministic(Project project,
+      ImmutableBitSet conditionRefs, int offset) {
+    final List<RexNode> exprs = project.getProjects();
+    for (int i = 0; i < exprs.size(); i++) {
+      if (conditionRefs.get(offset + i)
+          && !RexUtil.isDeterministic(exprs.get(i))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Join join = call.rel(0);
     final JoinRelType joinType = join.getJoinType();
@@ -152,17 +169,22 @@ public class JoinProjectTransposeRule
       rightJoinChild = join.getRight();
     }
 
-    // Skip projects that contain non-deterministic expressions
-    // (e.g. RAND). The merge below inlines projected expressions
-    // into the join condition via expandLocalRef, which would
-    // duplicate every non-deterministic call referenced more than once.
+    // Skip a project when the join condition references one of its
+    // non-deterministic expressions (e.g. RAND()). The merge below inlines
+    // that expression into the new join condition via expandLocalRef while
+    // the project still re-emits it above, splitting one evaluation into
+    // two. Non-deterministic columns that the condition does not reference
+    // are safe to pull up.
+    final ImmutableBitSet conditionRefs =
+        RelOptUtil.InputFinder.bits(join.getCondition());
+    final int nLeftFields = join.getLeft().getRowType().getFieldCount();
     if (leftProject != null
-        && !leftProject.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
+        && referencesNonDeterministic(leftProject, conditionRefs, 0)) {
       leftProject = null;
       leftJoinChild = join.getLeft();
     }
     if (rightProject != null
-        && !rightProject.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
+        && referencesNonDeterministic(rightProject, conditionRefs, nLeftFields)) {
       rightProject = null;
       rightJoinChild = join.getRight();
     }
