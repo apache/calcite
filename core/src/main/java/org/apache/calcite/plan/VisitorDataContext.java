@@ -28,8 +28,11 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -37,6 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * DataContext for evaluating a RexExpression.
@@ -107,6 +112,26 @@ public class VisitorDataContext implements DataContext {
     return new VisitorDataContext(values);
   }
 
+  /**
+   * Extracts a value from a RexLiteral for use in DataContext.
+   *
+   * <p>Returns a Pair of (column index, value) if extraction is successful,
+   * or null if the value cannot be extracted or is invalid.
+   *
+   * <p>Returns null when:
+   * <ul>
+   *   <li>Arguments are not valid RexInputRef and RexLiteral</li>
+   *   <li>Type conversion fails (e.g., invalid date/time format)</li>
+   *   <li>Type combination is unsupported</li>
+   * </ul>
+   *
+   * <p>When null is returned, the containing optimization (e.g.,
+   * materialized view substitution) cannot be applied and is skipped.
+   *
+   * @param inputRef the input reference (column)
+   * @param literal the literal value to extract
+   * @return a Pair of (column index, value) or null
+   */
   public static @Nullable Pair<Integer, ? extends @Nullable Object> getValue(
       @Nullable RexNode inputRef, @Nullable RexNode literal) {
     inputRef = inputRef == null ? null : RexUtil.removeCast(inputRef);
@@ -140,10 +165,68 @@ public class VisitorDataContext implements DataContext {
       case DECIMAL:
         return Pair.of(index, rexLiteral.getValueAs(BigDecimal.class));
       case DATE:
+        switch (rexLiteral.getType().getSqlTypeName()) {
+        case DATE:
+          return Pair.of(index, rexLiteral.getValueAs(Integer.class));
+        case CHAR:
+        case VARCHAR:
+          try {
+            return Pair.of(index,
+                new DateString(requireNonNull(rexLiteral.getValueAs(String.class)))
+                    .getDaysSinceEpoch());
+          } catch (IllegalArgumentException e) {
+            LOGGER.warn(
+                "Cannot convert string literal '{}' to DATE type; "
+                    + "materialized view optimization will be skipped",
+                rexLiteral.getValueAs(String.class), e);
+            return null;
+          }
+        default:
+          break;
+        }
+        break;
       case TIME:
-        return Pair.of(index, rexLiteral.getValueAs(Integer.class));
+        switch (rexLiteral.getType().getSqlTypeName()) {
+        case TIME:
+          return Pair.of(index, rexLiteral.getValueAs(Integer.class));
+        case CHAR:
+        case VARCHAR:
+          try {
+            return Pair.of(index,
+                new TimeString(requireNonNull(rexLiteral.getValueAs(String.class)))
+                    .getMillisOfDay());
+          } catch (IllegalArgumentException e) {
+            LOGGER.debug(
+                "Cannot convert string literal '{}' to TIME type; "
+                    + "materialized view optimization will be skipped",
+                rexLiteral.getValueAs(String.class), e);
+            return null;
+          }
+        default:
+          break;
+        }
+        break;
       case TIMESTAMP:
-        return Pair.of(index, rexLiteral.getValueAs(Long.class));
+        switch (rexLiteral.getType().getSqlTypeName()) {
+        case TIMESTAMP:
+          return Pair.of(index, rexLiteral.getValueAs(Long.class));
+        case CHAR:
+        case VARCHAR:
+          try {
+            return Pair.of(index,
+                new TimestampString(requireNonNull(rexLiteral.getValueAs(String.class)))
+                    .getMillisSinceEpoch());
+          } catch (IllegalArgumentException e) {
+            LOGGER.debug(
+                "Cannot convert string literal '{}' to TIMESTAMP type; "
+                    + "materialized view optimization will be skipped",
+                rexLiteral.getValueAs(String.class), e);
+            return null;
+          }
+        default:
+          break;
+        }
+        break;
       case CHAR:
         return Pair.of(index, rexLiteral.getValueAs(Character.class));
       case VARCHAR:

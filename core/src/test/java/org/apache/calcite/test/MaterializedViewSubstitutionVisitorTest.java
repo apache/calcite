@@ -112,6 +112,21 @@ public class MaterializedViewSubstitutionVisitorTest {
         .ok();
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6823">[CALCITE-6823]
+   * Cannot convert CHAR to Integer when applying SubstitutionVisitor</a>. */
+  @Test void testDateFilter() {
+    sql("SELECT HIREDATE FROM EMP WHERE HIREDATE > '1990-10-01'",
+        "SELECT * FROM EMP WHERE HIREDATE > '1990-05-01'")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.SCOTT)
+        .noMat();
+
+    sql("SELECT HIREDATE FROM EMP WHERE HIREDATE > '1990-10-01'",
+        "SELECT * FROM EMP WHERE HIREDATE > 'invalid-date'")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.SCOTT)
+        .noMat();
+  }
+
   @Test void testFilterToProject0() {
     sql("select *, \"empid\" * 2 from \"emps\"",
         "select * from \"emps\" where (\"empid\" * 2) > 3")
