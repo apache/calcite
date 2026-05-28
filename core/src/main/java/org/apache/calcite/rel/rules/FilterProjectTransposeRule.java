@@ -165,12 +165,17 @@ public class FilterProjectTransposeRule
       // it can be pushed down. For now we don't support this.
       return;
     }
-    // Pushing the filter below the project would split a single
-    // non-deterministic evaluation (e.g. RAND()) into two: one consumed by
-    // the new filter condition, and the original still produced by the
-    // project above. Refuse to transpose in that case.
-    if (!project.getProjects().stream().allMatch(RexUtil::isDeterministic)) {
-      return;
+    // Refuse to transpose if the filter references a projected column whose
+    // expression is non-deterministic (e.g. RAND()). Pushing the filter
+    // below the project would inline that expression into the new filter
+    // condition while the original is still produced by the project above,
+    // splitting one evaluation into two. References to deterministic columns
+    // (even when other columns are non-deterministic) are safe to push.
+    final List<RexNode> projects = project.getProjects();
+    for (int ref : RelOptUtil.InputFinder.bits(filter.getCondition())) {
+      if (!RexUtil.isDeterministic(projects.get(ref))) {
+        return;
+      }
     }
     // convert the filter to one that references the child of the project
     RexNode newCondition =
