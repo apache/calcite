@@ -1709,6 +1709,21 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7563">[CALCITE-7563]
+   * Oracle dialect generates invalid CAST to VARCHAR without precision</a>. */
+  @Test void testCastVarcharWithoutPrecisionOracle() {
+    final String query = "select cast(\"store_id\" as VARCHAR)\n"
+        + " from \"expense_fact\"";
+    final String expected = "SELECT CAST(\"store_id\" AS VARCHAR(4000))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    final String expectedModifiedTypeSystem = "SELECT CAST(\"store_id\" AS VARCHAR(512))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query)
+        .withOracle().ok(expected)
+        .withOracleModifiedTypeSystem().ok(expectedModifiedTypeSystem);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
    * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
   @Test void testSum0BecomesCoalesce() {

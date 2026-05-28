@@ -116,6 +116,13 @@ public class OracleSqlDialect extends SqlDialect {
     case DOUBLE:
       castSpec = "DOUBLE PRECISION";
       break;
+    case VARCHAR:
+      if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
+        final int precision = getTypeSystem().getMaxPrecision(SqlTypeName.VARCHAR);
+        castSpec = "VARCHAR(" + precision + ")";
+        break;
+      }
+      return super.getCastSpec(type);
     default:
       return super.getCastSpec(type);
     }
