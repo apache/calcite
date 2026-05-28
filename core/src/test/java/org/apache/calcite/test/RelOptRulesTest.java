@@ -1615,10 +1615,30 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
    * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. The transpose is still allowed when
+   * the join condition only references deterministic projected columns,
+   * even if the project also computes a non-deterministic column (here
+   * {@code r} is RAND() but the join is on DEPTNO). */
+  @Test void testJoinProjectTransposeWithUnrelatedNonDeterministic() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "r"),
+            b.field("DEPTNO"))
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")))
+        .build();
+    relFn(relFn).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
    * non-deterministic expressions</a>. SemiJoinProjectTransposeRule
    * uses the same {@code mergePrograms} + {@code expandLocalRef}
    * pattern as JoinProjectTransposeRule, and must not pull a project
-   * containing a non-deterministic expression above the semi-join. */
+   * above the semi-join when the condition references one of its
+   * non-deterministic expressions. */
   @Test void testSemiJoinProjectTransposeShouldIgnoreNonDeterministic() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
@@ -1631,6 +1651,25 @@ class RelOptRulesTest extends RelOptTestBase {
                 b.lessThan(b.field(2, 0, "r"), b.literal(1.0))))
         .build();
     relFn(relFn).withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. The semi-join transpose is still
+   * allowed when the condition only references deterministic projected
+   * columns, even if the project also computes a non-deterministic column
+   * (here {@code r} is RAND() but the semi-join is on DEPTNO). */
+  @Test void testSemiJoinProjectTransposeWithUnrelatedNonDeterministic() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "r"),
+            b.field("DEPTNO"))
+        .scan("DEPT")
+        .join(JoinRelType.SEMI,
+            b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE).check();
   }
 
   /** Test case for
