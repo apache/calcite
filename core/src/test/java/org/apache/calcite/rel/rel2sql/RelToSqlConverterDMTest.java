@@ -92,6 +92,7 @@ import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
 import org.apache.calcite.sql.fun.GeneratorTableFunction;
 import org.apache.calcite.sql.fun.HiveLateralViewExplodeFunction;
 import org.apache.calcite.sql.fun.HiveTableValueFunction;
+import org.apache.calcite.sql.fun.JsonTupleFunction;
 import org.apache.calcite.sql.fun.SqlAddMonths;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -9267,8 +9268,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000' , "
-        + "r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('12-12-2000' , "
+        + "r'^\\d\\d-\\w{2}-\\d{4}$') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('12-12-2000' rlike r'^\\d\\d-\\w{2}-\\d{4}$', 1, 0)"
@@ -9288,8 +9289,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike BIrd' , "
-        + "r'^(?i)MikE B(i|y)RD$'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('Mike BIrd' , "
+        + "r'^(?i)MikE B(i|y)RD$') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
@@ -9309,7 +9310,7 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('Mike' , r'Mike') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike' rlike r'(?x)M i k e', 1, 0)"
@@ -9330,8 +9331,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(regexpSimilar, "A"))
         .build();
 
-    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike Bird' , "
-        + "r'Mike B(i|y)RD'), 1, 0) AS A\n"
+    final String expectedBiqQuery = "SELECT CAST(REGEXP_CONTAINS('Mike Bird' , "
+        + "r'Mike B(i|y)RD') AS INT64) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
@@ -10775,7 +10776,7 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedBiqQuery = "SELECT "
-        + "IF(REGEXP_CONTAINS('12-12-2000' , r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS regexpLike, "
+        + "CAST(REGEXP_CONTAINS('12-12-2000' , r'^\\d\\d-\\w{2}-\\d{4}$') AS INT64) AS regexpLike, "
         + "REGEXP_EXTRACT('Calcite', '\\.', 'DM.') AS regexpExtract, "
         + "REGEXP_REPLACE('Calcite', '\\.', 'DM.') AS regexpReplace\n"
         + "FROM scott.EMP";
@@ -11029,6 +11030,23 @@ class RelToSqlConverterDMTest {
         builder.functionScan(new HiveLateralViewExplodeFunction(tableFunRowType), 0, operands).build();
     final String expectedQuery = "SELECT *\n"
         + "FROM TABLE(LATERAL VIEW EXPLODE(MAP['key_name', 'value_name']))";
+
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testLateralViewJsonTupleFunction() {
+    final RelBuilder builder = foodmartRelBuilder();
+    Map<String, RelDataType> tableFunRowType = new HashMap<>();
+    builder.scan("employee");
+    RexNode operand =
+        builder.call(
+            new JsonTupleFunction(tableFunRowType), builder.field(1), builder.literal(
+                "key1"),
+            builder.literal("key2"));
+    RelNode root =
+        builder.project(operand).build();
+    final String expectedQuery = "SELECT JSON_TUPLE(full_name, 'key1', 'key2') $f0\n"
+        + "FROM foodmart.employee";
 
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
   }

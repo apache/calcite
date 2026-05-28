@@ -1764,13 +1764,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec, call.getOperator().getName());
-    writer.sep(",");
-    writer.literal("1");
-    writer.sep(",");
-    writer.literal("0");
-    writer.endFunCall(ifFrame);
+    writer.sep("AS");
+    writer.literal("INT64");
+    writer.endFunCall(castFrame);
   }
 
   private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
@@ -1828,9 +1826,28 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexStringForIfRegexReplace(
       SqlWriter writer, SqlCall call, String operatorName) {
-    SqlCharStringLiteral secondOperand = call.getOperandList().size() == 3
-        ? modifyIfRegexpContainsSecondOperand(call) : call.operand(1);
+    SqlCharStringLiteral secondOperand;
+    if (call.getOperandList().size() == 3) {
+      secondOperand = modifyIfRegexpContainsSecondOperand(call);
+    } else if ("REGEXP_SIMILAR".equals(operatorName)) {
+      secondOperand = anchorRegexForFullMatch(call.operand(1));
+    } else {
+      secondOperand = call.operand(1);
+    }
     unparseRegexLiteral(writer, secondOperand, operatorName);
+  }
+
+  /**
+   * Wraps the regex pattern with '^' and '$' anchors for full-string matching.
+   * Teradata REGEXP_SIMILAR always performs a full-string match, so the BigQuery
+   * REGEXP_CONTAINS equivalent must be anchored.
+   */
+  private static SqlCharStringLiteral anchorRegexForFullMatch(SqlNode patternNode) {
+    String pattern = removeLeadingAndTrailingSingleQuotes(patternNode.toString());
+    if (!(pattern.startsWith("^") && pattern.endsWith("$"))) {
+      pattern = "^" + pattern + "$";
+    }
+    return SqlLiteral.createCharString(pattern, SqlParserPos.ZERO);
   }
 
   private SqlCharStringLiteral modifyIfRegexpContainsSecondOperand(SqlCall call) {
