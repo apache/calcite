@@ -3334,9 +3334,38 @@ class RelOptRulesTest extends RelOptTestBase {
    * not pull a filter that references a non-deterministic projected
    * column below the project. */
   @Test void testFilterProjectTransposeShouldIgnoreNonDeterministic() {
-    final String sql = "select * from (select rand() as a from emp)\n"
-        + "where a > 0 and a < 1";
-    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).checkUnchanged();
+    // Filter(a > 0 AND a < 1) over Project(a = RAND()). The filter
+    // references the non-deterministic column, so the transpose must be
+    // refused: otherwise the pushed-down filter and the re-emitted project
+    // would each evaluate RAND() independently.
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "a"))
+        .filter(
+            b.and(
+                b.greaterThan(b.field("a"), b.literal(0.0)),
+                b.lessThan(b.field("a"), b.literal(1.0))))
+        .build();
+    relFn(relFn).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. The transpose is still allowed when
+   * the filter only references deterministic projected columns, even if
+   * other columns in the project are non-deterministic (here {@code r} is
+   * RAND() but the filter is on {@code b}). */
+  @Test void testFilterProjectTransposeWithUnrelatedNonDeterministic() {
+    // Filter(b > 0) over Project(r = RAND(), b = DEPTNO). The filter only
+    // references the deterministic column b, so the transpose is safe.
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "r"),
+            b.alias(b.field("DEPTNO"), "b"))
+        .filter(b.greaterThan(b.field("b"), b.literal(0)))
+        .build();
+    relFn(relFn).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).check();
   }
 
   private static final String NOT_STRONG_EXPR =
