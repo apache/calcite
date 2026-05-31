@@ -991,7 +991,7 @@ public class JdbcTest {
     final int driverMajor = metaData.getDriverMajorVersion();
     final int driverMinor = metaData.getDriverMinorVersion();
     assertThat(driverMajor, is(1));
-    assertThat(driverMinor, is(42));
+    assertThat(driverMinor, is(43));
 
     assertThat(metaData.getDatabaseProductName(), is("Calcite"));
     final String databaseVersion =
