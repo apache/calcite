@@ -424,7 +424,6 @@ The same applies to `SqlBabelCreateTable` and `SqlUnpivot`.
 * Bump addressable from 2.8.7 to 2.9.0 in /site
 * Bump nokogiri from 1.18.9 to 1.19.3 in /site
 
--->
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.41.0">1.41.0</a> / 2025-11-01
 {: #v1-41-0}
