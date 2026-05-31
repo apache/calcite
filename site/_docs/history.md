@@ -73,11 +73,11 @@ metadata APIs (BuiltInMetadata), SQL dialects.
 {: #site-1-43-0}
 -->
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.42.0">1.42.0</a> / 2026-06-01
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.42.0">1.42.0</a> / 2026-05-31
 {: #v1-42-0}
 
 This release comes 7 months after [1.41.0](#v1-41-0),
-contains contributions from 39 contributors, and resolves 241 issues.
+contains contributions from 39 contributors, and resolves 249 issues.
 
 Contributors to this release:
 Alessandro Solimando,
