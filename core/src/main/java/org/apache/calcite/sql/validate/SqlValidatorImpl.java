@@ -7040,7 +7040,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Because there are two forms of the PERCENTILE_CONT/PERCENTILE_DISC functions,
     // they are distinguished by their operand count and then validated accordingly.
     // For example, the standard single operand form requires group order while the
-    // 2-operand form allows for null treatment and requires an OVER() clause.
+    // 2-operand form allows for null treatment.
     if (op.isPercentile()) {
       switch (aggCall.operandCount()) {
       case 1:
