@@ -3536,6 +3536,98 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDistinctListAggWithinGroupMultipleOrderBy">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno,
+  LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal),
+  LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY comm)
+FROM emp
+GROUP BY deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG(DISTINCT $1) WITHIN GROUP ([2])], EXPR$2=[LISTAGG(DISTINCT $1) WITHIN GROUP ([3])])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG($1) WITHIN GROUP ([2])], EXPR$2=[LISTAGG($1) WITHIN GROUP ([3])])
+  LogicalAggregate(group=[{0, 1}], $mc_2=[MIN($2)], $mc_3=[MIN($3)])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctListAggWithinGroupOrderByDistinctColumn">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY ename)
+FROM emp
+GROUP BY deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG(DISTINCT $1) WITHIN GROUP ([1])])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG($1) WITHIN GROUP ([1])])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctListAggWithinGroupOrderByOtherColumn">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal)
+FROM emp
+GROUP BY deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG(DISTINCT $1) WITHIN GROUP ([2])])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG($1) WITHIN GROUP ([2])])
+  LogicalAggregate(group=[{0, 1}], $mc_2=[MIN($2)])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctListAggWithinGroupOrderByOtherColumn1">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal),LISTAGG(DISTINCT deptno) WITHIN GROUP (ORDER BY ename)
+FROM emp
+GROUP BY deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[LISTAGG(DISTINCT $1) WITHIN GROUP ([2])], EXPR$2=[LISTAGG(DISTINCT $3) WITHIN GROUP ([1])])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5], $f3=[CAST($7):VARCHAR NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):VARCHAR(20) NOT NULL], EXPR$2=[CAST($2):VARCHAR NOT NULL])
+  LogicalAggregate(group=[{0}], EXPR$1_g0=[LISTAGG($1) WITHIN GROUP ([3]) FILTER $4], EXPR$2_g0=[LISTAGG($2) WITHIN GROUP ([1]) FILTER $5])
+    LogicalProject(DEPTNO=[$0], ENAME=[$1], $f3=[$2], $mc_2=[$3], $g_1=[=($4, 1)], $g_2=[=($4, 2)])
+      LogicalAggregate(group=[{0, 1, 3}], groups=[[{0, 1}, {0, 3}, {0}]], $mc_2=[MIN($2)], $g=[GROUPING($0, $1, $3)])
+        LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5], $f3=[CAST($7):VARCHAR NOT NULL])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDistinctNonDistinctAggregates">
     <Resource name="sql">
       <![CDATA[select emp.empno, count(*), avg(distinct dept.deptno)

@@ -2643,6 +2643,46 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5101">[CALCITE-5101]
+   * LISTAGG(DISTINCT x) WITHIN GROUP (ORDER BY y) throws
+   * ArrayIndexOutOfBoundsException when the ORDER BY column differs from
+   * both the GROUP BY column and the DISTINCT column</a>. */
+  @Test void testDistinctListAggWithinGroupOrderByOtherColumn() {
+    final String sql = "SELECT deptno, LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
+  @Test void testDistinctListAggWithinGroupOrderByOtherColumn1() {
+    final String sql = "SELECT deptno, LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal),"
+        + "LISTAGG(DISTINCT deptno) WITHIN GROUP (ORDER BY ename)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
+  @Test void testDistinctListAggWithinGroupOrderByDistinctColumn() {
+    final String sql = "SELECT deptno, LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY ename)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
+  @Test void testDistinctListAggWithinGroupMultipleOrderBy() {
+    final String sql = "SELECT deptno,\n"
+        + "  LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal),\n"
+        + "  LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY comm)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
   @Test void testDistinctWithGrouping() {
     final String sql = "SELECT sal, SUM(comm), MIN(comm), SUM(DISTINCT sal)\n"
         + "FROM emp\n"

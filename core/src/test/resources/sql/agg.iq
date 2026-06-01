@@ -3385,6 +3385,46 @@ from emp group by gender;
 
 !ok
 
+# [CALCITE-5101] LISTAGG(DISTINCT x) WITHIN GROUP (ORDER BY y) where the ORDER BY
+# column differs from the DISTINCT column. The result must be ordered by the
+# ORDER BY column (ord), not by the aggregated value (val), so the expected
+# output is 'c,a,b' (ord 1,2,3) and not 'a,b,c'.
+select listagg(distinct val) within group (order by ord) as agg
+from (values
+  ('c', 1),
+  ('a', 2),
+  ('b', 3),
+  ('a', 2)) as t(val, ord);
++-------+
+| AGG   |
++-------+
+| c,a,b |
++-------+
+(1 row)
+
+!ok
+
+# [CALCITE-5101] Two DISTINCT LISTAGGs with different arguments force the
+# grouping-sets expansion path; each WITHIN GROUP ORDER BY references a column
+# that is neither the group key nor that aggregate's own argument. Each distinct
+# value maps to a single ordering value, so the order is deterministic.
+select grp,
+  listagg(distinct a) within group (order by b) as la,
+  listagg(distinct c) within group (order by d) as lc
+from (values
+  (1, 'a1', 'b3', 'c1', 'd2'),
+  (1, 'a2', 'b1', 'c2', 'd1'),
+  (1, 'a3', 'b2', 'c3', 'd3')) as t(grp, a, b, c, d)
+group by grp;
++-----+----------+----------+
+| GRP | LA       | LC       |
++-----+----------+----------+
+|   1 | a2,a3,a1 | c2,c1,c3 |
++-----+----------+----------+
+(1 row)
+
+!ok
+
 !use mysqlfunc
 
 # GROUP_CONCAT (MySQL) is very similar to LISTAGG.

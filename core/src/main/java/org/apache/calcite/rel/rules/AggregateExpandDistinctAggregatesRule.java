@@ -19,7 +19,9 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -555,6 +557,44 @@ public final class AggregateExpandDistinctAggregatesRule
     relBuilder.push(aggregate.getInput());
     final int bottomGroupCount = fullGroupSet.cardinality();
 
+    // A DISTINCT aggregate may order its input on a column that is neither a
+    // group key nor one of its own arguments, e.g.
+    //   LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal).
+    // The inner (distinct) aggregate would otherwise drop that column, so the
+    // outer aggregate could no longer reference it and would fail with an
+    // ArrayIndexOutOfBoundsException (CALCITE-5101). For every such collation
+    // column we ensure the value is carried through the inner aggregate and
+    // record where it lands so the collation can be remapped later:
+    //  - if the column is already a group key it survives unchanged, so map it
+    //    to itself;
+    //  - otherwise add a MIN(column) aggregate ($mc_ = "min collation" marker)
+    //    that preserves the value (one row per group) and map the column to the
+    //    ordinal of that new aggregate output.
+    final Map<Integer, Integer> collations = new HashMap<>();
+    for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      if (!aggCall.isDistinct()) {
+        continue;
+      }
+      List<Integer> collationColumns = aggCall.getCollation().getKeys();
+
+      if (!collationColumns.isEmpty()) {
+        for (int i : collationColumns) {
+          if (!collations.containsKey(i)) {
+            if (fullGroupSet.get(i)) {
+              collations.put(i, fullGroupSet.indexOf(i));
+            } else {
+              collations.put(i, bottomGroupCount + distinctAggCalls.size());
+              distinctAggCalls.add(
+                  AggregateCall.create(SqlStdOperatorTable.MIN, false, false,
+                      false, ImmutableList.of(), ImmutableIntList.of(i), -1,
+                      null, RelCollations.EMPTY, groupSets.isEmpty(), relBuilder.peek(),
+                      null, "$mc_" + i));
+            }
+          }
+        }
+      }
+    }
+
     // Map each (groupSet, filterArg) pair to an output field index in the
     // bottom projection. These fields become boolean/marker columns used to
     // implement FILTER(...) and to detect whether a grouping set had rows.
@@ -646,6 +686,8 @@ public final class AggregateExpandDistinctAggregatesRule
           final int newFilterArg =
               requireNonNull(filters.get(Pair.of(groupingSet, -1)),
                   () -> "filters.get(" + groupingSet + ", -1)");
+          // collation already applied in the inner aggregate
+          final RelCollation newCollation = RelCollations.EMPTY;
           final String upperAggName = upperAggCallName(aggCall, g);
           // Each filtered grouping set emits exactly one row per group,
           // so MIN just passes that value through without re-aggregation
@@ -653,7 +695,7 @@ public final class AggregateExpandDistinctAggregatesRule
               AggregateCall.create(aggCall.getParserPosition(),
                   SqlStdOperatorTable.MIN, false, aggCall.isApproximate(),
                   aggCall.ignoreNulls(), aggCall.rexList, args, newFilterArg,
-                  aggCall.distinctKeys, aggCall.collation, aggregate.hasEmptyGroup(),
+                  aggCall.distinctKeys, newCollation, aggregate.hasEmptyGroup(),
                   relBuilder.peek(), null, upperAggName);
           upperAggCalls.add(newCall);
           ordinals.add(topGroupCount + upperAggCalls.size() - 1);
@@ -668,12 +710,13 @@ public final class AggregateExpandDistinctAggregatesRule
           final int newFilterArg =
               requireNonNull(filters.get(Pair.of(newGroupSet, aggCall.filterArg)),
                   () -> "filters.get(" + newGroupSet + ", " + aggCall.filterArg + ")");
+          final RelCollation newCollation = remapCollation(aggCall.collation, collations);
           final String upperAggName = upperAggCallName(aggCall, g);
           final AggregateCall newCall =
               AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   aggCall.rexList, newArgList, newFilterArg,
-                  aggCall.distinctKeys, aggCall.collation,
+                  aggCall.distinctKeys, newCollation,
                   aggregate.hasEmptyGroup(), relBuilder.peek(), null, upperAggName);
           upperAggCalls.add(newCall);
           ordinals.add(topGroupCount + upperAggCalls.size() - 1);
@@ -830,6 +873,27 @@ public final class AggregateExpandDistinctAggregatesRule
       x >>= 1;
     }
     return v;
+  }
+
+  /**
+   * Rewrites {@code collation}'s field indices through {@code map} (original
+   * column ordinal -> new column ordinal). Every field referenced by the
+   * collation must be present as a key in the map; throws otherwise.
+   * Direction and null-direction are preserved.
+   */
+  private static RelCollation remapCollation(RelCollation collation,
+      Map<Integer, Integer> map) {
+    final List<RelFieldCollation> fcs = collation.getFieldCollations();
+    final List<RelFieldCollation> newFcs = new ArrayList<>(fcs.size());
+    for (RelFieldCollation fc : fcs) {
+      final Integer newIndex =
+          requireNonNull(map.get(fc.getFieldIndex()),
+              () -> "no remap entry for collation field " + fc.getFieldIndex());
+      newFcs.add(
+          new RelFieldCollation(newIndex, fc.getDirection(),
+              fc.nullDirection));
+    }
+    return RelCollations.of(newFcs);
   }
 
   static ImmutableBitSet remap(ImmutableBitSet groupSet,
@@ -1022,7 +1086,7 @@ public final class AggregateExpandDistinctAggregatesRule
       final AggregateCall newAggCall =
           AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(), aggCall.rexList,
-              newArgs, -1, aggCall.distinctKeys, aggCall.collation,
+              newArgs, -1, aggCall.distinctKeys, remapCollation(aggCall.collation, sourceOf),
               aggCall.getType(), aggCall.getName());
       assert refs.get(i) == null;
       if (leftFields == null) {
@@ -1111,7 +1175,7 @@ public final class AggregateExpandDistinctAggregatesRule
           AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(),
               aggCall.rexList, newArgs, -1,
-              aggCall.distinctKeys, aggCall.collation,
+              aggCall.distinctKeys, remapCollation(aggCall.collation, sourceOf),
               aggCall.getType(), aggCall.getName());
       newAggCalls.set(i, newAggCall);
     }
@@ -1122,7 +1186,7 @@ public final class AggregateExpandDistinctAggregatesRule
    * and the ordinals of the arguments to a
    * particular call to an aggregate function, creates a 'select distinct'
    * relational expression which projects the group columns and those
-   * arguments but nothing else.
+   * arguments (plus any collation columns needed for ordering, see below).
    *
    * <p>For example, given
    *
@@ -1144,12 +1208,21 @@ public final class AggregateExpandDistinctAggregatesRule
    * <p>The <code>sourceOf</code> map is populated with the source of each
    * column; in this case sourceOf.get(0) = 0, and sourceOf.get(1) = 2.
    *
+   * <p>If an aggregate call orders its input on a column that is neither a
+   * group key nor one of {@code argList} (for example the {@code sal} column in
+   * {@code LISTAGG(DISTINCT ename) WITHIN GROUP (ORDER BY sal)}), that column
+   * is also projected and a {@code MIN(column)} aggregate (named
+   * {@code $mc_<ordinal>}, "min collation" marker) is added so the ordering
+   * value survives the distinct aggregate and remains available to the caller;
+   * {@code sourceOf} records its output ordinal. See CALCITE-5101.
+   *
    * @param relBuilder Relational expression builder
    * @param aggregate Aggregate relational expression
    * @param argList   Ordinals of columns to make distinct
    * @param filterArg Ordinal of column to filter on, or -1
    * @param sourceOf  Out parameter, is populated with a map of where each
-   *                  output field came from
+   *                  output field came from, including any collation columns
+   *                  carried through via {@code $mc_} aggregates
    * @return Aggregate relational expression which projects the required
    * columns
    */
@@ -1193,13 +1266,42 @@ public final class AggregateExpandDistinctAggregatesRule
       sourceOf.put(arg, projects.size());
       RexInputRef.add2(projects, arg, childFields);
     }
-    relBuilder.project(projects.leftList(), projects.rightList());
+    int groupCount = projects.size();
+
+    Set<Integer> collationKeys = aggregate.getAggCallList().stream()
+        .map(aggCall -> aggCall.collation.getKeys())
+        .flatMap(Collection::stream).collect(Collectors.toSet());
+
+    for (int key : collationKeys) {
+      if (!sourceOf.containsKey(key)) {
+        sourceOf.put(key, projects.size());
+        projects.add(RexInputRef.of2(key, childFields));
+      }
+    }
+
+    relBuilder.project(Pair.left(projects), Pair.right(projects));
+
+    List<AggregateCall> aggregateCalls = new ArrayList<>();
+    for (int key : collationKeys) {
+      // Group keys and distinct arguments survive as group keys of the inner
+      // aggregate at their existing positions, so they need no MIN. Only a
+      // genuine ORDER BY column (neither a group key nor an argument) must be
+      // carried through via MIN(column), referencing its projected position.
+      if (!aggregate.getGroupSet().get(key) && !argList.contains(key)) {
+        final int projectIndex = sourceOf.get(key);
+        aggregateCalls.add(
+            AggregateCall.create(SqlStdOperatorTable.MIN, false, false,
+                false, ImmutableList.of(), ImmutableIntList.of(projectIndex), -1, null,
+                RelCollations.EMPTY, false, relBuilder.peek(),
+                null, "$mc_" + key));
+      }
+    }
 
     // Get the distinct values of the GROUP BY fields and the arguments
     // to the agg functions.
     relBuilder.push(
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
-            ImmutableBitSet.range(projects.size()), null, ImmutableList.of()));
+            ImmutableBitSet.range(groupCount), null, aggregateCalls));
     return relBuilder;
   }
 
