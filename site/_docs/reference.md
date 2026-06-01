@@ -2318,6 +2318,61 @@ each row in the original table to a window. The output table has all
 the same columns as the original table plus two additional columns `window_start`
 and `window_end`, which represent the start and end of the window interval, respectively.
 
+#### Polymorphic table functions
+
+A polymorphic table function (PTF) is a table function that takes one or more
+*table arguments* in addition to scalar and `DESCRIPTOR` arguments. Like any
+table function, it is invoked in the `FROM` clause; the examples below place the
+call inside the `TABLE( ... )` operator, as in `SELECT * FROM TABLE(funcName(...))`,
+which is the form used by the SQL standard, but Calcite also accepts the implicit
+form `SELECT * FROM funcName(...)`.
+
+A table argument is introduced by the `TABLE` keyword and is either a table
+reference or a query. A table argument with set semantics may be followed by a
+`PARTITION BY` clause, an `ORDER BY` clause, or both; each partition is then
+processed independently. A table argument with row semantics may not be
+partitioned or ordered.
+
+A PTF may have more than one table argument, each with its own semantics,
+partitioning and ordering; at most one of them may have row semantics.
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TABLE(funcName(tableArg [, tableArg ]* [, arg ]*))<br/>where tableArg is&nbsp;&nbsp;TABLE tableExpr [ PARTITION BY columns ] [ ORDER BY columns ] | Invokes polymorphic table function *funcName* over one or more table arguments, each optionally partitioned and ordered (set semantics), together with any scalar or `DESCRIPTOR` arguments.
+
+A PTF with a single table argument:
+
+{% highlight sql %}
+SELECT * FROM TABLE(
+topn(
+TABLE orders PARTITION BY product ORDER BY amount DESC,
+3));
+
+-- or with the named params
+SELECT * FROM TABLE(
+topn(
+DATA => TABLE orders PARTITION BY product ORDER BY amount DESC,
+COL => 3));
+{% endhighlight %}
+
+partitions the `orders` table by `product`, orders each partition by `amount`
+descending, and lets the function emit, say, the top 3 rows of each partition.
+
+A PTF with multiple table arguments:
+
+{% highlight sql %}
+SELECT * FROM TABLE(
+similarity(
+TABLE orders PARTITION BY product,
+TABLE returns PARTITION BY product));
+{% endhighlight %}
+
+passes two input tables, each partitioned by `product`, so the function can
+compare the matching partitions of `orders` and `returns`.
+
+The built-in window table functions `TUMBLE`, `HOP` and `SESSION` (described
+below) are concrete polymorphic table functions.
+
 ### Grouped window functions
 **warning**: grouped window functions are deprecated.
 

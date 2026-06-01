@@ -1997,6 +1997,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  table emp partition by deptno order by empno,\n"
         + "  table emp_b partition by deptno order by empno))")
         .ok();
+
+    // Test cases for [CALCITE-7575] https://issues.apache.org/jira/browse/CALCITE-7575
+    // Parser can not parse unparsed polymorphic table functions with several table args
+    final String emp = "(SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, "
+        + "`EMP`.`HIREDATE`, `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `EMP`.`SLACKER`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) PARTITION BY `DEPTNO`";
+    final String rewritten = "SELECT `EXPR$0`.`VAL`\n"
+        + "FROM TABLE(SIMILARLITY("
+        + emp + ", " + emp + ")) AS `EXPR$0`";
+    sql("select * from table(SIMILARLITY(\n"
+        + "  table emp partition by deptno,\n"
+        + "  table emp partition by deptno))")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo(rewritten);
+    sql(rewritten).withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testUnknownFunctionHandling() {
