@@ -19,7 +19,9 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -221,9 +223,13 @@ public final class AggregateExpandDistinctAggregatesRule
         // one or more non-distinct aggregates
         && !nonDistinctAggCalls.isEmpty()) {
       final RelBuilder relBuilder = call.builder();
-      convertSingletonDistinct(relBuilder, aggregate, distinctCallArgLists);
-      call.transformTo(relBuilder.build());
-      return;
+      final RelBuilder result =
+          convertSingletonDistinct(relBuilder, aggregate, distinctCallArgLists);
+      if (result != null) {
+        call.transformTo(result.build());
+        return;
+      }
+      // If convertSingletonDistinct returns null, fall through to other strategies
     }
 
     // Create a list of the expressions which will yield the final result.
@@ -279,6 +285,14 @@ public final class AggregateExpandDistinctAggregatesRule
     call.transformTo(relBuilder.build());
   }
 
+  private static RelCollation remapCollation(RelCollation collation,
+      Map<Integer, Integer> sourceOf) {
+    if (collation.equals(RelCollations.EMPTY)) {
+      return RelCollations.EMPTY;
+    }
+    return RelCollations.permute(collation, sourceOf);
+  }
+
   /**
    * Converts an aggregate with one distinct aggregate and one or more
    * non-distinct aggregates to multi-phase aggregates (see reference example
@@ -287,14 +301,38 @@ public final class AggregateExpandDistinctAggregatesRule
    * @param relBuilder Contains the input relational expression
    * @param aggregate  Original aggregate
    * @param argLists   Arguments and filters to the distinct aggregate function
+   * @return relBuilder if conversion succeeded, or null if not applicable
    *
    */
-  private static RelBuilder convertSingletonDistinct(RelBuilder relBuilder,
+  private static @Nullable RelBuilder convertSingletonDistinct(RelBuilder relBuilder,
       Aggregate aggregate, Set<Pair<List<Integer>, Integer>> argLists) {
 
     // In this case, we are assuming that there is a single distinct function.
     // So make sure that argLists is of size one.
     checkArgument(argLists.size() == 1);
+
+    // Check if any DISTINCT aggregate has ORDER BY columns not in GROUP BY or args.
+    // If so, we cannot safely apply this optimization because it would violate DISTINCT
+    // semantics (adding ORDER BY columns to GROUP BY would incorrectly preserve duplicate
+    // values of the DISTINCT column with different ORDER BY values).
+    final ImmutableBitSet groupSet = aggregate.getGroupSet();
+    final Pair<List<Integer>, Integer> pair = Iterables.getOnlyElement(argLists);
+    final List<Integer> distinctArgs = ImmutableList.copyOf(pair.left);
+    final ImmutableBitSet distinctArgSet = ImmutableBitSet.of(distinctArgs);
+
+    for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      if (!aggCall.isDistinct() || !aggCall.getArgList().equals(distinctArgs)) {
+        continue;
+      }
+      for (RelFieldCollation fc : aggCall.collation.getFieldCollations()) {
+        int colIdx = fc.getFieldIndex();
+        // Check if this ORDER BY column is in GROUP BY or in DISTINCT args
+        if (!groupSet.get(colIdx) && !distinctArgSet.get(colIdx)) {
+          // Cannot optimize: ORDER BY references a column outside GROUP BY and DISTINCT args
+          return null;
+        }
+      }
+    }
 
     // For example,
     //    SELECT deptno, COUNT(*), SUM(bonus), MIN(DISTINCT sal)
@@ -315,7 +353,11 @@ public final class AggregateExpandDistinctAggregatesRule
     final ImmutableBitSet originalGroupSet = aggregate.getGroupSet();
 
     // Add the distinct aggregate column(s) to the group-by columns,
-    // if not already a part of the group-by
+    // if not already a part of the group-by.
+    // NOTE: Do NOT add ORDER BY columns to bottomGroups because that would break DISTINCT
+    // semantics. For example, SUM(DISTINCT sal) WITHIN GROUP (ORDER BY bonus) would incorrectly
+    // produce multiple rows for the same sal value if they have different bonus values,
+    // violating the DISTINCT guarantee. ORDER BY columns will be handled separately below.
     final NavigableSet<Integer> bottomGroups = new TreeSet<>(aggregate.getGroupSet().asList());
     for (AggregateCall aggCall : originalAggCalls) {
       if (aggCall.isDistinct()) {
@@ -360,6 +402,14 @@ public final class AggregateExpandDistinctAggregatesRule
         for (int arg : aggCall.getArgList()) {
           newArgList.add(bottomGroups.headSet(arg, false).size());
         }
+        // Remap collation field indices using the same bottomGroups formula
+        final List<RelFieldCollation> remappedFCs = new ArrayList<>();
+        for (RelFieldCollation fc : aggCall.collation.getFieldCollations()) {
+          int newIdx = bottomGroups.headSet(fc.getFieldIndex(), false).size();
+          remappedFCs.add(fc.withFieldIndex(newIdx));
+        }
+        RelCollation newCollation = aggCall.collation.equals(RelCollations.EMPTY)
+            ? RelCollations.EMPTY : RelCollations.of(remappedFCs);
         newCall =
             AggregateCall.create(aggCall.getParserPosition(),
                 aggCall.getAggregation(),
@@ -370,7 +420,7 @@ public final class AggregateExpandDistinctAggregatesRule
                 newArgList,
                 -1,
                 aggCall.distinctKeys,
-                aggCall.collation,
+                newCollation,
                 aggregate.hasEmptyGroup(),
                 relBuilder.peek(),
                 aggCall.getType(),
@@ -649,11 +699,14 @@ public final class AggregateExpandDistinctAggregatesRule
           final String upperAggName = upperAggCallName(aggCall, g);
           // Each filtered grouping set emits exactly one row per group,
           // so MIN just passes that value through without re-aggregation
+          // Remap collation indices through fullGroupSet
+          final RelCollation remappedCollation =
+              remapCollationForGroupingSets(aggCall.collation, fullGroupSet);
           final AggregateCall newCall =
               AggregateCall.create(aggCall.getParserPosition(),
                   SqlStdOperatorTable.MIN, false, aggCall.isApproximate(),
                   aggCall.ignoreNulls(), aggCall.rexList, args, newFilterArg,
-                  aggCall.distinctKeys, aggCall.collation, aggregate.hasEmptyGroup(),
+                  aggCall.distinctKeys, remappedCollation, aggregate.hasEmptyGroup(),
                   relBuilder.peek(), null, upperAggName);
           upperAggCalls.add(newCall);
           ordinals.add(topGroupCount + upperAggCalls.size() - 1);
@@ -669,11 +722,14 @@ public final class AggregateExpandDistinctAggregatesRule
               requireNonNull(filters.get(Pair.of(newGroupSet, aggCall.filterArg)),
                   () -> "filters.get(" + newGroupSet + ", " + aggCall.filterArg + ")");
           final String upperAggName = upperAggCallName(aggCall, g);
+          // Remap collation indices through fullGroupSet
+          final RelCollation remappedCollation =
+              remapCollationForGroupingSets(aggCall.collation, fullGroupSet);
           final AggregateCall newCall =
               AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   aggCall.rexList, newArgList, newFilterArg,
-                  aggCall.distinctKeys, aggCall.collation,
+                  aggCall.distinctKeys, remappedCollation,
                   aggregate.hasEmptyGroup(), relBuilder.peek(), null, upperAggName);
           upperAggCalls.add(newCall);
           ordinals.add(topGroupCount + upperAggCalls.size() - 1);
@@ -864,6 +920,31 @@ public final class AggregateExpandDistinctAggregatesRule
     return arg < 0 ? -1 : groupSet.indexOf(arg);
   }
 
+  private static RelCollation remapCollationForGroupingSets(RelCollation collation,
+      ImmutableBitSet fullGroupSet) {
+    if (collation.equals(RelCollations.EMPTY)) {
+      return RelCollations.EMPTY;
+    }
+    // Remap each field index through the fullGroupSet.
+    // fullGroupSet contains only columns that appear in at least one grouping set.
+    // If an ORDER BY column is not in fullGroupSet, it means:
+    // 1. The column is not part of any grouping set combination
+    // 2. Different rows within the same logical group can have different values
+    // 3. Sorting by such a column would be meaningless
+    // Therefore, we safely drop ORDER BY columns not in fullGroupSet. The query
+    // planner should ensure ORDER BY columns are either in GROUP BY, in aggregation
+    // arguments, or properly scoped for consistent values within each group.
+    final List<RelFieldCollation> remappedFCs = new ArrayList<>();
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      int originalIdx = fc.getFieldIndex();
+      int newIdx = fullGroupSet.indexOf(originalIdx);
+      if (newIdx >= 0) {
+        remappedFCs.add(fc.withFieldIndex(newIdx));
+      }
+    }
+    return remappedFCs.isEmpty() ? RelCollations.EMPTY : RelCollations.of(remappedFCs);
+  }
+
   private static String upperAggCallName(AggregateCall aggCall,
       int groupingSetIndex) {
     String baseName = aggCall.getName();
@@ -1013,7 +1094,7 @@ public final class AggregateExpandDistinctAggregatesRule
         continue;
       }
 
-      // Re-map arguments.
+      // Re-map arguments and collation.
       final int argCount = aggCall.getArgList().size();
       final List<Integer> newArgs = new ArrayList<>(argCount);
       for (Integer arg : aggCall.getArgList()) {
@@ -1022,7 +1103,7 @@ public final class AggregateExpandDistinctAggregatesRule
       final AggregateCall newAggCall =
           AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(), aggCall.rexList,
-              newArgs, -1, aggCall.distinctKeys, aggCall.collation,
+              newArgs, -1, aggCall.distinctKeys, remapCollation(aggCall.collation, sourceOf),
               aggCall.getType(), aggCall.getName());
       assert refs.get(i) == null;
       if (leftFields == null) {
@@ -1098,7 +1179,7 @@ public final class AggregateExpandDistinctAggregatesRule
         continue;
       }
 
-      // Re-map arguments.
+      // Re-map arguments and collation.
       final int argCount = aggCall.getArgList().size();
       final List<Integer> newArgs = new ArrayList<>(argCount);
       for (int j = 0; j < argCount; j++) {
@@ -1111,7 +1192,7 @@ public final class AggregateExpandDistinctAggregatesRule
           AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(),
               aggCall.rexList, newArgs, -1,
-              aggCall.distinctKeys, aggCall.collation,
+              aggCall.distinctKeys, remapCollation(aggCall.collation, sourceOf),
               aggCall.getType(), aggCall.getName());
       newAggCalls.set(i, newAggCall);
     }
@@ -1193,6 +1274,23 @@ public final class AggregateExpandDistinctAggregatesRule
       sourceOf.put(arg, projects.size());
       RexInputRef.add2(projects, arg, childFields);
     }
+
+    // Also project ORDER BY columns from WITHIN GROUP for DISTINCT agg calls.
+    // If the ORDER BY references a column not already in GROUP BY or argList,
+    // it must be projected here so that collation indices can be properly remapped.
+    for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      if (!aggCall.isDistinct() || !aggCall.getArgList().equals(argList)) {
+        continue;
+      }
+      for (RelFieldCollation fc : aggCall.collation.getFieldCollations()) {
+        int col = fc.getFieldIndex();
+        if (sourceOf.get(col) == null) {
+          sourceOf.put(col, projects.size());
+          RexInputRef.add2(projects, col, childFields);
+        }
+      }
+    }
+
     relBuilder.project(projects.leftList(), projects.rightList());
 
     // Get the distinct values of the GROUP BY fields and the arguments
