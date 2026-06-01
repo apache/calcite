@@ -2560,7 +2560,7 @@ The following functions transform 2D geometries.
 Not implemented:
 
 * ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
-* ST_Translate(geom, x, y, [, z]) Translates *geom*
+* ST_Translate(geom, x, y [, z]) Translates *geom*
 
 #### Geometry editing functions (2D)
 
@@ -2934,9 +2934,9 @@ In the following:
 | f s i | ENDSWITH(string1, string2)                   | Returns whether *string2* is a suffix of *string1*
 | b | ENDS_WITH(string1, string2)                    | Equivalent to `ENDSWITH(string1, string2)`
 | s | EXISTS(array, func)                            | Returns whether a predicate *func* holds for one or more elements in the *array*
-| o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
-| o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
-| m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
+| o | EXISTSNODE(xml, xpath [, namespaces ])         | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
+| o | EXTRACT(xml, xpath [, namespaces ])            | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
+| m | EXTRACTVALUE(xml, xpathExpr)                   | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | h s | FACTORIAL(integer)                           | Returns the factorial of *integer*, the range of *integer* is [0, 20]. Otherwise, returns NULL
 | h s | FIND_IN_SET(matchStr, textStr)               | Returns the index (1-based) of the given *matchStr* in the comma-delimited *textStr*. Returns 0, if the given *matchStr* is not found or if the *matchStr* contains a comma. For example, FIND_IN_SET('bc', 'a,bc,def') returns 2
 | b | FLOOR(value)                                   | Similar to standard `FLOOR(value)` except if *value* is an integer type, the return type is a double
@@ -2972,9 +2972,9 @@ In the following:
 | f r s | LEN(string)                                | Equivalent to `CHAR_LENGTH(string)`
 | b f h p r s | LENGTH(string)                       | Equivalent to `CHAR_LENGTH(string)`
 | h s | LEVENSHTEIN(string1, string2)                | Returns the Levenshtein distance between *string1* and *string2*
-| b | LOG(numeric1 [, base ])                        | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or error if *numeric1* is 0 or negative
-| m s h | LOG([, base ], numeric1)                   | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or null if *numeric1* is 0 or negative
-| p | LOG([, base ], numeric1 )                      | Returns the logarithm of *numeric1* to base *base*, or base 10 if *numeric1* is not present, or error if *numeric1* is 0 or negative
+| b | LOG(numeric [, base ])                         | Returns the logarithm of *numeric* to base *base*, or base e if *base* is not present, or error if *numeric* is 0 or negative
+| m s h | LOG([ base , ] numeric)                    | Returns the logarithm of *numeric* to base *base*, or base e if *base* is not present, or null if *numeric* is 0 or negative
+| p | LOG([ base , ] numeric)                        | Returns the logarithm of *numeric* to base *base*, or base 10 if *base* is not present, or error if *numeric* is 0 or negative
 | m s | LOG2(numeric)                                | Returns the base 2 logarithm of *numeric*
 | s | LOG1P(numeric)                                 | Returns the natural logarithm of 1 plus *numeric*
 | b o p r s h | LPAD(string, length [, pattern ])    | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
