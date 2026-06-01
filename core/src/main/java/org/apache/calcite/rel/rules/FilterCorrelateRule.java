@@ -140,7 +140,11 @@ public class FilterCorrelateRule
         || corr.getLeft() instanceof RelSubset)) {
       HepRelVertex rightHepRelVertex = (HepRelVertex) corr.getRight();
       HepRelVertex leftHepRelVertex = (HepRelVertex) corr.getLeft();
-      if (!(rightHepRelVertex.getCurrentRel() instanceof LogicalCorrelate
+      if (rightHepRelVertex.getCurrentRel() instanceof Uncollect
+          && (leftHepRelVertex.getCurrentRel() instanceof LogicalJoin
+          || leftHepRelVertex.getCurrentRel() instanceof LogicalCorrelate)) {
+        return;
+      } else if (!(rightHepRelVertex.getCurrentRel() instanceof LogicalCorrelate
           || leftHepRelVertex.getCurrentRel() instanceof LogicalCorrelate)
           && (rightHepRelVertex.getCurrentRel() instanceof Uncollect
           || leftHepRelVertex.getCurrentRel() instanceof Uncollect)) {
