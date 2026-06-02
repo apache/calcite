@@ -246,7 +246,10 @@ public class SqlJoin extends SqlCall {
       default:
         throw Util.unexpected(join.getJoinType());
       }
-      join.right.unparse(writer, getRightPrec(), rightPrec);
+      // Comma join is associative, so no parens needed on the right child
+      final int rightChildLeftPrec =
+          join.getJoinType() == JoinType.COMMA ? getLeftPrec() : getRightPrec();
+      join.right.unparse(writer, rightChildLeftPrec, rightPrec);
       SqlNode joinCondition = join.condition;
       if (joinCondition != null) {
         switch (join.getConditionType()) {

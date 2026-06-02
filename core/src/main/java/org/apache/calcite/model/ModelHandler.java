@@ -82,14 +82,27 @@ public class ModelHandler {
   private final Deque<Pair<? extends @Nullable String, SchemaPlus>> schemaStack =
       new ArrayDeque<>();
   private final String modelUri;
+  private final ClassNameFilter classNameFilter;
   Lattice.@Nullable Builder latticeBuilder;
   Lattice.@Nullable TileBuilder tileBuilder;
 
-  @SuppressWarnings("method.invocation.invalid")
+  /** Creates a {@code ModelHandler} that uses the
+   * {@linkplain ClassNameFilter#standard() standard} class-name filter. */
   public ModelHandler(SchemaPlus rootSchema, String uri) throws IOException {
+    this(rootSchema, uri, ClassNameFilter.standard());
+  }
+
+  /** Creates a {@code ModelHandler} that validates every class loaded
+   * by reflection from the model against {@code classNameFilter}. Use
+   * this to apply a stricter (or more permissive) filter than the
+   * standard one. */
+  @SuppressWarnings("method.invocation.invalid")
+  public ModelHandler(SchemaPlus rootSchema, String uri,
+      ClassNameFilter classNameFilter) throws IOException {
     super();
     this.modelUri = uri;
     this.rootSchema = rootSchema;
+    this.classNameFilter = classNameFilter;
     JsonRoot root;
     ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
@@ -128,7 +141,12 @@ public class ModelHandler {
   }
 
   /** Creates and validates a {@link ScalarFunctionImpl}, and adds it to a
-   * schema. If {@code methodName} is "*", may add more than one function.
+   * schema, using the {@linkplain ClassNameFilter#standard() standard}
+   * class-name filter. Kept for backwards compatibility; prefer the
+   * filter-taking overload of {@code addFunctions}, which lets callers
+   * supply their own filter.
+   *
+   * <p>If {@code methodName} is "*", may add more than one function.
    *
    * @param schema Schema to add to
    * @param functionName Name of function; null to derived from method name
@@ -144,6 +162,16 @@ public class ModelHandler {
   public static void addFunctions(SchemaPlus schema,
       @Nullable String functionName, List<String> unusedPath,
       String className, @Nullable String methodName, boolean upCase) {
+    addFunctions(ClassNameFilter.standard(), schema, functionName, className,
+        methodName, upCase);
+  }
+
+  /** Creates and validates a {@link ScalarFunctionImpl} and adds it to a
+   * schema, after asking {@code filter} to accept {@code className}. */
+  public static void addFunctions(ClassNameFilter filter, SchemaPlus schema,
+      @Nullable String functionName, String className,
+      @Nullable String methodName, boolean upCase) {
+    filter.check(className);
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -275,6 +303,7 @@ public class ModelHandler {
   public void visit(JsonCustomSchema jsonSchema) {
     try {
       final SchemaPlus parentSchema = currentMutableSchema("sub-schema");
+      classNameFilter.check(jsonSchema.factory);
       final SchemaFactory schemaFactory =
           AvaticaUtils.instantiatePlugin(SchemaFactory.class,
               jsonSchema.factory);
@@ -329,6 +358,7 @@ public class ModelHandler {
 
   public void visit(JsonJdbcSchema jsonSchema) {
     final SchemaPlus parentSchema = currentMutableSchema("jdbc schema");
+    classNameFilter.check(jsonSchema.jdbcDriver);
     final DataSource dataSource =
         JdbcSchema.dataSource(jsonSchema.jdbcUrl,
             jsonSchema.jdbcDriver,
@@ -340,6 +370,7 @@ public class ModelHandler {
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
     } else {
+      classNameFilter.check(jsonSchema.sqlDialectFactory);
       SqlDialectFactory factory =
           AvaticaUtils.instantiatePlugin(SqlDialectFactory.class,
               jsonSchema.sqlDialectFactory);
@@ -401,6 +432,7 @@ public class ModelHandler {
         latticeBuilder.rowCountEstimate(jsonLattice.rowCountEstimate);
       }
       if (jsonLattice.statisticProvider != null) {
+        classNameFilter.check(jsonLattice.statisticProvider);
         latticeBuilder.statisticProvider(jsonLattice.statisticProvider);
       }
       populateLattice(jsonLattice, latticeBuilder);
@@ -421,6 +453,7 @@ public class ModelHandler {
   public void visit(JsonCustomTable jsonTable) {
     try {
       final SchemaPlus schema = currentMutableSchema("table");
+      classNameFilter.check(jsonTable.factory);
       final TableFactory tableFactory =
           AvaticaUtils.instantiatePlugin(TableFactory.class,
               jsonTable.factory);
@@ -518,10 +551,8 @@ public class ModelHandler {
     // "name" is not required - a class can have several functions
     try {
       final SchemaPlus schema = currentMutableSchema("function");
-      final List<String> path =
-          Util.first(jsonFunction.path, currentSchemaPath());
-      addFunctions(schema, jsonFunction.name, path, jsonFunction.className,
-          jsonFunction.methodName, false);
+      addFunctions(classNameFilter, schema, jsonFunction.name,
+          jsonFunction.className, jsonFunction.methodName, false);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonFunction, e);
     }

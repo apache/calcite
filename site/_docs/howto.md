@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.41.0-src.tar.gz
-$ cd apache-calcite-1.41.0-src
+$ tar xvfz apache-calcite-1.42.0-src.tar.gz
+$ cd apache-calcite-1.42.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -728,7 +728,12 @@ Before you start:
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
   is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
-* Make sure you are using JDK 8. (Compiling with JDK 21 causes
+* Generate a report of vulnerabilities that occur among dependencies,
+  using `./gradlew dependencyCheckUpdate dependencyCheckAggregate`.
+  Report to [private@calcite.apache.org](mailto:private@calcite.apache.org)
+  if new critical vulnerabilities are found among dependencies.
+  The task requires a JDK 11 or later so it doesn't appear when using older versions.
+* Make sure you are using JDK 8 for all subsequent steps. (Compiling with JDK 21 causes
   [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
@@ -737,10 +742,6 @@ Before you start:
 * Make sure build and tests succeed
 * Make sure that `./gradlew javadoc` succeeds
   (i.e. gives no errors; warnings are OK)
-* Generate a report of vulnerabilities that occur among dependencies,
-  using `./gradlew dependencyCheckUpdate dependencyCheckAggregate`.
-  Report to [private@calcite.apache.org](mailto:private@calcite.apache.org)
-  if new critical vulnerabilities are found among dependencies.
 * Decide the supported configurations of JDK, operating system and
   Guava.  These will probably be the same as those described in the
   release notes of the previous release.  Document them in the release

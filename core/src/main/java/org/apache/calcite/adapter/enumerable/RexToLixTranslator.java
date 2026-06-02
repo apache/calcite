@@ -491,7 +491,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
       case TIME:
         return RexImpTable.optimize2(operand, Expressions.isConstantNull(format)
-            ? Expressions.call(BuiltInMethod.UNIX_TIME_TO_STRING.method, operand)
+            ? Expressions.call(BuiltInMethod.UNIX_TIME_TO_STRING_WITH_PRECISION.method,
+                operand, Expressions.constant(sourceType.getPrecision()))
             : Expressions.call(
                 Expressions.new_(
                     BuiltInMethod.FORMAT_TIME.method.getDeclaringClass()),
@@ -508,7 +509,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
       case TIMESTAMP:
         return RexImpTable.optimize2(operand, Expressions.isConstantNull(format)
-            ? Expressions.call(BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method, operand)
+            ? Expressions.call(BuiltInMethod.UNIX_TIMESTAMP_TO_STRING_WITH_PRECISION.method,
+                operand, Expressions.constant(sourceType.getPrecision()))
             : Expressions.call(
                 Expressions.new_(
                     BuiltInMethod.FORMAT_TIMESTAMP.method.getDeclaringClass()),

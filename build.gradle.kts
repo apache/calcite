@@ -47,7 +47,9 @@ plugins {
     id("de.thetaphi.forbiddenapis") apply false
     id("net.ltgt.errorprone") apply false
     id("com.github.vlsi.jandex") apply false
-    id("org.owasp.dependencycheck")
+    if (JavaVersion.current() >= JavaVersion.VERSION_11) {
+        id("org.owasp.dependencycheck")
+    }
     id("com.github.johnrengelman.shadow") apply false
     id("org.sonarqube")
     // IDE configuration

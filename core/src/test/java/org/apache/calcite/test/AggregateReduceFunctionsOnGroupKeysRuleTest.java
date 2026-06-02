@@ -55,8 +55,96 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
   }
 
+  @Test void testAggregateFunctionOfGroupByKeysNullExpression() {
+    String sql = "select comm, max(comm + 1) as max_plus\n"
+        + "from empnullables group by comm";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysNullGroupKey() {
+    String sql = "select comm, max(comm) as comm_max\n"
+        + "from empnullables group by comm";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
   @Test void testAggregateFunctionOfGroupByKeysNoChange() {
     String sql = "select sal, max(comm) as comm_max\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysDeterministicExpression() {
+    String sql = "select sal, max(sal + 1) as max_plus\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysUnaryMinus() {
+    String sql = "select sal, max(-sal) as max_neg\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysBinaryExpression() {
+    String sql = "select sal, max(sal * 2) as max_double\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysMultipleGroupKeys() {
+    String sql = "select sal, max(sal + deptno) as max_sum\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysNestedExpression() {
+    // Nested expressions like (sal + 1) * 2 can be optimized by mapping the
+    // input references (sal) to group key references. The shuttle translates
+    // all input refs in the expression to their corresponding group keys.
+    String sql = "select sal, max((sal + 1) * 2) as max_expr\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysWithCastWider() {
+    // Test case where a cast is needed because the group key type differs
+    // from the aggregate result type. Cast to a wider type (BIGINT) is safe.
+    // The rule should preserve the cast.
+    String sql = "select cast(sal as bigint) as sal_big, max(sal) as sal_max\n"
+        + "from emp group by sal";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionOfGroupByKeysWithCastNarrower() {
+    // Test case where a cast is needed and the type is narrower than the source.
+    // Casting to SMALLINT could potentially lose information if sal has larger values,
+    // but this is the user's explicit choice. The rule should still optimize and
+    // preserve the cast, allowing SQL semantics to handle any data loss.
+    String sql = "select cast(sal as smallint) as sal_small, max(sal) as sal_max\n"
+        + "from emp group by sal";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testAggregateFunctionWithMixedColumnsNoOptimization() {
+    // Negative test: expression references both group-by and non-group-by columns.
+    // The rule should NOT optimize because the expression is not constant within the group.
+    String sql = "select sal, max(sal + comm) as max_sum\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testAggregateFunctionWithNonGroupByColumnNoOptimization() {
+    // Negative test: expression references only non-group-by columns.
+    // The rule should NOT optimize because the column is not in the GROUP BY set.
+    String sql = "select sal, max(comm) as comm_max\n"
+        + "from emp group by sal";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testAggregateFunctionWithMixedGroupByColumnsNoOptimization() {
+    // Negative test: expression contains GROUP BY column but also references
+    // a column from elsewhere that is not in GROUP BY.
+    String sql = "select sal, max(sal + empno) as max_sum\n"
         + "from emp group by sal, deptno";
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
   }

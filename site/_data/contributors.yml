@@ -23,7 +23,8 @@
 # // lint: sort where ' name:' erase '^.*name:'
 #
 - name: Alan Gates
-  emeritus: 2018/05/04
+  status: emeritus
+  status_date: 2018/05/04
   apacheId: gates
   githubId: alanfgates
   org: Hortonworks
@@ -144,6 +145,9 @@
   org: Tencent
   role: Committer
 - name: Istvan Toth
+  status: deceased
+  status_date: 2026/04/03
+  status_url: https://calcite.apache.org/avatica/news/2026/05/12/release-1.28.0/
   apacheId: stoty
   githubId: stoty
   org: Cloudera

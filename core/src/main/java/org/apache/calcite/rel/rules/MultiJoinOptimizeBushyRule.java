@@ -65,13 +65,9 @@ import static java.util.Objects.requireNonNull;
  * {@code LoptOptimizeJoinRule} is only capable of producing left-deep joins;
  * this rule is capable of producing bushy joins.
  *
- * <p>TODO:
- * <ol>
- *   <li>Join conditions that touch 1 factor.
- *   <li>Join conditions that touch 3 factors.
- *   <li>More than 1 join conditions that touch the same pair of factors,
- *       e.g. {@code t0.c1 = t1.c1 and t1.c2 = t0.c3}
- * </ol>
+ * <p>TODO: Join conditions that touch exactly 1 factor are currently applied
+ * as a filter above the join tree rather than being pushed down to the
+ * individual table scan.
  *
  * @see CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY
  */
@@ -130,9 +126,17 @@ public class MultiJoinOptimizeBushyRule
     }
     assert x == multiJoin.getNumTotalFields();
 
+    final List<RexNode> remainingConditions = new ArrayList<>();
     final List<Edge> unusedEdges = new ArrayList<>();
     for (RexNode node : multiJoin.getJoinFilters()) {
-      unusedEdges.add(multiJoin.createEdge(node));
+      LoptMultiJoin.Edge edge = multiJoin.createEdge(node);
+      if (edge.factors.cardinality() == 2) {
+        unusedEdges.add(edge);
+      } else {
+        // Conditions touching 1 or 3+ factors cannot be used as binary join
+        // edges. Re-apply them as a filter above the finished join tree.
+        remainingConditions.add(node);
+      }
     }
 
     // Comparator that chooses the best edge. A "good edge" is one that has
@@ -170,11 +174,8 @@ public class MultiJoinOptimizeBushyRule
       } else {
         final LoptMultiJoin.Edge bestEdge = unusedEdges.get(edgeOrdinal);
 
-        // For now, assume that the edge is between precisely two factors.
-        // 1-factor conditions have probably been pushed down,
-        // and 3-or-more-factor conditions are advanced. (TODO:)
-        // Therefore, for now, the factors that are merged are exactly the
-        // factors on this edge.
+        // Each edge in unusedEdges touches exactly two factors; conditions
+        // touching 1 or 3+ factors were separated out before the greedy loop.
         assert bestEdge.factors.cardinality() == 2;
         factors = bestEdge.factors.toArray();
       }
@@ -299,8 +300,17 @@ public class MultiJoinOptimizeBushyRule
     }
 
     final Pair<RelNode, Mappings.TargetMapping> top = Util.last(relNodes);
-    relBuilder.push(top.left)
-        .project(relBuilder.fields(top.right));
+    relBuilder.push(top.left);
+    if (!remainingConditions.isEmpty()) {
+      final RexVisitor<RexNode> shuttle =
+          new RexPermuteInputsShuttle(top.right, top.left);
+      final List<RexNode> remapped = new ArrayList<>();
+      for (RexNode c : remainingConditions) {
+        remapped.add(c.accept(shuttle));
+      }
+      relBuilder.filter(remapped);
+    }
+    relBuilder.project(relBuilder.fields(top.right));
     call.transformTo(relBuilder.build());
   }
 

@@ -4344,6 +4344,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for the TODO in {@link MultiJoinOptimizeBushyRule}:
+   * "Join conditions that touch 3 factors."
+   *
+   * <p>The CASE condition references three factors (e1, d, e2) and therefore
+   * cannot be represented as a binary join edge. The rule should handle it
+   * gracefully rather than throwing an {@code AssertionError}. */
+  @Test void testMultiJoinOptimizeBushyThreeFactorCondition() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
+        .build();
+    final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
+        + "where e1.deptno = d.deptno and e2.deptno = d.deptno\n"
+        + "and d.deptno = case when e1.sal > 1000 then e2.empno else e1.empno end";
+    sql(sql).withPre(preProgram).withProgram(program).check();
+  }
+
   @Test void testConvertMultiJoinRule() {
     final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno";

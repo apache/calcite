@@ -1198,4 +1198,7 @@ public interface CalciteResource {
 
   @BaseMessage("The argument of DESCRIPTOR must be an identifier")
   ExInst<SqlValidatorException> descriptorMustBeIdentifier();
+
+  @BaseMessage("Duplicate name ''{0}'' in MATCH_RECOGNIZE MEASURE alias list")
+  ExInst<CalciteException> measureAliasDuplicate(String aliasName);
 }

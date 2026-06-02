@@ -455,6 +455,24 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Integer> JOIN_SELECTOR_COMPACT_CODE_THRESHOLD =
       intProperty("calcite.join.selector.compact.code.threshold", 100);
 
+  /**
+   * Comma-separated patterns to add to the built-in denylist of class
+   * names that may not be loaded by reflection from a Calcite model
+   * (user-defined functions, custom schemas/tables, JDBC drivers,
+   * dialect factories, lattice statistic providers).
+   *
+   * <p>Setting this property <em>extends</em> the built-in denylist; the
+   * built-in entries cannot be removed at runtime.
+   *
+   * <p>Pattern syntax: a pattern ending in {@code "."} matches any class
+   * in that package or its sub-packages; otherwise the pattern matches a
+   * class name exactly.
+   *
+   * @see org.apache.calcite.model.ModelHandler
+   */
+  public static final CalciteSystemProperty<String> MODEL_CLASSES_DENIED =
+      stringProperty("calcite.model.classes.denied", "");
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')

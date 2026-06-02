@@ -29,17 +29,21 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlTimeLiteral;
+import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -805,6 +809,12 @@ public class RexBuilder {
           && SqlTypeUtil.isExactNumeric(type)) {
         return makeCastBooleanToExact(type, exp);
       }
+      final RexNode literalCast =
+          makeCastForTemporalLiteral(
+              pos, type, literal, matchNullability, safe, format);
+      if (literalCast != null) {
+        return literalCast;
+      }
       if (canRemoveCastFromLiteral(type, value, typeName)) {
         switch (typeName) {
         case INTERVAL_YEAR:
@@ -875,6 +885,123 @@ public class RexBuilder {
       return makeCastBooleanToExact(type, exp);
     }
     return makeAbstractCast(pos, type, exp, safe, format);
+  }
+
+  private @Nullable RexNode makeCastForTemporalLiteral(
+      SqlParserPos pos,
+      RelDataType type,
+      RexLiteral literal,
+      boolean matchNullability,
+      boolean safe,
+      RexLiteral format) {
+    if (!format.isNull()) {
+      return null;
+    }
+    if (SqlTypeUtil.isCharacter(literal.getType())) {
+      return makeCastFromCharacterLiteralToTemporal(
+          pos, type, literal, matchNullability, safe, format);
+    }
+    if (SqlTypeUtil.isCharacter(type)) {
+      return makeCharacterLiteralFromTemporalLiteral(type, literal);
+    }
+    return null;
+  }
+
+  private @Nullable RexNode makeCastFromCharacterLiteralToTemporal(
+      SqlParserPos pos,
+      RelDataType type,
+      RexLiteral literal,
+      boolean matchNullability,
+      boolean safe,
+      RexLiteral format) {
+    final NlsString nlsString = literal.getValueAs(NlsString.class);
+    if (nlsString == null) {
+      return null;
+    }
+    final String value = nlsString.getValue().trim();
+    final RexNode temporalLiteral;
+    try {
+      switch (type.getSqlTypeName()) {
+      case TIME:
+        final SqlTimeLiteral timeLiteral =
+            SqlParserUtil.parseTimeLiteral(value, pos);
+        if (!isExactFractionalSecondLiteral(timeLiteral, value)) {
+          return null;
+        }
+        final TimeString time =
+            requireNonNull(timeLiteral.getValueAs(TimeString.class),
+                "timeLiteral.getValueAs(TimeString.class)");
+        temporalLiteral = makeTimeLiteral(time, type.getPrecision());
+        break;
+      case TIMESTAMP:
+        final SqlTimestampLiteral timestampLiteral =
+            SqlParserUtil.parseTimestampLiteral(value, pos);
+        if (!isExactFractionalSecondLiteral(timestampLiteral, value)) {
+          return null;
+        }
+        final TimestampString timestamp =
+            requireNonNull(timestampLiteral.getValueAs(TimestampString.class),
+                "timestampLiteral.getValueAs(TimestampString.class)");
+        temporalLiteral = makeTimestampLiteral(timestamp, type.getPrecision());
+        break;
+      default:
+        return null;
+      }
+    } catch (RuntimeException e) {
+      return safe ? makeNullLiteral(type) : null;
+    }
+    if (type.isNullable()
+        && !temporalLiteral.getType().isNullable()
+        && matchNullability) {
+      return makeAbstractCast(pos, type, temporalLiteral, safe, format);
+    }
+    return temporalLiteral;
+  }
+
+  /** Converts a TIME or TIMESTAMP literal to a character literal.
+   *
+   * <p>Returns null if the literal is not a TIME or TIMESTAMP, the literal
+   * cannot be read as the corresponding temporal string value, or the formatted
+   * temporal value does not fit in the target character type. */
+  private @Nullable RexNode makeCharacterLiteralFromTemporalLiteral(
+      RelDataType type,
+      RexLiteral literal) {
+    // Format temporal literals directly so they do not go through generated
+    // code, whose TIME/TIMESTAMP runtime values have millisecond precision.
+    final String value;
+    final int precision = literal.getType().getPrecision();
+    switch (literal.getType().getSqlTypeName()) {
+    case TIME:
+      final TimeString time = literal.getValueAs(TimeString.class);
+      if (time == null) {
+        return null;
+      }
+      value = time.toString(precision);
+      break;
+    case TIMESTAMP:
+      final TimestampString timestamp = literal.getValueAs(TimestampString.class);
+      if (timestamp == null) {
+        return null;
+      }
+      value = timestamp.toString(precision);
+      break;
+    default:
+      return null;
+    }
+    // Only create a character literal if the formatted temporal value fits in
+    // the target type.
+    return SqlTypeUtil.comparePrecision(type.getPrecision(), value.length()) >= 0
+        ? makeLiteral(value, type, true)
+        : null;
+  }
+
+  /** Returns whether a parsed TIME or TIMESTAMP literal has fractional-second
+   * precision high enough to preserve the original character value exactly. */
+  private static boolean isExactFractionalSecondLiteral(
+      SqlAbstractDateTimeLiteral literal, String value) {
+    return literal.getPrec() != 0
+        && literal.getPrec() != RelDataType.PRECISION_NOT_SPECIFIED
+        && literal.toFormattedString().equals(value);
   }
 
   /** Returns the lowest granularity unit for the given unit.
