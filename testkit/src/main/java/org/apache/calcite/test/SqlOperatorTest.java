@@ -2706,7 +2706,7 @@ public class SqlOperatorTest {
     f.checkString("concat_ws(',', 'a', array['b', 'c'], DATE '1945-02-24')",
         "a,[b, c],1945-02-24", "VARCHAR NOT NULL");
     f.checkString("concat_ws(',', timestamp '2024-07-06 12:15:48.678')",
-        "2024-07-06 12:15:48", "VARCHAR NOT NULL");
+        "2024-07-06 12:15:48.678", "VARCHAR NOT NULL");
     f.checkString("concat_ws(',', time '12:34:56', time '13:00:00', 2, 'abc')",
         "12:34:56,13:00:00,2,abc", "VARCHAR NOT NULL");
     f.checkString("concat_ws(',', null, null)", "", "VARCHAR NOT NULL");

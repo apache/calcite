@@ -43,6 +43,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -136,14 +137,34 @@ public class RexExecutorImpl implements RexExecutor {
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
     assert reducedValues.isEmpty();
+    final List<RexNode> exps = new ArrayList<>();
+    final List<Integer> ordinals = new ArrayList<>();
+    for (int i = 0; i < constExps.size(); i++) {
+      final RexNode constExp = constExps.get(i);
+      // Literals are already reduced. Keep them as Rex values instead of
+      // round-tripping through generated code.
+      if (!(constExp instanceof RexLiteral)) {
+        ordinals.add(i);
+        exps.add(constExp);
+      }
+    }
+    if (exps.isEmpty()) {
+      reducedValues.addAll(constExps);
+      return;
+    }
     try {
-      String code = compile(rexBuilder, constExps, (list, index, storageType) -> {
+      String code = compile(rexBuilder, exps, (list, index, storageType) -> {
         throw new UnsupportedOperationException();
       });
 
-      final RexExecutable executable = new RexExecutable(code, constExps);
+      final RexExecutable executable = new RexExecutable(code, exps);
       executable.setDataContext(dataContext);
-      executable.reduce(rexBuilder, constExps, reducedValues);
+      final List<RexNode> values = new ArrayList<>(exps.size());
+      executable.reduce(rexBuilder, exps, values);
+      reducedValues.addAll(constExps);
+      for (int i = 0; i < ordinals.size(); i++) {
+        reducedValues.set(ordinals.get(i), values.get(i));
+      }
     } catch (RuntimeException ex) {
       // Something went wrong during constant reduction (for example,
       // we may have attempted a division by zero).
