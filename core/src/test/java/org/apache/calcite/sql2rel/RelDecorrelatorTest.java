@@ -2124,4 +2124,84 @@ public class RelDecorrelatorTest {
         + "        LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(afterDecorrelation, hasTree(planAfterDecorrelation));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7574">[CALCITE-7574]
+   * RelDecorrelator.isFieldNotNullRecursive throws IndexOutOfBoundsException
+   * when decorrelating correlated scalar subquery with Aggregate</a>.
+   *
+   * <p>When decorrelating a correlated scalar subquery containing an Aggregate,
+   * {@code isFieldNotNullRecursive} incorrectly used {@code ImmutableBitSet.size()}
+   * (which returns the bitset capacity, typically 64 * words) instead of
+   * {@code Aggregate.getGroupCount()} (which returns the number of group keys).
+   * This caused an {@code IndexOutOfBoundsException} when the field index
+   * corresponded to an aggregate result field (not a group field).
+   */
+  @Test void testDecorrelateScalarSubQueryWithAggregate() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    // Minimal case: outer FROM is an Aggregate, correlated subquery
+    // references the aggregate result field (s) in the correlation
+    // condition, triggering isFieldNotNullRecursive on an Aggregate with
+    // an index pointing to an aggregate result field.
+    final String sql = "select t.deptno,\n"
+        + "  (select count(*) from emp e\n"
+        + "   where e.deptno = t.deptno\n"
+        + "     and e.sal > t.s)\n"
+        + "from (select deptno, sum(sal) as s\n"
+        + "      from emp group by deptno) t";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+
+    // Before the fix, decorrelateQuery would throw:
+    // java.lang.IndexOutOfBoundsException: index out of range: 0
+    //   at org.apache.calcite.util.ImmutableBitSet.nth
+    //   at ...RelDecorrelator.isFieldNotNullRecursive
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+
+    // Verify decorrelation produced a valid plan (no Correlate nodes)
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], EXPR$1=[$4])\n"
+        + "  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[left])\n"
+        + "    LogicalAggregate(group=[{0}], S=[SUM($1)])\n"
+        + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(DEPTNO0=[$0], S=[$1], EXPR$0=[CASE(IS NOT NULL($4), $4, 0)])\n"
+        + "      LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[left])\n"
+        + "        LogicalAggregate(group=[{0}], S=[SUM($1)])\n"
+        + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{0, 1}], EXPR$0=[COUNT()])\n"
+        + "          LogicalProject(DEPTNO0=[$8], S=[$9])\n"
+        + "            LogicalJoin(condition=[AND(=($7, $8), >(CAST($5):DECIMAL(19, 2), $9))], joinType=[inner])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "              LogicalAggregate(group=[{0}], S=[SUM($1)])\n"
+        + "                LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }
