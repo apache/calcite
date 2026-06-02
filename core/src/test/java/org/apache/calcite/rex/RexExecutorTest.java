@@ -15,11 +15,14 @@
  * limitations under the License.
  */
 package org.apache.calcite.rex;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -35,6 +38,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
@@ -158,6 +162,209 @@ class RexExecutorTest {
           rexBuilder.makeDateLiteral(d),
           rexBuilder.makeDateLiteral(d));
     });
+  }
+
+  @Test void testReduceTimeCastWithFractionalSeconds() {
+    checkHighPrecision((rexBuilder, executor) -> {
+      for (int precision = 1; precision <= 9; precision++) {
+        final RexNode cast =
+            rexBuilder.makeCast(
+                rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIME,
+                    precision),
+                rexBuilder.makeLiteral("12:34:56.123456789"));
+
+        final RexNode reduced = reduce(rexBuilder, executor, cast).get(0);
+
+        assertThat(reduced, instanceOf(RexLiteral.class));
+        assertThat(
+            ((RexLiteral) reduced).getValueAs(TimeString.class)
+                .toString(precision),
+            equalTo(new TimeString("12:34:56.123456789").round(precision)
+                .toString(precision)));
+      }
+    });
+  }
+
+  @Test void testReduceTimestampCastWithFractionalSeconds() {
+    checkHighPrecision((rexBuilder, executor) -> {
+      for (int precision = 1; precision <= 9; precision++) {
+        final RexNode cast =
+            rexBuilder.makeCast(
+                rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP,
+                    precision),
+                rexBuilder.makeLiteral("2020-01-01 12:34:56.123456789"));
+
+        final RexNode reduced = reduce(rexBuilder, executor, cast).get(0);
+
+        assertThat(reduced, instanceOf(RexLiteral.class));
+        assertThat(
+            ((RexLiteral) reduced).getValueAs(TimestampString.class)
+                .toString(precision),
+            equalTo(new TimestampString("2020-01-01 12:34:56.123456789")
+                .round(precision).toString(precision)));
+      }
+    });
+  }
+
+  @Test void testReduceLiteralWithMicroseconds() {
+    checkHighPrecision((rexBuilder, executor) -> {
+      final RexLiteral timeLiteral =
+          rexBuilder.makeTimeLiteral(new TimeString("12:34:56.123456"), 6);
+      final RexLiteral timestampLiteral =
+          rexBuilder.makeTimestampLiteral(
+              new TimestampString("2020-01-01 12:34:56.123456"), 6);
+      final RexNode expression =
+          rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+              rexBuilder.makeExactLiteral(BigDecimal.TEN),
+              rexBuilder.makeExactLiteral(BigDecimal.ONE));
+
+      final List<RexNode> reducedValues =
+          reduce(rexBuilder, executor, timeLiteral, expression, timestampLiteral);
+
+      assertThat(reducedValues, hasSize(3));
+      assertThat(
+          ((RexLiteral) reducedValues.get(0)).getValueAs(TimeString.class).toString(6),
+          equalTo("12:34:56.123456"));
+      assertThat(((RexLiteral) reducedValues.get(1)).getValue2(), equalTo(11L));
+      assertThat(
+          ((RexLiteral) reducedValues.get(2)).getValueAs(TimestampString.class)
+              .toString(6),
+          equalTo("2020-01-01 12:34:56.123456"));
+    });
+  }
+
+  @Test void testReduceTimeToVarcharWithFractionalSeconds() {
+    checkHighPrecision((rexBuilder, executor) -> {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      for (int precision = 1; precision <= 9; precision++) {
+        final RexNode castToTime =
+            rexBuilder.makeCast(
+                typeFactory.createSqlType(SqlTypeName.TIME,
+                precision),
+                rexBuilder.makeLiteral("12:34:56.123456789"));
+        final RexNode castToVarchar =
+            rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR, 30),
+                castToTime);
+
+        final RexNode reduced = reduce(rexBuilder, executor, castToVarchar).get(0);
+
+        assertThat(reduced, instanceOf(RexLiteral.class));
+        assertThat(((RexLiteral) reduced).getValueAs(String.class),
+            equalTo(new TimeString("12:34:56.123456789")
+                .toString(precision)));
+      }
+    });
+  }
+
+  @Test void testReduceTimeToVarcharWithMilliseconds() {
+    check((rexBuilder, executor) -> {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RexNode castToTime =
+          rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.TIME, 3),
+              rexBuilder.makeLiteral("12:34:56.987654"));
+      final RexNode castToVarchar =
+          rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR, 30),
+              castToTime);
+
+      final RexNode reduced = reduce(rexBuilder, executor, castToVarchar).get(0);
+
+      assertThat(reduced, instanceOf(RexLiteral.class));
+      assertThat(((RexLiteral) reduced).getValueAs(String.class),
+          equalTo("12:34:56.987"));
+    });
+  }
+
+  @Test void testReduceTimeToVarcharWithZeroMilliseconds() {
+    check((rexBuilder, executor) -> {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RexNode castToTime =
+          rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.TIME, 3),
+              rexBuilder.makeLiteral("12:34:56.000456"));
+      final RexNode castToVarchar =
+          rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR, 30),
+              castToTime);
+
+      final RexNode reduced = reduce(rexBuilder, executor, castToVarchar).get(0);
+
+      assertThat(reduced, instanceOf(RexLiteral.class));
+      assertThat(((RexLiteral) reduced).getValueAs(String.class),
+          equalTo("12:34:56.000"));
+    });
+  }
+
+  @Test void testReduceTimestampToVarcharWithFractionalSeconds() {
+    checkHighPrecision((rexBuilder, executor) -> {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      for (int precision = 1; precision <= 9; precision++) {
+        final RexNode castToTimestamp =
+            rexBuilder.makeCast(
+                typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+                precision),
+                rexBuilder.makeLiteral("2020-01-01 12:34:56.123456789"));
+        final RexNode castToVarchar =
+            rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR, 30),
+                castToTimestamp);
+
+        final RexNode reduced = reduce(rexBuilder, executor, castToVarchar).get(0);
+
+        assertThat(reduced, instanceOf(RexLiteral.class));
+        assertThat(((RexLiteral) reduced).getValueAs(String.class),
+            equalTo(new TimestampString("2020-01-01 12:34:56.123456789")
+                .toString(precision)));
+      }
+    });
+  }
+
+  @Test void testReduceTimestampToVarcharWithZeroMilliseconds() {
+    check((rexBuilder, executor) -> {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RexNode castToTimestamp =
+          rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 3),
+              rexBuilder.makeLiteral("2020-01-01 12:34:56.000456"));
+      final RexNode castToVarchar =
+          rexBuilder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR, 30),
+              castToTimestamp);
+
+      final RexNode reduced = reduce(rexBuilder, executor, castToVarchar).get(0);
+
+      assertThat(reduced, instanceOf(RexLiteral.class));
+      assertThat(((RexLiteral) reduced).getValueAs(String.class),
+          equalTo("2020-01-01 12:34:56.000"));
+    });
+  }
+
+  private static void checkHighPrecision(Action action) {
+    action.check(new RexBuilder(highPrecisionTemporalTypeFactory()), executor());
+  }
+
+  private static List<RexNode> reduce(RexBuilder rexBuilder,
+      RexExecutorImpl executor, RexNode... nodes) {
+    final List<RexNode> reducedValues = new ArrayList<>();
+    executor.reduce(rexBuilder, ImmutableList.copyOf(nodes), reducedValues);
+    return reducedValues;
+  }
+
+  private static RelDataTypeFactory highPrecisionTemporalTypeFactory() {
+    return new JavaTypeFactoryImpl(
+        new RelDataTypeSystemImpl() {
+          @Override public int getMaxPrecision(SqlTypeName typeName) {
+            switch (typeName) {
+            case TIME:
+            case TIMESTAMP:
+              return 9;
+            default:
+              return super.getMaxPrecision(typeName);
+            }
+          }
+        });
+  }
+
+  private static RexExecutorImpl executor() {
+    return new RexExecutorImpl(
+        DataContexts.of(
+            ImmutableMap.of(
+                DataContext.Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("GMT"),
+                DataContext.Variable.LOCALE.camelName, Locale.US)));
   }
 
   private void checkConstant(final Object operand,
