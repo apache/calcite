@@ -328,6 +328,20 @@ LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasUnnestArrayLiteralPlanWithoutColumnList">
+    <Resource name="sql">
+      <![CDATA[select t
+from UNNEST(ARRAY[1, 2, 3]) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(T=[$0])
+  Uncollect
+    LogicalProject(EXPR$0=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAliasUnnestArrayPlanWithDoubleColumn">
     <Resource name="plan">
       <![CDATA[
@@ -360,6 +374,40 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
       <![CDATA[select d.deptno, employee.empno
 from dept_nested_expanded as d,
  UNNEST(d.employees) as t(employee)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAliasUnnestArrayPlanWithoutColumnList">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e.empno
+from dept_nested_expanded as d,
+ UNNEST(d.employees) as e]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAliasUnnestScalarArrayPlanWithoutColumnList">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, a
+from dept_nested_expanded as d,
+ UNNEST(d.admins) as a]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], A=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(ADMINS=[$cor0.ADMINS])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testAliasWithinGroupingSets">
