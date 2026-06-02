@@ -3853,7 +3853,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       Aggregate agg = (Aggregate) rel;
       ImmutableBitSet groupSet = agg.getGroupSet();
 
-      if (index >= groupSet.size()) {
+      if (index >= agg.getGroupCount()) {
         return false;
       }
       return isFieldNotNullRecursive(agg.getInput(), groupSet.asList().get(index));

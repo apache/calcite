@@ -9237,4 +9237,23 @@ SELECT deptno, dname > SOME(SELECT empno FROM emp) AS b FROM dept;
 For input string: "ACCOUNTING"
 !error
 
+# [CALCITE-7574] RelDecorrelator.isFieldNotNullRecursive throws
+# IndexOutOfBoundsException when decorrelating correlated scalar subquery
+# with Aggregate
+# Before fix: java.lang.IndexOutOfBoundsException: index out of range: 0
+SELECT t.deptno,
+  (SELECT COUNT(*) FROM emp e
+   WHERE e.deptno = t.deptno AND e.sal > t.s)
+FROM (SELECT deptno, SUM(sal) AS s FROM emp GROUP BY deptno) t;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      0 |
+|     20 |      0 |
+|     30 |      0 |
++--------+--------+
+(3 rows)
+
+!ok
+
 # End sub-query.iq
