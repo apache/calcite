@@ -6569,6 +6569,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select sum(sal + sal) from emp having sum(sal) > 10").ok();
     sql("SELECT deptno FROM emp GROUP BY deptno HAVING ^sal^ > 10")
         .fails("Expression 'SAL' is not being grouped");
+    sql("SELECT *\n"
+        + "FROM dept d\n"
+        + "INNER JOIN emp e\n"
+        + "  ON e.sal < (\n"
+        + "    SELECT MAX(e2.sal)\n"
+        + "    FROM emp e2\n"
+        + "    WHERE e2.job = e.job\n"
+        + "    GROUP BY e2.job\n"
+        + "    HAVING MIN(e2.deptno) = d.deptno\n"
+        + "  )").ok();
   }
 
   @Test void testHavingBetween() {

@@ -9379,4 +9379,30 @@ FROM (SELECT deptno, SUM(sal) AS s FROM emp GROUP BY deptno) t;
 
 !ok
 
+# [CALCITE-7540] Correlated outer reference in HAVING of grouped subquery is incorrectly reported as not grouped
+SELECT *
+FROM dept d
+INNER JOIN emp e
+  ON e.sal < (
+    SELECT MAX(e2.sal)
+    FROM emp e2
+    WHERE e2.job = e.job
+    GROUP BY e2.job
+    HAVING MIN(e2.deptno) = d.deptno
+  );
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+| DEPTNO | DNAME      | LOC      | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO0 |
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+|     10 | ACCOUNTING | NEW YORK |  7369 | SMITH  | CLERK    | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|     10 | ACCOUNTING | NEW YORK |  7698 | BLAKE  | MANAGER  | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|     10 | ACCOUNTING | NEW YORK |  7782 | CLARK  | MANAGER  | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|     10 | ACCOUNTING | NEW YORK |  7876 | ADAMS  | CLERK    | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|     10 | ACCOUNTING | NEW YORK |  7900 | JAMES  | CLERK    | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|     30 | SALES      | CHICAGO  |  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7844 | TURNER | SALESMAN | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+(8 rows)
+
+!ok
 # End sub-query.iq

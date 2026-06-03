@@ -1831,6 +1831,85 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7540">[CALCITE-7540]
+   * Correlated outer reference in HAVING of grouped subquery is incorrectly reported as not
+   * grouped</a>. */
+  @Test void test7540() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT *\n"
+        + "FROM dept d\n"
+        + "INNER JOIN emp e\n"
+        + "  ON e.sal < (\n"
+        + "    SELECT MAX(e2.sal)\n"
+        + "    FROM emp e2\n"
+        + "    WHERE e2.job = e.job\n"
+        + "    GROUP BY e2.job\n"
+        + "    HAVING MIN(e2.deptno) = d.deptno\n"
+        + "  )";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10])\n"
+        + "    LogicalFilter(condition=[<($8, $11)])\n"
+        + "      LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0, 5}])\n"
+        + "        LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "          LogicalProject(EXPR$0=[$1])\n"
+        + "            LogicalFilter(condition=[=($2, $cor1.DEPTNO)])\n"
+        + "              LogicalAggregate(group=[{0}], EXPR$0=[MAX($1)], agg#1=[MIN($2)])\n"
+        + "                LogicalProject(JOB=[$2], SAL=[$5], DEPTNO=[$7])\n"
+        + "                  LogicalFilter(condition=[=($2, $cor1.JOB)])\n"
+        + "                    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10])\n"
+        + "  LogicalJoin(condition=[AND(=($0, $11), =($5, $12), <($8, $13))], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalAggregate(group=[{0, 1}], agg#0=[SINGLE_VALUE($2)])\n"
+        + "      LogicalProject($f3=[$3], JOB3=[$1], EXPR$0=[$2])\n"
+        + "        LogicalFilter(condition=[IS NOT NULL($3)])\n"
+        + "          LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($2)], agg#1=[MIN($3)])\n"
+        + "            LogicalProject(JOB=[$2], JOB3=[$2], SAL=[$5], DEPTNO=[$7])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($2)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7442">[CALCITE-7442]
   * Getting Wrong index of Correlated variable inside Subquery after FilterJoinRule</a>. */
   @Test void testCorrelatedVariableIndexForInClause() {

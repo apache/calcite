@@ -1634,11 +1634,20 @@ public class RelDecorrelator implements ReflectiveVisitor {
           findCorrelationEquivalent(correlation, ((Filter) rel).getCondition());
         } catch (Util.FoundOne e) {
           Object node = requireNonNull(e.getNode(), "e.getNode()");
-          if (node instanceof RexInputRef) {
-            map.put(def, ((RexInputRef) node).getIndex());
+          // findCorrelationEquivalent returns an expression from the original
+          // Filter condition, so its input refs are still in the pre-decorrelation
+          // coordinate system. Correlation outputs are recorded against the
+          // decorrelated input; translate the expression first, otherwise a
+          // correlated field may be bound to a column with the same ordinal but
+          // different meaning in the new RelNode.
+          final RexNode newNode = node instanceof RexInputRef
+              ? getNewForOldInputRef(rel, this.map, (RexInputRef) node)
+              : decorrelateExpr(rel, this.map, cm, (RexNode) node);
+          if (newNode instanceof RexInputRef) {
+            map.put(def, ((RexInputRef) newNode).getIndex());
           } else {
             map.put(def, inputFrame.r.getRowType().getFieldCount() + projects.size());
-            projects.add((RexNode) node);
+            projects.add(newNode);
           }
         }
       }
