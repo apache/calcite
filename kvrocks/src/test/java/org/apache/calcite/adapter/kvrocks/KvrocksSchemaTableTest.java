@@ -45,11 +45,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class KvrocksSchemaTableTest {
 
   @Test void schemaBuildsTableMapFromModelTables() {
-    KvrocksSchema schema = schema(table("raw_01", "raw", ":", rawField()),
-        table("csv_01", "csv", ":", deptField(), nameField()));
+    KvrocksSchema schema =
+        schema(table("raw_01", "raw", ":", rawField()),
+            table("csv_01", "csv", ":", deptField(), nameField()));
 
-    assertTrue(schema.getTableMap().keySet().containsAll(
-        ImmutableList.of("raw_01", "csv_01")));
+    assertTrue(
+        schema.getTableMap().keySet().containsAll(
+            ImmutableList.of("raw_01", "csv_01")));
     assertTrue(schema.getTableMap().get("raw_01") instanceof KvrocksTable);
   }
 
@@ -66,8 +68,10 @@ class KvrocksSchemaTableTest {
   }
 
   @Test void schemaRejectsMissingOperand() {
-    KvrocksSchema schema = schema(new JsonCustomTable("bad", null,
-        "org.apache.calcite.adapter.kvrocks.KvrocksTableFactory", null));
+    KvrocksSchema schema =
+        schema(
+            new JsonCustomTable("bad", null,
+            "org.apache.calcite.adapter.kvrocks.KvrocksTableFactory", null));
 
     assertThrows(NullPointerException.class,
         () -> schema.getTableFieldInfo("bad"));
@@ -103,10 +107,11 @@ class KvrocksSchemaTableTest {
   }
 
   @Test void tableDerivesRowTypeFromFields() {
-    KvrocksSchema schema = schema(table("csv_01", "csv", ":",
-        deptField(), nameField()));
-    KvrocksTable table = (KvrocksTable) KvrocksTable.create(schema,
-        "csv_01", new KvrocksConfig("localhost", 6666, 0, ""), null);
+    KvrocksSchema schema =
+        schema(table("csv_01", "csv", ":", deptField(), nameField()));
+    KvrocksTable table =
+        (KvrocksTable) KvrocksTable.create(schema, "csv_01",
+            new KvrocksConfig("localhost", 6666, 0, ""), null);
 
     RelDataType rowType = table.getRowType(new JavaTypeFactoryImpl());
 
@@ -116,15 +121,16 @@ class KvrocksSchemaTableTest {
   }
 
   @Test void tableUsesProtoRowTypeWhenProvided() {
-    KvrocksSchema schema = schema(table("csv_01", "csv", ":",
-        deptField(), nameField()));
+    KvrocksSchema schema =
+        schema(table("csv_01", "csv", ":", deptField(), nameField()));
     RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
     RelDataType protoType = typeFactory.builder()
         .add("ID", typeFactory.createJavaType(Integer.class))
         .build();
-    KvrocksTable table = (KvrocksTable) KvrocksTable.create(schema,
-        "csv_01", new KvrocksConfig("localhost", 6666, 0, ""),
-        factory -> protoType);
+    KvrocksTable table =
+        (KvrocksTable) KvrocksTable.create(schema, "csv_01",
+            new KvrocksConfig("localhost", 6666, 0, ""),
+            factory -> protoType);
 
     RelDataType rowType = table.getRowType(typeFactory);
 
@@ -134,8 +140,9 @@ class KvrocksSchemaTableTest {
 
   @Test void tableScanCreatesEnumerable() {
     KvrocksSchema schema = schema(table("raw_01", "raw", ":", rawField()));
-    KvrocksTable table = (KvrocksTable) KvrocksTable.create(schema,
-        "raw_01", new KvrocksConfig("localhost", 6666, 0, ""), null);
+    KvrocksTable table =
+        (KvrocksTable) KvrocksTable.create(schema, "raw_01",
+            new KvrocksConfig("localhost", 6666, 0, ""), null);
 
     assertNotNull(table.scan(null));
   }
@@ -150,8 +157,9 @@ class KvrocksSchemaTableTest {
         .thenReturn(java.util.Collections.singleton("raw_01"));
     Mockito.when(jedis.get("raw_01")).thenReturn("hello");
     KvrocksSchema schema = new TestKvrocksSchema(info, manager);
-    KvrocksTable table = (KvrocksTable) KvrocksTable.create(schema,
-        "raw_01", new KvrocksConfig("localhost", 6666, 0, "secret"), null);
+    KvrocksTable table =
+        (KvrocksTable) KvrocksTable.create(schema, "raw_01",
+            new KvrocksConfig("localhost", 6666, 0, "secret"), null);
 
     org.apache.calcite.linq4j.Enumerator<Object[]> enumerator =
         table.scan(null).enumerator();
@@ -168,8 +176,9 @@ class KvrocksSchemaTableTest {
     SchemaPlus schemaPlus = Mockito.mock(SchemaPlus.class);
     Mockito.when(schemaPlus.unwrap(KvrocksSchema.class)).thenReturn(kvrocksSchema);
 
-    Table table = KvrocksTableFactory.INSTANCE.create(schemaPlus, "raw_01",
-        java.util.Collections.emptyMap(), null);
+    Table table =
+        KvrocksTableFactory.INSTANCE.create(schemaPlus, "raw_01",
+            java.util.Collections.emptyMap(), null);
 
     assertTrue(table instanceof KvrocksTable);
   }

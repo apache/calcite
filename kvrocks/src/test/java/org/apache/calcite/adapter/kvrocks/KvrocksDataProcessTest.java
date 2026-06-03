@@ -107,7 +107,8 @@ class KvrocksDataProcessTest {
 
     assertEquals(2, rows.size());
     assertEquals(members,
-        new HashSet<>(Arrays.asList(rows.get(0)[0].toString(),
+        new HashSet<>(
+            Arrays.asList(rows.get(0)[0].toString(),
             rows.get(1)[0].toString())));
   }
 
@@ -121,8 +122,8 @@ class KvrocksDataProcessTest {
         new KvrocksDataProcess(jedis, fieldInfo("csv_zset", "csv")).read();
 
     assertEquals(2, rows.size());
-    Set<String> departments = new HashSet<>(Arrays.asList(
-        rows.get(0)[0].toString(), rows.get(1)[0].toString()));
+    Set<String> departments =
+        new HashSet<>(Arrays.asList(rows.get(0)[0].toString(), rows.get(1)[0].toString()));
     assertEquals(new HashSet<>(Arrays.asList("10", "20")), departments);
   }
 
@@ -130,7 +131,8 @@ class KvrocksDataProcessTest {
     Jedis jedis = Mockito.mock(Jedis.class);
     Mockito.when(jedis.type("json_hash")).thenReturn("hash");
     Mockito.when(jedis.hvals("json_hash"))
-        .thenReturn(Arrays.asList("{\"DEPTNO\":10,\"NAME\":\"Sales\"}",
+        .thenReturn(
+            Arrays.asList("{\"DEPTNO\":10,\"NAME\":\"Sales\"}",
             "{\"DEPTNO\":20,\"NAME\":\"Marketing\"}"));
 
     List<Object[]> rows =
@@ -147,9 +149,11 @@ class KvrocksDataProcessTest {
     Map<String, String> fields = new HashMap<>();
     fields.put("DEPTNO", "10");
     fields.put("NAME", "Sales");
-    Mockito.when(jedis.xrange(eq("stream"), eq((StreamEntryID) null),
+    Mockito.when(
+        jedis.xrange(eq("stream"), eq((StreamEntryID) null),
         eq((StreamEntryID) null), eq(Integer.MAX_VALUE)))
-        .thenReturn(Collections.singletonList(
+        .thenReturn(
+            Collections.singletonList(
             new StreamEntry(new StreamEntryID("1-0"), fields)));
 
     List<Object[]> rows =
