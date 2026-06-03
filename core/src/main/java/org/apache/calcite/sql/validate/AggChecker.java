@@ -139,12 +139,30 @@ class AggChecker extends SqlBasicVisitor<Void> {
     if (isGroupExpr(fqId.identifier)) {
       return null;
     }
+
+    // Outer references are not governed by the GROUP BY list of this
+    // aggregate query; they are validated in their own enclosing scope.
+    if (isOuterReference(firstScope, fqId)) {
+      return null;
+    }
     SqlNode originalExpr = validator.getOriginal(id);
     final String exprString = originalExpr.toString();
     throw validator.newValidationError(originalExpr,
         distinct
             ? RESOURCE.notSelectDistinctExpr(exprString)
             : RESOURCE.notGroupExpr(exprString));
+  }
+
+  /** Returns whether an identifier refers to a scope outside this aggregate. */
+  private boolean isOuterReference(SqlValidatorScope scope, SqlQualified fqId) {
+    if (!(scope instanceof AggregatingSelectScope) || fqId.prefixLength <= 0) {
+      return false;
+    }
+
+    final SqlValidatorScope currentSelectScope = ((AggregatingSelectScope) scope).parent;
+    final SqlValidatorScope.ResolvedImpl resolved = new SqlValidatorScope.ResolvedImpl();
+    scope.resolve(fqId.prefix(), validator.catalogReader.nameMatcher(), false, resolved);
+    return resolved.count() == 1 && !resolved.only().scope.isWithin(currentSelectScope);
   }
 
   @Override public Void visit(SqlCall call) {
