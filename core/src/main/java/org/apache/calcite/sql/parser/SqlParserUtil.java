@@ -371,16 +371,24 @@ public final class SqlParserUtil {
       final String timeZone = s.substring(lastSpace + 1);
       final String time = s.substring(0, lastSpace);
 
-      final TimeZone tz = TimeZone.getTimeZone(timeZone);
-      if (tz != null) {
+      try {
+        ZoneId zoneId = ZoneId.of(timeZone);
+        TimeZone tz = TimeZone.getTimeZone(zoneId);
         pt =
             DateTimeUtils.parsePrecisionDateTimeLiteral(time, Format.get().time, tz, -1);
+      } catch (DateTimeException e) {
+        String message = e.getMessage();
+        if (message == null) {
+          message = "Error parsing TIME ZONE";
+        }
+        throw SqlUtil.newContextException(pos,
+            RESOURCE.illegalLiteral("TIME WITH TIME ZONE", s, message));
       }
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalLiteral("TIME WITH TIME ZONE", s,
-              RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
+              RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING + " zone").str()));
     }
     final TimeWithTimeZoneString t = TimeWithTimeZoneString.fromCalendarFields(pt.getCalendar())
         .withFraction(pt.getFraction());

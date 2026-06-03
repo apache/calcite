@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlTimeTzLiteral;
 import org.apache.calcite.sql.SqlTimestampTzLiteral;
 
 import org.junit.jupiter.api.Test;
@@ -91,6 +92,36 @@ public class SqlParserUtilTest {
           ex.getMessage(), is("At line 2, column 3: Illegal TIMESTAMP WITH TIME ZONE literal "
               + "'2020-06-21 14:23:44.123654 incorrect_zone': Unknown "
               + "time-zone ID: incorrect_zone"));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7559">[CALCITE-7559]
+   * SqlParserUtil.parseTimeTzLiteral should reject unknown time zones</a>. */
+  @Test void testTimeWithTimeZone() {
+    SqlParserPos pos = new SqlParserPos(2, 3);
+    SqlTimeTzLiteral lit =
+        SqlParserUtil.parseTimeTzLiteral("10:10:10 GMT", pos);
+    assertThat(lit, hasToString("TIME WITH TIME ZONE '10:10:10 UTC'"));
+
+    // Like parseTimestampTzLiteral, parseTimeTzLiteral should reject unknown
+    // time zones instead of silently falling back to GMT.
+    try {
+      SqlParserUtil.parseTimeTzLiteral("10:10:10 incorrect_zone", pos);
+      fail("Should be unreachable");
+    } catch (CalciteContextException ex) {
+      assertThat(
+          ex.getMessage(), is("At line 2, column 3: Illegal TIME WITH TIME ZONE literal "
+              + "'10:10:10 incorrect_zone': Unknown time-zone ID: incorrect_zone"));
+    }
+
+    try {
+      SqlParserUtil.parseTimeTzLiteral("10:10:10", pos);
+      fail("Should be unreachable");
+    } catch (CalciteContextException ex) {
+      assertThat(
+          ex.getMessage(), is("At line 2, column 3: Illegal TIME WITH TIME ZONE literal "
+              + "'10:10:10': not in format 'HH:mm:ss zone'"));
     }
   }
 
