@@ -4358,6 +4358,8 @@ class RexProgramTest extends RexProgramTestBase {
    * Multiple consecutive '%' in the string matched by LIKE should simplify to a single '%'</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7153">[CALCITE-7153]
    * Mixed wildcards of _ and % need to be simplified in LIKE operator</a>.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7578">[CALCITE-7578]
+   * LIKE with empty ESCAPE might fail with StringIndexOutOfBoundsException</a>.
    * */
   @Test void testSimplifyLike() {
     final RexNode ref = input(tVarchar(true, 10), 0);
@@ -4451,6 +4453,14 @@ class RexProgramTest extends RexProgramTestBase {
     // NOT(SIMILAR TO) is not optimized
     checkSimplifyUnchanged(
         not(rexBuilder.makeCall(SqlStdOperatorTable.SIMILAR_TO, ref, literal("%"))));
+
+    try {
+      // Empty ESCAPE
+      checkSimplifyUnchanged(like(ref, literal("a"), literal("")));
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          containsString("Invalid escape character ''"));
+    }
   }
 
   @Test void testSimplifyNullCheckInFilter() {

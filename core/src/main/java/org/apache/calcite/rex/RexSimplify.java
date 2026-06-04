@@ -529,11 +529,14 @@ public class RexSimplify {
       }
       if (e.operands.size() == 3 && e.operands.get(2) instanceof RexLiteral) {
         final RexLiteral escapeLiteral = (RexLiteral) e.operands.get(2);
-        Character escape = requireNonNull(escapeLiteral.getValueAs(Character.class));
-        e = (RexCall) rexBuilder
-            .makeCall(e.getParserPosition(), e.getOperator(), e.operands.get(0),
-                rexBuilder.makeLiteral(simplifyLikeString(likeStr, escape, '%'),
-                e.operands.get(1).getType(), true, true), escapeLiteral);
+        final String escapeStr = requireNonNull(escapeLiteral.getValueAs(String.class));
+        if (escapeStr.length() == 1) {
+          char escape = escapeStr.charAt(0);
+          e = (RexCall) rexBuilder
+              .makeCall(e.getParserPosition(), e.getOperator(), e.operands.get(0),
+                  rexBuilder.makeLiteral(simplifyLikeString(likeStr, escape, '%'),
+                      e.operands.get(1).getType(), true, true), escapeLiteral);
+        }
       }
     }
     return simplifyGenericNode(e);
