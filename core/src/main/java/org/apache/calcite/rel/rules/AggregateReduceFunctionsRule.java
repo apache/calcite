@@ -968,7 +968,8 @@ public class AggregateReduceFunctionsRule
             .addAll(SqlKind.AVG_AGG_FUNCTIONS)
             .addAll(SqlKind.COVAR_AVG_AGG_FUNCTIONS)
             .add(SqlKind.SUM)
-            .build();
+            .build().stream().filter(k -> k != SqlKind.REGR_COUNT)
+            .collect(ImmutableSet.toImmutableSet());
 
     @Override default AggregateReduceFunctionsRule toRule() {
       return new AggregateReduceFunctionsRule(this);
