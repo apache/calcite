@@ -41,6 +41,8 @@ import org.apache.arrow.vector.TimeStampSecVector;
 import org.apache.arrow.vector.TinyIntVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.complex.ListVector;
+import org.apache.arrow.vector.complex.impl.UnionListWriter;
 import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.types.DateUnit;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
@@ -67,6 +69,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Calendar;
 import java.util.List;
+
+import static org.apache.arrow.vector.complex.BaseRepeatedValueVector.DATA_VECTOR_NAME;
 
 /**
  * Class that can be used to generate Arrow sample data into a data directory.
@@ -148,6 +152,15 @@ public class ArrowDataTest {
     childrenBuilder.add(new Field("timestampNanoField", timestampNanoType, null));
 
     return new Schema(childrenBuilder.build(), null);
+  }
+
+
+  private Schema makeArrowListSchema() {
+    FieldType listType = FieldType.nullable(new ArrowType.List());
+    FieldType elementType = FieldType.nullable(new ArrowType.Int(32, true));
+    Field elementField = new Field(DATA_VECTOR_NAME, elementType, null);
+    Field listField = new Field("intListField", listType, ImmutableList.of(elementField));
+    return new Schema(ImmutableList.of(listField), null);
   }
 
   private Schema makeArrowSchema() {
@@ -329,6 +342,25 @@ public class ArrowDataTest {
     fileOutputStream.close();
   }
 
+
+  public void writeArrowListData(File file) throws IOException {
+    Schema arrowSchema = makeArrowListSchema();
+    try (RootAllocator allocator = new RootAllocator(Integer.MAX_VALUE);
+         VectorSchemaRoot vectorSchemaRoot =
+             VectorSchemaRoot.create(arrowSchema, allocator);
+         FileOutputStream fileOutputStream = new FileOutputStream(file);
+         ArrowFileWriter arrowFileWriter =
+             new ArrowFileWriter(vectorSchemaRoot, null,
+                 fileOutputStream.getChannel())) {
+      arrowFileWriter.start();
+      int rowCount = 3;
+      vectorSchemaRoot.setRowCount(rowCount);
+      listField(vectorSchemaRoot.getVector("intListField"), rowCount);
+      arrowFileWriter.writeBatch();
+      arrowFileWriter.end();
+    }
+  }
+
   private void tinyIntField(FieldVector fieldVector, int rowCount) {
     TinyIntVector tinyIntVector = (TinyIntVector) fieldVector;
     tinyIntVector.setInitialCapacity(rowCount);
@@ -462,6 +494,31 @@ public class ArrowDataTest {
     for (int i = 0; i < rowCount; i++) {
       timeVector.set(i, i * 1000);
     }
+    fieldVector.setValueCount(rowCount);
+  }
+
+
+  private void listField(FieldVector fieldVector, int rowCount) {
+    ListVector listVector = (ListVector) fieldVector;
+    listVector.setInitialCapacity(rowCount);
+    listVector.allocateNew();
+    UnionListWriter writer = listVector.getWriter();
+    for (int i = 0; i < rowCount; i++) {
+      writer.setPosition(i);
+      if (i == 1) {
+        writer.writeNull();
+      } else {
+        writer.startList();
+        writer.writeInt(i);
+        if (i == 2) {
+          writer.writeNull();
+        } else {
+          writer.writeInt(i + 1);
+        }
+        writer.endList();
+      }
+    }
+    writer.setValueCount(rowCount);
     fieldVector.setValueCount(rowCount);
   }
 

@@ -22,6 +22,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
+import org.apache.arrow.vector.types.pojo.Field;
 
 /**
  * Arrow field type.
@@ -32,19 +33,20 @@ public class ArrowFieldTypeFactory {
     throw new UnsupportedOperationException("Utility class");
   }
 
-  public static RelDataType toType(ArrowType arrowType, JavaTypeFactory typeFactory) {
-    RelDataType sqlType = of(arrowType, typeFactory);
+  public static RelDataType toType(Field field, JavaTypeFactory typeFactory) {
+    RelDataType sqlType = of(field, typeFactory);
     return typeFactory.createTypeWithNullability(sqlType, true);
   }
 
   /**
-   * Converts an Arrow type to a Calcite RelDataType.
+   * Converts an Arrow field to a Calcite RelDataType.
    *
-   * @param arrowType the Arrow type to convert
+   * @param field the Arrow field to convert
    * @param typeFactory the factory to create the Calcite type
    * @return the corresponding Calcite RelDataType
    */
-  private static RelDataType of(ArrowType arrowType, JavaTypeFactory typeFactory) {
+  private static RelDataType of(Field field, JavaTypeFactory typeFactory) {
+    ArrowType arrowType = field.getType();
     switch (arrowType.getTypeID()) {
     case Int:
       int bitWidth = ((ArrowType.Int) arrowType).getBitWidth();
@@ -82,6 +84,12 @@ public class ArrowFieldTypeFactory {
           ((ArrowType.Decimal) arrowType).getScale());
     case Time:
       return typeFactory.createSqlType(SqlTypeName.TIME);
+    case List:
+      if (field.getChildren().size() != 1) {
+        throw new IllegalArgumentException("Arrow List type must have one child field: " + field);
+      }
+      RelDataType elementType = toType(field.getChildren().get(0), typeFactory);
+      return typeFactory.createArrayType(elementType, -1);
     case Timestamp:
       ArrowType.Timestamp timestampType = (ArrowType.Timestamp) arrowType;
       int timestampPrecision;
