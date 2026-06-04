@@ -90,6 +90,7 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -2092,5 +2093,23 @@ class SqlFunctionsTest {
     assertThat(result, hasSize(2));
     assertArrayEquals(new Object[]{null, 100}, result.get(0));
     assertArrayEquals(new Object[]{null, 200}, result.get(1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7560">[CALCITE-7560]
+   * SqlFunctions.DateParseFunction.parseTimestamp(..., timeZone) accepts unknown
+   * time zones and silently falls back to GMT</a>. */
+  @Test void testParseTimestampRejectsUnknownTimeZone() {
+    final SqlFunctions.DateParseFunction parse = new SqlFunctions.DateParseFunction();
+
+    // A valid time zone is accepted.
+    assertThat(
+        parse.parseTimestamp("%Y-%m-%d %H:%M:%S", "2024-01-01 00:00:00", "UTC"),
+        is(parse.parseTimestamp("%Y-%m-%d %H:%M:%S", "2024-01-01 00:00:00")));
+
+    // An unknown time zone is rejected rather than silently reinterpreted as GMT.
+    assertThrows(RuntimeException.class,
+        () -> parse.parseTimestamp("%Y-%m-%d %H:%M:%S",
+            "2024-01-01 00:00:00", "Asia/Sanghai"));
   }
 }
