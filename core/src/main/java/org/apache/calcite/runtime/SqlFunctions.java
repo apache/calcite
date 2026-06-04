@@ -5604,7 +5604,9 @@ public class SqlFunctions {
 
     public long parseTimestamp(String fmtString, String timestamp,
         String timeZone) {
-      TimeZone tz = TimeZone.getTimeZone(timeZone);
+      // Validate the zone id (rejecting unknown ids) rather than letting
+      // TimeZone.getTimeZone silently fall back to GMT.
+      TimeZone tz = TimeZone.getTimeZone(ZoneId.of(timeZone));
       final long millisSinceEpoch =
           internalParseDatetime(fmtString, timestamp, timeZone);
       return toLong(new java.sql.Timestamp(millisSinceEpoch), tz);
