@@ -121,18 +121,7 @@ public class ArrowTable extends AbstractTable
 
     if (conditions.isEmpty()) {
       filter = null;
-
-      final List<ExpressionTree> expressionTrees = new ArrayList<>();
-      for (int fieldOrdinal : fields) {
-        Field field = schema.getFields().get(fieldOrdinal);
-        TreeNode node = TreeBuilder.makeField(field);
-        expressionTrees.add(TreeBuilder.makeExpression(node, field));
-      }
-      try {
-        projector = Projector.make(schema, expressionTrees);
-      } catch (GandivaException e) {
-        throw Util.toUnchecked(e);
-      }
+      projector = makeProjector(fields);
     } else {
       projector = null;
 
@@ -208,9 +197,40 @@ public class ArrowTable extends AbstractTable
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (Field field : schema.getFields()) {
       builder.add(field.getName(),
-          ArrowFieldTypeFactory.toType(field.getType(), typeFactory));
+          ArrowFieldTypeFactory.toType(field, typeFactory));
     }
     return builder.build();
+  }
+
+  private @Nullable Projector makeProjector(ImmutableIntList fields) {
+    if (containsListField(fields)) {
+      // Returning null selects ArrowEnumerable's direct vector-read path.
+      // Use that path for list fields because Gandiva does not support identity
+      // projection expressions over Arrow List vectors.
+      return null;
+    }
+
+    final List<ExpressionTree> expressionTrees = new ArrayList<>();
+    for (int fieldOrdinal : fields) {
+      Field field = schema.getFields().get(fieldOrdinal);
+      TreeNode node = TreeBuilder.makeField(field);
+      expressionTrees.add(TreeBuilder.makeExpression(node, field));
+    }
+    try {
+      return Projector.make(schema, expressionTrees);
+    } catch (GandivaException e) {
+      throw Util.toUnchecked(e);
+    }
+  }
+
+  private boolean containsListField(ImmutableIntList fields) {
+    for (int fieldOrdinal : fields) {
+      if (schema.getFields().get(fieldOrdinal).getType().getTypeID()
+          == ArrowType.ArrowTypeID.List) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Converts a single {@link ConditionToken} into a Gandiva {@link TreeNode}. */

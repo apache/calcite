@@ -56,8 +56,7 @@ class ArrowEnumerable extends AbstractEnumerable<Object> {
         return new ArrowFilterEnumerator(arrowFileReader, fields, filter,
             onClose);
       }
-      throw new IllegalArgumentException(
-          "The arrow enumerator must have either a filter or a projection");
+      return new ArrowDirectEnumerator(arrowFileReader, fields, onClose);
     } catch (Exception e) {
       throw Util.toUnchecked(e);
     }

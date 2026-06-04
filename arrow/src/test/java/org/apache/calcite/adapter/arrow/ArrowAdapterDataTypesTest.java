@@ -61,7 +61,25 @@ public class ArrowAdapterDataTypesTest {
     ArrowDataTest arrowDataGenerator = new ArrowDataTest();
     arrowDataGenerator.writeArrowDataType(dataLocationFile);
 
+    File listDataLocationFile = arrowFilesDirectory.resolve("arrowlist.arrow").toFile();
+    ArrowDataTest arrowListDataGenerator = new ArrowDataTest();
+    arrowListDataGenerator.writeArrowListData(listDataLocationFile);
+
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
+  }
+
+  @Test void testListProject() {
+    String sql = "select \"intListField\" from arrowlist";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowTableScan(table=[[ARROW, ARROWLIST]], fields=[[0]])\n\n";
+    String result = "intListField=[0, 1]\n"
+        + "intListField=null\n"
+        + "intListField=[2, null]\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
   }
 
   @Test void testTinyIntProject() {
