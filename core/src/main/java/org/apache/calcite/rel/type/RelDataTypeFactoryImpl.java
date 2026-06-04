@@ -190,7 +190,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         });
   }
 
-  @Override public final RelDataType createStructType(
+  @Override public RelDataType createStructType(
       final List<? extends Map.Entry<String, RelDataType>> fieldList) {
     return createStructType(fieldList, false);
   }
