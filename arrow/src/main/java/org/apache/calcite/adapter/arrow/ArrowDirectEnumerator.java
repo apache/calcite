@@ -26,6 +26,10 @@ import java.io.IOException;
 
 /**
  * Enumerator that reads projected Arrow value-vectors directly.
+ *
+ * <p>This path is used for identity projections that Gandiva cannot project
+ * through the existing {@code Projector} path, such as Arrow binary vectors.
+ * It is not a replacement for Gandiva expression evaluation.
  */
 class ArrowDirectEnumerator extends AbstractArrowEnumerator {
   private final Runnable onClose;

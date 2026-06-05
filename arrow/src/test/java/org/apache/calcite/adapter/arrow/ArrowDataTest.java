@@ -29,9 +29,11 @@ import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.DateDayVector;
 import org.apache.arrow.vector.DecimalVector;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.FixedSizeBinaryVector;
 import org.apache.arrow.vector.Float8Vector;
 import org.apache.arrow.vector.FloatingPointVector;
 import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.LargeVarBinaryVector;
 import org.apache.arrow.vector.SmallIntVector;
 import org.apache.arrow.vector.TimeSecVector;
 import org.apache.arrow.vector.TimeStampMicroVector;
@@ -39,6 +41,7 @@ import org.apache.arrow.vector.TimeStampMilliVector;
 import org.apache.arrow.vector.TimeStampNanoVector;
 import org.apache.arrow.vector.TimeStampSecVector;
 import org.apache.arrow.vector.TinyIntVector;
+import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.complex.ListVector;
@@ -179,6 +182,19 @@ public class ArrowDataTest {
     return new Schema(childrenBuilder.build(), null);
   }
 
+  private Schema makeArrowBinarySchema() {
+    ImmutableList.Builder<Field> childrenBuilder = ImmutableList.builder();
+    FieldType binaryType = FieldType.nullable(new ArrowType.Binary());
+    FieldType largeBinaryType = FieldType.nullable(new ArrowType.LargeBinary());
+    FieldType fixedSizeBinaryType =
+        FieldType.nullable(new ArrowType.FixedSizeBinary(3));
+
+    childrenBuilder.add(new Field("binaryField", binaryType, null));
+    childrenBuilder.add(new Field("largeBinaryField", largeBinaryType, null));
+    childrenBuilder.add(new Field("fixedSizeBinaryField", fixedSizeBinaryType, null));
+
+    return new Schema(childrenBuilder.build(), null);
+  }
 
   public void writeScottEmpData(Path arrowDataDirectory) throws IOException, SQLException {
     List<String> tableNames = ImmutableList.of("EMP", "DEPT", "SALGRADE");
@@ -265,6 +281,26 @@ public class ArrowDataTest {
     fileOutputStream.close();
   }
 
+  public void writeArrowBinaryData(File file) throws IOException {
+    FileOutputStream fileOutputStream = new FileOutputStream(file);
+    Schema arrowSchema = makeArrowBinarySchema();
+    VectorSchemaRoot vectorSchemaRoot =
+        VectorSchemaRoot.create(arrowSchema, new RootAllocator(Integer.MAX_VALUE));
+    ArrowFileWriter arrowFileWriter =
+        new ArrowFileWriter(vectorSchemaRoot, null, fileOutputStream.getChannel());
+
+    arrowFileWriter.start();
+    vectorSchemaRoot.setRowCount(3);
+    binaryField(vectorSchemaRoot.getVector("binaryField"));
+    largeBinaryField(vectorSchemaRoot.getVector("largeBinaryField"));
+    fixedSizeBinaryField(vectorSchemaRoot.getVector("fixedSizeBinaryField"));
+    arrowFileWriter.writeBatch();
+    arrowFileWriter.end();
+    arrowFileWriter.close();
+    fileOutputStream.flush();
+    fileOutputStream.close();
+  }
+
   public void writeArrowDataType(File file) throws IOException {
     FileOutputStream fileOutputStream = new FileOutputStream(file);
     Schema arrowSchema = makeArrowDateTypeSchema();
@@ -342,7 +378,6 @@ public class ArrowDataTest {
     fileOutputStream.close();
   }
 
-
   public void writeArrowListData(File file) throws IOException {
     Schema arrowSchema = makeArrowListSchema();
     try (RootAllocator allocator = new RootAllocator(Integer.MAX_VALUE);
@@ -359,6 +394,36 @@ public class ArrowDataTest {
       arrowFileWriter.writeBatch();
       arrowFileWriter.end();
     }
+  }
+
+  private void binaryField(FieldVector fieldVector) {
+    VarBinaryVector binaryVector = (VarBinaryVector) fieldVector;
+    binaryVector.setInitialCapacity(3);
+    binaryVector.allocateNew();
+    binaryVector.setSafe(0, new byte[] {0, 1});
+    binaryVector.setNull(1);
+    binaryVector.setSafe(2, new byte[] {2, 3, 4});
+    fieldVector.setValueCount(3);
+  }
+
+  private void largeBinaryField(FieldVector fieldVector) {
+    LargeVarBinaryVector largeBinaryVector = (LargeVarBinaryVector) fieldVector;
+    largeBinaryVector.setInitialCapacity(3);
+    largeBinaryVector.allocateNew();
+    largeBinaryVector.setSafe(0, new byte[] {10, 11});
+    largeBinaryVector.setNull(1);
+    largeBinaryVector.setSafe(2, new byte[] {12, 13, 14});
+    fieldVector.setValueCount(3);
+  }
+
+  private void fixedSizeBinaryField(FieldVector fieldVector) {
+    FixedSizeBinaryVector fixedSizeBinaryVector = (FixedSizeBinaryVector) fieldVector;
+    fixedSizeBinaryVector.setInitialCapacity(3);
+    fixedSizeBinaryVector.allocateNew();
+    fixedSizeBinaryVector.setSafe(0, new byte[] {20, 21, 22});
+    fixedSizeBinaryVector.setNull(1);
+    fixedSizeBinaryVector.setSafe(2, new byte[] {23, 24, 25});
+    fieldVector.setValueCount(3);
   }
 
   private void tinyIntField(FieldVector fieldVector, int rowCount) {

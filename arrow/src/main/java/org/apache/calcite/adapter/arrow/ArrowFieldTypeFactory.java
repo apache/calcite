@@ -66,6 +66,12 @@ public class ArrowFieldTypeFactory {
       return typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     case Utf8:
       return typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    case Binary:
+    case LargeBinary:
+      return typeFactory.createSqlType(SqlTypeName.VARBINARY);
+    case FixedSizeBinary:
+      return typeFactory.createSqlType(SqlTypeName.BINARY,
+          ((ArrowType.FixedSizeBinary) arrowType).getByteWidth());
     case FloatingPoint:
       FloatingPointPrecision precision = ((ArrowType.FloatingPoint) arrowType).getPrecision();
       switch (precision) {
