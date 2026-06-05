@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 
@@ -77,6 +78,10 @@ public class Sample extends SingleRel {
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new Sample(getCluster(), sole(inputs), params);
+  }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
   }
 
   /**

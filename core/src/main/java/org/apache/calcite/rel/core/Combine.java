@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -58,6 +59,10 @@ public class Combine extends AbstractRelNode {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new Combine(getCluster(), traitSet, inputs);
+  }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
   }
 
   @Override public void replaceInput(int ordinalInParent, RelNode rel) {
