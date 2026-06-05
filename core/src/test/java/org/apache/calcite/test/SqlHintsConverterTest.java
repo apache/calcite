@@ -974,24 +974,25 @@ class SqlHintsConverterTest {
         return super.visit(values);
       }
 
-      @Override public RelNode visit(RelNode other) {
-        if (other instanceof Window) {
-          Window window = (Window) other;
-          if (!window.getHints().isEmpty()) {
-            this.hintsCollect.add("Window:" + window.getHints());
-          }
-        } else if (other instanceof Snapshot) {
-          Snapshot snapshot = (Snapshot) other;
-          if (!snapshot.getHints().isEmpty()) {
-            this.hintsCollect.add("Snapshot:" + snapshot.getHints());
-          }
-        } else if (other instanceof TableFunctionScan) {
-          TableFunctionScan scan = (TableFunctionScan) other;
-          if (!scan.getHints().isEmpty()) {
-            this.hintsCollect.add("TableFunctionScan:" + scan.getHints());
-          }
+      @Override public RelNode visit(TableFunctionScan scan) {
+        if (!scan.getHints().isEmpty()) {
+          this.hintsCollect.add("TableFunctionScan:" + scan.getHints());
         }
-        return super.visit(other);
+        return super.visit(scan);
+      }
+
+      @Override public RelNode visit(Window window) {
+        if (!window.getHints().isEmpty()) {
+          this.hintsCollect.add("Window:" + window.getHints());
+        }
+        return super.visit(window);
+      }
+
+      @Override public RelNode visit(Snapshot snapshot) {
+        if (!snapshot.getHints().isEmpty()) {
+          this.hintsCollect.add("Snapshot:" + snapshot.getHints());
+        }
+        return super.visit(snapshot);
       }
     }
   }

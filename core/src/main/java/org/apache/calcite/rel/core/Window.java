@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.hint.Hintable;
@@ -208,6 +209,10 @@ public abstract class Window extends SingleRel implements Hintable {
    */
   public List<RexLiteral> getConstants() {
     return constants;
+  }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,

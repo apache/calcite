@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 
 import static java.util.Objects.requireNonNull;
@@ -84,6 +85,10 @@ public abstract class SortExchange extends Exchange {
 
   public abstract SortExchange copy(RelTraitSet traitSet, RelNode newInput,
       RelDistribution newDistribution, RelCollation newCollation);
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 
   /**
    * Returns the array of {@link org.apache.calcite.rel.RelFieldCollation}s
