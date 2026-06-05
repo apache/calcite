@@ -3642,9 +3642,10 @@ public class SqlToRelConverter {
         offset += rowType.getFieldList().size();
       }
 
-      RelDataType resultType =
-          validator().getTypeCoercion().commonTypeForBinaryComparison(
-              comparedTypes.get(0), comparedTypes.get(1));
+      RelDataType resultType = validator().config().typeCoercionEnabled()
+          ? validator().getTypeCoercion().commonTypeForBinaryComparison(
+              comparedTypes.get(0), comparedTypes.get(1))
+          : null;
       if (resultType == null) {
         // Leave call unchanged (as it happens in TypeCoercionImpl#binaryComparisonCoercion)
         list.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, operands));

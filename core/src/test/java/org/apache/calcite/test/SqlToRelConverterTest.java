@@ -5397,6 +5397,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7589">[CALCITE-7589]
+   * JOIN ... USING might fail with disabled type coercion</a>. */
+  @Test void testNaturalJoinCastNoCoercion2() {
+    final String sql = "select * from emp join dept using(deptno)";
+    sql(sql).withTypeCoercion(false).ok();
+  }
+
   /** Tests LEFT JOIN LATERAL with multiple columns from outer. */
   @Test void testLeftJoinLateral4() {
     final String sql = "select * from (values (4,5)) as t(c,d)\n"
