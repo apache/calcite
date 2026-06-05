@@ -4360,6 +4360,8 @@ class RexProgramTest extends RexProgramTestBase {
    * Mixed wildcards of _ and % need to be simplified in LIKE operator</a>.
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7578">[CALCITE-7578]
    * LIKE with empty ESCAPE might fail with StringIndexOutOfBoundsException</a>.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7588">[CALCITE-7588]
+   * LIKE with ESCAPE symbols containing wildcards fails</a>.
    * */
   @Test void testSimplifyLike() {
     final RexNode ref = input(tVarchar(true, 10), 0);
@@ -4423,6 +4425,14 @@ class RexProgramTest extends RexProgramTestBase {
         "LIKE($0, '###%%#%#%A#%%#%A%###%%', '#')");
     checkSimplifyUnchanged(like(ref, literal("A"), literal("#")));
     checkSimplifyUnchanged(like(ref, literal("%A"), literal("#")));
+    checkSimplifyUnchanged(like(ref, literal("TE%_ST"), literal("%")));
+    checkSimplifyUnchanged(like(ref, literal("TE%%ST"), literal("%")));
+    checkSimplifyUnchanged(like(ref, literal("a%_b%%c"), literal("%")));
+    checkSimplifyUnchanged(like(ref, literal("%_%%A%_"), literal("%")));
+    // escape char equal to the '_' wildcard. '%E__S%' ESCAPE '_' is a literal '_'.
+    checkSimplifyUnchanged(like(ref, literal("%E__S%"), literal("_")));
+    checkSimplifyUnchanged(like(ref, literal("TE_%ST"), literal("_")));
+    checkSimplifyUnchanged(like(ref, literal("a_%b__c"), literal("_")));
 
     // As above, but ref is NOT NULL
     final RexNode refMandatory = vVarcharNotNull(0);

@@ -546,7 +546,7 @@ public class RexSimplify {
   // string with even escapes 'AA\\\\%%__%%AA' simplify to 'AA\\__%AA'
   // string with odd escapes 'AA\\\\\\%%__%%AA' simplify to 'AA\\\\\\%__%AA'
   private String simplifyMixedWildcards(String str, char escape) {
-    Pattern pattern = Pattern.compile("[_%]+");
+    Pattern pattern = getWildCardPattern(escape);
     Matcher matcher = pattern.matcher(str);
     StringBuilder builder = new StringBuilder();
     int from = 0;
@@ -568,6 +568,17 @@ public class RexSimplify {
       builder.append(str.substring(from));
     }
     return builder.toString();
+  }
+
+  private static Pattern getWildCardPattern(char escape) {
+    switch (escape) {
+    case '%':
+      return Pattern.compile("_+");
+    case '_':
+      return Pattern.compile("%+");
+    default:
+      return Pattern.compile("[_%]+");
+    }
   }
 
   // Tool method: count the number of consecutive identical characters before index
