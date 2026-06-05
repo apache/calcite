@@ -146,6 +146,24 @@ The same applies to `SqlBabelCreateTable` and `SqlUnpivot`.
   the table functions `HOP`, `TUMBLE`, `SESSION` to match the original
   type of the timestamp column.  These types used to be hardwired to
   `TIMESTAMP(3)`.
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7511">CALCITE-7511</a>]
+  This change adds new `visit(X)` overloads on `RelShuttle` for `TableFunctionScan`,
+  `Window`, `Snapshot`, `Collect`, `Sample`, `Uncollect`, `Combine`, `ConditionalCorrelate`,
+  `SortExchange`, and `TableSpool`. The corresponding rel class (or its abstract parent)
+  now overrides `accept(RelShuttle)` so dispatch routes through the type-specific overload
+  instead of `visit(RelNode other)`. Default implementations are provided in `RelShuttleImpl`
+  and `RelHomogeneousShuttle`. Callers that implement `RelShuttle` directly must add the
+  new `visit(X)` methods; the compiler will flag missing overrides. Callers that subclassed
+  `RelShuttleImpl` (or `RelHomogeneousShuttle`) and handled any of these types via `instanceof`
+  checks inside `visit(RelNode)` should migrate that logic to the matching `visit(X)` override —
+  those `instanceof` branches will silently stop firing for the affected types. Because the
+  `accept(RelShuttle)` override is placed on the abstract parent where one exists, **all**
+  subclasses now dispatch through the type-specific overload, including `Enumerable*` and
+  engine-specific variants; for example, `EnumerableTableFunctionScan` now also routes through
+  `visit(TableFunctionScan)`. This change also adds the previously-missing
+  `RelHomogeneousShuttle.visit(LogicalAsofJoin)` forwarding override; subclasses that relied
+  on `LogicalAsofJoin` not being routed through their `visit(RelNode)` override will now see
+  it routed there, matching every other rel type in the homogeneous shuttle.
 
 #### New features
 {: #new-features-1-42-0}

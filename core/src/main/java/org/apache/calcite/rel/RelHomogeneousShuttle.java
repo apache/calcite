@@ -16,9 +16,19 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Combine;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Snapshot;
+import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.TableSpool;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
@@ -71,6 +81,10 @@ public class RelHomogeneousShuttle extends RelShuttleImpl {
     return visit((RelNode) join);
   }
 
+  @Override public RelNode visit(LogicalAsofJoin asofJoin) {
+    return visit((RelNode) asofJoin);
+  }
+
   @Override public RelNode visit(LogicalCorrelate correlate) {
     return visit((RelNode) correlate);
   }
@@ -105,5 +119,41 @@ public class RelHomogeneousShuttle extends RelShuttleImpl {
 
   @Override public RelNode visit(LogicalRepeatUnion repeatUnion) {
     return visit((RelNode) repeatUnion);
+  }
+
+  @Override public RelNode visit(Window window) {
+    return visit((RelNode) window);
+  }
+
+  @Override public RelNode visit(Snapshot snapshot) {
+    return visit((RelNode) snapshot);
+  }
+
+  @Override public RelNode visit(Collect collect) {
+    return visit((RelNode) collect);
+  }
+
+  @Override public RelNode visit(Sample sample) {
+    return visit((RelNode) sample);
+  }
+
+  @Override public RelNode visit(Uncollect uncollect) {
+    return visit((RelNode) uncollect);
+  }
+
+  @Override public RelNode visit(Combine combine) {
+    return visit((RelNode) combine);
+  }
+
+  @Override public RelNode visit(ConditionalCorrelate conditionalCorrelate) {
+    return visit((RelNode) conditionalCorrelate);
+  }
+
+  @Override public RelNode visit(SortExchange sortExchange) {
+    return visit((RelNode) sortExchange);
+  }
+
+  @Override public RelNode visit(TableSpool tableSpool) {
+    return visit((RelNode) tableSpool);
   }
 }

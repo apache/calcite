@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -139,6 +140,10 @@ public abstract class TableFunctionScan extends AbstractRelNode
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 
   @Override public final TableFunctionScan copy(RelTraitSet traitSet,
       List<RelNode> inputs) {

@@ -16,8 +16,17 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Combine;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Snapshot;
+import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.TableSpool;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
@@ -36,7 +45,7 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 
 /**
- * Visitor that has methods for the common logical relational expressions.
+ * Visitor that has methods for the common relational expressions.
  */
 public interface RelShuttle {
   RelNode visit(TableScan scan);
@@ -74,6 +83,24 @@ public interface RelShuttle {
   RelNode visit(LogicalAsofJoin logicalAsofJoin);
 
   RelNode visit(LogicalRepeatUnion logicalRepeatUnion);
+
+  RelNode visit(Window window);
+
+  RelNode visit(Snapshot snapshot);
+
+  RelNode visit(Collect collect);
+
+  RelNode visit(Sample sample);
+
+  RelNode visit(Uncollect uncollect);
+
+  RelNode visit(Combine combine);
+
+  RelNode visit(ConditionalCorrelate conditionalCorrelate);
+
+  RelNode visit(SortExchange sortExchange);
+
+  RelNode visit(TableSpool tableSpool);
 
   RelNode visit(RelNode other);
 }

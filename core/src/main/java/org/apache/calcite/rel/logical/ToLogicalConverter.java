@@ -57,6 +57,14 @@ public class ToLogicalConverter extends RelShuttleImpl {
     return LogicalTableScan.create(scan.getCluster(), scan.getTable(), scan.getHints());
   }
 
+  @Override public RelNode visit(Window window) {
+    return visit((RelNode) window);
+  }
+
+  @Override public RelNode visit(Uncollect uncollect) {
+    return visit((RelNode) uncollect);
+  }
+
   @Override public RelNode visit(RelNode relNode) {
     if (relNode instanceof Aggregate) {
       final Aggregate agg = (Aggregate) relNode;

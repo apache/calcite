@@ -19,6 +19,7 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -68,6 +69,10 @@ public abstract class ConditionalCorrelate extends Correlate {
   public abstract ConditionalCorrelate copy(RelTraitSet traitSet, RelNode left, RelNode right,
       CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType,
       RexNode condition);
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
