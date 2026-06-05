@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -95,7 +96,11 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
           (ArrowType.Timestamp) vector.getField().getType();
       return toMillis(rawValue, tsType.getUnit());
     }
-    return vector.getObject(index);
+    final Object value = vector.getObject(index);
+    if (value instanceof byte[]) {
+      return new ByteString((byte[]) value);
+    }
+    return value;
   }
 
   /** Converts a raw timestamp value to milliseconds since epoch.

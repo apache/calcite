@@ -203,10 +203,10 @@ public class ArrowTable extends AbstractTable
   }
 
   private @Nullable Projector makeProjector(ImmutableIntList fields) {
-    if (containsListField(fields)) {
+    if (requiresDirectVectorProjection(fields)) {
       // Returning null selects ArrowEnumerable's direct vector-read path.
-      // Use that path for list fields because Gandiva does not support identity
-      // projection expressions over Arrow List vectors.
+      // Use that path because Gandiva does not support identity projection
+      // expressions over Arrow List and binary vectors.
       return null;
     }
 
@@ -223,11 +223,24 @@ public class ArrowTable extends AbstractTable
     }
   }
 
-  private boolean containsListField(ImmutableIntList fields) {
+  /** Returns whether selected fields should be projected by reading Arrow
+   * value-vectors directly rather than by creating a Gandiva projector.
+   *
+   * <p>CALCITE-7541 extends this direct projection path for Arrow binary vector
+   * families because Gandiva cannot project them through the existing identity
+   * projection path. Queries with filters still use Gandiva filters; this direct
+   * path only applies to no-filter projections.
+   */
+  private boolean requiresDirectVectorProjection(ImmutableIntList fields) {
     for (int fieldOrdinal : fields) {
-      if (schema.getFields().get(fieldOrdinal).getType().getTypeID()
-          == ArrowType.ArrowTypeID.List) {
+      switch (schema.getFields().get(fieldOrdinal).getType().getTypeID()) {
+      case List:
+      case Binary:
+      case LargeBinary:
+      case FixedSizeBinary:
         return true;
+      default:
+        break;
       }
     }
     return false;

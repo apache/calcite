@@ -56,6 +56,8 @@ class ArrowEnumerable extends AbstractEnumerable<Object> {
         return new ArrowFilterEnumerator(arrowFileReader, fields, filter,
             onClose);
       }
+      // No projector and no filter means the query is an identity projection
+      // that should read selected value-vectors directly.
       return new ArrowDirectEnumerator(arrowFileReader, fields, onClose);
     } catch (Exception e) {
       throw Util.toUnchecked(e);

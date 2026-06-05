@@ -65,6 +65,10 @@ public class ArrowAdapterDataTypesTest {
     ArrowDataTest arrowListDataGenerator = new ArrowDataTest();
     arrowListDataGenerator.writeArrowListData(listDataLocationFile);
 
+    File binaryDataLocationFile = arrowFilesDirectory.resolve("arrowbinary.arrow").toFile();
+    ArrowDataTest arrowBinaryDataGenerator = new ArrowDataTest();
+    arrowBinaryDataGenerator.writeArrowBinaryData(binaryDataLocationFile);
+
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
 
@@ -75,6 +79,24 @@ public class ArrowAdapterDataTypesTest {
     String result = "intListField=[0, 1]\n"
         + "intListField=null\n"
         + "intListField=[2, null]\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7541">[CALCITE-7541]
+   * Support Binary Arrow types in Arrow adapter</a>. */
+  @Test void testBinaryProject() {
+    String sql = "select \"binaryField\", \"largeBinaryField\", \"fixedSizeBinaryField\" "
+        + "from arrowbinary";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowTableScan(table=[[ARROW, ARROWBINARY]], fields=[[0, 1, 2]])\n\n";
+    String result = "binaryField=0001; largeBinaryField=0a0b; fixedSizeBinaryField=141516\n"
+        + "binaryField=null; largeBinaryField=null; fixedSizeBinaryField=null\n"
+        + "binaryField=020304; largeBinaryField=0c0d0e; fixedSizeBinaryField=171819\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
