@@ -5528,7 +5528,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlOperator op = ((SqlCall) expr).getOperator();
       if (op.isAggregator() && op.requiresOver()) {
         throw newValidationError(expr,
-            RESOURCE.absentOverClause());
+            RESOURCE.absentOverClause(op.getName()));
       }
       if (op instanceof SqlTableFunction) {
         throw RESOURCE.cannotCallTableFunctionHere(op.getName()).ex();

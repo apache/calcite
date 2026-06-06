@@ -138,7 +138,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlValidatorScope operandScope) {
     if (requiresOver() && !validator.isInWindow()) {
       throw validator.newValidationError(call,
-          Static.RESOURCE.absentOverClause());
+          Static.RESOURCE.absentOverClause(getName()));
     }
     super.validateCall(call, validator, scope, operandScope);
     validator.validateAggregateParams(call, null, null, null, scope);
