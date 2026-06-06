@@ -34,9 +34,12 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -607,6 +610,108 @@ public abstract class ReturnTypes {
     return opBinding.getTypeFactory()
         .leastRestrictive(opBinding.collectOperandTypes());
   }
+
+  /**
+   * Refines the nullability of {@code base} using INTERSECT semantics: a
+   * column is NOT NULL if it is NOT NULL in all of the
+   * {@code inputTypes} ("AND" semantics across inputs).
+   *
+   * <p>For ROW (struct) types, this recursively refines nullability of nested
+   * fields, ensuring the "AND" semantics apply at every level of nesting.
+   */
+  public static RelDataType deriveNullabilityForIntersect(
+      RelDataTypeFactory typeFactory,
+      RelDataType base,
+      List<RelDataType> inputTypes) {
+    return deriveNullable(typeFactory, base, inputTypes);
+  }
+
+  /**
+   * Refines the nullability of {@code base} using EXCEPT/MINUS semantics:
+   * each column's nullability matches that of the primary (first) input.
+   * For ROW types, this is applied recursively at all nesting levels.
+   */
+  public static RelDataType deriveNullabilityForExcept(
+      RelDataTypeFactory typeFactory,
+      RelDataType base,
+      RelDataType primaryInputType) {
+    return deriveNullable(typeFactory, base,
+        ImmutableList.of(primaryInputType));
+  }
+
+  /**
+   * Returns whether all types in the list are nullable (AND semantics).
+   */
+  private static boolean allNullable(List<RelDataType> types) {
+    for (RelDataType type : types) {
+      if (!type.isNullable()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Recursively refines nullability using AND semantics:
+   * a column is NOT NULL if it is NOT NULL in ALL {@code inputTypes}.
+   * For ROW types, this is applied recursively to all nested fields.
+   */
+  private static RelDataType deriveNullable(
+      RelDataTypeFactory typeFactory,
+      RelDataType type,
+      List<RelDataType> inputTypes) {
+    if (type.isStruct()) {
+      final RelDataTypeFactory.Builder builder =
+          new RelDataTypeFactory.Builder(typeFactory);
+      final List<RelDataTypeField> fields = type.getFieldList();
+      for (int i = 0; i < fields.size(); i++) {
+        final List<RelDataType> fieldInputTypes = new ArrayList<>();
+        for (RelDataType inputType : inputTypes) {
+          fieldInputTypes.add(inputType.getFieldList().get(i).getType());
+        }
+        builder.add(fields.get(i).getName(),
+                deriveNullable(typeFactory,
+                    fields.get(i).getType(),
+                    fieldInputTypes))
+            .nullable(allNullable(fieldInputTypes));
+      }
+      return builder.build();
+    }
+    return typeFactory.createTypeWithNullability(type, allNullable(inputTypes));
+  }
+
+  /**
+   * Type-inference strategy for INTERSECT. Computes the least restrictive row
+   * type across all inputs, then refines nullability: a column is NOT NULL if
+   * it is NOT NULL in at least one input ("AND" semantics across inputs).
+   */
+  public static final SqlReturnTypeInference LEAST_RESTRICTIVE_INTERSECT =
+      andThen(SqlTypeTransforms.FROM_MEASURE_IF::apply, opBinding -> {
+        final List<RelDataType> inputTypes = opBinding.collectOperandTypes();
+        final RelDataType base =
+            opBinding.getTypeFactory().leastRestrictive(inputTypes);
+        if (base == null) {
+          return null;
+        }
+        return deriveNullabilityForIntersect(opBinding.getTypeFactory(), base, inputTypes);
+      });
+
+  /**
+   * Type-inference strategy for EXCEPT/MINUS. Computes the least restrictive
+   * row type across all inputs, then refines nullability: a column's
+   * nullability matches that of the first (primary) input.
+   */
+  public static final SqlReturnTypeInference LEAST_RESTRICTIVE_EXCEPT =
+      andThen(SqlTypeTransforms.FROM_MEASURE_IF::apply, opBinding -> {
+        final List<RelDataType> inputTypes = opBinding.collectOperandTypes();
+        final RelDataType base =
+            opBinding.getTypeFactory().leastRestrictive(inputTypes);
+        if (base == null) {
+          return null;
+        }
+        return deriveNullabilityForExcept(
+            opBinding.getTypeFactory(), base, inputTypes.get(0));
+      });
 
   /**
    * Type-inference strategy for NVL2 function. It returns the least restrictive type

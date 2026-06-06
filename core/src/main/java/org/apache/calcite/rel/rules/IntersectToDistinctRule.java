@@ -140,6 +140,10 @@ public class IntersectToDistinctRule
 
     // Project all but the last added field (e.g. count_i{n})
     relBuilder.project(skipLast(relBuilder.fields(), branchCount));
+
+    // ensure the nullabilities of columns in the new relation match those of the input relation
+    relBuilder.convert(intersect.getRowType(), false);
+
     call.transformTo(relBuilder.build());
   }
 
@@ -205,6 +209,9 @@ public class IntersectToDistinctRule
 
     // Project all but the last field
     relBuilder.project(Util.skipLast(relBuilder.fields()));
+
+    // ensure the nullabilities of columns in the new relation match those of the input relation
+    relBuilder.convert(intersect.getRowType(), false);
 
     // the schema for intersect distinct matches that of the relation,
     // built here with an extra last column for the count,

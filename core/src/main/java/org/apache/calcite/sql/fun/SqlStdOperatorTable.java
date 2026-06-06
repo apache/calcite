@@ -121,16 +121,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSetOperator("UNION ALL", SqlKind.UNION, 12, true);
 
   public static final SqlSetOperator EXCEPT =
-      new SqlSetOperator("EXCEPT", SqlKind.EXCEPT, 12, false);
+      new SqlSetOperator("EXCEPT", SqlKind.EXCEPT, 12, false,
+          ReturnTypes.LEAST_RESTRICTIVE_EXCEPT, null, OperandTypes.SET_OP);
 
   public static final SqlSetOperator EXCEPT_ALL =
-      new SqlSetOperator("EXCEPT ALL", SqlKind.EXCEPT, 12, true);
+      new SqlSetOperator("EXCEPT ALL", SqlKind.EXCEPT, 12, true,
+          ReturnTypes.LEAST_RESTRICTIVE_EXCEPT, null, OperandTypes.SET_OP);
 
   public static final SqlSetOperator INTERSECT =
-      new SqlSetOperator("INTERSECT", SqlKind.INTERSECT, 14, false);
+      new SqlSetOperator("INTERSECT", SqlKind.INTERSECT, 14, false,
+          ReturnTypes.LEAST_RESTRICTIVE_INTERSECT, null, OperandTypes.SET_OP);
 
   public static final SqlSetOperator INTERSECT_ALL =
-      new SqlSetOperator("INTERSECT ALL", SqlKind.INTERSECT, 14, true);
+      new SqlSetOperator("INTERSECT ALL", SqlKind.INTERSECT, 14, true,
+          ReturnTypes.LEAST_RESTRICTIVE_INTERSECT, null, OperandTypes.SET_OP);
 
   /**
    * The {@code MULTISET UNION DISTINCT} operator.
