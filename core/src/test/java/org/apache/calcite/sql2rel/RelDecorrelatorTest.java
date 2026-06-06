@@ -1429,6 +1429,74 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-709">[CALCITE-709]
+   * LIMIT inside scalar sub-query</a>.
+   */
+  @Test void test709() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT E1.DEPTNO\n"
+        + "FROM EMP E1\n"
+        + "WHERE E1.SAL > (SELECT B1.COMM FROM BONUS B1 WHERE E1.ENAME = B1.ENAME LIMIT 2)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$7])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "    LogicalFilter(condition=[>($5, $8)])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "          LogicalSort(fetch=[2])\n"
+        + "            LogicalProject(COMM=[$3])\n"
+        + "              LogicalFilter(condition=[=($cor0.ENAME, $0)])\n"
+        + "                LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$7])\n"
+        + "  LogicalJoin(condition=[AND(=($1, $8), >($5, $9))], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "      LogicalProject(ENAME=[$1], COMM=[$0])\n"
+        + "        LogicalFilter(condition=[<=($2, 2)])\n"
+        + "          LogicalProject(COMM=[$3], ENAME=[$0], rn=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "              LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7257">[CALCITE-7257]
    * Subqueries cannot be decorrelated if join condition contains RexFieldAccess</a>. */
   @Test void testJoinConditionContainsRexFieldAccess() {
