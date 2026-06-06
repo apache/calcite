@@ -561,7 +561,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           }
         }
 
-        if (type.getSqlTypeName().getFamily() == resultType.getSqlTypeName().getFamily()
+        if (type.getSqlTypeName() == resultType.getSqlTypeName()
             && type.getSqlTypeName().allowsPrec()
             && type.getPrecision() != resultType.getPrecision()) {
           final int precision =

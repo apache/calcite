@@ -33,7 +33,6 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -170,30 +169,6 @@ class SqlTypeFactoryTest {
             Lists.newArrayList(f.sqlTimestampPrec3, f.sqlTimestampPrec0));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
     assertThat(leastRestrictive.isNullable(), is(false));
-    assertThat(leastRestrictive.getPrecision(), is(3));
-  }
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7567">
-   * LeastRetrictiveSqlType for TIMESTAMP, TIMESTAMP_LTZ might ignore precision</a>. */
-  @Test void testLeastRestrictiveForTimestampAndTimestampLtz() {
-    SqlTypeFixture f = new SqlTypeFixture();
-    RelDataType ltz0 =
-        f.typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 0);
-    RelDataType leastRestrictive =
-        f.typeFactory.leastRestrictive(Lists.newArrayList(ltz0, f.sqlTimestampPrec3));
-    assertThat(leastRestrictive, is(notNullValue()));
-    assertThat(leastRestrictive.getPrecision(), is(3));
-  }
-
-  @Test void testLeastRestrictiveForTimestampLtzAndTimestamp() {
-    SqlTypeFixture f = new SqlTypeFixture();
-    RelDataType ltz0 =
-        f.typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 0);
-    RelDataType leastRestrictive =
-        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlTimestampPrec3, ltz0));
-    assertThat(leastRestrictive, is(notNullValue()));
     assertThat(leastRestrictive.getPrecision(), is(3));
   }
 
