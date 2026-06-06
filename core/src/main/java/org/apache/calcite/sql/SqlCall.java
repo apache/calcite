@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -210,7 +211,8 @@ public abstract class SqlCall extends SqlNode {
       if (null == argType) {
         continue;
       }
-      signatureList.add(argType.toString());
+      signatureList.add(
+          SqlTypeUtil.asSqlType(argType, SqlTypeUtil.NullabilityDisplay.DoNotDisplay));
     }
     return SqlUtil.getOperatorSignature(getOperator(), signatureList);
   }
