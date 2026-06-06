@@ -5907,27 +5907,38 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     </Resource>
   </TestCase>
   <TestCase name="testFilterProjectTransposeShouldIgnoreNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select rand() as a from emp)
+where a > 0 and a < 1]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalFilter(condition=[SEARCH($0, Sarg[(0.0E0:DOUBLE..1.0E0:DOUBLE)]:DOUBLE)])
-  LogicalProject(a=[RAND()])
-    LogicalTableScan(table=[[scott, EMP]])
+LogicalProject(A=[$0])
+  LogicalFilter(condition=[AND(>($0, CAST(0):DOUBLE NOT NULL), <($0, CAST(1):DOUBLE NOT NULL))])
+    LogicalProject(A=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
   <TestCase name="testFilterProjectTransposeWithUnrelatedNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select rand() as r, deptno as b from emp)
+where b > 0]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalFilter(condition=[>($1, 0)])
-  LogicalProject(r=[RAND()], b=[$7])
-    LogicalTableScan(table=[[scott, EMP]])
+LogicalProject(R=[$0], B=[$1])
+  LogicalFilter(condition=[>($1, 0)])
+    LogicalProject(R=[RAND()], B=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(r=[RAND()], b=[$7])
-  LogicalFilter(condition=[>($7, 0)])
-    LogicalTableScan(table=[[scott, EMP]])
+LogicalProject(R=[$0], B=[$1])
+  LogicalProject(R=[RAND()], B=[$7])
+    LogicalFilter(condition=[>($7, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -8474,12 +8485,18 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
     </Resource>
   </TestCase>
   <TestCase name="testJoinProjectTransposeShouldIgnoreNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select empno, rand() as r from emp) e
+join dept d on e.r = d.deptno]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalJoin(condition=[SEARCH($1, Sarg[(0.0E0:DOUBLE..1.0E0:DOUBLE)]:DOUBLE)], joinType=[inner])
-  LogicalProject(EMPNO=[$0], r=[RAND()])
-    LogicalTableScan(table=[[scott, EMP]])
-  LogicalTableScan(table=[[scott, DEPT]])
+LogicalProject(EMPNO=[$0], R=[$1], DEPTNO=[$2], NAME=[$3])
+  LogicalJoin(condition=[=($1, $4)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], R=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($0):DOUBLE NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -8512,20 +8529,26 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], R=[$3], EXPR$1=[$4])
     </Resource>
   </TestCase>
   <TestCase name="testJoinProjectTransposeWithUnrelatedNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select rand() as r, deptno from emp) e
+join dept d on e.deptno = d.deptno]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalJoin(condition=[=($1, $2)], joinType=[inner])
-  LogicalProject(r=[RAND()], DEPTNO=[$7])
-    LogicalTableScan(table=[[scott, EMP]])
-  LogicalTableScan(table=[[scott, DEPT]])
+LogicalProject(R=[$0], DEPTNO=[$1], DEPTNO0=[$2], NAME=[$3])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject(R=[RAND()], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(r=[RAND()], DEPTNO=[$7], DEPTNO0=[$8], DNAME=[$9], LOC=[$10])
-  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
-    LogicalTableScan(table=[[scott, EMP]])
-    LogicalTableScan(table=[[scott, DEPT]])
+LogicalProject(R=[$0], DEPTNO=[$1], DEPTNO0=[$2], NAME=[$3])
+  LogicalProject(R=[RAND()], DEPTNO=[$7], DEPTNO0=[$9], NAME=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -18040,30 +18063,41 @@ LogicalProject(DNAME=[$1])
     </Resource>
   </TestCase>
   <TestCase name="testSemiJoinProjectTransposeShouldIgnoreNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select empno, rand() as r from emp) e
+where e.r in (select sal from emp)]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalJoin(condition=[SEARCH($1, Sarg[(0.0E0:DOUBLE..1.0E0:DOUBLE)]:DOUBLE)], joinType=[semi])
-  LogicalProject(EMPNO=[$0], r=[RAND()])
-    LogicalTableScan(table=[[scott, EMP]])
-  LogicalTableScan(table=[[scott, DEPT]])
+LogicalJoin(condition=[=($1, $2)], joinType=[semi])
+  LogicalProject(EMPNO=[$0], R=[RAND()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(SAL=[CAST($5):DOUBLE NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
   <TestCase name="testSemiJoinProjectTransposeWithUnrelatedNonDeterministic">
+    <Resource name="sql">
+      <![CDATA[select * from (select rand() as r, deptno from emp) e
+where e.deptno in (select deptno from dept)]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalJoin(condition=[=($1, $2)], joinType=[semi])
-  LogicalProject(r=[RAND()], DEPTNO=[$7])
-    LogicalTableScan(table=[[scott, EMP]])
-  LogicalTableScan(table=[[scott, DEPT]])
+  LogicalProject(R=[RAND()], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(r=[RAND()], DEPTNO=[$7])
-  LogicalJoin(condition=[=($7, $8)], joinType=[semi])
-    LogicalTableScan(table=[[scott, EMP]])
-    LogicalTableScan(table=[[scott, DEPT]])
+LogicalProject(R=[RAND()], DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
