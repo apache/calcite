@@ -1535,7 +1535,7 @@ public abstract class OperandTypes {
 
         @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return SqlUtil.getAliasedSignature(op, opName,
-              ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
+              ImmutableList.of("ROW(SINGLE FIELD)"));
         }
       };
 
@@ -1561,7 +1561,7 @@ public abstract class OperandTypes {
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return SqlUtil.getAliasedSignature(op, opName,
-          ImmutableList.of("ARRAY<RECORDTYPE(TWO FIELDS)>"));
+          ImmutableList.of("ARRAY<ROW(TWO FIELDS)>"));
     }
   }
 

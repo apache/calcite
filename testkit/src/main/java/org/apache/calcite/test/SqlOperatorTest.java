@@ -3321,26 +3321,26 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.checkFails("^(DATE '2020-10-10', DATE '2021-10-10') CONTAINS TIME '10:00:00'^",
         "Cannot apply 'CONTAINS' to arguments of type "
-            + "'<RECORDTYPE\\(DATE EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIME\\(0\\)>'\\. "
+            + "'<ROW\\(DATE EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIME\\(0\\)>'\\. "
             + containsError, false);
     f.checkFails("^(DATE '2020-10-10', DATE '2021-10-10') CONTAINS "
             + "TIMESTAMP '2010-01-01 10:00:00'^",
         "Cannot apply 'CONTAINS' to arguments of type "
-            + "'<RECORDTYPE\\(DATE EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIMESTAMP\\(0\\)>'\\. "
+            + "'<ROW\\(DATE EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIMESTAMP\\(0\\)>'\\. "
             + containsError, false);
     f.checkFails("^(DATE '2020-10-10', TIMESTAMP '2021-10-10 00:00:00') "
             + "CONTAINS TIMESTAMP '2010-01-01 10:00:00'^",
         "Cannot apply 'CONTAINS' to arguments of type "
-            + "'<RECORDTYPE\\(DATE EXPR\\$0, TIMESTAMP\\(0\\) EXPR\\$1\\)> "
+            + "'<ROW\\(DATE EXPR\\$0, TIMESTAMP\\(0\\) EXPR\\$1\\)> "
             + "CONTAINS <TIMESTAMP\\(0\\)>'\\. "
             + containsError, false);
     f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') CONTAINS TIME '10:00:00'^",
         "Cannot apply 'CONTAINS' to arguments of type "
-            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIME\\(0\\)>'\\. "
+            + "'<ROW\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIME\\(0\\)>'\\. "
             + containsError, false);
     f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') CONTAINS TIMESTAMP '2010-02-02 10:00:00'^",
         "Cannot apply 'CONTAINS' to arguments of type "
-            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "'<ROW\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
             + "CONTAINS <TIMESTAMP\\(0\\)>'\\. "
             + containsError, false);
     final String overlapsError = "Supported form\\(s\\): "
@@ -3352,21 +3352,21 @@ public class SqlOperatorTest {
     f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') OVERLAPS "
             + "(TIMESTAMP '2010-02-02 10:00:00', TIME '10:00:00')^",
         "Cannot apply 'OVERLAPS' to arguments of type "
-            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
-            + "OVERLAPS <RECORDTYPE\\(TIMESTAMP\\(0\\) EXPR\\$0, TIME\\(0\\) EXPR\\$1\\)>'\\. "
+            + "'<ROW\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "OVERLAPS <ROW\\(TIMESTAMP\\(0\\) EXPR\\$0, TIME\\(0\\) EXPR\\$1\\)>'\\. "
             + overlapsError, false);
     f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') "
             + "OVERLAPS (TIME '10:00:00', DATE '2020-01-01')^",
         "Cannot apply 'OVERLAPS' to arguments of type "
-            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
-            + "OVERLAPS <RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)>'\\. "
+            + "'<ROW\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "OVERLAPS <ROW\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)>'\\. "
             + overlapsError, false);
     final String precedesError = overlapsError.replace("OVERLAPS", "PRECEDES");
     f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') "
             + "PRECEDES (TIME '10:00:00', TIME '10:10:10')^",
         "Cannot apply 'PRECEDES' to arguments of type "
-            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
-            + "PRECEDES <RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, TIME\\(0\\) EXPR\\$1\\)>'\\. "
+            + "'<ROW\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "PRECEDES <ROW\\(TIME\\(0\\) EXPR\\$0, TIME\\(0\\) EXPR\\$1\\)>'\\. "
             + precedesError, false);
   }
 
@@ -9553,12 +9553,12 @@ public class SqlOperatorTest {
     f.checkFails("^map_from_entries(array[1])^",
         "Cannot apply 'MAP_FROM_ENTRIES' to arguments of type 'MAP_FROM_ENTRIES\\("
             + "<INTEGER ARRAY>\\)'. Supported form\\(s\\): 'MAP_FROM_ENTRIES\\("
-            + "<ARRAY<RECORDTYPE\\(TWO FIELDS\\)>>\\)'",
+            + "<ARRAY<ROW\\(TWO FIELDS\\)>>\\)'",
         false);
     f.checkFails("^map_from_entries(array[row(1, 'a', 2)])^",
         "Cannot apply 'MAP_FROM_ENTRIES' to arguments of type 'MAP_FROM_ENTRIES\\("
-            + "<RECORDTYPE\\(INTEGER EXPR\\$0, CHAR\\(1\\) EXPR\\$1, INTEGER EXPR\\$2\\) ARRAY>\\)'. "
-            + "Supported form\\(s\\): 'MAP_FROM_ENTRIES\\(<ARRAY<RECORDTYPE\\(TWO FIELDS\\)>>\\)'",
+            + "<ROW\\(INTEGER EXPR\\$0, CHAR\\(1\\) EXPR\\$1, INTEGER EXPR\\$2\\) ARRAY>\\)'. "
+            + "Supported form\\(s\\): 'MAP_FROM_ENTRIES\\(<ARRAY<ROW\\(TWO FIELDS\\)>>\\)'",
         false);
   }
 
@@ -13741,8 +13741,8 @@ public class SqlOperatorTest {
     f.checkFails("ARRAY[2,4,6][OFFSET(5)]",
         "Array index 5 is out of bounds", true);
     f.checkFails("^map['foo', 3, 'bar', 7][offset('bar')]^",
-        "Cannot apply 'OFFSET' to arguments of type 'OFFSET\\(<\\(CHAR\\(3\\)"
-            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+        "Cannot apply 'OFFSET' to arguments of type 'OFFSET\\(<MAP<CHAR\\(3\\)"
+            + ", INTEGER>>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
             + "<ARRAY>\\[OFFSET\\(<INTEGER>\\)\\]", false);
   }
 
@@ -13761,8 +13761,8 @@ public class SqlOperatorTest {
     f.checkFails("ARRAY[2,4,6][ORDINAL(5)]",
         "Array index 5 is out of bounds", true);
     f.checkFails("^map['foo', 3, 'bar', 7][ordinal('bar')]^",
-        "Cannot apply 'ORDINAL' to arguments of type 'ORDINAL\\(<\\(CHAR\\(3\\)"
-            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+        "Cannot apply 'ORDINAL' to arguments of type 'ORDINAL\\(<MAP<CHAR\\(3\\)"
+            + ", INTEGER>>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
             + "<ARRAY>\\[ORDINAL\\(<INTEGER>\\)\\]", false);
   }
 
@@ -13779,8 +13779,8 @@ public class SqlOperatorTest {
     f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(5)]", isNullValue(), "INTEGER");
     f.checkNull("ARRAY[2,4,6][SAFE_OFFSET(null)]");
     f.checkFails("^map['foo', 3, 'bar', 7][safe_offset('bar')]^",
-        "Cannot apply 'SAFE_OFFSET' to arguments of type 'SAFE_OFFSET\\(<\\(CHAR\\(3\\)"
-            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+        "Cannot apply 'SAFE_OFFSET' to arguments of type 'SAFE_OFFSET\\(<MAP<CHAR\\(3\\)"
+            + ", INTEGER>>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
             + "<ARRAY>\\[SAFE_OFFSET\\(<INTEGER>\\)\\]", false);
   }
 
@@ -13797,8 +13797,8 @@ public class SqlOperatorTest {
     f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(5)]", isNullValue(), "INTEGER");
     f.checkNull("ARRAY[2,4,6][SAFE_ORDINAL(null)]");
     f.checkFails("^map['foo', 3, 'bar', 7][safe_ordinal('bar')]^",
-        "Cannot apply 'SAFE_ORDINAL' to arguments of type 'SAFE_ORDINAL\\(<\\(CHAR\\(3\\)"
-            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+        "Cannot apply 'SAFE_ORDINAL' to arguments of type 'SAFE_ORDINAL\\(<MAP<CHAR\\(3\\)"
+            + ", INTEGER>>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
             + "<ARRAY>\\[SAFE_ORDINAL\\(<INTEGER>\\)\\]", false);
   }
 

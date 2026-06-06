@@ -540,7 +540,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "'<BINARY.1. ARRAY> = <INTEGER ARRAY>'.*");
     expr("^MAP[x'a4', 1] = MAP[1, 1]^")
         .fails("(?s).*Cannot apply '=' to arguments of type "
-            + "'<.BINARY.1., INTEGER. MAP> = <.INTEGER, INTEGER. MAP>'.*");
+            + "'<MAP<BINARY.1., INTEGER>> = <MAP<INTEGER, INTEGER>>'.*");
     expr("^array[x'a4'] = 1^")
         .fails("(?s).*Cannot apply '=' to arguments of type '<BINARY.1. ARRAY> = <INTEGER>'.*");
     expr("^multiset[x'a4'] = multiset[1]^")
@@ -6513,7 +6513,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql = "select * from emp as e join dept d\n"
         + "on d.deptno = ^(select 1, 2 from emp where deptno < e.deptno)^";
     final String expected = "(?s)Cannot apply '\\$SCALAR_QUERY' to arguments "
-        + "of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER "
+        + "of type '\\$SCALAR_QUERY\\(<ROW\\(INTEGER EXPR\\$0, INTEGER "
         + "EXPR\\$1\\)>\\)'\\. Supported form\\(s\\).*";
     sql(sql).fails(expected);
   }
@@ -9779,9 +9779,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT  ename,(select name from dept where deptno=1) FROM emp").ok();
     sql("SELECT ename,^(select losal, hisal from salgrade where grade=1)^ FROM emp")
         .fails("Cannot apply '\\$SCALAR_QUERY' to arguments of type "
-            + "'\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER LOSAL, "
+            + "'\\$SCALAR_QUERY\\(<ROW\\(INTEGER LOSAL, "
             + "INTEGER HISAL\\)>\\)'\\. Supported form\\(s\\): "
-            + "'\\$SCALAR_QUERY\\(<RECORDTYPE\\(SINGLE FIELD\\)>\\)'");
+            + "'\\$SCALAR_QUERY\\(<ROW\\(SINGLE FIELD\\)>\\)'");
 
     // Note that X is a field (not a record) and is nullable even though
     // EMP.NAME is NOT NULL.
@@ -12134,7 +12134,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
         + "from table(\n"
         + "^tumble(table orders, descriptor(productid), interval '2' hour)^)")
-        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE table_name, "
             + "DESCRIPTOR\\(timecol\\), datetime interval\\[, datetime interval\\]\\)");
@@ -12144,7 +12144,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "data => table orders,\n"
         + "timecol => descriptor(productid),\n"
         + "size => interval '2' hour)^)")
-        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE table_name, "
             + "DESCRIPTOR\\(timecol\\), datetime interval\\[, datetime interval\\]\\)");
@@ -12159,21 +12159,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Invalid number of arguments to function 'TUMBLE'. Was expecting 3 arguments");
     sql("select * from table(\n"
         + "^tumble(table orders, descriptor(rowtime), 'test')^)")
-        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>,"
             + " <CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
             + "table_name, DESCRIPTOR\\(timecol\\), datetime interval"
             + "\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^tumble(table orders, 'test', interval '2' hour)^)")
-        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\"
             + "(4\\)>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
             + "table_name, DESCRIPTOR\\(timecol\\), datetime interval"
             + "\\[, datetime interval\\]\\)");
     sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
         + "^tumble(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
-        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>,"
             + " <INTERVAL HOUR>, <CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
             + "table_name, DESCRIPTOR\\(timecol\\), datetime interval"
@@ -12221,7 +12221,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
         + "from table(\n"
         + "^hop(table orders, descriptor(productid), interval '2' hour, interval '1' hour)^)")
-        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): "
             + "HOP\\(TABLE table_name, DESCRIPTOR\\(timecol\\), "
@@ -12233,7 +12233,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "timecol => descriptor(productid),\n"
         + "size => interval '2' hour,\n"
         + "slide => interval '1' hour)^)")
-        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\"
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<ROW\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): "
             + "HOP\\(TABLE table_name, DESCRIPTOR\\(timecol\\), "
@@ -12249,25 +12249,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Invalid number of arguments to function 'HOP'. Was expecting 4 arguments");
     sql("select * from table(\n"
         + "^hop(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
-        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<ROW\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <INTERVAL HOUR>, "
             + "<CHAR\\(4\\)>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^hop(table orders, descriptor(rowtime), 'test', interval '2' hour)^)")
-        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<ROW\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <CHAR\\(4\\)>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^hop(table orders, 'test', interval '2' hour, interval '2' hour)^)")
-        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<ROW\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\(4\\)>, <INTERVAL HOUR>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^hop(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour, 'test')^)")
-        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<ROW\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <INTERVAL HOUR>, "
             + "<INTERVAL HOUR>, <CHAR\\(4\\)>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, "
             + "DESCRIPTOR\\(timecol\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
@@ -12308,25 +12308,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "data => table orders,\n"
         + "key => descriptor(productid),\n"
         + "size => interval '1' hour)^)")
-        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<ROW\\(TIMESTAMP\\("
             + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), DESCRIPTOR\\(key\\) optional, datetime interval\\)");
     sql("select * from table(\n"
         + "^session(table orders, descriptor(rowtime), descriptor(productid), 'test')^)")
-        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<ROW\\(TIMESTAMP\\("
             + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <COLUMN_LIST>, "
             + "<CHAR\\(4\\)>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), DESCRIPTOR\\(key\\) optional, datetime interval\\)");
     sql("select * from table(\n"
         + "^session(table orders, descriptor(rowtime), 'test', interval '2' hour)^)")
-        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<ROW\\(TIMESTAMP\\("
             + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <CHAR\\(4\\)>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), DESCRIPTOR\\(key\\) optional, datetime interval\\)");
     sql("select * from table(\n"
         + "^session(table orders, 'test', descriptor(productid), interval '2' hour)^)")
-        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<ROW\\(TIMESTAMP\\("
             + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\(4\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), DESCRIPTOR\\(key\\) optional, datetime interval\\)");
@@ -14294,5 +14294,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         return sqlIdentifier;
       }
     }
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7582">[CALCITE-7582]
+   * Type validation errors should use SQL type names</a>. */
+  @Test public void testErrorMessage() {
+    sql("SELECT ^(DATE '2020-02-02', DATE '2021-01-01') CONTAINS TIME '10:00:00'^")
+        .fails(".*Cannot apply 'CONTAINS' to arguments of type '<ROW\\(DATE EXPR\\$0, "
+              + "DATE EXPR\\$1\\)> "
+              + "CONTAINS <TIME\\(0\\)>'\\. Supported form\\(s\\): '\\(<DT>, <DT>\\) "
+              + "CONTAINS \\(<DT>, <DT>\\)'\\n"
+              + "'\\(<DT>, <DT>\\) CONTAINS \\(<DT>, <INTERVAL>\\)'\n"
+              + "'\\(<DT>, <INTERVAL>\\) CONTAINS \\(<DT>, <DT>\\)'\n"
+              + "'\\(<DT>, <INTERVAL>\\) CONTAINS \\(<DT>, <INTERVAL>\\)'\n"
+              + "'\\(<DT>, <DT>\\) CONTAINS <DT>'\n"
+              + "'\\(<DT>, <INTERVAL>\\) CONTAINS <DT>'\\n"
+              + "Where 'DT' is one of 'DATE', 'TIME', or 'TIMESTAMP', "
+              + "the same for all arguments\\.");
+    sql("SELECT ^MAP['x', ARRAY[3]] = "
+        + "MAP[CAST(ROW(1, 2) AS ROW(X INT, Y BIGINT)), ROW(ARRAY['a'])]^")
+        .fails("Cannot apply '=' to arguments of type '<MAP<CHAR\\(1\\), INTEGER ARRAY>> = "
+            + "<MAP<ROW\\(INTEGER X, BIGINT Y\\), ROW\\(CHAR\\(1\\) ARRAY EXPR\\$0\\)>>'\\. "
+            + "Supported form\\(s\\): '<COMPARABLE_TYPE> = <COMPARABLE_TYPE>'");
   }
 }

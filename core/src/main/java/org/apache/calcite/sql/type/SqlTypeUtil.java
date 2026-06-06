@@ -2183,4 +2183,248 @@ public abstract class SqlTypeUtil {
     }
     return type;
   }
+
+  private static void appendPrecisionScale(RelDataType type, StringBuilder builder) {
+    builder
+        .append("(")
+        .append(type.getPrecision())
+        .append(", ")
+        .append(type.getScale())
+        .append(")");
+  }
+
+  private static void appendPrecision(RelDataType type, StringBuilder builder, boolean omitZero) {
+    if (type.getPrecision() != RelDataType.PRECISION_NOT_SPECIFIED) {
+      if (omitZero && type.getPrecision() == 0) {
+        return;
+      }
+      builder
+          .append("(")
+          .append(type.getPrecision())
+          .append(")");
+    }
+  }
+
+  /** How to display type nullability. */
+  public enum NullabilityDisplay {
+    /** Display NULL if type is nullable. */
+    DisplayNullability,
+    /** Display NOT NULL if type is not nullable. */
+    DisplayNonNullability,
+    /** Do not display nullability information at all. */
+    DoNotDisplay
+  }
+
+  /** Produce a string which describes the {@code type} using Calcite's SQL syntax for types. */
+  public static String asSqlType(RelDataType type, NullabilityDisplay nullDisplay) {
+    StringBuilder builder = new StringBuilder();
+    switch (type.getSqlTypeName()) {
+    case BOOLEAN:
+      builder.append("BOOLEAN");
+      break;
+    case TINYINT:
+      builder.append("TINYINT");
+      break;
+    case SMALLINT:
+      builder.append("SMALLINT");
+      break;
+    case INTEGER:
+      builder.append("INTEGER");
+      break;
+    case BIGINT:
+      builder.append("BIGINT");
+      break;
+    case UTINYINT:
+      builder.append("TINYINT UNSIGNED");
+      break;
+    case USMALLINT:
+      builder.append("SMALLINT UNSIGNED");
+      break;
+    case UINTEGER:
+      builder.append("INTEGER UNSIGNED");
+      break;
+    case UBIGINT:
+      builder.append("BIGINT UNSIGNED");
+      break;
+    case DECIMAL:
+      builder.append("DECIMAL");
+      appendPrecisionScale(type, builder);
+      break;
+    case FLOAT:
+      builder.append("FLOAT");
+      break;
+    case REAL:
+      builder.append("REAL");
+      break;
+    case DOUBLE:
+      builder.append("DOUBLE");
+      break;
+    case DATE:
+      builder.append("DATE");
+      break;
+    case TIME:
+      builder.append("TIME");
+      appendPrecision(type, builder, false);
+      break;
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      builder.append("TIME WITH LOCAL TIME ZONE");
+      appendPrecision(type, builder, false);
+      break;
+    case TIME_TZ:
+      builder.append("TIME WITH TIME ZONE");
+      appendPrecision(type, builder, false);
+      break;
+    case TIMESTAMP:
+      builder.append("TIMESTAMP");
+      appendPrecision(type, builder, false);
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      builder.append("TIMESTAMP WITH LOCAL TIME ZONE");
+      appendPrecision(type, builder, false);
+      break;
+    case TIMESTAMP_TZ:
+      builder.append("TIMESTAMP WITH TIME ZONE");
+      appendPrecision(type, builder, false);
+      break;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      builder.append("INTERVAL ");
+      builder.append(type.getIntervalQualifier());
+      break;
+    case CHAR:
+      builder.append("CHAR");
+      appendPrecision(type, builder, false);
+      break;
+    case VARCHAR:
+      builder.append("VARCHAR");
+      appendPrecision(type, builder, false);
+      break;
+    case BINARY:
+      builder.append("BINARY");
+      appendPrecision(type, builder, false);
+      break;
+    case VARBINARY:
+      builder.append("VARBINARY");
+      appendPrecision(type, builder, false);
+      break;
+    case NULL:
+      // No suffix needed
+      return "NULL";
+    case UNKNOWN:
+      return "UNKNOWN";
+    case ANY:
+      return "ANY";
+    case MULTISET: {
+      String elementType =
+          asSqlType(requireNonNull(type.getComponentType(), "componentType"),
+              NullabilityDisplay.DoNotDisplay);
+      builder.append(elementType);
+      builder.append(" MULTISET");
+      break;
+    }
+    case ARRAY: {
+      String elementType =
+          asSqlType(requireNonNull(type.getComponentType(), "componentType"),
+              NullabilityDisplay.DoNotDisplay);
+      builder.append(elementType);
+      builder.append(" ARRAY");
+      break;
+    }
+    case MAP:
+      builder.append("MAP<");
+      String keyType =
+          asSqlType(requireNonNull(type.getKeyType(), "keyType"),
+              NullabilityDisplay.DoNotDisplay);
+      String valueType =
+          asSqlType(requireNonNull(type.getValueType(), "valueType"),
+              NullabilityDisplay.DoNotDisplay);
+      builder.append(keyType)
+          .append(", ")
+          .append(valueType)
+          .append(">");
+      break;
+    case ROW: {
+      builder.append("ROW(");
+      boolean first = true;
+      for (RelDataTypeField field : type.getFieldList()) {
+        if (!first) {
+          builder.append(", ");
+        }
+        first = false;
+        String fieldType = asSqlType(field.getType(), NullabilityDisplay.DisplayNullability);
+        builder.append(fieldType)
+            .append(" ")
+            .append(field.getName());
+      }
+      builder.append(")");
+      break;
+    }
+    case GEOMETRY:
+      break;
+    case MEASURE:
+      builder.append("MEASURE");
+      break;
+    case FUNCTION: {
+      FunctionSqlType function = (FunctionSqlType) type;
+      builder.append("FUNCTION(");
+      // Parameter is expected to always have a ROW type
+      boolean first = true;
+      for (RelDataTypeField field : function.getParameterTypes().getFieldList()) {
+        if (!first) {
+          builder.append(", ");
+        }
+        first = false;
+        String fieldType = asSqlType(field.getType(), NullabilityDisplay.DoNotDisplay);
+        builder.append(fieldType);
+      }
+      builder.append(") -> ");
+      String result = asSqlType(function.getReturnType(), NullabilityDisplay.DoNotDisplay);
+      builder.append(result);
+      break;
+    }
+    case CURSOR:
+      return "CURSOR";
+    case COLUMN_LIST:
+      return "COLUMN_LIST";
+    case SYMBOL:
+    case DISTINCT:
+    case STRUCTURED:
+    case OTHER:
+    case DYNAMIC_STAR:
+    case SARG:
+      return "";
+    case UUID:
+      builder.append("UUID");
+      break;
+    case VARIANT:
+      builder.append("VARIANT");
+      break;
+    }
+    switch (nullDisplay) {
+    case DoNotDisplay:
+      break;
+    case DisplayNonNullability:
+      if (!type.isNullable()) {
+        builder.append(" NOT NULL");
+      }
+      break;
+    case DisplayNullability:
+      if (type.isNullable()) {
+        builder.append(" NULL");
+      }
+      break;
+    }
+    return builder.toString();
+  }
 }
