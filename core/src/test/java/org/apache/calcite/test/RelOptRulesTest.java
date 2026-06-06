@@ -1599,17 +1599,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * the join, because it inlines the expression into the new join
    * condition via {@code mergedProgram.expandLocalRef}. */
   @Test void testJoinProjectTransposeShouldIgnoreNonDeterministic() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .project(b.field("EMPNO"),
-            b.alias(b.call(SqlStdOperatorTable.RAND), "r"))
-        .scan("DEPT")
-        .join(JoinRelType.INNER,
-            b.and(
-                b.greaterThan(b.field(2, 0, "r"), b.literal(0.0)),
-                b.lessThan(b.field(2, 0, "r"), b.literal(1.0))))
-        .build();
-    relFn(relFn).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).checkUnchanged();
+    final String sql = "select * from (select empno, rand() as r from emp) e\n"
+        + "join dept d on e.r = d.deptno";
+    sql(sql).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).checkUnchanged();
   }
 
   /** Test case for
@@ -1620,15 +1612,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * even if the project also computes a non-deterministic column (here
    * {@code r} is RAND() but the join is on DEPTNO). */
   @Test void testJoinProjectTransposeWithUnrelatedNonDeterministic() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "r"),
-            b.field("DEPTNO"))
-        .scan("DEPT")
-        .join(JoinRelType.INNER,
-            b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")))
-        .build();
-    relFn(relFn).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).check();
+    final String sql = "select * from (select rand() as r, deptno from emp) e\n"
+        + "join dept d on e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).check();
   }
 
   /** Test case for
@@ -1640,17 +1626,14 @@ class RelOptRulesTest extends RelOptTestBase {
    * above the semi-join when the condition references one of its
    * non-deterministic expressions. */
   @Test void testSemiJoinProjectTransposeShouldIgnoreNonDeterministic() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .project(b.field("EMPNO"),
-            b.alias(b.call(SqlStdOperatorTable.RAND), "r"))
-        .scan("DEPT")
-        .join(JoinRelType.SEMI,
-            b.and(
-                b.greaterThan(b.field(2, 0, "r"), b.literal(0.0)),
-                b.lessThan(b.field(2, 0, "r"), b.literal(1.0))))
-        .build();
-    relFn(relFn).withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE).checkUnchanged();
+    final String sql = "select * from (select empno, rand() as r from emp) e\n"
+        + "where e.r in (select sal from emp)";
+    sql(sql)
+        .withDecorrelate(false)
+        .withExpand(true)
+        .withPreRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE)
+        .checkUnchanged();
   }
 
   /** Test case for
@@ -1661,15 +1644,14 @@ class RelOptRulesTest extends RelOptTestBase {
    * columns, even if the project also computes a non-deterministic column
    * (here {@code r} is RAND() but the semi-join is on DEPTNO). */
   @Test void testSemiJoinProjectTransposeWithUnrelatedNonDeterministic() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "r"),
-            b.field("DEPTNO"))
-        .scan("DEPT")
-        .join(JoinRelType.SEMI,
-            b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")))
-        .build();
-    relFn(relFn).withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE).check();
+    final String sql = "select * from (select rand() as r, deptno from emp) e\n"
+        + "where e.deptno in (select deptno from dept)";
+    sql(sql)
+        .withDecorrelate(false)
+        .withExpand(true)
+        .withPreRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE)
+        .check();
   }
 
   /** Test case for
@@ -3373,19 +3355,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * not pull a filter that references a non-deterministic projected
    * column below the project. */
   @Test void testFilterProjectTransposeShouldIgnoreNonDeterministic() {
-    // Filter(a > 0 AND a < 1) over Project(a = RAND()). The filter
-    // references the non-deterministic column, so the transpose must be
-    // refused: otherwise the pushed-down filter and the re-emitted project
-    // would each evaluate RAND() independently.
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "a"))
-        .filter(
-            b.and(
-                b.greaterThan(b.field("a"), b.literal(0.0)),
-                b.lessThan(b.field("a"), b.literal(1.0))))
-        .build();
-    relFn(relFn).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).checkUnchanged();
+    final String sql = "select * from (select rand() as a from emp)\n"
+        + "where a > 0 and a < 1";
+    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).checkUnchanged();
   }
 
   /** Test case for
@@ -3396,15 +3368,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * other columns in the project are non-deterministic (here {@code r} is
    * RAND() but the filter is on {@code b}). */
   @Test void testFilterProjectTransposeWithUnrelatedNonDeterministic() {
-    // Filter(b > 0) over Project(r = RAND(), b = DEPTNO). The filter only
-    // references the deterministic column b, so the transpose is safe.
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .project(b.alias(b.call(SqlStdOperatorTable.RAND), "r"),
-            b.alias(b.field("DEPTNO"), "b"))
-        .filter(b.greaterThan(b.field("b"), b.literal(0)))
-        .build();
-    relFn(relFn).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).check();
+    final String sql = "select * from (select rand() as r, deptno as b from emp)\n"
+        + "where b > 0";
+    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).check();
   }
 
   private static final String NOT_STRONG_EXPR =
