@@ -159,6 +159,10 @@ public class MinusToDistinctRule
 
     relBuilder.filter(filters.build());
     relBuilder.project(Util.first(relBuilder.fields(), originalFieldCnt));
+
+    // ensure the nullabilities of columns in the new relation match those of the minus output
+    relBuilder.convert(minus.getRowType(), false);
+
     call.transformTo(relBuilder.build());
   }
 

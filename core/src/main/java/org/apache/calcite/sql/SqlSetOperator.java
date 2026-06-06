@@ -24,6 +24,8 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * SqlSetOperator represents a relational set theory operator (UNION, INTERSECT,
  * MINUS). These are binary operators, but with an extra boolean attribute
@@ -59,7 +61,7 @@ public class SqlSetOperator extends SqlBinaryOperator {
       int prec,
       boolean all,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,

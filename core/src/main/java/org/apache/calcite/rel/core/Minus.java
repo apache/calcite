@@ -23,7 +23,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.ReturnTypes;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,5 +61,13 @@ public abstract class Minus extends SetOp {
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     return RelMdUtil.getMinusRowCount(mq, this);
+  }
+
+  @Override protected RelDataType deriveRowType() {
+    // The nullability of the output columns is the same as that of the primary input.
+    return ReturnTypes.deriveNullabilityForExcept(
+        getCluster().getTypeFactory(),
+        deriveLeastRestrictiveRowType(),
+        getInput(0).getRowType());
   }
 }
