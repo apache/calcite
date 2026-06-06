@@ -35,13 +35,26 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.EQUAL;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.GREATER_THAN;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.GREATER_THAN_OR_EQUAL;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.IS_FALSE;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.IS_NOT_FALSE;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.IS_NOT_NULL;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.IS_NOT_TRUE;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.IS_NULL;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.IS_TRUE;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.LESS_THAN;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.LESS_THAN_OR_EQUAL;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.LIKE;
+import static org.apache.calcite.adapter.arrow.ConditionToken.Operator.NOT_EQUAL;
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static java.util.Objects.requireNonNull;
 
 /**
- * Translates a {@link RexNode} expression to Gandiva predicate tokens.
+ * Translates a {@link RexNode} expression to Arrow predicate tokens.
  */
 class ArrowTranslator {
   final RexBuilder rexBuilder;
@@ -65,7 +78,7 @@ class ArrowTranslator {
    *
    * <p>If exceeded, {@link RexUtil#toCnf(RexBuilder, int, RexNode)} returns
    * the original expression unchanged, which may cause the subsequent
-   * translation to Gandiva predicates to fail with an
+   * translation to Arrow predicates to fail with an
    * {@link UnsupportedOperationException}. When invoked by the Arrow adapter
    * module, the exception is caught and the plan falls back to
    * an Enumerable convention. */
@@ -120,32 +133,32 @@ class ArrowTranslator {
   private ConditionToken translateMatch2(RexNode node) {
     switch (node.getKind()) {
     case EQUALS:
-      return translateBinary("equal", "=", (RexCall) node);
+      return translateBinary(EQUAL, EQUAL, (RexCall) node);
     case NOT_EQUALS:
-      return translateBinary("not_equal", "<>", (RexCall) node);
+      return translateBinary(NOT_EQUAL, NOT_EQUAL, (RexCall) node);
     case LESS_THAN:
-      return translateBinary("less_than", ">", (RexCall) node);
+      return translateBinary(LESS_THAN, GREATER_THAN, (RexCall) node);
     case LESS_THAN_OR_EQUAL:
-      return translateBinary("less_than_or_equal_to", ">=", (RexCall) node);
+      return translateBinary(LESS_THAN_OR_EQUAL, GREATER_THAN_OR_EQUAL, (RexCall) node);
     case GREATER_THAN:
-      return translateBinary("greater_than", "<", (RexCall) node);
+      return translateBinary(GREATER_THAN, LESS_THAN, (RexCall) node);
     case GREATER_THAN_OR_EQUAL:
-      return translateBinary("greater_than_or_equal_to", "<=", (RexCall) node);
+      return translateBinary(GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, (RexCall) node);
     case IS_NULL:
-      return translateUnary("isnull", (RexCall) node);
+      return translateUnary(IS_NULL, (RexCall) node);
     case IS_NOT_NULL:
-      return translateUnary("isnotnull", (RexCall) node);
+      return translateUnary(IS_NOT_NULL, (RexCall) node);
     case IS_NOT_TRUE:
-      return translateUnary("isnottrue", (RexCall) node);
+      return translateUnary(IS_NOT_TRUE, (RexCall) node);
     case IS_NOT_FALSE:
-      return translateUnary("isnotfalse", (RexCall) node);
+      return translateUnary(IS_NOT_FALSE, (RexCall) node);
     case INPUT_REF:
       final RexInputRef inputRef = (RexInputRef) node;
-      return ConditionToken.unary(fieldNames.get(inputRef.getIndex()), "istrue");
+      return ConditionToken.unary(fieldNames.get(inputRef.getIndex()), IS_TRUE);
     case NOT:
-      return translateUnary("isfalse", (RexCall) node);
+      return translateUnary(IS_FALSE, (RexCall) node);
     case LIKE:
-      return translateBinary("like", null, (RexCall) node);
+      return translateBinaryNoReverse(LIKE, (RexCall) node);
     default:
       throw new UnsupportedOperationException("Unsupported operator " + node);
     }
@@ -155,7 +168,8 @@ class ArrowTranslator {
    * Translates a call to a binary operator, reversing arguments if
    * necessary.
    */
-  private ConditionToken translateBinary(String op, String rop, RexCall call) {
+  private ConditionToken translateBinary(ConditionToken.Operator op,
+      ConditionToken.Operator rop, RexCall call) {
     final RexNode left = call.operands.get(0);
     final RexNode right = call.operands.get(1);
     @Nullable ConditionToken expression = translateBinary2(op, left, right);
@@ -169,9 +183,21 @@ class ArrowTranslator {
     throw new UnsupportedOperationException("Unsupported binary operator " + call);
   }
 
+  /** Translates a call to a binary operator without reversing arguments. */
+  private ConditionToken translateBinaryNoReverse(ConditionToken.Operator op,
+      RexCall call) {
+    final RexNode left = call.operands.get(0);
+    final RexNode right = call.operands.get(1);
+    @Nullable ConditionToken expression = translateBinary2(op, left, right);
+    if (expression != null) {
+      return expression;
+    }
+    throw new UnsupportedOperationException("Unsupported binary operator " + call);
+  }
+
   /** Translates a call to a binary operator. Returns null on failure. */
-  private @Nullable ConditionToken translateBinary2(String op, RexNode left,
-      RexNode right) {
+  private @Nullable ConditionToken translateBinary2(
+      ConditionToken.Operator op, RexNode left, RexNode right) {
     if (right.getKind() != SqlKind.LITERAL) {
       return null;
     }
@@ -191,7 +217,7 @@ class ArrowTranslator {
 
   /** Combines a field name, operator, and literal to produce a binary
    * condition token. */
-  private ConditionToken translateOp2(String op, String name,
+  private ConditionToken translateOp2(ConditionToken.Operator op, String name,
       RexLiteral right) {
     Object value = literalValue(right);
     String valueString = value.toString();
@@ -209,7 +235,7 @@ class ArrowTranslator {
   }
 
   /** Translates a call to a unary operator. */
-  private ConditionToken translateUnary(String op, RexCall call) {
+  private ConditionToken translateUnary(ConditionToken.Operator op, RexCall call) {
     final RexNode opNode = call.operands.get(0);
     @Nullable ConditionToken expression = translateUnary2(op, opNode);
 
@@ -221,7 +247,8 @@ class ArrowTranslator {
   }
 
   /** Translates a call to a unary operator. Returns null on failure. */
-  private @Nullable ConditionToken translateUnary2(String op, RexNode opNode) {
+  private @Nullable ConditionToken translateUnary2(ConditionToken.Operator op,
+      RexNode opNode) {
     if (opNode.getKind() == SqlKind.INPUT_REF) {
       final RexInputRef inputRef = (RexInputRef) opNode;
       final String name = fieldNames.get(inputRef.getIndex());

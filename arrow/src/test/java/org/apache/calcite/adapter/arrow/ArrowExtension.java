@@ -18,22 +18,12 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.config.CalciteSystemProperty;
 
-import org.apache.arrow.gandiva.evaluator.Projector;
-import org.apache.arrow.gandiva.exceptions.GandivaException;
-import org.apache.arrow.gandiva.expression.ExpressionTree;
-import org.apache.arrow.vector.types.pojo.Schema;
-
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * JUnit5 extension to handle Arrow tests.
- *
- * <p>Tests will be skipped if the Gandiva library cannot be loaded on the given platform.
  */
 class ArrowExtension implements ExecutionCondition {
 
@@ -41,8 +31,7 @@ class ArrowExtension implements ExecutionCondition {
    * Whether to run this test.
    *
    * <p>Enabled by default, unless explicitly disabled from command line
-   * ({@code -Dcalcite.test.arrow=false}) or if Gandiva library, used to implement arrow
-   * filtering/projection, cannot be loaded.
+   * ({@code -Dcalcite.test.arrow=false}).
    *
    * @return {@code true} if the test is enabled and can run in the current environment,
    *         {@code false} otherwise
@@ -51,16 +40,6 @@ class ArrowExtension implements ExecutionCondition {
       final ExtensionContext context) {
 
     boolean enabled = CalciteSystemProperty.TEST_ARROW.value();
-    try {
-      Schema emptySchema = new Schema(new ArrayList<>(), null);
-      List<ExpressionTree> expressions = new ArrayList<>();
-      Projector.make(emptySchema, expressions);
-    } catch (GandivaException e) {
-      // this exception comes from using an empty expression,
-      // but the JNI library was loaded properly
-    } catch (UnsatisfiedLinkError e) {
-      enabled = false;
-    }
 
     if (enabled) {
       return ConditionEvaluationResult.enabled("Arrow tests enabled");

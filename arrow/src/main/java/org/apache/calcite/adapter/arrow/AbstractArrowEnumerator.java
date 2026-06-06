@@ -24,9 +24,7 @@ import org.apache.calcite.util.Util;
 import org.apache.arrow.vector.TimeStampVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
-import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 import org.apache.arrow.vector.types.TimeUnit;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 
@@ -51,8 +49,6 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
     this.currRowIndex = -1;
   }
 
-  abstract void evaluateOperator(ArrowRecordBatch arrowRecordBatch);
-
   protected void loadNextArrowBatch() {
     try {
       final VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
@@ -60,11 +56,29 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
         this.valueVectors.add(vsr.getVector(i));
       }
       this.rowCount = vsr.getRowCount();
-      VectorUnloader vectorUnloader = new VectorUnloader(vsr);
-      ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
-      evaluateOperator(arrowRecordBatch);
     } catch (IOException e) {
       throw Util.toUnchecked(e);
+    }
+  }
+
+  /** Loads the next non-empty Arrow batch. */
+  protected boolean loadNextNonEmptyArrowBatch() {
+    while (true) {
+      final boolean hasNextBatch;
+      try {
+        hasNextBatch = arrowFileReader.loadNextBatch();
+      } catch (IOException e) {
+        throw Util.toUnchecked(e);
+      }
+      if (!hasNextBatch) {
+        return false;
+      }
+      currRowIndex = -1;
+      valueVectors.clear();
+      loadNextArrowBatch();
+      if (rowCount > 0) {
+        return true;
+      }
     }
   }
 
@@ -85,7 +99,7 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
    * <p>For {@link TimeStampVector}, converts the raw value to
    * milliseconds since epoch, which is the representation used by
    * Calcite's Enumerable runtime for TIMESTAMP types. */
-  private static Object getValue(ValueVector vector, int index) {
+  protected static Object getValue(ValueVector vector, int index) {
     if (vector instanceof TimeStampVector) {
       if (vector.isNull(index)) {
         return null;

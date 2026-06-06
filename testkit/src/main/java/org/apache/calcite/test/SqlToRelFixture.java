@@ -178,11 +178,6 @@ public class SqlToRelFixture {
             .withValidatorConfig(c -> c.withConformance(conformance)));
   }
 
-  public SqlToRelFixture withTypeCoercion(boolean enabled) {
-    return withFactory(f ->
-        f.withValidatorConfig(c -> c.withTypeCoercionEnabled(enabled)));
-  }
-
   public SqlToRelFixture withDiffRepos(DiffRepository diffRepos) {
     return new SqlToRelFixture(sql, decorrelate, tester, factory, trim,
         expression, diffRepos);
