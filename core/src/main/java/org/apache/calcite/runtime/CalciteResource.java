@@ -341,8 +341,8 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> naturalOrUsingColumnNotCompatible(String a0,
       String a1, String a2);
 
-  @BaseMessage("OVER clause is necessary for window functions")
-  ExInst<SqlValidatorException> absentOverClause();
+  @BaseMessage("window function {0} requires an OVER clause")
+  ExInst<SqlValidatorException> absentOverClause(String a0);
 
   @BaseMessage("MEASURE not valid in aggregate or DISTINCT query")
   ExInst<SqlValidatorException> measureInAggregateQuery();

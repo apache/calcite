@@ -3448,11 +3448,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp\n"
         + "group by deptno\n"
         + "order by ^row_number()^")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function ROW_NUMBER requires an OVER clause");
 
     winSql("select ^rank()^\n"
         + "from emp")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function RANK requires an OVER clause");
 
     // With [CALCITE-1340], the validator would see RANK without OVER,
     // mistakenly think this is an aggregate query, and wrongly complain
@@ -3460,33 +3460,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winSql("select cume_dist() over w , ^rank()^\n"
         + "from emp\n"
         + "window w as (partition by deptno order by deptno)")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function RANK requires an OVER clause");
 
     winSql("select ^nth_value(sal, 2)^\n"
         + "from emp")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function NTH_VALUE requires an OVER clause");
 
     winSql("select ^first_value(sal)^\n"
         + "from emp")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function FIRST_VALUE requires an OVER clause");
 
     winSql("select ^last_value(sal)^\n"
         + "from emp")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function LAST_VALUE requires an OVER clause");
 
     // With alias, first_value and last_value without OVER should also fail
     winSql("select ^first_value(sal)^ as sal_first\n"
         + "from emp")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function FIRST_VALUE requires an OVER clause");
 
     winSql("select ^last_value(sal)^ as sal_last\n"
         + "from emp")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function LAST_VALUE requires an OVER clause");
 
     // In GROUP BY context, first_value and last_value without OVER should fail
     winSql("select sal, ^first_value(sal)^ as sal_first\n"
         + "from emp group by sal, deptno")
-        .fails("OVER clause is necessary for window functions");
+        .fails("window function FIRST_VALUE requires an OVER clause");
 
     // first_value and last_value with OVER clause should succeed
     winSql("select first_value(sal) over (order by empno)\n"
@@ -3632,7 +3632,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // rank function type
     if (defined.contains("DENSE_RANK")) {
       winExp("^dense_rank()^")
-          .fails("OVER clause is necessary for window functions");
+          .fails("window function DENSE_RANK requires an OVER clause");
     } else {
       checkWinFuncExpWithWinClause("^dense_rank()^",
           "Function 'DENSE_RANK\\(\\)' is not defined");
