@@ -1745,6 +1745,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  private void validateFetchExpression(@Nullable SqlNode fetch) {
+    if (fetch == null || fetch instanceof SqlLiteral || fetch instanceof SqlDynamicParam) {
+      return;
+    }
+    validateNoAggs(aggFinder, fetch, "FETCH");
+    validateExpr(fetch, getEmptyScope());
+  }
+
   /**
    * Performs expression rewrites which are always used unconditionally. These
    * rewrites massage the expression tree into a standard form so that the
@@ -4442,6 +4450,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateWindowClause(select);
     validateQualifyClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
+    validateFetchExpression(select.getFetch());
 
     // Validate the SELECT clause late, because a select item might
     // depend on the GROUP BY list, or the window function might reference

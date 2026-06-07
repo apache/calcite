@@ -1081,7 +1081,18 @@ public class SqlDialect {
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);
       writer.keyword("FETCH");
       writer.keyword("NEXT");
-      fetch.unparse(writer, -1, -1);
+      if (fetch instanceof SqlLiteral
+          || fetch instanceof SqlDynamicParam) {
+        fetch.unparse(writer, -1, -1);
+      } else {
+        final SqlWriter.Frame expressionFrame = writer.startList("(", ")");
+        if (fetch instanceof SqlCall) {
+          writer.getDialect().unparseCall(writer, (SqlCall) fetch, 0, 0);
+        } else {
+          fetch.unparse(writer, 0, 0);
+        }
+        writer.endList(expressionFrame);
+      }
       writer.keyword("ROWS");
       writer.keyword("ONLY");
       writer.endList(fetchFrame);

@@ -3797,8 +3797,7 @@ public class RelBuilder {
    *
    * @param offsetNode RexLiteral means number of rows to skip is deterministic,
    *                   RexDynamicParam means number of rows to skip is dynamic.
-   * @param fetchNode  RexLiteral means maximum number of rows to fetch is deterministic,
-   *                   RexDynamicParam mean maximum number is dynamic.
+   * @param fetchNode  Maximum number of rows to fetch
    * @param nodes      Sort expressions
    */
   public RelBuilder sortLimit(@Nullable RexNode offsetNode, @Nullable RexNode fetchNode,
@@ -3808,12 +3807,6 @@ public class RelBuilder {
         throw new IllegalArgumentException("OFFSET node must be RexLiteral or RexDynamicParam");
       }
     }
-    if (fetchNode != null) {
-      if (!(fetchNode instanceof RexLiteral || fetchNode instanceof RexDynamicParam)) {
-        throw new IllegalArgumentException("FETCH node must be RexLiteral or RexDynamicParam");
-      }
-    }
-
     final Registrar registrar = new Registrar(fields(), ImmutableList.of());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);

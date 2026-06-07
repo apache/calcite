@@ -3765,6 +3765,16 @@ public class JdbcTest {
             + "store_id=4; grocery_sqft=16844\n");
   }
 
+  /** Tests FETCH with a parenthesized expression. */
+  @Test void testFetchExpression() {
+    CalciteAssert.that()
+        .query("select * from (values (1), (2), (3), (4)) as t(x)\n"
+            + "fetch next (1 + abs(-2)) rows only")
+        .returns("X=1\n"
+            + "X=2\n"
+            + "X=3\n");
+  }
+
   /** Tests ORDER BY ... OFFSET ... FETCH. */
   @Test void testOrderByOffsetFetch() {
     CalciteAssert.that()

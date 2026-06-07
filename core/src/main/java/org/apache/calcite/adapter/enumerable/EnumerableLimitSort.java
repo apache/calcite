@@ -31,6 +31,7 @@ import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.adapter.enumerable.EnumerableLimit.getExpression;
+import static org.apache.calcite.adapter.enumerable.EnumerableLimit.getExpressionForFetch;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Sort} in
@@ -100,7 +101,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     if (this.fetch == null) {
       fetchVal = Expressions.constant(Integer.MAX_VALUE);
     } else {
-      fetchVal = getExpression(this.fetch);
+      fetchVal = getExpressionForFetch(this.fetch, implementor, builder);
     }
 
     final Expression offsetVal;

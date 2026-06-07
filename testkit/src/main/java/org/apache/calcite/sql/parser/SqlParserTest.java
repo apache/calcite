@@ -4029,6 +4029,14 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "OFFSET ? ROWS\n"
             + "FETCH NEXT ? ROWS ONLY");
+    // Arithmetic and scalar expressions are allowed within parentheses.
+    sql("select a from foo fetch next (1 + abs(-2)) rows only")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "FETCH NEXT (1 + ABS(-2)) ROWS ONLY");
+    // Expressions without parentheses are not allowed.
+    sql("select a from foo fetch next 1 ^+^ 2 rows only")
+        .fails("(?s).*Encountered \"\\+\" at .*");
     // missing ROWS after FETCH
     sql("select a from foo offset 1 fetch next 3 ^only^")
         .fails("(?s).*Encountered \"only\" at .*");

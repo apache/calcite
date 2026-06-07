@@ -111,7 +111,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       v =
           builder.append("fetch",
               Expressions.call(v, BuiltInMethod.TAKE.method,
-                  getExpression(fetch)));
+                  getExpressionForFetch(fetch, implementor, builder)));
     }
 
     builder.add(Expressions.return_(null, v));
@@ -131,6 +131,29 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       //  Currently, using BIGINT types for execution will result in an error message.
       //  This issue needs to be fixed. For more information, see CALCITE-7156.
       return Expressions.constant(RexLiteral.intValue(rexNode));
+    }
+  }
+
+  static Expression getExpressionForFetch(RexNode rexNode,
+      EnumerableRelImplementor implementor, BlockBuilder builder) {
+    if (rexNode instanceof RexDynamicParam) {
+      final RexDynamicParam param = (RexDynamicParam) rexNode;
+      return Expressions.convert_(
+          Expressions.call(DataContext.ROOT,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
+              Expressions.constant("?" + param.getIndex())),
+          Integer.class);
+    } else {
+      if (rexNode instanceof RexLiteral) {
+        // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET,
+        //  not BIGINT types. See CALCITE-7156.
+        return Expressions.constant(RexLiteral.intValue(rexNode));
+      }
+      final Expression expression =
+          RexToLixTranslator.forAggregation(implementor.getTypeFactory(),
+              builder, null, implementor.getConformance())
+              .translate(rexNode);
+      return Expressions.convert_(expression, int.class);
     }
   }
 }

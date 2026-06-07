@@ -1250,6 +1250,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testFetchWithExpression() {
+    final String sql =
+        "select empno from emp fetch next (1 + abs(-2)) rows only";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-439">[CALCITE-439]
    * SqlValidatorUtil.uniquify() may not terminate under some conditions</a>. */

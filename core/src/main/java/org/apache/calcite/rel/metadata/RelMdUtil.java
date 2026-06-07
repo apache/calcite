@@ -1044,7 +1044,7 @@ public class RelMdUtil {
       return true;
     }
     final Double rowCount = mq.getMaxRowCount(input);
-    if (rowCount == null || offset instanceof RexDynamicParam || fetch instanceof RexDynamicParam) {
+    if (rowCount == null || offset instanceof RexDynamicParam || !(fetch instanceof RexLiteral)) {
       // Cannot be determined
       return false;
     }
