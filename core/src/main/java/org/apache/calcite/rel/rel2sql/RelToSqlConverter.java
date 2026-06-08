@@ -1266,6 +1266,7 @@ public class RelToSqlConverter extends SqlImplementor
         || fetch instanceof RexDynamicParam
         || !RexUtil.isConstant(fetch)
         || !RexUtil.isDeterministic(fetch)
+        || RexUtil.containsDynamicFunction(fetch)
         || containsDynamicParam(fetch)) {
       return context.toSql(null, fetch);
     }

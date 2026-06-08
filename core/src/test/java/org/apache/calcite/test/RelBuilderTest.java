@@ -5258,11 +5258,16 @@ public class RelBuilderTest {
             ImmutableList.of()));
   }
 
-  @Test void testFetchExpressionCannotContainWindowOrSubQuery() {
+  @Test void testFetchExpressionCannotContainAggregateWindowOrSubQuery() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelDataType intType =
         builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
     builder.scan("DEPT");
+    final RexNode aggregate =
+        builder.call(SqlStdOperatorTable.SUM, builder.literal(1));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, aggregate, ImmutableList.of()));
+
     final RexNode over =
         builder.getRexBuilder().makeOver(intType,
             SqlStdOperatorTable.ROW_NUMBER, ImmutableList.of(),

@@ -1756,6 +1756,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateNoAggs(aggOrOverFinder, fetch, "FETCH");
     fetch.accept(new SqlBasicVisitor<Void>() {
       @Override public Void visit(SqlIdentifier id) {
+        if (makeNullaryCall(id) != null) {
+          return null;
+        }
         throw newValidationError(id,
             RESOURCE.fetchExpressionCannotReferenceColumn(id.toString()));
       }

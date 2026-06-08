@@ -168,13 +168,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
 
   /** Converts a FETCH expression result to the range supported by Enumerable. */
   public static int toIntFetch(@Nullable Number value) {
-    if (value == null) {
-      throw new IllegalArgumentException("FETCH expression evaluated to NULL");
-    }
-    final BigDecimal decimal = NumberUtil.toBigDecimal(value);
-    if (decimal == null) {
-      throw new IllegalArgumentException("FETCH value is not numeric: " + value);
-    }
+    final BigDecimal decimal = validateFetchValue(value);
     final int result;
     try {
       result = decimal.intValueExact();
@@ -191,6 +185,42 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return result;
   }
 
+  /** Converts a FETCH expression result to the range supported by a long. */
+  public static long toLongFetch(@Nullable Number value) {
+    final BigDecimal decimal = validateFetchValue(value);
+    final long result;
+    try {
+      result = decimal.longValueExact();
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is out of range; expected a value between 0 and "
+          + Long.MAX_VALUE, e);
+    }
+    if (result < 0) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is out of range; expected a value between 0 and "
+          + Long.MAX_VALUE);
+    }
+    return result;
+  }
+
+  private static BigDecimal validateFetchValue(@Nullable Number value) {
+    if (value == null) {
+      throw new IllegalArgumentException("FETCH expression evaluated to NULL");
+    }
+    final BigDecimal decimal = NumberUtil.toBigDecimal(value);
+    if (decimal == null) {
+      throw new IllegalArgumentException("FETCH value is not numeric: " + value);
+    }
+    try {
+      decimal.toBigIntegerExact();
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is not an integer", e);
+    }
+    return decimal;
+  }
+
   static void validateLiteralFetch(@Nullable RexNode fetch) {
     if (fetch instanceof RexLiteral) {
       final Number value = ((RexLiteral) fetch).getValueAs(Number.class);
@@ -201,7 +231,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     }
   }
 
-  /** Reduces a constant FETCH expression to a validated integer literal. */
+  /** Reduces a constant FETCH expression to a validated literal. */
   public static @Nullable RexLiteral reduceFetchToLiteral(
       RelOptCluster cluster, RexNode fetch) {
     final RexLiteral literal;
@@ -210,6 +240,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     } else {
       if (!RexUtil.isConstant(fetch)
           || !RexUtil.isDeterministic(fetch)
+          || RexUtil.containsDynamicFunction(fetch)
           || containsDynamicParam(fetch)) {
         return null;
       }
@@ -224,7 +255,33 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       }
       literal = (RexLiteral) reduced;
     }
+    final Number value = literal.getValueAs(Number.class);
+    if (validateFetchValue(value).signum() < 0) {
+      throw new IllegalArgumentException(
+          "FETCH value " + value + " is out of range; expected a non-negative value");
+    }
+    return literal;
+  }
+
+  /** Reduces a constant FETCH expression to a validated integer literal. */
+  public static @Nullable RexLiteral reduceFetchToIntLiteral(
+      RelOptCluster cluster, RexNode fetch) {
+    final RexLiteral literal = reduceFetchToLiteral(cluster, fetch);
+    if (literal == null) {
+      return null;
+    }
     final int value = toIntFetch(literal.getValueAs(Number.class));
+    return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
+  }
+
+  /** Reduces a constant FETCH expression to a validated long literal. */
+  public static @Nullable RexLiteral reduceFetchToLongLiteral(
+      RelOptCluster cluster, RexNode fetch) {
+    final RexLiteral literal = reduceFetchToLiteral(cluster, fetch);
+    if (literal == null) {
+      return null;
+    }
+    final long value = toLongFetch(literal.getValueAs(Number.class));
     return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
   }
 

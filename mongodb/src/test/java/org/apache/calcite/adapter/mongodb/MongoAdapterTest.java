@@ -225,8 +225,13 @@ public class MongoAdapterTest implements SchemaFactory {
         .throws_("FETCH expression evaluated to NULL");
     assertModel(MODEL)
         .query("select state, id from zips\n"
-            + "fetch next (cast(3000000001 as bigint)) rows only")
-        .throws_("FETCH value 3000000001 is out of range");
+            + "fetch next 3000000001 rows only")
+        .runs()
+        .explainContains("MongoSort(fetch=[3000000001:BIGINT])")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', ID: '$_id'}}",
+                "{$limit: 3000000001}"));
   }
 
   @Test void testFetchExpression() {
@@ -239,6 +244,15 @@ public class MongoAdapterTest implements SchemaFactory {
             mongoChecker(
                 "{$limit: 3}",
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
+    assertModel(MODEL)
+        .query("select state, id from zips\n"
+            + "fetch next (cast(3000000000 as bigint) + 1) rows only")
+        .runs()
+        .explainContains("MongoSort(fetch=[3000000001:BIGINT])")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', ID: '$_id'}}",
+                "{$limit: 3000000001}"));
   }
 
   @Test void testJoin() {

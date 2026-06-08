@@ -410,7 +410,7 @@ public class CassandraRules {
       final RexLiteral fetch =
           limit.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLiteral(limit.getCluster(), limit.fetch);
+              : EnumerableLimit.reduceFetchToIntLiteral(limit.getCluster(), limit.fetch);
       if (limit.fetch != null && fetch == null) {
         return null;
       }

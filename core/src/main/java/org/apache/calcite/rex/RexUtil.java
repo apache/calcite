@@ -840,6 +840,25 @@ public class RexUtil {
     }
   }
 
+  /** Returns whether an expression contains a dynamic function. */
+  public static boolean containsDynamicFunction(RexNode e) {
+    try {
+      e.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (call.getOperator().isDynamicFunction()) {
+                throw Util.FoundOne.NULL;
+              }
+              return super.visitCall(call);
+            }
+          });
+      return false;
+    } catch (Util.FoundOne ex) {
+      Util.swallow(ex, null);
+      return true;
+    }
+  }
+
   public static List<RexNode> retainDeterministic(List<RexNode> list) {
     List<RexNode> conjunctions = new ArrayList<>();
     for (RexNode x : list) {

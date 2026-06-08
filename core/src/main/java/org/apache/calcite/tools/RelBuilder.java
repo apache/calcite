@@ -3819,7 +3819,8 @@ public class RelBuilder {
     }
     if (fetchNode != null && isInvalidFetchExpression(fetchNode)) {
       throw new IllegalArgumentException(
-          "FETCH node must not reference input fields or contain window functions or subqueries");
+          "FETCH node must not reference input fields or contain aggregate functions, "
+              + "window functions, or subqueries");
     }
     if (fetchNode != null
         && !SqlTypeUtil.isIntType(fetchNode.getType())
@@ -3899,6 +3900,13 @@ public class RelBuilder {
     try {
       node.accept(
           new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (call.getOperator().isAggregator()) {
+                throw Util.FoundOne.NULL;
+              }
+              return super.visitCall(call);
+            }
+
             @Override public Void visitInputRef(RexInputRef inputRef) {
               throw Util.FoundOne.NULL;
             }

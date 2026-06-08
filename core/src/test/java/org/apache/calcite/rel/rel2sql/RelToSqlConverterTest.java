@@ -4850,6 +4850,29 @@ class RelToSqlConverterTest {
             + "be reduced to a literal");
   }
 
+  @Test void testParameterizedFetchExpressionWithSQLite() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (? + 1) rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "LIMIT ? + 1";
+    sql(query).withSQLite().ok(expected);
+  }
+
+  @Test void testDynamicFetchExpressionIsNotReduced() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (extract(day from current_date)) rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT (EXTRACT(DAY FROM CURRENT_DATE)) ROWS ONLY";
+    sql(query).ok(expected);
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support FETCH expressions that cannot "
+            + "be reduced to a literal");
+  }
+
   @Test void testSelectQueryComplex() {
     String query =
         "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "

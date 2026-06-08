@@ -854,7 +854,7 @@ public class DruidRules {
       final RexLiteral fetch =
           sort.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+              : EnumerableLimit.reduceFetchToIntLiteral(sort.getCluster(), sort.fetch);
       if (sort.fetch != null && fetch == null) {
         return;
       }

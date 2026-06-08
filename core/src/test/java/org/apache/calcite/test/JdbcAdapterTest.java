@@ -1404,6 +1404,14 @@ class JdbcAdapterTest {
         .returnsCount(3);
   }
 
+  @Test void testDynamicFetchExpressionIsNotPushedDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno from scott.emp "
+            + "fetch next (extract(day from current_date)) rows only")
+        .explainContains("EnumerableLimit(fetch=[EXTRACT(FLAG(DAY), CURRENT_DATE)])\n"
+            + "  JdbcToEnumerableConverter\n");
+  }
+
   @Test void testParameterizedFetchExpressionRepeatedExecution() throws Exception {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .doWithConnection(connection -> {

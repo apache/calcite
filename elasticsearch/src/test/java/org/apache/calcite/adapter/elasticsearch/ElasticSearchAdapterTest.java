@@ -589,6 +589,11 @@ class ElasticSearchAdapterTest {
             ElasticsearchChecker.elasticsearchChecker(
                 "'_source':['state','id']",
                 "size:3"));
+    calciteAssert()
+        .query("select state, id from zips\n"
+            + "fetch next (cast(3000000000 as bigint) + 1) rows only")
+        .runs()
+        .explainContains("ElasticsearchSort(fetch=[3000000001:BIGINT])");
   }
 
   @Test void limit2() {
