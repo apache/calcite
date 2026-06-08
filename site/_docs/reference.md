@@ -210,7 +210,7 @@ select:
       [ BY expression [, expression ]* ]
       FROM tableExpression
       [ WHERE booleanExpression ]
-      [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
+      [ GROUP BY { ALL | [ALL | DISTINCT ] groupItem [, groupiTEM ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
       [ QUALIFY booleanExpression ]
@@ -422,7 +422,12 @@ may refer to tables in the FROM clause of an enclosing query.
 GROUP BY DISTINCT removes duplicate grouping sets (for example,
 "GROUP BY DISTINCT GROUPING SETS ((a), (a, b), (a))" is equivalent to
 "GROUP BY GROUPING SETS ((a), (a, b))");
-GROUP BY ALL is equivalent to GROUP BY.
+GROUP BY ALL followed by grouping items is equivalent to GROUP BY
+(ALL is the default set quantifier).
+GROUP BY ALL on its own groups by every expression in the SELECT clause
+that is not an aggregate function; for example,
+"SELECT deptno, SUM(sal) FROM emp GROUP BY ALL" is equivalent to
+"SELECT deptno, SUM(sal) FROM emp GROUP BY deptno".
 
 *selectWithoutFrom* is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain

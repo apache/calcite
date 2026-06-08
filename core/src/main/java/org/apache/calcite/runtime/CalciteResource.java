@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.runtime.Resources.BaseMessage;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -382,6 +383,9 @@ public interface CalciteResource {
 
   @BaseMessage("Windowed aggregate expression is illegal in {0} clause")
   ExInst<SqlValidatorException> windowedAggregateIllegalInClause(String a0);
+
+  @BaseMessage("GROUP BY ALL requires an explicit SELECT list; ''*'' is not supported")
+  ExInst<SqlValidatorException> groupByAllRequiresExplicitSelectList();
 
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();

@@ -5268,6 +5268,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * called even if no GROUP BY clause is present.
    */
   protected void validateGroupClause(SqlSelect select) {
+    rewriteGroupByAll(select);
     SqlNodeList groupList = select.getGroup();
     if (groupList == null) {
       return;
@@ -5337,6 +5338,32 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (agg != null) {
       throw newValidationError(agg, RESOURCE.aggregateIllegalInClause(clause));
     }
+  }
+
+  /** If GROUP BY clause is the {@code GROUP BY ALL} marker, replaces it
+   * with every non-aggregated expression from the SELECT clause. */
+  private void rewriteGroupByAll(SqlSelect select) {
+    final SqlNodeList groupList = select.getGroup();
+    if (groupList == null
+        || groupList.size() != 1
+        || groupList.get(0).getKind() != SqlKind.GROUP_BY_ALL) {
+      return;
+    }
+    final List<SqlNode> keys = new ArrayList<>();
+    for (SqlNode selectItem : select.getSelectList()) {
+      if (SqlValidatorUtil.isMeasure(selectItem)) {
+        continue;
+      }
+      final SqlNode expr = SqlUtil.stripAs(selectItem);
+      if (expr instanceof SqlIdentifier && ((SqlIdentifier) expr).isStar()) {
+        throw newValidationError(expr,
+            RESOURCE.groupByAllRequiresExplicitSelectList());
+      }
+      if (aggOrOverFinder.findAgg(expr) == null) {
+        keys.add(expr);
+      }
+    }
+    select.setGroupBy(new SqlNodeList(keys, groupList.getParserPosition()));
   }
 
   private void validateGroupItem(SqlValidatorScope groupScope,
