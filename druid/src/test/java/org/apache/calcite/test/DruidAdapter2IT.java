@@ -967,6 +967,20 @@ public class DruidAdapter2IT {
         .explainContains(explain);
   }
 
+  @Test void testFetchExpression() {
+    final String sql = "select \"state_province\"\n"
+        + "from \"foodmart\"\n"
+        + "fetch next (1 + abs(-2)) rows only";
+    sql(sql)
+        .returnsCount(3)
+        .explainContains("DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$30]], fetch=[3])");
+    sql("select \"state_province\" from \"foodmart\" "
+        + "fetch next (0 - 1) rows only")
+        .throws_("FETCH value -1 is out of range");
+  }
+
   /** Tests that distinct-count is pushed down to Druid and evaluated using
    * "cardinality". The result is approximate, but gives the correct result in
    * this example when rounded down using FLOOR. */

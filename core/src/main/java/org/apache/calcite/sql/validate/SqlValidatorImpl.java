@@ -1746,11 +1746,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void validateFetchExpression(@Nullable SqlNode fetch) {
-    if (fetch == null || fetch instanceof SqlLiteral || fetch instanceof SqlDynamicParam) {
+    if (fetch == null || fetch instanceof SqlDynamicParam) {
       return;
     }
+    if (SqlUtil.isNullLiteral(fetch, true)) {
+      throw newValidationError(fetch,
+          RESOURCE.fetchExpressionEvaluatedToNull());
+    }
     validateNoAggs(aggFinder, fetch, "FETCH");
-    validateExpr(fetch, getEmptyScope());
+    fetch.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlIdentifier id) {
+        throw newValidationError(id,
+            RESOURCE.fetchExpressionCannotReferenceColumn(id.toString()));
+      }
+    });
+    final SqlValidatorScope scope = getEmptyScope();
+    inferUnknownTypes(typeFactory.createSqlType(SqlTypeName.INTEGER), scope, fetch);
+    validateExpr(fetch, scope);
+    final RelDataType type = getValidatedNodeType(fetch);
+    if (!SqlTypeUtil.isIntType(type)
+        && !(SqlTypeUtil.isDecimal(type) && type.getScale() == 0)) {
+      throw newValidationError(fetch,
+          RESOURCE.fetchExpressionMustBeIntegral(type.getFullTypeString()));
+    }
   }
 
   /**

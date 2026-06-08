@@ -53,6 +53,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
+    EnumerableLimit.validateLiteralFetch(fetch);
     assert this.getConvention() instanceof EnumerableConvention;
     assert this.getConvention() == input.getConvention();
   }

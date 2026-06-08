@@ -519,7 +519,7 @@ public abstract class PruneEmptyRules {
         @Override public boolean matches(final RelOptRuleCall call) {
           Sort sort = call.rel(0);
           return sort.fetch instanceof RexLiteral
-              && RexLiteral.bigDecimalValue(sort.fetch).equals(BigDecimal.ZERO);
+              && BigDecimal.ZERO.equals(RexLiteral.bigDecimalValue(sort.fetch));
         }
       };
     }

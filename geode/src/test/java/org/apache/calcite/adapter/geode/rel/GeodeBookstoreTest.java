@@ -356,6 +356,18 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
             + "    GeodeTableScan(table=[[geode, BookCustomer]])\n");
   }
 
+  @Test void testFetchExpression() {
+    calciteAssert()
+        .query("select * from geode.BookCustomer "
+            + "fetch next (1 + abs(-2)) rows only")
+        .returnsCount(3)
+        .explainContains("GeodeSort(fetch=[3])");
+    calciteAssert()
+        .query("select * from geode.BookCustomer "
+            + "fetch next (0 - 1) rows only")
+        .throws_("FETCH value -1 is out of range");
+  }
+
   @Test void testSelectWithNestedPdx2() {
     calciteAssert()
         .query("select primaryAddress from geode.BookCustomer limit 2")

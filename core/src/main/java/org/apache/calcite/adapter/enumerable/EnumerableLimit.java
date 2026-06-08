@@ -31,12 +31,19 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
@@ -54,6 +61,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
     super(cluster, traitSet, input);
+    validateLiteralFetch(fetch);
     this.offset = offset;
     this.fetch = fetch;
     assert getConvention() instanceof EnumerableConvention;
@@ -138,22 +146,78 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       EnumerableRelImplementor implementor, BlockBuilder builder) {
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
-      return Expressions.convert_(
-          Expressions.call(DataContext.ROOT,
-              BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant("?" + param.getIndex())),
-          Integer.class);
+      return Expressions.call(EnumerableLimit.class, "toIntFetch",
+          Expressions.convert_(
+              Expressions.call(DataContext.ROOT,
+                  BuiltInMethod.DATA_CONTEXT_GET.method,
+                  Expressions.constant("?" + param.getIndex())),
+              Number.class));
+    } else if (rexNode instanceof RexLiteral) {
+      return Expressions.constant(
+          toIntFetch(((RexLiteral) rexNode).getValueAs(Number.class)));
     } else {
-      if (rexNode instanceof RexLiteral) {
-        // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET,
-        //  not BIGINT types. See CALCITE-7156.
-        return Expressions.constant(RexLiteral.intValue(rexNode));
-      }
       final Expression expression =
           RexToLixTranslator.forAggregation(implementor.getTypeFactory(),
               builder, null, implementor.getConformance())
               .translate(rexNode);
-      return Expressions.convert_(expression, int.class);
+      return Expressions.call(EnumerableLimit.class, "toIntFetch",
+          Expressions.convert_(Expressions.box(expression), Number.class));
     }
+  }
+
+  /** Converts a FETCH expression result to the range supported by Enumerable. */
+  public static int toIntFetch(@Nullable Number value) {
+    if (value == null) {
+      throw new IllegalArgumentException("FETCH expression evaluated to NULL");
+    }
+    final BigDecimal decimal = NumberUtil.toBigDecimal(value);
+    if (decimal == null) {
+      throw new IllegalArgumentException("FETCH value is not numeric: " + value);
+    }
+    final int result;
+    try {
+      result = decimal.intValueExact();
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is out of range; expected a value between 0 and "
+          + Integer.MAX_VALUE, e);
+    }
+    if (result < 0) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is out of range; expected a value between 0 and "
+          + Integer.MAX_VALUE);
+    }
+    return result;
+  }
+
+  static void validateLiteralFetch(@Nullable RexNode fetch) {
+    if (fetch instanceof RexLiteral) {
+      toIntFetch(((RexLiteral) fetch).getValueAs(Number.class));
+    }
+  }
+
+  /** Reduces a constant FETCH expression to a validated integer literal. */
+  public static @Nullable RexLiteral reduceFetchToLiteral(
+      RelOptCluster cluster, RexNode fetch) {
+    final RexLiteral literal;
+    if (fetch instanceof RexLiteral) {
+      literal = (RexLiteral) fetch;
+    } else {
+      if (!RexUtil.isConstant(fetch) || !RexUtil.isDeterministic(fetch)) {
+        return null;
+      }
+      final RexExecutor executor =
+          Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
+      final List<RexNode> reducedValues = new ArrayList<>(1);
+      executor.reduce(cluster.getRexBuilder(),
+          Collections.singletonList(fetch), reducedValues);
+      final RexNode reduced = reducedValues.get(0);
+      if (!(reduced instanceof RexLiteral)) {
+        return null;
+      }
+      literal = (RexLiteral) reduced;
+    }
+    final int value = toIntFetch(literal.getValueAs(Number.class));
+    return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
   }
 }

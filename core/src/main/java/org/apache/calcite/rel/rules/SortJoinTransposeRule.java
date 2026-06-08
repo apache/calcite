@@ -107,7 +107,7 @@ public class SortJoinTransposeRule
 
     // The pushed fetch is calculated from literal offset and fetch values.
     if (sort.offset instanceof RexDynamicParam
-        || !(sort.fetch instanceof RexLiteral)) {
+        || sort.fetch != null && !(sort.fetch instanceof RexLiteral)) {
       return false;
     }
 

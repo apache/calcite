@@ -1137,7 +1137,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   protected @Nullable Frame decorrelateSortAsAggregate(Sort sort, final Frame frame) {
-    if (sort.offset != null || sort.fetch == null) {
+    if (sort.offset != null || !(sort.fetch instanceof RexLiteral)) {
       return null;
     }
 

@@ -35,6 +35,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
@@ -405,16 +406,26 @@ public class CassandraRules {
       super(config);
     }
 
-    public RelNode convert(EnumerableLimit limit) {
+    public @Nullable RelNode convert(EnumerableLimit limit) {
+      final RexLiteral fetch =
+          limit.fetch == null
+              ? null
+              : EnumerableLimit.reduceFetchToLiteral(limit.getCluster(), limit.fetch);
+      if (limit.fetch != null && fetch == null) {
+        return null;
+      }
       final RelTraitSet traitSet =
           limit.getTraitSet().replace(CassandraRel.CONVENTION);
       return new CassandraLimit(limit.getCluster(), traitSet,
-        convert(limit.getInput(), CassandraRel.CONVENTION), limit.offset, limit.fetch);
+          convert(limit.getInput(), CassandraRel.CONVENTION), limit.offset, fetch);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
       EnumerableLimit limit = call.rel(0);
-      call.transformTo(convert(limit));
+      final RelNode converted = convert(limit);
+      if (converted != null) {
+        call.transformTo(converted);
+      }
     }
 
     /** Deprecated in favor of CassandraLimitRuleConfig. */

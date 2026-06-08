@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -221,6 +222,13 @@ public class GeodeRules {
 
     @Override public void onMatch(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
+      final RexLiteral fetch =
+          sort.fetch == null
+              ? null
+              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+      if (sort.fetch != null && fetch == null) {
+        return;
+      }
 
       final RelTraitSet traitSet = sort.getTraitSet()
           .replace(GeodeRel.CONVENTION)
@@ -229,7 +237,7 @@ public class GeodeRules {
       GeodeSort geodeSort =
           new GeodeSort(sort.getCluster(), traitSet,
               convert(call.getPlanner(), sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-              sort.getCollation(), sort.fetch);
+              sort.getCollation(), fetch);
 
       call.transformTo(geodeSort);
     }

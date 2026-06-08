@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -88,9 +89,14 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
     // Push down sort limit, if possible.
     RexNode inputFetch = null;
     if (sort.fetch != null) {
-      if (sort.offset == null) {
+      final boolean safeToRepeat =
+          RexUtil.isDeterministic(sort.fetch)
+              && !RexUtil.containsDynamicParam(sort.fetch);
+      if (sort.offset == null && safeToRepeat) {
         inputFetch = sort.fetch;
-      } else if (sort.fetch instanceof RexLiteral && sort.offset instanceof RexLiteral) {
+      } else if (safeToRepeat
+          && sort.fetch instanceof RexLiteral
+          && sort.offset instanceof RexLiteral) {
         inputFetch =
             call.builder().literal(RexLiteral.bigDecimalValue(sort.fetch)
                 .add(RexLiteral.bigDecimalValue(sort.offset)));

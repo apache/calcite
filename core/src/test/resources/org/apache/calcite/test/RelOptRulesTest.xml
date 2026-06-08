@@ -2758,6 +2758,46 @@ LogicalProject(NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDecorrelateProjectWithFetchExpression">
+    <Resource name="sql">
+      <![CDATA[SELECT name, (SELECT sal FROM emp where dept.deptno = emp.deptno order by sal fetch next (1 + 0) rows only) FROM dept]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], NAME=[$1], EXPR$1=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(1, 0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(NAME=[$1], EXPR$1=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(1, 0)])
+        LogicalProject(SAL=[$5])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$1], EXPR$1=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+      LogicalProject(DEPTNO=[$1], SAL=[$0])
+        LogicalFilter(condition=[<=($2, 1)])
+          LogicalProject(SAL=[$5], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $5 NULLS LAST)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDecorrelateProjectWithFetchOne">
     <Resource name="sql">
       <![CDATA[SELECT name, (SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) FROM dept]]>
@@ -19581,6 +19621,42 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
       LogicalProject(NAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortUnionTransposeWithNonDeterministicFetch">
+    <Resource name="sql">
+      <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name fetch next (rand_integer(10)) rows only]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[RAND_INTEGER(10)])
+  LogicalUnion(all=[true])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortUnionTransposeWithParameterizedFetchExpression">
+    <Resource name="sql">
+      <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name fetch next (? + 1) rows only]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
+  LogicalUnion(all=[true])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

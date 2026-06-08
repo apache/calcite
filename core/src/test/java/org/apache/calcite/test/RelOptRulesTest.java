@@ -1680,6 +1680,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testSortUnionTransposeWithNonDeterministicFetch() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name fetch next (rand_integer(10)) rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  @Test void testSortUnionTransposeWithParameterizedFetchExpression() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name fetch next (? + 1) rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .checkUnchanged();
+  }
+
   @Test void testSortRemovalAllKeysConstant() {
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -9611,6 +9633,16 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testDecorrelateProjectWithFetchOne() {
     final String query = "SELECT name, "
         + "(SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) "
+        + "FROM dept";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  @Test void testDecorrelateProjectWithFetchExpression() {
+    final String query = "SELECT name, "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno order by sal "
+        + "fetch next (1 + 0) rows only) "
         + "FROM dept";
     sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
         .withLateDecorrelate(true)

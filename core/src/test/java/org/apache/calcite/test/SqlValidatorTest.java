@@ -9998,6 +9998,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected);
   }
 
+  @Test void testFetchExpressionType() {
+    sql("select name from dept fetch next (^upper('x')^) rows only")
+        .fails("FETCH expression must have an integral numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept fetch next (^'x'^) rows only")
+        .fails("FETCH expression must have an integral numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept fetch next (^1.5^) rows only")
+        .fails("FETCH expression must have an integral numeric type; "
+            + "actual type is 'DECIMAL\\(2, 1\\) NOT NULL'");
+  }
+
   @Test void testRewriteWithOffsetWithoutOrderBy() {
     final String sql = "select name from dept offset 2";
     final String expected = "SELECT `NAME`\n"

@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -296,6 +297,37 @@ class ServerTest {
         s.execute("create or replace table t2 (i int not null)");
         s.executeUpdate("insert into t2 values (1)");
       }, "REPLACE must recreate the table, leaving only one column");
+    }
+  }
+
+  /** Tests that FETCH cannot reference a column of its input table. */
+  @Test void testFetchExpressionCannotReferenceInputColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table person (id int not null, name varchar(20))");
+      try (PreparedStatement p =
+               c.prepareStatement("insert into person (id, name) values (?, ?)")) {
+        p.setInt(1, 1);
+        p.setString(2, "foo");
+        assertThat(p.executeUpdate(), is(1));
+      }
+
+      SQLException e = assertThrows(SQLException.class,
+          () -> s.executeQuery("select * from person "
+              + "fetch next id rows only"));
+      assertThat(e.getMessage(), containsString("Encountered \"id\""));
+
+      e = assertThrows(SQLException.class,
+          () -> s.executeQuery("select * from person "
+              + "fetch next (id) rows only"));
+      assertThat(e.getMessage(),
+          containsString("FETCH expression cannot reference table column 'ID'"));
+
+      e = assertThrows(SQLException.class,
+          () -> s.executeQuery("select * from person "
+              + "fetch next (1 + id) rows only"));
+      assertThat(e.getMessage(),
+          containsString("FETCH expression cannot reference table column 'ID'"));
     }
   }
 
