@@ -4831,6 +4831,25 @@ class RelToSqlConverterTest {
         .withSybase().ok(expectedSybase);
   }
 
+  @Test void testFetchExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (1 + 2) rows only";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 3";
+    sql(query).withMysql().ok(expected);
+  }
+
+  @Test void testParameterizedFetchExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (? + 1) rows only";
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support FETCH expressions that cannot "
+            + "be reduced to a literal");
+  }
+
   @Test void testSelectQueryComplex() {
     String query =
         "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "

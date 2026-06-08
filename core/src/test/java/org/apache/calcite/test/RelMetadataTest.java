@@ -1467,7 +1467,7 @@ public class RelMetadataTest {
   @Test void testRowCountSortLimitBeyondLong() {
     final BigDecimal fetch = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.ONE);
     final double fetchDouble = fetch.doubleValue();
-    final String sql = "select * from emp order by ename limit " + fetchDouble;
+    final String sql = "select * from emp order by ename limit " + fetch.toPlainString();
     final RelMetadataFixture fixture = sql(sql);
     fixture.assertThatRowCount(is(EMP_SIZE), is(0D), is(fetchDouble));
   }

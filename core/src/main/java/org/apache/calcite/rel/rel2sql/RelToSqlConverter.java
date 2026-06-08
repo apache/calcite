@@ -54,11 +54,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsofJoin;
@@ -1191,7 +1195,7 @@ public class RelToSqlConverter extends SqlImplementor
           sqlSelect.setOffset(offset);
         }
         if (e.fetch != null) {
-          SqlNode fetch = builder.context.toSql(null, e.fetch);
+          SqlNode fetch = toSqlFetch(e, builder.context);
           sqlSelect.setFetch(fetch);
         }
         return result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
@@ -1249,10 +1253,42 @@ public class RelToSqlConverter extends SqlImplementor
    * The builder must have been created with OFFSET and FETCH clauses. */
   void offsetFetch(Sort e, Builder builder) {
     if (e.fetch != null) {
-      builder.setFetch(builder.context.toSql(null, e.fetch));
+      builder.setFetch(toSqlFetch(e, builder.context));
     }
     if (e.offset != null) {
       builder.setOffset(builder.context.toSql(null, e.offset));
+    }
+  }
+
+  private static SqlNode toSqlFetch(Sort sort, Context context) {
+    final RexNode fetch = requireNonNull(sort.fetch, "fetch");
+    if (fetch instanceof RexLiteral
+        || fetch instanceof RexDynamicParam
+        || !RexUtil.isConstant(fetch)
+        || !RexUtil.isDeterministic(fetch)
+        || containsDynamicParam(fetch)) {
+      return context.toSql(null, fetch);
+    }
+    final RexExecutor executor =
+        Util.first(sort.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
+    final List<RexNode> reducedValues = new ArrayList<>(1);
+    executor.reduce(sort.getCluster().getRexBuilder(),
+        Collections.singletonList(fetch), reducedValues);
+    final RexNode reduced = reducedValues.get(0);
+    return context.toSql(null, reduced instanceof RexLiteral ? reduced : fetch);
+  }
+
+  private static boolean containsDynamicParam(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+              throw Util.FoundOne.NULL;
+            }
+          });
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
     }
   }
 

@@ -1109,6 +1109,12 @@ public class SqlDialect {
 
   protected static void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch) {
     if (fetch != null) {
+      if (!(fetch instanceof SqlLiteral)
+          && !(fetch instanceof SqlDynamicParam)) {
+        throw new IllegalArgumentException(
+            "LIMIT dialect does not support FETCH expressions that cannot "
+                + "be reduced to a literal");
+      }
       writer.newlineAndIndent();
       final SqlWriter.Frame fetchFrame =
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);

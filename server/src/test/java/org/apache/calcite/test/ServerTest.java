@@ -312,19 +312,22 @@ class ServerTest {
         assertThat(p.executeUpdate(), is(1));
       }
 
-      SQLException e = assertThrows(SQLException.class,
-          () -> s.executeQuery("select * from person "
+      SQLException e =
+          assertThrows(
+              SQLException.class, () -> s.executeQuery("select * from person "
               + "fetch next id rows only"));
       assertThat(e.getMessage(), containsString("Encountered \"id\""));
 
-      e = assertThrows(SQLException.class,
-          () -> s.executeQuery("select * from person "
+      e =
+          assertThrows(
+              SQLException.class, () -> s.executeQuery("select * from person "
               + "fetch next (id) rows only"));
       assertThat(e.getMessage(),
           containsString("FETCH expression cannot reference table column 'ID'"));
 
-      e = assertThrows(SQLException.class,
-          () -> s.executeQuery("select * from person "
+      e =
+          assertThrows(
+              SQLException.class, () -> s.executeQuery("select * from person "
               + "fetch next (1 + id) rows only"));
       assertThat(e.getMessage(),
           containsString("FETCH expression cannot reference table column 'ID'"));

@@ -19672,7 +19672,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[RAND_INTEGER(10)])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSortWithDynamicParam">
+  <TestCase name="testSortWithDynamicParamPushesOnce">
     <Resource name="sql">
       <![CDATA[SELECT x.sal
 FROM (SELECT emp1.sal
@@ -19706,14 +19706,16 @@ LogicalSort(fetch=[?2])
 LogicalProject(SAL=[$0])
   LogicalSort(fetch=[?2])
     LogicalUnion(all=[true])
-      LogicalProject(SAL=[$0])
-        LogicalProject(SAL=[$5])
-          LogicalSort(fetch=[?0])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(SAL=[$0])
-        LogicalProject(SAL=[$5])
-          LogicalSort(fetch=[?1])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(fetch=[?2])
+        LogicalProject(SAL=[$0])
+          LogicalProject(SAL=[$5])
+            LogicalSort(fetch=[?0])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(fetch=[?2])
+        LogicalProject(SAL=[$0])
+          LogicalProject(SAL=[$5])
+            LogicalSort(fetch=[?1])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

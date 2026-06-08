@@ -5921,11 +5921,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6647">[CALCITE-6647]
-   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
-   </a>. */
-  @Test void testSortWithDynamicParam() {
+  /** Verifies that SortUnionTransposeRule pushes a deterministic dynamic FETCH
+   * past a UNION only once. */
+  @Test void testSortWithDynamicParamPushesOnce() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(SortProjectTransposeRule.class);
     builder.addRuleClass(SortUnionTransposeRule.class);
