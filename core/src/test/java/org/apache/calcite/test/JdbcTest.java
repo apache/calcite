@@ -1297,6 +1297,17 @@ public class JdbcTest {
             + "c0=1998\n");
   }
 
+  /** Test case for [CALCITE-7594] GROUP BY ALL: grouping only by a constant
+   * over empty input returns 0 rows. */
+  @Test void testGroupByAllOverEmptyInput() {
+    CalciteAssert.hr()
+        .query("select 'x', count(*)\n"
+                + "from \"hr\".\"emps\"\n"
+                + "where false\n"
+                + "group by all")
+        .returnsCount(0);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2894">[CALCITE-2894]
    * NullPointerException thrown by RelMdPercentageOriginalRows when explaining

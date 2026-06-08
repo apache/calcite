@@ -214,6 +214,10 @@ public class SqlSelectOperator extends SqlOperator {
         writer.sep("GROUP BY DISTINCT");
         List<SqlNode> operandList = ((SqlCall) groupBy.get(0)).getOperandList();
         groupBy = new SqlNodeList(operandList, groupBy.getParserPosition());
+      } else if (groupBy.size() == 1 && groupBy.get(0) != null
+          && groupBy.get(0).getKind() == SqlKind.GROUP_BY_ALL) {
+        writer.sep("GROUP BY ALL");
+        groupBy = new SqlNodeList(groupBy.getParserPosition());
       } else {
         writer.sep("GROUP BY");
       }
