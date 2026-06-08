@@ -2637,6 +2637,22 @@ public class SqlParserTest {
     sql(sql2).ok(expected2);
   }
 
+  @Test void testGroupByAll() {
+    final String sql = "select x, sum(y) from t\n"
+        + "group by all";
+    final String expected = "SELECT `X`, SUM(`Y`)\n"
+        + "FROM `T`\n"
+        + "GROUP BY ALL";
+    sql(sql).ok(expected);
+
+    final String sql1 = "select deptno from emp\n"
+        + "group by all deptno, gender";
+    final String expected1 = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY `DEPTNO`, `GENDER`";
+    sql(sql1).ok(expected1);
+  }
+
   @Test void testGroupByCube2() {
     final String sql = "select deptno from emp\n"
         + "group by cube ((a, b), (c, d)) order by a";
