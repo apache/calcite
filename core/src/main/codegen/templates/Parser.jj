@@ -3066,6 +3066,7 @@ SqlNodeList OrderBy(boolean accept) :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
     final Span s;
+    SqlNode all;
 }
 {
     <ORDER> {
@@ -3077,10 +3078,32 @@ SqlNodeList OrderBy(boolean accept) :
             throw SqlUtil.newContextException(s.pos(), RESOURCE.illegalOrderBy());
         }
     }
-    <BY> OrderItemList(list)
-    {
-        return new SqlNodeList(list, s.addAll(list).pos());
-    }
+    <BY>
+    (
+        <ALL> { all = SqlInternalOperators.ORDER_BY_ALL.createCall(getPos()); }
+        (
+            <ASC>
+        |   <DESC> { all = SqlStdOperatorTable.DESC.createCall(getPos(), all); }
+        )?
+        (
+            LOOKAHEAD(2)
+            <NULLS> <FIRST> {
+                all = SqlStdOperatorTable.NULLS_FIRST.createCall(getPos(), all);
+            }
+        |
+            <NULLS> <LAST> {
+                all = SqlStdOperatorTable.NULLS_LAST.createCall(getPos(), all);
+            }
+        )?
+        {
+            list.add(all);
+            return new SqlNodeList(list, s.addAll(list).pos());
+        }
+    |
+        OrderItemList(list) {
+            return new SqlNodeList(list, s.addAll(list).pos());
+        }
+    )
 }
 
 <#if parser.includeSelectBy!false>

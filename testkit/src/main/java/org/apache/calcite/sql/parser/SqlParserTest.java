@@ -3931,6 +3931,29 @@ public class SqlParserTest {
             + "ORDER BY `EMPNO`, `GENDER` DESC, `DEPTNO`, `EMPNO`, `NAME` DESC");
   }
 
+  @Test void testOrderByAll() {
+    final String sql = "select x, y from t\n"
+        + "order by all";
+    final String expected = "SELECT `X`, `Y`\n"
+        + "FROM `T`\n"
+        + "ORDER BY ALL";
+    sql(sql).ok(expected);
+
+    final String sql1 = "select x, y from t\n"
+        + "order by all desc";
+    final String expected1 = "SELECT `X`, `Y`\n"
+        + "FROM `T`\n"
+        + "ORDER BY ALL DESC";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "select x, y from t\n"
+        + "order by all desc nulls last";
+    final String expected2 = "SELECT `X`, `Y`\n"
+        + "FROM `T`\n"
+        + "ORDER BY ALL DESC NULLS LAST";
+    sql(sql2).ok(expected2);
+  }
+
   @Test void testOrderNullsFirst() {
     final String sql = "select * from emp\n"
         + "order by gender desc nulls last,\n"
