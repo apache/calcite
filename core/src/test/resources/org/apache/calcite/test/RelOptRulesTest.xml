@@ -19624,6 +19624,36 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortUnionTransposePushesParameterizedFetchExpression">
+    <Resource name="sql">
+      <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name fetch next (? + 1) rows only]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
+  LogicalUnion(all=[true])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortUnionTransposeWithNonDeterministicFetch">
     <Resource name="sql">
       <![CDATA[select a.name from dept a
@@ -19634,24 +19664,6 @@ order by name fetch next (rand_integer(10)) rows only]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[RAND_INTEGER(10)])
-  LogicalUnion(all=[true])
-    LogicalProject(NAME=[$1])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(NAME=[$1])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortUnionTransposeWithParameterizedFetchExpression">
-    <Resource name="sql">
-      <![CDATA[select a.name from dept a
-union all
-select b.name from dept b
-order by name fetch next (? + 1) rows only]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
   LogicalUnion(all=[true])
     LogicalProject(NAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])

@@ -1691,7 +1691,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testSortUnionTransposeWithParameterizedFetchExpression() {
+  @Test void testSortUnionTransposePushesParameterizedFetchExpression() {
     final String sql = "select a.name from dept a\n"
         + "union all\n"
         + "select b.name from dept b\n"
@@ -1699,7 +1699,7 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
         .withRule(CoreRules.SORT_UNION_TRANSPOSE)
-        .checkUnchanged();
+        .check();
   }
 
   @Test void testSortRemovalAllKeysConstant() {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Contexts;
@@ -54,6 +55,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -767,7 +769,18 @@ public class JdbcRules {
      *                            JDBC convention
      * @return A new JdbcSort
      */
-    public RelNode convert(Sort sort, boolean convertInputTraits) {
+    public @Nullable RelNode convert(Sort sort, boolean convertInputTraits) {
+      final RexNode fetch;
+      if (sort.fetch == null
+          || sort.fetch instanceof RexLiteral
+          || sort.fetch instanceof RexDynamicParam) {
+        fetch = sort.fetch;
+      } else {
+        fetch = EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+        if (fetch == null) {
+          return null;
+        }
+      }
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
 
       final RelNode input;
@@ -779,7 +792,7 @@ public class JdbcRules {
       }
 
       return new JdbcSort(sort.getCluster(), traitSet,
-          input, sort.getCollation(), sort.offset, sort.fetch);
+          input, sort.getCollation(), sort.offset, fetch);
     }
   }
 

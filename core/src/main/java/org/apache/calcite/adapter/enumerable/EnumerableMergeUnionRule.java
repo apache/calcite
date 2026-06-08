@@ -90,8 +90,7 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
     RexNode inputFetch = null;
     if (sort.fetch != null) {
       final boolean safeToRepeat =
-          RexUtil.isDeterministic(sort.fetch)
-              && !RexUtil.containsDynamicParam(sort.fetch);
+          RexUtil.isDeterministic(sort.fetch);
       if (sort.offset == null && safeToRepeat) {
         inputFetch = sort.fetch;
       } else if (safeToRepeat

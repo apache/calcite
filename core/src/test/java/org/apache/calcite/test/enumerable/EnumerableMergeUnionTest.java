@@ -90,16 +90,16 @@ class EnumerableMergeUnionTest {
             + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n");
   }
 
-  @Test void mergeUnionDoesNotPushParameterizedFetchExpression() {
+  @Test void mergeUnionPushesParameterizedFetchExpression() {
     tester(false,
         new HrSchemaBig(),
         "select * from (select empid, name from emps "
             + "union all select empid, name from emps) "
             + "order by empid fetch next (? + 1) rows only")
-        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
-            + "fetch=[+(?0, 1)])\n"
+        .explainContains("EnumerableLimit(fetch=[+(?0, 1)])\n"
             + "  EnumerableMergeUnion(all=[true])\n"
-            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n");
+            + "    EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "fetch=[+(?0, 1)])\n");
   }
 
   @Test void mergeUnionAllOrderByName() {

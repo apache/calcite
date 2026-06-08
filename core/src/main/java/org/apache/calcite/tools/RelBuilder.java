@@ -79,13 +79,22 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexNodeAndFieldIndex;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexPatternFieldRef;
+import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.rex.RexWindowExclusion;
@@ -108,6 +117,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -3807,6 +3817,18 @@ public class RelBuilder {
         throw new IllegalArgumentException("OFFSET node must be RexLiteral or RexDynamicParam");
       }
     }
+    if (fetchNode != null && isInvalidFetchExpression(fetchNode)) {
+      throw new IllegalArgumentException(
+          "FETCH node must not reference input fields or contain window functions or subqueries");
+    }
+    if (fetchNode != null
+        && !SqlTypeUtil.isIntType(fetchNode.getType())
+        && !(SqlTypeUtil.isDecimal(fetchNode.getType())
+            && fetchNode.getType().getScale() == 0)) {
+      throw new IllegalArgumentException(
+          "FETCH node must have an integral numeric type; actual type is "
+              + fetchNode.getType().getFullTypeString());
+    }
     final Registrar registrar = new Registrar(fields(), ImmutableList.of());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);
@@ -3871,6 +3893,61 @@ public class RelBuilder {
       project(registrar.originalExtraNodes);
     }
     return this;
+  }
+
+  private static boolean isInvalidFetchExpression(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitInputRef(RexInputRef inputRef) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitLocalRef(RexLocalRef localRef) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitTableInputRef(RexTableInputRef ref) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitRangeRef(RexRangeRef rangeRef) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitOver(RexOver over) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitSubQuery(RexSubQuery subQuery) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitNodeAndFieldIndex(
+                RexNodeAndFieldIndex nodeAndFieldIndex) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitLambda(RexLambda lambda) {
+              throw Util.FoundOne.NULL;
+            }
+
+            @Override public Void visitLambdaRef(RexLambdaRef lambdaRef) {
+              throw Util.FoundOne.NULL;
+            }
+          });
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
   }
 
   private static RelFieldCollation collation(RexNode node,

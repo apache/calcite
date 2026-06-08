@@ -10008,6 +10008,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select name from dept fetch next (^1.5^) rows only")
         .fails("FETCH expression must have an integral numeric type; "
             + "actual type is 'DECIMAL\\(2, 1\\) NOT NULL'");
+    sql("select name from dept "
+        + "fetch next (^row_number() over ()^) rows only")
+        .fails("Windowed aggregate expression is illegal in FETCH clause");
   }
 
   @Test void testRewriteWithOffsetWithoutOrderBy() {

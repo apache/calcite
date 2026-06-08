@@ -840,21 +840,6 @@ public class RexUtil {
     }
   }
 
-  /** Returns whether an expression contains a dynamic parameter. */
-  public static boolean containsDynamicParam(RexNode node) {
-    try {
-      node.accept(
-          new RexVisitorImpl<Void>(true) {
-            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
-              throw Util.FoundOne.NULL;
-            }
-          });
-      return false;
-    } catch (Util.FoundOne e) {
-      return true;
-    }
-  }
-
   public static List<RexNode> retainDeterministic(List<RexNode> list) {
     List<RexNode> conjunctions = new ArrayList<>();
     for (RexNode x : list) {

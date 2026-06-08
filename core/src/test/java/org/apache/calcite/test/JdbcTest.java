@@ -6054,6 +6054,15 @@ public class JdbcTest {
           checkPreparedFetch(connection,
               values + "fetch next (abs(cast(? as integer))) rows only",
               -2, "X=1\nX=2\n");
+          checkPreparedFetchRepeated(connection,
+              values + "fetch next (?) rows only",
+              new int[] {1, 3},
+              new String[] {"X=1\n", "X=1\nX=2\nX=3\n"});
+          checkPreparedFetchRepeated(connection,
+              values + "fetch next (? + 1) rows only",
+              new int[] {0, 2, 3},
+              new String[] {"X=1\n", "X=1\nX=2\nX=3\n",
+                  "X=1\nX=2\nX=3\nX=4\n"});
 
           checkPreparedFetchFails(connection,
               values + "fetch next (?) rows only", -1,
@@ -6078,6 +6087,11 @@ public class JdbcTest {
             checkPreparedFetch(connection,
                 values + "fetch next (? + 1) rows only",
                 2, "X=1\nX=2\nX=3\n");
+            checkPreparedFetchRepeated(connection,
+                values + "fetch next (? + 1) rows only",
+                new int[] {0, 2, 3},
+                new String[] {"X=1\n", "X=1\nX=2\nX=3\n",
+                    "X=1\nX=2\nX=3\nX=4\n"});
           });
     }
   }
@@ -6088,6 +6102,20 @@ public class JdbcTest {
       p.setInt(1, value);
       try (ResultSet r = p.executeQuery()) {
         assertThat(CalciteAssert.toString(r), is(expected));
+      }
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static void checkPreparedFetchRepeated(Connection connection, String sql,
+      int[] values, String[] expected) {
+    try (PreparedStatement p = connection.prepareStatement(sql)) {
+      for (int i = 0; i < values.length; i++) {
+        p.setInt(1, values[i]);
+        try (ResultSet r = p.executeQuery()) {
+          assertThat(CalciteAssert.toString(r), is(expected[i]));
+        }
       }
     } catch (SQLException e) {
       throw TestUtil.rethrow(e);

@@ -1753,7 +1753,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(fetch,
           RESOURCE.fetchExpressionEvaluatedToNull());
     }
-    validateNoAggs(aggFinder, fetch, "FETCH");
+    validateNoAggs(aggOrOverFinder, fetch, "FETCH");
     fetch.accept(new SqlBasicVisitor<Void>() {
       @Override public Void visit(SqlIdentifier id) {
         throw newValidationError(id,

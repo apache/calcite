@@ -35,6 +35,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Util;
@@ -192,7 +193,11 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
 
   static void validateLiteralFetch(@Nullable RexNode fetch) {
     if (fetch instanceof RexLiteral) {
-      toIntFetch(((RexLiteral) fetch).getValueAs(Number.class));
+      final Number value = ((RexLiteral) fetch).getValueAs(Number.class);
+      final BigDecimal decimal = NumberUtil.toBigDecimal(value);
+      if (decimal != null && decimal.signum() < 0) {
+        toIntFetch(value);
+      }
     }
   }
 
@@ -203,7 +208,9 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     if (fetch instanceof RexLiteral) {
       literal = (RexLiteral) fetch;
     } else {
-      if (!RexUtil.isConstant(fetch) || !RexUtil.isDeterministic(fetch)) {
+      if (!RexUtil.isConstant(fetch)
+          || !RexUtil.isDeterministic(fetch)
+          || containsDynamicParam(fetch)) {
         return null;
       }
       final RexExecutor executor =
@@ -219,5 +226,19 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     }
     final int value = toIntFetch(literal.getValueAs(Number.class));
     return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
+  }
+
+  private static boolean containsDynamicParam(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+              throw Util.FoundOne.NULL;
+            }
+          });
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
   }
 }
