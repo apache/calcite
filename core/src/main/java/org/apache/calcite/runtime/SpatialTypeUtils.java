@@ -140,13 +140,12 @@ public class SpatialTypeUtils {
    */
   public static Geometry fromGml(String gml) {
     try {
-      // GMLReader.read builds its own SAXParserFactory with external entities
-      // enabled, so parse with a hardened reader and feed JTS's GMLHandler.
+      // GMLReader.read builds its own SAXParserFactory with DOCTYPE enabled, so
+      // parse with a hardened reader and feed JTS's GMLHandler. Disallowing the
+      // DOCTYPE declaration rejects any external subset or entities outright.
       final SAXParserFactory factory = SAXParserFactory.newInstance();
       factory.setNamespaceAware(true);
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-      factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-      factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       final SAXParser parser = factory.newSAXParser();
       final XMLReader xmlReader = parser.getXMLReader();
       final GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, null);
