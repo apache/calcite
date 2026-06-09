@@ -2121,9 +2121,11 @@ Syntax:
 windowedAggregateCall:
       agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
       [ RESPECT NULLS | IGNORE NULLS ]
+      [ FILTER '(' WHERE condition ')' ]
       [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
       OVER window
   |   agg '(' '*' ')'
+      [ FILTER '(' WHERE condition ')' ]
       OVER window
 {% endhighlight %}
 
@@ -2138,6 +2140,15 @@ The *exclude* clause can be one of:
 
 `DISTINCT`, `FILTER` and `WITHIN GROUP` are as described for aggregate
 functions.
+
+#### FILTER clause in window functions
+
+When `FILTER` is used with window functions, it is applied in the following order:
+
+1. Define window rows by `PARTITION BY` and `ORDER BY`
+2. Apply `ROWS`/`RANGE` bounds to determine the window frame
+3. Apply the `FILTER` condition to rows within that frame
+4. Calculate the aggregate function on the filtered rows
 
 | Operator syntax                           | Description
 |:----------------------------------------- |:-----------
