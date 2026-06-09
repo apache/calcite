@@ -67,6 +67,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     switch (aggCall.getKind()) {
     case RESPECT_NULLS:
     case IGNORE_NULLS:
+    case FILTER:
       validator.validateCall(aggCall, scope);
       aggCall = aggCall.operand(0);
       break;
@@ -102,7 +103,14 @@ public class SqlOverOperator extends SqlBinaryOperator {
     SqlNode window = call.operand(1);
     SqlWindow w = validator.resolveWindow(window, scope);
 
-    final SqlCall aggCall = (SqlCall) agg;
+    SqlCall aggCall = (SqlCall) agg;
+    // Unwrap FILTER, RESPECT_NULLS, or IGNORE_NULLS to get the actual aggregate call
+    while (aggCall != null
+        && (aggCall.getKind() == SqlKind.FILTER
+            || aggCall.getKind() == SqlKind.RESPECT_NULLS
+            || aggCall.getKind() == SqlKind.IGNORE_NULLS)) {
+      aggCall = aggCall.operand(0);
+    }
 
     SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
       @Override public boolean hasEmptyGroup() {

@@ -3513,11 +3513,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * Validator rejects FILTER in OVER windows</a>. */
   @Test void testOverFilter() {
     winSql("SELECT deptno,\n"
-        + "       ^COUNT(DISTINCT deptno) FILTER (WHERE deptno > 10)^\n"
+        + "       COUNT(DISTINCT deptno) FILTER (WHERE deptno > 10)\n"
         + "OVER win AS agg\n"
         + "FROM emp\n"
-         + "WINDOW win AS (PARTITION BY empno)")
-        .fails("OVER must be applied to aggregate function");
+        + "WINDOW win AS (PARTITION BY empno)")
+        .ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7595">[CALCITE-7595]
+   * Support FILTER clause with window functions</a>. */
+  @Test void testFilterWithOver() {
+    winSql("SELECT SUM(sal) FILTER (WHERE sal > 100) OVER (PARTITION BY deptno) FROM emp")
+        .ok();
+  }
+
+  @Test void testFilterWithOverAndDistinct() {
+    winSql("SELECT SUM(DISTINCT sal) FILTER (WHERE sal > 100) OVER (ORDER BY deptno) FROM emp")
+        .ok();
+  }
+
+  @Test void testMultipleFiltersWithOver() {
+    winSql("SELECT "
+        + "COUNT(*) FILTER (WHERE empno > 100) OVER (PARTITION BY deptno), "
+        + "SUM(sal) FILTER (WHERE sal > 0) OVER (PARTITION BY deptno) "
+        + "FROM emp")
+        .ok();
   }
 
   @Test void testOverInOrderBy() {

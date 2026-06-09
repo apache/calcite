@@ -417,6 +417,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EVERY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FILTER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
@@ -1250,6 +1251,7 @@ public class RexImpTable {
           NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method,
                   NullPolicy.NONE, false)));
+      define(FILTER, new FilterImplementor());
     }
 
     /** Third step of population. */
@@ -5109,6 +5111,20 @@ public class RexImpTable {
       final Expression operand2 = argValueList.get(2);
       return Expressions.call(BuiltInMethod.REPLACE.method,
           operand0, operand1, operand2, Expressions.constant(isCaseSensitive));
+    }
+  }
+
+  /** Implementor for the FILTER operator. */
+  private static class FilterImplementor extends AbstractRexCallImplementor {
+    FilterImplementor() {
+      super("filter", NullPolicy.NONE, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final Expression value = argValueList.get(0);
+      final Expression condition = argValueList.get(1);
+      return Expressions.condition(condition, value, NULL_EXPR);
     }
   }
 }
