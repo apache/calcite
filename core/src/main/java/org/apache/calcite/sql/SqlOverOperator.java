@@ -64,9 +64,14 @@ public class SqlOverOperator extends SqlBinaryOperator {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
     SqlCall aggCall = call.operand(0);
+    boolean hasFilter = false;
     switch (aggCall.getKind()) {
     case RESPECT_NULLS:
     case IGNORE_NULLS:
+    case FILTER:
+      if (aggCall.getKind() == SqlKind.FILTER) {
+        hasFilter = true;
+      }
       validator.validateCall(aggCall, scope);
       aggCall = aggCall.operand(0);
       break;
@@ -74,6 +79,11 @@ public class SqlOverOperator extends SqlBinaryOperator {
       break;
     }
     if (!aggCall.getOperator().isAggregator()) {
+      throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
+    }
+    // COUNT(DISTINCT) is not allowed in window functions with FILTER
+    if (hasFilter && aggCall.getKind() == SqlKind.COUNT
+        && aggCall.getFunctionQuantifier() != null) {
       throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
     }
     final SqlNode window = call.operand(1);
@@ -102,7 +112,14 @@ public class SqlOverOperator extends SqlBinaryOperator {
     SqlNode window = call.operand(1);
     SqlWindow w = validator.resolveWindow(window, scope);
 
-    final SqlCall aggCall = (SqlCall) agg;
+    SqlCall aggCall = (SqlCall) agg;
+    // Unwrap FILTER, RESPECT_NULLS, or IGNORE_NULLS to get the actual aggregate call
+    while (aggCall != null
+        && (aggCall.getKind() == SqlKind.FILTER
+            || aggCall.getKind() == SqlKind.RESPECT_NULLS
+            || aggCall.getKind() == SqlKind.IGNORE_NULLS)) {
+      aggCall = aggCall.operand(0);
+    }
 
     SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
       @Override public boolean hasEmptyGroup() {

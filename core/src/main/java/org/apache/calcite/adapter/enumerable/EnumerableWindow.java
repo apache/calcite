@@ -451,6 +451,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
               hasRows, frameRowCount, partitionRowCount,
               jDecl, inputPhysTypeFinal);
 
+      final RelDataType inputRowType = inputPhysType.getRowType();
       final Function<AggImpState, List<RexNode>> rexArguments = agg -> {
         List<Integer> argList = agg.call.getArgList();
         List<RelDataType> inputTypes =
@@ -464,7 +465,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         return args;
       };
 
-      implementAdd(aggs, builder7, resultContextBuilder, rexArguments, jDecl);
+      implementAdd(aggs, builder7, resultContextBuilder, rexArguments, jDecl, inputRowType);
       BlockStatement forBlock = builder7.toBlock();
 
       // Don't run the aggregate function if current row is excluded
@@ -866,7 +867,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final BlockBuilder builder7,
       final Function<BlockBuilder, WinAggFrameResultContext> frame,
       final Function<AggImpState, List<RexNode>> rexArguments,
-      final DeclarationStatement jDecl) {
+      final DeclarationStatement jDecl,
+      final RelDataType inputRowType) {
     for (final AggImpState agg : aggs) {
       final WinAggAddContext addContext =
           new WinAggAddContextImpl(builder7, requireNonNull(agg.state, "agg.state"), frame) {
@@ -879,7 +881,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             }
 
             @Override public @Nullable RexNode rexFilterArgument() {
-              return null; // REVIEW
+              return agg.call.filterArg < 0
+                  ? null
+                  : RexInputRef.of(agg.call.filterArg, inputRowType);
             }
           };
       agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"), addContext);
