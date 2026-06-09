@@ -173,7 +173,18 @@ public class TimestampWithTimeZoneString
   }
 
   @Override public int compareTo(TimestampWithTimeZoneString o) {
-    return this.pt.getCalendar().compareTo(o.pt.getCalendar());
+    final int c = compareToInstant(o);
+    return c != 0 ? c : v.compareTo(o.v);
+  }
+
+  /** Compares this timestamp to another timestamp by instant. */
+  public int compareToInstant(TimestampWithTimeZoneString o) {
+    return Long.compare(getMillisSinceEpoch(), o.getMillisSinceEpoch());
+  }
+
+  /** Returns the number of milliseconds since the epoch. */
+  public long getMillisSinceEpoch() {
+    return pt.getCalendar().getTimeInMillis();
   }
 
   public TimestampWithTimeZoneString round(int precision) {
