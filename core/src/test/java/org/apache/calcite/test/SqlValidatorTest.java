@@ -9841,6 +9841,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT dept_nested.employees[1].detail.skills[1].others.a as oa\n"
         + "from dept_nested")
         .type("RecordType(VARCHAR(10) OA) NOT NULL");
+    // Test case for [CALCITE-4353] Validator fails to expand order expression with dot operator
+    sql("select * from dept_nested order by employees[1].detail.skills[2+3].desc")
+        .ok();
   }
 
   @Test void testItemOperatorException() {

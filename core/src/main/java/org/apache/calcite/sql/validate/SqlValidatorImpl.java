@@ -7894,7 +7894,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (call instanceof SqlSelect) {
         return call;
       }
-      return super.visitScoped(call);
+      // Only visit expression arguments. For DOT calls (e.g. 'employees[1].detail'),
+      // operand[1] is a field name, not a column reference, and must not be qualified.
+      CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, false);
+      call.getOperator().acceptCall(this, call, true, argHandler);
+      return argHandler.result();
     }
   }
 

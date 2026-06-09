@@ -533,4 +533,20 @@ SELECT * FROM emp ORDER BY deptno, null, empno;
 
 !ok
 
+# [CALCITE-4353] Validator fails to expand order expression with dot operator
+!use bookstore
+select au."name" as author, au."books"[1]."title" title
+from "bookstore"."authors" au
+order by au."books"[1]."title";
++-------------------+-----------------+
+| AUTHOR            | TITLE           |
++-------------------+-----------------+
+| Victor Hugo       | Les Misérables  |
+| Nikos Kazantzakis | Zorba the Greek |
+| Homer             |                 |
++-------------------+-----------------+
+(3 rows)
+
+!ok
+
 # End sort.iq
