@@ -3819,7 +3819,8 @@ public class SqlToRelConverter {
       if (having != null) {
         SqlNode newHaving = pushDownNotForIn(bb.scope, having);
         replaceSubQueries(bb, newHaving, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
-        havingExpr = bb.convertExpression(newHaving);
+        RexNode having0 = bb.convertExpression(newHaving);
+        havingExpr = simplifyPredicate(having0);
       } else {
         havingExpr = relBuilder.literal(true);
       }

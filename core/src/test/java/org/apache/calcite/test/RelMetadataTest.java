@@ -4531,6 +4531,16 @@ public class RelMetadataTest {
     SqlValidatorTester.DEFAULT.convertSqlToRel(factory, sql, false, false);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7598">[CALCITE-7598]
+   * Query with HAVING empno BETWEEN NULL AND NULL crashes the compiler</a>. */
+  @Test void testHavingCrash() {
+    String sql = "SELECT DISTINCT empno FROM emp GROUP BY empno HAVING empno BETWEEN NULL AND NULL";
+    SqlTestFactory factory = SqlTestFactory.INSTANCE
+        .withSqlToRelConfig(
+            c -> c.withRelBuilderConfigTransform(t -> t.withSimplify(false)));
+    SqlValidatorTester.DEFAULT.convertSqlToRel(factory, sql, false, false);
+  }
+
   @Test void testAllPredicates() {
     final Project rel = (Project) sql("select * from emp, dept").toRel();
     final Join join = (Join) rel.getInput();
