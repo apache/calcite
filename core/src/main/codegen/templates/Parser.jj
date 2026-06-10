@@ -1296,6 +1296,8 @@ void AddKeyValueOption(List<SqlNode> list) :
     )
     <EQ>
     (
+        value = NumericLiteral()
+    |
         value = StringLiteral()
     |
         value = SimpleIdentifier()
