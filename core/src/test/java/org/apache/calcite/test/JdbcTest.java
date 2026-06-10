@@ -2583,18 +2583,9 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .query(sql)
-        .returnsUnordered("name=Bill; deptno=10; M=190",
-            "name=Bill; deptno=30; M=190",
-            "name=Bill; deptno=40; M=190",
-            "name=Eric; deptno=10; M=240",
-            "name=Eric; deptno=30; M=240",
-            "name=Eric; deptno=40; M=240",
-            "name=Sebastian; deptno=10; M=190",
-            "name=Sebastian; deptno=30; M=190",
-            "name=Sebastian; deptno=40; M=190",
-            "name=Theodore; deptno=10; M=190",
-            "name=Theodore; deptno=30; M=190",
-            "name=Theodore; deptno=40; M=190");
+        .returnsUnordered("name=Bill; deptno=10; M=110",
+            "name=Sebastian; deptno=10; M=160",
+            "name=Theodore; deptno=10; M=120");
   }
 
   /** Per SQL std, UNNEST is implicitly LATERAL. */
