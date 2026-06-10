@@ -60,7 +60,7 @@ Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
   </TestCase>
   <TestCase name="testDocumentationExample">
     <Resource name="sql">
-      <![CDATA[SELECT /*+ hint1, hint2(a='1', b='2') */ *
+      <![CDATA[SELECT /*+ hint1, hint2(a=1, b=2) */ *
 FROM emp /*+ hint3(5, 'x') */
 JOIN dept /*+ hint4(c=id), hint5 */
 ON emp.deptno = dept.deptno]]>
@@ -350,6 +350,17 @@ LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
 TableScan:[[PROPERTIES inheritPath:[0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0] options:[ENAME]]]
 TableScan:[[PROPERTIES inheritPath:[0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 1] options:[ENAME]]]
 TableScan:[[PROPERTIES inheritPath:[0, 1, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 1, 0] options:[ENAME]]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testQueryHintWithKeyValueNumericLiteralOptions">
+    <Resource name="sql">
+      <![CDATA[select /*+ hint2(a=1, b=-1, c=1.1, d=-1.1, e=1e3, f=-1e-4) */ *
+from emp]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[HINT2 inheritPath:[] options:{A=1, B=-1, C=1.1, D=-1.1, E=1E3, F=-1E-4}]]
 ]]>
     </Resource>
   </TestCase>

@@ -197,18 +197,19 @@ public class SqlHint extends SqlCall {
      * The hint options are list of key-value pairs.
      * For each pair,
      * the key is a simple identifier or string literal,
-     * the value is a string literal.
+     * the value is a string or numeric literal.
      */
     KV_LIST
   }
 
   //~ Tools ------------------------------------------------------------------
 
-  private static String getOptionAsString(SqlNode node) {
+  private String getOptionAsString(SqlNode node) {
     assert node instanceof SqlIdentifier || SqlUtil.isLiteral(node);
     if (node instanceof SqlIdentifier) {
       return ((SqlIdentifier) node).getSimple();
     }
-    return ((SqlLiteral) node).getValueAs(String.class);
+    return requireNonNull(((SqlLiteral) node).toValue(),
+        () -> "null hint literal in " + options);
   }
 }

@@ -3598,11 +3598,13 @@ optionKey:
 
 optionVal:
       simpleIdentifier
+  |   numericLiteral
   |   stringLiteral
 
 hintOption:
       simpleIdentifier
-   |  stringLiteral
+  |   numericLiteral
+  |   stringLiteral
 {% endhighlight %}
 
 It is experimental in Calcite, and yet not fully implemented, what we have implemented are:

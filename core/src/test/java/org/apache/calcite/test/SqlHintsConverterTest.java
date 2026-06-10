@@ -172,7 +172,7 @@ class SqlHintsConverterTest {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7498">[CALCITE-7498]
    * The parser rejects the example hints from the documentation</a>. */
   @Test void testDocumentationExample() {
-    final String sql = "SELECT /*+ hint1, hint2(a='1', b='2') */ *\n"
+    final String sql = "SELECT /*+ hint1, hint2(a=1, b=2) */ *\n"
         + "FROM emp /*+ hint3(5, 'x') */\n"
         + "JOIN dept /*+ hint4(c=id), hint5 */\n"
         + "ON emp.deptno = dept.deptno";
@@ -197,6 +197,12 @@ class SqlHintsConverterTest {
 
   @Test void testQueryHintWithLiteralOptions() {
     final String sql = "select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testQueryHintWithKeyValueNumericLiteralOptions() {
+    final String sql = "select /*+ hint2(a=1, b=-1, c=1.1, d=-1.1, e=1e3, f=-1e-4) */ *\n"
         + "from emp";
     sql(sql).ok();
   }
