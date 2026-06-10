@@ -248,9 +248,16 @@ starWithReplace:
       *
   |   * REPLACE '(' expression AS column [, expression AS column ]* ')'
 
+rowStarItem:
+      *
+  |   tableAlias . *
+  |   * { EXCLUDE | EXCEPT } '(' column [, column ]* ')'
+  |   tableAlias . * { EXCLUDE | EXCEPT } '(' column [, column ]* ')'
+
 Note:
 
-* `SELECT * EXCLUDE (...)` and `SELECT * REPLACE (...)` are recognized only when the Babel parser is enabled. `EXCLUDE` (or the alias `EXCEPT`) removes the specified columns from the star expansion; `REPLACE` substitutes the given expressions for the matching columns while keeping the original column order. For `REPLACE`, the column alias must either be a simple identifier or, for a table-qualified star such as `t.*`, a qualified identifier whose prefix matches the star's table alias.
+* `EXCLUDE` (or the alias `EXCEPT`) removes the specified columns from the star expansion; `REPLACE` substitutes the given expressions for the matching columns while keeping the original column order. For `REPLACE`, the column alias must either be a simple identifier or, for a table-qualified star such as `t.*`, a qualified identifier whose prefix matches the star's table alias.
+* `ROW(rowStarItem [, rowStarItem ]*)` creates a nested ROW from all columns (or all columns except the excluded ones) of one or more tables. `EXCEPT` is an alias for `EXCLUDE` in this context.
 
 projectItem:
       expression [ [ AS ] columnAlias ]
@@ -1793,6 +1800,7 @@ Implicit type coercion of following cases are ignored:
 | Operator syntax | Description
 |:--------------- |:-----------
 | ROW (value [, value ]*)  | Creates a row from a list of values.
+| ROW (rowStarItem [, rowStarItem ]*)  | Creates a row from all columns, or all columns except those excluded, of one or more tables.
 | (value [, value ]* )     | Creates a row from a list of values.
 | row '[' index ']'        | Returns the element at a particular location in a row (1-based index).
 | row '[' name ']'         | Returns the element of a row with a particular name.

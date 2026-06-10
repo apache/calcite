@@ -816,8 +816,14 @@ public interface CalciteResource {
   @BaseMessage("SELECT * EXCLUDE/EXCEPT list contains unknown column(s): {0}")
   ExInst<SqlValidatorException> selectStarExcludeListContainsUnknownColumns(String columns);
 
+  @BaseMessage("ROW(* EXCLUDE/EXCEPT list) contains unknown column(s): {0}")
+  ExInst<SqlValidatorException> rowStarExcludeListContainsUnknownColumns(String columns);
+
   @BaseMessage("SELECT * EXCLUDE/EXCEPT list cannot exclude all columns")
   ExInst<SqlValidatorException> selectStarExcludeCannotExcludeAllColumns();
+
+  @BaseMessage("ROW(* EXCLUDE/EXCEPT list) cannot exclude all columns")
+  ExInst<SqlValidatorException> rowStarExcludeCannotExcludeAllColumns();
 
   @BaseMessage("SELECT * REPLACE list contains unknown column(s): {0}")
   ExInst<SqlValidatorException> selectStarReplaceListContainsUnknownColumns(String columns);

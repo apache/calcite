@@ -481,7 +481,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       final SelectScope scope = (SelectScope) getWhereScope(select);
       if (expandStar(selectItems, aliases, fields, includeSystemVars, scope,
-          selectItem)) {
+          selectItem, false)) {
         return true;
       }
 
@@ -670,7 +670,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private boolean expandStar(List<SqlNode> selectItems, Set<String> aliases,
       PairList<String, RelDataType> fields, boolean includeSystemVars,
-      SelectScope scope, SqlNode node) {
+      SelectScope scope, SqlNode node, boolean inRowContext) {
     final SqlIdentifier identifier;
     final SqlNodeList excludeList;
     final SqlNodeList replaceList;
@@ -831,9 +831,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         int offset = Math.min(calculatePermuteOffset(selectItems), originalSize);
         new Permute(from, offset).permute(selectItems, fields);
       }
-      throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched);
+      throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched, inRowContext);
       throwIfExcludeEliminatesAllColumns(excludeIdentifiers, fieldsBeforeStar,
-          fields, identifier);
+          fields, identifier, inRowContext);
       throwIfUnknownReplaceColumns(replaceMap, replaceMatched);
       return true;
 
@@ -909,9 +909,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else {
         throw newValidationError(prefixId, RESOURCE.starRequiresRecordType());
       }
-      throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched);
+      throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched, inRowContext);
       throwIfExcludeEliminatesAllColumns(excludeIdentifiers, fieldsBeforeStar,
-          fields, identifier);
+          fields, identifier, inRowContext);
       throwIfUnknownReplaceColumns(replaceMap, replaceMatched);
       return true;
     }
@@ -987,7 +987,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void throwIfUnknownExcludeColumns(List<SqlIdentifier> excludeIdentifiers,
-      boolean[] excludeMatched) {
+      boolean[] excludeMatched, boolean inRowContext) {
     if (excludeIdentifiers.isEmpty()) {
       return;
     }
@@ -1002,20 +1002,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     if (firstUnknownIndex >= 0) {
+      final String columns = String.join(", ", unknownExcludeNames);
       throw newValidationError(
           excludeIdentifiers.get(firstUnknownIndex),
-          RESOURCE.selectStarExcludeListContainsUnknownColumns(
-              String.join(", ", unknownExcludeNames)));
+          inRowContext
+              ? RESOURCE.rowStarExcludeListContainsUnknownColumns(columns)
+              : RESOURCE.selectStarExcludeListContainsUnknownColumns(columns));
     }
   }
 
   private void throwIfExcludeEliminatesAllColumns(List<SqlIdentifier> excludeIdentifiers,
       int fieldsBeforeStar, PairList<String, RelDataType> fields,
-      SqlIdentifier identifier) {
+      SqlIdentifier identifier, boolean inRowContext) {
     if (!excludeIdentifiers.isEmpty()
         && fields.size() == fieldsBeforeStar) {
       throw newValidationError(identifier,
-          RESOURCE.selectStarExcludeCannotExcludeAllColumns());
+          inRowContext
+              ? RESOURCE.rowStarExcludeCannotExcludeAllColumns()
+              : RESOURCE.selectStarExcludeCannotExcludeAllColumns());
     }
   }
 
@@ -1113,7 +1117,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           fields,
           includeSystemVars,
           scope,
-          starExp);
+          starExp,
+          false);
       return true;
     default:
       addToSelectList(
@@ -7633,6 +7638,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       default:
         break;
       }
+      // SqlStarExclude is expanded by expandStarInRow at the ROW level;
+      // its exclude identifiers must not be resolved as regular column references.
+      if (call instanceof SqlStarExclude) {
+        return call;
+      }
       // Only visits arguments which are expressions. We don't want to
       // qualify non-expressions such as 'x' in 'empno * 5 AS x'.
       CallCopyingArgHandler argHandler =
@@ -7663,8 +7673,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!(scope instanceof SelectScope)) {
         // Check if any operand is a star identifier before throwing error
         for (SqlNode operand : call.getOperandList()) {
-          if (operand instanceof SqlIdentifier
-              && ((SqlIdentifier) operand).isStar()) {
+          if (operand instanceof SqlStarExclude
+              || (operand instanceof SqlIdentifier
+                  && ((SqlIdentifier) operand).isStar())) {
             throw validator.newValidationError(node,
                 RESOURCE.rowStarNotAllowed());
           }
@@ -7675,22 +7686,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final List<SqlNode> expandedOperands = new ArrayList<>();
       boolean expanded = false;
       for (SqlNode operand : call.getOperandList()) {
-        if (operand instanceof SqlIdentifier) {
-          final SqlIdentifier identifier = (SqlIdentifier) operand;
-          if (identifier.isStar()) {
-            final boolean expandedStar =
-                validator.expandStar(expandedOperands,
-                    validator.catalogReader.nameMatcher().createSet(),
-                    PairList.of(),
-                    false,
-                    selectScope,
-                    identifier);
-            if (!expandedStar) {
-              throw new AssertionError("Row star expansion failed for " + identifier);
-            }
-            expanded = true;
-            continue;
+        final SqlIdentifier starId;
+        if (operand instanceof SqlStarExclude) {
+          starId = ((SqlStarExclude) operand).getStarIdentifier();
+        } else if (operand instanceof SqlIdentifier && ((SqlIdentifier) operand).isStar()) {
+          starId = (SqlIdentifier) operand;
+        } else {
+          starId = null;
+        }
+        if (starId != null) {
+          final boolean expandedStar =
+              validator.expandStar(expandedOperands,
+                  validator.catalogReader.nameMatcher().createSet(),
+                  PairList.of(),
+                  false,
+                  selectScope,
+                  operand,
+                  true);
+          if (!expandedStar) {
+            throw new AssertionError("Row star expansion failed for " + starId);
           }
+          expanded = true;
+          continue;
         }
         expandedOperands.add(operand);
       }

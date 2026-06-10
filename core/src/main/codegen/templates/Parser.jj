@@ -2026,7 +2026,6 @@ void AddSelectItem(List<SqlNode> list) :
     )
 }
 
-<#if (parser.includeStarExclude!default.parser.includeStarExclude)>
 /**
  * Parses one unaliased expression in a select list.
  */
@@ -2035,6 +2034,8 @@ SqlNode SelectExpression() :
     SqlNode e;
     SqlNodeList excludeList;
     SqlNodeList replaceList;
+    SqlIdentifier sqlIdentifier;
+    SqlParserPos pos;
 }
 {
     (
@@ -2045,47 +2046,42 @@ SqlNode SelectExpression() :
         e = Expression(ExprContext.ACCEPT_SUB_QUERY)
     )
     (
-<#if (parser.includeStarExclude!default.parser.includeStarExclude)>
         excludeList = StarExcludeList() {
             if (!(e instanceof SqlIdentifier)) {
                 throw SqlUtil.newContextException(excludeList.getParserPosition(),
                     RESOURCE.selectExcludeRequiresStar());
             }
-            final SqlIdentifier sqlIdentifier = (SqlIdentifier) e;
+            sqlIdentifier = (SqlIdentifier) e;
             if (!sqlIdentifier.isStar()) {
                 throw SqlUtil.newContextException(excludeList.getParserPosition(),
                     RESOURCE.selectExcludeRequiresStar());
             }
-            final SqlParserPos pos = SqlParserPos.sum(
+            pos = SqlParserPos.sum(
                 ImmutableList.of(sqlIdentifier.getParserPosition(),
                     excludeList.getParserPosition()));
             return new SqlStarExclude(pos, sqlIdentifier, excludeList);
         }
     |
-</#if>
-<#if (parser.includeStarExclude!default.parser.includeStarExclude)>
         replaceList = StarReplaceList() {
             if (!(e instanceof SqlIdentifier)) {
                 throw SqlUtil.newContextException(replaceList.getParserPosition(),
                     RESOURCE.selectReplaceRequiresStar());
             }
-            final SqlIdentifier sqlIdentifier = (SqlIdentifier) e;
+            sqlIdentifier = (SqlIdentifier) e;
             if (!sqlIdentifier.isStar()) {
                 throw SqlUtil.newContextException(replaceList.getParserPosition(),
                     RESOURCE.selectReplaceRequiresStar());
             }
-            final SqlParserPos pos = SqlParserPos.sum(
+            pos = SqlParserPos.sum(
                 ImmutableList.of(sqlIdentifier.getParserPosition(),
                     replaceList.getParserPosition()));
             return new SqlStarReplace(pos, sqlIdentifier, replaceList);
         }
     |
-</#if>
         { return e; }
     )
 }
 
-<#if (parser.includeStarExclude!default.parser.includeStarExclude)>
 SqlNodeList StarExcludeList() :
 {
     final Span s;
@@ -2106,9 +2102,7 @@ SqlNodeList StarExcludeList() :
         return new SqlNodeList(list, s.end(this));
     }
 }
-</#if>
 
-<#if (parser.includeStarExclude!default.parser.includeStarExclude)>
 SqlNodeList StarReplaceList() :
 {
     final Span s;
@@ -2134,25 +2128,6 @@ SqlNodeList StarReplaceList() :
         return new SqlNodeList(list, s.end(this));
     }
 }
-</#if>
-<#else>
-/**
- * Parses one unaliased expression in a select list.
- */
-SqlNode SelectExpression() :
-{
-    SqlNode e;
-}
-{
-    <STAR> {
-        return SqlIdentifier.star(getPos());
-    }
-|
-    e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-        return e;
-    }
-}
-</#if>
 
 SqlLiteral Natural() :
 {
@@ -4549,11 +4524,41 @@ SqlCall PercentileFunctionCall() :
 
 
 /**
+ * Parses an EXCLUDE or EXCEPT clause following a star inside a ROW constructor,
+ * e.g. {@code ROW(* EXCLUDE(col1, col2))} or {@code ROW(t.* EXCEPT(t.col))}.
+ *
+ * @param starIdentifier the star (e.g. "*" or "t.*") that precedes the EXCLUDE clause
+ */
+SqlNode RowStarExclude(SqlIdentifier starIdentifier) :
+{
+    SqlIdentifier id;    // current column identifier being parsed
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    Span s;
+}
+{
+    (<EXCLUDE> | <EXCEPT>)
+    <LPAREN> { s = span(); }
+    id = CompoundIdentifier() { list.add(id); }
+    (
+        <COMMA> id = CompoundIdentifier() { list.add(id); }
+    )*
+    <RPAREN> {
+        final SqlNodeList excludeList = new SqlNodeList(list, s.end(this));
+        return new SqlStarExclude(
+            SqlParserPos.sum(ImmutableList.of(
+                starIdentifier.getParserPosition(),
+                excludeList.getParserPosition())),
+            starIdentifier, excludeList);
+    }
+}
+
+/**
  * Parses an atomic row expression.
  */
 SqlNode AtomicRowExpression() :
 {
     final SqlNode e;
+    SqlNode rowStar;
 }
 {
     (
@@ -4584,10 +4589,27 @@ SqlNode AtomicRowExpression() :
     |
         e = ContextVariable()
     |
+        // Parses "t.*" or "t.* EXCLUDE (col, ...)" inside a ROW constructor
         e = CompoundIdentifier()
+        (
+            LOOKAHEAD({ allowRowValueStar()
+                && (getToken(1).kind == EXCLUDE || getToken(1).kind == EXCEPT) })
+            rowStar = RowStarExclude((SqlIdentifier) e) { return rowStar; }
+        |
+            {}
+        )
     |
+        // Parses "*" or "* EXCLUDE (col, ...)" inside a ROW constructor
         LOOKAHEAD({ allowRowValueStar() })
-        <STAR> { return SqlIdentifier.star(getPos()); }
+        <STAR> {
+            final SqlIdentifier starId = SqlIdentifier.star(getPos());
+        }
+        (
+            LOOKAHEAD((<EXCLUDE> | <EXCEPT>))
+            rowStar = RowStarExclude(starId) { return rowStar; }
+        |
+            { return starId; }
+        )
     |
         e = NewSpecification()
     |
