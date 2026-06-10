@@ -5204,6 +5204,16 @@ public class SqlOperatorTest {
           "VARCHAR");
       f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
           + " 'QUERY', 'k3')");
+      // key is matched literally, regex metacharacters do not match other keys
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'QUERY', 'k.')");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?a.b=v1&axb=v2#Ref1',"
+              + " 'QUERY', 'a.b')",
+          "v1",
+          "VARCHAR");
+      // a key that is not a valid regex must not raise an error
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'QUERY', '(')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'FILE')",
           "/path1/p.php?k1=v1&k2=v2",

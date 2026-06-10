@@ -1859,7 +1859,7 @@ public class SqlFunctions {
   @Deterministic
   public static class ParseUrlFunction {
     static Pattern keyToPattern(String keyToExtract) {
-      return Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
+      return Pattern.compile("(&|^)" + Pattern.quote(keyToExtract) + "=([^&]*)");
     }
 
     private final LoadingCache<String, Pattern> cache =
