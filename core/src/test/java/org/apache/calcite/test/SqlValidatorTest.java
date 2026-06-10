@@ -2156,6 +2156,45 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select row(*) from emp").ok();
     sql("select row(emp.*) from emp").ok();
     sql("select row(emp.*, dept.*) from emp join dept on emp.deptno = dept.deptno").ok();
+    // Nested ROW with star
+    sql("select row(row(*)) from emp").ok();
+    sql("select row(row(emp.*)) from emp").ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7364">[CALCITE-7364]
+   * Support the syntax ROW(T.* EXCLUDE cols) for creating nested ROW values</a>. */
+  @Test void testRowWildcardExclude() {
+    sql("select row(* exclude(empno)) from emp").ok();
+    sql("select row(* exclude(empno, deptno)) from emp").ok();
+    sql("select row(emp.* exclude(emp.empno)) from emp").ok();
+    // EXCEPT is a synonym for EXCLUDE
+    sql("select row(emp.* except(emp.empno)) from emp").ok();
+    sql("select row(emp.* exclude(emp.empno), dept.*)"
+        + " from emp join dept on emp.deptno = dept.deptno").ok();
+    // Nested ROW with EXCLUDE
+    sql("select row(row(* exclude(empno))) from emp").ok();
+    sql("select row(row(emp.* exclude(emp.empno))) from emp").ok();
+    // Multiple nested ROWs, one with EXCLUDE
+    sql("select row(row(* exclude(empno)), row(dept.*)) "
+        + "from emp join dept on emp.deptno = dept.deptno").ok();
+    // Unknown column in exclude list
+    sql("select row(* exclude(^foo^)) from emp")
+        .fails("ROW\\(\\* EXCLUDE/EXCEPT list\\) contains unknown column\\(s\\): FOO");
+    // Unknown column in nested ROW exclude list
+    sql("select row(row(* exclude(^foo^))) from emp")
+        .fails("ROW\\(\\* EXCLUDE/EXCEPT list\\) contains unknown column\\(s\\): FOO");
+    // Unknown column in table-qualified exclude list
+    sql("select row(emp.* exclude(^emp.foo^)) from emp")
+        .fails("ROW\\(\\* EXCLUDE/EXCEPT list\\) contains unknown column\\(s\\): EMP\\.FOO");
+    // Excluding all columns from a ROW expression is not allowed
+    sql("select row(^*^ exclude(empno, ename, job, mgr, hiredate, sal, comm,"
+        + " deptno, slacker)) from emp")
+        .fails("ROW\\(\\* EXCLUDE/EXCEPT list\\) cannot exclude all columns");
+    // Excluding all columns via qualified name is not allowed
+    sql("select row(^emp.*^ exclude(emp.empno, emp.ename, emp.job, emp.mgr,"
+        + " emp.hiredate, emp.sal, emp.comm, emp.deptno, emp.slacker)) from emp")
+        .fails("ROW\\(\\* EXCLUDE/EXCEPT list\\) cannot exclude all columns");
   }
 
   @Test void testRowWithValidDot() {

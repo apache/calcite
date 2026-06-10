@@ -187,4 +187,55 @@ select row(d.*, row(d.*)) from dept d limit 1;
 
 !ok
 
+# [CALCITE-7364] Support the syntax ROW(T.* EXCLUDE cols) for creating nested ROW values
+select row(* exclude(empno)) from emp order by empno limit 1;
++----------------------------------------------------+
+| EXPR$0                                             |
++----------------------------------------------------+
+| {SMITH, CLERK, 7902, 1980-12-17, 800.00, null, 20} |
++----------------------------------------------------+
+(1 row)
+
+!ok
+
+select row(emp.* exclude(emp.empno)) from emp order by empno limit 1;
++----------------------------------------------------+
+| EXPR$0                                             |
++----------------------------------------------------+
+| {SMITH, CLERK, 7902, 1980-12-17, 800.00, null, 20} |
++----------------------------------------------------+
+(1 row)
+
+!ok
+
+select row(* exclude(empno, mgr)) from emp order by empno limit 1;
++----------------------------------------------+
+| EXPR$0                                       |
++----------------------------------------------+
+| {SMITH, CLERK, 1980-12-17, 800.00, null, 20} |
++----------------------------------------------+
+(1 row)
+
+!ok
+
+select row(emp.* exclude(emp.empno), dept.*) from emp join dept on emp.deptno = dept.deptno order by emp.empno limit 1;
++--------------------------------------------------------------------------+
+| EXPR$0                                                                   |
++--------------------------------------------------------------------------+
+| {SMITH, CLERK, 7902, 1980-12-17, 800.00, null, 20, 20, RESEARCH, DALLAS} |
++--------------------------------------------------------------------------+
+(1 row)
+
+!ok
+
+select row(emp.* exclude(emp.empno), dept.* exclude(dept.deptno)) from emp join dept on emp.deptno = dept.deptno order by emp.empno limit 1;
++----------------------------------------------------------------------+
+| EXPR$0                                                               |
++----------------------------------------------------------------------+
+| {SMITH, CLERK, 7902, 1980-12-17, 800.00, null, 20, RESEARCH, DALLAS} |
++----------------------------------------------------------------------+
+(1 row)
+
+!ok
+
 # End struct.iq

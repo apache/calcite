@@ -27,11 +27,12 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Represents {@code SELECT * EXCLUDE(...)}.
+ * Represents the arguments of {@code SELECT * EXCLUDE(...) or SELECT ROW(* EXCLUDE(...))},
+ * without the SELECT itself.
  */
 public class SqlStarExclude extends SqlCall {
   public static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("SELECT_STAR_EXCLUDE", SqlKind.OTHER) {
+      new SqlSpecialOperator("STAR_EXCLUDE", SqlKind.OTHER) {
         @SuppressWarnings("argument.type.incompatible")
         @Override public SqlCall createCall(
             @Nullable SqlLiteral functionQualifier,
