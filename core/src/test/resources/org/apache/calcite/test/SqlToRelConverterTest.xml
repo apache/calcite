@@ -7050,7 +7050,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
           LogicalProject(DEPTNO0=[$2], $f0=[true])
             LogicalFilter(condition=[$1])
-              LogicalProject(NAME=[$1], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $0 DESC), $2)], DEPTNO0=[$2])
+              LogicalProject(NAME=[$1], QualifyExpression=[=(RANK() OVER (PARTITION BY $1, $2 ORDER BY $0 DESC), $2)], DEPTNO0=[$2])
                 LogicalJoin(condition=[true], joinType=[inner])
                   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
                   LogicalAggregate(group=[{0}])

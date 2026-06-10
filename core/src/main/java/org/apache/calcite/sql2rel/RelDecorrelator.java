@@ -70,6 +70,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
@@ -1619,15 +1620,26 @@ public class RelDecorrelator implements ReflectiveVisitor {
         new TreeMap<>(inputFrame.corDefOutputs);
 
     final Collection<CorRef> corVarList = cm.mapRefRelToCorRef.get(rel);
+    // Track only correlation variables that are not already produced by the
+    // input frame. Existing outputs still need to be carried forward, but they
+    // should not force an extra value generator.
+    final List<CorRef> missingCorVarList = new ArrayList<>();
+    for (CorRef correlation : corVarList) {
+      if (!corDefOutputs.containsKey(correlation.def())) {
+        missingCorVarList.add(correlation);
+      }
+    }
 
-    // Try to populate correlation variables using local fields.
+    // Try to populate missing correlation variables using local fields.
     // This means that we do not need a value generator.
     if (rel instanceof Filter) {
       NavigableMap<CorDef, Integer> map = new TreeMap<>();
       List<RexNode> projects = new ArrayList<>();
-      for (CorRef correlation : corVarList) {
+      for (CorRef correlation : missingCorVarList) {
         final CorDef def = correlation.def();
-        if (corDefOutputs.containsKey(def) || map.containsKey(def)) {
+        if (map.containsKey(def)) {
+          // The same correlation definition may be referenced more than once;
+          // one output slot is enough.
           continue;
         }
         try {
@@ -1651,9 +1663,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
           }
         }
       }
-      // If all correlation variables are now satisfied, skip creating a value
-      // generator.
-      if (map.size() == corVarList.size()) {
+      // If all missing correlation variables are now satisfied, skip creating a
+      // value generator.
+      if (map.size() == missingCorVarList.size()) {
         map.putAll(inputFrame.corDefOutputs);
         final RelNode r;
         if (!projects.isEmpty()) {
@@ -1667,7 +1679,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
     }
 
-    return createFrameWithValueGenerator(rel.getInput(0), inputFrame, corVarList, corDefOutputs);
+    // Fall back to a value generator for correlation variables that could not
+    // be derived from local fields.
+    return createFrameWithValueGenerator(rel.getInput(0), inputFrame,
+        missingCorVarList, corDefOutputs);
   }
 
   /**
@@ -2485,6 +2500,57 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
       }
       return fieldAccess;
+    }
+
+    /**
+     * Window operators are decorrelated similarly to aggregates. A correlated
+     * window expression is evaluated once per outer-row binding before
+     * decorrelation; after decorrelation, outer references are represented as
+     * ordinary input fields. Therefore, add those fields to the window partition
+     * keys so that the window function is still evaluated independently for
+     * each outer-row binding.
+     *
+     * <p>Implementation based on: Improving Unnesting of Complex Queries
+     *
+     * <p>3.3 Unnesting Rules
+     * (https://dl.gi.de/server/api/core/bitstreams/c1918e8c-6a87-4da2-930a-bfed289f2388/content)
+     */
+    @Override public RexNode visitOver(RexOver over) {
+      final RexOver newOver = (RexOver) super.visitOver(over);
+      final List<RexNode> partitionKeys = new ArrayList<>(newOver.getWindow().partitionKeys);
+      boolean update = newOver != over;
+      int newInputOutputOffset = 0;
+      for (RelNode input : currentRel.getInputs()) {
+        final Frame frame = map.get(input);
+        if (frame == null) {
+          // Inputs without a decorrelation frame keep their original field layout.
+          newInputOutputOffset += input.getRowType().getFieldCount();
+          continue;
+        }
+        for (Integer newInputPos : frame.corDefOutputs.values()) {
+          // Correlation variables become regular input fields after decorrelation.
+          // Add them to the window partition keys to preserve the original
+          // per-correlate evaluation scope.
+          final RexInputRef ref =
+              new RexInputRef(newInputOutputOffset + newInputPos,
+                  frame.r.getRowType().getFieldList()
+                      .get(newInputPos).getType());
+          if (!partitionKeys.contains(ref)) {
+            partitionKeys.add(ref);
+            update = true;
+          }
+        }
+        newInputOutputOffset += frame.r.getRowType().getFieldCount();
+      }
+      if (!update) {
+        return over;
+      }
+      return currentRel.getCluster().getRexBuilder().makeOver(
+          newOver.getParserPosition(), newOver.getType(), newOver.getAggOperator(),
+          newOver.getOperands(), partitionKeys, newOver.getWindow().orderKeys,
+          newOver.getWindow().getLowerBound(), newOver.getWindow().getUpperBound(),
+          newOver.getWindow().getExclude(), newOver.getWindow().isRows(), true, false,
+          newOver.isDistinct(), newOver.ignoreNulls());
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {

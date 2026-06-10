@@ -8168,6 +8168,588 @@ SELECT deptno FROM dept WHERE 1000.00 >
 
 !ok
 
+# [CALCITE-7584] RelDecorrelator produces incorrect results for correlated LATERAL sub-queries with window functions
+# Correlated LATERAL sub-query with a window expression.
+# The equality predicate between the inner and outer query must remain applied
+# after decorrelation.
+# this was validated using postgres
+SELECT e.ename, d.deptno, d.m
+FROM emp e
+JOIN LATERAL (
+  SELECT d.deptno,
+    MAX(d.deptno + e.empno) OVER (PARTITION BY e.deptno) AS m
+  FROM dept d
+  WHERE e.deptno = d.deptno
+) d ON TRUE
+ORDER BY e.empno;
++--------+--------+------+
+| ENAME  | DEPTNO | M    |
++--------+--------+------+
+| SMITH  |     20 | 7389 |
+| ALLEN  |     30 | 7529 |
+| WARD   |     30 | 7551 |
+| JONES  |     20 | 7586 |
+| MARTIN |     30 | 7684 |
+| BLAKE  |     30 | 7728 |
+| CLARK  |     10 | 7792 |
+| SCOTT  |     20 | 7808 |
+| KING   |     10 | 7849 |
+| TURNER |     30 | 7874 |
+| ADAMS  |     20 | 7896 |
+| JAMES  |     30 | 7930 |
+| FORD   |     20 | 7922 |
+| MILLER |     10 | 7944 |
++--------+--------+------+
+(14 rows)
+
+!ok
+
+# The window must also be partitioned by correlation variables
+# that are only referenced by the window expression.
+# this was validated using postgres
+SELECT e.ename, d.deptno, d.rn
+FROM emp e
+JOIN LATERAL (
+  SELECT d.deptno,
+    ROW_NUMBER() OVER (PARTITION BY e.deptno ORDER BY e.empno, d.deptno) AS rn
+  FROM dept d
+  WHERE e.deptno = d.deptno
+) d ON TRUE
+ORDER BY e.empno;
+!if (use_old_decorr) {
++--------+--------+----+
+| ENAME  | DEPTNO | RN |
++--------+--------+----+
+| SMITH  |     20 |  1 |
+| ALLEN  |     30 |  1 |
+| WARD   |     30 |  1 |
+| JONES  |     20 |  1 |
+| MARTIN |     30 |  1 |
+| BLAKE  |     30 |  1 |
+| CLARK  |     10 |  1 |
+| SCOTT  |     20 |  1 |
+| KING   |     10 |  1 |
+| TURNER |     30 |  1 |
+| ADAMS  |     20 |  1 |
+| JAMES  |     30 |  1 |
+| FORD   |     20 |  1 |
+| MILLER |     10 |  1 |
++--------+--------+----+
+(14 rows)
+
+!ok
+!}
+
+# Multiple equality-derived correlation keys must remain available
+# when a window expression also needs an additional correlation key.
+# this was validated using postgres
+SELECT e.ename, s.empno, s.m
+FROM emp e
+JOIN LATERAL (
+  SELECT e2.empno,
+    MAX(e2.empno + e.sal) OVER (PARTITION BY e.deptno, e.job) AS m
+  FROM emp e2
+  WHERE e2.deptno = e.deptno
+    AND e2.job = e.job
+) s ON TRUE
+WHERE e.empno IN (7369, 7499, 7788)
+ORDER BY e.empno, s.empno;
++-------+-------+----------+
+| ENAME | EMPNO | M        |
++-------+-------+----------+
+| SMITH |  7369 |  8676.00 |
+| SMITH |  7876 |  8676.00 |
+| ALLEN |  7499 |  9444.00 |
+| ALLEN |  7521 |  9444.00 |
+| ALLEN |  7654 |  9444.00 |
+| ALLEN |  7844 |  9444.00 |
+| SCOTT |  7788 | 10902.00 |
+| SCOTT |  7902 | 10902.00 |
++-------+-------+----------+
+(8 rows)
+
+!ok
+
+# this was validated using postgres
+WITH bonus(ENAME, JOB, SAL, COMM) AS (
+  VALUES ('ALLEN', 'SALESMAN', 1600.00, 300.00),
+         ('WARD', 'SALESMAN', 1250.00, 500.00)
+)
+SELECT *
+FROM BONUS
+WHERE EXISTS(SELECT RANK() OVER (PARTITION BY hiredate ORDER BY sal) AS s
+                    FROM EMP, DEPT where EMP.deptno = DEPT.deptno
+                        AND DEPT.dname < BONUS.ENAME);
++-------+----------+---------+--------+
+| ENAME | JOB      | SAL     | COMM   |
++-------+----------+---------+--------+
+| ALLEN | SALESMAN | 1600.00 | 300.00 |
+| WARD  | SALESMAN | 1250.00 | 500.00 |
++-------+----------+---------+--------+
+(2 rows)
+
+!ok
+
+# this was validated using postgres
+SELECT *
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+      SELECT
+        d.dname,
+        d.deptno,
+        RANK() OVER (PARTITION BY d.dname ORDER BY d.deptno DESC) AS rnk
+      FROM dept d
+    ) x
+    WHERE x.rnk = e.deptno
+);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
+  EnumerableHashJoin(condition=[=($8, $12)], joinType=[semi])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):BIGINT], proj#0..8=[{exprs}])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableWindow(window#0=[window(partition {1} order by [0 DESC] aggs [RANK()])])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+!}
+
+create view calcite_7584_t1 as
+select * from (values
+  ('val1a', cast(6 as smallint), 8, cast(10 as bigint)),
+  ('val1b', cast(8 as smallint), 16, cast(19 as bigint)),
+  ('val1a', cast(16 as smallint), 12, cast(21 as bigint)),
+  ('val1a', cast(16 as smallint), 12, cast(10 as bigint)),
+  ('val1c', cast(8 as smallint), 16, cast(19 as bigint)),
+  ('val1d', cast(null as smallint), 16, cast(22 as bigint)),
+  ('val1d', cast(null as smallint), 16, cast(19 as bigint)),
+  ('val1e', cast(10 as smallint), cast(null as integer), cast(25 as bigint)),
+  ('val1e', cast(10 as smallint), cast(null as integer), cast(19 as bigint)),
+  ('val1d', cast(10 as smallint), cast(null as integer), cast(12 as bigint)),
+  ('val1a', cast(6 as smallint), 8, cast(10 as bigint)),
+  ('val1e', cast(10 as smallint), cast(null as integer), cast(19 as bigint))
+) as t(t1a, t1b, t1c, t1d);
+(0 rows modified)
+
+!update
+
+create view calcite_7584_t2 as
+select * from (values
+  ('val2a', cast(6 as smallint), 12, cast(14 as bigint)),
+  ('val1b', cast(10 as smallint), 12, cast(19 as bigint)),
+  ('val1b', cast(8 as smallint), 16, cast(119 as bigint)),
+  ('val1c', cast(12 as smallint), 16, cast(219 as bigint)),
+  ('val1b', cast(null as smallint), 16, cast(319 as bigint)),
+  ('val2e', cast(8 as smallint), cast(null as integer), cast(419 as bigint)),
+  ('val1f', cast(19 as smallint), cast(null as integer), cast(519 as bigint)),
+  ('val1b', cast(10 as smallint), 12, cast(19 as bigint)),
+  ('val1b', cast(8 as smallint), 16, cast(19 as bigint)),
+  ('val1c', cast(12 as smallint), 16, cast(19 as bigint)),
+  ('val1e', cast(8 as smallint), cast(null as integer), cast(19 as bigint)),
+  ('val1f', cast(19 as smallint), cast(null as integer), cast(19 as bigint)),
+  ('val1b', cast(null as smallint), 16, cast(19 as bigint))
+) as t(t2a, t2b, t2c, t2d);
+(0 rows modified)
+
+!update
+
+create view calcite_7584_t3 as
+select * from (values
+  ('val3a', cast(6 as smallint), 12, cast(110 as bigint)),
+  ('val3a', cast(6 as smallint), 12, cast(10 as bigint)),
+  ('val1b', cast(10 as smallint), 12, cast(219 as bigint)),
+  ('val1b', cast(10 as smallint), 12, cast(19 as bigint)),
+  ('val1b', cast(8 as smallint), 16, cast(319 as bigint)),
+  ('val1b', cast(8 as smallint), 16, cast(19 as bigint)),
+  ('val3c', cast(17 as smallint), 16, cast(519 as bigint)),
+  ('val3c', cast(17 as smallint), 16, cast(19 as bigint)),
+  ('val1b', cast(null as smallint), 16, cast(419 as bigint)),
+  ('val1b', cast(null as smallint), 16, cast(19 as bigint)),
+  ('val3b', cast(8 as smallint), cast(null as integer), cast(719 as bigint)),
+  ('val3b', cast(8 as smallint), cast(null as integer), cast(19 as bigint))
+) as t(t3a, t3b, t3c, t3d);
+(0 rows modified)
+
+!update
+
+# Window function in a correlated subquery.
+# this was validated using postgres
+SELECT 1
+FROM calcite_7584_t1 t1
+WHERE t1b < (SELECT MAX(tmp.s) FROM (
+             SELECT SUM(t2b) OVER (PARTITION BY t2c ORDER BY t2d) AS s
+               FROM calcite_7584_t2 t2 WHERE t2.t2d = t1.t1d) AS tmp);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(4 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], EXPR$0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $2), <($0, $3))], joinType=[semi])
+    EnumerableValues(tuples=[[{ 6, 10 }, { 8, 19 }, { 16, 21 }, { 16, 10 }, { 8, 19 }, { null, 22 }, { null, 19 }, { 10, 25 }, { 10, 19 }, { 10, 12 }, { 6, 10 }, { 10, 19 }]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], EXPR$0=[MAX($1) FILTER $2])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], expr#6=[>($t4, $t5)], T2D=[$t2], $f2=[$t3], $f3=[$t6])
+          EnumerableWindow(window#0=[window(partition {1, 2} order by [2] aggs [$SUM0($0), COUNT($0)])])
+            EnumerableValues(tuples=[[{ 6, 12, 14 }, { 10, 12, 19 }, { 8, 16, 119 }, { 12, 16, 219 }, { null, 16, 319 }, { 8, null, 419 }, { 19, null, 519 }, { 10, 12, 19 }, { 8, 16, 19 }, { 12, 16, 19 }, { 8, null, 19 }, { 19, null, 19 }, { null, 16, 19 }]])
+!plan
+!}
+
+# Same as above but with LIMIT/ORDER BY instead of MAX.
+# this was validated using postgres
+SELECT 1
+FROM calcite_7584_t1 t1
+WHERE t1b < (SELECT SUM(t2b) OVER (PARTITION BY t2c ORDER BY t2d) AS s
+               FROM calcite_7584_t2 t2 WHERE t2.t2d = t1.t1d
+             ORDER BY s DESC
+             LIMIT 1);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(4 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
+  EnumerableHashJoin(condition=[AND(=($1, $4), <($3, $0))], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[<=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+      EnumerableWindow(window#0=[window(partition {1} order by [0 DESC] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], expr#6=[>($t3, $t5)], expr#7=[null:SMALLINT], expr#8=[CASE($t6, $t4, $t7)], S=[$t8], T2D=[$t2])
+          EnumerableWindow(window#0=[window(partition {1, 2} order by [2] aggs [COUNT($0), $SUM0($0)])])
+            EnumerableValues(tuples=[[{ 6, 12, 14 }, { 10, 12, 19 }, { 8, 16, 119 }, { 12, 16, 219 }, { null, 16, 319 }, { 8, null, 419 }, { 19, null, 519 }, { 10, 12, 19 }, { 8, 16, 19 }, { 12, 16, 19 }, { 8, null, 19 }, { 19, null, 19 }, { null, 16, 19 }]])
+    EnumerableValues(tuples=[[{ 6, 10 }, { 8, 19 }, { 16, 21 }, { 16, 10 }, { 8, 19 }, { null, 22 }, { null, 19 }, { 10, 25 }, { 10, 19 }, { 10, 12 }, { 6, 10 }, { 10, 19 }]])
+!plan
+!}
+
+# Window function in a correlated subquery with a non-equi predicate.
+# this was validated using postgres
+SELECT 1
+FROM calcite_7584_t1 t1
+WHERE t1b < (SELECT MAX(tmp.s) FROM (
+             SELECT SUM(t2b) OVER (PARTITION BY t2c ORDER BY t2d) AS s
+               FROM calcite_7584_t2 t2 WHERE t2.t2d <= t1.t1d) AS tmp);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(6 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], EXPR$0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $2), <($0, $3))], joinType=[semi])
+    EnumerableValues(tuples=[[{ 6, 10 }, { 8, 19 }, { 16, 21 }, { 16, 10 }, { 8, 19 }, { null, 22 }, { null, 19 }, { 10, 25 }, { 10, 19 }, { 10, 12 }, { 6, 10 }, { 10, 19 }]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], EXPR$0=[MAX($1) FILTER $2])
+        EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0:BIGINT], expr#7=[>($t5, $t6)], T1D=[$t3], $f2=[$t4], $f3=[$t7])
+          EnumerableWindow(window#0=[window(partition {1, 3} order by [2] aggs [$SUM0($0), COUNT($0)])])
+            EnumerableNestedLoopJoin(condition=[<=($2, $3)], joinType=[inner])
+              EnumerableValues(tuples=[[{ 6, 12, 14 }, { 10, 12, 19 }, { 8, 16, 119 }, { 12, 16, 219 }, { null, 16, 319 }, { 8, null, 419 }, { 19, null, 519 }, { 10, 12, 19 }, { 8, 16, 19 }, { 12, 16, 19 }, { 8, null, 19 }, { 19, null, 19 }, { null, 16, 19 }]])
+              EnumerableAggregate(group=[{0}])
+                EnumerableValues(tuples=[[{ 10 }, { 19 }, { 21 }, { 10 }, { 19 }, { 22 }, { 19 }, { 25 }, { 19 }, { 12 }, { 10 }, { 19 }]])
+!plan
+!}
+
+# Same as above but with LIMIT/ORDER BY.
+# this was validated using postgres
+SELECT 1
+FROM calcite_7584_t1 t1
+WHERE t1b < (SELECT SUM(t2b) OVER (PARTITION BY t2c ORDER BY t2d) AS s
+               FROM calcite_7584_t2 t2 WHERE t2.t2d <= t1.t1d
+             ORDER BY s DESC
+             LIMIT 1);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(6 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
+  EnumerableHashJoin(condition=[AND(=($1, $3), <($0, $2))], joinType=[inner])
+    EnumerableValues(tuples=[[{ 6, 10 }, { 8, 19 }, { 16, 21 }, { 16, 10 }, { 8, 19 }, { null, 22 }, { null, 19 }, { 10, 25 }, { 10, 19 }, { 10, 12 }, { 6, 10 }, { 10, 19 }]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[<=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+      EnumerableWindow(window#0=[window(partition {1} order by [0 DESC] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0:BIGINT], expr#7=[>($t4, $t6)], expr#8=[null:SMALLINT], expr#9=[CASE($t7, $t5, $t8)], S=[$t9], T1D=[$t3])
+          EnumerableWindow(window#0=[window(partition {1, 3} order by [2] aggs [COUNT($0), $SUM0($0)])])
+            EnumerableNestedLoopJoin(condition=[<=($2, $3)], joinType=[inner])
+              EnumerableValues(tuples=[[{ 6, 12, 14 }, { 10, 12, 19 }, { 8, 16, 119 }, { 12, 16, 219 }, { null, 16, 319 }, { 8, null, 419 }, { 19, null, 519 }, { 10, 12, 19 }, { 8, 16, 19 }, { 12, 16, 19 }, { 8, null, 19 }, { 19, null, 19 }, { null, 16, 19 }]])
+              EnumerableAggregate(group=[{0}])
+                EnumerableValues(tuples=[[{ 10 }, { 19 }, { 21 }, { 10 }, { 19 }, { 22 }, { 19 }, { 25 }, { 19 }, { 12 }, { 10 }, { 19 }]])
+!plan
+!}
+
+# Window function in a correlated subquery over joins.
+# this was validated using postgres
+SELECT t1b
+FROM calcite_7584_t1 t1
+WHERE t1b > (SELECT MAX(tmp.s) FROM (
+             SELECT RANK() OVER (PARTITION BY t3c, t2b ORDER BY t3c) AS s
+               FROM calcite_7584_t2 t2, calcite_7584_t3 t3
+              WHERE t2.t2c = t3.t3c AND t2.t2a = t1.t1a) AS tmp);
++-----+
+| T1B |
++-----+
+|   8 |
+|   8 |
++-----+
+(2 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], T1B=[$t1])
+  EnumerableHashJoin(condition=[AND(=($0, $2), >(CAST($1):BIGINT, $3))], joinType=[semi])
+    EnumerableValues(tuples=[[{ 'val1a', 6 }, { 'val1b', 8 }, { 'val1a', 16 }, { 'val1a', 16 }, { 'val1c', 8 }, { 'val1d', null }, { 'val1d', null }, { 'val1e', 10 }, { 'val1e', 10 }, { 'val1d', 10 }, { 'val1a', 6 }, { 'val1e', 10 }]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], EXPR$0=[MAX($4)])
+        EnumerableWindow(window#0=[window(partition {0, 1, 3} order by [3] aggs [RANK()])])
+          EnumerableMergeJoin(condition=[=($2, $3)], joinType=[inner])
+            EnumerableSort(sort0=[$2], dir0=[ASC])
+              EnumerableValues(tuples=[[{ 'val2a', 6, 12 }, { 'val1b', 10, 12 }, { 'val1b', 8, 16 }, { 'val1c', 12, 16 }, { 'val1b', null, 16 }, { 'val2e', 8, null }, { 'val1f', 19, null }, { 'val1b', 10, 12 }, { 'val1b', 8, 16 }, { 'val1c', 12, 16 }, { 'val1e', 8, null }, { 'val1f', 19, null }, { 'val1b', null, 16 }]])
+            EnumerableValues(tuples=[[{ 12 }, { 12 }, { 12 }, { 12 }, { 16 }, { 16 }, { 16 }, { 16 }, { 16 }, { 16 }, { null }, { null }]])
+!plan
+!}
+
+# Window function in a correlated subquery over aggregation.
+# this was validated using postgres
+SELECT t1b
+FROM calcite_7584_t1 t1
+WHERE t1b > (SELECT MAX(tmp.s) FROM (
+             SELECT RANK() OVER (PARTITION BY t3c, t3d ORDER BY t3c) AS s
+               FROM (SELECT t3b, t3c, MAX(t3d) AS t3d
+                       FROM calcite_7584_t3 t3 GROUP BY t3b, t3c) AS g) AS tmp)
+ORDER BY t1b;
++-----+
+| T1B |
++-----+
+|   6 |
+|   6 |
+|   8 |
+|   8 |
+|  10 |
+|  10 |
+|  10 |
+|  10 |
+|  16 |
+|  16 |
++-----+
+(10 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableCalc(expr#0..1=[{inputs}], T1B=[$t0])
+    EnumerableNestedLoopJoin(condition=[>(CAST($0):BIGINT, $1)], joinType=[inner])
+      EnumerableValues(tuples=[[{ 6 }, { 8 }, { 16 }, { 16 }, { 8 }, { null }, { null }, { 10 }, { 10 }, { 10 }, { 6 }, { 10 }]])
+      EnumerableAggregate(group=[{}], EXPR$0=[MAX($3)])
+        EnumerableWindow(window#0=[window(partition {1, 2} order by [1] aggs [RANK()])])
+          EnumerableAggregate(group=[{0, 1}], T3D=[MAX($2)])
+            EnumerableValues(tuples=[[{ 6, 12, 110 }, { 6, 12, 10 }, { 10, 12, 219 }, { 10, 12, 19 }, { 8, 16, 319 }, { 8, 16, 19 }, { 17, 16, 519 }, { 17, 16, 19 }, { null, 16, 419 }, { null, 16, 19 }, { 8, null, 719 }, { 8, null, 19 }]])
+!plan
+!}
+
+# this was validated using postgres
+SELECT 1
+FROM calcite_7584_t1 t1
+WHERE t1b = (SELECT MAX(tmp.s) FROM (
+             SELECT SUM(t2c) OVER (PARTITION BY t2c ORDER BY t1.t1d + t2d) AS s
+               FROM calcite_7584_t2 t2) AS tmp);
+!if (use_old_decorr) {
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], EXPR$0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $2), =(CAST($0):INTEGER, $3))], joinType=[semi])
+    EnumerableValues(tuples=[[{ 6, 10 }, { 8, 19 }, { 16, 21 }, { 16, 10 }, { 8, 19 }, { null, 22 }, { null, 19 }, { 10, 25 }, { 10, 19 }, { 10, 12 }, { 6, 10 }, { 10, 19 }]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], EXPR$0=[MAX($1) FILTER $2])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], expr#6=[>($t4, $t5)], T1D=[$t1], $f2=[$t3], $f3=[$t6])
+          EnumerableWindow(window#0=[window(partition {0, 1} order by [2] aggs [$SUM0($0), COUNT($0)])])
+            EnumerableCalc(expr#0..2=[{inputs}], expr#3=[+($t2, $t1)], T2C=[$t0], T1D=[$t2], $2=[$t3])
+              EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+                EnumerableValues(tuples=[[{ 12, 14 }, { 12, 19 }, { 16, 119 }, { 16, 219 }, { 16, 319 }, { null, 419 }, { null, 519 }, { 12, 19 }, { 16, 19 }, { 16, 19 }, { null, 19 }, { null, 19 }, { 16, 19 }]])
+                EnumerableAggregate(group=[{0}])
+                  EnumerableValues(tuples=[[{ 10 }, { 19 }, { 21 }, { 10 }, { 19 }, { 22 }, { 19 }, { 25 }, { 19 }, { 12 }, { 10 }, { 19 }]])
+!plan
+!}
+
+# [CALCITE-7584] Correlated subquery with RANK() window function and IN predicate
+# Test case for window function in correlated subquery with IN predicate
+# this was validated using postgres
+SELECT t1a
+FROM calcite_7584_t1 t1
+WHERE t1b IN (SELECT RANK() OVER (PARTITION BY t3c ORDER BY t2b) AS s
+              FROM calcite_7584_t2 t2, calcite_7584_t3 t3
+              WHERE t2.t2c = t3.t3c AND t2.t2a < t1.t1a);
++-----+
+| T1A |
++-----+
++-----+
+(0 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..2=[{inputs}], T1A=[$t0])
+  EnumerableHashJoin(condition=[AND(=($0, $4), =($2, $3))], joinType=[semi])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):BIGINT], proj#0..2=[{exprs}])
+      EnumerableValues(tuples=[[{ 'val1a', 6 }, { 'val1b', 8 }, { 'val1a', 16 }, { 'val1a', 16 }, { 'val1c', 8 }, { 'val1d', null }, { 'val1d', null }, { 'val1e', 10 }, { 'val1e', 10 }, { 'val1d', 10 }, { 'val1a', 6 }, { 'val1e', 10 }]])
+    EnumerableCalc(expr#0..1=[{inputs}], S=[$t1], T1A=[$t0])
+      EnumerableAggregate(group=[{4, 5}])
+        EnumerableWindow(window#0=[window(partition {0, 4} order by [2] aggs [RANK()])])
+          EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 12 }, { 12 }, { 12 }, { 12 }, { 16 }, { 16 }, { 16 }, { 16 }, { 16 }, { 16 }, { null }, { null }]])
+            EnumerableNestedLoopJoin(condition=[<($0, $3)], joinType=[inner])
+              EnumerableValues(tuples=[[{ 'val2a', 6, 12 }, { 'val1b', 10, 12 }, { 'val1b', 8, 16 }, { 'val1c', 12, 16 }, { 'val1b', null, 16 }, { 'val2e', 8, null }, { 'val1f', 19, null }, { 'val1b', 10, 12 }, { 'val1b', 8, 16 }, { 'val1c', 12, 16 }, { 'val1e', 8, null }, { 'val1f', 19, null }, { 'val1b', null, 16 }]])
+              EnumerableAggregate(group=[{0}])
+                EnumerableValues(tuples=[[{ 'val1a' }, { 'val1b' }, { 'val1a' }, { 'val1a' }, { 'val1c' }, { 'val1d' }, { 'val1d' }, { 'val1e' }, { 'val1e' }, { 'val1d' }, { 'val1a' }, { 'val1e' }]])
+!plan
+!}
+
+# [CALCITE-7584] LATERAL subquery with window function
+# this was validated using postgres
+SELECT *
+FROM calcite_7584_t1 t1 JOIN LATERAL
+  (SELECT SUM(t2.t2b) OVER (ORDER BY t2.t2b) AS window_sum
+   FROM calcite_7584_t2 t2
+   WHERE t2.t2b >= t1.t1b) AS t2_window ON TRUE
+order by 1,2,3,4,5;
++-------+-----+-----+-----+------------+
+| T1A   | T1B | T1C | T1D | WINDOW_SUM |
++-------+-----+-----+-----+------------+
+| val1a |   6 |   8 |  10 |          6 |
+| val1a |   6 |   8 |  10 |          6 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         38 |
+| val1a |   6 |   8 |  10 |         58 |
+| val1a |   6 |   8 |  10 |         58 |
+| val1a |   6 |   8 |  10 |         58 |
+| val1a |   6 |   8 |  10 |         58 |
+| val1a |   6 |   8 |  10 |         82 |
+| val1a |   6 |   8 |  10 |         82 |
+| val1a |   6 |   8 |  10 |         82 |
+| val1a |   6 |   8 |  10 |         82 |
+| val1a |   6 |   8 |  10 |        120 |
+| val1a |   6 |   8 |  10 |        120 |
+| val1a |   6 |   8 |  10 |        120 |
+| val1a |   6 |   8 |  10 |        120 |
+| val1a |  16 |  12 |  10 |         38 |
+| val1a |  16 |  12 |  10 |         38 |
+| val1a |  16 |  12 |  21 |         38 |
+| val1a |  16 |  12 |  21 |         38 |
+| val1b |   8 |  16 |  19 |         32 |
+| val1b |   8 |  16 |  19 |         32 |
+| val1b |   8 |  16 |  19 |         32 |
+| val1b |   8 |  16 |  19 |         32 |
+| val1b |   8 |  16 |  19 |         52 |
+| val1b |   8 |  16 |  19 |         52 |
+| val1b |   8 |  16 |  19 |         76 |
+| val1b |   8 |  16 |  19 |         76 |
+| val1b |   8 |  16 |  19 |        114 |
+| val1b |   8 |  16 |  19 |        114 |
+| val1c |   8 |  16 |  19 |         32 |
+| val1c |   8 |  16 |  19 |         32 |
+| val1c |   8 |  16 |  19 |         32 |
+| val1c |   8 |  16 |  19 |         32 |
+| val1c |   8 |  16 |  19 |         52 |
+| val1c |   8 |  16 |  19 |         52 |
+| val1c |   8 |  16 |  19 |         76 |
+| val1c |   8 |  16 |  19 |         76 |
+| val1c |   8 |  16 |  19 |        114 |
+| val1c |   8 |  16 |  19 |        114 |
+| val1d |  10 |     |  12 |         20 |
+| val1d |  10 |     |  12 |         20 |
+| val1d |  10 |     |  12 |         44 |
+| val1d |  10 |     |  12 |         44 |
+| val1d |  10 |     |  12 |         82 |
+| val1d |  10 |     |  12 |         82 |
+| val1e |  10 |     |  19 |         20 |
+| val1e |  10 |     |  19 |         20 |
+| val1e |  10 |     |  19 |         20 |
+| val1e |  10 |     |  19 |         20 |
+| val1e |  10 |     |  19 |         44 |
+| val1e |  10 |     |  19 |         44 |
+| val1e |  10 |     |  19 |         44 |
+| val1e |  10 |     |  19 |         44 |
+| val1e |  10 |     |  19 |         82 |
+| val1e |  10 |     |  19 |         82 |
+| val1e |  10 |     |  19 |         82 |
+| val1e |  10 |     |  19 |         82 |
+| val1e |  10 |     |  25 |         20 |
+| val1e |  10 |     |  25 |         20 |
+| val1e |  10 |     |  25 |         44 |
+| val1e |  10 |     |  25 |         44 |
+| val1e |  10 |     |  25 |         82 |
+| val1e |  10 |     |  25 |         82 |
++-------+-----+-----+-----+------------+
+(70 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$3], sort4=[$4], dir0=[ASC], dir1=[ASC], dir2=[ASC], dir3=[ASC], dir4=[ASC])
+  EnumerableCalc(expr#0..5=[{inputs}], proj#0..4=[{exprs}])
+    EnumerableHashJoin(condition=[=($1, $5)], joinType=[inner])
+      EnumerableValues(tuples=[[{ 'val1a', 6, 8, 10 }, { 'val1b', 8, 16, 19 }, { 'val1a', 16, 12, 21 }, { 'val1a', 16, 12, 10 }, { 'val1c', 8, 16, 19 }, { 'val1d', null, 16, 22 }, { 'val1d', null, 16, 19 }, { 'val1e', 10, null, 25 }, { 'val1e', 10, null, 19 }, { 'val1d', 10, null, 12 }, { 'val1a', 6, 8, 10 }, { 'val1e', 10, null, 19 }]])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0:BIGINT], expr#5=[>($t2, $t4)], expr#6=[null:SMALLINT], expr#7=[CASE($t5, $t3, $t6)], WINDOW_SUM=[$t7], T1B=[$t1])
+        EnumerableWindow(window#0=[window(partition {1} order by [0] aggs [COUNT($0), $SUM0($0)])])
+          EnumerableNestedLoopJoin(condition=[>=($0, $1)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 6 }, { 10 }, { 8 }, { 12 }, { null }, { 8 }, { 19 }, { 10 }, { 8 }, { 12 }, { 8 }, { 19 }, { null }]])
+            EnumerableAggregate(group=[{0}])
+              EnumerableValues(tuples=[[{ 6 }, { 8 }, { 16 }, { 16 }, { 8 }, { null }, { null }, { 10 }, { 10 }, { 10 }, { 6 }, { 10 }]])
+!plan
+!}
+
 # [CALCITE-7274] RexFieldAccess has wrong index when use trim unused fields
 !set trimfields true
 
