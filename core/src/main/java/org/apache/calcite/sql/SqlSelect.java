@@ -285,6 +285,7 @@ public class SqlSelect extends SqlCall {
   // Override SqlCall, to introduce a sub-query frame.
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     if (!writer.inQuery()
+        || writer.inWithBody()
         || (getFetch() != null
         && (leftPrec > SqlInternalOperators.FETCH.getLeftPrec()
         || rightPrec > SqlInternalOperators.FETCH.getLeftPrec()))

@@ -108,7 +108,7 @@ public class SqlWith extends SqlCall {
       writer.endList(frame1);
 //    set FrameTypeEnum to SIMPLE for extra ( bracket (testCTEWithTraits)
       final SqlWriter.Frame frame2 =
-          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+          writer.startList(SqlWriter.FrameTypeEnum.WITH_BODY);
       with.body.unparse(writer,
           SqlWithOperator.INSTANCE.getLeftPrec(), SqlWithOperator.INSTANCE.getRightPrec());
       writer.endList(frame2);
