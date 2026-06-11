@@ -1996,6 +1996,8 @@ public class RexBuilder {
     final Comparable upperValue = toComparable(Comparable.class, upper);
     if (lowerValue != null
         && upperValue != null
+        && !RexSqlValueComparison.usesSpecialComparison(lowerValue)
+        && !RexSqlValueComparison.usesSpecialComparison(upperValue)
         && areAssignable(arg, Arrays.asList(lower, upper))) {
       final Sarg sarg =
           Sarg.of(RexUnknownAs.UNKNOWN,
@@ -2026,6 +2028,9 @@ public class RexBuilder {
     for (RexNode range : ranges) {
       final C value = toComparable(clazz, range);
       if (value == null) {
+        return null;
+      }
+      if (RexSqlValueComparison.usesSpecialComparison(value)) {
         return null;
       }
       rangeSet.add(Range.singleton(value));

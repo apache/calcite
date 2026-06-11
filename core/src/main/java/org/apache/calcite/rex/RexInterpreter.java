@@ -481,8 +481,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     if (v1 instanceof Number) {
       v1 = number(v1);
     }
-    //noinspection unchecked
-    final int c = v0.compareTo(v1);
+    final int c = RexSqlValueComparison.compare(v0, v1);
     return p.test(c);
   }
 
