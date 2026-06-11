@@ -975,7 +975,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       }
       return unnestedQuery.r.getCluster().getRexBuilder().makeWindow(
           newPartitionKeys,
-          window.orderKeys,
+          shiftedWindow.orderKeys,
           window.getLowerBound(),
           window.getUpperBound(),
           window.isRows(),
