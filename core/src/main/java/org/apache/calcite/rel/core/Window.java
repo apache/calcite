@@ -35,6 +35,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -162,8 +163,10 @@ public abstract class Window extends SingleRel implements Hintable {
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
+    final int inputFieldCount = getInput().getRowType().getFieldCount();
     for (Ord<Group> window : Ord.zip(groups)) {
-      pw.item("window#" + window.i, window.e.toString());
+      pw.item("window#" + window.i,
+          window.e.computeDisplayString(constants, inputFieldCount));
     }
     if (this.constants != null && this.constants.size() > 0) {
       pw.item("constants", constants);
@@ -343,6 +346,89 @@ public abstract class Window extends SingleRel implements Hintable {
       }
       buf.append(")");
       return buf.toString();
+    }
+
+    /** Returns a display string with constant offsets in window bounds expanded
+     * to their values. Unlike {@link #toString()}, this is for display
+     * only and does not affect {@link #equals} or {@link #hashCode}.
+     * Constants can be literals or expressions (e.g., 5+5). */
+    public String computeDisplayString(List<RexLiteral> constants, int inputFieldCount) {
+      final StringBuilder buf = new StringBuilder("window(");
+      final int i = buf.length();
+      if (!keys.isEmpty()) {
+        buf.append("partition ");
+        buf.append(keys);
+      }
+      if (!orderKeys.getFieldCollations().isEmpty()) {
+        if (buf.length() > i) {
+          buf.append(' ');
+        }
+        buf.append("order by ");
+        buf.append(orderKeys);
+      }
+      if (orderKeys.getFieldCollations().isEmpty()
+          && lowerBound.isUnboundedPreceding()
+          && upperBound.isUnboundedFollowing()) {
+        // skip
+      } else if (!orderKeys.getFieldCollations().isEmpty()
+          && lowerBound.isUnboundedPreceding()
+          && upperBound.isCurrentRow()
+          && !isRows) {
+        // skip
+      } else {
+        if (buf.length() > i) {
+          buf.append(' ');
+        }
+        buf.append(isRows ? "rows " : "range ");
+        buf.append("between ");
+        buf.append(expandBound(lowerBound, constants, inputFieldCount));
+        buf.append(" and ");
+        buf.append(expandBound(upperBound, constants, inputFieldCount));
+        if (exclude != RexWindowExclusion.EXCLUDE_NO_OTHER) {
+          buf.append(" ").append(exclude);
+        }
+      }
+      if (!aggCalls.isEmpty()) {
+        if (buf.length() > i) {
+          buf.append(' ');
+        }
+        buf.append("aggs ");
+        buf.append(aggCalls);
+      }
+      buf.append(")");
+      return buf.toString();
+    }
+
+    /** Expands a window bound by replacing RexInputRef constants with their values.
+     *
+     * <p>If the bound offset is a RexInputRef pointing to a constant:
+     * - For RexLiteral constants, extracts the actual value (e.g., 10)
+     * - For other expressions, uses toString() to show the expression digest
+     *
+     * <p>Examples:
+     * - RexInputRef(1) pointing to RexLiteral(10) → "10 PRECEDING"
+     * - RexInputRef(1) pointing to RexCall(+, 5, 5) → digest representation
+     */
+    private static String expandBound(RexWindowBound bound,
+        List<RexLiteral> constants, int inputFieldCount) {
+      if (bound.isUnbounded() || bound.isCurrentRow()) {
+        return bound.toString();
+      }
+      final RexNode offset = bound.getOffset();
+      if (offset instanceof RexInputRef) {
+        final int index = ((RexInputRef) offset).getIndex();
+        if (index >= inputFieldCount && index - inputFieldCount < constants.size()) {
+          final RexNode constant = constants.get(index - inputFieldCount);
+          // Constants can be literals or constant expressions (e.g., 5+5 = RexCall).
+          // For literals, use getValue2() to get the actual value.
+          // For expressions, use toString() which shows the expression digest.
+          final String value = (constant instanceof RexLiteral)
+              ? String.valueOf(((RexLiteral) constant).getValue2())
+              : constant.toString();
+          return value + " " + (bound.isPreceding() ? "PRECEDING" : "FOLLOWING");
+        }
+      }
+      return bound.toString();
     }
 
     @Override public boolean equals(@Nullable Object obj) {
