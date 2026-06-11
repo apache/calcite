@@ -471,4 +471,29 @@ FROM (SELECT ARRAY[1,2,3] as x) s;
 
 !ok
 
+# [CALCITE-7596] TopDownGeneralDecorrelator omits rewriting the ORDER BY clause in window function within correlated subquery
+SELECT empno, (SELECT row_number() OVER (PARTITION BY dname ORDER BY emp.sal) FROM dept WHERE dept.deptno = emp.deptno) as rn FROM emp;
+!if (use_new_decorr) {
++-------+----+
+| EMPNO | RN |
++-------+----+
+|  7369 |  1 |
+|  7499 |  1 |
+|  7521 |  1 |
+|  7566 |  1 |
+|  7654 |  1 |
+|  7698 |  1 |
+|  7782 |  1 |
+|  7788 |  1 |
+|  7839 |  1 |
+|  7844 |  1 |
+|  7876 |  1 |
+|  7900 |  1 |
+|  7902 |  1 |
+|  7934 |  1 |
++-------+----+
+(14 rows)
+
+!ok
+!}
 # End new-decorr.iq

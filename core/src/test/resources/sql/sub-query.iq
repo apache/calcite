@@ -8216,7 +8216,6 @@ JOIN LATERAL (
   WHERE e.deptno = d.deptno
 ) d ON TRUE
 ORDER BY e.empno;
-!if (use_old_decorr) {
 +--------+--------+----+
 | ENAME  | DEPTNO | RN |
 +--------+--------+----+
@@ -8238,7 +8237,6 @@ ORDER BY e.empno;
 (14 rows)
 
 !ok
-!}
 
 # Multiple equality-derived correlation keys must remain available
 # when a window expression also needs an additional correlation key.
@@ -8593,7 +8591,6 @@ FROM calcite_7584_t1 t1
 WHERE t1b = (SELECT MAX(tmp.s) FROM (
              SELECT SUM(t2c) OVER (PARTITION BY t2c ORDER BY t1.t1d + t2d) AS s
                FROM calcite_7584_t2 t2) AS tmp);
-!if (use_old_decorr) {
 +--------+
 | EXPR$0 |
 +--------+
@@ -8602,6 +8599,7 @@ WHERE t1b = (SELECT MAX(tmp.s) FROM (
 
 !ok
 
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], EXPR$0=[$t2])
   EnumerableHashJoin(condition=[AND(=($1, $2), =(CAST($0):INTEGER, $3))], joinType=[semi])
     EnumerableValues(tuples=[[{ 6, 10 }, { 8, 19 }, { 16, 21 }, { 16, 10 }, { 8, 19 }, { null, 22 }, { null, 19 }, { 10, 25 }, { 10, 19 }, { 10, 12 }, { 6, 10 }, { 10, 19 }]])
