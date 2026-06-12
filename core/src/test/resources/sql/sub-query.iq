@@ -9987,4 +9987,16 @@ INNER JOIN emp e
 (8 rows)
 
 !ok
+
+# [CALCITE-709] LIMIT inside scalar sub-query
+SELECT E1.DEPTNO
+FROM EMP E1
+WHERE E1.SAL > (SELECT B1.COMM FROM BONUS B1 WHERE E1.ENAME = B1.ENAME LIMIT 2);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
 # End sub-query.iq
