@@ -76,6 +76,8 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case Divide:
+    case Divide0Null:
+      // If we reach this point for Divide0Null, it is being applied to floating point arguments.
       if (primitive == null) {
         throw cannotEvaluate();
       }
