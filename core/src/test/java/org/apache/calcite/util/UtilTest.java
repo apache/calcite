@@ -3292,4 +3292,17 @@ class UtilTest {
     m.describeTo(d);
     return d.toString();
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7556">[CALCITE-7556]
+   * NameMultimap.remove(key, value) leaves an empty key bucket behind</a>. */
+  @Test void testNameMultimapRemoveLastValueRemovesKey() {
+    final NameMultimap<Integer> map = new NameMultimap<>();
+    map.put("baz", 1);
+
+    assertTrue(map.remove("baz", 1));
+    assertThat(map.range("baz", true), hasSize(0));
+    assertThat(map.containsKey("baz", true), is(false));
+    assertThat(map.containsKey("BAZ", false), is(false));
+    assertThat(map.map(), aMapWithSize(0));
+  }
 }

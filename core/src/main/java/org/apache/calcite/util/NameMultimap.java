@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.function.Experimental;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
@@ -71,13 +69,16 @@ public class NameMultimap<V> {
   /** Removes all entries that have the given case-sensitive key.
    *
    * @return Whether a value was removed */
-  @Experimental
   public boolean remove(String key, V value) {
     final List<V> list = map().get(key);
     if (list == null) {
       return false;
     }
-    return list.remove(value);
+    boolean result = list.remove(value);
+    if (list.isEmpty()) {
+      map().remove(key);
+    }
+    return result;
   }
 
   /** Returns a map containing all the entries in this multimap that match the
