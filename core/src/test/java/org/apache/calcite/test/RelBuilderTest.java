@@ -52,7 +52,10 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexNodeAndFieldIndex;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -5575,6 +5578,78 @@ public class RelBuilderTest {
     RelMetadataQuery mq = planAfter.getCluster().getMetadataQuery();
     assertThat(mq.getMinRowCount(planAfter), is(0D));
     assertThat(mq.getMaxRowCount(planAfter), is(Double.POSITIVE_INFINITY));
+  }
+
+  @Test void testFetchExpressionCannotReferenceInputField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("DEPT");
+    final RexNode field = builder.field("DEPTNO");
+
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, field, ImmutableList.of()));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null,
+            builder.call(SqlStdOperatorTable.PLUS, builder.literal(1), field),
+            ImmutableList.of()));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null,
+            new RexNodeAndFieldIndex(0, 0, "DEPTNO", field.getType()),
+            ImmutableList.of()));
+  }
+
+  @Test void testFetchExpressionMustHaveIntegralType() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("DEPT");
+
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, builder.literal("x"), ImmutableList.of()));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, builder.literal(new BigDecimal("1.5")),
+            ImmutableList.of()));
+  }
+
+  @Test void testFetchExpressionCannotContainAggregateWindowOrSubQuery() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType intType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    builder.scan("DEPT");
+    final RexNode aggregate =
+        builder.call(SqlStdOperatorTable.SUM, builder.literal(1));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, aggregate, ImmutableList.of()));
+
+    final RexNode over =
+        builder.getRexBuilder().makeOver(intType,
+            SqlStdOperatorTable.ROW_NUMBER, ImmutableList.of(),
+            ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.UNBOUNDED_FOLLOWING,
+            true, true, false, false, false);
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, over, ImmutableList.of()));
+
+    final RelBuilder subQueryBuilder = RelBuilder.create(config().build());
+    final RexNode subQuery =
+        RexSubQuery.scalar(subQueryBuilder.values(new String[] {"N"}, 1).build());
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, subQuery, ImmutableList.of()));
+  }
+
+  @Test void testFetchExpressionCannotContainLambda() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType intType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    builder.scan("DEPT");
+    final RexLambdaRef lambdaRef = new RexLambdaRef(0, "x", intType);
+    final RexNode lambda =
+        builder.getRexBuilder().makeLambdaCall(
+            builder.call(SqlStdOperatorTable.PLUS, lambdaRef, builder.literal(1)),
+            ImmutableList.of(lambdaRef));
+
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, lambda, ImmutableList.of()));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(null, lambdaRef, ImmutableList.of()));
   }
 
   @Test void testAdoptConventionEnumerable() {

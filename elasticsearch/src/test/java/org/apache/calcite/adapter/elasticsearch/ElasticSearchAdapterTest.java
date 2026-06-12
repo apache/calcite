@@ -571,6 +571,29 @@ class ElasticSearchAdapterTest {
             ElasticsearchChecker.elasticsearchChecker(
                 "'_source':['state','id']",
                 "size:3"));
+    calciteAssert()
+        .query("select state, id from zips\n"
+            + "fetch next (0 - 1) rows only")
+        .throws_("FETCH value -1 is out of range");
+  }
+
+  @Test void testFetchExpression() {
+    final String sql = "select state, id from zips\n"
+        + "fetch next (1 + abs(-2)) rows only";
+
+    calciteAssert()
+        .query(sql)
+        .returnsCount(3)
+        .explainContains("ElasticsearchSort(fetch=[3])")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+                "'_source':['state','id']",
+                "size:3"));
+    calciteAssert()
+        .query("select state, id from zips\n"
+            + "fetch next (cast(3000000000 as bigint) + 1) rows only")
+        .runs()
+        .explainContains("ElasticsearchSort(fetch=[3000000001:BIGINT])");
   }
 
   @Test void limit2() {

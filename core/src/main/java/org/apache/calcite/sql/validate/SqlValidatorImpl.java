@@ -1750,6 +1750,35 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  private void validateFetchExpression(@Nullable SqlNode fetch) {
+    if (fetch == null || fetch instanceof SqlDynamicParam) {
+      return;
+    }
+    if (SqlUtil.isNullLiteral(fetch, true)) {
+      throw newValidationError(fetch,
+          RESOURCE.fetchExpressionEvaluatedToNull());
+    }
+    validateNoAggs(aggOrOverFinder, fetch, "FETCH");
+    fetch.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlIdentifier id) {
+        if (makeNullaryCall(id) != null) {
+          return null;
+        }
+        throw newValidationError(id,
+            RESOURCE.fetchExpressionCannotReferenceColumn(id.toString()));
+      }
+    });
+    final SqlValidatorScope scope = getEmptyScope();
+    inferUnknownTypes(typeFactory.createSqlType(SqlTypeName.INTEGER), scope, fetch);
+    validateExpr(fetch, scope);
+    final RelDataType type = getValidatedNodeType(fetch);
+    if (!SqlTypeUtil.isIntType(type)
+        && !(SqlTypeUtil.isDecimal(type) && type.getScale() == 0)) {
+      throw newValidationError(fetch,
+          RESOURCE.fetchExpressionMustBeIntegral(type.getFullTypeString()));
+    }
+  }
+
   /**
    * Performs expression rewrites which are always used unconditionally. These
    * rewrites massage the expression tree into a standard form so that the
@@ -4447,6 +4476,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateWindowClause(select);
     validateQualifyClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
+    validateFetchExpression(select.getFetch());
 
     // Validate the SELECT clause late, because a select item might
     // depend on the GROUP BY list, or the window function might reference

@@ -1081,7 +1081,18 @@ public class SqlDialect {
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);
       writer.keyword("FETCH");
       writer.keyword("NEXT");
-      fetch.unparse(writer, -1, -1);
+      if (fetch instanceof SqlLiteral
+          || fetch instanceof SqlDynamicParam) {
+        fetch.unparse(writer, -1, -1);
+      } else {
+        final SqlWriter.Frame expressionFrame = writer.startList("(", ")");
+        if (fetch instanceof SqlCall) {
+          writer.getDialect().unparseCall(writer, (SqlCall) fetch, 0, 0);
+        } else {
+          fetch.unparse(writer, 0, 0);
+        }
+        writer.endList(expressionFrame);
+      }
       writer.keyword("ROWS");
       writer.keyword("ONLY");
       writer.endList(fetchFrame);
@@ -1091,13 +1102,32 @@ public class SqlDialect {
   /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax. */
   protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch, false);
+  }
+
+  /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax,
+   * optionally allowing a scalar expression as fetch. */
+  protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch, boolean allowExpression) {
     checkArgument(fetch != null || offset != null);
-    unparseLimit(writer, fetch);
+    unparseLimit(writer, fetch, allowExpression);
     unparseOffset(writer, offset);
   }
 
   protected static void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch) {
+    unparseLimit(writer, fetch, false);
+  }
+
+  private static void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch,
+      boolean allowExpression) {
     if (fetch != null) {
+      if (!allowExpression
+          && !(fetch instanceof SqlLiteral)
+          && !(fetch instanceof SqlDynamicParam)) {
+        throw new IllegalArgumentException(
+            "LIMIT dialect does not support FETCH expressions that cannot "
+                + "be reduced to a literal");
+      }
       writer.newlineAndIndent();
       final SqlWriter.Frame fetchFrame =
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);

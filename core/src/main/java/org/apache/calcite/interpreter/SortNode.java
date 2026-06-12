@@ -16,13 +16,17 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,8 +39,18 @@ import static java.util.Objects.requireNonNull;
  * {@link org.apache.calcite.rel.core.Sort}.
  */
 public class SortNode extends AbstractSingleNode<Sort> {
+  private final @Nullable Scalar fetchScalar;
+  private final @Nullable Context fetchContext;
+
   public SortNode(Compiler compiler, Sort rel) {
     super(compiler, rel);
+    if (rel.fetch != null && !(rel.fetch instanceof RexLiteral)) {
+      this.fetchScalar = compiler.compile(ImmutableList.of(rel.fetch), null);
+      this.fetchContext = compiler.createContext();
+    } else {
+      this.fetchScalar = null;
+      this.fetchContext = null;
+    }
   }
 
   private static int getValueAsInt(RexNode node) {
@@ -44,15 +58,31 @@ public class SortNode extends AbstractSingleNode<Sort> {
         () -> "getValueAs(Integer.class) for " + node);
   }
 
+  private int getFetch() {
+    if (rel.fetch == null) {
+      return -1;
+    }
+    final @Nullable Number value;
+    if (rel.fetch instanceof RexLiteral) {
+      value = ((RexLiteral) rel.fetch).getValueAs(Number.class);
+    } else {
+      final Object result =
+          requireNonNull(fetchScalar, "fetchScalar")
+              .execute(requireNonNull(fetchContext, "fetchContext"));
+      if (result != null && !(result instanceof Number)) {
+        throw new IllegalArgumentException("FETCH value is not numeric: " + result);
+      }
+      value = (Number) result;
+    }
+    return EnumerableLimit.toIntFetch(value);
+  }
+
   @Override public void run() throws InterruptedException {
     final int offset =
         rel.offset == null
             ? 0
             : getValueAsInt(rel.offset);
-    final int fetch =
-        rel.fetch == null
-            ? -1
-            : getValueAsInt(rel.fetch);
+    final int fetch = getFetch();
     // In pure limit mode. No sort required.
     Row row;
   loop:

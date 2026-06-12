@@ -2468,6 +2468,18 @@ LogicalSort(fetch=[?0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFetchWithExpression">
+    <Resource name="sql">
+      <![CDATA[select empno from emp fetch next (1 + abs(-2)) rows only]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(fetch=[+(1, ABS(-2))])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFlattenRecords">
     <Resource name="sql">
       <![CDATA[select employees[1] from dept_nested]]>

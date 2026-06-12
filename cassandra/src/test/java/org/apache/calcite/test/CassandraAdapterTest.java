@@ -127,6 +127,22 @@ class CassandraAdapterTest {
         .explainContains("CassandraLimit(fetch=[8])\n");
   }
 
+  @Test void testFetchExpression() {
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" "
+            + "where \"username\" = '!PUBLIC!' "
+            + "fetch next (1 + abs(-2)) rows only")
+        .returnsCount(3)
+        .explainContains("CassandraLimit(fetch=[3])\n");
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" "
+            + "where \"username\" = '!PUBLIC!' "
+            + "fetch next (0 - 1) rows only")
+        .throws_("FETCH value -1 is out of range");
+  }
+
   @Test void testSortLimit() {
     CalciteAssert.that()
         .with(TWISSANDRA)

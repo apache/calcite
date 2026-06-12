@@ -3756,6 +3756,67 @@ public class JdbcTest {
             + "store_id=4; grocery_sqft=16844\n");
   }
 
+  /** Tests FETCH with a parenthesized expression. */
+  @Test void testFetchExpression() {
+    CalciteAssert.that()
+        .query("select * from (values (1), (2), (3), (4)) as t(x)\n"
+            + "fetch next (1 + abs(-2)) rows only")
+        .returns("X=1\n"
+            + "X=2\n"
+            + "X=3\n");
+  }
+
+  /** Tests FETCH expressions in bindable/interpreter convention. */
+  @Test void testBindableFetchExpression() {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      CalciteAssert.that()
+          .query("select * from (values (1), (2), (3), (4)) as t(x)\n"
+              + "fetch next (rand_integer(1) + 2) rows only")
+          .explainContains("BindableSort(fetch=[+(RAND_INTEGER(1), 2)])")
+          .returns("X=1\n"
+              + "X=2\n");
+    }
+  }
+
+  /** Tests scalar functions with positive and negative arguments in FETCH. */
+  @Test void testFetchExpressionFunctionArguments() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3)) as t(x)\n";
+    with.query(values + "fetch next (abs(2)) rows only")
+        .returns("X=1\n"
+            + "X=2\n");
+    with.query(values + "fetch next (abs(-2)) rows only")
+        .returns("X=1\n"
+            + "X=2\n");
+  }
+
+  /** Tests invalid runtime values produced by FETCH expressions. */
+  @Test void testFetchExpressionInvalidValue() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3)) as t(x)\n";
+    with.query(values + "fetch next (0 - 1) rows only")
+        .throws_("FETCH value -1 is out of range; expected a value between 0 and "
+            + Integer.MAX_VALUE);
+    with.query(values + "fetch next (-1) rows only")
+        .throws_("FETCH value -1 is out of range; expected a value between 0 and "
+            + Integer.MAX_VALUE);
+    with.query(values
+        + "fetch next (cast(3000000000 as bigint) + 1) rows only")
+        .throws_("FETCH value 3000000001 is out of range; "
+            + "expected a value between 0 and " + Integer.MAX_VALUE);
+    with.query(values
+        + "fetch next (cast(3000000001 as bigint)) rows only")
+        .throws_("FETCH value 3000000001 is out of range; "
+            + "expected a value between 0 and " + Integer.MAX_VALUE);
+    with.query(values
+        + "fetch next (abs(cast(3000000001 as bigint))) rows only")
+        .throws_("FETCH value 3000000001 is out of range; "
+            + "expected a value between 0 and " + Integer.MAX_VALUE);
+    with.query(values
+        + "fetch next (cast(null as integer)) rows only")
+        .throws_("FETCH expression evaluated to NULL");
+  }
+
   /** Tests ORDER BY ... OFFSET ... FETCH. */
   @Test void testOrderByOffsetFetch() {
     CalciteAssert.that()
@@ -5966,6 +6027,106 @@ public class JdbcTest {
     checkPreparedOffsetFetch(100, 4, Matchers.returnsUnordered());
     checkPreparedOffsetFetch(3, 4,
         Matchers.returnsUnordered("name=Eric"));
+  }
+
+  /** Tests dynamic parameters in parenthesized FETCH expressions. */
+  @Test void testPreparedFetchExpression() throws Exception {
+    CalciteAssert.that()
+        .doWithConnection(connection -> {
+          final String values =
+              "select * from (values (1), (2), (3), (4)) as t(x)\n";
+          checkPreparedFetch(connection, values + "fetch next (?) rows only",
+              2, "X=1\nX=2\n");
+          checkPreparedFetch(connection, values + "fetch next (? + 1) rows only",
+              2, "X=1\nX=2\nX=3\n");
+          checkPreparedFetch(connection,
+              values + "fetch next (abs(cast(? as integer))) rows only",
+              2, "X=1\nX=2\n");
+          checkPreparedFetch(connection,
+              values + "fetch next (abs(cast(? as integer))) rows only",
+              -2, "X=1\nX=2\n");
+          checkPreparedFetchRepeated(connection,
+              values + "fetch next (?) rows only",
+              new int[] {1, 3},
+              new String[] {"X=1\n", "X=1\nX=2\nX=3\n"});
+          checkPreparedFetchRepeated(connection,
+              values + "fetch next (? + 1) rows only",
+              new int[] {0, 2, 3},
+              new String[] {"X=1\n", "X=1\nX=2\nX=3\n",
+                  "X=1\nX=2\nX=3\nX=4\n"});
+
+          checkPreparedFetchFails(connection,
+              values + "fetch next (?) rows only", -1,
+              "FETCH value -1 is out of range");
+          checkPreparedFetchFails(connection,
+              values + "fetch next (? + 1) rows only", -2,
+              "FETCH value -1 is out of range");
+          checkPreparedFetchFails(connection,
+              values + "fetch next (abs(cast(? as bigint))) rows only",
+              3_000_000_001L,
+              "FETCH value 3000000001 is out of range");
+        });
+  }
+
+  /** Tests dynamic parameters in bindable/interpreter FETCH expressions. */
+  @Test void testBindablePreparedFetchExpression() throws Exception {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      CalciteAssert.that()
+          .doWithConnection(connection -> {
+            final String values =
+                "select * from (values (1), (2), (3), (4)) as t(x)\n";
+            checkPreparedFetch(connection,
+                values + "fetch next (? + 1) rows only",
+                2, "X=1\nX=2\nX=3\n");
+            checkPreparedFetchRepeated(connection,
+                values + "fetch next (? + 1) rows only",
+                new int[] {0, 2, 3},
+                new String[] {"X=1\n", "X=1\nX=2\nX=3\n",
+                    "X=1\nX=2\nX=3\nX=4\n"});
+          });
+    }
+  }
+
+  private static void checkPreparedFetch(Connection connection, String sql,
+      int value, String expected) {
+    try (PreparedStatement p = connection.prepareStatement(sql)) {
+      p.setInt(1, value);
+      try (ResultSet r = p.executeQuery()) {
+        assertThat(CalciteAssert.toString(r), is(expected));
+      }
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static void checkPreparedFetchRepeated(Connection connection, String sql,
+      int[] values, String[] expected) {
+    try (PreparedStatement p = connection.prepareStatement(sql)) {
+      for (int i = 0; i < values.length; i++) {
+        p.setInt(1, values[i]);
+        try (ResultSet r = p.executeQuery()) {
+          assertThat(CalciteAssert.toString(r), is(expected[i]));
+        }
+      }
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static void checkPreparedFetchFails(Connection connection, String sql,
+      long value, String expectedMessage) {
+    try (PreparedStatement p = connection.prepareStatement(sql)) {
+      if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) {
+        p.setInt(1, (int) value);
+      } else {
+        p.setLong(1, value);
+      }
+      final SQLException e =
+          assertThrows(SQLException.class, p::executeQuery);
+      assertThat(e.getMessage(), containsString(expectedMessage));
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
   }
 
   private void checkPreparedOffsetFetch(final int offset, final int fetch,
