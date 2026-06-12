@@ -5673,6 +5673,19 @@ LogicalProject(X=[CAST($0):DECIMAL(2, 1) NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNaturalJoinCastNoCoercion2">
+    <Resource name="sql">
+      <![CDATA[select * from emp join dept using(deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNestedAggregates">
     <Resource name="sql">
       <![CDATA[SELECT
