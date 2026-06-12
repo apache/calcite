@@ -251,6 +251,76 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+  @Test void testAggregateGroupSets1() {
+    final String query = "select count(*) + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by cube(\"empid\",\"deptno\")";
+
+    // Without materialization: aggregate directly over the base table.
+    fixture(query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]]",
+            "EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+
+    // With materialization: exact match on grouping sets, so the query can
+    // be rewritten to scan MV0 directly.
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"emps\" group by cube(\"empid\",\"deptno\")",
+        query)
+        .checkingThatResultContains(
+            "EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+  @Test void testAggregateGroupSets2() {
+    final String query = "select count(*) + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by rollup(\"empid\",\"deptno\")";
+
+    // Without materialization: aggregate directly over the base table.
+    fixture(query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]]",
+            "EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+
+    // With materialization: the MV is defined as CUBE, which produces an extra
+    // grouping set {deptno} that the query does not need. Cannot rewrite.
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"emps\" group by cube(\"empid\",\"deptno\")",
+        query)
+        .noMat();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7534">[CALCITE-7534]
+   * Support GROUPING SETS, CUBE and ROLLUP in materialized view aggregate rule rewriting</a>. */
+  @Test void testAggregateGroupSetsRollUp() {
+    final String query = "select count(*) + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by cube(\"empid\",\"deptno\")";
+
+    // Without materialization: aggregate directly over the base table.
+    fixture(query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]]",
+            "EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+
+    // With materialization: the MV is a simple GROUP BY, which is finer-grained
+    // than the query's CUBE. An additional aggregate is introduced on top of MV0
+    // to roll up the subtotals.
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+            + "from \"emps\" group by \"empid\", \"deptno\"",
+        query)
+        .checkingThatResultContains(
+            "EnumerableAggregate(group=[{0, 1}], "
+                + "groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])",
+            "EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
   @Test void testAggregateMaterializationAggregateFuncs9() {
     sql("select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), "
             + "count(*) + 1 as c, sum(\"empid\") as s\n"
