@@ -433,6 +433,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowLambdaClosure() {
+    switch (this) {
+    case STRICT_92:
+    case STRICT_99:
+    case STRICT_2003:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   @Override public boolean allowAliasUnnestItems() {
     switch (this) {
     case BIG_QUERY:

@@ -244,8 +244,14 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> paramNotFoundInFunctionDidYouMean(String a0,
       String a1, String a2);
 
+  @BaseMessage("Lambda closure is not allowed in this conformance: reference to ''{0}'' from enclosing scope")
+  ExInst<SqlValidatorException> lambdaClosureNotAllowed(String identifier);
+
   @BaseMessage("Param ''{0}'' not found in lambda expression ''{1}''")
   ExInst<SqlValidatorException> paramNotFoundInLambdaExpression(String a0, String a1);
+
+  @BaseMessage("Duplicate lambda parameter ''{0}''")
+  ExInst<SqlValidatorException> duplicateLambdaParameter(String paramName);
 
   @BaseMessage("Operand {0} must be a query")
   ExInst<SqlValidatorException> needQueryOp(String a0);

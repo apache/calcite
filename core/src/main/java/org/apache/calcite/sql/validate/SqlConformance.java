@@ -612,6 +612,28 @@ public interface SqlConformance {
   boolean allowQualifyingCommonColumn();
 
   /**
+   * Whether to allow lambda expressions to access variables from enclosing
+   * scopes (closure semantics).
+   *
+   * <p>For example, in a higher-order function context like:
+   *
+   * <blockquote><pre>
+   * SELECT *
+   * FROM t1
+   * JOIN t2 ON EXISTS(t1.arr, x -&gt; x = t2.v)</pre></blockquote>
+   *
+   * <p>The {@code t2.v} from the enclosing scope would be accessible inside
+   * the lambda body if closures are allowed.
+   *
+   * <p>Among the built-in conformance levels, false in
+   * {@link SqlConformanceEnum#STRICT_92},
+   * {@link SqlConformanceEnum#STRICT_99},
+   * {@link SqlConformanceEnum#STRICT_2003};
+   * true otherwise.
+   */
+  boolean allowLambdaClosure();
+
+  /**
    * Whether {@code VALUE} is allowed as an alternative to {@code VALUES} in
    * the parser.
    *

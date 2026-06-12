@@ -5794,6 +5794,17 @@ LogicalProject(D2=[$0], D3=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNestedLambdaExpression">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(1,2,3), x -> "EXISTS"(array(1,2,3), y -> x + y = 4))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2, 3), (X) -> EXISTS(ARRAY(1, 2, 3), (Y) -> =(+(X, Y), 4)))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNestedPrimitiveFieldAccess">
     <Resource name="sql">
       <![CDATA[select dn.skill['desc']
