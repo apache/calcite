@@ -8168,6 +8168,39 @@ SELECT deptno FROM dept WHERE 1000.00 >
 
 !ok
 
+# [CALCITE-7587] RelDecorrelator fails on correlated scalar subquery with ROW_NUMBER window function
+# due to RexOver nullability mismatch
+# Correlated scalar sub-query in the SELECT list that contains a window function.
+# Decorrelation must add the correlation key to the window partition and preserve nullability
+# of the OVER expression after pulling it above the left correlate.
+SELECT e.ename,
+  (SELECT ROW_NUMBER() OVER (PARTITION BY e.deptno ORDER BY e.empno, d.deptno)
+   FROM dept d
+   WHERE e.deptno = d.deptno) AS rn
+FROM emp e
+ORDER BY e.empno;
++--------+----+
+| ENAME  | RN |
++--------+----+
+| SMITH  |  1 |
+| ALLEN  |  1 |
+| WARD   |  1 |
+| JONES  |  1 |
+| MARTIN |  1 |
+| BLAKE  |  1 |
+| CLARK  |  1 |
+| SCOTT  |  1 |
+| KING   |  1 |
+| TURNER |  1 |
+| ADAMS  |  1 |
+| JAMES  |  1 |
+| FORD   |  1 |
+| MILLER |  1 |
++--------+----+
+(14 rows)
+
+!ok
+
 # [CALCITE-7584] RelDecorrelator produces incorrect results for correlated LATERAL sub-queries with window functions
 # Correlated LATERAL sub-query with a window expression.
 # The equality predicate between the inner and outer query must remain applied

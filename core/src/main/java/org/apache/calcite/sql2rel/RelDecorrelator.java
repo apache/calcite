@@ -2695,6 +2695,118 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return literal;
     }
 
+    /**
+     * Decorrelates a window expression ({@link RexOver}) that may reference
+     * correlation variables in its {@code PARTITION BY} / {@code ORDER BY}
+     * keys (or the aggregate arguments).
+     *
+     * <p>For each correlation field reachable from {@code over}, we:
+     * <ol>
+     *   <li>rewrite it to an input reference of the (already decorrelated)
+     *       left-hand side of the surrounding correlate, and</li>
+     *   <li>append that reference to the window's {@code partitionKeys}
+     *       (if not already present), so that the window is evaluated
+     *       independently per outer row group, matching the original
+     *       per-correlated-row semantics.</li>
+     * </ol>
+     *
+     * <p>If the scalar sub-query has been pulled above a LEFT correlate, the
+     * result is wrapped in a {@code CASE} on the null-indicator so that it
+     * stays {@code NULL} when the right side did not match.
+     *
+     * <p>Concrete example. For the SQL:
+     * <pre>{@code
+     * SELECT e.ename,
+     *        (SELECT ROW_NUMBER() OVER (PARTITION BY e.deptno
+     *                                   ORDER BY e.empno, d.deptno)
+     *           FROM dept d WHERE e.deptno = d.deptno) AS rn
+     * FROM   emp e
+     * ORDER BY e.empno
+     * }</pre>
+     *
+     * <p>BEFORE this method (window expression as seen on entry):
+     * <pre>{@code
+     * ROW_NUMBER() OVER (
+     *   PARTITION BY $cor2.DEPTNO
+     *   ORDER BY    $cor2.EMPNO, $0)
+     *   partitionKeys = [$cor2.DEPTNO]
+     *   orderKeys     = [$cor2.EMPNO, $0]
+     * }</pre>
+     *
+     * <p>AFTER this method (with {@code projectPulledAboveLeftCorrelator=true}
+     * and a null-indicator at column {@code $3}; correlation fields are
+     * rewritten to input refs from the outer side and {@code $cor2.EMPNO} is
+     * additionally appended to the partition keys):
+     * <pre>{@code
+     * CASE(IS NULL($3), null:BIGINT,
+     *      CAST(
+     *        ROW_NUMBER() OVER (
+     *          PARTITION BY CASE(IS NULL($3), null:TINYINT,  CAST($2):TINYINT),
+     *                       CASE(IS NULL($3), null:SMALLINT, CAST($0):SMALLINT)
+     *          ORDER BY    CASE(IS NULL($3), null:SMALLINT, CAST($0):SMALLINT),
+     *                       $3)
+     *      ):BIGINT)
+     *   newOver.partitionKeys =
+     *     [CASE(IS NULL($3), null:TINYINT,  CAST($2):TINYINT),
+     *      CASE(IS NULL($3), null:SMALLINT, CAST($0):SMALLINT)]
+     *   newOver.orderKeys     =
+     *     [CASE(IS NULL($3), null:SMALLINT, CAST($0):SMALLINT), $3]
+     * }</pre>
+     *
+     * <p>Note that {@code $cor2.EMPNO} only appeared in the original
+     * {@code ORDER BY}; without appending its decorrelated form to
+     * {@code partitionKeys} the rewritten window would silently widen its
+     * computation scope across outer rows and produce wrong results.
+     */
+    @Override public RexNode visitOver(RexOver over) {
+      // Collect correlation fields that are referenced directly by the window
+      // expression. They need to be added to the window partition keys so that
+      // decorrelation does not widen the window computation scope.
+      final List<RexFieldAccess> correlationFields = new ArrayList<>();
+      over.accept(new RexVisitorImpl<Void>(true) {
+        @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+          if (cm.mapFieldAccessToCorRef.containsKey(fieldAccess)
+              && !correlationFields.contains(fieldAccess)) {
+            correlationFields.add(fieldAccess);
+          }
+          return super.visitFieldAccess(fieldAccess);
+        }
+      });
+
+      RexOver newOver = (RexOver) super.visitOver(over);
+      if (!correlationFields.isEmpty()) {
+        final List<RexNode> partitionKeys = new ArrayList<>(newOver.getWindow().partitionKeys);
+        boolean update = false;
+        for (RexFieldAccess fieldAccess : correlationFields) {
+          // Rewrite the correlation field to its decorrelated input reference,
+          // then use it as an additional partition key for the window.
+          RexNode partitionKey = visitFieldAccess(fieldAccess);
+          if (!partitionKeys.contains(partitionKey)) {
+            partitionKeys.add(partitionKey);
+            update = true;
+          }
+        }
+        if (update) {
+          newOver =
+              (RexOver) rexBuilder.makeOver(newOver.getParserPosition(),
+                  newOver.getType(),
+                  newOver.getAggOperator(), newOver.getOperands(), partitionKeys,
+                  newOver.getWindow().orderKeys,
+                  newOver.getWindow().getLowerBound(),
+                  newOver.getWindow().getUpperBound(),
+                  newOver.getWindow().getExclude(),
+                  newOver.getWindow().isRows(), true, false, newOver.isDistinct(),
+                  newOver.ignoreNulls());
+        }
+      }
+      if (projectPulledAboveLeftCorrelator && (nullIndicator != null)) {
+        // Once a scalar sub-query is pulled above a left correlate, the result
+        // must remain nullable when there is no matching row on the right side.
+        return createCaseExpression(nullIndicator, null, newOver);
+      }
+      return newOver;
+    }
+
     @Override public RexNode visitCall(final RexCall call) {
       RexNode newCall;
 
