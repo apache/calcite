@@ -189,6 +189,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_SPARK;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINED_BY_OP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINS_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINS_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONVERT_ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSD;
@@ -263,6 +265,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OVERLAP_OP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
@@ -1118,6 +1121,14 @@ public class RexImpTable {
       defineMethod(SUBSTRING_INDEX, BuiltInMethod.SUBSTRING_INDEX.method, NullPolicy.STRICT);
       define(ARRAY_CONCAT, new ArrayConcatImplementor());
       define(SORT_ARRAY, new SortArrayImplementor());
+      // PostgreSQL containment and overlap operators
+      // Uses type dispatch to support multiple operand types (ARRAY, RANGE, JSONB)
+      define(CONTAINS_OP,
+          new ContainmentOpImplementor(BuiltInMethod.ARRAY_CONTAINS_OP.method));
+      define(CONTAINED_BY_OP,
+          new ContainmentOpImplementor(BuiltInMethod.ARRAY_CONTAINED_BY_OP.method));
+      define(OVERLAP_OP,
+          new ContainmentOpImplementor(BuiltInMethod.ARRAY_OVERLAP_OP.method));
       final MethodImplementor isEmptyImplementor =
           new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.STRICT,
               false);
@@ -4686,6 +4697,26 @@ public class RexImpTable {
             Expressions.new_(method.getDeclaringClass());
         return Expressions.call(target, method, argValueList0);
       }
+    }
+  }
+
+  /** Implementor for PostgreSQL containment and overlap operators.
+   *
+   * <p>Currently supports ARRAY types only.
+   */
+  private static class ContainmentOpImplementor extends AbstractRexCallImplementor {
+
+    private final Method method;
+
+    ContainmentOpImplementor(Method method) {
+      super("containment_op", NullPolicy.NONE, false);
+      this.method = method;
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return new MethodImplementor(method, nullPolicy, false)
+          .implementSafe(translator, call, argValueList);
     }
   }
 
