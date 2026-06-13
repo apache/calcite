@@ -554,6 +554,11 @@ public interface SqlWriter {
    */
   boolean inQuery();
 
+  /**
+   * Returns whether we are currently in WITH item context.
+   */
+  boolean inWithBody();
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
