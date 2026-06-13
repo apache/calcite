@@ -73,6 +73,27 @@ public class CoreSqlParserTest extends SqlParserTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7603">[CALCITE-7603]
+   * Support ROW constructors that name fields</a>. */
+  @Test void testRowWithFieldNames() {
+    // All fields named
+    sql("select row(1 as a, 'hello' as b) from emp")
+        .ok("SELECT (ROW(1 AS `A`, 'hello' AS `B`))\nFROM `EMP`");
+    // Mixed: some fields named, some not
+    sql("select row(1 as a, 2) from emp")
+        .ok("SELECT (ROW(1 AS `A`, 2))\nFROM `EMP`");
+    // No field names (existing behavior unchanged)
+    sql("select row(1, 2) from emp")
+        .ok("SELECT (ROW(1, 2))\nFROM `EMP`");
+    // Expression with AS
+    sql("select row(empno + 1 as eno, ename as en) from emp")
+        .ok("SELECT (ROW((`EMPNO` + 1) AS `ENO`, `ENAME` AS `EN`))\nFROM `EMP`");
+    // Round-trip: the canonical form can be re-parsed
+    final SqlParserFixture f = fixture().withConfig(c -> c.withQuoting(Quoting.BACK_TICK));
+    f.sql("SELECT (ROW(1 AS `A`, 2))\nFROM `EMP`").same();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7364">[CALCITE-7364]
    * Support the syntax ROW(T.* EXCLUDE cols) for creating nested ROW values</a>. */
   @Test void testRowStarExclude() {
