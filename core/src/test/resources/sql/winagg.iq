@@ -1173,4 +1173,143 @@ order by 1;
 (14 rows)
 
 !ok
+
+# [CALCITE-6442] Support FILTER clause with window functions
+
+# Test 1: FILTER with OVER on COUNT
+select empno, deptno,
+  count(*) filter (where sal > 1500) over (partition by deptno) as filtered_count
+from emp
+order by empno;
++-------+--------+----------------+
+| EMPNO | DEPTNO | FILTERED_COUNT |
++-------+--------+----------------+
+|  7369 |     20 |              0 |
+|  7566 |     20 |              5 |
+|  7788 |     20 |              5 |
+|  7876 |     20 |              0 |
+|  7902 |     20 |              5 |
+|  7782 |     10 |              3 |
+|  7839 |     10 |              3 |
+|  7934 |     10 |              0 |
+|  7499 |     30 |              6 |
+|  7521 |     30 |              0 |
+|  7654 |     30 |              0 |
+|  7698 |     30 |              6 |
+|  7844 |     30 |              0 |
+|  7900 |     30 |              0 |
++-------+--------+----------------+
+(14 rows)
+
+!ok
+
+# Test 2: FILTER with OVER on SUM
+select empno, deptno,
+  sum(sal) filter (where comm is not null) over (partition by deptno) as filtered_sum
+from emp
+order by empno;
++-------+--------+--------------+
+| EMPNO | DEPTNO | FILTERED_SUM |
++-------+--------+--------------+
+|  7369 |     20 |              |
+|  7566 |     20 |              |
+|  7788 |     20 |              |
+|  7876 |     20 |              |
+|  7902 |     20 |              |
+|  7782 |     10 |              |
+|  7839 |     10 |              |
+|  7934 |     10 |              |
+|  7499 |     30 |      9400.00 |
+|  7521 |     30 |      9400.00 |
+|  7654 |     30 |      9400.00 |
+|  7698 |     30 |              |
+|  7844 |     30 |      9400.00 |
+|  7900 |     30 |              |
++-------+--------+--------------+
+(14 rows)
+
+!ok
+
+# Test 3: FILTER with OVER and DISTINCT
+select empno, deptno,
+  count(distinct sal) filter (where sal > 1000) over (partition by deptno) as filtered_count_distinct
+from emp
+order by empno;
++-------+--------+-------------------------+
+| EMPNO | DEPTNO | FILTERED_COUNT_DISTINCT |
++-------+--------+-------------------------+
+|  7369 |     20 |                       0 |
+|  7566 |     20 |                       5 |
+|  7788 |     20 |                       5 |
+|  7876 |     20 |                       5 |
+|  7902 |     20 |                       5 |
+|  7782 |     10 |                       3 |
+|  7839 |     10 |                       3 |
+|  7934 |     10 |                       3 |
+|  7499 |     30 |                       6 |
+|  7521 |     30 |                       6 |
+|  7654 |     30 |                       6 |
+|  7698 |     30 |                       6 |
+|  7844 |     30 |                       6 |
+|  7900 |     30 |                       0 |
++-------+--------+-------------------------+
+(14 rows)
+
+!ok
+
+# Test 4: Multiple FILTER with OVER on different aggregates
+select empno, deptno,
+  count(*) filter (where sal > 1500) over (partition by deptno) as high_sal_count,
+  sum(sal) filter (where sal <= 1500) over (partition by deptno) as low_sal_sum
+from emp
+order by empno;
++-------+--------+----------------+-------------+
+| EMPNO | DEPTNO | HIGH_SAL_COUNT | LOW_SAL_SUM |
++-------+--------+----------------+-------------+
+|  7369 |     20 |              0 |    10875.00 |
+|  7566 |     20 |              5 |             |
+|  7788 |     20 |              5 |             |
+|  7876 |     20 |              0 |    10875.00 |
+|  7902 |     20 |              5 |             |
+|  7782 |     10 |              3 |             |
+|  7839 |     10 |              3 |             |
+|  7934 |     10 |              0 |     8750.00 |
+|  7499 |     30 |              6 |             |
+|  7521 |     30 |              0 |     9400.00 |
+|  7654 |     30 |              0 |     9400.00 |
+|  7698 |     30 |              6 |             |
+|  7844 |     30 |              0 |     9400.00 |
+|  7900 |     30 |              0 |     9400.00 |
++-------+--------+----------------+-------------+
+(14 rows)
+
+!ok
+
+# Test 5: FILTER with OVER and ORDER BY (running window)
+select empno, deptno, sal,
+  sum(sal) filter (where sal > 1000) over (partition by deptno order by empno rows between unbounded preceding and current row) as running_sum
+from emp
+order by empno;
++-------+--------+---------+-------------+
+| EMPNO | DEPTNO | SAL     | RUNNING_SUM |
++-------+--------+---------+-------------+
+|  7369 |     20 |  800.00 |             |
+|  7566 |     20 | 2975.00 |     3775.00 |
+|  7788 |     20 | 3000.00 |     6775.00 |
+|  7876 |     20 | 1100.00 |     7875.00 |
+|  7902 |     20 | 3000.00 |    10875.00 |
+|  7782 |     10 | 2450.00 |     2450.00 |
+|  7839 |     10 | 5000.00 |     7450.00 |
+|  7934 |     10 | 1300.00 |     8750.00 |
+|  7499 |     30 | 1600.00 |     1600.00 |
+|  7521 |     30 | 1250.00 |     2850.00 |
+|  7654 |     30 | 1250.00 |     4100.00 |
+|  7698 |     30 | 2850.00 |     6950.00 |
+|  7844 |     30 | 1500.00 |     8450.00 |
+|  7900 |     30 |  950.00 |             |
++-------+--------+---------+-------------+
+(14 rows)
+
+!ok
+
 # End winagg.iq
