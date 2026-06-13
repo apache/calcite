@@ -95,6 +95,10 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
 
       return false;
     }
+    if (callBinding.isTypeCoercionEnabled()) {
+      callBinding.getValidator().getTypeCoercion()
+          .collectionFunctionCoercion(callBinding);
+    }
     return true;
   }
 
