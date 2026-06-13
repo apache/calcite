@@ -191,7 +191,7 @@ query:
       |   query MINUS [ ALL | DISTINCT ] query
       |   query INTERSECT [ ALL | DISTINCT ] query
       }
-      [ ORDER BY orderItem [, orderItem ]* ]
+      [ ORDER BY { ALL [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ] | orderItem [, orderItem]* } ]
       [ LIMIT [ start, ] { count | ALL } ]
       [ OFFSET start { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
@@ -401,6 +401,12 @@ in those same conformance levels, any *column* in *insert* may be replaced by
 
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.
+
+`ORDER BY ALL` sorts by every expression in the SELECT clause,
+in the order that they appear in the list; for example:
+"SELECT x, y FROM t ORDER BY ALL" is equivalent to
+"SELECT x, y FROM t ORDER BY x, y"
+An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys.
 
 In *query*, *count* and *start* may each be either an unsigned integer literal
 or a dynamic parameter whose value is an integer.

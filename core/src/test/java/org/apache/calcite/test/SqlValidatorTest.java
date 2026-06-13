@@ -7075,6 +7075,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  @Test void testOrderByAll() {
+    // expands to all SELECT items, validates fine
+    sql("select deptno, sal from emp order by all").ok();
+    // direction applies to every expanded key
+    sql("select deptno, sal from emp order by all desc").ok();
+    // SELECT * can't be expanded here
+    sql("select ^*^ from emp order by all")
+        .fails("(?s).*ORDER BY ALL requires an explicit SELECT list.*");
+    // Aliases that shadow other column names must not confuse expansion
+    sql("select empno as deptno, deptno as empno from emp order by all").ok();
+    // verify "x" still resolves and the two features coexist
+    sql("select sal as x, x + 1 as y from emp order by all")
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(SqlConformanceEnum.BABEL)
+        .ok();
+    sql("select sal as x, x + 1 as y from emp order by all desc")
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(SqlConformanceEnum.BABEL)
+        .ok();
+  }
+
   @Test void testOrder() {
     final SqlConformance conformance = fixture().conformance();
     sql("select empno as x from emp order by empno").ok();
