@@ -1797,17 +1797,17 @@ Implicit type coercion of following cases are ignored:
 
 ### Value constructors
 
-| Operator syntax | Description
-|:--------------- |:-----------
-| ROW (value [, value ]*)  | Creates a row from a list of values.
-| ROW (rowStarItem [, rowStarItem ]*)  | Creates a row from all columns, or all columns except those excluded, of one or more tables.
-| (value [, value ]* )     | Creates a row from a list of values.
-| row '[' index ']'        | Returns the element at a particular location in a row (1-based index).
-| row '[' name ']'         | Returns the element of a row with a particular name.
-| map '[' key ']'     | Returns the element of a map with a particular key.
-| array '[' index ']' | Returns the element at a particular location in an array (1-based index).
-| ARRAY '[' value [, value ]* ']' | Creates an array from a list of values.
-| MAP '[' key, value [, key, value ]* ']' | Creates a map from a list of key-value pairs.
+| Operator syntax                            | Description
+|:-------------------------------------------|:-----------
+| ROW (value [AS name] [, value [AS name]]*) | Creates a row from a list of values.
+| ROW (rowStarItem [, rowStarItem ]*)        | Creates a row from all columns, or all columns except those excluded, of one or more tables.
+| (value [, value ]* )                       | Creates a row from a list of values.
+| row '[' index ']'                          | Returns the element at a particular location in a row (1-based index).
+| row '[' name ']'                           | Returns the element of a row with a particular name.
+| map '[' key ']'                            | Returns the element of a map with a particular key.
+| array '[' index ']'                        | Returns the element at a particular location in an array (1-based index).
+| ARRAY '[' value [, value ]* ']'            | Creates an array from a list of values.
+| MAP '[' key, value [, key, value ]* ']'    | Creates a map from a list of key-value pairs.
 
 ### Value constructors by query
 
