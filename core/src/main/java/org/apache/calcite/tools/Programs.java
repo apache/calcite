@@ -21,6 +21,7 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -52,6 +53,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -173,6 +176,41 @@ public class Programs {
     return (planner, rel, requiredOutputTraits, materializations, lattices) -> {
       final HepPlanner hepPlanner =
           new HepPlanner(hepProgram, null, noDag, null, RelOptCostImpl.FACTORY);
+
+      List<RelMetadataProvider> list = Lists.newArrayList(metadataProvider);
+      hepPlanner.registerMetadataProviders(list);
+      for (RelOptMaterialization materialization : materializations) {
+        hepPlanner.addMaterialization(materialization);
+      }
+      for (RelOptLattice lattice : lattices) {
+        hepPlanner.addLattice(lattice);
+      }
+      RelMetadataProvider plannerChain =
+          ChainedRelMetadataProvider.of(list);
+      rel.getCluster().setMetadataProvider(plannerChain);
+
+      hepPlanner.setRoot(rel);
+      return hepPlanner.findBestExp();
+    };
+  }
+  /** Creates a program that executes a {@link HepProgram}.
+   *
+   * <p>If {@code listener} is not null, it is
+   * {@linkplain HepPlanner#addListener(RelOptListener) attached}
+   * to the planner before execution. */
+  @SuppressWarnings("deprecation")
+  public static Program of(final HepProgram hepProgram, final boolean noDag,
+      final RelMetadataProvider metadataProvider,
+      final @Nullable RelOptListener listener) {
+    requireNonNull(metadataProvider, "metadataProvider");
+    if (listener == null) {
+      return of(hepProgram, noDag, metadataProvider);
+    }
+    return (planner, rel, requiredOutputTraits, materializations, lattices) -> {
+      final HepPlanner hepPlanner =
+          new HepPlanner(hepProgram, null, noDag, null, RelOptCostImpl.FACTORY);
+
+      hepPlanner.addListener(listener);
 
       List<RelMetadataProvider> list = Lists.newArrayList(metadataProvider);
       hepPlanner.registerMetadataProviders(list);
