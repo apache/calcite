@@ -2197,6 +2197,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("ROW\\(\\* EXCLUDE/EXCEPT list\\) cannot exclude all columns");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7603">[CALCITE-7603]
+   * Support ROW constructors that name fields</a>. */
+  @Test void testRowWithFieldNames() {
+    // All fields named: the returned type should use the specified names
+    sql("select row(1 as a, 'hello' as b) from emp")
+        .columnType("RecordType(INTEGER NOT NULL A, CHAR(5) NOT NULL B) NOT NULL");
+    // Mixed: named and unnamed fields
+    sql("select row(empno as eno, ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL ENO, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    // No names: existing auto-generated behavior unchanged
+    sql("select row(empno, ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    // Access a named field by name
+    sql("select row(empno as eno, ename as en).eno from emp")
+        .columnType("INTEGER NOT NULL");
+    // Nested ROW with named fields
+    sql("select row(row(1 as x, 2 as y) as inner_row) from emp")
+        .columnType("RecordType(RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y)"
+            + " NOT NULL INNER_ROW) NOT NULL");
+  }
+
   @Test void testRowWithValidDot() {
     sql("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept")
         .columnType("INTEGER NOT NULL");

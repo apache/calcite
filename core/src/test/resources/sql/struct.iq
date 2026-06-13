@@ -238,4 +238,50 @@ select row(emp.* exclude(emp.empno), dept.* exclude(dept.deptno)) from emp join 
 
 !ok
 
+# [CALCITE-7603] Support ROW constructors that name fields
+select row(1 as a, 'hello' as b);
++------------+
+| EXPR$0     |
++------------+
+| {1, hello} |
++------------+
+(1 row)
+
+!ok
+
+# Named field access: .field selects a field from a named-field ROW
+select row(1 as a, 'hello' as b).a;
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# Named field access on a column expression
+select row(empno as eno, ename as en).eno from emp order by empno limit 3;
++--------+
+| EXPR$0 |
++--------+
+|   7369 |
+|   7499 |
+|   7521 |
++--------+
+(3 rows)
+
+!ok
+
+# Nested named-field ROW, and access to inner field
+select row(row(1 as x, 2 as y) as inner_row, 'hello' as name).inner_row.x;
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
 # End struct.iq

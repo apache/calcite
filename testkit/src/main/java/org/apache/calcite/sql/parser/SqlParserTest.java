@@ -10242,4 +10242,73 @@ public class SqlParserTest {
           .fails(expected.replace("$op", op));
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7603">[CALCITE-7603]
+   * Support ROW constructors that name fields</a>. */
+  @Test void testRowWithFieldNames() {
+    // All fields named
+    sql("select row(1 as a, 'hello' as b) from emp")
+        .ok("SELECT (ROW(1 AS `A`, 'hello' AS `B`))\nFROM `EMP`");
+    // Mixed: some fields named, some not
+    sql("select row(1 as a, 2) from emp")
+        .ok("SELECT (ROW(1 AS `A`, 2))\nFROM `EMP`");
+    // No field names (existing behavior unchanged)
+    sql("select row(1, 2) from emp")
+        .ok("SELECT (ROW(1, 2))\nFROM `EMP`");
+    // Expression with AS
+    sql("select row(empno + 1 as eno, ename as en) from emp")
+        .ok("SELECT (ROW((`EMPNO` + 1) AS `ENO`, `ENAME` AS `EN`))\nFROM `EMP`");
+    // Round-trip: the canonical form can be re-parsed
+    final SqlParserFixture f = fixture().withConfig(c -> c.withQuoting(Quoting.BACK_TICK));
+    f.sql("SELECT (ROW(1 AS `A`, 2))\nFROM `EMP`").same();
+    // AS is not optional in ROW constructors
+    sql("select row(1 ^a^, 'hello' b) from emp")
+        .fails("(?s)Encountered \"a\" at line 1, column 14.*");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7364">[CALCITE-7364]
+   * Support the syntax ROW(T.* EXCLUDE cols) for creating nested ROW values</a>. */
+  @Test void testRowStarExclude() {
+    // Use backticks to ensure that sql(q).same() in general
+    final SqlParserFixture f = fixture().withConfig(c -> c.withQuoting(Quoting.BACK_TICK));
+    final String empExcludeEmpno = "SELECT (ROW(`EMP`.* EXCLUDE (`EMP`.`EMPNO`)))\n"
+        + "FROM `EMP`";
+
+    // Simple star with one excluded column
+    final String starExcludeEmpno = "SELECT (ROW(* EXCLUDE (`EMPNO`)))\n"
+        + "FROM `EMP`";
+    sql("select row(* exclude(empno)) from emp").ok(starExcludeEmpno);
+    f.sql(starExcludeEmpno).same();
+
+    // Table-qualified star with excluded column
+    sql("select row(emp.* exclude(emp.empno)) from emp").ok(empExcludeEmpno);
+    f.sql(empExcludeEmpno).same();
+
+    // EXCEPT is normalized to EXCLUDE on unparse
+    sql("select row(emp.* except(emp.empno)) from emp").ok(empExcludeEmpno);
+
+    // Multiple excluded columns
+    final String starExcludeEmpnoMgr = "SELECT (ROW(* EXCLUDE (`EMPNO`, `MGR`)))\n"
+        + "FROM `EMP`";
+    sql("select row(* exclude(empno, mgr)) from emp").ok(starExcludeEmpnoMgr);
+    f.sql(starExcludeEmpnoMgr).same();
+
+    // Mixed: table-qualified star with exclude, plus plain star
+    final String empExcludeEmpnoDeptStar =
+        "SELECT (ROW(`EMP`.* EXCLUDE (`EMP`.`EMPNO`), `DEPT`.*))\n"
+            + "FROM `EMP`\n"
+            + "INNER JOIN `DEPT` ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+    sql("select row(emp.* exclude(emp.empno), dept.*)"
+        + " from emp join dept on emp.deptno = dept.deptno")
+        .ok(empExcludeEmpnoDeptStar);
+    f.sql(empExcludeEmpnoDeptStar).same();
+
+    // Nested ROW with EXCLUDE
+    final String nestedStarExcludeEmpno = "SELECT (ROW((ROW(* EXCLUDE (`EMPNO`)))))\n"
+        + "FROM `EMP`";
+    sql("select row(row(* exclude(empno))) from emp").ok(nestedStarExcludeEmpno);
+    f.sql(nestedStarExcludeEmpno).same();
+  }
 }
