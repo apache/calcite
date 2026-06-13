@@ -109,6 +109,7 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.Span;
@@ -2703,12 +2704,14 @@ void AddRowConstructor(List<SqlNode> list) :
 
 /**
  * Parses a row constructor in the context of a VALUES expression.
+ * Supports optional field-name aliases: {@code ROW(expr AS fieldName, ...)}.
  */
 SqlNode RowConstructor() :
 {
-    final SqlNodeList valueList;
+    SqlNodeList valueList;
     final SqlNode value;
     final Span s;
+    final List<SqlNode> nameList = new ArrayList<SqlNode>();
 }
 {
     // hints are necessary here due to common LPAREN prefixes
@@ -2720,15 +2723,24 @@ SqlNode RowConstructor() :
         <LPAREN> { s = span(); }
         <ROW>
         valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
-        <RPAREN> { s.add(this); }
+        <RPAREN>
+        {
+            s.add(this);
+            return buildRowCall(s.end(valueList), valueList, null);
+        }
     |
+        // Standard forms: ROW(e1 [AS n1], e2, ...) or (e1 [AS n1], e2, ...)
         LOOKAHEAD(3)
         (
             <ROW> { s = span(); }
         |
             { s = Span.of(); }
         )
-        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
+        { nameList.clear(); }
+        valueList = RowArgListWithParens(ExprContext.ACCEPT_NONCURSOR, nameList)
+        {
+            return buildRowCall(s.end(valueList), valueList, nameList);
+        }
     |
         value = Expression(ExprContext.ACCEPT_NONCURSOR)
         {
@@ -2741,15 +2753,9 @@ SqlNode RowConstructor() :
             s = Span.of(value);
             valueList = new SqlNodeList(ImmutableList.of(value),
                 value.getParserPosition());
+            return buildRowCall(s.end(valueList), valueList, null);
         }
     )
-    {
-        // REVIEW jvs 8-Feb-2004: Should we discriminate between scalar
-        // sub-queries inside of ROW and row sub-queries?  The standard does,
-        // but the distinction seems to be purely syntactic.
-        return SqlStdOperatorTable.ROW.createCall(s.end(valueList),
-            (List<SqlNode>) valueList);
-    }
 }
 
 /** Parses a WHERE clause for SELECT, DELETE, and UPDATE. */
@@ -4174,6 +4180,27 @@ SqlKind comp() :
 }
 
 /**
+ * Builds a ROW call from parsed expressions and optional field-name aliases.
+ * Uses the singleton ROW operator when all names are absent, and a per-instance
+ * SqlRowOperator (carrying the names) when any AS alias was written.
+ */
+JAVACODE SqlNode buildRowCall(SqlParserPos pos, SqlNodeList exprList, List<SqlNode> nameList) {
+  if (nameList != null) {
+    for (int i = 0; i < nameList.size(); i++) {
+      if (nameList.get(i) != null) {
+        final List<String> fieldNames = new ArrayList<String>();
+        for (int j = 0; j < nameList.size(); j++) {
+          SqlNode n = nameList.get(j);
+          fieldNames.add(n instanceof SqlLiteral ? ((SqlLiteral) n).getValueAs(String.class) : null);
+        }
+        return new SqlRowOperator("ROW", fieldNames).createCall(pos, (List<SqlNode>) exprList.getList());
+      }
+    }
+  }
+  return SqlStdOperatorTable.ROW.createCall(pos, (List<SqlNode>) exprList.getList());
+}
+
+/**
  * Parses a unary row expression, or a parenthesized expression of any
  * kind.
  */
@@ -4184,6 +4211,9 @@ SqlNode Expression3(ExprContext exprContext) :
     final SqlNodeList list1;
     final Span s;
     final Span rowSpan;
+    // Populated by RowArgListWithParens: one entry per expression, either a
+    // SqlLiteral string for an AS-aliased field name, or null if unnamed.
+    final List<SqlNode> rowFieldNames = new ArrayList<SqlNode>();
 }
 {
     LOOKAHEAD(2)
@@ -4200,7 +4230,7 @@ SqlNode Expression3(ExprContext exprContext) :
         s = span();
         pushRowValueStar();
     }
-    list = ParenthesizedQueryOrCommaList(exprContext) {
+    list = RowArgListWithParens(exprContext, rowFieldNames) {
         try {
             if (exprContext != ExprContext.ACCEPT_ALL
                 && exprContext != ExprContext.ACCEPT_CURSOR
@@ -4209,7 +4239,7 @@ SqlNode Expression3(ExprContext exprContext) :
                 throw SqlUtil.newContextException(s.end(list),
                     RESOURCE.illegalRowExpression());
             }
-            return SqlStdOperatorTable.ROW.createCall(list);
+            return buildRowCall(list.getParserPosition(), list, rowFieldNames);
         } finally {
             popRowValueStar();
         }
@@ -4219,12 +4249,11 @@ SqlNode Expression3(ExprContext exprContext) :
         <ROW> { rowSpan = span(); pushRowValueStar(); }
     |   { rowSpan = null; }
     )
-    list1 = ParenthesizedQueryOrCommaList(exprContext) {
+    list1 = RowArgListWithParens(exprContext, rowFieldNames) {
         try {
             if (rowSpan != null) {
                 // interpret as row constructor
-                return SqlStdOperatorTable.ROW.createCall(rowSpan.end(list1),
-                    (List<SqlNode>) list1);
+                return buildRowCall(rowSpan.end(list1), list1, rowFieldNames);
             }
         } finally {
             if (rowSpan != null) {
@@ -4280,10 +4309,68 @@ SqlNode Expression3(ExprContext exprContext) :
             return list1.get(0).clone(list1.getParserPosition());
         } else {
             // interpret as row constructor
-            return SqlStdOperatorTable.ROW.createCall(span().end(list1),
-                (List<SqlNode>) list1);
+            return buildRowCall(span().end(list1), list1, rowFieldNames);
         }
     }
+}
+
+/**
+ * Parses a parenthesized comma list for ROW constructors.
+ * Supports optional field-name aliases: {@code (expr AS fieldName, ...)}.
+ * Populates {@code nameList} with field names (or null for unnamed fields).
+ * Returns a SqlNodeList of the value expressions.
+ */
+SqlNodeList RowArgListWithParens(ExprContext exprContext, List<SqlNode> nameList) :
+{
+    SqlNode e;
+    SqlIdentifier alias;
+    final List<SqlNode> exprList = new ArrayList<SqlNode>();
+    ExprContext firstExprContext = exprContext;
+    final Span s;
+}
+{
+    <LPAREN>
+    {
+        s = span();
+        switch (exprContext) {
+        case ACCEPT_SUB_QUERY:
+            firstExprContext = ExprContext.ACCEPT_NONCURSOR;
+            break;
+        case ACCEPT_CURSOR:
+            firstExprContext = ExprContext.ACCEPT_ALL;
+            break;
+        }
+    }
+    (
+        e = OrderedQueryOrExpr(firstExprContext)
+        (
+            <AS> alias = SimpleIdentifier()
+            { exprList.add(e); nameList.add(SqlLiteral.createCharString(alias.getSimple(), alias.getParserPosition())); }
+        |
+            { exprList.add(e); nameList.add(null); }
+        )
+    |
+        e = Default() { exprList.add(e); nameList.add(null); }
+    )
+    (
+        <COMMA>
+        {
+            checkNonQueryExpression(exprContext);
+        }
+        (
+            e = Expression(exprContext)
+            (
+                <AS> alias = SimpleIdentifier()
+                { exprList.add(e); nameList.add(SqlLiteral.createCharString(alias.getSimple(), alias.getParserPosition())); }
+            |
+                { exprList.add(e); nameList.add(null); }
+            )
+        |
+            e = Default() { exprList.add(e); nameList.add(null); }
+        )
+    )*
+    <RPAREN>
+    { return new SqlNodeList(exprList, s.end(this)); }
 }
 
 /**
@@ -5407,7 +5494,7 @@ SqlNode PeriodConstructor() :
     <COMMA>
     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     <RPAREN> {
-        return SqlStdOperatorTable.ROW.createCall(s.end(this), args);
+        return buildRowCall(s.end(this), new SqlNodeList(args, s.end(this)), null);
     }
 }
 
