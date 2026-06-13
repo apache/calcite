@@ -173,7 +173,8 @@ public class SqlSelectOperator extends SqlOperator {
 
     SqlNode where = select.where;
     if (where != null) {
-      SqlUtil.unparseWhereClause(writer, where, 0, 0);
+      writer.sep("WHERE");
+      SqlUtil.unparseConditionClause(writer, where, 0, 0);
     }
     if (select.groupBy != null) {
       SqlNodeList groupBy =

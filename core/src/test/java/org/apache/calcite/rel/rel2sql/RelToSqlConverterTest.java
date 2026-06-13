@@ -10046,6 +10046,23 @@ class RelToSqlConverterTest {
     sql(sql7)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected7);
+
+    // [CALCITE-7585] SqlMerge unparse EXISTS predicates in ON clause
+    // without parentheses.
+    final String sql8 = "merge into \"DEPT\" as \"t\"\n"
+        + "using \"DEPT\" as \"s\"\n"
+        + "on exists (select 1 from \"EMP\" as \"e\" where \"e\".\"DEPTNO\" = \"s\".\"DEPTNO\")\n"
+        + "when matched then\n"
+        + "update set \"DNAME\" = \"s\".\"DNAME\"";
+    final String expected8 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
+        + "USING \"SCOTT\".\"DEPT\"\n"
+        + "ON EXISTS (SELECT *\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE \"DEPTNO\" = \"DEPT\".\"DEPTNO\")\n"
+        + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = \"DEPT\".\"DNAME\"";
+    sql(sql8)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected8);
   }
 
   /** Test case for
