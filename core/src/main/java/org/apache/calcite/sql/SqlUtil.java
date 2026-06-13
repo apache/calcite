@@ -455,34 +455,30 @@ public abstract class SqlUtil {
   }
 
   /**
-   * Unparses a WHERE clause.
+   * Unparses a condition using a
+   * {@link SqlWriter.FrameTypeEnum#WHERE_LIST} frame, which provides
+   * predicate-list formatting.
    *
-   * <p>Unparsing the condition in a {@link SqlWriter.FrameTypeEnum#WHERE_LIST}
-   * frame lets sub-queries in predicates recognize that they need
-   * parentheses.
-   *
-   * @param writer   Writer
-   * @param where WHERE condition
+   * @param writer Writer
+   * @param condition Condition
    * @param leftPrec Left precedence
    * @param rightPrec Right precedence
    */
-  public static void unparseWhereClause(SqlWriter writer, SqlNode where,
-      int leftPrec, int rightPrec) {
-    writer.sep("WHERE");
-
+  public static void unparseConditionClause(SqlWriter writer,
+      SqlNode condition, int leftPrec, int rightPrec) {
     if (!writer.isAlwaysUseParentheses()) {
-      SqlNode node = where;
+      SqlNode node = condition;
 
       // Decide whether to split on ORs or ANDs.
-      SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
+      SqlBinaryOperator conditionSep = SqlStdOperatorTable.AND;
       if ((node instanceof SqlCall)
           && node.getKind() == SqlKind.OR) {
-        whereSep = SqlStdOperatorTable.OR;
+        conditionSep = SqlStdOperatorTable.OR;
       }
 
-      // Unroll whereClause.
+      // Unroll condition.
       final List<SqlNode> list = new ArrayList<>(0);
-      while (node.getKind() == whereSep.kind) {
+      while (node.getKind() == conditionSep.kind) {
         assert node instanceof SqlCall;
         final SqlCall call1 = (SqlCall) node;
         list.add(0, call1.operand(1));
@@ -490,10 +486,10 @@ public abstract class SqlUtil {
       }
       list.add(0, node);
 
-      writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
-          new SqlNodeList(list, where.getParserPosition()));
+      writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, conditionSep,
+          new SqlNodeList(list, condition.getParserPosition()));
     } else {
-      where.unparse(writer, leftPrec, rightPrec);
+      condition.unparse(writer, leftPrec, rightPrec);
     }
   }
 

@@ -197,9 +197,8 @@ public class SqlMerge extends SqlCall {
     writer.keyword("USING");
     source.unparse(writer, opLeft, opRight);
 
-    writer.newlineAndIndent();
-    writer.keyword("ON");
-    condition.unparse(writer, opLeft, opRight);
+    writer.sep("ON");
+    SqlUtil.unparseConditionClause(writer, condition, opLeft, opRight);
 
     SqlUpdate updateCall = this.updateCall;
     if (updateCall != null) {
