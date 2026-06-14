@@ -183,6 +183,9 @@ public enum SqlKind {
   /** The DISTINCT keyword of the GROUP BY clause. */
   GROUP_BY_DISTINCT,
 
+  /** The ALL keyword of the GROUP BY clause. */
+  GROUP_BY_ALL,
+
   /**
    * ORDER BY clause.
    *

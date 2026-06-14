@@ -203,6 +203,9 @@ public abstract class SqlInternalOperators {
   public static final SqlInternalOperator GROUP_BY_DISTINCT =
       new SqlRollupOperator("GROUP BY DISTINCT", SqlKind.GROUP_BY_DISTINCT);
 
+  public static final SqlInternalOperator GROUP_BY_ALL =
+      new SqlRollupOperator("GROUP BY ALL", SqlKind.GROUP_BY_ALL);
+
   /** Fetch operator is ONLY used for its precedence during unparsing. */
   public static final SqlOperator FETCH =
       SqlBasicOperator.create("FETCH")

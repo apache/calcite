@@ -7507,6 +7507,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).ok();
   }
 
+  @Test void testGroupByAll() {
+    // expands to every non-aggregate SELECT item - so listing a column besides
+    // an aggregate validates WITHOUT a "not being grouped" error
+    sql("select deptno, count(*) from emp group by all").ok();
+
+    // only aggregates -> global aggregation (one group), still valid
+    sql("select count(*) from emp group by all").ok();
+
+    // SELECT * cannot be expanded at group-validation time -> clear error
+    sql("select ^*^ from emp group by all")
+        .fails("(?s).*GROUP BY ALL requires an explicit SELECT list.*");
+
+    // contains-an-aggregate
+    sql("select deptno, substring(job, 1), count(*) + 1 as c, 'x' as x\n"
+        + "from emp group by all").ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5507">[CALCITE-5507]
    * HAVING alias failed when aggregate function in condition</a>. */
