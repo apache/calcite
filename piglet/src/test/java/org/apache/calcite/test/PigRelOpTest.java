@@ -383,18 +383,18 @@ class PigRelOpTest extends PigRelTestBase {
         + "          LogicalValues(tuples=[[{ 0 }]])\n";
 
     final String sql = ""
-        + "SELECT $cor1.DEPTNO AS dept, $cor1.JOB AS job, t30.EMPNO,"
+        + "SELECT t0.DEPTNO AS dept, t0.JOB AS job, t30.EMPNO,"
         + " t30.ENAME, t30.JOB, t30.MGR, t30.HIREDATE,"
         + " t30.SAL, t30.COMM, t30.DEPTNO\n"
         + "FROM (SELECT DEPTNO, JOB, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS $f2\n"
         + "    FROM scott.EMP\n"
         + "    WHERE JOB <> 'CLERK'\n"
-        + "    GROUP BY DEPTNO, JOB) AS $cor1,\n"
-        + "  LATERAL UNNEST((SELECT $cor1.$f2 AS $f0\n"
+        + "    GROUP BY DEPTNO, JOB) AS t0,\n"
+        + "  LATERAL UNNEST((SELECT t0.$f2 AS $f0\n"
         + "      FROM (VALUES (0)) AS t (ZERO))) AS t30 (EMPNO, ENAME, JOB,"
         + " MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
-        + "ORDER BY $cor1.DEPTNO, $cor1.JOB";
+        + "ORDER BY t0.DEPTNO, t0.JOB";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
 
@@ -470,26 +470,26 @@ class PigRelOpTest extends PigRelTestBase {
         + "(30,5,BLAKE,MANAGER,30,2850.00,2850.00)\n";
 
     final String sql = ""
-        + "SELECT $cor5.group, $cor5.cnt, t110.ENAME, t110.JOB, "
-        + "t110.DEPTNO, t110.SAL, $cor5.$f3\n"
-        + "FROM (SELECT $cor4.DEPTNO AS group, "
+        + "SELECT t0.group, t0.cnt, t110.ENAME, t110.JOB, "
+        + "t110.DEPTNO, t110.SAL, t0.$f3\n"
+        + "FROM (SELECT t0.DEPTNO AS group, "
         + "COUNT(PIG_BAG(t8.X)) AS cnt, t8.X, "
         + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION(t8.X, 3))) AS $f3\n"
         + "    FROM (SELECT DEPTNO, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS A\n"
         + "        FROM scott.EMP\n"
-        + "        GROUP BY DEPTNO) AS $cor4,\n"
+        + "        GROUP BY DEPTNO) AS t0,\n"
         + "      LATERAL (SELECT COLLECT($f1) AS X\n"
         + "        FROM (SELECT 'all' AS $f0, ROW(ENAME, JOB, DEPTNO, SAL) AS $f1\n"
-        + "            FROM UNNEST((SELECT $cor4.A AS $f0\n"
+        + "            FROM UNNEST((SELECT t0.A AS $f0\n"
         + "                  FROM (VALUES (0)) AS t (ZERO))) "
         + "AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
         + "            WHERE JOB <> 'CLERK'\n"
         + "            ORDER BY SAL) AS t6\n"
-        + "        GROUP BY $f0) AS t8) AS $cor5,\n"
-        + "  LATERAL UNNEST((SELECT $cor5.X AS $f0\n"
+        + "        GROUP BY $f0) AS t8) AS t0,\n"
+        + "  LATERAL UNNEST((SELECT t0.X AS $f0\n"
         + "      FROM (VALUES (0)) AS t (ZERO))) AS t110 (ENAME, JOB, DEPTNO, SAL)\n"
-        + "ORDER BY $cor5.group";
+        + "ORDER BY t0.group";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));

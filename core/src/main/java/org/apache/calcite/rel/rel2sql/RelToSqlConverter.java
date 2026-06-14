@@ -507,9 +507,13 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a Correlate; called by {@link #dispatch} via reflection. */
   public Result visit(Correlate e) {
+    final Set<String> usedNames = new HashSet<>(aliasSet);
+    usedNames.add("t");
+    final String correlAlias =
+        SqlValidatorUtil.uniquify("t", usedNames, SqlValidatorUtil.EXPR_SUGGESTER);
     final Result leftResult =
         visitInput(e, 0)
-            .resetAlias(e.getCorrelVariable(), e.getInput(0).getRowType());
+            .resetAlias(correlAlias, e.getInput(0).getRowType());
     parseCorrelTable(e, leftResult);
     final Result rightResult = visitInput(e, 1);
     final SqlNode rightResultNode = rightResult.node;
@@ -772,6 +776,7 @@ public class RelToSqlConverter extends SqlImplementor
     // "select a, b, sum(x) from ( ... ) group by a, b"
     final boolean ignoreClauses = e.getInput() instanceof Project;
     final Result x = visitInput(e, 0, isAnon(), ignoreClauses, clauseSet);
+    parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
