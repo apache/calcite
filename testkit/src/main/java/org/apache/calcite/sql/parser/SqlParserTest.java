@@ -9693,7 +9693,12 @@ public class SqlParserTest {
     final String sql1 = "select "
         + "/*+ properties(^k1^=123, k2='v2'), no_hash_join() */ "
         + "empno, ename, deptno from emps";
-    sql(sql1).fails("(?s).*Encountered \"k1 = 123\" at .*");
+    // Allow numeric literal k/v values.
+    final String expected1 = "SELECT\n"
+        + "/*+ `PROPERTIES`(`K1` = 123, `K2` = 'v2'), `NO_HASH_JOIN` */\n"
+        + "`EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`";
+    sql(sql1).ok(expected1);
     final String sql2 = "select "
         + "/*+ properties(k1, k2^=^'v2'), no_hash_join */ "
         + "empno, ename, deptno from emps";
