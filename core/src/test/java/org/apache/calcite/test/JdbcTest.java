@@ -6063,6 +6063,9 @@ public class JdbcTest {
               new int[] {0, 2, 3},
               new String[] {"X=1\n", "X=1\nX=2\nX=3\n",
                   "X=1\nX=2\nX=3\nX=4\n"});
+          checkPreparedFetch(connection,
+              values + "fetch next (? + abs(2)) rows only",
+              1, "X=1\nX=2\nX=3\n");
 
           checkPreparedFetchFails(connection,
               values + "fetch next (?) rows only", -1,
