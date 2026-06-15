@@ -95,6 +95,7 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
@@ -7684,7 +7685,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       final SelectScope selectScope = (SelectScope) scope;
       final List<SqlNode> expandedOperands = new ArrayList<>();
+      final List<@Nullable String> expandedNames = new ArrayList<>();
       boolean expanded = false;
+
+      // Retrieve field names stored in the operator (from ROW(v AS name, ...) syntax).
+      final @Nullable List<@Nullable String> origFieldNames =
+          call.getOperator() instanceof SqlRowOperator
+              ? ((SqlRowOperator) call.getOperator()).getFieldNames()
+              : null;
+
+      int origIdx = 0;
       for (SqlNode operand : call.getOperandList()) {
         final SqlIdentifier starId;
         if (operand instanceof SqlStarExclude) {
@@ -7695,6 +7705,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           starId = null;
         }
         if (starId != null) {
+          final int sizeBefore = expandedOperands.size();
           final boolean expandedStar =
               validator.expandStar(expandedOperands,
                   validator.catalogReader.nameMatcher().createSet(),
@@ -7706,16 +7717,36 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           if (!expandedStar) {
             throw new AssertionError("Row star expansion failed for " + starId);
           }
+          // Each newly added operand is a SqlIdentifier; its last name component
+          // is the original column name.
+          for (int i = sizeBefore; i < expandedOperands.size(); i++) {
+            expandedNames.add(SqlValidatorUtil.alias(expandedOperands.get(i)));
+          }
           expanded = true;
-          continue;
+        } else {
+          expandedOperands.add(operand);
+          // Prefer the name from the original named-ROW operator; fall back to
+          // whatever alias can be derived from the operand expression itself.
+          final @Nullable String name =
+              origFieldNames != null && origIdx < origFieldNames.size()
+                  && origFieldNames.get(origIdx) != null
+                  ? origFieldNames.get(origIdx)
+                  : SqlValidatorUtil.alias(operand);
+          expandedNames.add(name);
         }
-        expandedOperands.add(operand);
+        origIdx++;
       }
       if (!expanded) {
         return node;
       }
-      return SqlStdOperatorTable.ROW.createCall(
-          call.getParserPosition(), expandedOperands);
+      // Assign unique names to all fields. The first occurrence of a name keeps
+      // it as-is; subsequent duplicates get a compiler-generated suffix based on
+      // the original column name (e.g. a second DEPTNO becomes DEPTNO0).
+      final boolean caseSensitive = validator.catalogReader.nameMatcher().isCaseSensitive();
+      final List<String> uniqueNames =
+          SqlValidatorUtil.uniquify(expandedNames, SqlValidatorUtil.EXPR_SUGGESTER, caseSensitive);
+      return new SqlRowOperator("ROW", uniqueNames)
+          .createCall(call.getParserPosition(), expandedOperands);
     }
 
     protected SqlNode expandDynamicStar(SqlIdentifier id, SqlIdentifier fqId) {

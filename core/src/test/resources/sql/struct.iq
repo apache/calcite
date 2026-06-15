@@ -285,4 +285,56 @@ select row(row(1 as x, 2 as y) as inner_row, 'hello' as name).inner_row.x;
 
 !ok
 
+# [CALCITE-7602] ROW(*), ROW(T.*) and ROW(T.* EXCLUDE(cols)) preserve original column names
+
+# Field access by original column name on ROW(*)
+select row(*).empno from emp order by empno limit 3;
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
++-------+
+(3 rows)
+
+!ok
+
+# Field access by original column name on ROW(T.*)
+select row(emp.*).ename from emp order by empno limit 3;
++-------+
+| ENAME |
++-------+
+| SMITH |
+| ALLEN |
+| WARD  |
++-------+
+(3 rows)
+
+!ok
+
+# Field access on ROW(* EXCLUDE(col)) using a preserved name
+select row(* exclude(empno)).ename from emp order by empno limit 3;
++-------+
+| ENAME |
++-------+
+| SMITH |
+| ALLEN |
+| WARD  |
++-------+
+(3 rows)
+
+!ok
+
+# ROW(T1.*, T2.*): shared column DEPTNO is renamed to DEPTNO0 for the second table
+select row(emp.*, dept.*).deptno0 from emp join dept on emp.deptno = dept.deptno order by emp.empno limit 1;
++---------+
+| DEPTNO0 |
++---------+
+|      20 |
++---------+
+(1 row)
+
+!ok
+
 # End struct.iq
