@@ -129,7 +129,7 @@ public class AggregateJoinTransposeRule
         allowFunctions);
   }
 
-  private static boolean isAggregateSupported(Aggregate aggregate,
+  static boolean isAggregateSupported(Aggregate aggregate,
       boolean allowFunctions) {
     if (!allowFunctions && !aggregate.getAggCallList().isEmpty()) {
       return false;

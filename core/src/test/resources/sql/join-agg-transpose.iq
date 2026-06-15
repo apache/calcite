@@ -1,0 +1,78 @@
+# join-agg-transpose.iq - [CALCITE-7604] Add rule to pull up GROUP BY above join
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use post
+!set outputformat mysql
+!use scott
+
+!set hep-rules "
++FILTER_INTO_JOIN,
++JOIN_AGGREGATE_TRANSPOSE"
+
+# Tests the rule can pull the group by from the left side of the join
+# in the trivial case where there are no aggregate functions
+
+select g.deptno
+from (select deptno from emp group by deptno) g
+join dept d on g.deptno = d.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], DEPTNO=[$t0])
+  EnumerableAggregate(group=[{0, 1}])
+    EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])
+      EnumerableCalc(expr#0..7=[{inputs}], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Tests the rule can pull the group by from the left side of the join
+# even when there is a filtering on the right side.
+
+select g.deptno, g.total_sal, d.dname
+from (select deptno, sum(sal) as total_sal
+              from emp group by deptno) g
+join dept d on g.deptno = d.deptno
+where d.dname = 'RESEARCH';
++--------+-----------+----------+
+| DEPTNO | TOTAL_SAL | DNAME    |
++--------+-----------+----------+
+|     20 |  10875.00 | RESEARCH |
++--------+-----------+----------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t0], TOTAL_SAL=[$t3], DNAME=[$t2])
+  EnumerableAggregate(group=[{0, 2, 3}], TOTAL_SAL=[SUM($1)])
+    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
+      EnumerableCalc(expr#0..7=[{inputs}], DEPTNO=[$t7], SAL=[$t5])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=['RESEARCH':VARCHAR(14)], expr#4=[=($t1, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# End join-agg-transpose.iq
