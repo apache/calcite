@@ -2198,6 +2198,76 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7602">[CALCITE-7602]
+   * ROW(*) loses column names</a>. */
+  @Test void testRowWildcardColumnNames() {
+    // ROW(*) should produce a struct with the original column names
+    sql("select row(*) from emp")
+        .columnType(EMP_RECORD_TYPE);
+    // ROW(T.*) should also preserve column names
+    sql("select row(emp.*) from emp")
+        .columnType(EMP_RECORD_TYPE);
+    // ROW(col, T.*) where the star repeats a column already named: the duplicate
+    // gets a compiler-assigned suffix (EMPNO0) rather than losing all names
+    sql("select row(empno, emp.*) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EMPNO,"
+            + " INTEGER NOT NULL EMPNO0,"
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL");
+    // ROW(T1.*, T2.*) with a shared column name (DEPTNO): the second DEPTNO
+    // gets the suffix DEPTNO0 while all other names are preserved
+    sql("select row(emp.*, dept.*) from emp join dept on emp.deptno = dept.deptno")
+        .columnType("RecordType(INTEGER NOT NULL EMPNO,"
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER,"
+            + " INTEGER NOT NULL DEPTNO0,"
+            + " VARCHAR(10) NOT NULL NAME) NOT NULL");
+    // ROW(* EXCLUDE(col)) should preserve names of the remaining columns
+    sql("select row(* exclude(empno)) from emp")
+        .columnType("RecordType(VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL");
+    // ROW(T.* EXCLUDE(T.col)) should preserve names of the remaining columns
+    sql("select row(emp.* exclude(emp.empno)) from emp")
+        .columnType("RecordType(VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL");
+    // Named field combined with star expansion: explicit name takes precedence
+    sql("select row(empno as eno, emp.* exclude(emp.empno)) from emp")
+        .columnType("RecordType(INTEGER NOT NULL ENO,"
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7603">[CALCITE-7603]
    * Support ROW constructors that name fields</a>. */
   @Test void testRowWithFieldNames() {
@@ -2225,6 +2295,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select row(1,2).\"EXPR$1\" from dept")
         .columnType("INTEGER NOT NULL");
     sql("select t.a.\"EXPR$1\" from (select row(1,2) as a from (values (1))) as t")
+        .columnType("INTEGER NOT NULL");
+    // After star expansion the ROW carries real column names, so field access
+    // by original name works without quoting EXPR$N ordinals.
+    sql("select row(*).empno from emp")
+        .columnType("INTEGER NOT NULL");
+    sql("select row(emp.*).ename from emp")
+        .columnType("VARCHAR(20) NOT NULL");
+    sql("select row(* exclude(empno)).ename from emp")
+        .columnType("VARCHAR(20) NOT NULL");
+    // When two stars produce a duplicate name the second gets a suffix;
+    // both the original and the suffixed name are accessible.
+    sql("select row(emp.*, dept.*).deptno from emp"
+        + " join dept on emp.deptno = dept.deptno")
+        .columnType("INTEGER NOT NULL");
+    sql("select row(emp.*, dept.*).deptno0 from emp"
+        + " join dept on emp.deptno = dept.deptno")
         .columnType("INTEGER NOT NULL");
   }
 

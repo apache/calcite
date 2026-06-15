@@ -63,9 +63,15 @@ public class SqlRowOperator extends SqlSpecialOperator {
     this(name, null);
   }
 
+  /** Returns the explicit field-name aliases, or null if none were specified
+   * (in which case names are auto-generated as {@code EXPR$0}, etc.). */
+  public @Nullable List<@Nullable String> getFieldNames() {
+    return fieldNames;
+  }
+
   /** Constructor for a named ROW operator with explicit field-name aliases.
    * Field names may be null, in which case they are auto-generated. */
-  public SqlRowOperator(String name, @Nullable List<@Nullable String> fieldNames) {
+  public SqlRowOperator(String name, @Nullable List<? extends @Nullable String> fieldNames) {
     super(name,
         SqlKind.ROW, MDX_PRECEDENCE,
         false,
