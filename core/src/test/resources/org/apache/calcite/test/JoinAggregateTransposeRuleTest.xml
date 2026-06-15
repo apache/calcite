@@ -1,0 +1,202 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<Root>
+  <TestCase name="testNoPullGroupByAboveNonEquiJoin">
+    <Resource name="sql">
+      <![CDATA[select g.deptno
+from (select deptno from emp group by deptno) g
+join dept d on g.deptno > d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[>($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNoPullGroupByWhenRightJoinKeysNotUnique">
+    <Resource name="sql">
+      <![CDATA[select g.job, g.cnt
+from (select job, count(*) as cnt
+      from emp group by job) g
+join emp e on g.job = e.job]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(JOB=[$0], CNT=[$1])
+  LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+    LogicalAggregate(group=[{0}], CNT=[COUNT()])
+      LogicalProject(JOB=[$2])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullGroupByFromLeftWithFilterOnRight">
+    <Resource name="sql">
+      <![CDATA[select g.deptno, g.total_sal, d.dname
+from (select deptno, sum(sal) as total_sal
+      from emp group by deptno) g
+join dept d on g.deptno = d.deptno
+where d.dname = 'RESEARCH']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$1], DNAME=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalAggregate(group=[{0}], TOTAL_SAL=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalFilter(condition=[=($1, 'RESEARCH')])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$1], DNAME=[$3])
+  LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$4], DEPTNO0=[$1], DNAME=[$2], LOC=[$3])
+    LogicalAggregate(group=[{0, 2, 3, 4}], TOTAL_SAL=[SUM($1)])
+      LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalTableScan(table=[[scott, EMP]])
+        LogicalFilter(condition=[=($1, 'RESEARCH')])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullGroupByFromLeftWithSimpleAggregation">
+    <Resource name="sql">
+      <![CDATA[select g.deptno, g.total_sal, d.dname
+from (select deptno, sum(sal) as total_sal
+      from emp group by deptno) g
+join dept d on g.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$1], DNAME=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalAggregate(group=[{0}], TOTAL_SAL=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$1], DNAME=[$3])
+  LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$4], DEPTNO0=[$1], DNAME=[$2], LOC=[$3])
+    LogicalAggregate(group=[{0, 2, 3, 4}], TOTAL_SAL=[SUM($1)])
+      LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalTableScan(table=[[scott, EMP]])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullGroupByFromLeftWithSimpleAggregationMultipleFunctions">
+    <Resource name="sql">
+      <![CDATA[select g.deptno, g.total_sal, g.low_sal, g.high_sal, d.dname
+from (select deptno, sum(sal) as total_sal, min(sal) as low_sal, max(sal) as high_sal
+      from emp group by deptno) g
+join dept d on g.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$1], LOW_SAL=[$2], HIGH_SAL=[$3], DNAME=[$5])
+  LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+    LogicalAggregate(group=[{0}], TOTAL_SAL=[SUM($1)], LOW_SAL=[MIN($1)], HIGH_SAL=[MAX($1)])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$1], LOW_SAL=[$2], HIGH_SAL=[$3], DNAME=[$5])
+  LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$4], LOW_SAL=[$5], HIGH_SAL=[$6], DEPTNO0=[$1], DNAME=[$2], LOC=[$3])
+    LogicalAggregate(group=[{0, 2, 3, 4}], TOTAL_SAL=[SUM($1)], LOW_SAL=[MIN($1)], HIGH_SAL=[MAX($1)])
+      LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalTableScan(table=[[scott, EMP]])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullGroupByFromRightWithSimpleAggregation">
+    <Resource name="sql">
+      <![CDATA[select g.deptno, g.total_sal, d.dname
+from dept d
+join (select deptno, sum(sal) as total_sal
+      from emp group by deptno) g
+  on g.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], TOTAL_SAL=[$4], DNAME=[$1])
+  LogicalJoin(condition=[=($3, $0)], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}], TOTAL_SAL=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], TOTAL_SAL=[$4], DNAME=[$1])
+  LogicalProject(DEPTNO=[$2], DNAME=[$3], LOC=[$4], DEPTNO0=[$0], TOTAL_SAL=[$1])
+    LogicalProject(DEPTNO=[$0], TOTAL_SAL=[$4], DEPTNO0=[$1], DNAME=[$2], LOC=[$3])
+      LogicalAggregate(group=[{0, 2, 3, 4}], TOTAL_SAL=[SUM($1)])
+        LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+          LogicalProject(DEPTNO=[$7], SAL=[$5])
+            LogicalTableScan(table=[[scott, EMP]])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullGroupByWithoutAggregateFunctions">
+    <Resource name="sql">
+      <![CDATA[select g.deptno
+from (select deptno from emp group by deptno) g
+join dept d on g.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalAggregate(group=[{0, 1, 2, 3}])
+    LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+</Root>

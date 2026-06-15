@@ -654,6 +654,11 @@ public class CoreRules {
   public static final JoinExtractFilterRule JOIN_EXTRACT_FILTER =
       JoinExtractFilterRule.Config.DEFAULT.toRule();
 
+  /** Rule that pulls an {@link Aggregate} from the left input of a
+   * {@link Join} to above the join (group-by pull up). */
+  public static final JoinAggregateTransposeRule JOIN_AGGREGATE_TRANSPOSE =
+      JoinAggregateTransposeRule.Config.DEFAULT.toRule();
+
   /** Rule that matches a {@link LogicalJoin} whose inputs are
    * {@link LogicalProject}s, and pulls the project expressions up. */
   public static final JoinProjectTransposeRule JOIN_PROJECT_BOTH_TRANSPOSE =
