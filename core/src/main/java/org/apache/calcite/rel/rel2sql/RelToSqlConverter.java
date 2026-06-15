@@ -62,7 +62,6 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsofJoin;
@@ -1267,7 +1266,7 @@ public class RelToSqlConverter extends SqlImplementor
         || !RexUtil.isConstant(fetch)
         || !RexUtil.isDeterministic(fetch)
         || RexUtil.containsDynamicFunction(fetch)
-        || containsDynamicParam(fetch)) {
+        || RexUtil.containsDynamicParam(fetch)) {
       return context.toSql(null, fetch);
     }
     final RexExecutor executor =
@@ -1277,20 +1276,6 @@ public class RelToSqlConverter extends SqlImplementor
         Collections.singletonList(fetch), reducedValues);
     final RexNode reduced = reducedValues.get(0);
     return context.toSql(null, reduced instanceof RexLiteral ? reduced : fetch);
-  }
-
-  private static boolean containsDynamicParam(RexNode node) {
-    try {
-      node.accept(
-          new RexVisitorImpl<Void>(true) {
-            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
-              throw Util.FoundOne.NULL;
-            }
-          });
-      return false;
-    } catch (Util.FoundOne e) {
-      return true;
-    }
   }
 
   public boolean hasTrickyRollup(Sort e, Aggregate aggregate) {

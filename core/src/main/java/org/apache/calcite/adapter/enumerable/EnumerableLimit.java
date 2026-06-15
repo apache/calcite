@@ -35,7 +35,6 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Util;
@@ -241,7 +240,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       if (!RexUtil.isConstant(fetch)
           || !RexUtil.isDeterministic(fetch)
           || RexUtil.containsDynamicFunction(fetch)
-          || containsDynamicParam(fetch)) {
+          || RexUtil.containsDynamicParam(fetch)) {
         return null;
       }
       final RexExecutor executor =
@@ -285,17 +284,4 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
   }
 
-  private static boolean containsDynamicParam(RexNode node) {
-    try {
-      node.accept(
-          new RexVisitorImpl<Void>(true) {
-            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
-              throw Util.FoundOne.NULL;
-            }
-          });
-      return false;
-    } catch (Util.FoundOne e) {
-      return true;
-    }
-  }
 }
