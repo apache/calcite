@@ -366,6 +366,10 @@ public class SqlValidatorUtil {
       // E.g. "foo.bar" --> "bar"
       return Util.last(((SqlIdentifier) node).names);
 
+    case DOT:
+      // E.g. "row(a as x).x" --> "x"
+      return alias_(((SqlCall) node).operand(1), ordinal);
+
     default:
       if (ordinal < 0) {
         return null;
