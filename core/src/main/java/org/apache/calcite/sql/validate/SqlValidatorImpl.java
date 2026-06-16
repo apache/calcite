@@ -7816,17 +7816,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
           assert qualifiedNode.size() == 2;
 
-          final SqlCall coalesceCall =
-              SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO, qualifiedNode.get(0),
-                  qualifiedNode.get(1));
+          // COALESCE is only needed for FULL JOIN; for RIGHT JOIN use the right
+          // column (always non-null), and for INNER/LEFT JOIN use the left column.
+          final JoinType joinType = join.getJoinType();
+          final SqlNode colRef;
+          if (joinType.generatesNullsOnLeft() && joinType.generatesNullsOnRight()) {
+            colRef =
+                SqlStdOperatorTable.COALESCE.createCall(
+                    qualifiedNode.get(0).getParserPosition()
+                    .plus(qualifiedNode.get(1).getParserPosition()),
+                qualifiedNode.get(0), qualifiedNode.get(1));
+          } else if (joinType.generatesNullsOnLeft()) {
+            colRef = qualifiedNode.get(1);
+          } else {
+            colRef = qualifiedNode.get(0);
+          }
 
-          // If there is an alias for the column, no need to wrap the coalesce with an AS operator
+          // If there is an alias for the column, no need to wrap with an AS operator
           boolean haveAlias = fieldAliases.contains(name);
           if (haveAlias) {
-            return coalesceCall;
+            return colRef;
           } else {
-            return SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, coalesceCall,
-                new SqlIdentifier(identifier.getSimple(), SqlParserPos.ZERO));
+            return SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, colRef,
+                new SqlIdentifier(identifier.getSimple(), identifier.getParserPosition()));
           }
         }
       }

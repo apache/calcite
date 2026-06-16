@@ -4042,12 +4042,11 @@ group by deptno]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
-  LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
-    LogicalProject($f0=[$7])
-      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+  LogicalProject(DEPTNO=[$7])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -4063,7 +4062,7 @@ group by grouping sets ((deptno), (deptno, job))]]>
       <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4])
   LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], EXPR$1=[GROUPING($0)], EXPR$2=[GROUPING($0, $1)], EXPR$3=[COUNT()])
-    LogicalProject($f0=[$7], JOB=[$2])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
       LogicalJoin(condition=[=($7, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -4112,7 +4111,7 @@ natural join customer.contact_peek t2]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(X=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
+LogicalProject(X=[$4])
   LogicalJoin(condition=[AND(=($0, $10), =($1, $11), =($2, $12), =($3, $13), AND(AND(=($4, $14), =($5, $15)), =($6, $16)), AND(AND(=($7, $17), =($8, $18)), =($9, $19)))], joinType=[inner])
     LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
       LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
@@ -4484,7 +4483,7 @@ group by grouping sets ((deptno), (deptno, job))]]>
       <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4])
   LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], EXPR$1=[GROUPING($0)], EXPR$2=[GROUPING($0, $1)], EXPR$3=[COUNT()])
-    LogicalProject($f0=[$7], JOB=[$2])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
       LogicalJoin(condition=[=($7, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -4532,7 +4531,7 @@ using (coord)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(X=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
+LogicalProject(X=[$4])
   LogicalJoin(condition=[AND(AND(=($4, $14), =($5, $15)), =($6, $16))], joinType=[inner])
     LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
       LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
@@ -7521,7 +7520,7 @@ FROM emp RIGHT OUTER JOIN dept using (deptno)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[COALESCE($7, $9)], NAME=[$10])
+LogicalProject(DEPTNO=[$9], NAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
