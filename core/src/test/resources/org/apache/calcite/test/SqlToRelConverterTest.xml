@@ -553,7 +553,7 @@ LogicalProject(EXPR$0=[ROW(ITEM(ITEM(ITEM(ITEM($3, 0), 'detail'), 'skills'), 0).
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
+LogicalProject(DESC=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 ]]>
     </Resource>
@@ -2030,7 +2030,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[$1.CITY])
+LogicalProject(CITY=[$1.CITY])
   LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
 ]]>
     </Resource>
@@ -2041,7 +2041,7 @@ LogicalProject(EXPR$0=[$1.CITY])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[ROW(ROW(1, 2), ROW(3, 4, 5)).EXPR$1.EXPR$2])
+LogicalProject(EXPR$2=[ROW(ROW(1, 2), ROW(3, 4, 5)).EXPR$1.EXPR$2])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -2052,7 +2052,7 @@ LogicalProject(EXPR$0=[ROW(ROW(1, 2), ROW(3, 4, 5)).EXPR$1.EXPR$2])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[ROW(1, 2).EXPR$1])
+LogicalProject(EXPR$1=[ROW(1, 2).EXPR$1])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -4112,7 +4112,7 @@ natural join customer.contact_peek t2]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
+LogicalProject(X=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
   LogicalJoin(condition=[AND(=($0, $10), =($1, $11), =($2, $12), =($3, $13), AND(AND(=($4, $14), =($5, $15)), =($6, $16)), AND(AND(=($7, $17), =($8, $18)), =($9, $19)))], joinType=[inner])
     LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
       LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
@@ -4532,7 +4532,7 @@ using (coord)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
+LogicalProject(X=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
   LogicalJoin(condition=[AND(AND(=($4, $14), =($5, $15)), =($6, $16))], joinType=[inner])
     LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
       LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])

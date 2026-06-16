@@ -249,37 +249,38 @@ select row(1 as a, 'hello' as b);
 
 !ok
 
+# Test cases for [CALCITE-7606] ROW field names should be used to infer column names
 # Named field access: .field selects a field from a named-field ROW
 select row(1 as a, 'hello' as b).a;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-+--------+
++---+
+| A |
++---+
+| 1 |
++---+
 (1 row)
 
 !ok
 
 # Named field access on a column expression
 select row(empno as eno, ename as en).eno from emp order by empno limit 3;
-+--------+
-| EXPR$0 |
-+--------+
-|   7369 |
-|   7499 |
-|   7521 |
-+--------+
++------+
+| ENO  |
++------+
+| 7369 |
+| 7499 |
+| 7521 |
++------+
 (3 rows)
 
 !ok
 
 # Nested named-field ROW, and access to inner field
 select row(row(1 as x, 2 as y) as inner_row, 'hello' as name).inner_row.x;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
++---+
 (1 row)
 
 !ok
