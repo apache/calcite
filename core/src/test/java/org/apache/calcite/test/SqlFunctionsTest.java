@@ -17,7 +17,10 @@
 package org.apache.calcite.test;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 
@@ -41,6 +44,8 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
+import static org.apache.calcite.runtime.SqlFunctions.FlatProductInputType.LIST;
+import static org.apache.calcite.runtime.SqlFunctions.FlatProductInputType.SCALAR;
 import static org.apache.calcite.runtime.SqlFunctions.arraysOverlap;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
@@ -2111,5 +2116,107 @@ class SqlFunctionsTest {
     assertThrows(RuntimeException.class,
         () -> parse.parseTimestamp("%Y-%m-%d %H:%M:%S",
             "2024-01-01 00:00:00", "Asia/Sanghai"));
+  }
+
+  // Tests for ZipPaddedEnumerator, accessed via the public SqlFunctions.flatZip API.
+
+  /** Invokes {@link SqlFunctions#flatZip} over scalar collections and collects output rows. */
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private static List<List<Object>> zipScalars(
+      boolean withOrdinality, List<Comparable>... inputs) {
+    final int n = inputs.length;
+    final int[] fieldCounts = new int[n];
+    Arrays.fill(fieldCounts, 1);
+    final SqlFunctions.FlatProductInputType[] types =
+        new SqlFunctions.FlatProductInputType[n];
+    Arrays.fill(types, SCALAR);
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatZip(fieldCounts, withOrdinality, types);
+    final Object arg = n == 1 ? inputs[0] : inputs;
+    final List<List<Object>> rows = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row : fn.apply(arg)) {
+      rows.add(new ArrayList<>(row));
+    }
+    return rows;
+  }
+
+  @Test void testZipPaddedSingleCollectionWithOrdinality() {
+    // Single scalar collection with ordinality uses ZipPaddedEnumerator, not
+    // the LIST_AS_ENUMERABLE shortcut.
+    List<List<Object>> rows = zipScalars(true, Arrays.asList(10, 20, 30));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list(10, 1)));
+    assertThat(rows.get(1), is(list(20, 2)));
+    assertThat(rows.get(2), is(list(30, 3)));
+  }
+
+  @Test void testZipPaddedEqualLength() {
+    List<List<Object>> rows =
+        zipScalars(false, Arrays.asList(10, 20), Arrays.asList(4, 5));
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list(10, 4)));
+    assertThat(rows.get(1), is(list(20, 5)));
+  }
+
+  @Test void testZipPaddedFirstLonger() {
+    List<List<Object>> rows =
+        zipScalars(false, Arrays.asList(10, 20, 30), Arrays.asList(4, 5));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list(10, 4)));
+    assertThat(rows.get(1), is(list(20, 5)));
+    assertThat(rows.get(2), is(Arrays.asList(30, null)));
+  }
+
+  @Test void testZipPaddedSecondLonger() {
+    List<List<Object>> rows =
+        zipScalars(false, Arrays.asList(10), Arrays.asList(4, 5, 6));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list(10, 4)));
+    assertThat(rows.get(1), is(Arrays.asList(null, 5)));
+    assertThat(rows.get(2), is(Arrays.asList(null, 6)));
+  }
+
+  @Test void testZipPaddedBothEmpty() {
+    List<List<Object>> rows =
+        zipScalars(false, Collections.emptyList(), Collections.emptyList());
+    assertThat(rows, hasSize(0));
+  }
+
+  @Test void testZipPaddedOneEmpty() {
+    List<List<Object>> rows =
+        zipScalars(false, Arrays.asList(4, 5), Collections.emptyList());
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(Arrays.asList(4, null)));
+    assertThat(rows.get(1), is(Arrays.asList(5, null)));
+  }
+
+  @Test void testZipPaddedWithOrdinality() {
+    List<List<Object>> rows =
+        zipScalars(true, Arrays.asList(10, 20, 30), Arrays.asList(4, 5));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list(10, 4, 1)));
+    assertThat(rows.get(1), is(list(20, 5, 2)));
+    assertThat(rows.get(2), is(Arrays.asList(30, null, 3)));
+  }
+
+  @Test void testZipPaddedStructElements() {
+    // Two LIST (struct) collections of width 2: [(1,2),(3,4)] and [(10,20)]
+    // → [1,2,10,20], [3,4,null,null]
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatZip(new int[]{2, 2}, false,
+            new SqlFunctions.FlatProductInputType[]{LIST, LIST});
+    final List<List<Comparable>> col1 =
+        Arrays.asList(FlatLists.of(1, 2), FlatLists.of(3, 4));
+    final List<List<Comparable>> col2 =
+        Collections.singletonList(FlatLists.of(10, 20));
+    final List<List<Object>> rows = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row
+        : fn.apply(new Object[]{col1, col2})) {
+      rows.add(new ArrayList<>(row));
+    }
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list(1, 2, 10, 20)));
+    assertThat(rows.get(1), is(Arrays.asList(3, 4, null, null)));
   }
 }

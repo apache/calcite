@@ -169,21 +169,34 @@ public class Uncollect extends SingleRel {
           .build();
     }
 
+    // With multiple collections, zip semantics pads shorter collections with
+    // NULL, so all output columns from a multi-collection UNNEST are nullable.
+    final boolean padNullable = fields.size() > 1;
+
     for (int i = 0; i < fields.size(); i++) {
       RelDataTypeField field = fields.get(i);
       if (field.getType() instanceof MapSqlType) {
         // This code is similar to SqlUnnestOperator::inferReturnType.
         MapSqlType mapType = (MapSqlType) field.getType();
-        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, mapType.getKeyType());
-        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, mapType.getValueType());
+        RelDataType keyType = padNullable
+            ? typeFactory.enforceTypeWithNullability(mapType.getKeyType(), true)
+            : mapType.getKeyType();
+        RelDataType valueType = padNullable
+            ? typeFactory.enforceTypeWithNullability(mapType.getValueType(), true)
+            : mapType.getValueType();
+        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, keyType);
+        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, valueType);
       } else {
         RelDataType componentType = field.getType().getComponentType();
         if (null == componentType) {
           throw RESOURCE.unnestArgument().ex();
         }
-        boolean isNullable = componentType.isNullable();
+        boolean isNullable = componentType.isNullable() || padNullable;
         if (requireAlias) {
-          builder.add(itemAliases.get(i), componentType);
+          RelDataType colType = padNullable
+              ? typeFactory.enforceTypeWithNullability(componentType, true)
+              : componentType;
+          builder.add(itemAliases.get(i), colType);
         } else if (componentType.isStruct()) {
           for (RelDataTypeField fieldInfo : componentType.getFieldList()) {
             RelDataType fieldType = fieldInfo.getType();
@@ -194,7 +207,10 @@ public class Uncollect extends SingleRel {
           }
         } else {
           // Element type is not a record, use the field name of the element directly
-          builder.add(field.getName(), componentType);
+          RelDataType colType = padNullable
+              ? typeFactory.enforceTypeWithNullability(componentType, true)
+              : componentType;
+          builder.add(field.getName(), colType);
         }
       }
     }

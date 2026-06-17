@@ -2117,10 +2117,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(BOOLEAN NOT NULL EXPR$0) NOT NULL");
     sql("^values ('1'),(2)^")
         .fails("Values passed to VALUES operator must have compatible types");
-    if (TODO) {
-      sql("values (1),(2.0),(3)")
-          .columnType("ROWTYPE(DOUBLE)");
-    }
+    sql("values (1),(2.0),(3)")
+        .columnType("DECIMAL(11, 1) NOT NULL");
   }
 
   @Test void testRow() {
@@ -14516,5 +14514,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply '=' to arguments of type '<MAP<CHAR\\(1\\), INTEGER ARRAY>> = "
             + "<MAP<ROW\\(INTEGER X, BIGINT Y\\), ROW\\(CHAR\\(1\\) ARRAY EXPR\\$0\\)>>'\\. "
             + "Supported form\\(s\\): '<COMPARABLE_TYPE> = <COMPARABLE_TYPE>'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7583">[CALCITE-7583]
+   * UNNEST with multiple array arguments returns wrong result</a>.
+   *
+   * <p>When UNNEST is given multiple collection arguments, zip (positional)
+   * semantics pad shorter collections with NULL, so all output columns must be
+   * nullable even when the element types of the input arrays are not nullable. */
+  @Test void testUnnestMultiArgNullability() {
+    // Single-arg UNNEST: element type is NOT NULL, result column is NOT NULL.
+    sql("select * from unnest(array[1, 2])")
+        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+    // Multi-arg UNNEST: result columns are nullable (padded with NULL when lengths differ).
+    sql("select * from unnest(array[1, 2], array[3, 4])")
+        .type("RecordType(INTEGER EXPR$0, INTEGER EXPR$1) NOT NULL");
+    // Ordinality column itself is always NOT NULL.
+    sql("select * from unnest(array[1, 2], array[3, 4]) with ordinality")
+        .type("RecordType(INTEGER EXPR$0, INTEGER EXPR$1,"
+            + " INTEGER NOT NULL ORDINALITY) NOT NULL");
+    // Different element types: both result columns are nullable.
+    sql("select * from unnest(array['a', 'b'], array[1, 2])")
+        .type("RecordType(CHAR(1) EXPR$0, INTEGER EXPR$1) NOT NULL");
+    // Struct array + scalar array: all result columns (including struct fields) are nullable.
+    sql("select * from unnest(array[(1, 'a'), (2, 'b')], array[10, 20]) as t(p, q, r)")
+        .type("RecordType(INTEGER P, CHAR(1) Q, INTEGER R) NOT NULL");
   }
 }

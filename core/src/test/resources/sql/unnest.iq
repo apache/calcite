@@ -243,6 +243,370 @@ FROM UNNEST(array [0, 2, 4, 4, 5]) as x;
 
 !ok
 
+# Tests for [CALCITE-7583] UNNEST with multiple array arguments returns wrong result
+# 6 tests validated on Postgres
+
+# Multi-collection UNNEST uses zip (positional) semantics, not cartesian
+# product. Elements are paired by position; shorter collections are padded
+# with NULL.
+
+# Equal-length: zip and product give the same result.
+select *
+from unnest(array[10, 20, 30], array[1, 2, 3]) as t(a, b);
++----+---+
+| A  | B |
++----+---+
+| 10 | 1 |
+| 20 | 2 |
+| 30 | 3 |
++----+---+
+(3 rows)
+
+!ok
+
+# First collection longer: second is padded with NULL for the extra rows.
+select *
+from unnest(array[10, 20, 30], array[1, 2]) as t(a, b);
++----+---+
+| A  | B |
++----+---+
+| 10 | 1 |
+| 20 | 2 |
+| 30 |   |
++----+---+
+(3 rows)
+
+!ok
+
+# Second collection longer: first is padded with NULL for the extra rows.
+select *
+from unnest(array[10, 20], array[1, 2, 3]) as t(a, b);
++----+---+
+| A  | B |
++----+---+
+| 10 | 1 |
+| 20 | 2 |
+|    | 3 |
++----+---+
+(3 rows)
+
+!ok
+
+# Ordinality counts all output rows, including NULL-padded ones.
+select *
+from unnest(array[10, 20, 30], array[1, 2]) with ordinality as t(a, b, o);
++----+---+---+
+| A  | B | O |
++----+---+---+
+| 10 | 1 | 1 |
+| 20 | 2 | 2 |
+| 30 |   | 3 |
++----+---+---+
+(3 rows)
+
+!ok
+
+# MAP + scalar array: MAP (2 entries) exhausts before the scalar (3 elements).
+# Postgres does not support MAP values, so this is not validated on Postgres
+select *
+from unnest(map['x', 10, 'y', 20], array[1, 2, 3]) as t(k, v, n);
++---+----+---+
+| K | V  | N |
++---+----+---+
+| x | 10 | 1 |
+| y | 20 | 2 |
+|   |    | 3 |
++---+----+---+
+(3 rows)
+
+!ok
+
+# Struct array + scalar array: struct array has 3 elements, scalar has 2.
+# The third struct row is produced normally; scalar column is NULL.
+# Postgres requires a slightly different syntax, but produces the same result.
+select *
+from unnest(array[(1, 'a'), (2, 'b'), (3, 'c')], array[10, 20]) as t(x, y, z);
++---+---+----+
+| X | Y | Z  |
++---+---+----+
+| 1 | a | 10 |
+| 2 | b | 20 |
+| 3 | c |    |
++---+---+----+
+(3 rows)
+
+!ok
+
+# [CALCITE-7583] UNNEST with multiple array arguments returns wrong result
+# Three arrays of different lengths with ordinality: output has max(3,2,4)=4 rows.
+select *
+from unnest(array[10, 20, 30], array[1, 2], array['a', 'b', 'c', 'd'])
+with ordinality as t(x, y, z, o);
++----+---+---+---+
+| X  | Y | Z | O |
++----+---+---+---+
+| 10 | 1 | a | 1 |
+| 20 | 2 | b | 2 |
+| 30 |   | c | 3 |
+|    |   | d | 4 |
++----+---+---+---+
+(4 rows)
+
+!ok
+
+# Unnest a plain scalar array; default column name is EXPR$0.
+select * from unnest(array[1, 2]);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      2 |
++--------+
+(2 rows)
+
+!ok
+
+# Unnest with ordinality: explicit aliases i and o.
+select * from unnest(array[10, 20]) with ordinality as t(i, o);
++----+---+
+| I  | O |
++----+---+
+| 10 | 1 |
+| 20 | 2 |
++----+---+
+(2 rows)
+
+!ok
+
+# Unnest a subquery that returns a RecordType(Array).
+# Ordinality resets to 1 for each input row.
+select * from unnest
+(select t.x from (values array[10, 20], array[30, 40]) as t(x))
+ with ordinality as t(a, o);
++----+---+
+| A  | O |
++----+---+
+| 10 | 1 |
+| 20 | 2 |
+| 30 | 1 |
+| 40 | 2 |
++----+---+
+(4 rows)
+
+!ok
+
+# Unnest a subquery that returns a RecordType(Multiset).
+# Ordinality resets to 1 for each input row.
+select * from unnest
+(select t.x from (values multiset[10, 20], array[30, 40]) as t(x))
+ with ordinality as t(a, o);
++----+---+
+| A  | O |
++----+---+
+| 10 | 1 |
+| 20 | 2 |
+| 30 | 1 |
+| 40 | 2 |
++----+---+
+(4 rows)
+
+!ok
+
+# Unnest a subquery that returns a RecordType(Map).
+# Each map is one row; ordinality is always 1 because each map has one entry.
+select * from unnest
+(select t.x from (values map['a', 20], map['b', 30], map['c', 40]) as t(x))
+ with ordinality as t(a, b, o);
++---+----+---+
+| A | B  | O |
++---+----+---+
+| a | 20 | 1 |
+| b | 30 | 1 |
+| c | 40 | 1 |
++---+----+---+
+(3 rows)
+
+!ok
+
+# Unnest a multiset literal with an explicit column alias.
+select * from unnest(multiset[1, 2]) as t(c);
++---+
+| C |
++---+
+| 1 |
+| 2 |
++---+
+(2 rows)
+
+!ok
+
+# [CALCITE-3498] Unnest operation's ordinality should be deterministic.
+# A filter applied after WITH ORDINALITY must not disturb the ordinality values.
+select v, o
+from unnest(array[100, 200]) with ordinality as t1(v, o)
+where v > 1;
++-----+---+
+| V   | O |
++-----+---+
+| 100 | 1 |
+| 200 | 2 |
++-----+---+
+(2 rows)
+
+!ok
+
+# [CALCITE-3498] Unnest operation's ordinality should be deterministic.
+with
+  x as (select * from unnest(array[100, 200]) with ordinality as t1(v, o)),
+  y as (select * from unnest(array[1000, 2000]) with ordinality as t2(v, o))
+select x.o as o1, x.v as v1, y.o as o2, y.v as v2
+from x join y on x.o = y.o;
++----+-----+----+------+
+| O1 | V1  | O2 | V2   |
++----+-----+----+------+
+|  1 | 100 |  1 | 1000 |
+|  2 | 200 |  2 | 2000 |
++----+-----+----+------+
+(2 rows)
+
+!ok
+
+# [CALCITE-1250] UNNEST applied to MAP data type.
+select * from unnest(MAP['a', 1, 'b', 2]) as um(k, v);
++---+---+
+| K | V |
++---+---+
+| a | 1 |
+| b | 2 |
++---+---+
+(2 rows)
+
+!ok
+
+select *
+from unnest(MAP['a', 1, 'b', 2]) with ordinality as um(k, v, i);
++---+---+---+
+| K | V | I |
++---+---+---+
+| a | 1 | 1 |
+| b | 2 | 2 |
++---+---+---+
+(2 rows)
+
+!ok
+
+# [CALCITE-7583] UNNEST with multiple array arguments returns wrong result
+# Validated on Postgres
+# MAP has 2 entries; array has 3 elements; the third row pads MAP columns with NULL.
+select * from unnest(MAP['a', 1, 'b', 2], array[5, 6, 7]);
++-----+-------+--------+
+| KEY | VALUE | EXPR$1 |
++-----+-------+--------+
+| a   |     1 |      5 |
+| b   |     2 |      6 |
+|     |       |      7 |
++-----+-------+--------+
+(3 rows)
+
+!ok
+
+!use hr
+
+# Unnest a subquery result that returns an array-of-struct column (hr.depts.employees).
+select * from unnest(
+ select "employees" from "hr"."depts"
+ where "deptno" = 10);
++-------+--------+-----------+---------+------------+
+| empid | deptno | name      | salary  | commission |
++-------+--------+-----------+---------+------------+
+|   100 |     10 | Bill      | 10000.0 |       1000 |
+|   150 |     10 | Sebastian |  7000.0 |            |
++-------+--------+-----------+---------+------------+
+(2 rows)
+
+!ok
+
+# [CALCITE-2391] Aggregate query with UNNEST or LATERAL fails with ClassCastException.
+# Total employee count across all depts: Sales(2) + Marketing(0) + HR(1) = 3.
+select count(d."name") as c
+from "hr"."depts" as d,
+UNNEST(d."employees") as e;
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+# Per SQL standard, UNNEST is implicitly LATERAL.
+select d."name", e.*
+from "hr"."depts" as d,
+UNNEST(d."employees") as e;
++-------+-------+--------+-----------+---------+------------+
+| name  | empid | deptno | name0     | salary  | commission |
++-------+-------+--------+-----------+---------+------------+
+| HR    |   200 |     20 | Eric      |  8000.0 |        500 |
+| Sales |   100 |     10 | Bill      | 10000.0 |       1000 |
+| Sales |   150 |     10 | Sebastian |  7000.0 |            |
++-------+-------+--------+-----------+---------+------------+
+(3 rows)
+
+!ok
+
+# [CALCITE-7583] UNNEST with multiple array arguments returns wrong result
+# Validated on Postgres
+select d."name", e.*
+from "hr"."depts" as d,
+ UNNEST(d."employees", array[1, 2]) as e;
++-----------+-------+--------+-----------+---------+------------+--------+
+| name      | empid | deptno | name0     | salary  | commission | EXPR$1 |
++-----------+-------+--------+-----------+---------+------------+--------+
+| HR        |   200 |     20 | Eric      |  8000.0 |        500 |      1 |
+| HR        |       |        |           |         |            |      2 |
+| Marketing |       |        |           |         |            |      1 |
+| Marketing |       |        |           |         |            |      2 |
+| Sales     |   100 |     10 | Bill      | 10000.0 |       1000 |      1 |
+| Sales     |   150 |     10 | Sebastian |  7000.0 |            |      2 |
++-----------+-------+--------+-----------+---------+------------+--------+
+(6 rows)
+
+!ok
+
+# [CALCITE-7583] UNNEST with multiple array arguments returns wrong result
+# Validated on Postgres
+select d."name", e.*
+from "hr"."depts" as d,
+ UNNEST(d."employees", array[1, 2]) as e (ei, d, n, s, c, i)
+where ei + i > 151;
++-------+-----+----+-----------+--------+-----+---+
+| name  | EI  | D  | N         | S      | C   | I |
++-------+-----+----+-----------+--------+-----+---+
+| HR    | 200 | 20 | Eric      | 8000.0 | 500 | 1 |
+| Sales | 150 | 10 | Sebastian | 7000.0 |     | 2 |
++-------+-----+----+-----------+--------+-----+---+
+(2 rows)
+
+!ok
+
+# [CALCITE-7583] UNNEST with multiple array arguments returns wrong result
+# Validated on Postgres
+# Same query with WITH ORDINALITY added.
+select d."name", e.*
+from "hr"."depts" as d,
+ UNNEST(d."employees", array[1, 2]) with ordinality as e (ei, d, n, s, c, i, o)
+where ei + i > 151;
++-------+-----+----+-----------+--------+-----+---+---+
+| name  | EI  | D  | N         | S      | C   | I | O |
++-------+-----+----+-----------+--------+-----+---+---+
+| HR    | 200 | 20 | Eric      | 8000.0 | 500 | 1 | 1 |
+| Sales | 150 | 10 | Sebastian | 7000.0 |     | 2 | 2 |
++-------+-----+----+-----------+--------+-----+---+---+
+(2 rows)
+
+!ok
+
 !use bookstore
 
 # [CALCITE-4773] RelDecorrelator's RemoveSingleAggregateRule can produce result with wrong row type
