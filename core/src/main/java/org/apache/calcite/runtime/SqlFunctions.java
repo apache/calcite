@@ -7428,68 +7428,87 @@ public class SqlFunctions {
     return inputList -> Linq4j.asEnumerable(inputList).select(v -> structAccess(v, 0, null));
   }
 
-  public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
+  /**
+   * Returns a function that, given a row containing one or more collection
+   * fields, produces an {@link Enumerable} of combined element rows using
+   * <em>zip</em> (positional pairing) semantics.
+   *
+   * <p>This is the standard semantics for SQL {@code UNNEST(a, b, ...)}: the
+   * i-th output row pairs element {@code a[i]} with element {@code b[i]}.
+   * Shorter collections are padded with {@code NULL}.
+   */
+  public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatZip(
       final int[] fieldCounts, final boolean withOrdinality,
       final FlatProductInputType[] inputTypes) {
     if (fieldCounts.length == 1) {
       if (!withOrdinality && inputTypes[0] == FlatProductInputType.SCALAR) {
+        // Simple unnest without ordinality
         //noinspection unchecked
         return (Function1) LIST_AS_ENUMERABLE;
       } else {
-        return row -> p2(new Object[] { row }, fieldCounts, withOrdinality,
-            inputTypes);
+        // unnest with ordinality for a single scalar column
+        return row -> z2(new Object[] { row }, fieldCounts, withOrdinality, inputTypes);
       }
     }
-    return lists -> p2((Object[]) lists, fieldCounts, withOrdinality,
-        inputTypes);
+    return lists -> z2((Object[]) lists, fieldCounts, withOrdinality, inputTypes);
   }
 
-  private static Enumerable<FlatLists.ComparableList<Comparable>> p2(
+  /**
+   * Helper for {@link #flatZip}: unpacks each collection in {@code lists}
+   * into an enumerator and combines them using zip (positional) semantics,
+   * padding shorter collections with {@code NULL}.
+   *
+   * @param lists        one element per collection (scalar list, struct list, or map)
+   * @param fieldCounts  output column count for each collection (-1 for a collection of scalars)
+   * @param withOrdinality whether to append a 1-based ordinality column
+   * @param inputTypes   type of elements in each collection (SCALAR, LIST, or MAP)
+   */
+  @SuppressWarnings("rawtypes")
+  private static Enumerable<FlatLists.ComparableList<Comparable>> z2(
       Object[] lists, int[] fieldCounts, boolean withOrdinality,
       FlatProductInputType[] inputTypes) {
     final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
+    final int[] widths = new int[lists.length];
     int totalFieldCount = 0;
     for (int i = 0; i < lists.length; i++) {
-      int fieldCount = fieldCounts[i];
-      FlatProductInputType inputType = inputTypes[i];
-      Object inputObject = lists[i];
+      final int fieldCount = fieldCounts[i];
+      final FlatProductInputType inputType = inputTypes[i];
+      final Object inputObject = lists[i];
       switch (inputType) {
       case SCALAR:
         @SuppressWarnings("unchecked") List<Comparable> list =
             (List<Comparable>) inputObject;
-        enumerators.add(
-            Linq4j.transform(
-                Linq4j.enumerator(list), FlatLists::of));
+        enumerators.add(Linq4j.transform(Linq4j.enumerator(list), FlatLists::of));
+        widths[i] = 1;
         break;
       case LIST:
         @SuppressWarnings("unchecked") List<List<Comparable>> listList =
             (List<List<Comparable>>) inputObject;
         enumerators.add(Linq4j.enumerator(listList));
+        widths[i] = fieldCount;
         break;
       case MAP:
         @SuppressWarnings("unchecked") Map<Comparable, Comparable> map =
             (Map<Comparable, Comparable>) inputObject;
         Enumerator<Map.Entry<Comparable, Comparable>> enumerator =
             Linq4j.enumerator(map.entrySet());
-
-        Enumerator<List<Comparable>> transformed =
-            Linq4j.transform(enumerator,
-                e -> FlatLists.of(e.getKey(), e.getValue()));
-        enumerators.add(transformed);
+        enumerators.add(Linq4j.transform(enumerator, e -> FlatLists.of(e.getKey(), e.getValue())));
+        widths[i] = 2;
         break;
       default:
-        break;
+        throw new IllegalArgumentException("Unknown input type: " + inputType);
       }
-      if (fieldCount < 0) {
-        ++totalFieldCount;
-      } else {
-        totalFieldCount += fieldCount;
-      }
+      totalFieldCount += (fieldCount < 0) ? 1 : fieldCount;
     }
     if (withOrdinality) {
       ++totalFieldCount;
     }
-    return product(enumerators, totalFieldCount, withOrdinality);
+    final int fieldCount = totalFieldCount;
+    return new AbstractEnumerable<FlatLists.ComparableList<Comparable>>() {
+      @Override public Enumerator<FlatLists.ComparableList<Comparable>> enumerator() {
+        return new ZipPaddedEnumerator(enumerators, widths, fieldCount, withOrdinality);
+      }
+    };
   }
 
   public static Object[] array(Object... args) {
@@ -7547,6 +7566,96 @@ public class SqlFunctions {
             withOrdinality);
       }
     };
+  }
+
+  /**
+   * Enumerates over the positional zip of the given collection enumerators,
+   * padding shorter collections with {@code NULL}.
+   */
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private static class ZipPaddedEnumerator
+      implements Enumerator<FlatLists.ComparableList<Comparable>> {
+    /** One enumerator per input collection; each yields one element row per step.
+     * For a scalar collection the inner list has exactly one element. */
+    private final List<Enumerator<List<Comparable>>> enumerators;
+    /** Output column count contributed by each collection (parallel to {@link #enumerators}). */
+    private final int[] widths;
+    /** {@code end_of_collection[i]} is {@code true} once collection {@code i} is exhausted. */
+    private final boolean[] endOfCollection;
+    /** Preallocated output buffer where each result row is constructed. */
+    final @Nullable Object[] flatElements;
+    /** Reused {@link List} view over {@link #flatElements}, passed to {@link FlatLists#of}
+     * to produce the final result for each output row. */
+    final List<@Nullable Object> list;
+    private final boolean withOrdinality;
+    /** 1-based counter incremented on each successful {@link #moveNext()}. */
+    private int currentOrdinality;
+
+    ZipPaddedEnumerator(List<Enumerator<List<Comparable>>> enumerators,
+        int[] widths, int fieldCount, boolean withOrdinality) {
+      this.enumerators = enumerators;
+      this.widths = widths;
+      this.withOrdinality = withOrdinality;
+      this.endOfCollection = new boolean[enumerators.size()];
+      flatElements = new Object[fieldCount];
+      list = Arrays.asList(flatElements);
+    }
+
+    @Override public boolean moveNext() {
+      boolean allCompleted = true;
+      for (int i = 0; i < enumerators.size(); i++) {
+        if (!endOfCollection[i]) {
+          endOfCollection[i] = !enumerators.get(i).moveNext();
+        }
+        allCompleted &= endOfCollection[i];
+      }
+      if (!allCompleted && withOrdinality) {
+        currentOrdinality++;
+      }
+      return !allCompleted;
+    }
+
+    @Override public FlatLists.ComparableList<Comparable> current() {
+      int column = 0;
+      for (int i = 0; i < enumerators.size(); i++) {
+        int width = widths[i];
+        if (!endOfCollection[i]) {
+          final Object elemRow = enumerators.get(i).current();
+          if (elemRow instanceof Object[]) {
+            final Object[] arr = (Object[]) elemRow;
+            for (int p = 0; p < width; p++) {
+              flatElements[column + p] = p < arr.length ? arr[p] : null;
+            }
+          } else {
+            final List lst = (List) elemRow;
+            for (int p = 0; p < width; p++) {
+              flatElements[column + p] = p < lst.size() ? lst.get(p) : null;
+            }
+          }
+        } else {
+          Arrays.fill(flatElements, column, column + width, null);
+        }
+        column += width;
+      }
+      if (withOrdinality) {
+        flatElements[column] = currentOrdinality;
+      }
+      return (FlatLists.ComparableList) FlatLists.of(list);
+    }
+
+    @Override public void reset() {
+      for (Enumerator<List<Comparable>> e : enumerators) {
+        e.reset();
+      }
+      Arrays.fill(endOfCollection, false);
+      currentOrdinality = 0;
+    }
+
+    @Override public void close() {
+      for (Enumerator<List<Comparable>> e : enumerators) {
+        e.close();
+      }
+    }
   }
 
   /**
@@ -7644,7 +7753,7 @@ public class SqlFunctions {
     JSON_KEYS, JSON_KEYS_AND_VALUES, JSON_VALUES
   }
 
-  /** Type of argument passed into {@link #flatProduct}. */
+  /** Type of argument passed into {@link #flatZip}. */
   public enum FlatProductInputType {
     SCALAR, LIST, MAP
   }

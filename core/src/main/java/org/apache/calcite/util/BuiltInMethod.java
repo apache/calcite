@@ -327,7 +327,7 @@ public enum BuiltInMethod {
   @SuppressWarnings("deprecation")
   PAIR_LIST_COPY_OF(PairList.Helper.class, "copyOf", Object.class, Object.class,
       Object[].class),
-  FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class,
+  FLAT_ZIP(SqlFunctions.class, "flatZip", int[].class, boolean.class,
       FlatProductInputType[].class),
   FLAT_LIST(SqlFunctions.class, "flatList"),
   LIST_N(FlatLists.class, "copyOf", Comparable[].class),

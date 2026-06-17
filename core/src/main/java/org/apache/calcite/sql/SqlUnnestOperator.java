@@ -83,13 +83,22 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
       // If a type is nullable, all field accesses inside the type are also nullable
+      // With multiple collections, zip semantics pad shorter collections with
+      // NULL, so all output columns from a multi-collection UNNEST are nullable.
+      final boolean padNullable = opBinding.getOperandCount() > 1;
       if (type instanceof MapSqlType) {
         MapSqlType mapType = (MapSqlType) type;
-        builder.add(MAP_KEY_COLUMN_NAME, mapType.getKeyType());
-        builder.add(MAP_VALUE_COLUMN_NAME, mapType.getValueType());
+        RelDataType keyType = padNullable
+            ? typeFactory.enforceTypeWithNullability(mapType.getKeyType(), true)
+            : mapType.getKeyType();
+        RelDataType valueType = padNullable
+            ? typeFactory.enforceTypeWithNullability(mapType.getValueType(), true)
+            : mapType.getValueType();
+        builder.add(MAP_KEY_COLUMN_NAME, keyType);
+        builder.add(MAP_VALUE_COLUMN_NAME, valueType);
       } else {
         RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
-        boolean isNullable = componentType.isNullable();
+        boolean isNullable = componentType.isNullable() || padNullable;
         if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
           for (RelDataTypeField field : componentType.getFieldList()) {
             RelDataType fieldType = field.getType();
@@ -99,8 +108,10 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
             builder.add(field.getName(), fieldType);
           }
         } else {
-          builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
-              componentType);
+          RelDataType colType = padNullable
+              ? typeFactory.enforceTypeWithNullability(componentType, true)
+              : componentType;
+          builder.add(SqlUtil.deriveAliasFromOrdinal(operand), colType);
         }
       }
     }

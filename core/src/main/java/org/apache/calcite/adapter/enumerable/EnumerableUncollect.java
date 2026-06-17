@@ -89,7 +89,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
             JavaRowFormat.LIST);
 
     // final Enumerable<List<Employee>> child = <<child adapter>>;
-    // return child.selectMany(FLAT_PRODUCT);
+    // return child.selectMany(FLAT_ZIP);
     final Expression child_ =
         builder.append(
             "child", result.block);
@@ -125,7 +125,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
 
     final Expression lambda = lambdaForStructWithSingleItem != null
         ? lambdaForStructWithSingleItem
-        : Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
+        : Expressions.call(BuiltInMethod.FLAT_ZIP.method,
             Expressions.constant(Ints.toArray(fieldCounts)),
             Expressions.constant(withOrdinality),
             Expressions.constant(
