@@ -158,6 +158,7 @@ public class SqlDialect {
   private final Casing unquotedCasing;
   private final Casing quotedCasing;
   private final boolean caseSensitive;
+  private final boolean alwaysUseExprAlias;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -242,6 +243,7 @@ public class SqlDialect {
     this.unquotedCasing = requireNonNull(context.unquotedCasing());
     this.quotedCasing = requireNonNull(context.quotedCasing());
     this.caseSensitive = context.caseSensitive();
+    this.alwaysUseExprAlias = context.alwaysUseExprAlias();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -252,7 +254,7 @@ public class SqlDialect {
         "'", "''", null, null,
         Casing.UNCHANGED, Casing.TO_UPPER, true, SqlConformanceEnum.DEFAULT,
         NullCollation.HIGH, RelDataTypeSystemImpl.DEFAULT,
-        JethroDataSqlDialect.JethroInfo.EMPTY);
+        JethroDataSqlDialect.JethroInfo.EMPTY, false);
   }
 
   /**
@@ -1226,6 +1228,14 @@ public class SqlDialect {
   }
 
   /**
+   * Returns whether SELECT list items should always use generated expression aliases
+   * (e.g., EXPR$0, EXPR$1) to ensure consistent column naming across different databases.
+   */
+  public boolean alwaysUseExprAlias() {
+    return alwaysUseExprAlias;
+  }
+
+  /**
    * Returns whether the dialect supports implicit type coercion.
    *
    * <p>Most of the sql dialects support implicit type coercion, so we make this method
@@ -1563,6 +1573,8 @@ public class SqlDialect {
     Context withDataTypeSystem(RelDataTypeSystem dataTypeSystem);
     JethroDataSqlDialect.JethroInfo jethroInfo();
     Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo);
+    boolean alwaysUseExprAlias();
+    Context withAlwaysUseExprAlias(boolean alwaysUseExprAlias);
   }
 
   /** Implementation of Context. */
@@ -1583,6 +1595,7 @@ public class SqlDialect {
     private final NullCollation nullCollation;
     private final RelDataTypeSystem dataTypeSystem;
     private final JethroDataSqlDialect.JethroInfo jethroInfo;
+    private final boolean alwaysUseExprAlias;
 
     private ContextImpl(DatabaseProduct databaseProduct,
         @Nullable String databaseProductName, @Nullable String databaseVersion,
@@ -1593,7 +1606,8 @@ public class SqlDialect {
         Casing quotedCasing, Casing unquotedCasing, boolean caseSensitive,
         SqlConformance conformance, NullCollation nullCollation,
         RelDataTypeSystem dataTypeSystem,
-        JethroDataSqlDialect.JethroInfo jethroInfo) {
+        JethroDataSqlDialect.JethroInfo jethroInfo,
+        boolean alwaysUseExprAlias) {
       this.databaseProduct = requireNonNull(databaseProduct, "databaseProduct");
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
@@ -1610,6 +1624,7 @@ public class SqlDialect {
       this.nullCollation = requireNonNull(nullCollation, "nullCollation");
       this.dataTypeSystem = requireNonNull(dataTypeSystem, "dataTypeSystem");
       this.jethroInfo = requireNonNull(jethroInfo, "jethroInfo");
+      this.alwaysUseExprAlias = alwaysUseExprAlias;
     }
 
     @Override public DatabaseProduct databaseProduct() {
@@ -1623,7 +1638,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public @Nullable String databaseProductName() {
@@ -1636,7 +1651,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public @Nullable String databaseVersion() {
@@ -1649,7 +1664,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public int databaseMajorVersion() {
@@ -1662,7 +1677,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public int databaseMinorVersion() {
@@ -1675,7 +1690,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public String literalQuoteString() {
@@ -1688,7 +1703,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public String literalEscapedQuoteString() {
@@ -1702,7 +1717,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public @Nullable String identifierQuoteString() {
@@ -1716,7 +1731,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public @Nullable String identifierEscapedQuoteString() {
@@ -1730,7 +1745,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public Casing unquotedCasing() {
@@ -1743,7 +1758,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public Casing quotedCasing() {
@@ -1756,7 +1771,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public boolean caseSensitive() {
@@ -1769,7 +1784,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public SqlConformance conformance() {
@@ -1782,7 +1797,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public NullCollation nullCollation() {
@@ -1796,7 +1811,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public RelDataTypeSystem dataTypeSystem() {
@@ -1809,7 +1824,7 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
 
     @Override public JethroDataSqlDialect.JethroInfo jethroInfo() {
@@ -1822,7 +1837,20 @@ public class SqlDialect {
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
           quotedCasing, unquotedCasing, caseSensitive,
-          conformance, nullCollation, dataTypeSystem, jethroInfo);
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
+    }
+
+    @Override public boolean alwaysUseExprAlias() {
+      return alwaysUseExprAlias;
+    }
+
+    @Override public Context withAlwaysUseExprAlias(boolean alwaysUseExprAlias) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseVersion, databaseMajorVersion, databaseMinorVersion,
+          literalQuoteString, literalEscapedQuoteString,
+          identifierQuoteString, identifierEscapedQuoteString,
+          quotedCasing, unquotedCasing, caseSensitive,
+          conformance, nullCollation, dataTypeSystem, jethroInfo, alwaysUseExprAlias);
     }
   }
 

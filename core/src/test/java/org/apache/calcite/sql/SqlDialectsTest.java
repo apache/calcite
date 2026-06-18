@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.sql.parser.SqlParser;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +26,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -42,5 +44,78 @@ public class SqlDialectsTest {
         is(metaData.getDatabaseProductName()));
     assertThat(context.databaseMajorVersion(),
         is(metaData.getDatabaseMajorVersion()));
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6542">[CALCITE-6542]
+   * Jdbc adapter support use a unified alias when generating SQL</a>. */
+  @Test void testAlwaysUseExprAlias() throws Exception {
+    String sql = "select avg(1) from table1";
+    SqlParser.Config config = SqlParser.config();
+    SqlParser parser = SqlParser.create(sql, config);
+    SqlNode ast = parser.parseQuery();
+
+    // Test with alwaysUseExprAlias = true
+    SqlDialect.Context ctxTrue = SqlDialect.EMPTY_CONTEXT
+        .withAlwaysUseExprAlias(true);
+    SqlDialect dialectTrue = new SqlDialect(ctxTrue);
+    String resultTrue = ast.toSqlString(dialectTrue).getSql();
+    assertThat(resultTrue, containsString("EXPR$0"));
+
+    // Test with alwaysUseExprAlias = false
+    SqlDialect.Context ctxFalse = SqlDialect.EMPTY_CONTEXT
+        .withAlwaysUseExprAlias(false);
+    SqlDialect dialectFalse = new SqlDialect(ctxFalse);
+    String resultFalse = ast.toSqlString(dialectFalse).getSql();
+    // Should not contain EXPR$ when alwaysUseExprAlias is false
+    assertThat(resultFalse, is(resultFalse.replaceAll("EXPR\\$\\d+", "")));
+  }
+
+  @Test void testAlwaysUseExprAliasWithExistingAlias() throws Exception {
+    String sql = "select avg(1) as myalias from table1";
+    SqlParser.Config config = SqlParser.config();
+    SqlParser parser = SqlParser.create(sql, config);
+    SqlNode ast = parser.parseQuery();
+
+    // Test with alwaysUseExprAlias = true - should keep the explicit alias
+    SqlDialect.Context ctxTrue = SqlDialect.EMPTY_CONTEXT
+        .withAlwaysUseExprAlias(true);
+    SqlDialect dialectTrue = new SqlDialect(ctxTrue);
+    String resultTrue = ast.toSqlString(dialectTrue).getSql();
+    assertThat(resultTrue, containsString("MYALIAS"));
+  }
+
+  @Test void testAlwaysUseExprAliasWithMultipleItems() throws Exception {
+    String sql = "select avg(1), sum(2), count(*) from table1";
+    SqlParser.Config config = SqlParser.config();
+    SqlParser parser = SqlParser.create(sql, config);
+    SqlNode ast = parser.parseQuery();
+
+    // Test with alwaysUseExprAlias = true
+    SqlDialect.Context ctxTrue = SqlDialect.EMPTY_CONTEXT
+        .withAlwaysUseExprAlias(true);
+    SqlDialect dialectTrue = new SqlDialect(ctxTrue);
+    String resultTrue = ast.toSqlString(dialectTrue).getSql();
+    assertThat(resultTrue, containsString("EXPR$0"));
+    assertThat(resultTrue, containsString("EXPR$1"));
+    assertThat(resultTrue, containsString("EXPR$2"));
+  }
+
+  @Test void testAlwaysUseExprAliasWithMixedAliases() throws Exception {
+    String sql = "select avg(1) as avg_val, sum(2), count(*) as cnt from table1";
+    SqlParser.Config config = SqlParser.config();
+    SqlParser parser = SqlParser.create(sql, config);
+    SqlNode ast = parser.parseQuery();
+
+    // Test with alwaysUseExprAlias = true
+    SqlDialect.Context ctxTrue = SqlDialect.EMPTY_CONTEXT
+        .withAlwaysUseExprAlias(true);
+    SqlDialect dialectTrue = new SqlDialect(ctxTrue);
+    String resultTrue = ast.toSqlString(dialectTrue).getSql();
+    // Explicit aliases should be preserved
+    assertThat(resultTrue, containsString("AVG_VAL"));
+    assertThat(resultTrue, containsString("CNT"));
+    // Only the item without explicit alias should get EXPR$
+    assertThat(resultTrue, containsString("EXPR$1"));
   }
 }
