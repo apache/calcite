@@ -529,11 +529,14 @@ public class RexSimplify {
       }
       if (e.operands.size() == 3 && e.operands.get(2) instanceof RexLiteral) {
         final RexLiteral escapeLiteral = (RexLiteral) e.operands.get(2);
-        Character escape = requireNonNull(escapeLiteral.getValueAs(Character.class));
-        e = (RexCall) rexBuilder
-            .makeCall(e.getParserPosition(), e.getOperator(), e.operands.get(0),
-                rexBuilder.makeLiteral(simplifyLikeString(likeStr, escape, '%'),
-                e.operands.get(1).getType(), true, true), escapeLiteral);
+        final String escapeStr = requireNonNull(escapeLiteral.getValueAs(String.class));
+        if (escapeStr.length() == 1) {
+          char escape = escapeStr.charAt(0);
+          e = (RexCall) rexBuilder
+              .makeCall(e.getParserPosition(), e.getOperator(), e.operands.get(0),
+                  rexBuilder.makeLiteral(simplifyLikeString(likeStr, escape, '%'),
+                      e.operands.get(1).getType(), true, true), escapeLiteral);
+        }
       }
     }
     return simplifyGenericNode(e);
@@ -543,7 +546,7 @@ public class RexSimplify {
   // string with even escapes 'AA\\\\%%__%%AA' simplify to 'AA\\__%AA'
   // string with odd escapes 'AA\\\\\\%%__%%AA' simplify to 'AA\\\\\\%__%AA'
   private String simplifyMixedWildcards(String str, char escape) {
-    Pattern pattern = Pattern.compile("[_%]+");
+    Pattern pattern = getWildCardPattern(escape);
     Matcher matcher = pattern.matcher(str);
     StringBuilder builder = new StringBuilder();
     int from = 0;
@@ -565,6 +568,17 @@ public class RexSimplify {
       builder.append(str.substring(from));
     }
     return builder.toString();
+  }
+
+  private static Pattern getWildCardPattern(char escape) {
+    switch (escape) {
+    case '%':
+      return Pattern.compile("_+");
+    case '_':
+      return Pattern.compile("%+");
+    default:
+      return Pattern.compile("[_%]+");
+    }
   }
 
   // Tool method: count the number of consecutive identical characters before index

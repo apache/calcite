@@ -1870,7 +1870,7 @@ public class SqlToRelConverter {
       if (leftKeys.size() == 1) {
         SqlCall sqlCall =
             comparisonOp.createCall(rightVals.getParserPosition(), leftKeys.get(0), rightVals);
-        rexComparison = bb.convertExpression(sqlCall);
+        rexComparison = ensureComparisonTypes(bb.convertExpression(sqlCall));
       } else {
         assert rightVals instanceof SqlCall;
         final SqlBasicCall call = (SqlBasicCall) rightVals;
@@ -1880,9 +1880,10 @@ public class SqlToRelConverter {
             RexUtil.composeConjunction(rexBuilder,
                 transform(
                   Pair.zip(leftKeys, call.getOperandList()),
-                  pair -> bb.convertExpression(
-                        comparisonOp.createCall(rightVals.getParserPosition(),
-                            pair.left, pair.right))));
+                  pair -> ensureComparisonTypes(
+                      bb.convertExpression(
+                          comparisonOp.createCall(rightVals.getParserPosition(),
+                              pair.left, pair.right)))));
       }
       comparisons.add(rexComparison);
     }
@@ -1899,6 +1900,31 @@ public class SqlToRelConverter {
     default:
       throw new AssertionError();
     }
+  }
+
+  /**
+   * Ensures that a comparison expression has matching operand types. If the
+   * operands have different type names, casts the right operand to match the
+   * left operand's type. This handles the case where type coercion is disabled
+   * and the IN-to-OR expansion produces comparisons with mismatched types
+   * (e.g., DATE = CHAR).
+   */
+  private RexNode ensureComparisonTypes(RexNode node) {
+    if (validator != null && validator.config().typeCoercionEnabled()) {
+      return node;
+    }
+    if (node instanceof RexCall) {
+      final RexCall call = (RexCall) node;
+      if (call.operands.size() == 2) {
+        final RexNode left = call.operands.get(0);
+        final RexNode right = call.operands.get(1);
+        if (left.getType().getSqlTypeName() != right.getType().getSqlTypeName()) {
+          final RexNode castRight = rexBuilder.ensureType(left.getType(), right, true);
+          return rexBuilder.makeCall(call.getOperator(), left, castRight);
+        }
+      }
+    }
+    return node;
   }
 
   /**
