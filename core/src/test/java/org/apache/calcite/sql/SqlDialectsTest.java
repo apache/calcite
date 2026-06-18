@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -68,7 +69,8 @@ public class SqlDialectsTest {
     SqlDialect dialectFalse = new SqlDialect(ctxFalse);
     String resultFalse = ast.toSqlString(dialectFalse).getSql();
     // Should not contain EXPR$ when alwaysUseExprAlias is false
-    assertThat(resultFalse, is(resultFalse.replaceAll("EXPR\\$\\d+", "")));
+    Pattern exprPattern = Pattern.compile("EXPR\\$\\d+");
+    assertThat(!exprPattern.matcher(resultFalse).find(), is(true));
   }
 
   @Test void testAlwaysUseExprAliasWithExistingAlias() throws Exception {
