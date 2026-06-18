@@ -55,19 +55,29 @@ class KvrocksSchema extends AbstractSchema {
   final int port;
   final int database;
   final @Nullable String password;
+  final @Nullable String namespace;
   final List<Map<String, Object>> tables;
   private final KvrocksJedisManager manager;
 
   KvrocksSchema(String host, int port, int database,
       @Nullable String password,
       List<Map<String, Object>> tables) {
+    this(host, port, database, password, null, tables);
+  }
+
+  KvrocksSchema(String host, int port, int database,
+      @Nullable String password, @Nullable String namespace,
+      List<Map<String, Object>> tables) {
     this.host = host;
     this.port = port;
     this.database = database;
     this.password = password;
+    this.namespace = namespace;
     this.tables = tables;
+    final String authToken =
+        namespace == null || namespace.isEmpty() ? password : namespace;
     this.manager =
-        new KvrocksJedisManager(host, port, database, password);
+        new KvrocksJedisManager(host, port, database, authToken);
   }
 
   /** Returns the shared connection manager for this schema. */
@@ -87,7 +97,7 @@ class KvrocksSchema extends AbstractSchema {
 
   private Table table(String tableName) {
     KvrocksConfig config =
-        new KvrocksConfig(host, port, database, password);
+        new KvrocksConfig(host, port, database, password, namespace);
     return KvrocksTable.create(KvrocksSchema.this, tableName,
         config, null);
   }

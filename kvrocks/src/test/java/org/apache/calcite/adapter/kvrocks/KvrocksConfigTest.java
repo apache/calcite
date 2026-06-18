@@ -43,4 +43,22 @@ class KvrocksConfigTest {
     assertEquals(1, config.getDatabase());
     assertNull(config.getPassword());
   }
+
+  @Test void namespaceTokenTakesPrecedenceOverPassword() {
+    KvrocksConfig config =
+        new KvrocksConfig("localhost", 6666, 0,
+            "administrator-token", "namespace-token");
+
+    assertEquals("administrator-token", config.getPassword());
+    assertEquals("namespace-token", config.getNamespace());
+    assertEquals("namespace-token", config.getAuthToken());
+  }
+
+  @Test void passwordIsUsedWithoutNamespaceToken() {
+    KvrocksConfig config =
+        new KvrocksConfig("localhost", 6666, 0, "administrator-token", null);
+
+    assertNull(config.getNamespace());
+    assertEquals("administrator-token", config.getAuthToken());
+  }
 }

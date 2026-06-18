@@ -171,6 +171,30 @@ class KvrocksSchemaTableTest {
     Mockito.verify(jedis).close();
   }
 
+  @Test void tableScanAuthenticatesWithNamespaceToken() {
+    KvrocksTableFieldInfo info = info("raw_01", "raw", rawField());
+    KvrocksJedisManager manager = Mockito.mock(KvrocksJedisManager.class);
+    Jedis jedis = Mockito.mock(Jedis.class);
+    Mockito.when(manager.getResource()).thenReturn(jedis);
+    Mockito.when(jedis.type("raw_01")).thenReturn("string");
+    Mockito.when(jedis.keys("raw_01"))
+        .thenReturn(java.util.Collections.singleton("raw_01"));
+    Mockito.when(jedis.get("raw_01")).thenReturn("hello");
+    KvrocksSchema schema = new TestKvrocksSchema(info, manager);
+    KvrocksTable table =
+        (KvrocksTable) KvrocksTable.create(schema, "raw_01",
+            new KvrocksConfig("localhost", 6666, 0,
+                "administrator-token", "namespace-token"), null);
+
+    org.apache.calcite.linq4j.Enumerator<Object[]> enumerator =
+        table.scan(null).enumerator();
+
+    assertTrue(enumerator.moveNext());
+    enumerator.close();
+    Mockito.verify(jedis).auth("namespace-token");
+    Mockito.verify(jedis, Mockito.never()).auth("administrator-token");
+  }
+
   @Test void tableFactoryCreatesKvrocksTable() {
     KvrocksSchema kvrocksSchema = schema(table("raw_01", "raw", ":", rawField()));
     SchemaPlus schemaPlus = Mockito.mock(SchemaPlus.class);

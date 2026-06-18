@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -70,5 +71,18 @@ class KvrocksSchemaFactoryTest {
     KvrocksSchemaFactory factory = new KvrocksSchemaFactory();
     assertThrows(IllegalArgumentException.class,
         () -> factory.create(null, "kv", operand));
+  }
+
+  @Test void readsNamespaceToken() {
+    Map<String, Object> operand = baseOperand();
+    operand.put("password", "administrator-token");
+    operand.put("namespace", "namespace-token");
+
+    KvrocksSchema schema =
+        (KvrocksSchema) new KvrocksSchemaFactory()
+            .create(null, "kv", operand);
+
+    assertEquals("administrator-token", schema.password);
+    assertEquals("namespace-token", schema.namespace);
   }
 }

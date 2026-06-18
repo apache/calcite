@@ -22,20 +22,28 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Connection configuration for the Kvrocks adapter.
  *
  * <p>Holds all parameters needed to establish a connection to a Kvrocks
- * instance: host, port, database index, and optional password.
+ * instance: host, port, database index, optional administrator password,
+ * and optional namespace token.
  */
 public class KvrocksConfig {
   private final String host;
   private final int port;
   private final int database;
   private final @Nullable String password;
+  private final @Nullable String namespace;
 
   KvrocksConfig(String host, int port, int database,
       @Nullable String password) {
+    this(host, port, database, password, null);
+  }
+
+  KvrocksConfig(String host, int port, int database,
+      @Nullable String password, @Nullable String namespace) {
     this.host = host;
     this.port = port;
     this.database = database;
     this.password = password;
+    this.namespace = namespace;
   }
 
   public String getHost() {
@@ -52,5 +60,20 @@ public class KvrocksConfig {
 
   public @Nullable String getPassword() {
     return password;
+  }
+
+  /**
+   * Returns the token associated with a Kvrocks namespace.
+   *
+   * <p>Kvrocks selects a namespace by authenticating with its token; clients
+   * do not send the namespace name separately.
+   */
+  public @Nullable String getNamespace() {
+    return namespace;
+  }
+
+  /** Returns the credential used to authenticate the connection. */
+  @Nullable String getAuthToken() {
+    return namespace == null || namespace.isEmpty() ? password : namespace;
   }
 }

@@ -45,9 +45,9 @@ class KvrocksEnumerator implements Enumerator<Object[]> {
     KvrocksJedisManager manager = schema.getManager();
 
     try (Jedis jedis = manager.getResource()) {
-      if (config.getPassword() != null
-          && !config.getPassword().isEmpty()) {
-        jedis.auth(config.getPassword());
+      final String authToken = config.getAuthToken();
+      if (authToken != null && !authToken.isEmpty()) {
+        jedis.auth(authToken);
       }
       KvrocksDataProcess process =
           new KvrocksDataProcess(jedis, fieldInfo);

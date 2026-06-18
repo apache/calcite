@@ -100,7 +100,7 @@ public class KvrocksTable extends AbstractTable implements ScannableTable {
       Map operand, @Nullable RelProtoDataType protoRowType) {
     KvrocksConfig config =
         new KvrocksConfig(schema.host, schema.port,
-            schema.database, schema.password);
+            schema.database, schema.password, schema.namespace);
     return create(schema, tableName, config, protoRowType);
   }
 }
