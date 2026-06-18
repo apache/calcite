@@ -339,7 +339,7 @@ public class RelDecorrelatorTest {
         program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
-        + "LogicalProject(DEPTNO=[$0], A=[$3])\n"
+        + "LogicalProject(DEPTNO=[$0], A=[CAST($3):CHAR(7) NOT NULL])\n"
         + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalProject(EXPR=[CASE(>($0, 10.00), 'VIP    ', 'Regular')])\n"
@@ -356,7 +356,7 @@ public class RelDecorrelatorTest {
 
     // Verify plan
     final String planAfter = ""
-        + "LogicalProject(DEPTNO=[$0], A=[$3])\n"
+        + "LogicalProject(DEPTNO=[$0], A=[CAST($3):CHAR(7) NOT NULL])\n"
         + "  LogicalJoin(condition=[=($0, $4)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalProject(EXPR=[CASE(>($2, 10.00), 'VIP    ', 'Regular')], DEPTNO=[$0])\n"
@@ -500,7 +500,7 @@ public class RelDecorrelatorTest {
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
         + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
-        + "  LogicalProject(DNAME=[$1], C=[$3])\n"
+        + "  LogicalProject(DNAME=[$1], C=[CAST($3):BIGINT NOT NULL])\n"
         + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n"
         + "      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
@@ -556,7 +556,7 @@ public class RelDecorrelatorTest {
     //                                  LogicalTableScan(table=[[scott, EMP]])
     final String planAfter = ""
         + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
-        + "  LogicalProject(DNAME=[$1], C=[$7])\n"
+        + "  LogicalProject(DNAME=[$1], C=[CAST($7):BIGINT NOT NULL])\n"
         + "    LogicalJoin(condition=[AND(=($0, $5), =($4, $6))], joinType=[left])\n"
         + "      LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO0=[$0], $f4=[*($0, 100)])\n"
         + "        LogicalTableScan(table=[[scott, DEPT]])\n"
@@ -627,14 +627,15 @@ public class RelDecorrelatorTest {
         program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
-        + "LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])\n"
-        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "  LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
-        + "    LogicalProject(EXPR$0=[$1])\n"
-        + "      LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
-        + "        LogicalProject($f0=[$cor1.DEPTNO])\n"
-        + "          LogicalFilter(condition=[=($7, $cor1.DEPTNO)])\n"
-        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], NUM_DEPT_GROUPS=[CAST($3):BIGINT NOT NULL])\n"
+        + "  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "      LogicalProject(EXPR$0=[$1])\n"
+        + "        LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "          LogicalProject($f0=[$cor1.DEPTNO])\n"
+        + "            LogicalFilter(condition=[=($7, $cor1.DEPTNO)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(before, hasTree(planBefore));
 
     // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
@@ -643,7 +644,7 @@ public class RelDecorrelatorTest {
             RuleSets.ofList(Collections.emptyList()));
     // Verify plan
     final String planAfter = ""
-        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f1=[$4])\n"
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], NUM_DEPT_GROUPS=[CAST($4):BIGINT NOT NULL])\n"
         + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
@@ -1180,7 +1181,7 @@ public class RelDecorrelatorTest {
         program.run(cluster.getPlanner(), parsedRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());
     final String planOriginal = ""
-        + "LogicalProject(EXPR$0=[ROW($8, $1)])\n"
+        + "LogicalProject(EXPR$0=[ROW(CAST($8):TINYINT NOT NULL, $1)])\n"
         + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
@@ -1192,7 +1193,7 @@ public class RelDecorrelatorTest {
     // Default decorrelate
     final RelNode decorrelatedDefault = RelDecorrelator.decorrelateQuery(original, builder);
     final String planDecorrelatedDefault = ""
-        + "LogicalProject(EXPR$0=[ROW($8, $1)])\n"
+        + "LogicalProject(EXPR$0=[ROW(CAST($8):TINYINT NOT NULL, $1)])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO8=[$8])\n"
         + "    LogicalJoin(condition=[=($8, $7)], joinType=[left])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
@@ -1221,7 +1222,7 @@ public class RelDecorrelatorTest {
     final RelNode decorrelatedNoRules =
         RelDecorrelator.decorrelateQuery(original, builder, noRules);
     final String planDecorrelatedNoRules = ""
-        + "LogicalProject(EXPR$0=[ROW($9, $1)])\n"
+        + "LogicalProject(EXPR$0=[ROW(CAST($9):TINYINT NOT NULL, $1)])\n"
         + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
@@ -1538,7 +1539,7 @@ public class RelDecorrelatorTest {
     final String planBefore = ""
         + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
-        + "    LogicalFilter(condition=[=($0, CAST($8):SMALLINT)])\n"
+        + "    LogicalFilter(condition=[=($0, CAST($8):SMALLINT NOT NULL)])\n"
         + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n"
         + "        LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
@@ -1557,7 +1558,7 @@ public class RelDecorrelatorTest {
     final String planAfter = ""
         + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], ENAME0=[$8], $f1=[CAST($9):TINYINT])\n"
-        + "    LogicalJoin(condition=[AND(=($1, $8), =($0, CAST($9):SMALLINT))], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[AND(=($1, $8), =($0, CAST($9):SMALLINT NOT NULL))], joinType=[inner])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
         + "        LogicalProject(ENAME=[$3], DEPTNO=[$0])\n"
@@ -1700,7 +1701,7 @@ public class RelDecorrelatorTest {
         program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
-        + "LogicalProject(DNAME=[$1], MATCHED_SUBORDINATE_COUNT=[$3])\n"
+        + "LogicalProject(DNAME=[$1], MATCHED_SUBORDINATE_COUNT=[CAST($3):BIGINT NOT NULL])\n"
         + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
@@ -1717,7 +1718,7 @@ public class RelDecorrelatorTest {
         RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
             RuleSets.ofList(Collections.emptyList()));
     final String planAfter = ""
-        + "LogicalProject(DNAME=[$1], MATCHED_SUBORDINATE_COUNT=[$4])\n"
+        + "LogicalProject(DNAME=[$1], MATCHED_SUBORDINATE_COUNT=[CAST($4):BIGINT NOT NULL])\n"
         + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalProject(_cor_$cor0_0=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
@@ -2332,7 +2333,7 @@ public class RelDecorrelatorTest {
 
     // Verify decorrelation produced a valid plan (no Correlate nodes)
     final String planAfter = ""
-        + "LogicalProject(DEPTNO=[$0], EXPR$1=[$4])\n"
+        + "LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($4):BIGINT NOT NULL])\n"
         + "  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[left])\n"
         + "    LogicalAggregate(group=[{0}], S=[SUM($1)])\n"
         + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"

@@ -1202,7 +1202,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   <TestCase name="testCorrelationCollectionTableInSubQuery">
     <Resource name="planExpanded">
       <![CDATA[
-LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
+LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($9):VARCHAR(1024) NOT NULL])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
     LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -6480,7 +6480,7 @@ ORDER BY
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
-    LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+    LogicalProject(EMPNO=[$0], EXPR$1=[CAST($9):INTEGER NOT NULL])
       LogicalJoin(condition=[true], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalSort(fetch=[1])
@@ -7163,7 +7163,7 @@ LogicalSort(sort0=[$2], dir0=[ASC], fetch=[5])
   LogicalAggregate(group=[{0, 1, 2, 3}])
     LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], RANK_VAL=[$3])
       LogicalFilter(condition=[$4])
-        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], RANK_VAL=[RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC)], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC), $9)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], RANK_VAL=[RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC)], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC), CAST($9):BIGINT NOT NULL)])
           LogicalJoin(condition=[true], joinType=[left])
             LogicalFilter(condition=[>($5, 1000)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -7217,7 +7217,7 @@ QUALIFY rank_val = (SELECT COUNT(*) FROM emp)]]>
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], RANK_VAL=[$3])
   LogicalFilter(condition=[$4])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], RANK_VAL=[RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC)], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC), $9)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], RANK_VAL=[RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC)], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $7 DESC), CAST($9):BIGINT NOT NULL)])
       LogicalJoin(condition=[true], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
@@ -7578,7 +7578,7 @@ from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[ROW($9, $1)])
+LogicalProject(EXPR$0=[ROW(CAST($9):INTEGER NOT NULL, $1)])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO9=[$9])
     LogicalJoin(condition=[=($9, $7)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8499,7 +8499,7 @@ from EMP order by deptno limit 1)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7])
-  LogicalFilter(condition=[>($7, $9)])
+  LogicalFilter(condition=[>($7, CAST($9):INTEGER NOT NULL)])
     LogicalJoin(condition=[true], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
@@ -8550,7 +8550,7 @@ where deptno > (values 10)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7])
-  LogicalFilter(condition=[>($7, $9)])
+  LogicalFilter(condition=[>($7, CAST($9):INTEGER NOT NULL)])
     LogicalJoin(condition=[true], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalValues(tuples=[[{ 10 }]])
@@ -10352,7 +10352,7 @@ from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(C=[$9])
+LogicalProject(C=[CAST($9):BIGINT NOT NULL])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
