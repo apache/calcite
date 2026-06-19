@@ -21,10 +21,11 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import org.apache.arrow.gandiva.evaluator.Filter;
+import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
-import org.apache.arrow.vector.types.pojo.Schema;
 
-import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Enumerable that reads from Arrow value-vectors.
@@ -32,24 +33,28 @@ import java.util.List;
 class ArrowEnumerable extends AbstractEnumerable<Object> {
   private final ArrowFileReader arrowFileReader;
   private final ImmutableIntList fields;
-  private final List<List<List<String>>> conditions;
-  private final Schema schema;
+  private final @Nullable Projector projector;
+  private final @Nullable Filter filter;
   private final Runnable onClose;
 
   ArrowEnumerable(ArrowFileReader arrowFileReader, ImmutableIntList fields,
-      List<List<List<String>>> conditions, Schema schema, Runnable onClose) {
+      @Nullable Projector projector, @Nullable Filter filter,
+      Runnable onClose) {
     this.arrowFileReader = arrowFileReader;
-    this.conditions = conditions;
-    this.schema = schema;
+    this.projector = projector;
+    this.filter = filter;
     this.fields = fields;
     this.onClose = onClose;
   }
 
   @Override public Enumerator<Object> enumerator() {
     try {
-      if (!conditions.isEmpty()) {
-        return new ArrowFilterEnumerator(arrowFileReader, fields,
-            conditions, schema, onClose);
+      if (projector != null) {
+        return new ArrowProjectEnumerator(arrowFileReader, fields, projector,
+            onClose);
+      } else if (filter != null) {
+        return new ArrowFilterEnumerator(arrowFileReader, fields, filter,
+            onClose);
       }
       // No projector and no filter means the query is an identity projection
       // that should read selected value-vectors directly.

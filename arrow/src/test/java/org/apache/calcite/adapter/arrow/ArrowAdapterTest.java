@@ -82,11 +82,6 @@ class ArrowAdapterTest {
     arrowDataGenerator.writeArrowData(dataLocationFile);
     arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
 
-    File emptyBatchDataLocationFile =
-        arrowFilesDirectory.resolve("arrowemptybatch.arrow").toFile();
-    ArrowDataTest emptyBatchDataGenerator = new ArrowDataTest();
-    emptyBatchDataGenerator.writeArrowDataWithEmptyBatch(emptyBatchDataLocationFile);
-
     File datatypeLocationFile = arrowFilesDirectory.resolve("arrowdatatype.arrow").toFile();
     ArrowDataTest arrowtypeDataGenerator = new ArrowDataTest();
     arrowtypeDataGenerator.writeArrowDataType(datatypeLocationFile);
@@ -263,51 +258,6 @@ class ArrowAdapterTest {
         .limit(6)
         .returns(result)
         .explainContains(plan);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7580">[CALCITE-7580]
-   * Remove Gandiva dependency from Arrow adapter</a>. */
-  @Test void testArrowProjectSkipsEmptyBatch() {
-    String sql = "select \"intField\", \"stringField\" from arrowemptybatch\n";
-    String result = "intField=0; stringField=0\n"
-        + "intField=1; stringField=1\n"
-        + "intField=2; stringField=2\n";
-
-    CalciteAssert.that()
-        .with(arrow)
-        .query(sql)
-        .returns(result);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7580">[CALCITE-7580]
-   * Remove Gandiva dependency from Arrow adapter</a>. */
-  @Test void testArrowFilterSkipsEmptyBatch() {
-    String sql = "select \"intField\", \"stringField\"\n"
-        + "from arrowemptybatch\n"
-        + "where \"intField\" > 0";
-    String result = "intField=1; stringField=1\n"
-        + "intField=2; stringField=2\n";
-
-    CalciteAssert.that()
-        .with(arrow)
-        .query(sql)
-        .returns(result);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7580">[CALCITE-7580]
-   * Remove Gandiva dependency from Arrow adapter</a>. */
-  @Test void testArrowFilterSkipsEmptyBatchWithNoMatches() {
-    String sql = "select \"intField\", \"stringField\"\n"
-        + "from arrowemptybatch\n"
-        + "where \"intField\" < 0";
-
-    CalciteAssert.that()
-        .with(arrow)
-        .query(sql)
-        .returns("");
   }
 
   @Test void testArrowProjectFieldsWithIntegerFilter() {

@@ -3308,6 +3308,30 @@ LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInDateColumnWithTypeCoercion">
+    <Resource name="sql">
+      <![CDATA[select * from emp_b where birthdate in ('2000-06-30', '2000-09-27')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[OR(=($9, CAST('2000-06-30'):DATE NOT NULL), =($9, CAST('2000-09-27'):DATE NOT NULL))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInDateColumnWithoutTypeCoercion">
+    <Resource name="sql">
+      <![CDATA[select * from emp_b where birthdate in ('2000-06-30', '2000-09-27')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[OR(=($9, CAST('2000-06-30'):DATE NOT NULL), =($9, CAST('2000-09-27'):DATE NOT NULL))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInSubQueryWithTypeCast">
     <Resource name="sql">
       <![CDATA[select *

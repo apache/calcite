@@ -301,35 +301,6 @@ public class ArrowDataTest {
     fileOutputStream.close();
   }
 
-  public void writeArrowDataWithEmptyBatch(File file) throws IOException {
-    Schema arrowSchema = makeArrowSchema();
-    try (RootAllocator allocator = new RootAllocator(Integer.MAX_VALUE);
-         VectorSchemaRoot vectorSchemaRoot =
-             VectorSchemaRoot.create(arrowSchema, allocator);
-         FileOutputStream fileOutputStream = new FileOutputStream(file);
-         ArrowFileWriter arrowFileWriter =
-             new ArrowFileWriter(vectorSchemaRoot, null,
-                 fileOutputStream.getChannel())) {
-      arrowFileWriter.start();
-
-      vectorSchemaRoot.setRowCount(0);
-      for (Field field : vectorSchemaRoot.getSchema().getFields()) {
-        vectorSchemaRoot.getVector(field.getName()).setValueCount(0);
-      }
-      arrowFileWriter.writeBatch();
-
-      int rowCount = 3;
-      vectorSchemaRoot.setRowCount(rowCount);
-      intField(vectorSchemaRoot.getVector("intField"), rowCount);
-      varCharField(vectorSchemaRoot.getVector("stringField"), rowCount);
-      floatField(vectorSchemaRoot.getVector("floatField"), rowCount);
-      longField(vectorSchemaRoot.getVector("longField"), rowCount);
-      arrowFileWriter.writeBatch();
-
-      arrowFileWriter.end();
-    }
-  }
-
   public void writeArrowDataType(File file) throws IOException {
     FileOutputStream fileOutputStream = new FileOutputStream(file);
     Schema arrowSchema = makeArrowDateTypeSchema();

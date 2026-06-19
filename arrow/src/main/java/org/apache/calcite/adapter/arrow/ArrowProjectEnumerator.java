@@ -19,28 +19,33 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import org.apache.arrow.gandiva.evaluator.Projector;
+import org.apache.arrow.gandiva.exceptions.GandivaException;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 
 import java.io.IOException;
 
 /**
- * Enumerator that reads projected Arrow value-vectors directly.
- *
- * <p>This path is used for identity projections that Gandiva cannot project
- * through the existing {@code Projector} path, such as Arrow binary vectors.
- * It is not a replacement for Gandiva expression evaluation.
+ * Enumerator that reads from a projected collection of Arrow value-vectors.
  */
-class ArrowDirectEnumerator extends AbstractArrowEnumerator {
+class ArrowProjectEnumerator extends AbstractArrowEnumerator {
+  private final Projector projector;
   private final Runnable onClose;
 
-  ArrowDirectEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields,
-      Runnable onClose) {
+  ArrowProjectEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields,
+      Projector projector, Runnable onClose) {
     super(arrowFileReader, fields);
+    this.projector = projector;
     this.onClose = onClose;
   }
 
   @Override protected void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
+    try {
+      projector.evaluate(arrowRecordBatch, valueVectors);
+    } catch (GandivaException e) {
+      throw Util.toUnchecked(e);
+    }
   }
 
   @Override public boolean moveNext() {
@@ -64,6 +69,12 @@ class ArrowDirectEnumerator extends AbstractArrowEnumerator {
   }
 
   @Override public void close() {
-    onClose.run();
+    try {
+      projector.close();
+    } catch (GandivaException e) {
+      throw Util.toUnchecked(e);
+    } finally {
+      onClose.run();
+    }
   }
 }
