@@ -1234,7 +1234,7 @@ public abstract class SqlImplementor {
       List<SqlNode> orderNodes = Expressions.list();
       if (rexWindow.orderKeys != null) {
         for (RexFieldCollation rfc : rexWindow.orderKeys) {
-          addOrderItem(orderNodes, program, rfc);
+          addOrderItem(orderNodes, program, rfc, rexOver.op);
         }
       }
       final SqlNodeList orderList =
@@ -1360,13 +1360,18 @@ public abstract class SqlImplementor {
 
     void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field,
         boolean orderBySupportsNulls) {
+      addOrderItem(orderByList, field, orderBySupportsNulls, null);
+    }
+
+    void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field,
+        boolean orderBySupportsNulls, @Nullable SqlOperator operator) {
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode = orderBySupportsNulls
             ? dialect.emulateNullDirection(orderField(field), first, field.direction.isDescending())
             : dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(orderField(field),
-            first, field.direction.isDescending());
+                first, field.direction.isDescending(), operator);
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field =
@@ -1379,7 +1384,7 @@ public abstract class SqlImplementor {
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
     private void addOrderItem(List<SqlNode> orderByList,
-        @Nullable RexProgram program, RexFieldCollation field) {
+        @Nullable RexProgram program, RexFieldCollation field, @Nullable SqlOperator operator) {
       SqlNode node = toSql(program, field.left);
       SqlNode nullDirectionNode = null;
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
@@ -1387,7 +1392,7 @@ public abstract class SqlImplementor {
             field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
         nullDirectionNode =
             dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(node, first,
-                field.getDirection().isDescending());
+                field.getDirection().isDescending(), operator);
       }
       if (nullDirectionNode != null) {
         orderByList.add(nullDirectionNode);
@@ -1504,7 +1509,7 @@ public abstract class SqlImplementor {
       }
       final List<SqlNode> orderByList = new ArrayList<>();
       for (RelFieldCollation field : collation.getFieldCollations()) {
-        addOrderItem(orderByList, field, false);
+        addOrderItem(orderByList, field, false, sqlOperator);
       }
       SqlNodeList orderNodeList = new SqlNodeList(orderByList, POS);
       List<SqlNode> operandList = new ArrayList<>();

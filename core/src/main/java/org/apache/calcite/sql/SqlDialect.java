@@ -1162,12 +1162,17 @@ public class SqlDialect {
   }
 
   public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
+      boolean nullsFirst, boolean desc, @Nullable SqlOperator operator) {
     return emulateNullDirection(node, nullsFirst, desc);
   }
 
   public JoinType emulateJoinTypeForCrossJoin() {
     return JoinType.COMMA;
+  }
+
+  protected @Nullable SqlNode emulateNullDirectionWithIsNull(SqlNode node,
+      boolean nullsFirst, boolean desc, @Nullable SqlOperator operator) {
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
   protected @Nullable SqlNode emulateNullDirectionWithIsNull(SqlNode node,
