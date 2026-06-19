@@ -1038,5 +1038,18 @@ public interface SqlValidator {
     default Config withSqlConformance(SqlConformance conformance) {
       return withConformance(conformance);
     }
+
+    /**
+     * Returns whether to always use generated expression aliases (e.g., EXPR$0, EXPR$1)
+     * for SELECT list items without explicit aliases.
+     */
+    @Value.Default default boolean alwaysUseExprAlias() {
+      return false;
+    }
+
+    /**
+     * Sets whether to always use generated expression aliases for SELECT list items.
+     */
+    Config withAlwaysUseExprAlias(boolean alwaysUseExprAlias);
   }
 }

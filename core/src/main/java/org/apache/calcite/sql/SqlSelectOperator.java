@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -153,14 +152,8 @@ public class SqlSelectOperator extends SqlOperator {
     }
     writer.topN(select.fetch, select.offset);
     final SqlNodeList selectClause = select.selectList;
-    if (writer.getDialect().alwaysUseExprAlias()) {
-      final SqlNodeList wrappedSelectClause = wrapSelectItemsWithAliases(selectClause);
-      writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
-          wrappedSelectClause);
-    } else {
-      writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
-          selectClause);
-    }
+    writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
+        selectClause);
 
     if (select.from != null) {
       // Calcite SQL requires FROM but MySQL does not.
@@ -223,23 +216,6 @@ public class SqlSelectOperator extends SqlOperator {
     }
     writer.fetchOffset(select.fetch, select.offset);
     writer.endList(selectFrame);
-  }
-
-  private static SqlNodeList wrapSelectItemsWithAliases(SqlNodeList selectList) {
-    final List<SqlNode> wrappedItems = new java.util.ArrayList<>();
-    for (int i = 0; i < selectList.size(); i++) {
-      final SqlNode item = selectList.get(i);
-      if (item instanceof SqlCall && ((SqlCall) item).getOperator().getKind() == SqlKind.AS) {
-        wrappedItems.add(item);
-      } else {
-        final String alias = SqlUtil.deriveAliasFromOrdinal(i);
-        final SqlNode aliasIdentifier = new SqlIdentifier(alias, item.getParserPosition());
-        final SqlNode aliasedItem =
-            SqlStdOperatorTable.AS.createCall(item.getParserPosition(), item, aliasIdentifier);
-        wrappedItems.add(aliasedItem);
-      }
-    }
-    return new SqlNodeList(wrappedItems, selectList.getParserPosition());
   }
 
   @Override public boolean argumentMustBeScalar(int ordinal) {
