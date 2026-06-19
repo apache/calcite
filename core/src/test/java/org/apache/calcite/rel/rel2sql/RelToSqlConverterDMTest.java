@@ -11135,6 +11135,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testStrToTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.STR_TO_TIME, builder.literal("12:25:50"),
+            builder.literal("HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "time_value"))
+        .build();
+    final String expectedBiqQuery =
+        "SELECT STR_TO_TIME('12:25:50', 'HH24:MI:SS') AS time_value\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testRotateleft() {
     final RelBuilder builder = relBuilder();
     final RexNode formatDateRexNode =
