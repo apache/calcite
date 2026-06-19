@@ -23,7 +23,6 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("org.apache.arrow:arrow-memory-netty")
     implementation("org.apache.arrow:arrow-vector")
-    implementation("org.apache.arrow.gandiva:arrow-gandiva")
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
 

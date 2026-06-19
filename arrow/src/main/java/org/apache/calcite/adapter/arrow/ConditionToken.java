@@ -25,7 +25,7 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * A structured representation of a single Gandiva predicate condition.
+ * A structured representation of a single Arrow predicate condition.
  *
  * <p>A condition is either unary (e.g. {@code IS NULL}) or binary
  * (e.g. {@code =}, {@code <}). Unary conditions have a field name
@@ -36,11 +36,11 @@ import static java.util.Objects.requireNonNull;
  */
 class ConditionToken {
   final String fieldName;
-  final String operator;
+  final Operator operator;
   final @Nullable String value;
   final @Nullable String valueType;
 
-  private ConditionToken(String fieldName, String operator,
+  private ConditionToken(String fieldName, Operator operator,
       @Nullable String value, @Nullable String valueType) {
     this.fieldName = requireNonNull(fieldName, "fieldName");
     this.operator = requireNonNull(operator, "operator");
@@ -50,7 +50,7 @@ class ConditionToken {
 
   /** Creates a binary condition token
    * (e.g. {@code intField equal 12 integer}). */
-  static ConditionToken binary(String fieldName, String operator,
+  static ConditionToken binary(String fieldName, Operator operator,
       String value, String valueType) {
     return new ConditionToken(fieldName, operator,
         requireNonNull(value, "value"),
@@ -59,7 +59,7 @@ class ConditionToken {
 
   /** Creates a unary condition token
    * (e.g. {@code intField isnull}). */
-  static ConditionToken unary(String fieldName, String operator) {
+  static ConditionToken unary(String fieldName, Operator operator) {
     return new ConditionToken(fieldName, operator, null, null);
   }
 
@@ -76,22 +76,55 @@ class ConditionToken {
    * binary conditions. */
   List<String> toTokenList() {
     if (isBinary()) {
-      return ImmutableList.of(fieldName, operator,
+      return ImmutableList.of(fieldName, operator.token,
           requireNonNull(value, "value"),
           requireNonNull(valueType, "valueType"));
     }
-    return ImmutableList.of(fieldName, operator);
+    return ImmutableList.of(fieldName, operator.token);
   }
 
   /** Creates a {@code ConditionToken} from a serialized string list. */
   static ConditionToken fromTokenList(List<String> tokens) {
     final int size = tokens.size();
     if (size == 4) {
-      return binary(tokens.get(0), tokens.get(1),
+      return binary(tokens.get(0), Operator.of(tokens.get(1)),
           tokens.get(2), tokens.get(3));
     } else if (size == 2) {
-      return unary(tokens.get(0), tokens.get(1));
+      return unary(tokens.get(0), Operator.of(tokens.get(1)));
     }
     throw new IllegalArgumentException("Invalid condition tokens: " + tokens);
+  }
+
+  /** Operators supported by the Arrow adapter filter representation. */
+  enum Operator {
+    IS_NULL("isnull"),
+    IS_NOT_NULL("isnotnull"),
+    IS_TRUE("istrue"),
+    IS_FALSE("isfalse"),
+    IS_NOT_TRUE("isnottrue"),
+    IS_NOT_FALSE("isnotfalse"),
+    EQUAL("equal"),
+    NOT_EQUAL("not_equal"),
+    LESS_THAN("less_than"),
+    LESS_THAN_OR_EQUAL("less_than_or_equal_to"),
+    GREATER_THAN("greater_than"),
+    GREATER_THAN_OR_EQUAL("greater_than_or_equal_to"),
+    LIKE("like");
+
+    final String token;
+
+    Operator(String token) {
+      this.token = token;
+    }
+
+    static Operator of(String token) {
+      for (Operator operator : values()) {
+        if (operator.token.equals(token)) {
+          return operator;
+        }
+      }
+      throw new UnsupportedOperationException(
+          "Unsupported Arrow filter operator: " + token);
+    }
   }
 }

@@ -100,7 +100,7 @@ public class ArrowRules {
       final RelTraitSet traitSet =
           filter.getTraitSet().replace(ArrowRel.CONVENTION);
       // Expand SEARCH (e.g. IN, BETWEEN) before pushing to Arrow,
-      // since Gandiva does not support SEARCH natively.
+      // since the Arrow adapter does not support SEARCH natively.
       final RexNode condition =
           RexUtil.expandSearch(filter.getCluster().getRexBuilder(), null, filter.getCondition());
       return new ArrowFilter(filter.getCluster(), traitSet,

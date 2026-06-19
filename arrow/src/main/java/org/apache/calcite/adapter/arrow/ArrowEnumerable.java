@@ -21,11 +21,10 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
-import org.apache.arrow.gandiva.evaluator.Filter;
-import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.List;
 
 /**
  * Enumerable that reads from Arrow value-vectors.
@@ -33,28 +32,24 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 class ArrowEnumerable extends AbstractEnumerable<Object> {
   private final ArrowFileReader arrowFileReader;
   private final ImmutableIntList fields;
-  private final @Nullable Projector projector;
-  private final @Nullable Filter filter;
+  private final List<List<List<String>>> conditions;
+  private final Schema schema;
   private final Runnable onClose;
 
   ArrowEnumerable(ArrowFileReader arrowFileReader, ImmutableIntList fields,
-      @Nullable Projector projector, @Nullable Filter filter,
-      Runnable onClose) {
+      List<List<List<String>>> conditions, Schema schema, Runnable onClose) {
     this.arrowFileReader = arrowFileReader;
-    this.projector = projector;
-    this.filter = filter;
+    this.conditions = conditions;
+    this.schema = schema;
     this.fields = fields;
     this.onClose = onClose;
   }
 
   @Override public Enumerator<Object> enumerator() {
     try {
-      if (projector != null) {
-        return new ArrowProjectEnumerator(arrowFileReader, fields, projector,
-            onClose);
-      } else if (filter != null) {
-        return new ArrowFilterEnumerator(arrowFileReader, fields, filter,
-            onClose);
+      if (!conditions.isEmpty()) {
+        return new ArrowFilterEnumerator(arrowFileReader, fields,
+            conditions, schema, onClose);
       }
       // No projector and no filter means the query is an identity projection
       // that should read selected value-vectors directly.
