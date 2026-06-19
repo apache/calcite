@@ -722,6 +722,15 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction STR_TO_TIME =
+      new SqlFunction("STR_TO_TIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction ROTATELEFT =
       new SqlFunction(
           "ROTATELEFT",
