@@ -521,18 +521,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // When alwaysUseExprAlias is enabled, force explicit aliases for items
     // without explicit aliases (i.e., those where the alias is generated)
     if (config.alwaysUseExprAlias()) {
-      // Check if expanded already has an explicit alias
-      final boolean hasExplicitAlias = expanded instanceof SqlCall
-          && ((SqlCall) expanded).getOperator().getKind() == SqlKind.AS;
-
-      if (!hasExplicitAlias) {
-        // Item has no explicit alias, so add one
-        expanded =
-            SqlStdOperatorTable.AS.createCall(
-                expanded.getParserPosition(),
-                expanded,
-                new SqlIdentifier(alias, SqlParserPos.ZERO));
-        deriveTypeImpl(selectScope, expanded);
+      // Check if original selectItem has an explicit alias
+      final String explicitAlias = SqlValidatorUtil.alias(selectItem);
+      if (explicitAlias == null) {
+        // Item has no explicit alias, and expanded is not already wrapped with AS,
+        // so add one
+        if (!(expanded instanceof SqlCall
+            && ((SqlCall) expanded).getOperator().getKind() == SqlKind.AS)) {
+          expanded =
+              SqlStdOperatorTable.AS.createCall(
+                  expanded.getParserPosition(),
+                  expanded,
+                  new SqlIdentifier(alias, SqlParserPos.ZERO));
+          deriveTypeImpl(selectScope, expanded);
+        }
       }
     }
 
