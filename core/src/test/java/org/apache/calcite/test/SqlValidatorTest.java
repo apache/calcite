@@ -9536,6 +9536,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'ORDINALITY' not found in any table");
   }
 
+  /** UNNEST is valid with INNER, LEFT, CROSS, and COMMA joins;
+   *  all other join kinds must be rejected by the validator. */
+  @Test void testUnnestJoinType() {
+    // Allowed join kinds — these must all validate without error.
+    sql("select * from dept inner join unnest(array[1, 2]) as u(x) on true").ok();
+    sql("select * from dept left join unnest(array[1, 2]) as u(x) on true").ok();
+    sql("select * from dept cross join unnest(array[1, 2]) as u(x)").ok();
+    sql("select * from dept, unnest(array[1, 2]) as u(x)").ok();
+
+    // LATERAL wrapping must also be allowed for valid join kinds.
+    sql("select * from dept cross join lateral unnest(array[1, 2]) as u(x)").ok();
+    sql("select * from dept left join lateral unnest(array[1, 2]) as u(x) on true").ok();
+
+    // Disallowed join kinds — validator must reject these.
+    sql("select * from dept right ^join^ unnest(array[1, 2]) as u(x) on true")
+        .fails("UNNEST is only supported with INNER, LEFT, CROSS, or COMMA join, not 'RIGHT'");
+    sql("select * from dept full ^join^ unnest(array[1, 2]) as u(x) on true")
+        .fails("UNNEST is only supported with INNER, LEFT, CROSS, or COMMA join, not 'FULL'");
+
+    // LATERAL wrapping must also be rejected for invalid join kinds.
+    sql("select * from dept right ^join^ lateral unnest(array[1, 2]) as u(x) on true")
+        .fails("UNNEST is only supported with INNER, LEFT, CROSS, or COMMA join, not 'RIGHT'");
+  }
+
   @Test void unnestMapMustNameColumnsKeyAndValueWhenNotAliased() {
     sql("select * from unnest(map[1, 12, 2, 22])")
         .type("RecordType(INTEGER NOT NULL KEY, INTEGER NOT NULL VALUE) NOT NULL");
