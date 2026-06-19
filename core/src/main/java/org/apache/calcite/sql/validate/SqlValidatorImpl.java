@@ -4117,6 +4117,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
+    // UNNEST on the right side is only meaningful with INNER, LEFT, CROSS, or COMMA.
+    if (isUnnestNode(right)) {
+      switch (joinType) {
+      case INNER:
+      case LEFT:
+      case CROSS:
+      case COMMA:
+        break;
+      default:
+        throw newValidationError(join.getJoinTypeNode(),
+            RESOURCE.unnestInvalidJoinType(joinType.name()));
+      }
+    }
+
     // Which join types require/allow a ON/USING condition, or allow
     // a NATURAL keyword?
     switch (joinType) {
@@ -4190,6 +4204,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     default:
       throw Util.unexpected(joinType);
+    }
+  }
+
+  /**
+   * Returns whether {@code node} is (or wraps, via AS or LATERAL) an
+   * {@code UNNEST} call.
+   */
+  private static boolean isUnnestNode(SqlNode node) {
+    switch (node.getKind()) {
+    case UNNEST:
+      return true;
+    case AS:
+    case LATERAL:
+      return isUnnestNode(((SqlCall) node).operand(0));
+    default:
+      return false;
     }
   }
 
