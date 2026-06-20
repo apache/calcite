@@ -547,17 +547,38 @@ public class RelToSqlConverter extends SqlImplementor
             null);
     return result(join, leftResult, rightResult);
   }
-
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
+    final Set<CorrelationId> definedHere = e.getVariablesSet();
+
     if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
-      final Result x =
+      Result x =
           visitInput(e, 0, isAnon(), ignoreClauses,
               ImmutableSet.of(Clause.HAVING));
+      // Only rebind the correlation alias when e.getInput() renders as a single
+      // addressable relation (<=1 input): TableScan, Project, Filter, etc.
+      // Join/Correlate (2+ inputs) already expose a multi-alias context via
+      // joinContext(); collapsing it here would break field resolution.
+      final boolean pushed = !definedHere.isEmpty()
+          && e.getInput().getInputs().size() <= 1;
+      if (pushed) {
+        String alias = x.neededAlias;
+        if (alias != null) {
+          x = x.resetAliasForCorrelation(alias, e.getInput().getRowType());
+        } else {
+          alias = unqualifiedName(x.node);
+          if (alias == null) {
+            alias = "t";
+          }
+          x = x.resetAliasForCorrelation
+              (alias, e.getInput().getRowType());
+        }
+      }
       parseCorrelTable(e, x);
+
       final Builder builder = x.builder(e);
       x.asSelect().setHaving(
           SqlUtil.andExpressions(x.asSelect().getHaving(),
@@ -565,8 +586,24 @@ public class RelToSqlConverter extends SqlImplementor
       return builder.result();
     } else {
       Result x = visitInput(e, 0, Clause.WHERE);
-      if (!e.getVariablesSet().isEmpty()) {
-        x = x.resetAlias();
+      // Only rebind the correlation alias when e.getInput() renders as a single
+      // addressable relation (<=1 input): TableScan, Project, Filter, etc.
+      // Join/Correlate (2+ inputs) already expose a multi-alias context via
+      // joinContext(); collapsing it here would break field resolution.
+      final boolean pushed = !definedHere.isEmpty()
+          && e.getInput().getInputs().size() <= 1;
+      if (pushed) {
+        String alias = x.neededAlias;
+        if (alias != null) {
+          x = x.resetAliasForCorrelation(alias, e.getInput().getRowType());
+        } else {
+          alias = unqualifiedName(x.node);
+          if (alias == null) {
+            alias = "t";
+          }
+          x = x.resetAliasForCorrelation
+              (alias, e.getInput().getRowType());
+        }
       }
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
