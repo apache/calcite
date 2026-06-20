@@ -5945,6 +5945,14 @@ public class SqlParserTest {
     // Parser accepts a call to TRIM() with no arguments
     expr("trim(^)^")
         .fails("(?s).*Encountered \"\\)\" at line 1, column 6\\..*");
+    // Test cases for [CALCITE-7565] https://issues.apache.org/jira/browse/CALCITE-7565
+    // TRIM without FROM fails at parsing time
+    expr("trim(both ' a ')")
+        .ok("TRIM(BOTH ' ' FROM ' a ')");
+    expr("trim(leading ' a ')")
+        .ok("TRIM(LEADING ' ' FROM ' a ')");
+    expr("trim(trailing ' a ')")
+        .ok("TRIM(TRAILING ' ' FROM ' a ')");
   }
 
   @Test void testConvertAndTranslate() {

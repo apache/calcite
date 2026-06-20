@@ -6953,9 +6953,16 @@ SqlNode BuiltinFunctionCall() :
                         flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
                     }
                 )
-                [ trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
-                <FROM> { fromPos = getPos(); }
-                e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+                (
+                    <FROM> { fromPos = getPos() ;}
+                    e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+                |
+                    e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+                    [
+                        <FROM> { trimChars = e; fromPos = getPos(); }
+                        e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+                    ]
+                )
             )
             |
             (
