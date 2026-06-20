@@ -220,9 +220,10 @@ public class SqlBinaryOperator extends SqlOperator {
 
   @Override public boolean validRexOperands(int count, Litmus litmus) {
     if (count != 2) {
-      // Special exception for AND and OR.
+      // Special exception for AND, OR, and CONCAT.
       if ((this == SqlStdOperatorTable.AND
-          || this == SqlStdOperatorTable.OR)
+          || this == SqlStdOperatorTable.OR
+          || this == SqlStdOperatorTable.CONCAT)
           && count > 2) {
         return true;
       }

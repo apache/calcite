@@ -3822,7 +3822,17 @@ public class RexImpTable {
       if (call.type.getSqlTypeName() == SqlTypeName.ARRAY) {
         return arrayConcatImplementor.implementSafe(translator, call, argValueList);
       }
-      return stringConcatImplementor.implementSafe(translator, call, argValueList);
+      if (argValueList.size() == 2) {
+        return stringConcatImplementor.implementSafe(translator, call, argValueList);
+      }
+      // Flatten nested concatenations into a single chain.
+      Expression result = argValueList.get(0);
+      for (int i = 1; i < argValueList.size(); i++) {
+        result =
+            stringConcatImplementor.implementSafe(translator, call,
+                ImmutableList.of(result, argValueList.get(i)));
+      }
+      return result;
     }
   }
 

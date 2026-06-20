@@ -656,4 +656,29 @@ class RexExecutorTest {
       assertThat(reducedValues.get(0), instanceOf(RexCall.class));
     });
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7613">[CALCITE-7613]
+   * Support multi-operand CONCAT operator</a>. */
+  @Test void testConcatMultiOperandExecution() {
+    check((rexBuilder, executor) -> {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RelDataType varchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      final RexNode a = rexBuilder.makeLiteral("a", varchar);
+      final RexNode b = rexBuilder.makeLiteral("b", varchar);
+      final RexNode c = rexBuilder.makeLiteral("c", varchar);
+      final RexNode concat =
+          rexBuilder.makeCall(SqlStdOperatorTable.CONCAT, a, b, c);
+      final ImmutableList<RexNode> exps = ImmutableList.of(concat);
+      final RelDataType rowType = typeFactory.builder()
+          .add("result", varchar)
+          .build();
+      final RexExecutable exec =
+          RexExecutorImpl.getExecutable(rexBuilder, exps, rowType);
+      exec.setDataContext(DataContexts.EMPTY);
+      final Object[] result = exec.execute();
+      assertThat(result[0], instanceOf(String.class));
+      assertThat((String) result[0], equalTo("abc"));
+    });
+  }
 }

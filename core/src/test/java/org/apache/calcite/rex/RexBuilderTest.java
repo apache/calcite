@@ -1524,4 +1524,20 @@ class RexBuilderTest {
             literal, literal, flag),
         notNullValue());
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7613">[CALCITE-7613]
+   * Support multi-operand CONCAT operator</a>. */
+  @Test void testConcatMultiOperand() {
+    final RexImplicationCheckerFixtures.Fixture f =
+        new RexImplicationCheckerFixtures.Fixture();
+    final RelDataType varcharType =
+        f.typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RexNode a = f.rexBuilder.makeLiteral("a", varcharType);
+    final RexNode b = f.rexBuilder.makeLiteral("b", varcharType);
+    final RexNode c = f.rexBuilder.makeLiteral("c", varcharType);
+    final RexNode concat =
+        f.rexBuilder.makeCall(SqlStdOperatorTable.CONCAT, a, b, c);
+    assertThat(concat, hasToString("||('a', 'b', 'c')"));
+  }
 }
