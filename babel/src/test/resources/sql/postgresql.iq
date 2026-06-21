@@ -1369,4 +1369,38 @@ X
 ABC
 !ok
 
+# Test PostgreSQL containment and overlap operators
+# @> operator: contains
+select array[1,2,3] @> array[1,2];
+EXPR$0
+true
+!ok
+
+select array[1,2,3] @> array[4];
+EXPR$0
+false
+!ok
+
+# <@ operator: contained by
+select array[1,2] <@ array[1,2,3];
+EXPR$0
+true
+!ok
+
+select array[4] <@ array[1,2,3];
+EXPR$0
+false
+!ok
+
+# && operator: overlap
+select array[1,2] && array[2,3];
+EXPR$0
+true
+!ok
+
+select array[1,2] && array[3,4];
+EXPR$0
+false
+!ok
+
 # End postgresql.iq

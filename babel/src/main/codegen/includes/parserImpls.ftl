@@ -236,3 +236,42 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
     }
     AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }
+
+/** Parses the contains operator. */
+void ContainsOp(List<Object> list, ExprContext exprContext, Span s) :
+{
+}
+{
+    <CONTAINS_OP> {
+        checkNonQueryExpression(exprContext);
+        list.add(new SqlParserUtil.ToTreeListItem(
+            SqlLibraryOperators.CONTAINS_OP, getPos()));
+    }
+    AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
+}
+
+/** Parses the contained-by operator. */
+void ContainedByOp(List<Object> list, ExprContext exprContext, Span s) :
+{
+}
+{
+    <CONTAINED_BY_OP> {
+        checkNonQueryExpression(exprContext);
+        list.add(new SqlParserUtil.ToTreeListItem(
+            SqlLibraryOperators.CONTAINED_BY_OP, getPos()));
+    }
+    AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
+}
+
+/** Parses the overlap operator. */
+void OverlapOp(List<Object> list, ExprContext exprContext, Span s) :
+{
+}
+{
+    <OVERLAP_OP> {
+        checkNonQueryExpression(exprContext);
+        list.add(new SqlParserUtil.ToTreeListItem(
+            SqlLibraryOperators.OVERLAP_OP, getPos()));
+    }
+    AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
+}
