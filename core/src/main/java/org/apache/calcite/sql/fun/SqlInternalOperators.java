@@ -208,6 +208,18 @@ public abstract class SqlInternalOperators {
   public static final SqlInternalOperator GROUP_BY_ALL =
       new SqlRollupOperator("GROUP BY ALL", SqlKind.GROUP_BY_ALL);
 
+  /** {@code ORDER BY ALL}, a placeholder expanded during validation into
+   * a standard {@code ORDER BY}. */
+  public static final SqlInternalOperator ORDER_BY_ALL =
+      // High precedence so the placeholder is never wrapped in parentheses when it
+      // appears alone or inside DESC / NULLS FIRST | LAST in an always-parentheses writer
+      new SqlInternalOperator("ORDER BY ALL", SqlKind.ORDER_BY_ALL, 100) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          writer.keyword("ALL");
+        }
+      };
+
   /** Fetch operator is ONLY used for its precedence during unparsing. */
   public static final SqlOperator FETCH =
       SqlBasicOperator.create("FETCH")

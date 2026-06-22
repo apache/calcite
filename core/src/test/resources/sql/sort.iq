@@ -549,4 +549,18 @@ order by au."books"[1]."title";
 
 !ok
 
+# [CALCITE-7597] ORDER BY ALL sorts by every SELECT expression, in list order
+select x, y from (values (2, 'b'), (1, 'a'), (1, 'c')) as t(x, y)
+order by all;
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | c |
+| 2 | b |
++---+---+
+(3 rows)
+
+!ok
+
 # End sort.iq

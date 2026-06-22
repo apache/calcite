@@ -5158,6 +5158,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // ORDER BY is validated in a scope where aliases in the SELECT clause
     // are visible. For example, "SELECT empno AS x FROM emp ORDER BY x"
     // is valid.
+    rewriteOrderByAll(select);
     SqlNodeList orderList = select.getOrderList();
     if (orderList == null) {
       return;
@@ -5183,6 +5184,62 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode orderItem : expandedOrderList) {
       validateOrderItem(select, orderItem);
     }
+  }
+
+  protected void rewriteOrderByAll(SqlSelect select) {
+    final SqlNodeList orderList = select.getOrderList();
+    if (orderList == null || orderList.size() != 1) {
+      return;
+    }
+
+    SqlNode node = orderList.get(0);
+    boolean desc = false;
+    SqlKind nulls = null;
+
+    while (node instanceof SqlCall) {
+      final SqlKind kind = node.getKind();
+      if (kind == SqlKind.NULLS_FIRST || kind == SqlKind.NULLS_LAST) {
+        nulls = kind;
+        node = ((SqlCall) node).operand(0);
+      } else if (kind == SqlKind.DESCENDING) {
+        desc = true;
+        node = ((SqlCall) node).operand(0);
+      } else {
+        break;
+      }
+    }
+
+    if (node.getKind() != SqlKind.ORDER_BY_ALL) {
+      return;
+    }
+    final SqlParserPos pos = orderList.getParserPosition();
+    final List<SqlNode> keys = new ArrayList<>();
+
+    for (SqlNode selectItem : select.getSelectList()) {
+      final SqlNode expr = SqlUtil.stripAs(selectItem);
+      if (expr instanceof SqlIdentifier && ((SqlIdentifier) expr).isStar()) {
+        throw newValidationError(expr,
+            RESOURCE.orderByAllRequiresExplicitSelectList());
+      }
+      keys.add(applyOrderByAllDirection(expr, desc, nulls, pos));
+    }
+    select.setOrderBy(new SqlNodeList(keys, pos));
+  }
+
+  /** Wraps a single ORDER BY ALL key with the optional descending direction
+   * and null-ordering that apply to every expanded key. */
+  private static SqlNode applyOrderByAllDirection(SqlNode key, boolean desc,
+      @Nullable SqlKind nulls, SqlParserPos pos) {
+    SqlNode result = key;
+    if (desc) {
+      result = SqlStdOperatorTable.DESC.createCall(pos, result);
+    }
+    if (nulls == SqlKind.NULLS_FIRST) {
+      result = SqlStdOperatorTable.NULLS_FIRST.createCall(pos, result);
+    } else if (nulls == SqlKind.NULLS_LAST) {
+      result = SqlStdOperatorTable.NULLS_LAST.createCall(pos, result);
+    }
+    return result;
   }
 
   /**

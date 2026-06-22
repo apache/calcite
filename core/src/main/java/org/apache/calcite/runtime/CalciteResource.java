@@ -768,6 +768,9 @@ public interface CalciteResource {
   @BaseMessage("Streaming ORDER BY must start with monotonic expression")
   ExInst<SqlValidatorException> streamMustOrderByMonotonic();
 
+  @BaseMessage("ORDER BY ALL requires an explicit SELECT list; ''*'' is not supported")
+  ExInst<SqlValidatorException> orderByAllRequiresExplicitSelectList();
+
   @BaseMessage("Set operator cannot combine streaming and non-streaming inputs")
   ExInst<SqlValidatorException> streamSetOpInconsistentInputs();
 
