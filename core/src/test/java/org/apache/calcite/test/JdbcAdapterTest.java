@@ -171,8 +171,8 @@ class JdbcAdapterTest {
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"store_name\"\n"
-                + "FROM \"foodmart\".\"store\"\n"
-                + "WHERE \"store_id\" < 10")
+            + "FROM \"foodmart\".\"store\"\n"
+            + "WHERE \"store_id\" < 10")
         .planHasSql("SELECT CAST(\"ENAME\" AS VARCHAR(30)) AS \"ENAME\"\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
             + "WHERE CAST(\"EMPNO\" AS INTEGER) > 10");
@@ -702,21 +702,21 @@ class JdbcAdapterTest {
   @Test void testJoinConditionAlwaysTruePushDown() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"
-                + "from scott.emp e,scott.dept d\n"
-                + "where true")
+            + "from scott.emp e,scott.dept d\n"
+            + "where true")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-                + "  JdbcJoin(condition=[true], joinType=[inner])\n"
-                + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
-                + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
-                + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-                + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
+            + "  JdbcJoin(condition=[true], joinType=[inner])\n"
+            + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT *\n"
-                + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
-                + "FROM \"SCOTT\".\"EMP\") AS \"t\",\n"
-                + "(SELECT \"DEPTNO\", \"DNAME\"\n"
-                + "FROM \"SCOTT\".\"DEPT\") AS \"t0\"");
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\",\n"
+            + "(SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\"");
   }
 
   /** Test case for
@@ -800,8 +800,8 @@ class JdbcAdapterTest {
     Connection baseConnection = DriverManager.getConnection(url);
     Statement baseStmt = baseConnection.createStatement();
     baseStmt.execute("CREATE TABLE T2 (\n"
-            + "ID INTEGER,\n"
-            + "VALS INTEGER)");
+        + "ID INTEGER,\n"
+        + "VALS INTEGER)");
     baseStmt.execute("INSERT INTO T2 VALUES (1, 1)");
     baseStmt.execute("INSERT INTO T2 VALUES (2, null)");
     baseStmt.close();
@@ -1074,7 +1074,7 @@ class JdbcAdapterTest {
     }
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("SELECT \"full_name\" FROM \"employee\" WHERE "
-                + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")")
+            + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")")
         .explainContains("SINGLE_VALUE")
         .throws_(expected);
   }
@@ -1090,7 +1090,7 @@ class JdbcAdapterTest {
         FoodmartSchema.FOODMART_MODEL.replace("jdbcSchema: 'foodmart'",
             "jdbcSchema: null");
     CalciteAssert.model(
-        model)
+            model)
         .doWithConnection(connection -> {
           try {
             final ResultSet resultSet =
@@ -1491,24 +1491,24 @@ class JdbcAdapterTest {
   @Test void testUnknownColumn() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("SELECT\n"
-          + "    \"content-format-owner\",\n"
-          + "    \"content-owner\"\n"
-          + "FROM\n"
-          + "    (\n"
-          + "        SELECT\n"
-          + "            d1.dname AS \"content-format-owner\",\n"
-          + "            d2.dname || ' ' AS \"content-owner\"\n"
-          + "        FROM\n"
-          + "            scott.emp e1\n"
-          + "            left outer join scott.dept d1 on e1.deptno = d1.deptno\n"
-          + "            left outer join scott.dept d2 on e1.deptno = d2.deptno\n"
-          + "            left outer join scott.emp e2 on e1.deptno = e2.deptno\n"
-          + "        GROUP BY\n"
-          + "            d1.dname,\n"
-          + "            d2.dname\n"
-          + "    )\n"
-          + "WHERE\n"
-          + "    \"content-owner\" IN (?)")
+            + "    \"content-format-owner\",\n"
+            + "    \"content-owner\"\n"
+            + "FROM\n"
+            + "    (\n"
+            + "        SELECT\n"
+            + "            d1.dname AS \"content-format-owner\",\n"
+            + "            d2.dname || ' ' AS \"content-owner\"\n"
+            + "        FROM\n"
+            + "            scott.emp e1\n"
+            + "            left outer join scott.dept d1 on e1.deptno = d1.deptno\n"
+            + "            left outer join scott.dept d2 on e1.deptno = d2.deptno\n"
+            + "            left outer join scott.emp e2 on e1.deptno = e2.deptno\n"
+            + "        GROUP BY\n"
+            + "            d1.dname,\n"
+            + "            d2.dname\n"
+            + "    )\n"
+            + "WHERE\n"
+            + "    \"content-owner\" IN (?)")
         .planHasSql("SELECT "
             + "\"t2\".\"DNAME\" AS \"content-format-owner\", "
             + "\"t2\".\"DNAME0\" || ' ' AS \"content-owner\"\n"

@@ -130,7 +130,7 @@ public abstract class ProjectToWindowRule
    * @see CoreRules#PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW
    */
   public static class ProjectToLogicalProjectAndWindowRule
-        extends ProjectToWindowRule {
+      extends ProjectToWindowRule {
     /** Creates a ProjectToLogicalProjectAndWindowRule. */
     protected ProjectToLogicalProjectAndWindowRule(
         ProjectToLogicalProjectAndWindowRuleConfig config) {
@@ -211,30 +211,30 @@ public abstract class ProjectToWindowRule
   static class WindowedAggRelSplitter extends CalcRelSplitter {
     private static final RelType[] REL_TYPES = {
         new RelType("CalcRelType") {
-            @Override protected boolean canImplement(RexFieldAccess field) {
-              return true;
-            }
+          @Override protected boolean canImplement(RexFieldAccess field) {
+            return true;
+          }
 
-            @Override protected boolean canImplement(RexDynamicParam param) {
-              return true;
-            }
+          @Override protected boolean canImplement(RexDynamicParam param) {
+            return true;
+          }
 
-            @Override protected boolean canImplement(RexLiteral literal) {
-              return true;
-            }
+          @Override protected boolean canImplement(RexLiteral literal) {
+            return true;
+          }
 
-            @Override protected boolean canImplement(RexCall call) {
-              return !(call instanceof RexOver);
-            }
+          @Override protected boolean canImplement(RexCall call) {
+            return !(call instanceof RexOver);
+          }
 
-            @Override protected RelNode makeRel(RelOptCluster cluster,
-                RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
-                RexProgram program, List<RelHint> hints) {
-              assert !program.containsAggs();
-              program = program.normalize(cluster.getRexBuilder(), null);
-              return super.makeRel(cluster, traitSet, relBuilder, input,
-                  program, hints);
-            }
+          @Override protected RelNode makeRel(RelOptCluster cluster,
+              RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
+              RexProgram program, List<RelHint> hints) {
+            assert !program.containsAggs();
+            program = program.normalize(cluster.getRexBuilder(), null);
+            return super.makeRel(cluster, traitSet, relBuilder, input,
+                program, hints);
+          }
         },
         new RelType("WinAggRelType") {
           @Override protected boolean canImplement(RexFieldAccess field) {
