@@ -27,6 +27,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -40,22 +41,22 @@ class RelOptPlanReaderTest {
     assertThat(relJson.classToTypeName(LogicalProject.class),
         is("LogicalProject"));
     assertThat(relJson.typeNameToClass("LogicalProject"),
-        sameInstance((Class) LogicalProject.class));
+        sameInstance(LogicalProject.class));
 
     // in org.apache.calcite.adapter.jdbc.JdbcRules outer class
     assertThat(relJson.classToTypeName(JdbcRules.JdbcProject.class),
         is("JdbcProject"));
     assertThat(relJson.typeNameToClass("JdbcProject"),
-        equalTo((Class) JdbcRules.JdbcProject.class));
+        equalTo(JdbcRules.JdbcProject.class));
 
     try {
-      Class clazz = relJson.typeNameToClass("NonExistentRel");
+      Class<?> clazz = relJson.typeNameToClass("NonExistentRel");
       fail("expected exception, got " + clazz);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(), is("unknown type NonExistentRel"));
     }
     try {
-      Class clazz =
+      Class<?> clazz =
           relJson.typeNameToClass("org.apache.calcite.rel.NonExistentRel");
       fail("expected exception, got " + clazz);
     } catch (RuntimeException e) {
@@ -67,11 +68,11 @@ class RelOptPlanReaderTest {
     assertThat(relJson.classToTypeName(MyRel.class),
         is("org.apache.calcite.plan.RelOptPlanReaderTest$MyRel"));
     assertThat(relJson.typeNameToClass(MyRel.class.getName()),
-        equalTo((Class) MyRel.class));
+        equalTo(MyRel.class));
 
     // Using canonical name (with '$'), not found
     try {
-      Class clazz =
+      Class<?> clazz =
           relJson.typeNameToClass(MyRel.class.getCanonicalName());
       fail("expected exception, got " + clazz);
     } catch (RuntimeException e) {
@@ -79,6 +80,19 @@ class RelOptPlanReaderTest {
           is(
               "unknown type org.apache.calcite.plan.RelOptPlanReaderTest.MyRel"));
     }
+  }
+
+  /**
+   * Tests loading of a class not implementing the {@code RelNode} interface
+   * throws an informative {@code ClassCastException}. Additionally, the test
+   * ensures that the type conversion does not trigger class initialization.
+   */
+  @Test void testTypeNameToClassWithNoRelNodeClass() {
+    RelJson relJson = RelJson.create();
+    ClassCastException e =
+            assertThrows(ClassCastException.class,
+                () -> relJson.typeNameToClass("org.apache.calcite.InvalidStaticInitializer"));
+    assertThat(e.getMessage(), is("class org.apache.calcite.InvalidStaticInitializer"));
   }
 
   /** Dummy relational expression. */

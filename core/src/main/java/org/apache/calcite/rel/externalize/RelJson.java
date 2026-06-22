@@ -120,7 +120,7 @@ public class RelJson {
       ImmutableList.of(NlsString.class, BigDecimal.class, ByteString.class,
       Boolean.class, TimestampString.class, DateString.class, TimeString.class);
 
-  private final Map<String, Constructor> constructorMap = new HashMap<>();
+  private final Map<String, Constructor<? extends RelNode>> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
   private final InputTranslator inputTranslator;
   private final SqlOperatorTable operatorTable;
@@ -209,9 +209,9 @@ public class RelJson {
 
   public RelNode create(Map<String, Object> map) {
     String type = get(map, "type");
-    Constructor constructor = getConstructor(type);
+    Constructor<? extends RelNode> constructor = getConstructor(type);
     try {
-      return (RelNode) constructor.newInstance(map);
+      return constructor.newInstance(map);
     } catch (InstantiationException | ClassCastException | InvocationTargetException
         | IllegalAccessException e) {
       throw new RuntimeException(
@@ -219,12 +219,11 @@ public class RelJson {
     }
   }
 
-  public Constructor getConstructor(String type) {
-    Constructor constructor = constructorMap.get(type);
+  public Constructor<? extends RelNode> getConstructor(String type) {
+    Constructor<? extends RelNode> constructor = constructorMap.get(type);
     if (constructor == null) {
-      Class clazz = typeNameToClass(type);
+      Class<? extends RelNode> clazz = typeNameToClass(type);
       try {
-        //noinspection unchecked
         constructor = clazz.getConstructor(RelInput.class);
       } catch (NoSuchMethodException e) {
         throw new RuntimeException("class does not have required constructor, "
@@ -239,18 +238,19 @@ public class RelJson {
    * Converts a type name to a class. E.g. {@code getClass("LogicalProject")}
    * returns {@link org.apache.calcite.rel.logical.LogicalProject}.class.
    */
-  public Class typeNameToClass(String type) {
+  public Class<? extends RelNode> typeNameToClass(String type) {
     if (!type.contains(".")) {
       for (String package_ : PACKAGES) {
         try {
-          return Class.forName(package_ + type);
+          return Class.forName(package_ + type, false, RelJson.class.getClassLoader())
+              .asSubclass(RelNode.class);
         } catch (ClassNotFoundException e) {
           // ignore
         }
       }
     }
     try {
-      return Class.forName(type);
+      return Class.forName(type, false, RelJson.class.getClassLoader()).asSubclass(RelNode.class);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("unknown type " + type);
     }

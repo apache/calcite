@@ -131,7 +131,7 @@ public class RelJsonReader {
   private void readRel(final Map<String, Object> jsonRel) {
     String id = (String) requireNonNull(jsonRel.get("id"), "jsonRel.id");
     String type = (String) requireNonNull(jsonRel.get("relOp"), "jsonRel.relOp");
-    Constructor constructor = relJson.getConstructor(type);
+    Constructor<? extends RelNode> constructor = relJson.getConstructor(type);
     RelInput input = new RelInput() {
       @Override public RelOptCluster getCluster() {
         return cluster;
@@ -309,7 +309,7 @@ public class RelJsonReader {
       }
     };
     try {
-      final RelNode rel = (RelNode) constructor.newInstance(input);
+      final RelNode rel = constructor.newInstance(input);
       relMap.put(id, rel);
       lastRel = rel;
     } catch (InstantiationException | IllegalAccessException e) {
