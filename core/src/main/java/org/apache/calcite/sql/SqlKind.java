@@ -195,6 +195,9 @@ public enum SqlKind {
    */
   ORDER_BY,
 
+  /** The ALL keyword of the ORDER BY clause. */
+  ORDER_BY_ALL,
+
   /** WITH clause. */
   WITH,
 
@@ -1482,6 +1485,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
+                  ORDER_BY_ALL,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
                   JSON_VALUE_EXPRESSION, UNNEST),
