@@ -42,7 +42,10 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -53,23 +56,45 @@ import static java.util.Objects.requireNonNull;
  */
 public class CsvTableScan extends TableScan implements EnumerableRel {
   final CsvTranslatableTable csvTable;
-  private final int[] fields;
+  final int[] fields;
+  final @Nullable String[] filterValues;
 
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
       CsvTranslatableTable csvTable, int[] fields) {
+    this(cluster, table, csvTable, fields, null);
+  }
+
+  protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
+      CsvTranslatableTable csvTable, int[] fields,
+      @Nullable String @Nullable [] filterValues) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);
     this.csvTable = requireNonNull(csvTable, "csvTable");
     this.fields = fields;
+    this.filterValues = filterValues;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new CsvTableScan(getCluster(), table, csvTable, fields);
+    return new CsvTableScan(getCluster(), table, csvTable, fields, filterValues);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("fields", Primitive.asList(fields));
+        .item("fields", Primitive.asList(fields))
+        .itemIf("filters", filtersToString(filterValues), filterValues != null);
+  }
+
+  /** Returns a human-readable representation of the filter values for EXPLAIN output.
+   *
+   * <p>For example, if column 3 equals "F", returns "[3=F]". */
+  private static @Nullable String filtersToString(@Nullable String @Nullable [] filterValues) {
+    if (filterValues == null) {
+      return null;
+    }
+    return IntStream.range(0, filterValues.length)
+        .filter(i -> filterValues[i] != null)
+        .mapToObj(i -> i + "=" + filterValues[i])
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   @Override public RelDataType deriveRowType() {
@@ -84,6 +109,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
 
   @Override public void register(RelOptPlanner planner) {
     planner.addRule(FileRules.PROJECT_SCAN);
+    planner.addRule(FileRules.FILTER_SCAN);
+    planner.addRule(FileRules.PROJECT_FILTER_SCAN);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -96,9 +123,14 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     // For example, if table has 3 fields, project has 1 field,
     // then factor = (1 + 2) / (3 + 2) = 0.6
     final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
-    return cost
-        .multiplyBy(((double) fields.length + 2D)
-            / ((double) table.getRowType().getFieldCount() + 2D));
+    double factor = ((double) fields.length + 2D)
+        / ((double) table.getRowType().getFieldCount() + 2D);
+    if (filterValues != null) {
+      // A scan with filters pushed down eliminates rows early; reduce cost further.
+      long filterCount = Arrays.stream(filterValues).filter(v -> v != null).count();
+      factor *= Math.pow(0.5, filterCount);
+    }
+    return cost.multiplyBy(factor);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -110,11 +142,24 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
 
     final Expression expression =
         requireNonNull(table.getExpression(CsvTranslatableTable.class));
-    return implementor.result(
-        physType,
-        Blocks.toBlock(
-            Expressions.call(expression,
-                "project", implementor.getRootExpression(),
-                Expressions.constant(fields))));
+
+    if (filterValues != null) {
+      // Call CsvTranslatableTable.scan(root, fields, filterValues)
+      return implementor.result(
+          physType,
+          Blocks.toBlock(
+              Expressions.call(expression,
+                  "scan", implementor.getRootExpression(),
+                  Expressions.constant(fields),
+                  Expressions.constant(filterValues))));
+    } else {
+      // Call CsvTranslatableTable.project(root, fields) — existing path
+      return implementor.result(
+          physType,
+          Blocks.toBlock(
+              Expressions.call(expression,
+                  "project", implementor.getRootExpression(),
+                  Expressions.constant(fields))));
+    }
   }
 }

@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.SchemaPlus;
@@ -37,6 +38,7 @@ import org.apache.calcite.util.Source;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -68,6 +70,36 @@ public class CsvTranslatableTable extends CsvTable
         return new CsvEnumerator<>(source, cancelFlag,
             getFieldTypes(typeFactory), ImmutableIntList.of(fields),
             separator);
+      }
+    };
+  }
+
+  /** Returns an enumerable over a given projection of the fields, with
+   * filter values applied during the scan to skip non-matching rows.
+   *
+   * <p>This method is called from generated code (via
+   * {@link CsvTableScan#implement}) when filter predicates have been pushed
+   * down into the scan by {@link CsvFilterTableScanRule}.
+   *
+   * @param root         Data context (provides type factory and cancel flag)
+   * @param fields       Indices of the fields to project (into full table schema)
+   * @param filterValues Per-column equality filter values; null means no filter
+   *                     for that column. Indexed by full-table column index.
+   */
+  @SuppressWarnings({"unchecked", "unused"}) // called from generated code
+  public Enumerable<Object> scan(final DataContext root,
+      final int[] fields, final @Nullable String @Nullable [] filterValues) {
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
+    return new AbstractEnumerable<Object>() {
+      @Override public Enumerator<Object> enumerator() {
+        JavaTypeFactory typeFactory = root.getTypeFactory();
+        List<RelDataType> fieldTypes = getFieldTypes(typeFactory);
+        return (Enumerator<Object>) (Enumerator<?>)
+            new CsvEnumerator<>(source, cancelFlag, false, filterValues,
+                fieldTypes,
+                CsvEnumerator.converter(fieldTypes,
+                    ImmutableIntList.of(fields)),
+                separator);
       }
     };
   }

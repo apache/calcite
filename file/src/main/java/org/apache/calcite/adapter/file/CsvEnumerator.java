@@ -71,6 +71,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
   private final CSVReader reader;
   private final @Nullable List<@Nullable String> filterValues;
+  private final @Nullable List<RelDataType> fieldTypes;
   private final AtomicBoolean cancelFlag;
   private final RowConverter<E> rowConverter;
   private @Nullable E current;
@@ -115,18 +116,25 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
       List<RelDataType> fieldTypes, List<Integer> fields, char separator) {
     //noinspection unchecked
-    this(source, cancelFlag, false, null,
+    this(source, cancelFlag, false, null, fieldTypes,
         (RowConverter<E>) converter(fieldTypes, fields), separator);
   }
 
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
       @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter,
       char separator) {
+    this(source, cancelFlag, stream, filterValues, null, rowConverter, separator);
+  }
+
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
+      @Nullable String @Nullable [] filterValues, @Nullable List<RelDataType> fieldTypes,
+      RowConverter<E> rowConverter, char separator) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
     this.filterValues =
         filterValues == null ? null
             : ImmutableNullableList.copyOf(filterValues);
+    this.fieldTypes = fieldTypes;
     try {
       if (stream) {
         this.reader = new CsvStreamReader(source, separator);
@@ -139,7 +147,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  private static RowConverter<?> converter(List<RelDataType> fieldTypes,
+  static RowConverter<?> converter(List<RelDataType> fieldTypes,
       List<Integer> fields) {
     if (fields.size() == 1) {
       final int field = fields.get(0);
@@ -254,6 +262,19 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return new CSVReader(source.reader(), separator);
   }
 
+  private static boolean objectsEqual(@Nullable Object o1, @Nullable Object o2) {
+    if (o1 == o2) {
+      return true;
+    }
+    if (o1 == null || o2 == null) {
+      return false;
+    }
+    if (o1 instanceof BigDecimal && o2 instanceof BigDecimal) {
+      return ((BigDecimal) o1).compareTo((BigDecimal) o2) == 0;
+    }
+    return o1.equals(o2);
+  }
+
   @Override public E current() {
     return castNonNull(current);
   }
@@ -284,10 +305,17 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           return false;
         }
         if (filterValues != null) {
-          for (int i = 0; i < strings.length; i++) {
+          for (int i = 0; i < filterValues.size(); i++) {
             String filterValue = filterValues.get(i);
             if (filterValue != null) {
-              if (!filterValue.equals(strings[i])) {
+              final @Nullable String fieldValue = field(strings, i);
+              if (fieldTypes != null && i < fieldTypes.size()) {
+                Object convertedFilter = rowConverter.convert(fieldTypes.get(i), filterValue);
+                Object convertedValue = rowConverter.convert(fieldTypes.get(i), fieldValue);
+                if (!objectsEqual(convertedFilter, convertedValue)) {
+                  continue outer;
+                }
+              } else if (!filterValue.equals(fieldValue)) {
                 continue outer;
               }
             }
@@ -327,6 +355,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private static RelDataType toNullableRelDataType(JavaTypeFactory typeFactory,
       SqlTypeName sqlTypeName) {
     return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
+  }
+
+  /** Returns a field from a CSV row, or null if the row is too short. */
+  private static @Nullable String field(String[] strings, int index) {
+    return index < strings.length ? strings[index] : null;
   }
 
   /** Row converter.
@@ -480,7 +513,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       final @Nullable Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         int field = fields.get(i);
-        objects[i] = convert(fieldTypes.get(field), strings[field]);
+        objects[i] = convert(fieldTypes.get(field), field(strings, field));
       }
       return objects;
     }
@@ -490,7 +523,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       objects[0] = System.currentTimeMillis();
       for (int i = 0; i < fields.size(); i++) {
         int field = fields.get(i);
-        objects[i + 1] = convert(fieldTypes.get(field), strings[field]);
+        objects[i + 1] = convert(fieldTypes.get(field), field(strings, field));
       }
       return objects;
     }
@@ -507,7 +540,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
 
     @Override public @Nullable Object convertRow(@Nullable String[] strings) {
-      return convert(fieldType, strings[fieldIndex]);
+      return convert(fieldType, field(strings, fieldIndex));
     }
   }
 }

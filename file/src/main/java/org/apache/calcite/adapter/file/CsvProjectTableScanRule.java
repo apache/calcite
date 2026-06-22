@@ -45,17 +45,25 @@ public class CsvProjectTableScanRule
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalProject project = call.rel(0);
     final CsvTableScan scan = call.rel(1);
-    int[] fields = getProjectFields(project.getProjects());
-    if (fields == null) {
+    int[] projectFieldIndices = getProjectFields(project.getProjects());
+    if (projectFieldIndices == null) {
       // Project contains expressions more complex than just field references.
       return;
+    }
+    // The project field indices are into the scan's *current* row type (which
+    // may already be a subset of the full table due to a prior projection).
+    // Map through scan.fields to get the original full-table column indices.
+    final int[] newFields = new int[projectFieldIndices.length];
+    for (int i = 0; i < projectFieldIndices.length; i++) {
+      newFields[i] = scan.fields[projectFieldIndices[i]];
     }
     call.transformTo(
         new CsvTableScan(
             scan.getCluster(),
             scan.getTable(),
             scan.csvTable,
-            fields));
+            newFields,
+            scan.filterValues));
   }
 
   private static int[] getProjectFields(List<RexNode> exps) {
