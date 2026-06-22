@@ -919,6 +919,16 @@ public class SqlDialect {
   }
 
   /**
+   * Whether {@code TO_NUMBER} unparsing should cast string operands through {@code BIGNUMERIC}
+   * for intermediate precision when targeting integer or floating types.
+   *
+   * <p>The default is {@code false}. BigQuery enables this behavior.
+   */
+  public boolean castsToNumberViaBigNumeric() {
+    return false;
+  }
+
+  /**
    * Returns whether the dialect supports GROUP BY literals.
    *
    * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the following queries

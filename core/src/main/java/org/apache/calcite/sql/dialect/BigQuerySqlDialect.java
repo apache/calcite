@@ -462,6 +462,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean castsToNumberViaBigNumeric() {
+    return true;
+  }
+
   @Override public boolean requiresColumnsInMergeInsertClause() {
     return false;
   }
