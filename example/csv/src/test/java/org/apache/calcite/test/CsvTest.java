@@ -383,6 +383,22 @@ class CsvTest {
         .ok();
   }
 
+  @Test void testFilterableWhereAge() {
+    // age column has nulls in the data — make sure they're excluded under objectsEqual
+    final String sql = "select name from EMPS where age = 25";
+    sql("filterable-model", sql)
+        .returns("NAME=Fred")
+        .ok();
+  }
+
+  @Test void testFilterableWhereSlacker() {
+    // slacker column has nulls in the data — make sure they're excluded under objectsEqual
+    final String sql = "select name from EMPS where slacker = false";
+    sql("filterable-model", sql)
+        .returns("NAME=John", "NAME=Alice")
+        .ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2272">[CALCITE-2272]
    * Incorrect result for {@code name like '%E%' and city not like '%W%'}</a>.

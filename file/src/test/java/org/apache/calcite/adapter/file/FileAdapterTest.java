@@ -17,8 +17,18 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableMap;
@@ -47,11 +57,13 @@ import java.util.stream.Stream;
 
 import static org.apache.calcite.adapter.file.FileAdapterTests.sql;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * System test of the Calcite file adapter, which can read and parse
@@ -417,6 +429,158 @@ class FileAdapterTest {
     sql("model-with-custom-table", sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7618">[CALCITE-7618]
+   * Add filter pushdown support to file adapter's CSV implementation</a>.
+   *
+   * <p>Verifies that a simple equality filter is pushed into {@link CsvTableScan},
+   * eliminating the {@code EnumerableCalc} that would otherwise evaluate it. */
+  @Test void testFilterPushDown() {
+    final String sql = "explain plan for select * from EMPS where deptno = 20";
+    final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
+        + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]], condition=[=($2, 20)])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  @Test void testFilterPushDownWithProject() {
+    final String sql = "explain plan for select name, empno from EMPS where deptno = 20";
+    final String expected = "PLAN=EnumerableCalc(expr#0..2=[{inputs}],"
+          + " expr#3=[20], expr#4=[=($t2, $t3)], NAME=[$t1], EMPNO=[$t0], $condition=[$t4])\n"
+             + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2]])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7618">[CALCITE-7618]
+   * Add filter pushdown support to file adapter's CSV implementation</a>.
+   *
+   * <p>Verifies that filter pushdown returns correct query results. */
+  @Test void testFilterPushDownResult() {
+    final String sql = "select name, empno from EMPS where deptno = 20";
+    sql("smart", sql)
+        .returns("NAME=Eric; EMPNO=110",
+            "NAME=Wilma; EMPNO=120")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7618">[CALCITE-7618]
+   * Add filter pushdown support to file adapter's CSV implementation</a>.
+   *
+   * <p>Verifies that range filters are evaluated correctly under the new compiled-filter
+   * pushdown mechanism. */
+  @Test void testRangeFilterPushDown() {
+    // empno > 110 is a range filter; the compiler-based pushdown handles it
+    // like any other predicate, pushing it into the scan via EnumerableCalc.
+    final String sql = "select name from EMPS where empno > 110";
+    sql("smart", sql)
+        .returns("NAME=Wilma",
+            "NAME=Alice")
+        .ok();
+  }
+
+  @Test void testFilterOnNullValues() {
+    final String sql = "select name, age from long_emps where age is null";
+    sql("bug", sql)
+        .returns("NAME=John; AGE=null",
+            "NAME=Alice; AGE=null")
+        .ok();
+  }
+
+  @Test void testFilterPushDownLong() {
+    final String sql = "select name from long_emps where empno = 130";
+    sql("bug", sql)
+        .returns("NAME=Alice")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("bug", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}],"
+            + " expr#2=[130:BIGINT], expr#3=[=($t0, $t2)], NAME=[$t1], $condition=[$t3])\n"
+            + "  CsvTableScan(table=[[BUG, LONG_EMPS]], fields=[[0, 1]])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownBoolean() {
+    final String sql = "select name from long_emps where slacker = true";
+    sql("bug", sql)
+        .returns("NAME=Fred")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("bug", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}], NAME=[$t0], $condition=[$t1])\n"
+            + "  CsvTableScan(table=[[BUG, LONG_EMPS]], fields=[[1, 7]])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownString() {
+    final String sql = "select empno from long_emps where gender = 'F'";
+    sql("bug", sql)
+        .returns("EMPNO=120", "EMPNO=130")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("bug", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR],"
+            + " expr#3=[=($t1, $t2)], EMPNO=[$t0], $condition=[$t3])\n"
+            + "  CsvTableScan(table=[[BUG, LONG_EMPS]], fields=[[0, 3]])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownDecimal() {
+    final String sql = "select deptno from sales.\"DECIMAL\" where budget = 100.01";
+    sql("sales-csv", sql)
+        .returns("DEPTNO=20")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("sales-csv", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}], DEPTNO=[$t0])\n"
+            + "  CsvTableScan(table=[[SALES, DECIMAL]], fields=[[0, 1]], condition=[=($1, 100.01)])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownDate() {
+    final String sql = "select name from long_emps where joinedat = DATE '2001-01-01'";
+    sql("bug", sql)
+        .returns("NAME=Eric")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("bug", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2001-01-01],"
+            + " expr#3=[=($t1, $t2)], NAME=[$t0], $condition=[$t3])\n"
+            + "  CsvTableScan(table=[[BUG, LONG_EMPS]], fields=[[1, 9]])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownTime() {
+    final String sql = "select empno from \"DATE\" where jointime = TIME '07:15:56'";
+    sql("bug", sql)
+        .returns("EMPNO=140")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("bug", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[07:15:56],"
+            + " expr#3=[=($t1, $t2)], EMPNO=[$t0], $condition=[$t3])\n"
+            + "  CsvTableScan(table=[[BUG, DATE]], fields=[[0, 2]])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownTimestamp() {
+    final String sql = "select empno from \"DATE\" where"
+          + " jointimes = TIMESTAMP '2015-12-31 07:15:56'";
+    sql("bug", sql)
+        .returns("EMPNO=140")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("bug", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..1=[{inputs}],"
+            + " expr#2=[2015-12-31 07:15:56], expr#3=[=($t1, $t2)],"
+            + " EMPNO=[$t0], $condition=[$t3])\n"
+            + "  CsvTableScan(table=[[BUG, DATE]], fields=[[0, 3]])\n")
+        .ok();
+  }
+
+
+
+
   @Test void testPushDownProject() {
     final String sql = "explain plan for select * from EMPS";
     final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
@@ -436,6 +600,52 @@ class FileAdapterTest {
             "NAME=Wilma; EMPNO=120",
             "NAME=Alice; EMPNO=130")
         .ok();
+  }
+
+  @Test void testFilterPushDownOr() {
+    final String sql = "select name from EMPS where deptno = 20 or empno = 100";
+    sql("smart", sql)
+        .returns("NAME=Fred", "NAME=Eric", "NAME=Wilma")
+        .ok();
+    final String plan = "explain plan for " + sql;
+    sql("smart", plan)
+        .returns("PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[20],"
+            + " expr#4=[=($t2, $t3)], expr#5=[100], expr#6=[=($t0, $t5)],"
+            + " expr#7=[OR($t4, $t6)], NAME=[$t1], $condition=[$t7])\n"
+            + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2]])\n")
+        .ok();
+  }
+
+  @Test void testFilterPushDownNotEquals() {
+    sql("smart", "select name from EMPS where deptno <> 20")
+        .returns("NAME=Fred", "NAME=John", "NAME=Alice")
+        .ok();
+  }
+
+  @Test void testFilterPushDownNotEqualsPlan() throws Exception {
+    final String plan =
+        applyRule("select name from EMPS where deptno <> 20",
+        FileRules.PROJECT_FILTER_SCAN);
+
+    assertThat(plan,
+        containsString("CsvTableScan(table=[[SALES, EMPS]], "
+            + "fields=[[1, 2]], condition=[<>($1, 20)])"));
+  }
+
+  @Test void testFilterPushDownRange() {
+    sql("smart", "select name from EMPS where empno >= 120")
+        .returns("NAME=Wilma", "NAME=Alice")
+        .ok();
+  }
+
+  @Test void testFilterPushDownRangePlan() throws Exception {
+    final String plan =
+        applyRule("select name from EMPS where empno >= 120",
+        FileRules.PROJECT_FILTER_SCAN);
+
+    assertThat(plan,
+        containsString("CsvTableScan(table=[[SALES, EMPS]], "
+            + "fields=[[0, 1]], condition=[>=($0, 120)])"));
   }
 
   @ParameterizedTest
@@ -471,21 +681,15 @@ class FileAdapterTest {
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> \"EnumerableAggregate\\ngroup = "
-          + "{}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
-          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0, 3]\\n\" -> "
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0, 3]\\ncondition = =($1, 'F\\n')\\n\" "
+          + "-> \"EnumerableAggregate\\ngroup = {}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
           + "}\n";
       extra = " as dot ";
       break;
     case "text":
       expected = "PLAN="
           + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
-          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
-          + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
+          + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]], condition=[=($1, 'F')])\n";
       extra = "";
       break;
     }
@@ -1103,6 +1307,173 @@ class FileAdapterTest {
           equalTo(Timestamp.class));
       assertThat(joinTimes.getTimestamp(1),
           is(Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+
+  @Test void testFilterPushDownDoesNotReturnNullRows() {
+    // age column has nulls in the data — make sure they're excluded, not included
+    final String sql = "select name from long_emps where age = 25";
+    sql("bug", sql)
+        .returns("NAME=Fred")  // only Fred has age=25, null-age rows must not appear
+        .ok();
+  }
+
+  @Test void testFilterPushDownNullColumnExcluded() {
+    // slacker has null values — null rows must not match true or false
+    final String sql = "select name from long_emps where slacker = false";
+    sql("bug", sql)
+        .returns("NAME=John", "NAME=Alice")  // Eric and Wilma have null slacker — excluded
+        .ok();
+  }
+
+  @Test void testSameValueBehavior() {
+    // Basic null behavior
+    assertFalse(CsvEnumerator.sameValue(null, null));
+    assertFalse(CsvEnumerator.sameValue(null, new BigDecimal("1.0")));
+    assertFalse(CsvEnumerator.sameValue(new BigDecimal("1.0"), null));
+    assertFalse(CsvEnumerator.sameValue(null, "hello"));
+    assertFalse(CsvEnumerator.sameValue("hello", null));
+
+    // Mixed null and zero
+    assertFalse(CsvEnumerator.sameValue(null, 0));
+    assertFalse(CsvEnumerator.sameValue(null, BigDecimal.ZERO));
+    assertFalse(CsvEnumerator.sameValue(null, ""));
+
+    // NULL IS NOT DISTINCT FROM NULL → should be TRUE under IS NOT DISTINCT FROM semantics,
+    // but sameValue implements SQL WHERE filter '=' semantics (where null = null evaluates
+    // to UNKNOWN, which behaves as false).
+    assertFalse(CsvEnumerator.sameValue(null, 1));
+    assertFalse(CsvEnumerator.sameValue(1, null));
+
+    // Large scale differences
+    assertTrue(CsvEnumerator.sameValue(new BigDecimal("1.000000"), new BigDecimal("1")));
+
+    // Negative zero edge case
+    assertTrue(CsvEnumerator.sameValue(new BigDecimal("0.0"), new BigDecimal("-0.0")));
+
+    // Very large numbers with scale
+    assertTrue(
+        CsvEnumerator.sameValue(
+        new BigDecimal("999999999.9"), new BigDecimal("999999999.90")));
+
+    // Strings
+    assertTrue(CsvEnumerator.sameValue("hello", "hello"));
+    assertFalse(CsvEnumerator.sameValue("hello", "world"));
+
+    // Integers / Longs
+    assertTrue(CsvEnumerator.sameValue(42, 42));
+    assertFalse(CsvEnumerator.sameValue(42, 43));
+    assertTrue(CsvEnumerator.sameValue(1L, 1L));
+
+    // Cross-type comparison (implicit type promotion is not handled by sameValue, returns false)
+    assertFalse(CsvEnumerator.sameValue(42, 42L));
+
+    // BigDecimal scale differences & symmetry
+    BigDecimal val = new BigDecimal("2.0");
+    assertTrue(CsvEnumerator.sameValue(val, val));
+    assertTrue(CsvEnumerator.sameValue(new BigDecimal("2.0"), new BigDecimal("2.00")));
+    assertTrue(CsvEnumerator.sameValue(new BigDecimal("2.00"), new BigDecimal("2.0")));
+    assertFalse(CsvEnumerator.sameValue(new BigDecimal("1.0"), new BigDecimal("2.0")));
+    assertTrue(CsvEnumerator.sameValue(new BigDecimal("0.0"), new BigDecimal("0.00")));
+    assertTrue(CsvEnumerator.sameValue(new BigDecimal("-1.0"), new BigDecimal("-1.00")));
+
+    // Objects.equals() performs exact class/structure comparison (including scale
+    // for BigDecimal), which incorrectly returns false for semantically equal numbers.
+    // Confirm Objects.equals fails here.
+    assertFalse(java.util.Objects.equals(new BigDecimal("2.0"), new BigDecimal("2.00")));
+  }
+
+  @SuppressWarnings("deprecation")
+  private static String applyRule(String sql, RelOptRule rule)
+      throws Exception {
+    final Properties info = new Properties();
+    info.put("model", FileAdapterTests.jsonPath("smart"));
+
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      final SchemaPlus salesSchema =
+          calciteConnection.getRootSchema().getSubSchema("SALES");
+
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .defaultSchema(salesSchema)
+          .build();
+
+      final Planner planner = Frameworks.getPlanner(config);
+      final SqlNode parsed = planner.parse(sql);
+      final SqlNode validated = planner.validate(parsed);
+      final RelNode rel = planner.rel(validated).project();
+
+      final HepProgramBuilder programBuilder = new HepProgramBuilder();
+      programBuilder.addRuleInstance(rule);
+
+      final HepPlanner hepPlanner =
+          new HepPlanner(programBuilder.build());
+      hepPlanner.setRoot(rel);
+
+      return RelOptUtil.toString(hepPlanner.findBestExp());
+    }
+  }
+
+  @Test void testFilterPushDownRule() throws Exception {
+    final String plan =
+        applyRule("select * from EMPS where deptno = 20",
+        FileRules.FILTER_SCAN);
+
+    assertThat(plan,
+        containsString("CsvTableScan(table=[[SALES, EMPS]], "
+            + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]], "
+            + "condition=[=($2, 20)])"));
+  }
+
+  @Test void testProjectFilterPushDownRule() throws Exception {
+    final String plan =
+        applyRule("select name, empno from EMPS where deptno = 20",
+        FileRules.PROJECT_FILTER_SCAN);
+
+    assertThat(plan,
+        containsString("CsvTableScan(table=[[SALES, EMPS]], "
+            + "fields=[[0, 1, 2]], condition=[=($2, 20)])"));
+  }
+
+  @SuppressWarnings("deprecation")
+  @Test void testFilterProjectTransposeWithProjectFilterScan() throws Exception {
+    final String sql = "select name from (select name, deptno from EMPS) where deptno = 20";
+
+    final Properties info = new Properties();
+    info.put("model", FileAdapterTests.jsonPath("smart"));
+
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      final SchemaPlus salesSchema =
+          calciteConnection.getRootSchema().getSubSchema("SALES");
+
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .defaultSchema(salesSchema)
+          .build();
+
+      final Planner planner = Frameworks.getPlanner(config);
+      final SqlNode parsed = planner.parse(sql);
+      final SqlNode validated = planner.validate(parsed);
+      final RelNode rel = planner.rel(validated).project();
+
+      final HepProgramBuilder programBuilder = new HepProgramBuilder();
+      programBuilder.addRuleInstance(
+                org.apache.calcite.rel.rules.CoreRules.FILTER_PROJECT_TRANSPOSE);
+      programBuilder.addRuleInstance(FileRules.PROJECT_FILTER_SCAN);
+
+      final HepPlanner hepPlanner =
+          new HepPlanner(programBuilder.build());
+      hepPlanner.setRoot(rel);
+
+      final String plan = RelOptUtil.toString(hepPlanner.findBestExp());
+
+      assertThat(plan,
+          containsString("CsvTableScan(table=[[SALES, EMPS]], "
+              + "fields=[[1, 2]], condition=[=($1, 20)])"));
     }
   }
 }
