@@ -24,4 +24,19 @@ public abstract class FileRules {
    * a {@link CsvTableScan} and pushes down projects if possible. */
   public static final CsvProjectTableScanRule PROJECT_SCAN =
       CsvProjectTableScanRule.Config.DEFAULT.toRule();
+
+  /** Rule that matches a {@link org.apache.calcite.rel.core.Filter} on
+   * a {@link CsvTableScan} and pushes arbitrary predicates into the scan.
+   * Any {@link org.apache.calcite.rex.RexNode} condition is compiled at plan
+   * time via {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator}
+   * into a {@link org.apache.calcite.linq4j.function.Predicate1}. */
+  public static final CsvFilterTableScanRule FILTER_SCAN =
+      CsvFilterTableScanRule.Config.DEFAULT.toRule();
+
+  /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
+   * a {@link org.apache.calcite.rel.core.Filter} on a {@link CsvTableScan},
+   * pushes the filter condition into the scan, and remaps project and filter
+   * input references to match the scan's new projection. */
+  public static final CsvProjectFilterTableScanRule PROJECT_FILTER_SCAN =
+      CsvProjectFilterTableScanRule.Config.DEFAULT.toRule();
 }

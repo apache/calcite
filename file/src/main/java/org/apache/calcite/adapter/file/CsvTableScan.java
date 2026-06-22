@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -37,11 +38,14 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -53,23 +57,32 @@ import static java.util.Objects.requireNonNull;
  */
 public class CsvTableScan extends TableScan implements EnumerableRel {
   final CsvTranslatableTable csvTable;
-  private final int[] fields;
+  final int[] fields;
+  final @Nullable RexNode condition;
 
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
       CsvTranslatableTable csvTable, int[] fields) {
+    this(cluster, table, csvTable, fields, null);
+  }
+
+  protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
+      CsvTranslatableTable csvTable, int[] fields,
+      @Nullable RexNode condition) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);
     this.csvTable = requireNonNull(csvTable, "csvTable");
     this.fields = fields;
+    this.condition = condition;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new CsvTableScan(getCluster(), table, csvTable, fields);
+    return new CsvTableScan(getCluster(), table, csvTable, fields, condition);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("fields", Primitive.asList(fields));
+        .item("fields", Primitive.asList(fields))
+        .itemIf("condition", condition, condition != null);
   }
 
   @Override public RelDataType deriveRowType() {
@@ -84,6 +97,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
 
   @Override public void register(RelOptPlanner planner) {
     planner.addRule(FileRules.PROJECT_SCAN);
+    planner.addRule(FileRules.FILTER_SCAN);
+    planner.addRule(FileRules.PROJECT_FILTER_SCAN);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -93,12 +108,14 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     //
     // The "+ 2D" on top and bottom keeps the function fairly smooth.
     //
-    // For example, if table has 3 fields, project has 1 field,
-    // then factor = (1 + 2) / (3 + 2) = 0.6
-    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
-    return cost
-        .multiplyBy(((double) fields.length + 2D)
-            / ((double) table.getRowType().getFieldCount() + 2D));
+    // For example, if the table has 3 fields and the scan has 1 field,
+    // then factor = (1 + 2) / (3 + 2) = 0.6.
+    final RelOptCost cost =
+        requireNonNull(super.computeSelfCost(planner, mq));
+    final double factor =
+        (fields.length + 2D)
+            / (table.getRowType().getFieldCount() + 2D);
+    return cost.multiplyBy(factor);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -110,11 +127,32 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
 
     final Expression expression =
         requireNonNull(table.getExpression(CsvTranslatableTable.class));
-    return implementor.result(
-        physType,
-        Blocks.toBlock(
-            Expressions.call(expression,
-                "project", implementor.getRootExpression(),
-                Expressions.constant(fields))));
+
+    // Call CsvTranslatableTable.project(root, fields) to get the base enumerable.
+    Expression enumerable =
+        Expressions.call(expression,
+            "project", implementor.getRootExpression(),
+            Expressions.constant(fields));
+
+    if (condition != null) {
+      final List<RexNode> projects = new ArrayList<>();
+      for (int i = 0; i < getRowType().getFieldCount(); i++) {
+        projects.add(
+            getCluster().getRexBuilder().makeInputRef(
+                getRowType().getFieldList().get(i).getType(), i));
+      }
+      final RexProgram program =
+          RexProgram.create(getRowType(), projects, condition,
+              getRowType(), getCluster().getRexBuilder());
+
+      // Create a scan node without the condition so EnumerableCalc sees a plain
+      // enumerable input, then wrap it with EnumerableCalc to apply the filter.
+      final CsvTableScan plainScan =
+          new CsvTableScan(getCluster(), table, csvTable, fields);
+      final EnumerableCalc calc = EnumerableCalc.create(plainScan, program);
+      return calc.implement(implementor, pref);
+    }
+
+    return implementor.result(physType, Blocks.toBlock(enumerable));
   }
 }

@@ -139,7 +139,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  private static RowConverter<?> converter(List<RelDataType> fieldTypes,
+  static RowConverter<?> converter(List<RelDataType> fieldTypes,
       List<Integer> fields) {
     if (fields.size() == 1) {
       final int field = fields.get(0);
@@ -254,6 +254,31 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return new CSVReader(source.reader(), separator);
   }
 
+  /**
+   * Evaluates equality between 2 Comparable objects, conforming to SQL WHERE filter '=' semantics.
+   *
+   * <p>Returns {@code false} if either operand is null. Because of this, it cannot be
+   * directly used for {@code IS NOT DISTINCT FROM} comparisons without additional null handling.
+   *
+   * <p>When both operands are of the same class (like BigDecimal), it utilizes
+   * {@code compareTo()} to ignore differences in representation (e.g. scale)
+   * that would cause standard {@code equals()} to fail. Otherwise, falls back to
+   * {@code equals()}.
+   */
+  @SuppressWarnings("unchecked")
+  static boolean sameValue(@Nullable Comparable o1, @Nullable Comparable o2) {
+    if (o1 == null || o2 == null) {
+      return false;
+    }
+    if (o1 == o2) {
+      return true;
+    }
+    if (o1.getClass().isInstance(o2)) {
+      return o1.compareTo(o2) == 0;
+    }
+    return o1.equals(o2);
+  }
+
   @Override public E current() {
     return castNonNull(current);
   }
@@ -284,11 +309,26 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           return false;
         }
         if (filterValues != null) {
-          for (int i = 0; i < strings.length; i++) {
+          for (int i = 0; i < filterValues.size(); i++) {
             String filterValue = filterValues.get(i);
             if (filterValue != null) {
-              if (!filterValue.equals(strings[i])) {
-                continue outer;
+              final String rowValueStr = field(strings, i);
+              final RelDataType fieldType = rowConverter.getFieldType(i);
+              if (fieldType != null && fieldType.getSqlTypeName() != SqlTypeName.VARCHAR
+                  && fieldType.getSqlTypeName() != SqlTypeName.CHAR) {
+                final Object filterValObj = RowConverter.convert(fieldType, filterValue);
+                final Object rowValObj = RowConverter.convert(fieldType, rowValueStr);
+                if (filterValObj instanceof Comparable && rowValObj instanceof Comparable) {
+                  if (!sameValue((Comparable) filterValObj, (Comparable) rowValObj)) {
+                    continue outer;
+                  }
+                } else if (!java.util.Objects.equals(filterValObj, rowValObj)) {
+                  continue outer;
+                }
+              } else {
+                if (!filterValue.equals(rowValueStr)) {
+                  continue outer;
+                }
               }
             }
           }
@@ -329,14 +369,23 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
   }
 
+  /** Returns a field from a CSV row, or null if the row is too short. */
+  private static @Nullable String field(String[] strings, int index) {
+    return index < strings.length ? strings[index] : null;
+  }
+
   /** Row converter.
    *
    * @param <E> element type */
   abstract static class RowConverter<E> {
     abstract E convertRow(@Nullable String[] rows);
 
+    @Nullable RelDataType getFieldType(int index) {
+      return null;
+    }
+
     @SuppressWarnings("JavaUtilDate")
-    protected @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
+    static @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
       if (fieldType == null || string == null) {
         return string;
       }
@@ -468,6 +517,10 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       this.stream = stream;
     }
 
+    @Override @Nullable RelDataType getFieldType(int index) {
+      return index < fieldTypes.size() ? fieldTypes.get(index) : null;
+    }
+
     @Override public @Nullable Object[] convertRow(@Nullable String[] strings) {
       if (stream) {
         return convertStreamRow(strings);
@@ -480,7 +533,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       final @Nullable Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         int field = fields.get(i);
-        objects[i] = convert(fieldTypes.get(field), strings[field]);
+        objects[i] = convert(fieldTypes.get(field), field(strings, field));
       }
       return objects;
     }
@@ -490,7 +543,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       objects[0] = System.currentTimeMillis();
       for (int i = 0; i < fields.size(); i++) {
         int field = fields.get(i);
-        objects[i + 1] = convert(fieldTypes.get(field), strings[field]);
+        objects[i + 1] = convert(fieldTypes.get(field), field(strings, field));
       }
       return objects;
     }
@@ -506,8 +559,12 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       this.fieldIndex = fieldIndex;
     }
 
+    @Override @Nullable RelDataType getFieldType(int index) {
+      return index == fieldIndex ? fieldType : null;
+    }
+
     @Override public @Nullable Object convertRow(@Nullable String[] strings) {
-      return convert(fieldType, strings[fieldIndex]);
+      return convert(fieldType, field(strings, fieldIndex));
     }
   }
 }

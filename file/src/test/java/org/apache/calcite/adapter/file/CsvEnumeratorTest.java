@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.rel.type.RelDataType;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -56,5 +60,15 @@ class CsvEnumeratorTest {
   private static void checkThrows(int precision, int scale, String s) {
     assertThrows(IllegalArgumentException.class,
         () -> CsvEnumerator.parseDecimal(precision, scale, s));
+  }
+
+  @Test void testConvertRowWithMissingFields() {
+    final CsvEnumerator.RowConverter<Object[]> converter =
+        CsvEnumerator.arrayConverter(
+            Arrays.<RelDataType>asList(null, null, null, null),
+            Arrays.asList(0, 1, 2, 3), false);
+
+    assertArrayEquals(new Object[] {"a", "b", "c", null},
+        converter.convertRow(new String[] {"a", "b", "c"}));
   }
 }
