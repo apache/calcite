@@ -149,9 +149,9 @@ class CassandraAdapterTest {
         .query("select \"tweet_id\" from \"userline\" "
             + "where \"username\" = '!PUBLIC!' "
             + "fetch next "
-            + "(cast(18446744073709551616 as decimal(20, 0))) rows only")
+            + "(cast(3000000000 as bigint) + 1) rows only")
         .returnsCount(146)
-        .explainContains("EnumerableLimit(fetch=[18446744073709551616:DECIMAL(20, 0)])\n"
+        .explainContains("EnumerableLimit(fetch=[3000000001:BIGINT])\n"
             + "  CassandraToEnumerableConverter\n");
   }
 
