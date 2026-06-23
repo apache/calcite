@@ -5972,7 +5972,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testReduceCastsNullable() {
     HepProgram program = new HepProgramBuilder()
 
-        // Simulate the way INSERT will insert casts to the target types
+        // Simulate the way INSERT can insert casts to the target types.
         .addRuleInstance(
             CoerceInputsRule.Config.DEFAULT
                 .withCoerceNames(false)

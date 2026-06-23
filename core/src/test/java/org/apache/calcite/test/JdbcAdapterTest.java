@@ -1456,21 +1456,21 @@ class JdbcAdapterTest {
         + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[MERGE],"
         + " updateColumnList=[[amount]], flattened=[false])\n"
         + "    JdbcProject(STORE_ID=[$0], $f1=[666], $f2=[1997-01-01 00:00:00], $f3=[666],"
-        + " $f4=['666':VARCHAR(30)], $f5=[666], AMOUNT=[CAST($1):DECIMAL(10, 4) NOT NULL],"
+        + " $f4=['666':VARCHAR(30)], $f5=[666], AMOUNT=[$1],"
         + " store_id=[$2],"
         + " account_id=[$3], exp_date=[$4], time_id=[$5], category_id=[$6], currency_id=[$7],"
-        + " amount=[$8], AMOUNT0=[CAST($1):DECIMAL(10, 4) NOT NULL])\n"
+        + " amount=[$8], AMOUNT0=[$1])\n"
         + "      JdbcJoin(condition=[=($2, $0)], joinType=[left])\n"
         + "        JdbcValues(tuples=[[{ 666, 42 }]])\n"
         + "        JdbcTableScan(table=[[foodmart, expense_fact]])\n";
     final String jdbcSql = "MERGE INTO \"foodmart\".\"expense_fact\"\n"
         + "USING (VALUES (666, 42)) AS \"t\" (\"STORE_ID\", \"AMOUNT\")\n"
         + "ON \"t\".\"STORE_ID\" = \"expense_fact\".\"store_id\"\n"
-        + "WHEN MATCHED THEN UPDATE SET \"amount\" = CAST(\"t\".\"AMOUNT\" AS DECIMAL(10, 4))\n"
+        + "WHEN MATCHED THEN UPDATE SET \"amount\" = \"t\".\"AMOUNT\"\n"
         + "WHEN NOT MATCHED THEN INSERT (\"store_id\", \"account_id\", \"exp_date\", \"time_id\", "
         + "\"category_id\", \"currency_id\", \"amount\") VALUES \"t\".\"STORE_ID\",\n"
         + "666,\nTIMESTAMP '1997-01-01 00:00:00',\n666,\n'666',\n666,\n"
-        + "CAST(\"t\".\"AMOUNT\" AS DECIMAL(10, 4))";
+        + "\"t\".\"AMOUNT\"";
     final AssertThat that =
         CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);

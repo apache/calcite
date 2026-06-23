@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate.implicit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -830,8 +831,13 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     }
     boolean coerced = false;
     for (int i = 0; i < sourceFields.size(); i++) {
+      RelDataType sourceType = sourceFields.get(i).getType();
       RelDataType targetType = targetFields.get(i).getType();
-      coerced = coerceSourceRowType(scope, query, i, targetType) || coerced;
+      if (!SqlTypeUtil.equalSansNullability(validator.getTypeFactory(), sourceType, targetType)
+          && (RexUtil.isLosslessCast(sourceType, targetType)
+              || !SqlTypeUtil.canAssignFrom(targetType, sourceType))) {
+        coerced = coerceSourceRowType(scope, query, i, targetType) || coerced;
+      }
     }
     return coerced;
   }

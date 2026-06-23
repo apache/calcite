@@ -236,4 +236,36 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     String sql = "select CAST(null AS INTEGER) union select '10'";
     sql(sql).ok();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7607">[CALCITE-7607]
+   * Avoid implicit narrowing casts in DML assignment coercion</a>. */
+  @Test void testInsertVarcharNarrowingKeepsSourceType() {
+    final String sql = "insert into t1 select "
+        + "CAST('AVeryLongLongStringValue' AS VARCHAR(64)), "
+        + "t2_smallint, t2_int, t2_bigint,\n"
+        + "t2_real, t2_double, t2_decimal, t2_timestamp, "
+        + "t2_date, t2_binary, t2_boolean from t2";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7607">[CALCITE-7607]
+   * Avoid implicit narrowing casts in DML assignment coercion</a>. */
+  @Test void testUpdateVarcharNarrowingKeepsSourceType() {
+    final String sql = "update t1 set t1_varchar20 = "
+        + "CAST('AVeryLongLongStringValue' AS VARCHAR(64))";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7607">[CALCITE-7607]
+   * Avoid implicit narrowing casts in DML assignment coercion</a>. */
+  @Test void testMergeVarcharNarrowingKeepsSourceType() {
+    final String sql = "merge into t1\n"
+        + "using t2 on t1.t1_smallint = t2.t2_smallint\n"
+        + "when matched then update set t1_varchar20 = "
+        + "CAST('AVeryLongLongStringValue' AS VARCHAR(64))";
+    sql(sql).ok();
+  }
 }

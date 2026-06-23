@@ -9932,7 +9932,7 @@ class RelToSqlConverterTest {
         + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
         + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = \"DEPT\".\"DNAME\"\n"
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
-        + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "VALUES \"DEPT\".\"DEPTNO\" + 1,\n"
         + "LOWER(\"DEPT\".\"DNAME\"),\n"
         + "UPPER(\"DEPT\".\"LOC\")";
     sql(sql1)
@@ -9966,9 +9966,9 @@ class RelToSqlConverterTest {
         + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
         + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = \"DEPT\".\"DNAME\"\n"
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
-        + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "VALUES \"DEPT\".\"DEPTNO\" + 1,\n"
         + "'abc',\n"
-        + "CAST(LOWER(\"DEPT\".\"DNAME\") AS VARCHAR(13) CHARACTER SET \"ISO-8859-1\")";
+        + "LOWER(\"DEPT\".\"DNAME\")";
     sql(sql3)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected3);
@@ -9998,7 +9998,7 @@ class RelToSqlConverterTest {
         + "USING \"SCOTT\".\"DEPT\"\n"
         + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
-        + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "VALUES \"DEPT\".\"DEPTNO\" + 1,\n"
         + "LOWER(\"DEPT\".\"DNAME\"),\n"
         + "UPPER(\"DEPT\".\"LOC\")";
     sql(sql5)
@@ -10018,7 +10018,7 @@ class RelToSqlConverterTest {
         + "WHERE CAST(\"DEPTNO\" AS INTEGER) <> 5) AS \"t0\"\n"
         + "ON \"t0\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
-        + "VALUES CAST(\"t0\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "VALUES \"t0\".\"DEPTNO\" + 1,\n"
         + "LOWER(\"t0\".\"DNAME\"),\n"
         + "UPPER(\"t0\".\"LOC\")";
     sql(sql6)
@@ -10040,7 +10040,7 @@ class RelToSqlConverterTest {
         + "ON \"t0\".\"EXPR$0\" = \"t1\".\"DEPTNO0\"\n"
         + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = 'abc'\n"
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
-        + "VALUES CAST(\"t0\".\"EXPR$0\" + 1 AS TINYINT),\n"
+        + "VALUES \"t0\".\"EXPR$0\" + 1,\n"
         + "CAST(LOWER(\"t0\".\"EXPR$1\") AS VARCHAR(14) CHARACTER SET \"ISO-8859-1\"),\n"
         + "CAST(UPPER(\"t0\".\"EXPR$2\") AS VARCHAR(13) CHARACTER SET \"ISO-8859-1\")";
     sql(sql7)
@@ -10229,9 +10229,8 @@ class RelToSqlConverterTest {
     final String sql0 = "update \"foodmart\".\"product\" "
         + "set \"product_name\" = \"product_name\" || '_'\n"
         + "where \"product_id\" > 10";
-    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = CAST"
-        + "(\"product_name\" || '_' AS VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nWHERE "
-        + "\"product_id\" > 10";
+    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = "
+        + "\"product_name\" || '_'\nWHERE \"product_id\" > 10";
     sql(sql0).ok(expected0);
 
     final String sql1 = "update \"foodmart\".\"product\""
@@ -10247,8 +10246,8 @@ class RelToSqlConverterTest {
         + "   \"product_name\" = \"product_name\" || '_' \n"
         + "where \"product_id\" > 10";
     final String expected2 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = \"product_id\""
-        + " + CHAR_LENGTH(\"product_name\"), \"product_name\" = CAST(\"product_name\" || '_' AS "
-        + "VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nWHERE \"product_id\" > 10";
+        + " + CHAR_LENGTH(\"product_name\"), \"product_name\" = \"product_name\" || '_'"
+        + "\nWHERE \"product_id\" > 10";
     sql(sql2).ok(expected2);
 
     final String sql3 = "update \"foodmart\".\"product\"\n"
