@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
@@ -53,6 +54,7 @@ import org.immutables.value.Value;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -262,6 +264,7 @@ public abstract class ProjectToWindowRule
               RelBuilder relBuilder, RelNode input, RexProgram program, List<RelHint> hints) {
             checkArgument(program.getCondition() == null,
                 "WindowedAggregateRel cannot accept a condition");
+            traitSet = traitSet.replaceIfs(RelCollationTraitDef.INSTANCE, Collections::emptyList);
             return LogicalWindow.create(cluster, traitSet, relBuilder, input,
                 program, hints);
           }

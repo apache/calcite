@@ -2504,6 +2504,11 @@ public class SqlToRelConverter {
     SqlCall call = (SqlCall) node;
     bb.getValidator().deriveType(bb.scope, call);
     SqlCall aggCall = call.operand(0);
+    @Nullable SqlNode filter = null;
+    if (aggCall.getKind() == SqlKind.FILTER) {
+      filter = aggCall.operand(1);
+      aggCall = aggCall.operand(0);
+    }
     boolean ignoreNulls = false;
     switch (aggCall.getKind()) {
     case IGNORE_NULLS:
@@ -2514,6 +2519,22 @@ public class SqlToRelConverter {
       break;
     default:
       break;
+    }
+    if (filter != null) {
+      final SqlOperator op = aggCall.getOperator();
+      if (op instanceof SqlAggFunction
+          && !((SqlAggFunction) op).requiresOver()) {
+        // FILTER on a windowed aggregate can be implemented by wrapping the
+        // aggregate arguments in CASE expressions, because true aggregates
+        // ignore NULL inputs. This does not work for window value functions
+        // (FIRST_VALUE, LAST_VALUE, NTH_VALUE, LEAD, LAG, etc.) which do not
+        // ignore NULL inputs.
+        aggCall = applyFilterToAggArgs(aggCall, filter);
+        bb.getValidator().deriveType(bb.scope, aggCall);
+      } else {
+        throw new UnsupportedOperationException(
+            "FILTER clause is not supported for window function " + op.getName());
+      }
     }
 
     SqlNode windowOrRef = call.operand(1);
@@ -2607,6 +2628,47 @@ public class SqlToRelConverter {
     } finally {
       bb.window = null;
     }
+  }
+
+  /**
+   * Applies a FILTER clause to the arguments of an aggregate call by wrapping
+   * each argument in a CASE expression. For example,
+   * {@code SUM(sal) FILTER (WHERE comm IS NOT NULL)} becomes
+   * {@code SUM(CASE WHEN comm IS NOT NULL THEN sal END)}.
+   *
+   * <p>This transformation preserves the semantics of the FILTER clause for
+   * windowed aggregates: rows that do not satisfy the filter contribute NULL
+   * and are ignored by the aggregate function.
+   */
+  private static SqlCall applyFilterToAggArgs(SqlCall aggCall, SqlNode filter) {
+    final SqlOperator op = aggCall.getOperator();
+    final List<SqlNode> operands = aggCall.getOperandList();
+    final SqlParserPos pos = aggCall.getParserPosition();
+    final SqlLiteral quantifier = aggCall.getFunctionQuantifier();
+    final List<SqlNode> newOperands = new ArrayList<>(operands.size());
+    if (op == SqlStdOperatorTable.COUNT
+        && operands.size() == 1
+        && operands.get(0) instanceof SqlIdentifier
+        && ((SqlIdentifier) operands.get(0)).isStar()) {
+      // COUNT(*) FILTER (WHERE x) => COUNT(CASE WHEN x THEN 0 END)
+      newOperands.add(
+          new SqlCase(pos, null, SqlNodeList.of(filter),
+              SqlNodeList.of(SqlLiteral.createExactNumeric("0", pos)),
+              SqlLiteral.createNull(pos)));
+    } else {
+      for (SqlNode operand : operands) {
+        if (operand instanceof SqlIdentifier
+            && ((SqlIdentifier) operand).isStar()) {
+          newOperands.add(operand);
+        } else {
+          newOperands.add(
+              new SqlCase(pos, null, SqlNodeList.of(filter),
+                  SqlNodeList.of(operand),
+                  SqlLiteral.createNull(pos)));
+        }
+      }
+    }
+    return op.createCall(quantifier, pos, newOperands);
   }
 
   protected void convertFrom(
