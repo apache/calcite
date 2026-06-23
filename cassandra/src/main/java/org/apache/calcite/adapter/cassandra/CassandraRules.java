@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -410,7 +411,7 @@ public class CassandraRules {
       final RexLiteral fetch =
           limit.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLiteral(limit.getCluster(), limit.fetch);
+              : RexUtil.reduceFetchToLiteral(limit.getCluster(), limit.fetch);
       if (limit.fetch != null && fetch == null) {
         return null;
       }

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -854,7 +853,7 @@ public class DruidRules {
       final RexLiteral fetch =
           sort.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+              : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
       if (sort.fetch != null && fetch == null) {
         return;
       }

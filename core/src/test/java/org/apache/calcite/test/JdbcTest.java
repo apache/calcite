@@ -3816,6 +3816,21 @@ public class JdbcTest {
         .throws_("FETCH expression evaluated to NULL");
   }
 
+  @Test void testCorrelatedFetchExpressionInvalidValue() {
+    final String sqlPrefix = "select d.\"name\", e.\"name\"\n"
+        + "from \"hr\".\"depts\" d,\n"
+        + "lateral (select \"name\" from \"hr\".\"emps\"\n"
+        + "  where \"deptno\" = d.\"deptno\"\n";
+    for (String fetch : new String[] {"(0 - 1)", "(-1)"}) {
+      for (boolean topDown : new boolean[] {false, true}) {
+        CalciteAssert.hr()
+            .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
+            .query(sqlPrefix + "  fetch next " + fetch + " rows only) e")
+            .throws_("FETCH value -1 is out of range");
+      }
+    }
+  }
+
   /** Tests FETCH values beyond the range of BIGINT. */
   @Test void testFetchExpressionBeyondLong() {
     final CalciteAssert.AssertThat with = CalciteAssert.that();

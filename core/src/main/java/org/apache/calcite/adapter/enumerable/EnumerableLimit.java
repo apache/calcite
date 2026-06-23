@@ -36,20 +36,15 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.NumberUtil;
-import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -174,12 +169,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
 
   /** Converts a FETCH expression result to Calcite's canonical representation. */
   public static BigDecimal toFetchValue(@Nullable Number value) {
-    final BigDecimal decimal = validateFetchValue(value);
-    if (decimal.signum() < 0) {
-      throw new IllegalArgumentException("FETCH value " + value
-          + " is out of range; expected a non-negative value");
-    }
-    return decimal;
+    return RexUtil.validateFetchValue(value);
   }
 
   /** Applies a FETCH value without narrowing it to {@code int} or {@code long}. */
@@ -229,7 +219,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       Function1<T, TKey> keySelector, @Nullable Comparator<TKey> comparator,
       int offset, @Nullable BigDecimal fetch) {
     if (fetch != null
-        && fetch.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) <= 0) {
+        && fetch.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) <= 0
+        && comparator != null) {
       return EnumerableDefaults.orderBy(source, keySelector, comparator,
           offset, fetch.intValueExact());
     }
@@ -240,56 +231,11 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return fetch == null ? result : take(result, fetch);
   }
 
-  private static BigDecimal validateFetchValue(@Nullable Number value) {
-    if (value == null) {
-      throw new IllegalArgumentException("FETCH expression evaluated to NULL");
-    }
-    final BigDecimal decimal = NumberUtil.toBigDecimal(value);
-    if (decimal == null) {
-      throw new IllegalArgumentException("FETCH value is not numeric: " + value);
-    }
-    try {
-      decimal.toBigIntegerExact();
-    } catch (ArithmeticException e) {
-      throw new IllegalArgumentException("FETCH value " + value
-          + " is not an integer", e);
-    }
-    return decimal;
-  }
-
   static void validateLiteralFetch(@Nullable RexNode fetch) {
     if (fetch instanceof RexLiteral) {
       final Number value = ((RexLiteral) fetch).getValueAs(Number.class);
       toFetchValue(value);
     }
-  }
-
-  /** Reduces a constant FETCH expression to a validated literal. */
-  public static @Nullable RexLiteral reduceFetchToLiteral(
-      RelOptCluster cluster, RexNode fetch) {
-    final RexLiteral literal;
-    if (fetch instanceof RexLiteral) {
-      literal = (RexLiteral) fetch;
-    } else {
-      if (!RexUtil.isConstant(fetch)
-          || !RexUtil.isDeterministic(fetch)
-          || RexUtil.containsDynamicFunction(fetch)
-          || RexUtil.containsDynamicParam(fetch)) {
-        return null;
-      }
-      final RexExecutor executor =
-          Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
-      final List<RexNode> reducedValues = new ArrayList<>(1);
-      executor.reduce(cluster.getRexBuilder(),
-          Collections.singletonList(fetch), reducedValues);
-      final RexNode reduced = reducedValues.get(0);
-      if (!(reduced instanceof RexLiteral)) {
-        return null;
-      }
-      literal = (RexLiteral) reduced;
-    }
-    toFetchValue(literal.getValueAs(Number.class));
-    return literal;
   }
 
 }

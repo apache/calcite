@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -39,6 +38,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -223,7 +223,7 @@ class ElasticsearchRules {
       final RexLiteral fetch =
           sort.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+              : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
       if (sort.fetch != null && fetch == null) {
         return null;
       }

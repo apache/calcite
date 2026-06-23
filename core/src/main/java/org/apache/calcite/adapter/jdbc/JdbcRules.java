@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
-import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Contexts;
@@ -776,7 +775,7 @@ public class JdbcRules {
           || sort.fetch instanceof RexDynamicParam) {
         fetch = sort.fetch;
       } else {
-        fetch = EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+        fetch = RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
         if (fetch == null) {
           return null;
         }
