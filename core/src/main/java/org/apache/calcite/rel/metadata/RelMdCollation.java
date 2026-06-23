@@ -66,6 +66,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -372,13 +373,13 @@ public class RelMdCollation
   /** Helper method to determine a
    * {@link org.apache.calcite.rel.core.Window}'s collation.
    *
-   * <p>A Window projects the fields of its input first, followed by the output
-   * from each of its windows. Assuming (quite reasonably) that the
-   * implementation does not re-order its input rows, then any collations of its
-   * input are preserved. */
+   * <p>A Window operator groups rows by PARTITION BY keys and sorts each
+   * partition by ORDER BY keys. The output order is therefore not defined by
+   * a simple collation in the general case, so we conservatively report no
+   * collations. */
   public static @Nullable List<RelCollation> window(RelMetadataQuery mq, RelNode input,
       ImmutableList<Window.Group> groups) {
-    return mq.collations(input);
+    return Collections.emptyList();
   }
 
   /** Helper method to determine a
