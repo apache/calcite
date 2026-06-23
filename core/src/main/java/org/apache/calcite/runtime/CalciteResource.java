@@ -741,7 +741,7 @@ public interface CalciteResource {
   @BaseMessage("Map requires an even number of arguments")
   ExInst<SqlValidatorException> mapRequiresEvenArgCount();
 
-  @BaseMessage("Function ''{0}'' should all be of type map, but it is ''{1}''")
+  @BaseMessage("Arguments of function ''{0}'' should all be of type MAP, but ''{1}'' was found")
   ExInst<SqlValidatorException> typesShouldAllBeMap(String funcName, String type);
 
   @BaseMessage("Incompatible types")
