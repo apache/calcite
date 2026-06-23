@@ -200,6 +200,14 @@ public class RexSimplify {
         && SqlTypeUtil.equalSansNullability(rexBuilder.typeFactory, e2.getType(), e.getType())) {
       return e2;
     }
+    // If simplification widens nullability (NOT NULL → nullable) without changing
+    // the base type, using a CAST to NOT NULL is wrong: e.g.
+    // x IS FALSE is not the same as CAST(NOT(x) AS BOOLEAN NOT NULL).
+    // Return the original expression to preserve both semantics and type.
+    if (!e.getType().isNullable() && e2.getType().isNullable()
+        && SqlTypeUtil.equalSansNullability(rexBuilder.typeFactory, e2.getType(), e.getType())) {
+      return e;
+    }
     final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability, false);
     if (e3.equals(e)) {
       return e;

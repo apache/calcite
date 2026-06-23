@@ -1938,9 +1938,13 @@ public class RelBuilder {
     if (config.simplify()) {
       conjunctionPredicates = simplifier.simplifyFilterPredicates(predicates);
     } else {
+      // The config says "do not simplify", but without the following optimizations
+      // filter construction may fail because the predicates do not respect
+      // invariants checked by the filter constructor in Filter.isValid().
       List<RexNode> simplified = new ArrayList<>();
       for (RexNode predicate : predicates) {
-        RexNode simple = RexSimplify.simplifyComparisonWithNull(predicate, getRexBuilder());
+        RexNode simple = simplifier.removeNullabilityCast(predicate);
+        simple = RexSimplify.simplifyComparisonWithNull(simple, getRexBuilder());
         simplified.add(simple);
       }
       conjunctionPredicates =

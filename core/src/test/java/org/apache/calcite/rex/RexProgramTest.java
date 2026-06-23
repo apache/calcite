@@ -3841,6 +3841,33 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(result2.getOperands().get(0), is(booleanInput));
   }
 
+  /** Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7619">[CALCITE-7619]
+   * RexSimplify incorrectly simplifies IS_FALSE(x) when x is nullable</a>. */
+  @Test void testSimplifyPreservingTypeIsNotNullCast() {
+    // IS_FALSE(nullable_bool) has type BOOLEAN NOT NULL.
+    final RexNode isFalseExpr = isFalse(vBool());
+    assertThat("IS_FALSE has NOT NULL type", isFalseExpr.getType().isNullable(), is(false));
+    final RexNode s0 = simplify.simplifyPreservingType(isFalseExpr, RexUnknownAs.FALSE, true);
+    // nullable_bool IS FALSE != CAST(NOT(nullable_bool) AS BOOL NOT NULL)
+    assertThat(s0.isA(SqlKind.CAST), is(false));
+
+    // simplify(IS_FALSE(nullable_bool), FALSE) = NOT(nullable_bool), which is nullable.
+    final RexNode s1 = simplify.simplify(isFalseExpr, RexUnknownAs.FALSE);
+    assertThat(s1.isA(SqlKind.NOT), is(true));
+    assertThat(s1.getType().isNullable(), is(true));
+
+    // IS_TRUE(nullable_bool) has type BOOLEAN NOT NULL.
+    final RexNode isTrueExpr = isTrue(vBool());
+    assertThat(isTrueExpr.getType().isNullable(), is(false));
+    final RexNode s2 = simplify.simplifyPreservingType(isTrueExpr, RexUnknownAs.FALSE, true);
+    // nullable_bool IS TRUE != CAST(nullable_bool AS BOOL NOT NULL)
+    assertThat(s2.isA(SqlKind.CAST), is(false));
+
+    // simplify(IS_TRUE(nullable_bool), FALSE) = nullable_bool, which is nullable.
+    final RexNode s3 = simplify.simplify(isTrueExpr, RexUnknownAs.FALSE);
+    assertThat(s3.getType().isNullable(), is(true));
+  }
+
   @Test void testSimplifyNot() {
     // "NOT(NOT(x))" => "x"
     checkSimplify(not(not(vBool())), "?0.bool0");
