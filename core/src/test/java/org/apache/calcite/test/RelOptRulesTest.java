@@ -87,6 +87,7 @@ import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
 import org.apache.calcite.rel.rules.MeasureRules;
 import org.apache.calcite.rel.rules.MultiJoin;
+import org.apache.calcite.rel.rules.MultiJoinOptimizeBushyRule;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
@@ -2326,6 +2327,29 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7619">[CALCITE-7619]
+   * RexSimplify incorrectly simplifies IS_FALSE(x) when x is nullable</a>. */
+  @Test void testExpressionSimplification3() {
+    final String sql = "WITH tmp(bool_col) AS (\n"
+        + "    VALUES (TRUE),\n"
+        + "           (FALSE),\n"
+        + "           (NULL)\n"
+        + ")\n"
+        + "SELECT *\n"
+        + "FROM tmp\n"
+        + "WHERE bool_col IS FALSE";
+    // Simplify actually hides the bug we are trying to solve, so we disable it.
+    // Without this fix the reduce rule will fail with an assertion failure
+    // becase it tries to create a filter with a cast that strips nullability.
+    RelBuilder.Config config = RelBuilder.Config.DEFAULT.withSimplify(false);
+    RelOptRule reduce =
+        ReduceExpressionsRule.FilterReduceExpressionsRule.FilterReduceExpressionsRuleConfig.DEFAULT
+        .withRelBuilderFactory(RelBuilder.proto(config)).toRule();
+    sql(sql)
+        .withRule(reduce)
+        .checkUnchanged();
   }
 
   @Test void testReduceAverage() {

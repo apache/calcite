@@ -5568,6 +5568,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExpressionSimplification3">
+    <Resource name="sql">
+      <![CDATA[WITH tmp(bool_col) AS (
+    VALUES (TRUE),
+           (FALSE),
+           (NULL)
+)
+SELECT *
+FROM tmp
+WHERE bool_col IS FALSE]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(BOOL_COL=[$0])
+  LogicalFilter(condition=[IS FALSE($0)])
+    LogicalValues(tuples=[[{ true }, { false }, { null }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExtractJoinFilterRule">
     <Resource name="sql">
       <![CDATA[select 1 from emp inner join dept on emp.deptno=dept.deptno]]>

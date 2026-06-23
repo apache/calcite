@@ -2425,7 +2425,7 @@ select sal from "scott".emp e
 
 !ok
 !if (use_old_decorr) {
-EnumerableCalc(expr#0..5=[{inputs}], expr#6=[RAND()], expr#7=[CAST($t6):INTEGER NOT NULL], expr#8=[2], expr#9=[MOD($t7, $t8)], expr#10=[3], expr#11=[=($t9, $t10)], expr#12=[OR($t11, $t3)], SAL=[$t1], $condition=[$t12])
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[RAND()], expr#7=[CAST($t6):INTEGER NOT NULL], expr#8=[2], expr#9=[MOD($t7, $t8)], expr#10=[3], expr#11=[=($t9, $t10)], expr#12=[IS NOT FALSE($t3)], expr#13=[IS NOT NULL($t3)], expr#14=[AND($t12, $t13)], expr#15=[OR($t11, $t14)], SAL=[$t1], $condition=[$t15])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
