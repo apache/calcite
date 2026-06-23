@@ -9230,7 +9230,9 @@ public class SqlOperatorTest {
         "(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
     // test zero arg, but it should return empty map.
     f.checkScalar("map_concat()", "{}",
-        "(VARCHAR NOT NULL, VARCHAR NOT NULL) MAP");
+        "(ANY NOT NULL, ANY NOT NULL) MAP");
+    f.checkScalar("map_concat(map_concat(), map[1, 2])", "{1=2}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
 
     // after calcite supports cast(null as map<string, int>), it should add these tests.
     if (TODO) {
@@ -9244,16 +9246,18 @@ public class SqlOperatorTest {
 
     // test only has one operand, but it is not map type.
     f.checkFails("^map_concat(1)^",
-        "Function 'MAP_CONCAT' should all be of type map, but it is 'INTEGER NOT NULL'", false);
-    f.checkFails("^map_concat(null)^",
-        "Function 'MAP_CONCAT' should all be of type map, but it is 'NULL'", false);
+        "Arguments of function 'MAP_CONCAT' should all be of type MAP, "
+            + "but 'INTEGER NOT NULL' was found", false);
+    // test operand is the NULL literal.
+    f.checkNull("map_concat(null)");
     // test operands in same type family, but it is not map type.
     f.checkFails("^map_concat(array[1], array[1])^",
-        "Function 'MAP_CONCAT' should all be of type map, "
-            + "but it is 'INTEGER NOT NULL ARRAY NOT NULL'", false);
-    f.checkFails("^map_concat(map['foo', 1], null)^",
-        "Function 'MAP_CONCAT' should all be of type map, "
-            + "but it is 'NULL'", false);
+        "Arguments of function 'MAP_CONCAT' should all be of type MAP, "
+            + "but 'INTEGER NOT NULL ARRAY NOT NULL' was found", false);
+    // test map operand with NULL literal.
+    f.checkNull("map_concat(map['foo', 1], null)");
+    f.checkType("map_concat(map['foo', 1], null)", "NULL");
+    f.checkNull("map_concat(null, map['foo', 1])");
     // test operands not in same type family.
     f.checkFails("^map_concat(map[1, null], array[1])^",
         "Parameters must be of the same type", false);
@@ -9272,6 +9276,9 @@ public class SqlOperatorTest {
         "(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
     f1.checkScalar("map_concat(map('foo', 1), map())", "{foo=1}",
         "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    // test zero arg, but it should return empty map.
+    f1.checkScalar("map_concat()", "{}",
+        "(ANY NOT NULL, ANY NOT NULL) MAP");
 
     // test operand is null map
     f1.checkNull("map_concat(map('foo', 1), cast(null as map<varchar, int>))");
@@ -9281,9 +9288,9 @@ public class SqlOperatorTest {
     f1.checkType("map_concat(cast(null as map<varchar, int>), map['foo', 1])",
         "(VARCHAR NOT NULL, INTEGER) MAP");
 
-    f1.checkFails("^map_concat(map('foo', 1), null)^",
-        "Function 'MAP_CONCAT' should all be of type map, "
-            + "but it is 'NULL'", false);
+    f1.checkNull("map_concat(map('foo', 1), null)");
+    f1.checkType("map_concat(map('foo', 1), null)", "NULL");
+    f1.checkNull("map_concat(null, map('foo', 1))");
     // test operands not in same type family.
     f1.checkFails("^map_concat(map(1, null), array[1])^",
         "Parameters must be of the same type", false);

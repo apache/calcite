@@ -1763,23 +1763,47 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY.or(OperandTypes.ARRAY_BOOLEAN_LITERAL));
 
   private static RelDataType deriveTypeMapConcat(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     if (opBinding.getOperandCount() == 0) {
-      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      final RelDataType type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-      requireNonNull(type, "type");
+      final RelDataType type = typeFactory.createSqlType(SqlTypeName.ANY);
       return SqlTypeUtil.createMapType(typeFactory, type, type, true);
-    } else {
-      final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
-      for (RelDataType operandType : operandTypes) {
-        if (!SqlTypeUtil.isMap(operandType)) {
-          throw opBinding.newError(
-              RESOURCE.typesShouldAllBeMap(
-                  opBinding.getOperator().getName(),
-                  operandType.getFullTypeString()));
-        }
-      }
-      return requireNonNull(opBinding.getTypeFactory().leastRestrictive(operandTypes));
     }
+    final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+    final List<RelDataType> mapTypes = new ArrayList<>();
+    boolean hasNull = false;
+    for (RelDataType operandType : operandTypes) {
+      if (operandType.getSqlTypeName() == SqlTypeName.NULL) {
+        hasNull = true;
+      } else if (SqlTypeUtil.isMap(operandType)) {
+        mapTypes.add(operandType);
+      } else {
+        throw opBinding.newError(
+            RESOURCE.typesShouldAllBeMap(
+                opBinding.getOperator().getName(),
+                operandType.getFullTypeString()));
+      }
+    }
+    if (mapTypes.isEmpty() || hasNull) {
+      // All arguments are NULL literals, or at least one null argument;
+      // the result is NULL.
+      return typeFactory.createSqlType(SqlTypeName.NULL);
+    }
+    // If there are MAP<ANY, ANY> placeholders (e.g. from map_concat() with no
+    // arguments) alongside more specific MAP types, ignore the placeholders and
+    // infer the type from the specific maps.
+    final List<RelDataType> concreteMapTypes = new ArrayList<>();
+    for (RelDataType mapType : mapTypes) {
+      final RelDataType keyType = requireNonNull(mapType.getKeyType());
+      final RelDataType valueType = requireNonNull(mapType.getValueType());
+      if (keyType.getSqlTypeName() == SqlTypeName.ANY
+          && valueType.getSqlTypeName() == SqlTypeName.ANY) {
+        continue;
+      }
+      concreteMapTypes.add(mapType);
+    }
+    final List<RelDataType> typesToUse =
+        concreteMapTypes.isEmpty() ? mapTypes : concreteMapTypes;
+    return requireNonNull(typeFactory.leastRestrictive(typesToUse));
   }
 
   /** The "MAP_CONCAT(map [, map]*)" function. */
