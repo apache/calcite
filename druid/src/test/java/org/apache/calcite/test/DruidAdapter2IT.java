@@ -985,10 +985,10 @@ public class DruidAdapter2IT {
     final String sql = "select \"state_province\"\n"
         + "from \"foodmart\"\n"
         + "fetch next "
-        + "(cast(18446744073709551616 as decimal(20, 0))) rows only";
+        + "(cast(3000000000 as bigint) + 1) rows only";
     sql(sql)
         .returnsCount(86837)
-        .explainContains("BindableSort(fetch=[18446744073709551616:DECIMAL(20, 0)])\n"
+        .explainContains("BindableSort(fetch=[3000000001:BIGINT])\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], ");
   }
 
