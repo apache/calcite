@@ -151,7 +151,7 @@ class CassandraAdapterTest {
             + "fetch next "
             + "(cast(3000000000 as bigint) + 1) rows only")
         .returnsCount(146)
-        .explainContains("EnumerableLimit(fetch=[3000000001:BIGINT])\n"
+        .explainContains("EnumerableLimit(fetch=[+(3000000000:BIGINT, 1)])\n"
             + "  CassandraToEnumerableConverter\n");
   }
 

@@ -3831,6 +3831,35 @@ public class JdbcTest {
     }
   }
 
+  @Test void testCorrelatedPreparedFetchExpression() throws Exception {
+    for (String fetch : new String[] {"?", "(? + 0)"}) {
+      final String sql = "select d.\"name\" as dname, e.\"name\" as ename\n"
+          + "from \"hr\".\"depts\" d,\n"
+          + "lateral (select \"empid\", \"name\" from \"hr\".\"emps\"\n"
+          + "  where \"deptno\" = d.\"deptno\"\n"
+          + "  order by \"empid\" fetch next " + fetch + " rows only) e\n"
+          + "order by e.\"empid\"";
+      for (boolean topDown : new boolean[] {false, true}) {
+        CalciteAssert.hr()
+            .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
+            .doWithConnection(connection -> {
+              checkPreparedFetchRepeated(connection, sql,
+                  new int[] {1, 3},
+                  new String[] {
+                      "DNAME=Sales; ENAME=Bill\n",
+                      "DNAME=Sales; ENAME=Bill\n"
+                          + "DNAME=Sales; ENAME=Theodore\n"
+                          + "DNAME=Sales; ENAME=Sebastian\n"
+                  });
+              checkPreparedFetchFails(connection, sql, -1,
+                  "FETCH value -1 is out of range");
+              checkPreparedFetchNullFails(connection, sql,
+                  "FETCH expression evaluated to NULL");
+            });
+      }
+    }
+  }
+
   /** Tests FETCH values beyond the range of BIGINT. */
   @Test void testFetchExpressionBeyondLong() {
     final CalciteAssert.AssertThat with = CalciteAssert.that();
@@ -6169,6 +6198,18 @@ public class JdbcTest {
       } else {
         p.setLong(1, value);
       }
+      final SQLException e =
+          assertThrows(SQLException.class, p::executeQuery);
+      assertThat(e.getMessage(), containsString(expectedMessage));
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static void checkPreparedFetchNullFails(Connection connection, String sql,
+      String expectedMessage) {
+    try (PreparedStatement p = connection.prepareStatement(sql)) {
+      p.setNull(1, Types.INTEGER);
       final SQLException e =
           assertThrows(SQLException.class, p::executeQuery);
       assertThat(e.getMessage(), containsString(expectedMessage));
