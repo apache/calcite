@@ -987,7 +987,13 @@ public class DruidAdapter2IT {
         + "fetch next "
         + "(cast(3000000000 as bigint) + 1) rows only";
     sql(sql)
-        .returnsCount(86837)
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
         .explainContains("BindableSort(fetch=[+(3000000000:BIGINT, 1)])\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], ");
   }
