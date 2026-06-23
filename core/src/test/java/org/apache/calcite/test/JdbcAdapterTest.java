@@ -18,11 +18,17 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
@@ -40,6 +46,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,7 +54,9 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -1694,6 +1703,99 @@ class JdbcAdapterTest {
 
     rs.close();
     calciteConnection.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7616">[CALCITE-7616]
+   * ProjectToLogicalProjectAndWindowRule should not match non-logical Project
+   * nodes with JDBC convention</a>.
+   *
+   * <p>When a JDBC schema's dialect supports window functions (e.g. MySQL),
+   * a query with window functions (RANK, ROW_NUMBER, etc.) should not throw
+   * AssertionError because {@code ProjectToLogicalProjectAndWindowRule}
+   * fires on {@code JdbcProject} and creates {@code LogicalWindow} with
+   * JDBC convention.
+   *
+   * <p>Uses an in-memory HSQLDB database with a custom schema factory
+   * ({@link WindowSupportingJdbcSchemaFactory}) that wraps the HSQLDB
+   * connection with MySQL dialect. HSQLDB's own dialect reports
+   * {@code supportsWindowFunctions() = false}, so MySQL dialect (which
+   * reports {@code true}) is needed to trigger
+   * {@code JdbcProjectRule} to convert projects containing OVER expressions
+   * into {@code JdbcProject} nodes. */
+  @Test void testWindowFunctionJdbcConvention() throws Exception {
+    final String jdbcUrl = "jdbc:hsqldb:mem:jdbcwindowconventiontest";
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, "SA", "")) {
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute("CREATE TABLE emp ("
+            + "empno INT, "
+            + "sal DECIMAL(10,2)"
+            + ")");
+        stmt.execute("INSERT INTO emp VALUES "
+            + "(1, 100.00), "
+            + "(2, 200.00), "
+            + "(3, 300.00)");
+      }
+    }
+
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'TEST',\n"
+        + "  schemas: [{\n"
+        + "    type: 'custom',\n"
+        + "    name: 'TEST',\n"
+        + "    factory: '" + WindowSupportingJdbcSchemaFactory.class.getName() + "',\n"
+        + "    operand: {\n"
+        + "      jdbcUrl: '" + jdbcUrl + "',\n"
+        + "      jdbcDriver: 'org.hsqldb.jdbcDriver',\n"
+        + "      jdbcUser: 'SA',\n"
+        + "      jdbcPassword: ''\n"
+        + "    }\n"
+        + "  }]\n"
+        + "}";
+
+    final String sql = "SELECT empno, RANK() OVER (ORDER BY sal DESC) AS rnk\n"
+        + "FROM emp";
+
+    try {
+      CalciteAssert.model(model)
+          .query(sql)
+          .runs();
+    } catch (Exception e) {
+      // After fix, the convention AssertionError should NOT occur.
+      // The query may fail because HSQLDB does not support RANK(), but
+      // that is a runtime SQL error, not a planner convention error.
+      assertThat(e.getMessage(),
+          not(stringContainsInOrder("calling-convention")));
+    }
+  }
+
+  /** Custom JDBC schema factory wrapping HSQLDB with MySQL dialect.
+   *
+   * <p>HSQLDB's dialect reports {@code supportsWindowFunctions() = false},
+   * so MySQL dialect is used to trigger the JdbcProjectRule path that
+   * exercises CALCITE-7616. */
+  public static class WindowSupportingJdbcSchemaFactory
+      implements SchemaFactory {
+
+    @Override public Schema create(SchemaPlus parentSchema, String name,
+        Map<String, Object> operand) {
+      final String jdbcUrl = (String) operand.get("jdbcUrl");
+      final String jdbcDriver = (String) operand.get("jdbcDriver");
+      final String jdbcUser = (String) operand.get("jdbcUser");
+      final String jdbcPassword = (String) operand.get("jdbcPassword");
+
+      final javax.sql.DataSource dataSource =
+          JdbcSchema.dataSource(jdbcUrl, jdbcDriver, jdbcUser, jdbcPassword);
+
+      final SqlDialect dialect =
+          new MysqlSqlDialect(
+              SqlDialect.EMPTY_CONTEXT
+                  .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL));
+
+      return JdbcSchema.create(parentSchema, name, dataSource,
+          databaseMetaData -> dialect, null, null);
+    }
   }
 
   /** Acquires a lock, and releases it when closed. */

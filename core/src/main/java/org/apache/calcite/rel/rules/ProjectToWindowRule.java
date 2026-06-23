@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
@@ -193,7 +194,7 @@ public abstract class ProjectToWindowRule
       ProjectToLogicalProjectAndWindowRuleConfig DEFAULT =
           ImmutableProjectToLogicalProjectAndWindowRuleConfig.of()
               .withOperandSupplier(b ->
-                  b.operand(Project.class)
+                  b.operand(LogicalProject.class)
                       .predicate(Project::containsOver)
                       .anyInputs())
               .withDescription("ProjectToWindowRule:project");
