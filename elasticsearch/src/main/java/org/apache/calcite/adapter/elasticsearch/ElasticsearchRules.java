@@ -223,9 +223,16 @@ class ElasticsearchRules {
       final RexLiteral fetch =
           sort.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLongLiteral(sort.getCluster(), sort.fetch);
+              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
       if (sort.fetch != null && fetch == null) {
         return null;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).longValueExact();
+        } catch (ArithmeticException e) {
+          return null;
+        }
       }
       final RelTraitSet traitSet = sort.getTraitSet().replace(out).replace(sort.getCollation());
       return new ElasticsearchSort(relNode.getCluster(), traitSet,

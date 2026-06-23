@@ -28,6 +28,7 @@ import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -58,9 +59,9 @@ public class SortNode extends AbstractSingleNode<Sort> {
         () -> "getValueAs(Integer.class) for " + node);
   }
 
-  private int getFetch() {
+  private @Nullable BigDecimal getFetch() {
     if (rel.fetch == null) {
-      return -1;
+      return null;
     }
     final @Nullable Number value;
     if (rel.fetch instanceof RexLiteral) {
@@ -74,7 +75,7 @@ public class SortNode extends AbstractSingleNode<Sort> {
       }
       value = (Number) result;
     }
-    return EnumerableLimit.toIntFetch(value);
+    return EnumerableLimit.toFetchValue(value);
   }
 
   @Override public void run() throws InterruptedException {
@@ -82,7 +83,7 @@ public class SortNode extends AbstractSingleNode<Sort> {
         rel.offset == null
             ? 0
             : getValueAsInt(rel.offset);
-    final int fetch = getFetch();
+    final @Nullable BigDecimal fetch = getFetch();
     // In pure limit mode. No sort required.
     Row row;
   loop:
@@ -93,9 +94,12 @@ public class SortNode extends AbstractSingleNode<Sort> {
           break loop;
         }
       }
-      if (fetch >= 0) {
-        for (int i = 0; i < fetch && (row = source.receive()) != null; i++) {
+      if (fetch != null) {
+        BigDecimal fetched = BigDecimal.ZERO;
+        while (fetched.compareTo(fetch) < 0
+            && (row = source.receive()) != null) {
           sink.send(row);
+          fetched = fetched.add(BigDecimal.ONE);
         }
       } else {
         while ((row = source.receive()) != null) {
@@ -109,9 +113,11 @@ public class SortNode extends AbstractSingleNode<Sort> {
         list.add(row);
       }
       list.sort(comparator());
-      final int end = fetch < 0 || offset + fetch > list.size()
+      final int available = Math.max(list.size() - offset, 0);
+      final int end = fetch == null
+          || fetch.compareTo(BigDecimal.valueOf(available)) >= 0
           ? list.size()
-          : offset + fetch;
+          : offset + fetch.intValueExact();
       for (int i = offset; i < end; i++) {
         sink.send(list.get(i));
       }

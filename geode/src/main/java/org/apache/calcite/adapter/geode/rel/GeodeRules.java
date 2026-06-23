@@ -225,9 +225,16 @@ public class GeodeRules {
       final RexLiteral fetch =
           sort.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToLongLiteral(sort.getCluster(), sort.fetch);
+              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
       if (sort.fetch != null && fetch == null) {
         return;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).longValueExact();
+        } catch (ArithmeticException e) {
+          return;
+        }
       }
 
       final RelTraitSet traitSet = sort.getTraitSet()

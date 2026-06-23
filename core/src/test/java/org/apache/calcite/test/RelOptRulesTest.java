@@ -12010,6 +12010,33 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testNondeterministicFetchPreventsDecorrelation() {
+    checkNondeterministicFetchPreventsDecorrelation(false);
+  }
+
+  @Test void testNondeterministicFetchPreventsTopDownDecorrelation() {
+    checkNondeterministicFetchPreventsDecorrelation(true);
+  }
+
+  private void checkNondeterministicFetchPreventsDecorrelation(boolean topDown) {
+    final String sql = "select t.deptno, e.ename\n"
+        + "from (select distinct deptno from emp) t,\n"
+        + "lateral (select ename from emp\n"
+        + "  where emp.deptno = t.deptno\n"
+        + "  order by sal\n"
+        + "  fetch next (rand_integer(2) + 1) rows only) e";
+
+    final RelOptFixture fixture = sql(sql)
+        .withRule() // empty program
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(topDown);
+    if (topDown) {
+      fixture.check();
+    } else {
+      fixture.checkUnchanged();
+    }
+  }
+
   @Test void testTopDownGeneralDecorrelateForFilterSome() {
     final String sql = "select empno from emp where "
         + "empno > SOME(select empno from emp_b where emp.ename = emp_b.ename)";

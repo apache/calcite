@@ -410,9 +410,16 @@ public class CassandraRules {
       final RexLiteral fetch =
           limit.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToIntLiteral(limit.getCluster(), limit.fetch);
+              : EnumerableLimit.reduceFetchToLiteral(limit.getCluster(), limit.fetch);
       if (limit.fetch != null && fetch == null) {
         return null;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).intValueExact();
+        } catch (ArithmeticException e) {
+          return null;
+        }
       }
       final RelTraitSet traitSet =
           limit.getTraitSet().replace(CassandraRel.CONVENTION);

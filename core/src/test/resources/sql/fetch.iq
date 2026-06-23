@@ -48,6 +48,22 @@ fetch next (abs(2)) rows only;
 
 !ok
 
+# FETCH values are not restricted to the BIGINT range.
+select *
+from (values (1), (2), (3), (4)) as t(x)
+fetch next (cast(9223372036854775808 as decimal(20, 0)) + 1) rows only;
++---+
+| X |
++---+
+| 1 |
+| 2 |
+| 3 |
+| 4 |
++---+
+(4 rows)
+
+!ok
+
 # FETCH expression cannot be negative.
 select *
 from (values (1), (2), (3)) as t(x)

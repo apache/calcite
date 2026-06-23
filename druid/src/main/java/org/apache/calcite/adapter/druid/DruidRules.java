@@ -854,9 +854,16 @@ public class DruidRules {
       final RexLiteral fetch =
           sort.fetch == null
               ? null
-              : EnumerableLimit.reduceFetchToIntLiteral(sort.getCluster(), sort.fetch);
+              : EnumerableLimit.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
       if (sort.fetch != null && fetch == null) {
         return;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).intValueExact();
+        } catch (ArithmeticException e) {
+          return;
+        }
       }
       if (!DruidQuery.isValidSignature(query.signature() + 'l')) {
         return;

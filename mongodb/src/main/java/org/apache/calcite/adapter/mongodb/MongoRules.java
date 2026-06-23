@@ -273,6 +273,13 @@ public class MongoRules {
       if (sort.fetch != null && fetch == null) {
         return null;
       }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).longValueExact();
+        } catch (ArithmeticException e) {
+          return null;
+        }
+      }
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(out)
               .replace(sort.getCollation());

@@ -255,6 +255,16 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$limit: 3000000001}"));
   }
 
+  @Test void testFetchExpressionBeyondLongRange() {
+    assertModel(MODEL)
+        .query("select state, id from zips\n"
+            + "fetch next "
+            + "(cast(9223372036854775808 as decimal(20, 0))) rows only")
+        .returnsCount(ZIPS_SIZE)
+        .explainContains("EnumerableLimit(fetch=[9223372036854775808:DECIMAL(19, 0)])\n"
+            + "  MongoToEnumerableConverter\n");
+  }
+
   @Test void testJoin() {
     assertModel(MODEL)
         .query("select b.state, a.id from zips as a join zips as b on a.id=b.id where a.id='02401' "

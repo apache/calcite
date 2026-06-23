@@ -981,6 +981,17 @@ public class DruidAdapter2IT {
         .throws_("FETCH value -1 is out of range");
   }
 
+  @Test void testFetchExpressionBeyondIntegerRange() {
+    final String sql = "select \"state_province\"\n"
+        + "from \"foodmart\"\n"
+        + "fetch next "
+        + "(cast(18446744073709551616 as decimal(20, 0))) rows only";
+    sql(sql)
+        .returnsCount(86837)
+        .explainContains("BindableSort(fetch=[18446744073709551616:DECIMAL(20, 0)])\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], ");
+  }
+
   /** Tests that distinct-count is pushed down to Druid and evaluated using
    * "cardinality". The result is approximate, but gives the correct result in
    * this example when rounded down using FLOOR. */

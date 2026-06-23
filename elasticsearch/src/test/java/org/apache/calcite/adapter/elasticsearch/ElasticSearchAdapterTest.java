@@ -596,6 +596,16 @@ class ElasticSearchAdapterTest {
         .explainContains("ElasticsearchSort(fetch=[3000000001:BIGINT])");
   }
 
+  @Test void testFetchExpressionBeyondLongRange() {
+    calciteAssert()
+        .query("select state, id from zips\n"
+            + "fetch next "
+            + "(cast(9223372036854775808 as decimal(20, 0))) rows only")
+        .returnsCount(ZIPS_SIZE)
+        .explainContains("EnumerableLimit(fetch=[9223372036854775808:DECIMAL(19, 0)])\n"
+            + "  ElasticsearchToEnumerableConverter\n");
+  }
+
   @Test void limit2() {
     final String sql = "select id from zips limit 5";
     calciteAssert()

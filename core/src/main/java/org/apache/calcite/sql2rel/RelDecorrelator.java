@@ -574,6 +574,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Its output does not change the input ordering, so there's no
     // need to call propagateExpr.
 
+    if (isCorVarDefined
+        && rel.fetch != null
+        && !RexUtil.isDeterministic(rel.fetch)) {
+      return null;
+    }
+
     final RelNode oldInput = rel.getInput();
     final Frame frame = getInvoke(oldInput, isCorVarDefined, rel, true);
     if (frame == null) {

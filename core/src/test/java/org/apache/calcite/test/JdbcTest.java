@@ -3778,12 +3778,16 @@ public class JdbcTest {
   /** Tests FETCH expressions in bindable/interpreter convention. */
   @Test void testBindableFetchExpression() {
     try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
-      CalciteAssert.that()
+      final CalciteAssert.AssertThat with = CalciteAssert.that();
+      with
           .query("select * from (values (1), (2), (3), (4)) as t(x)\n"
               + "fetch next (rand_integer(1) + 2) rows only")
           .explainContains("BindableSort(fetch=[+(RAND_INTEGER(1), 2)])")
           .returns("X=1\n"
               + "X=2\n");
+      with.query("select * from (values (1), (2), (3), (4)) as t(x)\n"
+          + "fetch next (cast(9223372036854775808 as decimal(20, 0))) rows only")
+          .returns("X=1\nX=2\nX=3\nX=4\n");
     }
   }
 
@@ -3804,26 +3808,27 @@ public class JdbcTest {
     final CalciteAssert.AssertThat with = CalciteAssert.that();
     final String values = "select * from (values (1), (2), (3)) as t(x)\n";
     with.query(values + "fetch next (0 - 1) rows only")
-        .throws_("FETCH value -1 is out of range; expected a value between 0 and "
-            + Integer.MAX_VALUE);
+        .throws_("FETCH value -1 is out of range; expected a non-negative value");
     with.query(values + "fetch next (-1) rows only")
-        .throws_("FETCH value -1 is out of range; expected a value between 0 and "
-            + Integer.MAX_VALUE);
-    with.query(values
-        + "fetch next (cast(3000000000 as bigint) + 1) rows only")
-        .throws_("FETCH value 3000000001 is out of range; "
-            + "expected a value between 0 and " + Integer.MAX_VALUE);
-    with.query(values
-        + "fetch next (cast(3000000001 as bigint)) rows only")
-        .throws_("FETCH value 3000000001 is out of range; "
-            + "expected a value between 0 and " + Integer.MAX_VALUE);
-    with.query(values
-        + "fetch next (abs(cast(3000000001 as bigint))) rows only")
-        .throws_("FETCH value 3000000001 is out of range; "
-            + "expected a value between 0 and " + Integer.MAX_VALUE);
+        .throws_("FETCH value -1 is out of range; expected a non-negative value");
     with.query(values
         + "fetch next (cast(null as integer)) rows only")
         .throws_("FETCH expression evaluated to NULL");
+  }
+
+  /** Tests FETCH values beyond the range of BIGINT. */
+  @Test void testFetchExpressionBeyondLong() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3), (4)) as t(x)\n";
+    final String expected = "X=1\nX=2\nX=3\nX=4\n";
+    with.query(values + "fetch next 9223372036854775808 rows only")
+        .returns(expected);
+    with.query(values + "fetch next "
+        + "(cast(9223372036854775808 as decimal(20, 0)) + 1) rows only")
+        .returns(expected);
+    with.query(values + "order by x fetch next "
+        + "(cast(9223372036854775808 as decimal(20, 0)) + 1) rows only")
+        .returns(expected);
   }
 
   /** Tests ORDER BY ... OFFSET ... FETCH. */
@@ -6066,6 +6071,10 @@ public class JdbcTest {
           checkPreparedFetch(connection,
               values + "fetch next (? + abs(2)) rows only",
               1, "X=1\nX=2\nX=3\n");
+          checkPreparedFetch(connection,
+              values + "fetch next (cast(? as decimal(20, 0))) rows only",
+              new BigDecimal("9223372036854775808"),
+              "X=1\nX=2\nX=3\nX=4\n");
 
           checkPreparedFetchFails(connection,
               values + "fetch next (?) rows only", -1,
@@ -6073,10 +6082,6 @@ public class JdbcTest {
           checkPreparedFetchFails(connection,
               values + "fetch next (? + 1) rows only", -2,
               "FETCH value -1 is out of range");
-          checkPreparedFetchFails(connection,
-              values + "fetch next (abs(cast(? as bigint))) rows only",
-              3_000_000_001L,
-              "FETCH value 3000000001 is out of range");
         });
   }
 
@@ -6095,6 +6100,10 @@ public class JdbcTest {
                 new int[] {0, 2, 3},
                 new String[] {"X=1\n", "X=1\nX=2\nX=3\n",
                     "X=1\nX=2\nX=3\nX=4\n"});
+            checkPreparedFetch(connection,
+                values + "fetch next (cast(? as decimal(20, 0))) rows only",
+                new BigDecimal("9223372036854775808"),
+                "X=1\nX=2\nX=3\nX=4\n");
           });
     }
   }
@@ -6103,6 +6112,18 @@ public class JdbcTest {
       int value, String expected) {
     try (PreparedStatement p = connection.prepareStatement(sql)) {
       p.setInt(1, value);
+      try (ResultSet r = p.executeQuery()) {
+        assertThat(CalciteAssert.toString(r), is(expected));
+      }
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static void checkPreparedFetch(Connection connection, String sql,
+      BigDecimal value, String expected) {
+    try (PreparedStatement p = connection.prepareStatement(sql)) {
+      p.setBigDecimal(1, value);
       try (ResultSet r = p.executeQuery()) {
         assertThat(CalciteAssert.toString(r), is(expected));
       }

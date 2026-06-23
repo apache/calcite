@@ -11027,6 +11027,95 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNondeterministicFetchPreventsDecorrelation">
+    <Resource name="sql">
+      <![CDATA[select t.deptno, e.ename
+from (select distinct deptno from emp) t,
+lateral (select ename from emp
+  where emp.deptno = t.deptno
+  order by sal
+  fetch next (rand_integer(2) + 1) rows only) e]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalSort(sort0=[$1], dir0=[ASC], fetch=[+(RAND_INTEGER(2), 1)])
+        LogicalProject(ENAME=[$1], SAL=[$5])
+          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalSort(sort0=[$1], dir0=[ASC], fetch=[+(RAND_INTEGER(2), 1)])
+        LogicalProject(ENAME=[$1], SAL=[$5])
+          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNondeterministicFetchPreventsTopDownDecorrelation">
+    <Resource name="sql">
+      <![CDATA[select t.deptno, e.ename
+from (select distinct deptno from emp) t,
+lateral (select ename from emp
+  where emp.deptno = t.deptno
+  order by sal
+  fetch next (rand_integer(2) + 1) rows only) e]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalSort(sort0=[$1], dir0=[ASC], fetch=[+(RAND_INTEGER(2), 1)])
+        LogicalProject(ENAME=[$1], SAL=[$5])
+          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalSort(sort0=[$1], dir0=[ASC], fetch=[+(RAND_INTEGER(2), 1)])
+        LogicalProject(ENAME=[$1], SAL=[$5])
+          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$0])
+    LogicalSort(sort0=[$1], dir0=[ASC], fetch=[+(RAND_INTEGER(2), 1)])
+      LogicalProject(ENAME=[$1], SAL=[$5])
+        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotInNullableKey">
     <Resource name="sql">
       <![CDATA[select * from empnullables as e1

@@ -86,7 +86,7 @@ public class GeodeSort extends Sort implements GeodeRel {
     }
 
     if (fetch != null) {
-      geodeImplementContext.setLimit(RexLiteral.numberValue(fetch).longValue());
+      geodeImplementContext.setLimit(RexLiteral.bigDecimalValue(fetch).longValueExact());
     }
   }
 

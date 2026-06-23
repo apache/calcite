@@ -143,6 +143,18 @@ class CassandraAdapterTest {
         .throws_("FETCH value -1 is out of range");
   }
 
+  @Test void testFetchExpressionBeyondIntegerRange() {
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" "
+            + "where \"username\" = '!PUBLIC!' "
+            + "fetch next "
+            + "(cast(18446744073709551616 as decimal(20, 0))) rows only")
+        .returnsCount(146)
+        .explainContains("EnumerableLimit(fetch=[18446744073709551616:DECIMAL(20, 0)])\n"
+            + "  CassandraToEnumerableConverter\n");
+  }
+
   @Test void testSortLimit() {
     CalciteAssert.that()
         .with(TWISSANDRA)

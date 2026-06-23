@@ -17,6 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -42,8 +47,10 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
@@ -118,7 +125,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     if (fetch != null) {
       v =
           builder.append("fetch",
-              Expressions.call(v, BuiltInMethod.TAKE.method,
+              Expressions.call(EnumerableLimit.class, "take", v,
                   getExpressionForFetch(fetch, implementor, builder)));
     }
 
@@ -135,8 +142,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
               Expressions.constant("?" + param.getIndex())),
           Integer.class);
     } else {
-      // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET, not BIGINT types.
-      //  Currently, using BIGINT types for execution will result in an error message.
+      // TODO: Enumerable runtime only supports INT types for OFFSET, not BIGINT types.
+      //  Currently, using BIGINT types for OFFSET will result in an error message.
       //  This issue needs to be fixed. For more information, see CALCITE-7156.
       return Expressions.constant(RexLiteral.intValue(rexNode));
     }
@@ -146,7 +153,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       EnumerableRelImplementor implementor, BlockBuilder builder) {
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
-      return Expressions.call(EnumerableLimit.class, "toIntFetch",
+      return Expressions.call(EnumerableLimit.class, "toFetchValue",
           Expressions.convert_(
               Expressions.call(DataContext.ROOT,
                   BuiltInMethod.DATA_CONTEXT_GET.method,
@@ -154,53 +161,83 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
               Number.class));
     } else if (rexNode instanceof RexLiteral) {
       return Expressions.constant(
-          toIntFetch(((RexLiteral) rexNode).getValueAs(Number.class)));
+          toFetchValue(((RexLiteral) rexNode).getValueAs(Number.class)));
     } else {
       final Expression expression =
           RexToLixTranslator.forAggregation(implementor.getTypeFactory(),
               builder, null, implementor.getConformance())
               .translate(rexNode);
-      return Expressions.call(EnumerableLimit.class, "toIntFetch",
+      return Expressions.call(EnumerableLimit.class, "toFetchValue",
           Expressions.convert_(Expressions.box(expression), Number.class));
     }
   }
 
-  /** Converts a FETCH expression result to the range supported by Enumerable. */
-  public static int toIntFetch(@Nullable Number value) {
+  /** Converts a FETCH expression result to Calcite's canonical representation. */
+  public static BigDecimal toFetchValue(@Nullable Number value) {
     final BigDecimal decimal = validateFetchValue(value);
-    final int result;
-    try {
-      result = decimal.intValueExact();
-    } catch (ArithmeticException e) {
+    if (decimal.signum() < 0) {
       throw new IllegalArgumentException("FETCH value " + value
-          + " is out of range; expected a value between 0 and "
-          + Integer.MAX_VALUE, e);
+          + " is out of range; expected a non-negative value");
     }
-    if (result < 0) {
-      throw new IllegalArgumentException("FETCH value " + value
-          + " is out of range; expected a value between 0 and "
-          + Integer.MAX_VALUE);
-    }
-    return result;
+    return decimal;
   }
 
-  /** Converts a FETCH expression result to the range supported by a long. */
-  public static long toLongFetch(@Nullable Number value) {
-    final BigDecimal decimal = validateFetchValue(value);
-    final long result;
-    try {
-      result = decimal.longValueExact();
-    } catch (ArithmeticException e) {
-      throw new IllegalArgumentException("FETCH value " + value
-          + " is out of range; expected a value between 0 and "
-          + Long.MAX_VALUE, e);
+  /** Applies a FETCH value without narrowing it to {@code int} or {@code long}. */
+  public static <T> Enumerable<T> take(Enumerable<T> source, BigDecimal fetch) {
+    final BigInteger count = fetch.toBigIntegerExact();
+    return new AbstractEnumerable<T>() {
+      @Override public Enumerator<T> enumerator() {
+        final Enumerator<T> input = source.enumerator();
+        return new Enumerator<T>() {
+          private BigInteger remaining = count;
+          private boolean done;
+
+          @Override public T current() {
+            return input.current();
+          }
+
+          @Override public boolean moveNext() {
+            if (done) {
+              return false;
+            }
+            if (remaining.signum() == 0 || !input.moveNext()) {
+              done = true;
+              return false;
+            }
+            // Preserve take(int)'s eager evaluation of the current row.
+            input.current();
+            remaining = remaining.subtract(BigInteger.ONE);
+            return true;
+          }
+
+          @Override public void reset() {
+            input.reset();
+            remaining = count;
+            done = false;
+          }
+
+          @Override public void close() {
+            input.close();
+          }
+        };
+      }
+    };
+  }
+
+  /** Sorts and applies FETCH while preserving an arbitrary-precision value. */
+  public static <T, TKey> Enumerable<T> orderBy(Enumerable<T> source,
+      Function1<T, TKey> keySelector, @Nullable Comparator<TKey> comparator,
+      int offset, @Nullable BigDecimal fetch) {
+    if (fetch != null
+        && fetch.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) <= 0) {
+      return EnumerableDefaults.orderBy(source, keySelector, comparator,
+          offset, fetch.intValueExact());
     }
-    if (result < 0) {
-      throw new IllegalArgumentException("FETCH value " + value
-          + " is out of range; expected a value between 0 and "
-          + Long.MAX_VALUE);
+    Enumerable<T> result = EnumerableDefaults.orderBy(source, keySelector, comparator);
+    if (offset > 0) {
+      result = result.skip(offset);
     }
-    return result;
+    return fetch == null ? result : take(result, fetch);
   }
 
   private static BigDecimal validateFetchValue(@Nullable Number value) {
@@ -223,10 +260,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   static void validateLiteralFetch(@Nullable RexNode fetch) {
     if (fetch instanceof RexLiteral) {
       final Number value = ((RexLiteral) fetch).getValueAs(Number.class);
-      final BigDecimal decimal = NumberUtil.toBigDecimal(value);
-      if (decimal != null && decimal.signum() < 0) {
-        toIntFetch(value);
-      }
+      toFetchValue(value);
     }
   }
 
@@ -254,34 +288,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       }
       literal = (RexLiteral) reduced;
     }
-    final Number value = literal.getValueAs(Number.class);
-    if (validateFetchValue(value).signum() < 0) {
-      throw new IllegalArgumentException(
-          "FETCH value " + value + " is out of range; expected a non-negative value");
-    }
+    toFetchValue(literal.getValueAs(Number.class));
     return literal;
-  }
-
-  /** Reduces a constant FETCH expression to a validated integer literal. */
-  public static @Nullable RexLiteral reduceFetchToIntLiteral(
-      RelOptCluster cluster, RexNode fetch) {
-    final RexLiteral literal = reduceFetchToLiteral(cluster, fetch);
-    if (literal == null) {
-      return null;
-    }
-    final int value = toIntFetch(literal.getValueAs(Number.class));
-    return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
-  }
-
-  /** Reduces a constant FETCH expression to a validated long literal. */
-  public static @Nullable RexLiteral reduceFetchToLongLiteral(
-      RelOptCluster cluster, RexNode fetch) {
-    final RexLiteral literal = reduceFetchToLiteral(cluster, fetch);
-    if (literal == null) {
-      return null;
-    }
-    final long value = toLongFetch(literal.getValueAs(Number.class));
-    return cluster.getRexBuilder().makeExactLiteral(BigDecimal.valueOf(value));
   }
 
 }
