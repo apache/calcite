@@ -32,7 +32,9 @@ import org.apache.calcite.rel.externalize.RelEnumTypes;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -261,7 +263,35 @@ public abstract class TableModify extends SingleRel {
               null);
     }
 
+    inputRowType = expectedInputRowTypeForAssignment(inputRowType);
     return inputRowType;
+  }
+
+  private RelDataType expectedInputRowTypeForAssignment(
+      RelDataType expectedRowType) {
+    final RelDataType actualRowType = getInput().getRowType();
+    if (actualRowType.getFieldCount() != expectedRowType.getFieldCount()) {
+      return expectedRowType;
+    }
+    final RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
+    boolean changed = false;
+    final List<RelDataTypeField> expectedFields = expectedRowType.getFieldList();
+    final List<RelDataTypeField> actualFields = actualRowType.getFieldList();
+    for (int i = 0; i < expectedFields.size(); i++) {
+      final RelDataTypeField expectedField = expectedFields.get(i);
+      final RelDataType actualType = actualFields.get(i).getType();
+      final RelDataType expectedType = expectedField.getType();
+      if (!SqlTypeUtil.equalSansNullability(typeFactory, actualType, expectedType)
+          && SqlTypeUtil.canAssignFrom(expectedType, actualType)
+          && !RexUtil.isLosslessCast(actualType, expectedType)) {
+        builder.add(expectedField.getName(), actualType);
+        changed = true;
+      } else {
+        builder.add(expectedField);
+      }
+    }
+    return changed ? builder.build() : expectedRowType;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

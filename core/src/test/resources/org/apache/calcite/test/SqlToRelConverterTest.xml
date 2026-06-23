@@ -5597,7 +5597,7 @@ values(t.empno, t.ename, 10, t.sal * .15)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[ENAME, DEPTNO, SAL]], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[CAST(*($5, 0.15:DECIMAL(2, 2))):INTEGER NOT NULL], $f6=[null:INTEGER], $f7=[10], $f8=[null:BOOLEAN], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], ENAME1=[$1], DEPTNO=[$7], $f20=[CAST(*($5, 0.1:DECIMAL(1, 1))):INTEGER NOT NULL])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[*($5, 0.15:DECIMAL(2, 2))], $f6=[null:INTEGER], $f7=[10], $f8=[null:BOOLEAN], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], ENAME1=[$1], DEPTNO=[$7], $f20=[*($5, 0.1:DECIMAL(1, 1))])
     LogicalJoin(condition=[=($9, $0)], joinType=[left])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[IS NULL($7)])
@@ -7257,7 +7257,7 @@ LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened
   LogicalAggregate(group=[{0, 1}])
     LogicalProject(EMPNO=[$0], ENAME=[$1])
       LogicalFilter(condition=[$2])
-        LogicalProject(EMPNO=[$0], ENAME=[CAST($1):VARCHAR(10) NOT NULL], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $8 DESC), 1)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $8 DESC), 1)])
           LogicalFilter(condition=[>($7, 5)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

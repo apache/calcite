@@ -19,7 +19,7 @@
 !set outputformat mysql
 
 # Create a source table
-create table dept (deptno int not null, name varchar(10));
+create table dept (deptno int not null, name varchar(20));
 (0 rows modified)
 
 !update
@@ -37,14 +37,14 @@ select * from dept where deptno > 10;
 
 !update
 
-# Check contents; "Engineering" is too long for varchar(10)
+# Check contents
 select * from d;
-+--------+------------+
-| DEPTNO | NAME       |
-+--------+------------+
-|     20 | Marketing  |
-|     30 | Engineerin |
-+--------+------------+
++--------+-------------+
+| DEPTNO | NAME        |
++--------+-------------+
+|     20 | Marketing   |
+|     30 | Engineering |
++--------+-------------+
 (2 rows)
 
 !ok
@@ -64,12 +64,12 @@ select * from dept where deptno < 30;
 
 # Check contents are unchanged
 select * from d;
-+--------+------------+
-| DEPTNO | NAME       |
-+--------+------------+
-|     20 | Marketing  |
-|     30 | Engineerin |
-+--------+------------+
++--------+-------------+
+| DEPTNO | NAME        |
++--------+-------------+
+|     20 | Marketing   |
+|     30 | Engineering |
++--------+-------------+
 (2 rows)
 
 !ok
