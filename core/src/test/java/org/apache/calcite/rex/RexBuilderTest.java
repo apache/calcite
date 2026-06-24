@@ -1524,4 +1524,64 @@ class RexBuilderTest {
             literal, literal, flag),
         notNullValue());
   }
+
+  @Test void testCardinalityMapKeysSimplification() {
+    final RexImplicationCheckerFixtures.Fixture f =
+        new RexImplicationCheckerFixtures.Fixture();
+    final RexBuilder rexBuilder = f.rexBuilder;
+
+    // Create map literal: map['foo', 1, 'bar', 2]
+    final RexLiteral fooKey = rexBuilder.makeLiteral("foo");
+    final RexLiteral oneVal = rexBuilder.makeExactLiteral(new java.math.BigDecimal(1));
+    final RexLiteral barKey = rexBuilder.makeLiteral("bar");
+    final RexLiteral twoVal = rexBuilder.makeExactLiteral(new java.math.BigDecimal(2));
+    final RexNode mapLiteral =
+        rexBuilder.makeCall(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+        fooKey, oneVal, barKey, twoVal);
+
+    // Create CARDINALITY(MAP_KEYS(map))
+    final RexNode mapKeys =
+        rexBuilder.makeCall(SqlLibraryOperators.MAP_KEYS, mapLiteral);
+    final RexNode cardinalityMapKeys =
+        rexBuilder.makeCall(SqlStdOperatorTable.CARDINALITY, mapKeys);
+
+    // Simplify
+    final RexNode simplified = f.simplify.simplify(cardinalityMapKeys);
+
+    // Expected: CARDINALITY(map)
+    final RexNode expectedCardinalityMap =
+        rexBuilder.makeCall(SqlStdOperatorTable.CARDINALITY, mapLiteral);
+
+    assertThat(simplified, hasToString(expectedCardinalityMap.toString()));
+  }
+
+  @Test void testCardinalityMapValuesSimplification() {
+    final RexImplicationCheckerFixtures.Fixture f =
+        new RexImplicationCheckerFixtures.Fixture();
+    final RexBuilder rexBuilder = f.rexBuilder;
+
+    // Create map literal: map['foo', 1, 'bar', 2]
+    final RexLiteral fooKey = rexBuilder.makeLiteral("foo");
+    final RexLiteral oneVal = rexBuilder.makeExactLiteral(new java.math.BigDecimal(1));
+    final RexLiteral barKey = rexBuilder.makeLiteral("bar");
+    final RexLiteral twoVal = rexBuilder.makeExactLiteral(new java.math.BigDecimal(2));
+    final RexNode mapLiteral =
+        rexBuilder.makeCall(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+        fooKey, oneVal, barKey, twoVal);
+
+    // Create CARDINALITY(MAP_VALUES(map))
+    final RexNode mapValues =
+        rexBuilder.makeCall(SqlLibraryOperators.MAP_VALUES, mapLiteral);
+    final RexNode cardinalityMapValues =
+        rexBuilder.makeCall(SqlStdOperatorTable.CARDINALITY, mapValues);
+
+    // Simplify
+    final RexNode simplified = f.simplify.simplify(cardinalityMapValues);
+
+    // Expected: CARDINALITY(map)
+    final RexNode expectedCardinalityMap =
+        rexBuilder.makeCall(SqlStdOperatorTable.CARDINALITY, mapLiteral);
+
+    assertThat(simplified, hasToString(expectedCardinalityMap.toString()));
+  }
 }
