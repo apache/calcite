@@ -112,6 +112,12 @@ public class JoinProjectTransposeRule
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    Join join = call.rel(0);
+    // SEMI/ANTI/LEFT_MARK join cannot be swapped.
+    return join.getJoinType().projectsRight();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Join join = call.rel(0);
     final JoinRelType joinType = join.getJoinType();

@@ -8466,6 +8466,39 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinProjectTransposeDoesNotMatchAntiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $1)], joinType=[anti])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinProjectTransposeDoesNotMatchLeftMarkJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $1)], joinType=[left_mark])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinProjectTransposeDoesNotMatchSemiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $1)], joinType=[semi])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinProjectTransposeWindow">
     <Resource name="sql">
       <![CDATA[select *

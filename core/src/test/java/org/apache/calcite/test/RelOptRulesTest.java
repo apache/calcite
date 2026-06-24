@@ -1538,6 +1538,43 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7622">[CALCITE-7622]
+   * Don't fire JoinProjectTransposeRule for ANTI/SEMI/LEFT_MARK JOIN</a>. */
+  @Test void testJoinProjectTransposeDoesNotMatchSemiJoin() {
+    checkJoinProjectTransposeDoesNotMatch(JoinRelType.SEMI);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7622">[CALCITE-7622]
+   * Don't fire JoinProjectTransposeRule for ANTI/SEMI/LEFT_MARK JOIN</a>. */
+  @Test void testJoinProjectTransposeDoesNotMatchAntiJoin() {
+    checkJoinProjectTransposeDoesNotMatch(JoinRelType.ANTI);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7622">[CALCITE-7622]
+   * Don't fire JoinProjectTransposeRule for ANTI/SEMI/LEFT_MARK JOIN</a>. */
+  @Test void testJoinProjectTransposeDoesNotMatchLeftMarkJoin() {
+    checkJoinProjectTransposeDoesNotMatch(JoinRelType.LEFT_MARK);
+  }
+
+  /** A SEMI, ANTI or LEFT_MARK join does not project its right input, so
+   * {@link JoinProjectTransposeRule} must not pull projects above it. */
+  private void checkJoinProjectTransposeDoesNotMatch(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"))
+        .scan("DEPT")
+        .project(b.field("DEPTNO"))
+        .join(type,
+            b.equals(
+                b.field(2, 0, 0),
+                b.field(2, 1, 0)))
+        .build();
+    relFn(relFn).withRule(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE).checkUnchanged();
+  }
+
   @Test void testJoinProjectTranspose1() {
     final String sql = "select a.name\n"
         + "from dept a\n"
