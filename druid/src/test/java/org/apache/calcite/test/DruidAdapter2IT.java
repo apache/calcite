@@ -994,8 +994,9 @@ public class DruidAdapter2IT {
             throw TestUtil.rethrow(e);
           }
         })
-        .explainContains("BindableSort(fetch=[+(3000000000:BIGINT, 1)])\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], ");
+        .explainContains("EnumerableLimit(fetch=[+(3000000000:BIGINT, 1)])\n"
+            + "  EnumerableInterpreter\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], ");
   }
 
   /** Tests that distinct-count is pushed down to Druid and evaluated using
