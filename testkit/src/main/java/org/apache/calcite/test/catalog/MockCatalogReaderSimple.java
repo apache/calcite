@@ -177,6 +177,14 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(deptNestedExpandedTable);
   }
 
+  private void registerTableDeptNestedPeek(MockSchema salesSchema, Fixture fixture) {
+    MockTable deptNestedPeekTable =
+        MockTable.create(this, salesSchema, "DEPT_NESTED_PEEK", false, 4);
+    deptNestedPeekTable.addColumn("DEPTNO", fixture.intType, true);
+    deptNestedPeekTable.addColumn("S", fixture.peekArrayType);
+    registerTable(deptNestedPeekTable);
+  }
+
   private void registerTableBonus(MockSchema salesSchema, Fixture fixture) {
     MockTable bonusTable =
         MockTable.create(this, salesSchema, "BONUS", false, 0);
@@ -511,6 +519,10 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
     // Register "DEPT_NESTED_EXPANDED" table.
     registerTableDeptNestedExpanded(salesSchema, fixture);
+
+    // Register "DEPT_NESTED_PEEK" table, which has a PEEK_FIELDS struct column
+    // "S" containing an array field "ARR".
+    registerTableDeptNestedPeek(salesSchema, fixture);
 
     // Register "BONUS" table.
     registerTableBonus(salesSchema, fixture);
