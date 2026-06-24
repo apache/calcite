@@ -9339,6 +9339,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql3).fails("Table 'D' not found");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7614">[CALCITE-7614]
+   * UNNEST of an array field in a PEEK_FIELDS struct column fails when the table
+   * is not qualified</a>. */
+  @Test void testUnnestPeekFieldsArrayColumn() {
+    // Table-qualified form already works.
+    sql("select * from dept_nested_peek as r CROSS JOIN UNNEST(r.s.arr) as x").ok();
+    // Unqualified form must work too (used to fail with
+    // "Column 'S.S' not found in table 'DEPT_NESTED_PEEK'").
+    sql("select * from dept_nested_peek CROSS JOIN UNNEST(s.arr) as x").ok();
+    // Comma-join variants, for parity with testUnnestArrayColumn.
+    sql("select * from dept_nested_peek as r, UNNEST(r.s.arr) as x").ok();
+    sql("select * from dept_nested_peek, UNNEST(s.arr) as x").ok();
+  }
+
   @Test void testUnnestWithOrdinality() {
     sql("select*from unnest(array[1, 2]) with ordinality")
         .type("RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");

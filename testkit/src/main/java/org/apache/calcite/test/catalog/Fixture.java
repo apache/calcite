@@ -136,6 +136,13 @@ final class Fixture extends AbstractFixture {
   final RelDataType varchar5ArrayType = array(varchar5Type);
   final RelDataType intArrayArrayType = array(intArrayType);
   final RelDataType varchar5ArrayArrayType = array(varchar5ArrayType);
+  // A "peek" struct that contains an array field, e.g. Row(ARR varchar(5) array)
+  // with StructKind.PEEK_FIELDS so that "ARR" can be referenced without the
+  // struct-column prefix.
+  final RelDataType peekArrayType = typeFactory.builder()
+      .add("ARR", varchar5ArrayType)
+      .kind(StructKind.PEEK_FIELDS)
+      .build();
   final RelDataType intMultisetType = typeFactory.createMultisetType(intType, -1);
   final RelDataType varchar5MultisetType = typeFactory.createMultisetType(varchar5Type, -1);
   final RelDataType intMultisetArrayType = array(intMultisetType);

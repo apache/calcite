@@ -329,6 +329,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final ResolvedImpl resolved = new ResolvedImpl();
       int size = identifier.names.size();
       int i = size - 1;
+      // Snapshot: resolution below may rewrite identifier's names in place [CALCITE-7614]
+      final SqlIdentifier originalIdentifier =
+          (SqlIdentifier) identifier.clone(identifier.getParserPosition());
       for (; i > 0; i--) {
         final SqlIdentifier prefix = identifier.getComponent(0, i);
         resolved.clear();
@@ -388,7 +391,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
                 fromNs = resolve.namespace;
                 fromPath = resolve.path;
                 fromRowType = resolve.rowType();
-                identifier = identifier
+                // Qualify the original (pre-resolution) names; see the comment
+                // on originalIdentifier above ([CALCITE-7614]).
+                identifier = originalIdentifier
                     .setName(0, columnName)
                     .add(0, tableName2, SqlParserPos.ZERO);
                 ++i;
