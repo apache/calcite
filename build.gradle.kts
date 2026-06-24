@@ -915,6 +915,7 @@ allprojects {
                 passProperty("user.timezone", "UTC")
                 passProperty("calcite.avatica.version", props.string("calcite.avatica.version"))
                 passProperty("gradle.rootDir", rootDir.toString())
+                systemProperty("calcite.model.classes.allowed", "org.,java.lang.")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
                     if (e.startsWith("calcite.") || e.startsWith("avatica.")) {

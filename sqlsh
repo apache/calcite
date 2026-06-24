@@ -43,6 +43,7 @@ if [ "x$CACHE_SQLLINE_CLASSPATH" != "xY" ] || [ ! -f "$CP" ]; then
 fi
 
 VM_OPTS=
-JAVA_OPTS="-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl ${JAVA_OPTS}"
+# Running sqlsh is explicitly for OS adapter, so we can set the allowed classes to avoid security exception when loading the model file.
+JAVA_OPTS="-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Dcalcite.model.classes.allowed=org.apache.calcite.adapter.os. ${JAVA_OPTS}"
 
 exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS org.apache.calcite.adapter.os.SqlShell "$@"

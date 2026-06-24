@@ -71,6 +71,8 @@ jobs:
         remote-build-cache-proxy-enabled: false
         arguments: --scan --no-parallel --no-daemon build javadoc
     - name: 'sqlline and sqllsh'
+      env:
+        JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
       shell: cmd
       run: |
         call sqlline.bat -e '!quit'
@@ -101,6 +103,8 @@ jobs:
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build
       - name: 'sqlline and sqllsh'
+        env:
+          JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
         shell: cmd
         run: |
           call sqlline.bat -e '!quit'
@@ -131,6 +135,8 @@ jobs:
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build
       - name: 'sqlline and sqllsh'
+        env:
+          JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
         shell: cmd
         run: |
           call sqlline.bat -e '!quit'
@@ -324,6 +330,8 @@ jobs:
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'
+        env:
+          JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
         run: |
           ./sqlline -e '!quit'
           echo

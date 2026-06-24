@@ -456,6 +456,25 @@ public final class CalciteSystemProperty<T> {
       intProperty("calcite.join.selector.compact.code.threshold", 100);
 
   /**
+   * Comma-separated allowlist of class-name patterns that may be loaded
+   * by reflection from a Calcite model (user-defined functions, custom
+   * schemas/tables, JDBC drivers, dialect factories, lattice statistic
+   * providers).
+   *
+   * <p>By default, the allowlist is empty and class loading is fully disabled.
+   * When non-empty, a class name must match the allowlist in addition to
+   * clearing the denylist.
+   *
+   * <p>Pattern syntax: a pattern ending in {@code "."} matches any class
+   * in that package or its sub-packages; otherwise the pattern matches a
+   * class name exactly.
+   *
+   * @see org.apache.calcite.model.ModelHandler
+   */
+  public static final CalciteSystemProperty<String> MODEL_CLASSES_ALLOWED =
+      stringProperty("calcite.model.classes.allowed", "");
+
+  /**
    * Comma-separated patterns to add to the built-in denylist of class
    * names that may not be loaded by reflection from a Calcite model
    * (user-defined functions, custom schemas/tables, JDBC drivers,

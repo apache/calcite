@@ -31,7 +31,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.Predicate;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -39,6 +38,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
@@ -82,7 +82,7 @@ public class ModelHandlerTest {
     SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
     // java.lang.String is not in the standard denylist; the custom
     // filter denies the whole java.lang. package.
-    ClassNameFilter strict = ClassNameFilter.of("java.lang.");
+    ClassNameFilter strict = ClassNameFilter.of("java.lang.", "java.");
     String model = "inline:{"
         + "  version: '1.0',"
         + "  defaultSchema: 'X',"
@@ -164,31 +164,20 @@ public class ModelHandlerTest {
         "org.apache.calcite.adapter.jdbc.JdbcSchema$Factory#INSTANCE");
   }
 
-  @Test void testPredicateContract() {
-    // ClassNameFilter implements Predicate<String>: true means "allowed".
-    Predicate<String> filter = ClassNameFilter.standard();
-    assertThat(filter.test(null), is(true));
-    assertThat(filter.test("javax.naming.InitialContext"), is(false));
-    assertThat(filter.test("java.lang.Runtime#getRuntime"), is(false));
-    assertThat(
-        filter.test(
-        "org.apache.calcite.adapter.jdbc.JdbcSchema$Factory"), is(true));
-  }
-
   @Test void testFactoryMethodsCacheInstances() {
     // standard() returns a single cached instance.
     assertThat(ClassNameFilter.standard(),
         sameInstance(ClassNameFilter.standard()));
     // of() returns the same instance for equal inputs.
-    ClassNameFilter a = ClassNameFilter.of("com.evil.");
-    ClassNameFilter b = ClassNameFilter.of("com.evil.");
+    ClassNameFilter a = ClassNameFilter.of("com.evil.", "javax.");
+    ClassNameFilter b = ClassNameFilter.of("com.evil.", "javax.");
     assertThat(a, sameInstance(b));
     // Different inputs produce different instances.
-    ClassNameFilter c = ClassNameFilter.of("com.evil.,com.example.");
+    ClassNameFilter c = ClassNameFilter.of("com.evil.,com.example.", "javax.");
     assertThat(a, not(sameInstance(c)));
     // The cached filter behaves as configured.
-    assertThat(a.test("com.evil.Payload"), is(false));
-    assertThat(a.test("javax.naming.InitialContext"), is(true));
+    assertThrows(SecurityException.class, () -> a.check("com.evil.Payload"));
+    assertDoesNotThrow(() -> a.check("javax.naming.InitialContext"));
   }
 
   @Test void testAppendCombinesPatternStrings() {

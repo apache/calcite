@@ -31,7 +31,7 @@ if not defined CACHE_SQLLINE_CLASSPATH (
   if exist "%CP%" del "%CP%"
 )
 if not exist "%CP%" (call "%DIRNAME%\gradlew" --console plain -q :buildSqllineClasspath)
-
-set JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl %JAVA_OPTS%
+:: Running sqlsh is explicitly for OS adapter, so we can set the allowed classes to avoid security exception when loading the model file.
+set JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Dcalcite.model.classes.allowed=org.apache.calcite.adapter.os. %JAVA_OPTS%
 
 java -Xmx1g -cp "%CP%" %JAVA_OPTS% org.apache.calcite.adapter.os.SqlShell %*
