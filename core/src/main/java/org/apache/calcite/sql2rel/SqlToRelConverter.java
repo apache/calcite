@@ -2795,10 +2795,21 @@ public class SqlToRelConverter {
     RelNode uncollect;
     try {
       if (validator().config().conformance().allowAliasUnnestItems()) {
+        // Without an AS column list, mirror SqlUnnestOperator#inferReturnType
+        // so Uncollect's row type stays aligned with the validator.
+        List<String> itemAliases;
+        if (fieldNames != null) {
+          itemAliases = fieldNames;
+        } else {
+          itemAliases = new ArrayList<>(nodes.size());
+          for (int i = 0; i < nodes.size(); i++) {
+            itemAliases.add(SqlUtil.deriveAliasFromOrdinal(i));
+          }
+        }
         uncollect = relBuilder
             .push(child)
             .project(exprs)
-            .uncollect(requireNonNull(fieldNames, "fieldNames"), operator.withOrdinality)
+            .uncollect(itemAliases, operator.withOrdinality)
             .build();
       } else {
         // REVIEW danny 2020-04-26: should we unify the normal field aliases and
