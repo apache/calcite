@@ -1764,7 +1764,7 @@ public class RexSimplify {
     if (unknownAs == FALSE && predicateElimination) {
       simplifyAndTerms(operands, FALSE);
     } else {
-      simplifyList(operands, unknownAs);
+      simplifyAndTerms(operands, unknownAs);
     }
 
     final List<RexNode> terms = new ArrayList<>();
