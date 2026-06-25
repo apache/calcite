@@ -46,13 +46,18 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that pushes
- * a {@link Join#isSemiJoin semi-join} down in a tree past
+ * a semi-join or anti-join down in a tree past
  * a {@link org.apache.calcite.rel.core.Project}.
  *
  * <p>The intention is to trigger other rules that will convert
- * {@code SemiJoin}s.
+ * {@code SemiJoin}s or {@code AntiJoin}s.
  *
  * <p>SemiJoin(LogicalProject(X), Y) &rarr; LogicalProject(SemiJoin(X, Y))
+ *
+ * <p>AntiJoin(LogicalProject(X), Y) &rarr; LogicalProject(AntiJoin(X, Y))
+ *
+ * <p>This rule only transposes a project on the left input. Semi-joins and
+ * anti-joins only project fields from their left input.
  *
  * @see org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule
  */
@@ -69,56 +74,56 @@ public class SemiJoinProjectTransposeRule
   //~ Methods ----------------------------------------------------------------
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final Join semiJoin = call.rel(0);
+    final Join join = call.rel(0);
     final Project project = call.rel(1);
 
-    // Convert the LHS semi-join keys to reference the child projection
-    // expression; all projection expressions must be RexInputRefs,
-    // otherwise, we wouldn't have created this semi-join.
+    // Convert the LHS semi-join or anti-join keys to reference the child
+    // projection expression; all projection expressions must be RexInputRefs,
+    // otherwise, we wouldn't have created this semi-join or anti-join.
 
-    // convert the semijoin condition to reflect the LHS with the project
+    // convert the join condition to reflect the LHS with the project
     // pulled up
-    RexNode newCondition = adjustCondition(project, semiJoin);
+    RexNode newCondition = adjustCondition(project, join);
 
-    LogicalJoin newSemiJoin =
+    LogicalJoin newJoin =
         LogicalJoin.create(project.getInput(),
-            semiJoin.getRight(),
+            join.getRight(),
             // No need to copy the hints, the framework would try to do that.
             ImmutableList.of(),
             newCondition,
-            ImmutableSet.of(), JoinRelType.SEMI);
+            ImmutableSet.of(), join.getJoinType());
 
     // Create the new projection.  Note that the projection expressions
     // are the same as the original because they only reference the LHS
-    // of the semijoin and the semijoin only projects out the LHS
+    // of the semi-join or anti-join, which only projects out the LHS.
     final RelBuilder relBuilder = call.builder();
-    relBuilder.push(newSemiJoin);
+    relBuilder.push(newJoin);
     relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
 
     call.transformTo(relBuilder.build());
   }
 
   /**
-   * Pulls the project above the semijoin and returns the resulting semijoin
-   * condition. As a result, the semijoin condition should be modified such
-   * that references to the LHS of a semijoin should now reference the
+   * Pulls the project above the semi-join or anti-join and returns the resulting
+   * join condition. As a result, the join condition should be modified such
+   * that references to the LHS of the join should now reference the
    * children of the project that's on the LHS.
    *
-   * @param project  LogicalProject on the LHS of the semijoin
-   * @param semiJoin the semijoin
-   * @return the modified semijoin condition
+   * @param project  LogicalProject on the LHS of the join
+   * @param join the semi-join or anti-join
+   * @return the modified join condition
    */
-  private static RexNode adjustCondition(Project project, Join semiJoin) {
+  private static RexNode adjustCondition(Project project, Join join) {
     // create two RexPrograms -- the bottom one representing a
-    // concatenation of the project and the RHS of the semijoin and the
-    // top one representing the semijoin condition
+    // concatenation of the project and the RHS of the join and the
+    // top one representing the join condition
 
     final RexBuilder rexBuilder = project.getCluster().getRexBuilder();
     final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    final RelNode rightChild = semiJoin.getRight();
+    final RelNode rightChild = join.getRight();
 
     // for the bottom RexProgram, the input is a concatenation of the
-    // child of the project and the RHS of the semijoin
+    // child of the project and the RHS of the join
     RelDataType bottomInputRowType =
         SqlValidatorUtil.deriveJoinRowType(
             project.getInput().getRowType(),
@@ -126,12 +131,12 @@ public class SemiJoinProjectTransposeRule
             JoinRelType.INNER,
             typeFactory,
             null,
-            semiJoin.getSystemFieldList());
+            join.getSystemFieldList());
     RexProgramBuilder bottomProgramBuilder =
         new RexProgramBuilder(bottomInputRowType, rexBuilder);
 
     // add the project expressions, then add input references for the RHS
-    // of the semijoin
+    // of the join
     for (Pair<RexNode, String> pair : project.getNamedProjects()) {
       bottomProgramBuilder.addProject(pair.left, pair.right);
     }
@@ -148,8 +153,8 @@ public class SemiJoinProjectTransposeRule
     }
     RexProgram bottomProgram = bottomProgramBuilder.getProgram();
 
-    // input rowtype into the top program is the concatenation of the
-    // project and the RHS of the semijoin
+    // input row type into the top program is the concatenation of the
+    // project and the RHS of the join
     RelDataType topInputRowType =
         SqlValidatorUtil.deriveJoinRowType(
             project.getRowType(),
@@ -157,18 +162,18 @@ public class SemiJoinProjectTransposeRule
             JoinRelType.INNER,
             typeFactory,
             null,
-            semiJoin.getSystemFieldList());
+            join.getSystemFieldList());
     RexProgramBuilder topProgramBuilder =
         new RexProgramBuilder(
             topInputRowType,
             rexBuilder);
     topProgramBuilder.addIdentity();
-    topProgramBuilder.addCondition(semiJoin.getCondition());
+    topProgramBuilder.addCondition(join.getCondition());
     RexProgram topProgram = topProgramBuilder.getProgram();
 
     // merge the programs and expand out the local references to form
-    // the new semijoin condition; it now references a concatenation of
-    // the project's child and the RHS of the semijoin
+    // the new join condition; it now references a concatenation of
+    // the project's child and the RHS of the join
     RexProgram mergedProgram =
         RexProgramBuilder.mergePrograms(
             topProgram,
@@ -178,6 +183,11 @@ public class SemiJoinProjectTransposeRule
     return mergedProgram.expandLocalRef(
         requireNonNull(mergedProgram.getCondition(),
             () -> "mergedProgram.getCondition() for " + mergedProgram));
+  }
+
+  private static boolean isSemiOrAntiJoin(Join join) {
+    return join.getJoinType() == JoinRelType.SEMI
+        || join.getJoinType() == JoinRelType.ANTI;
   }
 
   /** Rule configuration. */
@@ -194,8 +204,10 @@ public class SemiJoinProjectTransposeRule
     default Config withOperandFor(Class<? extends Join> joinClass,
         Class<? extends Project> projectClass) {
       return withOperandSupplier(b ->
-          b.operand(joinClass).predicate(Join::isSemiJoin).inputs(b2 ->
-              b2.operand(projectClass).anyInputs()))
+          b.operand(joinClass)
+              .predicate(SemiJoinProjectTransposeRule::isSemiOrAntiJoin)
+              .inputs(b2 ->
+                  b2.operand(projectClass).anyInputs()))
           .as(Config.class);
     }
   }

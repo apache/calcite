@@ -1498,6 +1498,26 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSemiOrAntiJoinProjectTranspose(JoinRelType.ANTI);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7623">[CALCITE-7623]
+   * SemiJoinProjectTransposeRule should support ANTI joins</a>. */
+  @Test void testSemiJoinProjectTransposeSupportsAntiJoin() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("DEPT")
+          .project(b.field("DNAME"), b.field("DEPTNO"))
+          .build();
+      RelNode right = b.scan("EMP").build();
+
+      return b.push(left)
+          .push(right)
+          .join(JoinRelType.ANTI,
+              b.equals(b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")))
+          .build();
+    };
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE).check();
+  }
+
   private void checkSemiOrAntiJoinProjectTranspose(JoinRelType type) {
     final Function<RelBuilder, RelNode> relFn = b -> {
       RelNode left = b.scan("DEPT").build();

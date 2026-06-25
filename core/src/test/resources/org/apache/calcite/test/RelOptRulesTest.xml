@@ -17992,6 +17992,24 @@ LogicalProject(DNAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSemiJoinProjectTransposeSupportsAntiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($1, $9)], joinType=[anti])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DNAME=[$1], DEPTNO=[$0])
+  LogicalJoin(condition=[=($0, $10)], joinType=[anti])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSemiJoinReduceConstants">
     <Resource name="sql">
       <![CDATA[select e1.sal
