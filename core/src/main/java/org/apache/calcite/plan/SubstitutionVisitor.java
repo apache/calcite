@@ -37,6 +37,7 @@ import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.mutable.MutableSetOp;
 import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -77,7 +78,6 @@ import com.google.common.collect.Sets;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -87,9 +87,18 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.rel.core.JoinRelType.FULL;
+import static org.apache.calcite.rel.core.JoinRelType.INNER;
+import static org.apache.calcite.rel.core.JoinRelType.LEFT;
+import static org.apache.calcite.rel.core.JoinRelType.RIGHT;
 import static org.apache.calcite.rex.RexUtil.andNot;
+import static org.apache.calcite.rex.RexUtil.composeConjunction;
 import static org.apache.calcite.rex.RexUtil.removeAll;
+import static org.apache.calcite.rex.RexUtil.shift;
 
 import static java.util.Objects.requireNonNull;
 
@@ -142,6 +151,7 @@ public class SubstitutionVisitor {
           TrivialRule.INSTANCE,
           ScanToCalcUnifyRule.INSTANCE,
           CalcToCalcUnifyRule.INSTANCE,
+          JoinTrivialRule.INSTANCE,
           JoinOnLeftCalcToJoinUnifyRule.INSTANCE,
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
@@ -1202,6 +1212,59 @@ public class SubstitutionVisitor {
 
   /**
    * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableJoin}
+   * which has the query {@link MutableJoin} is equal to the target {@link MutableJoin}
+   * except joinType. We try to compensate for the null side by adding the condition,
+   * then match the {@link MutableJoin} in query to {@link MutableJoin} in target.
+   */
+  public static class JoinTrivialRule extends AbstractUnifyRule {
+    public static final JoinTrivialRule INSTANCE =
+        new JoinTrivialRule();
+
+    public JoinTrivialRule() {
+      super(
+          operand(MutableJoin.class, query(0), query(1)),
+          operand(MutableJoin.class, target(0), target(1)), 2);
+    }
+
+    @Override protected @Nullable UnifyRuleCall match(
+        SubstitutionVisitor visitor, MutableRel query, MutableRel target) {
+      return super.match(visitor, query, target);
+    }
+
+    @Override protected SubstitutionVisitor.@Nullable UnifyResult apply(
+        SubstitutionVisitor.UnifyRuleCall call) {
+      MutableJoin query = (MutableJoin) call.query;
+      MutableJoin target = (MutableJoin) call.target;
+      if (!joinEquivalentExceptType(query, target)) {
+        return null;
+      }
+      RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+
+      JoinRewriteType joinRewriteType = JoinRewriteType.of(query.joinType, target.joinType);
+      final ImmutableBitSet compensableFields =
+          inferNullableCompensationFields(joinRewriteType, target, rexBuilder.getTypeFactory());
+      if (!isJoinRewriteSupported(joinRewriteType,
+          compensableFields, fieldCnt(target.getLeft()))) {
+        return null;
+      }
+
+      final List<RexNode> compenProjs =
+          shiftAndAdjustProjectExpr(query, target, rexBuilder, null, null);
+
+      final RexNode compenCond =
+          deriveJoinCompensationCond(rexBuilder, joinRewriteType,
+              compensableFields, target, null);
+
+      RexProgram compensatingRexProgram =
+          RexProgram.create(target.rowType, compenProjs, compenCond, query.rowType, rexBuilder);
+
+      final MutableCalc compensatingCalc = MutableCalc.of(target, compensatingRexProgram);
+      return tryMergeParentCalcAndGenResult(call, compensatingCalc);
+    }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableJoin}
    * which has {@link MutableCalc} as left child to a {@link MutableJoin}.
    * We try to pull up the {@link MutableCalc} to top of {@link MutableJoin},
    * then match the {@link MutableJoin} in query to {@link MutableJoin} in target.
@@ -1230,13 +1293,16 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Check whether is same join type.
-      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
-      if (joinRelType == null) {
+      // Check if calc under join can be pulled up.
+      if (!canPullUpCalcUnderJoin(query.joinType, qInput0Explained, null)) {
         return null;
       }
-      // Check if calc under join can be pulled up.
-      if (!canPullUpCalcUnderJoin(joinRelType, qInput0Explained, null)) {
+
+      JoinRewriteType joinRewriteType = JoinRewriteType.of(query.joinType, target.joinType);
+      final ImmutableBitSet compensableFields =
+          inferNullableCompensationFields(joinRewriteType, target, rexBuilder.getTypeFactory());
+      if (!isJoinRewriteSupported(joinRewriteType,
+          compensableFields, fieldCnt(target.getLeft()))) {
         return null;
       }
 
@@ -1264,10 +1330,12 @@ public class SubstitutionVisitor {
           splitFilter(call.getSimplify(), newQueryJoinCond, target.condition);
       // MutableJoin matches only when the conditions are analyzed to be same.
       if (splitted != null && splitted.isAlwaysTrue()) {
-        final RexNode compenCond = qInput0Cond;
         final List<RexNode> compenProjs =
-            shiftAndAdjustProjectExpr(query, target, rexBuilder,
-                qInput0Projs, qInput0Input.rowType.getFieldList(), null, null);
+            shiftAndAdjustProjectExpr(query, target, rexBuilder, qInput0Projs, null);
+
+        final RexNode compenCond =
+            deriveJoinCompensationCond(rexBuilder, joinRewriteType,
+                compensableFields, target, qInput0Cond);
 
         final RexProgram compenRexProgram =
             RexProgram.create(target.rowType, compenProjs, compenCond,
@@ -1309,13 +1377,8 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Check whether is same join type.
-      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
-      if (joinRelType == null) {
-        return null;
-      }
       // Check if calc under join can be pulled up.
-      if (!canPullUpCalcUnderJoin(joinRelType, null, qInput1Explained)) {
+      if (!canPullUpCalcUnderJoin(query.joinType, null, qInput1Explained)) {
         return null;
       }
 
@@ -1323,6 +1386,14 @@ public class SubstitutionVisitor {
       final List<RexNode> identityProjects =
           rexBuilder.identityProjects(qInput0.rowType);
       if (!referenceByMapping(query.condition, identityProjects, qInput1Projs)) {
+        return null;
+      }
+
+      JoinRewriteType joinRewriteType = JoinRewriteType.of(query.joinType, target.joinType);
+      final ImmutableBitSet compensableFields =
+          inferNullableCompensationFields(joinRewriteType, target, rexBuilder.getTypeFactory());
+      if (!isJoinRewriteSupported(joinRewriteType,
+          compensableFields, fieldCnt(target.getLeft()))) {
         return null;
       }
 
@@ -1343,12 +1414,12 @@ public class SubstitutionVisitor {
           splitFilter(call.getSimplify(), newQueryJoinCond, target.condition);
       // MutableJoin matches only when the conditions are analyzed to be same.
       if (splitted != null && splitted.isAlwaysTrue()) {
-        final RexNode compenCond =
-            RexUtil.shift(qInput1Cond, qInput0.rowType.getFieldCount());
-
         final List<RexNode> compenProjs =
-            shiftAndAdjustProjectExpr(query, target, rexBuilder,
-                null, null, qInput1Projs, qInput1.getInput().rowType.getFieldList());
+            shiftAndAdjustProjectExpr(query, target, rexBuilder, null, qInput1Projs);
+
+        final RexNode compenCond =
+            deriveJoinCompensationCond(rexBuilder, joinRewriteType, compensableFields,
+                target, RexUtil.shift(qInput1Cond, fieldCnt(qInput0)));
 
         final RexProgram compensatingRexProgram =
             RexProgram.create(target.rowType, compenProjs, compenCond,
@@ -1393,17 +1464,20 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Check whether is same join type.
-      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
-      if (joinRelType == null) {
-        return null;
-      }
       // Check if calc under join can be pulled up.
-      if (!canPullUpCalcUnderJoin(joinRelType, qInput0Explained, qInput1Explained)) {
+      if (!canPullUpCalcUnderJoin(query.joinType, qInput0Explained, qInput1Explained)) {
         return null;
       }
 
       if (!referenceByMapping(query.condition, qInput0Projs, qInput1Projs)) {
+        return null;
+      }
+
+      JoinRewriteType joinRewriteType = JoinRewriteType.of(query.joinType, target.joinType);
+      final ImmutableBitSet compensableFields =
+          inferNullableCompensationFields(joinRewriteType, target, rexBuilder.getTypeFactory());
+      if (!isJoinRewriteSupported(joinRewriteType,
+          compensableFields, fieldCnt(target.getLeft()))) {
         return null;
       }
 
@@ -1426,14 +1500,15 @@ public class SubstitutionVisitor {
       if (splitted != null && splitted.isAlwaysTrue()) {
         final RexNode qInput1CondShifted =
             RexUtil.shift(qInput1Cond, fieldCnt(qInput0.getInput()));
-        final RexNode compenCond =
+        RexNode compenCond =
             RexUtil.composeConjunction(rexBuilder,
                 ImmutableList.of(qInput0Cond, qInput1CondShifted));
+        compenCond =
+            deriveJoinCompensationCond(rexBuilder,
+                joinRewriteType, compensableFields, target, compenCond);
 
         final List<RexNode> compenProjs =
-            shiftAndAdjustProjectExpr(query, target, rexBuilder,
-                qInput0Projs, qInput0.getInput().rowType.getFieldList(),
-                qInput1Projs, qInput1.getInput().rowType.getFieldList());
+            shiftAndAdjustProjectExpr(query, target, rexBuilder, qInput0Projs, qInput1Projs);
 
         final RexProgram compensatingRexProgram =
             RexProgram.create(target.rowType, compenProjs, compenCond,
@@ -1760,6 +1835,11 @@ public class SubstitutionVisitor {
     return rel.rowType.getFieldCount();
   }
 
+  private static List<RelDataType> fieldTypes(MutableRel rel) {
+    return rel.rowType.getFieldList().stream()
+        .map(RelDataTypeField::getType).collect(Collectors.toList());
+  }
+
   /** Explain filtering condition and projections from MutableCalc. */
   public static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
@@ -1852,14 +1932,6 @@ public class SubstitutionVisitor {
       return false;
     }
     return true;
-  }
-
-  private static @Nullable JoinRelType sameJoinType(JoinRelType type0, JoinRelType type1) {
-    if (type0 == type1) {
-      return type0;
-    } else {
-      return null;
-    }
   }
 
   public static MutableAggregate permute(MutableAggregate aggregate,
@@ -2191,39 +2263,19 @@ public class SubstitutionVisitor {
    * @param target MutableRel of target
    * @param rexBuilder Rex builder
    * @param qInput0Projs Project expressions from the left calc of the query join if exist
-   * @param qInput0InputFields Input fields from the left input of the query join if exist
    * @param qInput1Projs Project expressions from the right calc of the query join if exist
-   * @param qInput1InputFields Input fields from the right input of the query join if exist
    * @return The Project expression that makes target equivalent to query
    */
-  private static List<RexNode> shiftAndAdjustProjectExpr(MutableJoin query, MutableJoin target,
-      RexBuilder rexBuilder,
-      @Nullable List<RexNode> qInput0Projs, @Nullable List<RelDataTypeField> qInput0InputFields,
-      @Nullable List<RexNode> qInput1Projs, @Nullable List<RelDataTypeField> qInput1InputFields) {
+  private static List<RexNode> shiftAndAdjustProjectExpr(MutableJoin query,
+      MutableJoin target, RexBuilder rexBuilder,
+      @Nullable List<RexNode> qInput0Projs, @Nullable List<RexNode> qInput1Projs) {
     int queryLeftCount = fieldCnt(query.getLeft());
     int targetLeftCount = fieldCnt(target.getLeft());
-    int[] adjustments0 = new int[target.rowType.getFieldCount()];
-    int[] adjustments1 = new int[target.rowType.getFieldCount()];
+    List<RelDataTypeField> queyFields = query.rowType.getFieldList();
 
-    if (qInput1Projs != null) {
-      Arrays.fill(adjustments1, targetLeftCount);
-    }
-
-    // In cases such as JoinOnLeftCalcToJoinUnifyRule and JoinOnCalcsToJoinUnifyRule rules,
-    // initialize the converter where the left calc needs to be pulled up.
-    RelOptUtil.RexInputConverter converter0 =
-        new RelOptUtil.RexInputConverter(rexBuilder, qInput0InputFields,
-            target.rowType.getFieldList(), adjustments0);
-
-    // In cases such as JoinOnRightCalcToJoinUnifyRule and JoinOnCalcsToJoinUnifyRule rules,
-    // initialize the converter where the left calc needs to be pulled up.
-    RelOptUtil.RexInputConverter converter1 =
-        new RelOptUtil.RexInputConverter(rexBuilder, qInput1InputFields,
-            target.rowType.getFieldList(), adjustments1);
-
-    final List<RexNode> compenProjs = new ArrayList<>();
+    List<RexNode> compenProjs = new ArrayList<>();
     for (int i = 0; i < fieldCnt(query); i++) {
-      RelDataType type = query.rowType.getFieldList().get(i).getType();
+      RelDataType type = queyFields.get(i).getType();
       if (i < queryLeftCount) {
         if (qInput0Projs == null) {
           compenProjs.add(new RexInputRef(i, type));
@@ -2243,15 +2295,12 @@ public class SubstitutionVisitor {
           //      Left            Left   Right
           //
           // Since Calc is on the left side of the Join, no shift is required.
-          // However, due to nullability caused by the Join,
-          // we must adjust the type of RexInputRef.
-          RexNode apply = converter0.apply(qInput0Projs.get(i));
-          compenProjs.add(adjustNullability(apply, type, rexBuilder));
+          compenProjs.add(qInput0Projs.get(i));
         }
       } else {
         if (qInput1Projs == null) {
           // This is equivalent to a shift, but without a calc on the right side to pull up,
-          // we know it's a RexInputRef, so converter isn't needed.
+          // we know it's a RexInputRef, so shift isn't needed.
           compenProjs.add(
               new RexInputRef(i - queryLeftCount + targetLeftCount, type));
         } else {
@@ -2269,19 +2318,25 @@ public class SubstitutionVisitor {
           //               |         /     \
           //             Right     Left   Right
           //
-          // With regard to type adjustments, as above.
-          // And since Query's Right is equivalent to Target's Right and now calc
-          // will be pulled up above the join, we need to shift join's leftCount,
-          // which is what we did in initializing converter1.
-          RexNode apply = converter1.apply(qInput1Projs.get(i - queryLeftCount));
-          compenProjs.add(adjustNullability(apply, type, rexBuilder));
+          // Since query's right is equivalent to target's right and now calc
+          // will be pulled up above the join, we need to shift join's leftCount size.
+          RexNode apply = shift(qInput1Projs.get(i - queryLeftCount), targetLeftCount);
+          compenProjs.add(apply);
         }
       }
     }
-    return compenProjs;
+    // Adjust inputRef of project expression type nullable
+    compenProjs = RexUtil.fixUp(rexBuilder, compenProjs, fieldTypes(target));
+
+    // Adjust project type nullable
+    List<RexNode> adjustProjs = new ArrayList<>();
+    for (Pair<RexNode, RelDataType> pair : Pair.zip(compenProjs, fieldTypes(query))) {
+      adjustProjs.add(adjustNullability(pair.left, pair.right, rexBuilder));
+    }
+    return adjustProjs;
   }
 
-  /** Cast RexNode to the given type if only nullability differs, otherwise throw. */
+  /** Cast rexNode to the given type if only nullability differ, otherwise throw. */
   private static RexNode adjustNullability(RexNode rexNode,
       RelDataType type, RexBuilder rexBuilder) {
     if (rexNode.getType().equals(type)) {
@@ -2293,6 +2348,191 @@ public class SubstitutionVisitor {
       return rexBuilder.makeCast(adjustedType, rexNode);
     }
     throw new AssertionError("Adjust nullability failed:" + rexNode.getType() + " " + type);
+  }
+
+  /**
+   * Infers which fields can be used for nullability compensation.
+   */
+  private static ImmutableBitSet inferNullableCompensationFields(JoinRewriteType joinRewriteType,
+      MutableJoin target, RelDataTypeFactory typeFactory) {
+    int nFieldsLeft = fieldCnt(target.getLeft());
+
+    ImmutableBitSet range = ImmutableBitSet.of();
+    if (joinRewriteType.isCompensatedOnLeft()) {
+      range = range.union(ImmutableBitSet.range(0, nFieldsLeft));
+    }
+    if (joinRewriteType.isCompensatedOnRight()) {
+      range = range.union(ImmutableBitSet.range(nFieldsLeft, fieldCnt(target)));
+    }
+
+    ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (int i : range) {
+      RelDataTypeField field = target.rowType.getFieldList().get(i);
+      if (field.getType().isNullable()) {
+        final MutableRel child = i < nFieldsLeft ? target.getLeft() : target.getRight();
+        final int inputIndex = i < nFieldsLeft ? i : i - nFieldsLeft;
+
+        RelDataTypeField inputField = child.rowType.getFieldList().get(inputIndex);
+        if (equalExceptNullability(typeFactory, field.getType(), inputField.getType())) {
+          builder.set(i);
+        }
+      }
+    }
+    return builder.build();
+  }
+
+  /**
+   * Deriving the null compensation condition that makes join equivalent.
+   *
+   * <p>For rewriting between different join types, we need to derive the condition
+   * to compensate for the null side introduced by the outer join
+   * For example:
+   *   query: SELECT * FROM A join B on A.id = B.id
+   *   target: SELECT * FROM A left join B on A.id = B.id
+   * transforms to
+   *   result: select * from target where B.name != null (B.name must be a not null field)
+   */
+  private static @Nullable RexNode deriveJoinCompensationCond(
+      RexBuilder rexBuilder,
+      JoinRewriteType joinRewriteType,
+      ImmutableBitSet compensableFields,
+      MutableJoin target,
+      @Nullable RexNode rexNode) {
+    List<RelDataType> targetTypes = fieldTypes(target);
+    RexNode derivedRexNode;
+    switch (joinRewriteType) {
+    case INNER_TO_LEFT:
+    case LEFT_TO_FULL:
+    case INNER_TO_RIGHT:
+    case RIGHT_TO_FULL: {
+      derivedRexNode =
+          deriveJoinCompensationCond(rexBuilder, targetTypes, compensableFields);
+      break;
+    }
+    case INNER_TO_FULL: {
+      int nFieldsLeft = fieldCnt(target.getLeft());
+      ImmutableBitSet leftBitmap =
+          ImmutableBitSet.range(0, nFieldsLeft);
+      ImmutableBitSet rightBitmap =
+          ImmutableBitSet.range(nFieldsLeft, fieldCnt(target));
+      RexNode leftCond =
+          deriveJoinCompensationCond(
+              rexBuilder, targetTypes, compensableFields.intersect(leftBitmap));
+      RexNode rightCond =
+          deriveJoinCompensationCond(
+              rexBuilder, targetTypes, compensableFields.intersect(rightBitmap));
+      derivedRexNode = composeConjunction(rexBuilder, ImmutableList.of(leftCond, rightCond));
+      break;
+    }
+    case SAME_JOIN:
+      return rexNode;
+    default:
+      throw new IllegalArgumentException("Unexpected JoinRewriteType: " + joinRewriteType);
+    }
+    rexNode = Util.first(rexNode, rexBuilder.makeLiteral(true));
+    final RexNode compensateCond =
+        composeConjunction(rexBuilder, ImmutableList.of(rexNode, derivedRexNode));
+    return compensateCond.accept(new RexUtil.FixNullabilityShuttle(rexBuilder, targetTypes));
+  }
+
+  private static RexNode deriveJoinCompensationCond(RexBuilder rexBuilder,
+      List<RelDataType> types, ImmutableBitSet compensableFields) {
+    // TODO: Consider using the parent to select best candidate.
+    checkArgument(!compensableFields.isEmpty());
+    int index = compensableFields.iterator().next();
+    return rexBuilder.makeCall(
+        SqlStdOperatorTable.IS_NOT_NULL, new RexInputRef(index, types.get(index)));
+  }
+
+  /**
+   * Checks if join rewriting is supported based on the rewrite type and compensable fields.
+   */
+  private static boolean isJoinRewriteSupported(JoinRewriteType joinRewriteType,
+      ImmutableBitSet compensableFields, int nFieldsLeft) {
+    if (joinRewriteType == JoinRewriteType.OTHER) {
+      return false;
+    }
+    // If not the same join type, the candidate compensate field must not be empty
+    if (joinRewriteType != JoinRewriteType.SAME_JOIN && compensableFields.isEmpty()) {
+      return false;
+    }
+    // Inner to full requires that compensable fields exist in both input of the join
+    if (joinRewriteType == JoinRewriteType.INNER_TO_FULL) {
+      return compensableFields.stream().anyMatch(a -> a < nFieldsLeft)
+          && compensableFields.stream().anyMatch(a -> a >= nFieldsLeft);
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether two types are equal, but nullable is not equal.
+   */
+  public static boolean equalExceptNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2) {
+    return type1.isNullable() != type2.isNullable()
+        && type1.equals(factory.createTypeWithNullability(type2, type1.isNullable()));
+  }
+
+  /**
+   * Determines if two joins are equivalent except for their join types.
+   */
+  private static boolean joinEquivalentExceptType(MutableJoin join1, MutableJoin join2) {
+    return join1.condition.equals(join2.condition)
+        && join1.variablesSet.equals(join2.variablesSet)
+        && join1.getLeft().equals(join2.getLeft())
+        && join1.getRight().equals(join2.getRight())
+        && join1.joinType != join2.joinType;
+  }
+
+  /**
+   * Enumeration of join rewrite types.
+   */
+  private enum JoinRewriteType {
+    SAME_JOIN,
+    INNER_TO_LEFT,
+    INNER_TO_RIGHT,
+    INNER_TO_FULL,
+    LEFT_TO_FULL,
+    RIGHT_TO_FULL,
+    // Types of rewriting that are not currently supported or cannot be supported
+    OTHER;
+
+    public static JoinRewriteType of(JoinRelType queryType, JoinRelType targetType) {
+      requireNonNull(queryType, "queryType");
+      requireNonNull(targetType, "targetType");
+      if (queryType == targetType) {
+        return JoinRewriteType.SAME_JOIN;
+      }
+      if (queryType == INNER) {
+        switch (targetType) {
+        case LEFT:
+          return INNER_TO_LEFT;
+        case RIGHT:
+          return INNER_TO_RIGHT;
+        case FULL:
+          return INNER_TO_FULL;
+        default:
+          return OTHER;
+        }
+      }
+      if (queryType == LEFT && targetType == FULL) {
+        return LEFT_TO_FULL;
+      }
+      if (queryType == RIGHT && targetType == FULL) {
+        return RIGHT_TO_FULL;
+      }
+      return OTHER;
+    }
+
+    public boolean isCompensatedOnRight() {
+      return this == INNER_TO_LEFT || this == LEFT_TO_FULL || this == INNER_TO_FULL;
+    }
+
+    public boolean isCompensatedOnLeft() {
+      return this == INNER_TO_RIGHT || this == RIGHT_TO_FULL || this == INNER_TO_FULL;
+    }
   }
 
   /** Operand to a {@link UnifyRule}. */
