@@ -731,4 +731,20 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isDistinctOnAllowed();
+
+  /**
+   * Whether an aggregate function inside a scalar sub-query is allowed to
+   * reference columns from an outer query.
+   *
+   * <p>This is not allowed by the SQL standard, but is supported by some
+   * databases, including SQLite, DuckDB and SQL Server.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  default boolean isCorrelatedAggregateAllowed() {
+    return false;
+  }
 }

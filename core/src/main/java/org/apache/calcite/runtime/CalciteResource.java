@@ -930,6 +930,9 @@ public interface CalciteResource {
   @BaseMessage("Extended columns not allowed under the current SQL conformance level")
   ExInst<SqlValidatorException> extendNotAllowed();
 
+  @BaseMessage("Aggregate function referencing outer column is not allowed under the current SQL conformance level")
+  ExInst<SqlValidatorException> correlatedAggregateNotAllowed();
+
   @BaseMessage("Rolled up column ''{0}'' is not allowed in {1}")
   ExInst<SqlValidatorException> rolledUpNotAllowed(String column, String context);
 
