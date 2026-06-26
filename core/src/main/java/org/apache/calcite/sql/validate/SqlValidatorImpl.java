@@ -5685,7 +5685,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (int i = 0; i < selectItems.size(); i++) {
       final SqlNode selectItem = selectItems.get(i);
       final SqlNode rewrittenItem =
-          rewriteOuterAggregateItem(select, selectScope, selectItem);
+          rewriteOuterAggregateItem(selectScope, selectItem);
       if (rewrittenItem != selectItem) {
         selectItems.set(i, rewrittenItem);
       }
@@ -5711,8 +5711,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    *
    * @return the rewritten expression, or {@code selectItem} if no rewrite applies
    */
-  private SqlNode rewriteOuterAggregateItem(SqlSelect parentSelect,
-      SqlValidatorScope parentScope, SqlNode selectItem) {
+  private SqlNode rewriteOuterAggregateItem(SqlValidatorScope parentScope,
+      SqlNode selectItem) {
     // Unwrap AS.
     SqlNode expr = selectItem;
     @Nullable SqlIdentifier alias = null;
