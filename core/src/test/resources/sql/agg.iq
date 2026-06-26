@@ -4301,4 +4301,29 @@ GROUP BY GROUPING SETS ((deptno), ());
 
 !ok
 
+# [CALCITE-6104] Aggregate function that references outer column should be evaluated in outer query
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+FROM aa;
++----+
+| SA |
++----+
+|  6 |
++----+
+(1 row)
+
+!ok
+
+SELECT (SELECT sum(sal) FROM dept) AS sum_sal
+FROM emp;
++----------+
+| SUM_SAL  |
++----------+
+| 29025.00 |
++----------+
+(1 row)
+
+!ok
+
 # End agg.iq
