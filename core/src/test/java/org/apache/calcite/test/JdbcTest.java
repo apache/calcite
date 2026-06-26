@@ -5793,6 +5793,202 @@ public class JdbcTest {
         Matchers.returnsUnordered("name=Eric"));
   }
 
+  @Test void testPreparedOffsetFetchWithBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(3));
+          p.setBigDecimal(2, BigDecimal.valueOf(4));
+        })
+        .returnsUnordered("name=Eric");
+  }
+
+  @Test void testPreparedFetchWithFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2, new BigDecimal("1.5"));
+        })
+        .returnsUnordered("name=Bill", "name=Theodore");
+  }
+
+  @Test void testPreparedOffsetWithFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, new BigDecimal("1.5"));
+          p.setBigDecimal(2, BigDecimal.ONE);
+        })
+        .returnsUnordered("name=Sebastian");
+  }
+
+  @Test void testFetchLiteralFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset 0 fetch next 1.5 rows only")
+        .explainContains("EnumerableLimit(offset=[0], fetch=[1.5:DECIMAL(2, 1)])")
+        .returnsUnordered("name=Bill", "name=Theodore");
+  }
+
+  @Test void testOffsetLiteralFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset 1.5 fetch next 1 rows only")
+        .explainContains("EnumerableLimit(offset=[1.5:DECIMAL(2, 1)], fetch=[1])")
+        .returnsUnordered("name=Sebastian");
+  }
+
+  @Test void testPreparedOffsetFetchWithIntegerParameters() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 1);
+          p.setInt(2, 2);
+        })
+        .returnsUnordered("name=Theodore", "name=Sebastian");
+  }
+
+  @Test void testPreparedOffsetFetchWithLongParameters() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setLong(1, 1L);
+          p.setLong(2, 2L);
+        })
+        .returnsUnordered("name=Theodore", "name=Sebastian");
+  }
+
+  @Test void testPreparedOffsetWithBigDecimalAboveIntegerMax() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1,
+              BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE));
+          p.setBigDecimal(2, BigDecimal.ONE);
+        })
+        .returnsUnordered();
+  }
+
+  @Test void testOffsetLiteralAboveIntegerMax() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset 2147483648 fetch next 1 rows only")
+        .explainContains("EnumerableLimit(offset=[2147483648:BIGINT], fetch=[1])")
+        .returnsUnordered();
+  }
+
+  @Test void testPreparedOffsetFetchWithBigDecimalWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2, BigDecimal.ZERO);
+        })
+        .returnsUnordered();
+  }
+
+  /** Negative FETCH/LIMIT literals are rejected by the parser, but dynamic
+   * parameter values are only known at execution time. */
+  @Test void testPreparedNegativeFetchWithBigDecimalWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2, BigDecimal.valueOf(-1));
+        })
+        .returnsUnordered();
+  }
+
+  /** Negative OFFSET literals are rejected by the parser, but dynamic
+   * parameter values are only known at execution time. */
+  @Test void testPreparedNegativeOffsetWithBigDecimalWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(-1));
+          p.setBigDecimal(2, BigDecimal.valueOf(2));
+        })
+        .returnsUnordered("name=Bill", "name=Eric");
+  }
+
+  /** Negative FETCH/LIMIT literals are rejected by the parser, but dynamic
+   * parameter values are only known at execution time. */
+  @Test void testPreparedNegativeLimitWithBigDecimalWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "limit ? offset ?")
+        .explainContains("EnumerableLimit(offset=[?1], fetch=[?0])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(-1));
+          p.setBigDecimal(2, BigDecimal.ZERO);
+        })
+        .returnsUnordered();
+  }
+
+  @Test void testPreparedFetchWithBigDecimalAboveLongMaxWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2,
+              BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.ONE));
+        })
+        .returnsUnordered(
+            "name=Bill",
+            "name=Eric",
+            "name=Sebastian",
+            "name=Theodore");
+  }
+
+  @Test void testFetchLiteralAboveLongMaxWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset 0 fetch next 9223372036854775808 rows only")
+        .explainContains("EnumerableLimit(offset=[0], "
+            + "fetch=[9223372036854775808:DECIMAL(19, 0)])")
+        .returnsUnordered(
+            "name=Bill",
+            "name=Eric",
+            "name=Sebastian",
+            "name=Theodore");
+  }
+
   private void checkPreparedOffsetFetch(final int offset, final int fetch,
       final Matcher<? super ResultSet> matcher) throws Exception {
     CalciteAssert.hr()

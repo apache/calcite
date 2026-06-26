@@ -37,6 +37,7 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
@@ -104,13 +105,13 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     if (offset != null) {
       v =
           builder.append("offset",
-              Expressions.call(v, BuiltInMethod.SKIP.method,
+              Expressions.call(BuiltInMethod.SKIP_BIG_DECIMAL.method, v,
                   getExpression(offset)));
     }
     if (fetch != null) {
       v =
           builder.append("fetch",
-              Expressions.call(v, BuiltInMethod.TAKE.method,
+              Expressions.call(BuiltInMethod.TAKE_BIG_DECIMAL.method, v,
                   getExpression(fetch)));
     }
 
@@ -121,16 +122,16 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   static Expression getExpression(RexNode rexNode) {
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
-      return Expressions.convert_(
-          Expressions.call(DataContext.ROOT,
-              BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant("?" + param.getIndex())),
-          Integer.class);
+      return Expressions.call(
+          BuiltInMethod.NUMBER_TO_BIG_DECIMAL_LIMIT.method,
+          Expressions.convert_(
+              Expressions.call(DataContext.ROOT,
+                  BuiltInMethod.DATA_CONTEXT_GET.method,
+                  Expressions.constant("?" + param.getIndex())),
+              Number.class));
     } else {
-      // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET, not BIGINT types.
-      //  Currently, using BIGINT types for execution will result in an error message.
-      //  This issue needs to be fixed. For more information, see CALCITE-7156.
-      return Expressions.constant(RexLiteral.intValue(rexNode));
+      final BigDecimal value = RexLiteral.bigDecimalValue(rexNode);
+      return Expressions.constant(value);
     }
   }
 }

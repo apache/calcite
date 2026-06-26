@@ -10368,6 +10368,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected);
   }
 
+  @Test void testNegativeFetchOffsetLimit() {
+    sql("select name from dept limit ^-^1")
+        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept offset ^-^1")
+        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept fetch next ^-^1 rows only")
+        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept order by name limit ^-^1")
+        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept order by name offset ^-^1")
+        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept order by name fetch next ^-^1 rows only")
+        .fails("(?s).*Encountered \"-\".*");
+  }
+
   @Test void testRewriteWithUnionFetchWithoutOrderBy() {
     final String sql =
         "select name from dept union all select name from dept limit 2";

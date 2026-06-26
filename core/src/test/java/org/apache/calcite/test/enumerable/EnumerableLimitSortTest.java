@@ -27,6 +27,7 @@ import org.apache.calcite.test.schemata.hr.HrSchemaBig;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.function.Consumer;
 
 /** Tests for
@@ -156,6 +157,130 @@ public class EnumerableLimitSortTest {
             "commission=250; empid=44",
             "commission=250; empid=40",
             "commission=250; empid=36");
+  }
+
+  @Test void limitWithoutOffsetUsesBigDecimalDefaultOffset() {
+    tester("select empid from emps order by empid limit 2")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "fetch=[2])")
+        .returnsOrdered(
+            "empid=1",
+            "empid=2");
+  }
+
+  @Test void offsetWithoutLimitUsesBigDecimalDefaultFetch() {
+    tester("select empid from emps where empid <= 4 order by empid offset 2")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[2])")
+        .returnsOrdered(
+            "empid=3",
+            "empid=4");
+  }
+
+  /** Negative FETCH literals are rejected by validation, but dynamic
+   * parameter values are only known at execution time. */
+  @Test void dynamicParametersWithNegativeBigDecimalFetch() {
+    tester("select empid from emps where empid <= 2 order by empid "
+        + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2, BigDecimal.valueOf(-1));
+        })
+        .returnsOrdered();
+  }
+
+  /** Negative OFFSET literals are rejected by validation, but dynamic
+   * parameter values are only known at execution time. */
+  @Test void dynamicParametersWithNegativeBigDecimalOffset() {
+    tester("select empid from emps where empid <= 3 order by empid "
+        + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(-1));
+          p.setBigDecimal(2, BigDecimal.valueOf(2));
+        })
+        .returnsOrdered(
+            "empid=1",
+            "empid=2");
+  }
+
+  /** Negative LIMIT literals are rejected by validation, but dynamic
+   * parameter values are only known at execution time. */
+  @Test void dynamicParametersWithNegativeBigDecimalLimit() {
+    tester("select empid from emps where empid <= 2 order by empid "
+        + "limit ? offset ?")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?1], fetch=[?0])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(-1));
+          p.setBigDecimal(2, BigDecimal.ZERO);
+        })
+        .returnsOrdered();
+  }
+
+  @Test void dynamicParametersWithBigDecimal() {
+    tester("select commission from emps order by commission nulls last "
+        + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?0], fetch=[?1])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], commission=[$t4])\n"
+            + "    EnumerableTableScan(table=[[s, emps]])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(1));
+          p.setBigDecimal(2, BigDecimal.valueOf(2));
+        })
+        .returnsOrdered(
+            "commission=250",
+            "commission=250");
+  }
+
+  @Test void dynamicParametersWithBigDecimalAboveIntegerMax() {
+    tester("select commission from emps order by commission nulls last "
+        + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1,
+              BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE));
+          p.setBigDecimal(2, BigDecimal.ONE);
+        })
+        .returnsOrdered();
+  }
+
+  @Test void offsetLiteralAboveIntegerMax() {
+    tester("select commission from emps order by commission nulls last "
+        + "offset 2147483648 fetch next 1 rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$4], dir0=[ASC], "
+            + "offset=[2147483648:BIGINT], fetch=[1])")
+        .returnsOrdered();
+  }
+
+  @Test void dynamicParametersWithBigDecimalAboveLongMax() {
+    tester("select empid from emps where empid <= 2 order by empid "
+        + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2,
+              BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.ONE));
+        })
+        .returnsOrdered(
+            "empid=1",
+            "empid=2");
+  }
+
+  @Test void fetchLiteralAboveLongMax() {
+    tester("select empid from emps where empid <= 2 order by empid "
+        + "offset 0 fetch next 9223372036854775808 rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[0], fetch=[9223372036854775808:DECIMAL(19, 0)])")
+        .returnsOrdered(
+            "empid=1",
+            "empid=2");
   }
 
   private CalciteAssert.AssertQuery tester(String sqlQuery) {

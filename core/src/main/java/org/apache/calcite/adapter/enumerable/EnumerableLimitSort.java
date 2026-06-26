@@ -30,6 +30,8 @@ import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
+
 import static org.apache.calcite.adapter.enumerable.EnumerableLimit.getExpression;
 
 /**
@@ -98,14 +100,14 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
 
     final Expression fetchVal;
     if (this.fetch == null) {
-      fetchVal = Expressions.constant(Integer.MAX_VALUE);
+      fetchVal = Expressions.constant(BigDecimal.valueOf(Integer.MAX_VALUE));
     } else {
       fetchVal = getExpression(this.fetch);
     }
 
     final Expression offsetVal;
     if (this.offset == null) {
-      offsetVal = Expressions.constant(0);
+      offsetVal = Expressions.constant(BigDecimal.ZERO);
     } else {
       offsetVal = getExpression(this.offset);
     }

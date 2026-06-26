@@ -72,6 +72,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
@@ -111,6 +112,18 @@ public class EnumUtils {
 
   public static final List<String> LEFT_RIGHT =
       ImmutableList.of("left", "right");
+
+  /** Converts a dynamic FETCH or OFFSET parameter to the representation
+   * supported by the enumerable runtime. */
+  public static BigDecimal numberToBigDecimalLimit(Number value) {
+    if (value instanceof BigDecimal) {
+      return (BigDecimal) value;
+    }
+    if (value instanceof BigInteger) {
+      return new BigDecimal((BigInteger) value);
+    }
+    return BigDecimal.valueOf(value.longValue());
+  }
 
   /** Declares a method that overrides another method. */
   public static MethodDeclaration overridingMethodDecl(Method method,
