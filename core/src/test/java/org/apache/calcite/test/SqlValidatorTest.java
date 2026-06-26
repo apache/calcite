@@ -8469,6 +8469,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER NOT NULL");
   }
 
+  @Test void testCorrelatedAggregateConformance() {
+    final String sql = "select (select ^sum(sal)^ from dept) from emp";
+    // LENIENT and BABEL allow the non-standard correlated-aggregate construct.
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql(sql).withConformance(SqlConformanceEnum.BABEL).ok();
+    // DEFAULT and STRICT_2003 do not.
+    final String err =
+        "Aggregate function referencing outer column is not allowed under the current SQL conformance level";
+    sql(sql).withConformance(SqlConformanceEnum.DEFAULT).fails(err);
+    sql(sql).withConformance(SqlConformanceEnum.STRICT_2003).fails(err);
+
+    // A non-numeric aggregate over an outer column (MAX of a VARCHAR) is also
+    // lifted to the outer query; the CASE-based rewrite is type-agnostic.
+    final String nonNumeric =
+        "select (select max(ename) from dept) from emp";
+    sql(nonNumeric).withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql(nonNumeric).withConformance(SqlConformanceEnum.BABEL).ok();
+
+    // An expression over aggregates of outer columns is lifted to the outer
+    // query as a whole, and is subject to the same conformance rules as a bare
+    // aggregate.
+    final String twoAggs =
+        "select (select ^sum(sal) + sum(comm)^ from dept) from emp";
+    sql(twoAggs).withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql(twoAggs).withConformance(SqlConformanceEnum.BABEL).ok();
+    sql(twoAggs).withConformance(SqlConformanceEnum.DEFAULT).fails(err);
+    sql(twoAggs).withConformance(SqlConformanceEnum.STRICT_2003).fails(err);
+
+    // Mixed case: an expression aggregating both an outer column (sal) and an
+    // inner column (deptno) references an inner column, so it is not lifted and
+    // is not rejected under any conformance level.
+    final String mixed =
+        "select (select sum(sal) + sum(deptno) from dept) from emp";
+    sql(mixed).withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql(mixed).withConformance(SqlConformanceEnum.DEFAULT).ok();
+    sql(mixed).withConformance(SqlConformanceEnum.STRICT_2003).ok();
+  }
+
   @Test void testAggregateInOrderByFails() {
     sql("select empno from emp order by ^sum(empno)^")
         .fails(ERR_AGG_IN_ORDER_BY);
