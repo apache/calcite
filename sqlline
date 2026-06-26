@@ -49,6 +49,6 @@ if [ "$cygwin" ]; then
   VM_OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
-export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
+JAVA_OPTS="-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl ${JAVA_OPTS}"
 
 exec java -Xmx1g $VM_OPTS $JAVA_OPTS -jar "$root/build/libs/sqllineClasspath.jar" "$@"

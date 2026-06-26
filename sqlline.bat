@@ -33,4 +33,6 @@ if not defined CACHE_SQLLINE_CLASSPATH (
 )
 if not exist "%CP%" (call "%DIRNAME%\gradlew" --console plain -q :buildSqllineClasspath)
 
-java -Xmx1g -jar "%CP%" %*
+set JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl %JAVA_OPTS%
+
+java -Xmx1g %JAVA_OPTS% -jar "%CP%" %*

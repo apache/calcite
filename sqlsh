@@ -43,6 +43,6 @@ if [ "x$CACHE_SQLLINE_CLASSPATH" != "xY" ] || [ ! -f "$CP" ]; then
 fi
 
 VM_OPTS=
-export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
+JAVA_OPTS="-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl ${JAVA_OPTS}"
 
 exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS org.apache.calcite.adapter.os.SqlShell "$@"

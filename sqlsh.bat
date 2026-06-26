@@ -16,10 +16,9 @@
 :: limitations under the License.
 ::
 
-:: sqlline.bat - Windows script to launch SQL shell
+:: sqlsh.bat - Windows script to launch SQL shell
 :: Example:
-:: > sqlline.bat
-:: sqlline> !connect jdbc:calcite: admin admin
+:: > sqlsh.bat select * from du order by 1 limit 3
 
 :: The script updates the classpath on each execution,
 :: You might add CACHE_SQLLINE_CLASSPATH environment variable to cache it
@@ -33,4 +32,6 @@ if not defined CACHE_SQLLINE_CLASSPATH (
 )
 if not exist "%CP%" (call "%DIRNAME%\gradlew" --console plain -q :buildSqllineClasspath)
 
-java -Xmx1g -cp "%CP%" org.apache.calcite.adapter.os.SqlShell %*
+set JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl %JAVA_OPTS%
+
+java -Xmx1g -cp "%CP%" %JAVA_OPTS% org.apache.calcite.adapter.os.SqlShell %*
