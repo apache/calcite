@@ -21,11 +21,6 @@ plugins {
     id("com.github.vlsi.ide")
 }
 
-val sqllineClasspath by configurations.creating {
-    isCanBeConsumed = false
-    extendsFrom(configurations.testRuntimeClasspath.get())
-}
-
 dependencies {
     api(project(":core"))
     api(project(":file"))
@@ -39,9 +34,6 @@ dependencies {
 
     testImplementation("sqlline:sqlline")
     testImplementation(project(":testkit"))
-
-    sqllineClasspath(project)
-    sqllineClasspath(files(sourceSets.test.map { it.output }))
 
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
@@ -81,20 +73,4 @@ ide {
     }
 
     generatedSource(annotationProcessorMain)
-}
-
-val buildSqllineClasspath by tasks.registering(Jar::class) {
-    inputs.files(sqllineClasspath).withNormalizer(ClasspathNormalizer::class.java)
-    archiveFileName.set("sqllineClasspath.jar")
-    manifest {
-        attributes(
-            "Main-Class" to "sqlline.SqlLine",
-            "Class-Path" to provider {
-                // Class-Path is a list of URLs
-                sqllineClasspath.joinToString(" ") {
-                    it.toURI().toURL().toString()
-                }
-            }
-        )
-    }
 }

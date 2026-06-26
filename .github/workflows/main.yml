@@ -76,7 +76,7 @@ jobs:
         call sqlline.bat -e '!quit'
         echo.
         echo Sqlline example/csv
-        call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+        call sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
         echo.
         echo sqlsh
         call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
@@ -106,7 +106,7 @@ jobs:
           call sqlline.bat -e '!quit'
           echo.
           echo Sqlline example/csv
-          call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+          call sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
           echo.
           echo sqlsh
           call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
@@ -136,7 +136,7 @@ jobs:
           call sqlline.bat -e '!quit'
           echo.
           echo Sqlline example/csv
-          call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+          call sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
           echo.
           echo sqlsh
           call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
@@ -328,7 +328,7 @@ jobs:
           ./sqlline -e '!quit'
           echo
           echo Sqlline example/csv
-          ./example/csv/sqlline --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+          ./sqlline --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
           echo
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
