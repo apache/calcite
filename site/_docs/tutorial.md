@@ -57,7 +57,6 @@ You need Java (version 8, 9 or 10) and Git.
 
 {% highlight bash %}
 $ git clone https://github.com/apache/calcite.git
-$ cd calcite/example/csv
 $ ./sqlline
 {% endhighlight %}
 
@@ -69,7 +68,7 @@ that is included in this project.
 
 {% highlight bash %}
 $ ./sqlline
-sqlline> !connect jdbc:calcite:model=src/test/resources/model.json admin admin
+sqlline> !connect jdbc:calcite:model=example/csv/src/test/resources/model.json admin admin
 {% endhighlight %}
 
 (If you are running Windows, the command is `sqlline.bat`.)
@@ -395,7 +394,7 @@ There is an example in <code>model-with-custom-table.json</code>:
 We can query the table in the usual way:
 
 {% highlight sql %}
-sqlline> !connect jdbc:calcite:model=src/test/resources/model-with-custom-table.json admin admin
+sqlline> !connect jdbc:calcite:model=example/csv/src/test/resources/model-with-custom-table.json admin admin
 sqlline> SELECT empno, name FROM custom_table.emps;
 +--------+--------+
 | EMPNO  |  NAME  |
@@ -481,7 +480,7 @@ a subset of columns from a CSV file. Let's run the same query against two very
 similar schemas:
 
 {% highlight sql %}
-sqlline> !connect jdbc:calcite:model=src/test/resources/model.json admin admin
+sqlline> !connect jdbc:calcite:model=example/csv/src/test/resources/model.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
@@ -489,7 +488,7 @@ sqlline> explain plan for select name from emps;
 | EnumerableCalc(expr#0..9=[{inputs}], NAME=[$t1])    |
 |   EnumerableTableScan(table=[[SALES, EMPS]])        |
 +-----------------------------------------------------+
-sqlline> !connect jdbc:calcite:model=src/test/resources/smart.json admin admin
+sqlline> !connect jdbc:calcite:model=example/csv/src/test/resources/smart.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
