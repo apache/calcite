@@ -5700,7 +5700,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         scope = ((AggregatingSelectScope) scope).getParent();
       }
       clauseScopes.put(IdPair.of(select, Clause.SELECT),
-          new AggregatingSelectScope((SelectScope) scope, select, false));
+          new AggregatingSelectScope(
+              requireNonNull(scope, "scope"), select, false));
     }
   }
 
