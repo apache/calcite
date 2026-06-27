@@ -4345,23 +4345,6 @@ FROM empty_aa;
 
 !ok
 
-# Aggregated column contains only NULLs
-# Currently disabled: EnumerableAggregate fails to implement SUM over an
-# all-NULL input even without the correlated-aggregate rewrite. This is a
-# pre-existing limitation, not caused by CALCITE-6104.
-# WITH aa (a) AS (VALUES NULL, NULL, NULL),
-#   xx (x) AS (VALUES 10, 20, 30)
-# SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
-# FROM aa;
-# +----+
-# | SA |
-# +----+
-# |    |
-# +----+
-# (1 row)
-#
-# !ok
-
 # Aggregated column contains a mix of values and NULLs
 WITH aa (a) AS (VALUES 1, NULL, 3),
   xx (x) AS (VALUES 10, 20, 30)
