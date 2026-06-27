@@ -4302,6 +4302,8 @@ GROUP BY GROUPING SETS ((deptno), ());
 !ok
 
 # [CALCITE-6104] Aggregate function that references outer column should be evaluated in outer query
+# The expected results below have been verified in PostgreSQL by running
+# equivalent standard-SQL rewrites of each query.
 WITH aa (a) AS (VALUES 1, 2, 3),
   xx (x) AS (VALUES 10, 20, 30)
 SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
