@@ -5689,9 +5689,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * </ol>
    *
    * <p>For example,
-   * <blockquote><pre>SELECT (SELECT sum(a) FROM t LIMIT 1) FROM aa</pre></blockquote>
+   * <blockquote><pre>
+   * WITH aa(a) AS (VALUES 1, 2, 3),
+   *      t(x) AS (VALUES 10, 20, 30)
+   * SELECT (SELECT sum(a) FROM t LIMIT 1) FROM aa
+   * </pre></blockquote>
    * is rewritten to
-   * <blockquote><pre>SELECT sum(a) * (SELECT 1 FROM t LIMIT 1) FROM aa</pre></blockquote>
+   * <blockquote><pre>
+   * WITH aa(a) AS (VALUES 1, 2, 3),
+   *      t(x) AS (VALUES 10, 20, 30)
+   * SELECT sum(a) * (SELECT 1 FROM t LIMIT 1) FROM aa
+   * </pre></blockquote>
    */
   private void rewriteOuterAggregatesInSelectList(SqlSelect select) {
     final SqlNodeList selectItems = select.getSelectList();

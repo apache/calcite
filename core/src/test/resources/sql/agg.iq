@@ -4317,6 +4317,65 @@ FROM aa;
 
 !ok
 
+# Inner table is empty: the scalar sub-query contributes NULL
+WITH aa (a) AS (VALUES 1, 2, 3),
+  empty_xx (x) AS (SELECT 1 FROM emp WHERE 1 = 0)
+SELECT (SELECT sum(a) FROM empty_xx LIMIT 1) AS sa
+FROM aa;
++----+
+| SA |
++----+
+|    |
++----+
+(1 row)
+
+!ok
+
+# Outer table is empty: the outer aggregate has no input rows
+WITH empty_aa (a) AS (SELECT 1 FROM emp WHERE 1 = 0),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+FROM empty_aa;
++----+
+| SA |
++----+
+|    |
++----+
+(1 row)
+
+!ok
+
+# Aggregated column contains only NULLs
+# Currently disabled: EnumerableAggregate fails to implement SUM over an
+# all-NULL input even without the correlated-aggregate rewrite. This is a
+# pre-existing limitation, not caused by CALCITE-6104.
+# WITH aa (a) AS (VALUES NULL, NULL, NULL),
+#   xx (x) AS (VALUES 10, 20, 30)
+# SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+# FROM aa;
+# +----+
+# | SA |
+# +----+
+# |    |
+# +----+
+# (1 row)
+#
+# !ok
+
+# Aggregated column contains a mix of values and NULLs
+WITH aa (a) AS (VALUES 1, NULL, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+FROM aa;
++----+
+| SA |
++----+
+|  4 |
++----+
+(1 row)
+
+!ok
+
 # Aggregate with no column references aggregates at the innermost level
 WITH aa (a) AS (VALUES 1, 2, 3),
   xx (x) AS (VALUES 10, 20, 30)
