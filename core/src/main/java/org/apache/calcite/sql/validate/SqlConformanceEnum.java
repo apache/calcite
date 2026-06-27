@@ -542,4 +542,14 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean isCorrelatedAggregateAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

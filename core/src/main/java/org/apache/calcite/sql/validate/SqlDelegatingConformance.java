@@ -181,4 +181,8 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean isDistinctOnAllowed() {
     return delegate.isDistinctOnAllowed();
   }
+
+  @Override public boolean isCorrelatedAggregateAllowed() {
+    return delegate.isCorrelatedAggregateAllowed();
+  }
 }

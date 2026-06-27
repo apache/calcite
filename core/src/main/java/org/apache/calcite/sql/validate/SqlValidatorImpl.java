@@ -5603,8 +5603,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Rewrite scalar sub-queries whose single select item is an aggregate
     // over outer columns. The aggregate belongs to the outer query per SQL
-    // standard.
-    rewriteOuterAggregatesInSelectList(select);
+    // standard, but only if the current conformance allows this non-standard
+    // correlated-aggregate construct.
+    if (config.conformance().isCorrelatedAggregateAllowed()) {
+      rewriteOuterAggregatesInSelectList(select);
+    }
 
     // Validate SELECT list. Expand terms of the form "*" or "TABLE.*".
     final SqlValidatorScope selectScope = getSelectScope(select);
