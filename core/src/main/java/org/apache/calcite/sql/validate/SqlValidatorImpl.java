@@ -5686,6 +5686,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * with {@code (SELECT 1 FROM ... LIMIT 1)}. The result is equivalent because
    * the scalar sub-query contributes a factor of one per outer row, while the
    * aggregate is evaluated over the outer rows.
+   * <li>This rewrite will only work for numeric aggregates on types which
+   * have a multiplication operation.
    * <li>If the outer query becomes an aggregate query as a result, upgrade its
    * SELECT clause scope from {@link SelectScope} to
    * {@link AggregatingSelectScope}.
@@ -5695,7 +5697,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * <blockquote><pre>
    * WITH aa(a) AS (VALUES 1, 2, 3),
    *      t(x) AS (VALUES 10, 20, 30)
-   * SELECT (SELECT sum(a) FROM t LIMIT 1) FROM aa
+   * SELECT (SELECT sum(a) FROM t) FROM aa
    * </pre></blockquote>
    * is rewritten to
    * <blockquote><pre>
