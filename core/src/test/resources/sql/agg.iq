@@ -4315,6 +4315,61 @@ FROM aa;
 
 !ok
 
+# Aggregate with no column references aggregates at the innermost level
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(1) FROM xx LIMIT 1) AS s
+FROM aa;
++---+
+| S |
++---+
+| 3 |
+| 3 |
+| 3 |
++---+
+(3 rows)
+
+!ok
+
+# Aggregate referencing only inner column aggregates at the inner level
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(x) FROM xx LIMIT 1) AS s
+FROM aa;
++----+
+| S  |
++----+
+| 60 |
+| 60 |
+| 60 |
++----+
+(3 rows)
+
+!ok
+
+# Two scalar sub-queries with outer-only aggregates are both lifted to the outer query
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa,
+  (SELECT count(a) FROM xx LIMIT 1) AS ca
+FROM aa;
++----+----+
+| SA | CA |
++----+----+
+|  6 |  3 |
++----+----+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[*($t0, $t2)], expr#4=[*($t1, $t2)], SA=[$t3], CA=[$t4])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[COUNT()])
+      EnumerableValues(tuples=[[{ 1 }, { 2 }, { 3 }]])
+    EnumerableLimit(fetch=[1])
+      EnumerableValues(tuples=[[{ 1 }, { 1 }, { 1 }]])
+!plan
+
 SELECT (SELECT sum(sal) FROM dept) AS sum_sal
 FROM emp;
 +----------+

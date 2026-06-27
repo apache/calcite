@@ -5670,6 +5670,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * an aggregate function whose arguments reference only outer columns. Per the
    * SQL standard, such aggregates belong to the outer query.
    *
+   * <p>The algorithm is:
+   * <ol>
+   * <li>For each item in the SELECT list, check whether it is a scalar
+   * sub-query, optionally wrapped in {@code AS} or {@code WITH}.
+   * <li>Inside the sub-query, require the SELECT list to contain exactly one
+   * item, and that item to be an aggregate function call.
+   * <li>Require every argument of the aggregate to reference only columns from
+   * the outer query (no inner columns), and to contain no nested sub-queries.
+   * <li>If all conditions hold, lift the aggregate out of the sub-query: keep
+   * the aggregate in the outer SELECT list, and replace the original sub-query
+   * with {@code (SELECT 1 FROM ... LIMIT 1)}. The result is equivalent because
+   * the scalar sub-query contributes a factor of one per outer row, while the
+   * aggregate is evaluated over the outer rows.
+   * <li>If the outer query becomes an aggregate query as a result, upgrade its
+   * SELECT clause scope from {@link SelectScope} to
+   * {@link AggregatingSelectScope}.
+   * </ol>
+   *
    * <p>For example,
    * <blockquote><pre>SELECT (SELECT sum(a) FROM t LIMIT 1) FROM aa</pre></blockquote>
    * is rewritten to
