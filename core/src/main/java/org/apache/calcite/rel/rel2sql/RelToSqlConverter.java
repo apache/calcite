@@ -553,8 +553,8 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /**
-   * Returns whether any expression (including nested sub-queries) references a correlated variable
-   * defined by the given input and having the same row type.
+   * Returns whether any expression (including nested sub-queries)
+   * references a correlated variable whose row type matches the given input.
    */
   private static boolean inputRowTypeMatchesCorrelVariable(
       RelNode input,
