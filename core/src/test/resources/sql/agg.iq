@@ -4325,7 +4325,7 @@ FROM aa;
 Aggregate function referencing outer column is not allowed under the current SQL conformance level
 !error
 
-# ... and allowed under LENIENT conformance.
+# allowed under LENIENT conformance.
 !use scott-lenient
 
 WITH aa (a) AS (VALUES 1, 2, 3),
