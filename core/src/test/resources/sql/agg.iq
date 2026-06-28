@@ -4302,7 +4302,30 @@ GROUP BY GROUPING SETS ((deptno), ());
 !ok
 
 # [CALCITE-6104] Aggregate function that references outer column should be evaluated in outer query
-# Correlated aggregates are a non-standard extension; use LENIENT conformance.
+# Correlated aggregates are a non-standard extension.
+# They are rejected under DEFAULT conformance ...
+!use scott
+
+SELECT (SELECT sum(sal) FROM dept) FROM emp;
+Aggregate function referencing outer column is not allowed under the current SQL conformance level
+!error
+
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT count(a) FROM xx LIMIT 1) AS ca
+FROM aa;
+Aggregate function referencing outer column is not allowed under the current SQL conformance level
+!error
+
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa,
+  (SELECT count(a) FROM xx LIMIT 1) AS ca
+FROM aa;
+Aggregate function referencing outer column is not allowed under the current SQL conformance level
+!error
+
+# ... and allowed under LENIENT conformance.
 !use scott-lenient
 
 WITH aa (a) AS (VALUES 1, 2, 3),

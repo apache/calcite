@@ -8464,6 +8464,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER NOT NULL");
   }
 
+  @Test void testCorrelatedAggregateConformance() {
+    final String sql = "select (select ^sum(sal)^ from dept) from emp";
+    // LENIENT and BABEL allow the non-standard correlated-aggregate construct.
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql(sql).withConformance(SqlConformanceEnum.BABEL).ok();
+    // DEFAULT and STRICT_2003 do not.
+    final String err =
+        "Aggregate function referencing outer column is not allowed under the current SQL conformance level";
+    sql(sql).withConformance(SqlConformanceEnum.DEFAULT).fails(err);
+    sql(sql).withConformance(SqlConformanceEnum.STRICT_2003).fails(err);
+  }
+
   @Test void testAggregateInOrderByFails() {
     sql("select empno from emp order by ^sum(empno)^")
         .fails(ERR_AGG_IN_ORDER_BY);
