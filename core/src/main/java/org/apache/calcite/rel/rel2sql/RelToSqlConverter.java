@@ -21,7 +21,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -658,7 +657,7 @@ public class RelToSqlConverter extends SqlImplementor
     } else {
       Result x = visitInput(e, 0, Clause.WHERE);
       final boolean pushed = !definedHere.isEmpty()
-          && !(e.getInput() instanceof BiRel)
+          && !(e.getInput() instanceof Join) && !(e.getInput() instanceof Correlate)
            &&  inputRowTypeMatchesCorrelVariable(
           e.getInput(), definedHere, ImmutableList.of(e.getCondition()));
       if (pushed) {
