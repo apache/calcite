@@ -18,10 +18,15 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.rel.core.SetOp;
 
-import com.google.common.collect.HashMultiset;
-
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Util.transformIndexed;
 
 /**
  * Interpreter node that implements a
@@ -31,63 +36,216 @@ import java.util.HashSet;
  * {@link org.apache.calcite.rel.core.Intersect}.
  */
 public class SetOpNode implements Node {
-  private final Source leftSource;
-  private final Source rightSource;
+  private final List<Source> sources;
   private final Sink sink;
   private final SetOp setOp;
 
   public SetOpNode(Compiler compiler, SetOp setOp) {
-    leftSource = compiler.source(setOp, 0);
-    rightSource = compiler.source(setOp, 1);
+    final int arity = setOp.getInputs().size();
+    checkArgument(arity >= 2, "invalid set op arity %s", arity);
+    sources = transformIndexed(setOp.getInputs(), (r, i) -> compiler.source(setOp, i));
+    assert sources.size() == arity;
     sink = compiler.sink(setOp);
     this.setOp = setOp;
   }
 
   @Override public void close() {
-    leftSource.close();
-    rightSource.close();
+    for (Source source : sources) {
+      source.close();
+    }
   }
 
   @Override public void run() throws InterruptedException {
-    final Collection<Row> leftRows;
-    final Collection<Row> rightRows;
-    if (setOp.all) {
-      leftRows = HashMultiset.create();
-      rightRows = HashMultiset.create();
-    } else {
-      leftRows = new HashSet<>();
-      rightRows = new HashSet<>();
-    }
-    Row row;
-    while ((row = leftSource.receive()) != null) {
-      leftRows.add(row);
-    }
-    while ((row = rightSource.receive()) != null) {
-      rightRows.add(row);
-    }
     switch (setOp.kind) {
+    case UNION:
+      if (setOp.all) {
+        unionAll();
+      } else {
+        unionDistinct();
+      }
+      break;
     case INTERSECT:
-      for (Row leftRow : leftRows) {
-        if (rightRows.remove(leftRow)) {
-          sink.send(leftRow);
-        }
+      if (setOp.all) {
+        intersectAll();
+      } else {
+        intersectDistinct();
       }
       break;
     case EXCEPT:
-      for (Row leftRow : leftRows) {
-        if (!rightRows.remove(leftRow)) {
-          sink.send(leftRow);
-        }
-      }
-      break;
-    case UNION:
-      leftRows.addAll(rightRows);
-      for (Row r : leftRows) {
-        sink.send(r);
+      if (setOp.all) {
+        minusAll();
+      } else {
+        minusDistinct();
       }
       break;
     default:
       break;
     }
+  }
+
+  /** Evaluates UNION ALL. Does not need to buffer: sends each row to the
+   * output as it arrives. */
+  private void unionAll() throws InterruptedException {
+    for (Source source : sources) {
+      Row row;
+      while ((row = source.receive()) != null) {
+        sink.send(row);
+      }
+    }
+  }
+
+  /** Evaluates UNION DISTINCT. Does not need to buffer: sends each row to the
+   * output as it arrives, eliminating duplicates on the fly. */
+  private void unionDistinct() throws InterruptedException {
+    final Set<Row> seen = new HashSet<>();
+    for (Source source : sources) {
+      Row row;
+      while ((row = source.receive()) != null) {
+        if (seen.add(row)) {
+          sink.send(row);
+        }
+      }
+    }
+  }
+
+  /** Evaluates INTERSECT ALL by counting each value's occurrences in every
+   * input and emitting it the minimum number of times. 'min' holds the
+   * smallest count seen across the inputs processed so far; 'current' counts
+   * the occurrences in the input being processed. */
+  private void intersectAll() throws InterruptedException {
+    final Map<Row, CountPair> counts = new HashMap<>();
+    Row row;
+    final Source first = sources.get(0);
+    while ((row = first.receive()) != null) {
+      counts.computeIfAbsent(row, k -> new CountPair()).min++;
+    }
+    final int last = sources.size() - 1;
+    for (int i = 1; i < last && !counts.isEmpty(); i++) {
+      final Source source = sources.get(i);
+      while ((row = source.receive()) != null) {
+        final CountPair pair = counts.get(row);
+        if (pair != null) {
+          pair.current++;
+        }
+      }
+      // Reduce the running minimum, dropping values absent from this input.
+      counts.values().removeIf(pair -> {
+        if (pair.current == 0) {
+          return true;
+        }
+        pair.min = Math.min(pair.min, pair.current);
+        pair.current = 0;
+        return false;
+      });
+    }
+    // Last input: count occurrences and emit each value that occurs in it
+    // min(min, current) times.
+    if (counts.isEmpty()) {
+      return;
+    }
+    final Source source = sources.get(last);
+    while ((row = source.receive()) != null) {
+      final CountPair pair = counts.get(row);
+      if (pair != null) {
+        pair.current++;
+      }
+    }
+    for (Map.Entry<Row, CountPair> entry : counts.entrySet()) {
+      final CountPair pair = entry.getValue();
+      if (pair.current > 0) {
+        for (int n = Math.min(pair.min, pair.current); n > 0; n--) {
+          sink.send(entry.getKey());
+        }
+      }
+    }
+  }
+
+  /** Evaluates INTERSECT DISTINCT by retaining, for each successive input, the
+   * rows it has in common with the result so far. Inputs after the first are
+   * streamed, so only the result set (which only shrinks) is held in memory. */
+  private void intersectDistinct() throws InterruptedException {
+    Set<Row> result = read(sources.get(0));
+    for (int i = 1; i < sources.size() && !result.isEmpty(); i++) {
+      final Source source = sources.get(i);
+      final Set<Row> next = new HashSet<>();
+      Row row;
+      while ((row = source.receive()) != null) {
+        if (result.contains(row)) {
+          next.add(row);
+        }
+      }
+      result = next;
+    }
+    for (Row r : result) {
+      sink.send(r);
+    }
+  }
+
+  /** Evaluates EXCEPT ALL by counting occurrences of each value in a map. A row
+   * from the first input increments its value's count; a row from a later input
+   * decrements it, and a value whose count reaches zero is removed. After all
+   * inputs have been read, emit each surviving value as many times as its
+   * remaining count. */
+  private void minusAll() throws InterruptedException {
+    final Map<Row, Count> counts = new HashMap<>();
+    Row row;
+    final Source first = sources.get(0);
+    while ((row = first.receive()) != null) {
+      counts.computeIfAbsent(row, k -> new Count()).i++;
+    }
+    for (int i = 1; i < sources.size() && !counts.isEmpty(); i++) {
+      final Source source = sources.get(i);
+      while ((row = source.receive()) != null) {
+        final Count count = counts.get(row);
+        if (count != null && --count.i == 0) {
+          counts.remove(row);
+        }
+      }
+    }
+    for (Map.Entry<Row, Count> entry : counts.entrySet()) {
+      for (int n = entry.getValue().i; n > 0; n--) {
+        sink.send(entry.getKey());
+      }
+    }
+  }
+
+  /** Evaluates EXCEPT DISTINCT by removing from the running result every row
+   * that occurs in a later input. Later inputs are streamed, so only the result
+   * set is held in memory. */
+  private void minusDistinct() throws InterruptedException {
+    final Set<Row> result = read(sources.get(0));
+    for (int i = 1; i < sources.size() && !result.isEmpty(); i++) {
+      final Source source = sources.get(i);
+      Row row;
+      while ((row = source.receive()) != null) {
+        result.remove(row);
+      }
+    }
+    for (Row r : result) {
+      sink.send(r);
+    }
+  }
+
+  /** Reads a single input into a set, eliminating duplicates. */
+  private static Set<Row> read(Source source) {
+    final Set<Row> rows = new HashSet<>();
+    Row row;
+    while ((row = source.receive()) != null) {
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  /** Mutable count of the occurrences of a row, used by {@link #minusAll()}. */
+  private static class Count {
+    int i;
+  }
+
+  /** Mutable pair of counts used by {@link #intersectAll()}: the minimum
+   * multiplicity of a row across the inputs seen so far, and its count in the
+   * input currently being processed. */
+  private static class CountPair {
+    int min;
+    int current;
   }
 }
