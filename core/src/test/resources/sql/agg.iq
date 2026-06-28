@@ -4303,7 +4303,7 @@ GROUP BY GROUPING SETS ((deptno), ());
 
 # [CALCITE-6104] Aggregate function that references outer column should be evaluated in outer query
 # Correlated aggregates are a non-standard extension.
-# They are rejected under DEFAULT conformance ...
+# They are rejected under DEFAULT conformance.
 !use scott
 
 SELECT (SELECT sum(sal) FROM dept) FROM emp;
