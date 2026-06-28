@@ -12327,7 +12327,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7505">[CALCITE-7505]
-   * RelToSqlConverter produces duplicate FROM aliases for correlated subqueries</a>. */
+   * RelToSqlConverter fails to alias outer relation for correlated sub-queries in Filter</a>. */
   @Test void testExistsSubQueryAliasConflict() {
     final String sql =
         "select deptno, sum(sal) as total\n"
