@@ -424,6 +424,21 @@ class InterpreterTest {
     sql(sql).returnsRows("[1, a]");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7628">[CALCITE-7628]
+   * Interpreter gives wrong result for query with MINUS or INTERSECT
+   * with 3 or more inputs</a>. */
+  @Test void testInterpretIntersectWithThreeInputs() {
+    final Function<RelBuilder, RelNode> relFn =
+        b -> b.values(new String[] {"i"}, 1, 2, 3)
+            .values(new String[] {"i"}, 2, 3, 4)
+            .values(new String[] {"i"}, 2, 4, 5)
+            .intersect(false, 3)
+            .build();
+    fixture().withRel(relFn)
+        .returnsRows("[2]");
+  }
+
   @Test void testInterpretIntersectAll() {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
@@ -456,6 +471,21 @@ class InterpreterTest {
         + "except\n"
         + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
     sql(sql).returnsRows("[2, b]", "[3, c]");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7628">[CALCITE-7628]
+   * Interpreter gives wrong result for query with MINUS or INTERSECT
+   * with 3 or more inputs</a>. */
+  @Test void testInterpretMinusWithThreeInputs() {
+    final Function<RelBuilder, RelNode> relFn =
+        b -> b.values(new String[] {"i"}, 1, 2, 3)
+            .values(new String[] {"i"}, 3, 4, 5)
+            .values(new String[] {"i"}, 4, 5, 1)
+            .minus(false, 3)
+            .build();
+    fixture().withRel(relFn)
+        .returnsRows("[2]");
   }
 
   @Test void testDuplicateRowInterpretMinus() {

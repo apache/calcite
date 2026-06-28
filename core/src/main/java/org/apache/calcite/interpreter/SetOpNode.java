@@ -19,6 +19,7 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.rel.core.SetOp;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,63 +32,87 @@ import java.util.HashSet;
  * {@link org.apache.calcite.rel.core.Intersect}.
  */
 public class SetOpNode implements Node {
-  private final Source leftSource;
-  private final Source rightSource;
+  private final ImmutableList<Source> sources;
   private final Sink sink;
   private final SetOp setOp;
 
   public SetOpNode(Compiler compiler, SetOp setOp) {
-    leftSource = compiler.source(setOp, 0);
-    rightSource = compiler.source(setOp, 1);
+    ImmutableList.Builder<Source> builder = ImmutableList.builder();
+    for (int i = 0; i < setOp.getInputs().size(); i++) {
+      builder.add(compiler.source(setOp, i));
+    }
+    sources = builder.build();
     sink = compiler.sink(setOp);
     this.setOp = setOp;
   }
 
   @Override public void close() {
-    leftSource.close();
-    rightSource.close();
+    for (Source source : sources) {
+      source.close();
+    }
   }
 
   @Override public void run() throws InterruptedException {
-    final Collection<Row> leftRows;
-    final Collection<Row> rightRows;
-    if (setOp.all) {
-      leftRows = HashMultiset.create();
-      rightRows = HashMultiset.create();
-    } else {
-      leftRows = new HashSet<>();
-      rightRows = new HashSet<>();
-    }
-    Row row;
-    while ((row = leftSource.receive()) != null) {
-      leftRows.add(row);
-    }
-    while ((row = rightSource.receive()) != null) {
-      rightRows.add(row);
-    }
+    final Collection<Row> rows = readRows(sources.get(0));
     switch (setOp.kind) {
     case INTERSECT:
-      for (Row leftRow : leftRows) {
-        if (rightRows.remove(leftRow)) {
-          sink.send(leftRow);
-        }
+      for (Source source : sources.subList(1, sources.size())) {
+        intersect(rows, readRows(source));
       }
       break;
     case EXCEPT:
-      for (Row leftRow : leftRows) {
-        if (!rightRows.remove(leftRow)) {
-          sink.send(leftRow);
-        }
+      for (Source source : sources.subList(1, sources.size())) {
+        except(rows, readRows(source));
       }
       break;
     case UNION:
-      leftRows.addAll(rightRows);
-      for (Row r : leftRows) {
-        sink.send(r);
+      for (Source source : sources.subList(1, sources.size())) {
+        rows.addAll(readRows(source));
       }
       break;
     default:
-      break;
+      return;
     }
+    for (Row row : rows) {
+      sink.send(row);
+    }
+  }
+
+  private void intersect(Collection<Row> rows, Collection<Row> rows2) {
+    final Collection<Row> result = newCollection();
+    for (Row row : rows) {
+      if (rows2.remove(row)) {
+        result.add(row);
+      }
+    }
+    rows.clear();
+    rows.addAll(result);
+  }
+
+  private void except(Collection<Row> rows, Collection<Row> rows2) {
+    final Collection<Row> result = newCollection();
+    for (Row row : rows) {
+      if (!rows2.remove(row)) {
+        result.add(row);
+      }
+    }
+    rows.clear();
+    rows.addAll(result);
+  }
+
+  private Collection<Row> readRows(Source source) {
+    final Collection<Row> rows = newCollection();
+    Row row;
+    while ((row = source.receive()) != null) {
+      rows.add(row);
+    }
+    return rows;
+  }
+
+  private Collection<Row> newCollection() {
+    if (setOp.all) {
+      return HashMultiset.create();
+    }
+    return new HashSet<>();
   }
 }
