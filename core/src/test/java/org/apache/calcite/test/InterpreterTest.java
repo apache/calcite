@@ -471,7 +471,7 @@ class InterpreterTest {
         + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "except all\n"
         + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
-    sql(sql).returnsRows("[2, b]", "[2, b]", "[3, c]");
+    sql(sql).returnsRowsUnordered("[2, b]", "[2, b]", "[3, c]");
   }
 
   @Test void testDuplicateRowInterpretMinusAll() {

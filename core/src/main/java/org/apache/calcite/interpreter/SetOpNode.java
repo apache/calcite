@@ -24,8 +24,10 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -82,9 +84,42 @@ public class SetOpNode implements Node {
       return;
     }
 
-    // Intersect and minus must read all inputs before producing output. A
-    // HashMultiset preserves duplicate counts for the ALL variants, a HashSet
-    // eliminates them otherwise.
+    if (setOp.kind == SqlKind.EXCEPT && setOp.all) {
+      // EXCEPT ALL: count occurrences of each value in a map. A row from the
+      // first input increments its value's count; a row from a later input
+      // decrements it, and a value whose count reaches zero is removed. After
+      // all inputs have been read, emit each surviving value as many times as
+      // its remaining count.
+      final Map<Row, Integer> counts = new HashMap<>();
+      Row row;
+      final Source first = sources.get(0);
+      while ((row = first.receive()) != null) {
+        counts.merge(row, 1, Integer::sum);
+      }
+      for (int i = 1; i < sources.size(); i++) {
+        final Source source = sources.get(i);
+        while ((row = source.receive()) != null) {
+          final Integer count = counts.get(row);
+          if (count != null) {
+            if (count == 1) {
+              counts.remove(row);
+            } else {
+              counts.put(row, count - 1);
+            }
+          }
+        }
+      }
+      for (Map.Entry<Row, Integer> entry : counts.entrySet()) {
+        for (int n = entry.getValue(); n > 0; n--) {
+          sink.send(entry.getKey());
+        }
+      }
+      return;
+    }
+
+    // Intersect and (distinct) minus must read all inputs before producing
+    // output. A HashMultiset preserves duplicate counts for INTERSECT ALL, a
+    // HashSet eliminates them otherwise.
     final List<Collection<Row>> inputs = new ArrayList<>();
     for (Source source : sources) {
       final Collection<Row> rows =
