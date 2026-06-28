@@ -59,32 +59,69 @@ public class SetOpNode implements Node {
   }
 
   @Override public void run() throws InterruptedException {
-    if (setOp.kind == SqlKind.UNION) {
-      // Union does not need to buffer: send each row to the output as it
-      // arrives.
-      if (setOp.all) {
-        for (Source source : sources) {
-          Row row;
-          while ((row = source.receive()) != null) {
+    switch (setOp.kind) {
+    case UNION:
+      union();
+      break;
+    case INTERSECT:
+      intersect();
+      break;
+    case EXCEPT:
+      minus();
+      break;
+    default:
+      break;
+    }
+  }
+
+  /** Evaluates UNION [ALL]. Does not need to buffer: sends each row to the
+   * output as it arrives, eliminating duplicates on the fly unless ALL. */
+  private void union() throws InterruptedException {
+    if (setOp.all) {
+      for (Source source : sources) {
+        Row row;
+        while ((row = source.receive()) != null) {
+          sink.send(row);
+        }
+      }
+    } else {
+      final Set<Row> seen = new HashSet<>();
+      for (Source source : sources) {
+        Row row;
+        while ((row = source.receive()) != null) {
+          if (seen.add(row)) {
             sink.send(row);
           }
         }
-      } else {
-        // Eliminate duplicates on the fly.
-        final Set<Row> seen = new HashSet<>();
-        for (Source source : sources) {
-          Row row;
-          while ((row = source.receive()) != null) {
-            if (seen.add(row)) {
-              sink.send(row);
-            }
-          }
+      }
+    }
+  }
+
+  /** Evaluates INTERSECT [ALL] by retaining, for each successive input, the
+   * rows it has in common with the result so far. The minimum multiplicity
+   * across all inputs survives. */
+  private void intersect() throws InterruptedException {
+    final List<Collection<Row>> inputs = readInputs();
+    Collection<Row> result = inputs.get(0);
+    for (int i = 1; i < inputs.size(); i++) {
+      final Collection<Row> rows = inputs.get(i);
+      final Collection<Row> intersection =
+          setOp.all ? HashMultiset.create() : new HashSet<>();
+      for (Row leftRow : result) {
+        if (rows.remove(leftRow)) {
+          intersection.add(leftRow);
         }
       }
-      return;
+      result = intersection;
     }
+    for (Row r : result) {
+      sink.send(r);
+    }
+  }
 
-    if (setOp.kind == SqlKind.EXCEPT && setOp.all) {
+  /** Evaluates EXCEPT [ALL]. */
+  private void minus() throws InterruptedException {
+    if (setOp.all) {
       // EXCEPT ALL: count occurrences of each value in a map. A row from the
       // first input increments its value's count; a row from a later input
       // decrements it, and a value whose count reaches zero is removed. After
@@ -114,12 +151,24 @@ public class SetOpNode implements Node {
           sink.send(entry.getKey());
         }
       }
-      return;
+    } else {
+      // EXCEPT: remove each value that occurs in a later input.
+      final List<Collection<Row>> inputs = readInputs();
+      final Collection<Row> result = inputs.get(0);
+      for (int i = 1; i < inputs.size(); i++) {
+        for (Row rightRow : inputs.get(i)) {
+          result.remove(rightRow);
+        }
+      }
+      for (Row r : result) {
+        sink.send(r);
+      }
     }
+  }
 
-    // Intersect and (distinct) minus must read all inputs before producing
-    // output. A HashMultiset preserves duplicate counts for INTERSECT ALL, a
-    // HashSet eliminates them otherwise.
+  /** Reads every input into a collection. A HashMultiset preserves duplicate
+   * counts for the ALL variants; a HashSet eliminates them otherwise. */
+  private List<Collection<Row>> readInputs() throws InterruptedException {
     final List<Collection<Row>> inputs = new ArrayList<>();
     for (Source source : sources) {
       final Collection<Row> rows =
@@ -130,36 +179,6 @@ public class SetOpNode implements Node {
       }
       inputs.add(rows);
     }
-
-    Collection<Row> result = inputs.get(0);
-    for (int i = 1; i < inputs.size(); i++) {
-      final Collection<Row> rows = inputs.get(i);
-      switch (setOp.kind) {
-      case INTERSECT:
-        // Keep a row for each occurrence present in both collections; this
-        // yields the minimum multiplicity across all inputs.
-        final Collection<Row> intersection =
-            setOp.all ? HashMultiset.create() : new HashSet<>();
-        for (Row leftRow : result) {
-          if (rows.remove(leftRow)) {
-            intersection.add(leftRow);
-          }
-        }
-        result = intersection;
-        break;
-      case EXCEPT:
-        // Remove one occurrence from the result for each occurrence in a
-        // later input.
-        for (Row rightRow : rows) {
-          result.remove(rightRow);
-        }
-        break;
-      default:
-        break;
-      }
-    }
-    for (Row r : result) {
-      sink.send(r);
-    }
+    return inputs;
   }
 }
