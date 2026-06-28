@@ -17,11 +17,16 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Interpreter node that implements a
@@ -31,63 +36,95 @@ import java.util.HashSet;
  * {@link org.apache.calcite.rel.core.Intersect}.
  */
 public class SetOpNode implements Node {
-  private final Source leftSource;
-  private final Source rightSource;
+  private final List<Source> sources;
   private final Sink sink;
   private final SetOp setOp;
 
   public SetOpNode(Compiler compiler, SetOp setOp) {
-    leftSource = compiler.source(setOp, 0);
-    rightSource = compiler.source(setOp, 1);
+    final ImmutableList.Builder<Source> sources = ImmutableList.builder();
+    for (int i = 0; i < setOp.getInputs().size(); i++) {
+      sources.add(compiler.source(setOp, i));
+    }
+    this.sources = sources.build();
     sink = compiler.sink(setOp);
     this.setOp = setOp;
   }
 
   @Override public void close() {
-    leftSource.close();
-    rightSource.close();
+    for (Source source : sources) {
+      source.close();
+    }
   }
 
   @Override public void run() throws InterruptedException {
-    final Collection<Row> leftRows;
-    final Collection<Row> rightRows;
-    if (setOp.all) {
-      leftRows = HashMultiset.create();
-      rightRows = HashMultiset.create();
-    } else {
-      leftRows = new HashSet<>();
-      rightRows = new HashSet<>();
-    }
-    Row row;
-    while ((row = leftSource.receive()) != null) {
-      leftRows.add(row);
-    }
-    while ((row = rightSource.receive()) != null) {
-      rightRows.add(row);
-    }
-    switch (setOp.kind) {
-    case INTERSECT:
-      for (Row leftRow : leftRows) {
-        if (rightRows.remove(leftRow)) {
-          sink.send(leftRow);
+    if (setOp.kind == SqlKind.UNION) {
+      // Union does not need to buffer: send each row to the output as it
+      // arrives.
+      if (setOp.all) {
+        for (Source source : sources) {
+          Row row;
+          while ((row = source.receive()) != null) {
+            sink.send(row);
+          }
+        }
+      } else {
+        // Eliminate duplicates on the fly.
+        final Set<Row> seen = new HashSet<>();
+        for (Source source : sources) {
+          Row row;
+          while ((row = source.receive()) != null) {
+            if (seen.add(row)) {
+              sink.send(row);
+            }
+          }
         }
       }
-      break;
-    case EXCEPT:
-      for (Row leftRow : leftRows) {
-        if (!rightRows.remove(leftRow)) {
-          sink.send(leftRow);
+      return;
+    }
+
+    // Intersect and minus must read all inputs before producing output. A
+    // HashMultiset preserves duplicate counts for the ALL variants, a HashSet
+    // eliminates them otherwise.
+    final List<Collection<Row>> inputs = new ArrayList<>();
+    for (Source source : sources) {
+      final Collection<Row> rows =
+          setOp.all ? HashMultiset.create() : new HashSet<>();
+      Row row;
+      while ((row = source.receive()) != null) {
+        rows.add(row);
+      }
+      inputs.add(rows);
+    }
+
+    Collection<Row> result = inputs.get(0);
+    for (int i = 1; i < inputs.size(); i++) {
+      final Collection<Row> rows = inputs.get(i);
+      switch (setOp.kind) {
+      case INTERSECT:
+        // Keep a row for each occurrence present in both collections; this
+        // yields the minimum multiplicity across all inputs.
+        final Collection<Row> intersection =
+            setOp.all ? HashMultiset.create() : new HashSet<>();
+        for (Row leftRow : result) {
+          if (rows.remove(leftRow)) {
+            intersection.add(leftRow);
+          }
         }
+        result = intersection;
+        break;
+      case EXCEPT:
+        // Remove one occurrence from the result for each occurrence in a
+        // later input.
+        for (Row rightRow : rows) {
+          result.remove(rightRow);
+        }
+        break;
+      default:
+        break;
       }
-      break;
-    case UNION:
-      leftRows.addAll(rightRows);
-      for (Row r : leftRows) {
-        sink.send(r);
-      }
-      break;
-    default:
-      break;
+    }
+    for (Row r : result) {
+      sink.send(r);
     }
   }
 }
