@@ -1,0 +1,171 @@
+# interpreter.iq - Queries executed by the interpreter
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Setting 'bindable' makes the planner target BindableConvention. Operators
+# that have no native bindable implementation - including Minus, Intersect and
+# Union - are executed by the interpreter (org.apache.calcite.interpreter); see
+# Bindables and SetOpNode.
+!use blank
+!set outputformat mysql
+!set bindable true
+
+# A project and filter, to confirm queries run via the interpreter.
+select i, i * 10 as j
+from (values 1, 2, 3, 4) as t (i)
+where i <> 2
+order by i;
++---+----+
+| I | J  |
++---+----+
+| 1 | 10 |
+| 3 | 30 |
+| 4 | 40 |
++---+----+
+(3 rows)
+
+!ok
+
+# The plan uses bindable/interpreter operators, not enumerable ones.
+BindableProject(I=[$0], J=[*($0, 10)])
+  BindableFilter(condition=[<>($0, 2)])
+    BindableValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }]])
+!plan
+
+# Aggregate.
+select count(*) as c, sum(i) as s, min(i) as mn, max(i) as mx
+from (values 1, 2, 3, 4) as t (i);
++---+----+----+----+
+| C | S  | MN | MX |
++---+----+----+----+
+| 4 | 10 |  1 |  4 |
++---+----+----+----+
+(1 row)
+
+!ok
+
+# Join.
+select t.i, u.y
+from (values (1, 'a'), (2, 'b'), (3, 'c')) as t (i, x)
+join (values (1, 'p'), (3, 'q')) as u (j, y) on t.i = u.j
+order by t.i;
++---+---+
+| I | Y |
++---+---+
+| 1 | p |
+| 3 | q |
++---+---+
+(2 rows)
+
+!ok
+
+# Multi-input set operations.
+#
+# Chained set operations are merged into a single n-input SetOp, so the
+# interpreter's SetOpNode must evaluate every input, not just the first two.
+# [CALCITE-7628] In the interpreter, MINUS with 3 or more inputs returns wrong
+# result
+
+# Except, three inputs
+select i from (
+  values 1, 2, 3 except values 3, 4, 5 except values 4, 5, 1
+) as t (i)
+order by i;
++---+
+| I |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# A single three-input BindableMinus confirms the interpreter path.
+BindableSort(sort0=[$0], dir0=[ASC])
+  BindableMinus(all=[false])
+    BindableValues(tuples=[[{ 1 }, { 2 }, { 3 }]])
+    BindableValues(tuples=[[{ 3 }, { 4 }, { 5 }]])
+    BindableValues(tuples=[[{ 4 }, { 5 }, { 1 }]])
+!plan
+
+# Except all, three inputs
+select i from (
+  values 1, 1, 1, 2, 2, 3 except all values 1 except all values 1, 2
+) as t (i)
+order by i;
++---+
+| I |
++---+
+| 1 |
+| 2 |
+| 3 |
++---+
+(3 rows)
+
+!ok
+
+# Intersect, three inputs
+select i from (
+  values 1, 2, 3, 4 intersect values 2, 3, 4, 5 intersect values 3, 4, 5, 6
+) as t (i)
+order by i;
++---+
+| I |
++---+
+| 3 |
+| 4 |
++---+
+(2 rows)
+
+!ok
+
+# Intersect all, three inputs
+select i from (
+  values 1, 1, 2, 2, 3 intersect all values 1, 2, 2, 3, 3
+  intersect all values 1, 2, 3, 3
+) as t (i)
+order by i;
++---+
+| I |
++---+
+| 1 |
+| 2 |
+| 3 |
++---+
+(3 rows)
+
+!ok
+
+# Union, three inputs
+select i from (
+  values 1, 2 union values 2, 3 union values 3, 4
+) as t (i)
+order by i;
++---+
+| I |
++---+
+| 1 |
+| 2 |
+| 3 |
+| 4 |
++---+
+(4 rows)
+
+!ok
+
+!set bindable false
+
+# End interpreter.iq
