@@ -8249,11 +8249,10 @@ public class JdbcTest {
               + "    BindableTableScan(table=[[hr, emps]])\n"
               + "  BindableProject(empid=[$0], deptno=[$1])\n"
               + "    BindableTableScan(table=[[hr, emps]])")
-          .returns(""
-              + "empid=150; deptno=10\n"
-              + "empid=100; deptno=10\n"
-              + "empid=200; deptno=20\n"
-              + "empid=110; deptno=10\n");
+          .returnsUnordered("empid=150; deptno=10",
+              "empid=100; deptno=10",
+              "empid=200; deptno=20",
+              "empid=110; deptno=10");
     }
   }
 

@@ -17,13 +17,10 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.rel.core.SetOp;
-import org.apache.calcite.sql.SqlKind;
 
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -101,21 +98,62 @@ public class SetOpNode implements Node {
    * rows it has in common with the result so far. The minimum multiplicity
    * across all inputs survives. */
   private void intersect() throws InterruptedException {
-    final List<Collection<Row>> inputs = readInputs();
-    Collection<Row> result = inputs.get(0);
-    for (int i = 1; i < inputs.size(); i++) {
-      final Collection<Row> rows = inputs.get(i);
-      final Collection<Row> intersection =
-          setOp.all ? HashMultiset.create() : new HashSet<>();
-      for (Row leftRow : result) {
-        if (rows.remove(leftRow)) {
-          intersection.add(leftRow);
+    if (setOp.all) {
+      // INTERSECT ALL: count each value's occurrences in every input and emit
+      // it the minimum number of times. 'min' holds the smallest count seen
+      // across the inputs processed so far; 'current' counts the occurrences
+      // in the input being processed.
+      final Map<Row, CountPair> counts = new HashMap<>();
+      Row row;
+      final Source first = sources.get(0);
+      while ((row = first.receive()) != null) {
+        counts.computeIfAbsent(row, k -> new CountPair()).min++;
+      }
+      final int last = sources.size() - 1;
+      for (int i = 1; i < last; i++) {
+        final Source source = sources.get(i);
+        while ((row = source.receive()) != null) {
+          final CountPair pair = counts.get(row);
+          if (pair != null) {
+            pair.current++;
+          }
+        }
+        // Reduce the running minimum, dropping values absent from this input.
+        counts.values().removeIf(pair -> {
+          if (pair.current == 0) {
+            return true;
+          }
+          pair.min = Math.min(pair.min, pair.current);
+          pair.current = 0;
+          return false;
+        });
+      }
+      // Last input: count occurrences and emit each value that occurs in it
+      // min(min, current) times.
+      final Source source = sources.get(last);
+      while ((row = source.receive()) != null) {
+        final CountPair pair = counts.get(row);
+        if (pair != null) {
+          pair.current++;
         }
       }
-      result = intersection;
-    }
-    for (Row r : result) {
-      sink.send(r);
+      for (Map.Entry<Row, CountPair> entry : counts.entrySet()) {
+        final CountPair pair = entry.getValue();
+        if (pair.current > 0) {
+          for (int n = Math.min(pair.min, pair.current); n > 0; n--) {
+            sink.send(entry.getKey());
+          }
+        }
+      }
+    } else {
+      final List<Set<Row>> inputs = readInputs();
+      final Set<Row> result = inputs.get(0);
+      for (int i = 1; i < inputs.size(); i++) {
+        result.retainAll(inputs.get(i));
+      }
+      for (Row r : result) {
+        sink.send(r);
+      }
     }
   }
 
@@ -127,38 +165,32 @@ public class SetOpNode implements Node {
       // decrements it, and a value whose count reaches zero is removed. After
       // all inputs have been read, emit each surviving value as many times as
       // its remaining count.
-      final Map<Row, Integer> counts = new HashMap<>();
+      final Map<Row, Count> counts = new HashMap<>();
       Row row;
       final Source first = sources.get(0);
       while ((row = first.receive()) != null) {
-        counts.merge(row, 1, Integer::sum);
+        counts.computeIfAbsent(row, k -> new Count()).i++;
       }
       for (int i = 1; i < sources.size(); i++) {
         final Source source = sources.get(i);
         while ((row = source.receive()) != null) {
-          final Integer count = counts.get(row);
-          if (count != null) {
-            if (count == 1) {
-              counts.remove(row);
-            } else {
-              counts.put(row, count - 1);
-            }
+          final Count count = counts.get(row);
+          if (count != null && --count.i == 0) {
+            counts.remove(row);
           }
         }
       }
-      for (Map.Entry<Row, Integer> entry : counts.entrySet()) {
-        for (int n = entry.getValue(); n > 0; n--) {
+      for (Map.Entry<Row, Count> entry : counts.entrySet()) {
+        for (int n = entry.getValue().i; n > 0; n--) {
           sink.send(entry.getKey());
         }
       }
     } else {
       // EXCEPT: remove each value that occurs in a later input.
-      final List<Collection<Row>> inputs = readInputs();
-      final Collection<Row> result = inputs.get(0);
+      final List<Set<Row>> inputs = readInputs();
+      final Set<Row> result = inputs.get(0);
       for (int i = 1; i < inputs.size(); i++) {
-        for (Row rightRow : inputs.get(i)) {
-          result.remove(rightRow);
-        }
+        result.removeAll(inputs.get(i));
       }
       for (Row r : result) {
         sink.send(r);
@@ -166,13 +198,11 @@ public class SetOpNode implements Node {
     }
   }
 
-  /** Reads every input into a collection. A HashMultiset preserves duplicate
-   * counts for the ALL variants; a HashSet eliminates them otherwise. */
-  private List<Collection<Row>> readInputs() throws InterruptedException {
-    final List<Collection<Row>> inputs = new ArrayList<>();
+  /** Reads every input into a set, eliminating duplicates. */
+  private List<Set<Row>> readInputs() {
+    final List<Set<Row>> inputs = new ArrayList<>();
     for (Source source : sources) {
-      final Collection<Row> rows =
-          setOp.all ? HashMultiset.create() : new HashSet<>();
+      final Set<Row> rows = new HashSet<>();
       Row row;
       while ((row = source.receive()) != null) {
         rows.add(row);
@@ -180,5 +210,18 @@ public class SetOpNode implements Node {
       inputs.add(rows);
     }
     return inputs;
+  }
+
+  /** Mutable count of the occurrences of a row, used by {@link #minus()}. */
+  private static class Count {
+    int i;
+  }
+
+  /** Mutable pair of counts used by {@link #intersect()}: the minimum
+   * multiplicity of a row across the inputs seen so far, and its count in the
+   * input currently being processed. */
+  private static class CountPair {
+    int min;
+    int current;
   }
 }
