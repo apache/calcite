@@ -21,6 +21,11 @@
       <![CDATA[`X` NOT BETWEEN SYMMETRIC `Y` AND `Z`]]>
     </Resource>
   </TestCase>
+  <TestCase name="testBetweenAnd3">
+    <Resource name="formatted">
+      <![CDATA[`A` NOT BETWEEN ASYMMETRIC (`B` BETWEEN ASYMMETRIC `C` AND `D`) AND `E`]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testBlackSubQueryStyle">
     <Resource name="formatted">
       <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
