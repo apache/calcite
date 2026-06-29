@@ -635,12 +635,12 @@ public interface SqlValidator {
   SqlValidatorScope getEmptyScope();
 
   /**
-   * Declares a SELECT expression as a cursor.
+   * Declares a query expression as a cursor.
    *
-   * @param select select expression associated with the cursor
-   * @param scope  scope of the parent query associated with the cursor
+   * @param query query expression associated with the cursor
+   * @param scope scope of the parent query associated with the cursor
    */
-  void declareCursor(SqlSelect select, SqlValidatorScope scope);
+  void declareCursor(SqlNode query, SqlValidatorScope scope);
 
   /**
    * Pushes a new instance of a function call on to a function call stack.
