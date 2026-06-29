@@ -53,8 +53,8 @@ class SpatialTypeUtilsTest {
   }
 
   @Test void testFromGml() {
-    Geometry g = SpatialTypeUtils.fromGml(
-        "<gml:Point xmlns:gml=\"http://www.opengis.net/gml\">"
+    Geometry g =
+        SpatialTypeUtils.fromGml("<gml:Point xmlns:gml=\"http://www.opengis.net/gml\">"
         + "<gml:coordinates>1,2</gml:coordinates></gml:Point>");
     assertThat(g.getCoordinate().getX(), is(1D));
     assertThat(g.getCoordinate().getY(), is(2D));
