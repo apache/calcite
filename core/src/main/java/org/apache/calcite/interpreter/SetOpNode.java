@@ -114,7 +114,7 @@ public class SetOpNode implements Node {
         counts.computeIfAbsent(row, k -> new CountPair()).min++;
       }
       final int last = sources.size() - 1;
-      for (int i = 1; i < last; i++) {
+      for (int i = 1; i < last && !counts.isEmpty(); i++) {
         final Source source = sources.get(i);
         while ((row = source.receive()) != null) {
           final CountPair pair = counts.get(row);
@@ -134,6 +134,9 @@ public class SetOpNode implements Node {
       }
       // Last input: count occurrences and emit each value that occurs in it
       // min(min, current) times.
+      if (counts.isEmpty()) {
+        return;
+      }
       final Source source = sources.get(last);
       while ((row = source.receive()) != null) {
         final CountPair pair = counts.get(row);
@@ -154,7 +157,7 @@ public class SetOpNode implements Node {
       // each successive input. Inputs after the first are streamed, so only
       // the result set (which only shrinks) is held in memory.
       Set<Row> result = read(sources.get(0));
-      for (int i = 1; i < sources.size(); i++) {
+      for (int i = 1; i < sources.size() && !result.isEmpty(); i++) {
         final Source source = sources.get(i);
         final Set<Row> next = new HashSet<>();
         Row row;
@@ -185,7 +188,7 @@ public class SetOpNode implements Node {
       while ((row = first.receive()) != null) {
         counts.computeIfAbsent(row, k -> new Count()).i++;
       }
-      for (int i = 1; i < sources.size(); i++) {
+      for (int i = 1; i < sources.size() && !counts.isEmpty(); i++) {
         final Source source = sources.get(i);
         while ((row = source.receive()) != null) {
           final Count count = counts.get(row);
@@ -204,7 +207,7 @@ public class SetOpNode implements Node {
       // in a later input. Later inputs are streamed, so only the result set is
       // held in memory.
       final Set<Row> result = read(sources.get(0));
-      for (int i = 1; i < sources.size(); i++) {
+      for (int i = 1; i < sources.size() && !result.isEmpty(); i++) {
         final Source source = sources.get(i);
         Row row;
         while ((row = source.receive()) != null) {
