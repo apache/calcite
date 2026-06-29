@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -63,6 +65,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
@@ -101,12 +104,14 @@ import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.isCharset;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -10089,11 +10094,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "`CATALOG`.`SALES`.`EMP` AS `EMP`");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5261">[CALCITE-5261]
+   * UNION(ALL) inside of the CURSOR throws an exception while validating the query</a>.
+   * */
   @Test void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emp),'ename'))")
         .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
     sql("select * from table(dedup(cursor(select * from ^bloop^),'ename'))")
         .fails("Object 'BLOOP' not found");
+    sql("select * from table(dedup(cursor(select ename from emp union all "
+        + "select ename from emp), 'ename'))")
+        .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
+    sql("select * from table(dedup(cursor(select ename from emp union "
+        + "select ename from emp), 'ename'))")
+        .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
+    sql("select * from table(dedup(cursor(values ('a'), ('b')), 'COLUMN0'))")
+        .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
+    sql("select * from table(dedup(cursor(with cte as (select ename from emp) "
+        + "select * from cte), 'ENAME'))")
+        .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
+  }
+
+  @Test void testDeclareCursorUnexpectedKind() {
+    final SqlValidator validator = fixture().factory.createValidator();
+    validator.pushFunctionCall();
+    final SqlCall query =
+        new SqlBasicCall(SqlStdOperatorTable.EXPLICIT_TABLE,
+        new SqlNodeList(
+            ImmutableList.of(SqlLiteral.createNull(SqlParserPos.ZERO)),
+            SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
+    final SqlValidatorScope scope = validator.getEmptyScope();
+    final AssertionError error =
+        assertThrows(AssertionError.class, () ->
+            ((SqlValidatorImpl) validator).declareCursor(query, scope));
+    assertThat(error.getMessage(), containsString("EXPLICIT_TABLE"));
   }
 
   @Test void testTemporalTable() {

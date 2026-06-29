@@ -415,27 +415,47 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new SqlNodeList(list, SqlParserPos.ZERO);
   }
 
-  @Override public void declareCursor(SqlSelect select,
+  @Override public void declareCursor(SqlNode query,
       SqlValidatorScope parentScope) {
-    cursorSet.add(select);
+    cursorSet.add(query);
 
-    // add the cursor to a map that maps the cursor to its select based on
+    // add the cursor to a map that maps the cursor to its query based on
     // the position of the cursor relative to other cursors in that call
     FunctionParamInfo funcParamInfo =
         requireNonNull(functionCallStack.peek(), "functionCall");
-    Map<Integer, SqlSelect> cursorMap = funcParamInfo.cursorPosToSelectMap;
+    Map<Integer, SqlNode> cursorMap = funcParamInfo.cursorPosToQueryMap;
     final int cursorCount = cursorMap.size();
-    cursorMap.put(cursorCount, select);
+    cursorMap.put(cursorCount, query);
 
-    // create a namespace associated with the result of the select
+    // create a namespace associated with the result of the query
     // that is the argument to the cursor constructor; register it
     // with a scope corresponding to the cursor
-    SelectScope cursorScope =
-        new SelectScope(parentScope, getEmptyScope(), select);
-    clauseScopes.put(IdPair.of(select, Clause.CURSOR), cursorScope);
-    final SelectNamespace selectNs = createSelectNamespace(select, select);
-    final String alias = SqlValidatorUtil.alias(select, nextGeneratedId++);
-    registerNamespace(cursorScope, alias, selectNs, false);
+    final SqlValidatorNamespace ns;
+    final SqlValidatorScope cursorScope;
+    if (query instanceof SqlSelect) {
+      SqlSelect select = (SqlSelect) query;
+      cursorScope = new SelectScope(parentScope, getEmptyScope(), select);
+      clauseScopes.put(IdPair.of(select, Clause.CURSOR), cursorScope);
+      ns = createSelectNamespace(select, select);
+    } else {
+      final SqlCall call = (SqlCall) query;
+      cursorScope = new ListScope(parentScope) {
+        @Override public SqlNode getNode() {
+          return call;
+        }
+      };
+      if (query.isA(SqlKind.SET_QUERY)) {
+        ns = createSetopNamespace(call, call);
+      } else if (query.getKind() == SqlKind.VALUES) {
+        ns = new TableConstructorNamespace(this, call, cursorScope, call);
+      } else if (query.getKind() == SqlKind.WITH) {
+        ns = new WithNamespace(this, (SqlWith) call, call);
+      } else {
+        throw Util.unexpected(query.getKind());
+      }
+    }
+    final String alias = SqlValidatorUtil.alias(query, nextGeneratedId++);
+    registerNamespace(cursorScope, alias, ns, false);
   }
 
   @Override public void pushFunctionCall() {
@@ -8469,10 +8489,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected static class FunctionParamInfo {
     /**
      * Maps a cursor (based on its position relative to other cursor
-     * parameters within a function call) to the SELECT associated with the
+     * parameters within a function call) to the query associated with the
      * cursor.
      */
-    public final Map<Integer, SqlSelect> cursorPosToSelectMap;
+    public final Map<Integer, SqlNode> cursorPosToQueryMap;
 
     /**
      * Maps a column list parameter to the parent cursor parameter it
@@ -8481,7 +8501,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     public final Map<String, String> columnListParamToParentCursorMap;
 
     public FunctionParamInfo() {
-      cursorPosToSelectMap = new HashMap<>();
+      cursorPosToQueryMap = new HashMap<>();
       columnListParamToParentCursorMap = new HashMap<>();
     }
   }

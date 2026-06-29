@@ -853,6 +853,38 @@ LogicalProject(NAME=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCollectionTableWithCursorParamUnion">
+    <Resource name="sql">
+      <![CDATA[select * from table(dedup(cursor(select ename from emp union all select ename from emp), 'NAME'))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalTableFunctionScan(invocation=[DEDUP(CAST($0):CURSOR NOT NULL, 'NAME')], rowType=[RecordType(VARCHAR(1024) NAME)])
+    LogicalUnion(all=[true])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCollectionTableWithCursorParamUnionDistinct">
+    <Resource name="sql">
+      <![CDATA[select * from table(dedup(cursor(select ename from emp union select ename from emp), 'NAME'))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalTableFunctionScan(invocation=[DEDUP(CAST($0):CURSOR NOT NULL, 'NAME')], rowType=[RecordType(VARCHAR(1024) NAME)])
+    LogicalUnion(all=[false])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCollectionTableWithLateral">
     <Resource name="sql">
       <![CDATA[select * from dept, lateral table(ramp(dept.deptno))]]>

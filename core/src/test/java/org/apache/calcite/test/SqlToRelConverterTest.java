@@ -1886,6 +1886,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withDecorrelate(false).ok();
   }
 
+  /** Test case for CURSOR containing UNION ALL. */
+  @Test void testCollectionTableWithCursorParamUnion() {
+    final String sql = "select * from table(dedup("
+        + "cursor(select ename from emp union all select ename from emp), 'NAME'))";
+    sql(sql).withDecorrelate(false).ok();
+  }
+
+  /** Test case for CURSOR containing UNION (distinct). */
+  @Test void testCollectionTableWithCursorParamUnionDistinct() {
+    final String sql = "select * from table(dedup("
+        + "cursor(select ename from emp union select ename from emp), 'NAME'))";
+    sql(sql).withDecorrelate(false).ok();
+  }
+
   @Test void testUnnest() {
     final String sql = "select*from unnest(multiset[1,2])";
     sql(sql).ok();
