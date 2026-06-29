@@ -18,8 +18,6 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.rel.core.SetOp;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Util.transformIndexed;
 
 /**
  * Interpreter node that implements a
@@ -43,12 +43,8 @@ public class SetOpNode implements Node {
   public SetOpNode(Compiler compiler, SetOp setOp) {
     final int arity = setOp.getInputs().size();
     checkArgument(arity >= 2, "invalid set op arity %s", arity);
-    final ImmutableList.Builder<Source> sources = ImmutableList.builder();
-    for (int i = 0; i < arity; i++) {
-      sources.add(compiler.source(setOp, i));
-    }
-    this.sources = sources.build();
-    assert this.sources.size() == arity;
+    sources = transformIndexed(setOp.getInputs(), (r, i) -> compiler.source(setOp, i));
+    assert sources.size() == arity;
     sink = compiler.sink(setOp);
     this.setOp = setOp;
   }
