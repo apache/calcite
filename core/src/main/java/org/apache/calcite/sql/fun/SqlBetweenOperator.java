@@ -269,6 +269,10 @@ public class SqlBetweenOperator extends SqlInfixOperator {
       if (operator == SqlStdOperatorTable.AND) {
         throw Util.FoundOne.NULL;
       }
+      // A BETWEEN expression contains an implicit AND keyword
+      if (call.getKind() == SqlKind.BETWEEN) {
+        throw Util.FoundOne.NULL;
+      }
       return super.visit(call);
     }
 

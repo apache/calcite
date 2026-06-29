@@ -314,6 +314,15 @@ class SqlPrettyWriterTest {
     // space
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7630">[CALCITE-7630]
+   * BETWEEN unparses incorrectly when left side contains a BETWEEN expression</a>. */
+  @Test void testBetweenAnd3() {
+    expr("a not between (b between c and d) and e")
+        .expectingFormatted(
+            "`A` NOT BETWEEN ASYMMETRIC (`B` BETWEEN ASYMMETRIC `C` AND `D`) AND `E`")
+        .check();
+  }
+
   @Test void testCast() {
     expr("cast(x + y as decimal(5, 10))")
         .expectingFormatted("CAST(`X` + `Y` AS DECIMAL(5, 10))")
