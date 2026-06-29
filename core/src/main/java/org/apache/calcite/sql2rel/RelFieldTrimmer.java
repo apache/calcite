@@ -1076,20 +1076,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       return result(setOp, mapping);
     }
 
-    switch (setOp.kind) {
-    case UNION:
-      relBuilder.union(setOp.all, setOp.getInputs().size());
-      break;
-    case INTERSECT:
-      relBuilder.intersect(setOp.all, setOp.getInputs().size());
-      break;
-    case EXCEPT:
-      assert setOp.getInputs().size() == 2;
-      relBuilder.minus(setOp.all);
-      break;
-    default:
-      throw new AssertionError("unknown setOp " + setOp);
-    }
+    relBuilder.union(true, setOp.getInputs().size());
     return result(relBuilder.build(), mapping, setOp);
   }
 
