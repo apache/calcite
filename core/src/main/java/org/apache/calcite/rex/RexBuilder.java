@@ -39,7 +39,6 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -388,7 +387,7 @@ public class RexBuilder {
       List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       IntPredicate isNullable) {
-    if (aggCall.getAggregation() instanceof SqlCountAggFunction
+    if (aggCall.getAggregation().getKind() == SqlKind.COUNT
         && !aggCall.isDistinct()) {
       final List<Integer> args = aggCall.getArgList();
       final List<Integer> nullableArgs = nullableArgs(args, isNullable);
