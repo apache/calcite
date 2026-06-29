@@ -20,12 +20,13 @@ import org.apache.calcite.rel.core.SetOp;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Interpreter node that implements a
@@ -40,11 +41,14 @@ public class SetOpNode implements Node {
   private final SetOp setOp;
 
   public SetOpNode(Compiler compiler, SetOp setOp) {
+    final int arity = setOp.getInputs().size();
+    checkArgument(arity >= 2, "invalid set op arity %s", arity);
     final ImmutableList.Builder<Source> sources = ImmutableList.builder();
-    for (int i = 0; i < setOp.getInputs().size(); i++) {
+    for (int i = 0; i < arity; i++) {
       sources.add(compiler.source(setOp, i));
     }
     this.sources = sources.build();
+    assert this.sources.size() == arity;
     sink = compiler.sink(setOp);
     this.setOp = setOp;
   }
@@ -146,10 +150,20 @@ public class SetOpNode implements Node {
         }
       }
     } else {
-      final List<Set<Row>> inputs = readInputs();
-      final Set<Row> result = inputs.get(0);
-      for (int i = 1; i < inputs.size(); i++) {
-        result.retainAll(inputs.get(i));
+      // INTERSECT DISTINCT: from the running result, keep the rows present in
+      // each successive input. Inputs after the first are streamed, so only
+      // the result set (which only shrinks) is held in memory.
+      Set<Row> result = read(sources.get(0));
+      for (int i = 1; i < sources.size(); i++) {
+        final Source source = sources.get(i);
+        final Set<Row> next = new HashSet<>();
+        Row row;
+        while ((row = source.receive()) != null) {
+          if (result.contains(row)) {
+            next.add(row);
+          }
+        }
+        result = next;
       }
       for (Row r : result) {
         sink.send(r);
@@ -186,11 +200,16 @@ public class SetOpNode implements Node {
         }
       }
     } else {
-      // EXCEPT: remove each value that occurs in a later input.
-      final List<Set<Row>> inputs = readInputs();
-      final Set<Row> result = inputs.get(0);
-      for (int i = 1; i < inputs.size(); i++) {
-        result.removeAll(inputs.get(i));
+      // EXCEPT DISTINCT: remove from the running result every row that occurs
+      // in a later input. Later inputs are streamed, so only the result set is
+      // held in memory.
+      final Set<Row> result = read(sources.get(0));
+      for (int i = 1; i < sources.size(); i++) {
+        final Source source = sources.get(i);
+        Row row;
+        while ((row = source.receive()) != null) {
+          result.remove(row);
+        }
       }
       for (Row r : result) {
         sink.send(r);
@@ -198,18 +217,14 @@ public class SetOpNode implements Node {
     }
   }
 
-  /** Reads every input into a set, eliminating duplicates. */
-  private List<Set<Row>> readInputs() {
-    final List<Set<Row>> inputs = new ArrayList<>();
-    for (Source source : sources) {
-      final Set<Row> rows = new HashSet<>();
-      Row row;
-      while ((row = source.receive()) != null) {
-        rows.add(row);
-      }
-      inputs.add(rows);
+  /** Reads a single input into a set, eliminating duplicates. */
+  private static Set<Row> read(Source source) {
+    final Set<Row> rows = new HashSet<>();
+    Row row;
+    while ((row = source.receive()) != null) {
+      rows.add(row);
     }
-    return inputs;
+    return rows;
   }
 
   /** Mutable count of the occurrences of a row, used by {@link #minus()}. */
