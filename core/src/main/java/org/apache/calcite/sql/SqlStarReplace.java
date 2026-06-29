@@ -76,7 +76,7 @@ public class SqlStarReplace extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     starIdentifier.unparse(writer, leftPrec, rightPrec);
-    writer.sep("REPLACE");
+    writer.keyword("REPLACE");
     final SqlWriter.Frame frame = writer.startList("(", ")");
     replaceList.unparse(writer, 0, 0);
     writer.endList(frame);
