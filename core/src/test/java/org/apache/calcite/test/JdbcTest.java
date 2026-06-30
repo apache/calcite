@@ -6009,8 +6009,8 @@ public class JdbcTest {
                    connection.prepareStatement(sql)) {
             final ParameterMetaData pmd = p.getParameterMetaData();
             assertThat(pmd.getParameterCount(), is(2));
-            assertThat(pmd.getParameterType(1), is(Types.INTEGER));
-            assertThat(pmd.getParameterType(2), is(Types.INTEGER));
+            assertThat(pmd.getParameterType(1), is(Types.DECIMAL));
+            assertThat(pmd.getParameterType(2), is(Types.DECIMAL));
             p.setInt(1, offset);
             p.setInt(2, fetch);
             try (ResultSet r = p.executeQuery()) {

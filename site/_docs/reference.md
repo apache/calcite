@@ -427,8 +427,8 @@ in the order that they appear in the list; for example:
 "SELECT x, y FROM t ORDER BY x, y"
 An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys.
 
-In *query*, *count* and *start* may each be either an unsigned integer literal
-or a dynamic parameter whose value is an integer.
+In *query*, *count* and *start* may each be either an unsigned numeric literal
+or a dynamic parameter whose value is a numeric.
 
 An aggregate query is a query that contains a GROUP BY or a HAVING
 clause, or aggregate functions in the SELECT clause. In the SELECT,
