@@ -19,6 +19,7 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -103,7 +104,8 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
         SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
     final List<Expression> expressionList =
         RexToLixTranslator.translateProjects(program, javaTypeFactory,
-            conformance, list, staticList, null, root, inputGetter, correlates);
+            conformance, list, staticList, null, root, inputGetter, correlates,
+            RexImpTable.INSTANCE);
     Ord.forEach(expressionList, (expression, i) ->
         list.add(
             Expressions.statement(
