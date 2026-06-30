@@ -247,7 +247,9 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     case PREV:
     case CLASSIFIER:
       matchFunction = (SqlMatchFunction) ((RexCall) value).getOperator();
-      matchImplementor = RexImpTable.INSTANCE.get(matchFunction);
+      matchImplementor =
+          requireNonNull(RexImpTable.INSTANCE.get(matchFunction),
+              () -> "no implementor for match function " + matchFunction);
 
       // Work with the implementor
       return matchImplementor.implement(translator, (RexCall) value,
@@ -266,7 +268,9 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       case CLASSIFIER:
         final RexCall call = (RexCall) operands.get(0);
         matchFunction = (SqlMatchFunction) call.getOperator();
-        matchImplementor = RexImpTable.INSTANCE.get(matchFunction);
+        matchImplementor =
+            requireNonNull(RexImpTable.INSTANCE.get(matchFunction),
+                () -> "no implementor for match function " + matchFunction);
         // Work with the implementor
         requireNonNull((PassedRowsInputGetter) translator.inputGetter, "inputGetter")
             .setIndex(null);
@@ -316,7 +320,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
               builder2,
               inputGetter1,
               implementor.allCorrelateVariables,
-              implementor.getConformance());
+              implementor.getConformance(),
+              false, implementor.getRexImplementorTable());
 
       builder2.add(Expressions.return_(null, condition));
       final Expression predicate_ =

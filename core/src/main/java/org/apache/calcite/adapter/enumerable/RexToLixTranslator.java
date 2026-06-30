@@ -127,6 +127,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   private final @Nullable BlockBuilder staticList;
   private final @Nullable Function1<String, InputGetter> correlates;
 
+  private final RexImplementorTable implementorTable;
+
   /**
    * Map from RexLiteral's variable name to its literal, which is often a
    * ({@link org.apache.calcite.linq4j.tree.ConstantExpression}))
@@ -163,7 +165,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       @Nullable BlockBuilder staticList,
       RexBuilder builder,
       SqlConformance conformance,
-      @Nullable Function1<String, InputGetter> correlates) {
+      @Nullable Function1<String, InputGetter> correlates,
+      RexImplementorTable implementorTable) {
     this.program = program; // may be null
     this.typeFactory = requireNonNull(typeFactory, "typeFactory");
     this.conformance = requireNonNull(conformance, "conformance");
@@ -173,6 +176,23 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     this.staticList = staticList;
     this.builder = requireNonNull(builder, "builder");
     this.correlates = correlates; // may be null
+    this.implementorTable = requireNonNull(implementorTable, "implementorTable");
+  }
+
+  /**
+   * Translates a {@link RexProgram} to a sequence of expressions and
+   * declarations, using the built-in implementor table.
+   *
+   * @deprecated Use {@link #translateProjects(RexProgram, JavaTypeFactory, SqlConformance, BlockBuilder, BlockBuilder, PhysType, Expression, InputGetter, Function1, RexImplementorTable)}.
+   */
+  @Deprecated // to be removed before 2.0
+  public static List<Expression> translateProjects(RexProgram program,
+      JavaTypeFactory typeFactory, SqlConformance conformance,
+      BlockBuilder list, @Nullable BlockBuilder staticList,
+      @Nullable PhysType outputPhysType, Expression root,
+      InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
+    return translateProjects(program, typeFactory, conformance, list, staticList,
+        outputPhysType, root, inputGetter, correlates, RexImpTable.INSTANCE);
   }
 
   /**
@@ -189,13 +209,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * @param inputGetter Generates expressions for inputs
    * @param correlates Provider of references to the values of correlated
    *                   variables
+   * @param implementorTable Table of implementors for operator code generation
    * @return Sequence of expressions, optional condition
    */
   public static List<Expression> translateProjects(RexProgram program,
       JavaTypeFactory typeFactory, SqlConformance conformance,
       BlockBuilder list, @Nullable BlockBuilder staticList,
       @Nullable PhysType outputPhysType, Expression root,
-      InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
+      InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates,
+      RexImplementorTable implementorTable) {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
       final RelDataType rowType = outputPhysType.getRowType();
@@ -205,18 +227,25 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        list, staticList, new RexBuilder(typeFactory), conformance,  null)
+        list, staticList, new RexBuilder(typeFactory), conformance, null,
+        implementorTable)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
   }
 
+  /**
+   * Translates a {@link RexProgram} to a sequence of expressions and
+   * declarations, using the built-in implementor table.
+   *
+   * @deprecated Use {@link #translateProjects(RexProgram, JavaTypeFactory, SqlConformance, BlockBuilder, BlockBuilder, PhysType, Expression, InputGetter, Function1, RexImplementorTable)}.
+   */
   @Deprecated // to be removed before 2.0
   public static List<Expression> translateProjects(RexProgram program,
       JavaTypeFactory typeFactory, SqlConformance conformance,
       BlockBuilder list, @Nullable PhysType outputPhysType, Expression root,
       InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
     return translateProjects(program, typeFactory, conformance, list, null,
-        outputPhysType, root, inputGetter, correlates);
+        outputPhysType, root, inputGetter, correlates, RexImpTable.INSTANCE);
   }
 
   public static Expression translateTableFunction(JavaTypeFactory typeFactory,
@@ -225,7 +254,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       PhysType inputPhysType, PhysType outputPhysType) {
     final RexToLixTranslator translator =
         new RexToLixTranslator(null, typeFactory, root, null, list,
-            null, new RexBuilder(typeFactory), conformance, null);
+            null, new RexBuilder(typeFactory), conformance, null,
+            RexImpTable.INSTANCE);
     return translator
         .translateTableFunction(rexCall, inputEnumerable, inputPhysType,
             outputPhysType);
@@ -237,7 +267,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       SqlConformance conformance) {
     final ParameterExpression root = DataContext.ROOT;
     return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
-        null, new RexBuilder(typeFactory), conformance, null);
+        null, new RexBuilder(typeFactory), conformance, null,
+        RexImpTable.INSTANCE);
   }
 
   Expression translate(RexNode expr) {
@@ -1218,7 +1249,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       PhysType inputPhysType, PhysType outputPhysType) {
     assert rexCall.getOperator() instanceof SqlWindowTableFunction;
     TableFunctionCallImplementor implementor =
-        RexImpTable.INSTANCE.get((SqlWindowTableFunction) rexCall.getOperator());
+        implementorTable.get((SqlWindowTableFunction) rexCall.getOperator());
     if (implementor == null) {
       throw Util.needToImplement("implementor of " + rexCall.getOperator().getName());
     }
@@ -1226,16 +1257,41 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         this, inputEnumerable, rexCall, inputPhysType, outputPhysType);
   }
 
+  /**
+   * Translates the condition of a {@link RexProgram} to a Java expression,
+   * using the built-in implementor table.
+   *
+   * @deprecated Use {@link #translateCondition(RexProgram, JavaTypeFactory, BlockBuilder, InputGetter, Function1, SqlConformance, boolean, RexImplementorTable)}.
+   */
+  @Deprecated // to be removed before 2.0
   public static Expression translateCondition(RexProgram program,
       JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
       Function1<String, InputGetter> correlates, SqlConformance conformance) {
     return translateCondition(program, typeFactory, list, inputGetter,
-        correlates, conformance, false);
+        correlates, conformance, false, RexImpTable.INSTANCE);
   }
 
+  /**
+   * Translates the condition of a {@link RexProgram} to a Java expression,
+   * using the built-in implementor table.
+   *
+   * @deprecated Use {@link #translateCondition(RexProgram, JavaTypeFactory, BlockBuilder, InputGetter, Function1, SqlConformance, boolean, RexImplementorTable)}.
+   */
+  @Deprecated // to be removed before 2.0
   public static Expression translateCondition(RexProgram program,
       JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
       Function1<String, InputGetter> correlates, SqlConformance conformance, boolean nullable) {
+    return translateCondition(program, typeFactory, list, inputGetter, correlates,
+        conformance, nullable, RexImpTable.INSTANCE);
+  }
+
+  /**
+   * Translates the condition of a {@link RexProgram} to a Java expression.
+   */
+  public static Expression translateCondition(RexProgram program,
+      JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
+      Function1<String, InputGetter> correlates, SqlConformance conformance,
+      boolean nullable, RexImplementorTable implementorTable) {
     RexLocalRef condition = program.getCondition();
     if (condition == null) {
       return RexImpTable.TRUE_EXPR;
@@ -1243,7 +1299,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final ParameterExpression root = DataContext.ROOT;
     RexToLixTranslator translator =
         new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-            null, new RexBuilder(typeFactory), conformance, null);
+            null, new RexBuilder(typeFactory), conformance, null,
+            implementorTable);
     translator = translator.setCorrelates(correlates);
     return translator.translate(
         condition,
@@ -1264,7 +1321,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        staticList, builder, conformance, correlates);
+        staticList, builder, conformance, correlates, implementorTable);
   }
 
   public RexToLixTranslator setCorrelates(
@@ -1273,7 +1330,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        staticList, builder, conformance, correlates);
+        staticList, builder, conformance, correlates, implementorTable);
   }
 
   public Expression getRoot() {
@@ -1494,7 +1551,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return RexUtil.expandSearch(builder, program, call).accept(this);
     }
     final RexImpTable.RexCallImplementor implementor =
-        RexImpTable.INSTANCE.get(operator);
+        implementorTable.get(operator);
     if (implementor == null) {
       throw new RuntimeException("cannot translate call " + call);
     }

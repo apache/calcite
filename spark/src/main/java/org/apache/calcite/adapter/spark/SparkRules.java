@@ -376,7 +376,7 @@ public abstract class SparkRules {
                 typeFactory,
                 builder2,
                 new RexToLixTranslator.InputGetterImpl(e_, result.physType),
-                null, implementor.getConformance());
+                null, implementor.getConformance(), false, RexImpTable.INSTANCE);
         builder2.add(
             Expressions.ifThen(
                 Expressions.not(condition),
@@ -396,7 +396,8 @@ public abstract class SparkRules {
               null,
               DataContext.ROOT,
               new RexToLixTranslator.InputGetterImpl(e_, result.physType),
-              null);
+              null,
+              RexImpTable.INSTANCE);
       builder2.add(
           Expressions.return_(null,
               Expressions.convert_(

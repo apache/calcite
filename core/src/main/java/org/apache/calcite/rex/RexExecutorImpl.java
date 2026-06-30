@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexImplementorTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -57,20 +59,29 @@ import java.util.List;
 public class RexExecutorImpl implements RexExecutor {
 
   private final DataContext dataContext;
+  private final RexImplementorTable implementorTable;
 
   public RexExecutorImpl(DataContext dataContext) {
+    this(dataContext, RexImpTable.INSTANCE);
+  }
+
+  public RexExecutorImpl(DataContext dataContext,
+      RexImplementorTable implementorTable) {
     this.dataContext = dataContext;
+    this.implementorTable = implementorTable;
   }
 
   private static String compile(RexBuilder rexBuilder, List<RexNode> constExps,
-      RexToLixTranslator.InputGetter getter) {
+      RexToLixTranslator.InputGetter getter,
+      RexImplementorTable implementorTable) {
     final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     final RelDataType emptyRowType = typeFactory.builder().build();
-    return compile(rexBuilder, constExps, getter, emptyRowType);
+    return compile(rexBuilder, constExps, getter, emptyRowType, implementorTable);
   }
 
   private static String compile(RexBuilder rexBuilder, List<RexNode> constExps,
-      RexToLixTranslator.InputGetter getter, RelDataType rowType) {
+      RexToLixTranslator.InputGetter getter, RelDataType rowType,
+      RexImplementorTable implementorTable) {
     final RexProgramBuilder programBuilder =
         new RexProgramBuilder(rowType, rexBuilder);
     for (RexNode node : constExps) {
@@ -93,7 +104,8 @@ public class RexExecutorImpl implements RexExecutor {
     final RexProgram program = programBuilder.getProgram();
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(program, javaTypeFactory,
-            conformance, blockBuilder, null, null, root_, getter, null);
+            conformance, blockBuilder, null, null, root_, getter, null,
+            implementorTable);
     blockBuilder.add(
         Expressions.return_(null,
             Expressions.newArrayInit(Object[].class, expressions)));
@@ -121,7 +133,8 @@ public class RexExecutorImpl implements RexExecutor {
     final JavaTypeFactoryImpl typeFactory =
         new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
     final InputGetter getter = new DataContextInputGetter(rowType, typeFactory);
-    final String code = compile(rexBuilder, exps, getter, rowType);
+    final String code =
+        compile(rexBuilder, exps, getter, rowType, RexImpTable.INSTANCE);
     return new RexExecutable(code, "generated Rex code");
   }
 
@@ -155,7 +168,7 @@ public class RexExecutorImpl implements RexExecutor {
     try {
       String code = compile(rexBuilder, exps, (list, index, storageType) -> {
         throw new UnsupportedOperationException();
-      });
+      }, implementorTable);
 
       final RexExecutable executable = new RexExecutable(code, exps);
       executable.setDataContext(dataContext);
