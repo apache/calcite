@@ -629,6 +629,36 @@ public class RelToSqlConverter extends SqlImplementor
     // All other cases: return null
     return null;
   }
+
+  /**
+   * Extracts the explicit alias from the FROM clause of a {@link SqlSelect}.
+   * Returns null if the node is not a SELECT or its FROM clause has no alias.
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>{@code SELECT ... FROM "EMP" AS "t"} → "t"</li>
+   *   <li>{@code SELECT ... FROM "EMP"} → null</li>
+   *   <li>{@code SELECT ... FROM (SELECT ...) AS "t"} → "t"</li>
+   * </ul>
+   *
+   * @param node The SQL node to examine
+   * @return The explicit alias from the FROM clause, or null if none
+   */
+  private @Nullable String aliasFromFromClause(SqlNode node) {
+    if (!(node instanceof SqlSelect)) {
+      return null;
+    }
+    final SqlNode from = ((SqlSelect) node).getFrom();
+    if (from == null || from.getKind() != SqlKind.AS) {
+      return null;
+    }
+    final SqlCall asCall = (SqlCall) from;
+    final SqlNode aliasNode = asCall.operand(1);
+    if (aliasNode instanceof SqlIdentifier) {
+      return ((SqlIdentifier) aliasNode).getSimple();
+    }
+    return null;
+  }
   /**
    * Visits a {@link Project} and converts it to a {@link SqlSelect}.
    *
@@ -656,27 +686,37 @@ public class RelToSqlConverter extends SqlImplementor
       inputResult = visitInput(e, 0, Clause.SELECT);
     }
 
-    // If this Project defines correlations, fill in alias and force explicit generation
-    // Resolve the correlation alias using a three-level priority:
-    // 1. Use the existing alias from inputResult if it's already defined.
-    // 2. If not, extract the natural table name to maintain DML compatibility.
-    // 3. Fallback to 't' for anonymous relations (e.g., Joins or Sub-queries).
+    // If this Project defines correlations, fill in alias and force explicit generation.
+    // Resolve the correlation alias using a four-level priority:
+    // 1. Use the explicit alias already present in the input's FROM clause.
+    //    This is necessary because SqlImplementor.result may re-derive a different
+    //    neededAlias (e.g., "t0") via global uniquification, while the FROM clause
+    //    retains the original alias (e.g., "t"). The correlation reference must match
+    //    the alias that will actually appear in the generated SQL.
+    // 2. Use the existing alias from inputResult if it's already defined.
+    // 3. If not, extract the natural table name to maintain DML compatibility.
+    // 4. Fallback to 't' for anonymous relations (e.g., Joins or Sub-queries).
     //
     // 't' is safe and standard in Calcite's SqlImplementor because:
     // - Anonymous relations in the FROM clause require an alias in most dialects.
     // - SQL name shadowing rules ensure that nested sub-queries correctly bind
     //   to the nearest qualifying 't' in their scope.
     if (pushed) {
-      String alias = inputResult.neededAlias;
+      String alias = aliasFromFromClause(inputResult.node);
       if (alias != null) {
         x = inputResult.resetAliasForCorrelation(alias, e.getInput().getRowType());
       } else {
-        alias = unqualifiedName(inputResult.node);
-        if (alias == null) {
-          alias = "t";
+        alias = inputResult.neededAlias;
+        if (alias != null) {
+          x = inputResult.resetAliasForCorrelation(alias, e.getInput().getRowType());
+        } else {
+          alias = unqualifiedName(inputResult.node);
+          if (alias == null) {
+            alias = "t";
+          }
+          x = inputResult.resetAliasForCorrelation
+                  (alias, e.getInput().getRowType());
         }
-        x = inputResult.resetAliasForCorrelation
-                (alias, e.getInput().getRowType());
       }
     } else {
       x = inputResult;

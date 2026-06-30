@@ -12168,6 +12168,27 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withCalcite().ok(expected);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7508">[CALCITE-7508]
+   * RelToSqlConverter registers wrong alias for correlation variable in
+   * visit(Project)</a>. */
+  @Test void testProjectScalarSubqueryWithSubQueryAlias() {
+    final String sql = "SELECT \"DEPTNO\",\n"
+        + "  (SELECT MAX(\"LOC\") FROM \"DEPT\" AS \"t1\" "
+        + "WHERE \"DEPTNO\" = \"t\".\"DEPTNO\") AS \"total_value\"\n"
+        + "FROM (SELECT * FROM \"EMP\") AS \"t\"";
+
+    final String expected = "SELECT \"DEPTNO\", (SELECT MAX(\"LOC\")\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = \"t\".\"DEPTNO\") AS \"total_value\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"t\"";
+
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite().ok(expected);
+  }
+
   @Test void testProjectDeeplyNestedScalarSubquery() {
     final String sql = "SELECT \"EMPNO\",\n"
         + "  (SELECT MAX((SELECT COUNT(*) FROM \"DEPT\" "
