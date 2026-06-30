@@ -428,7 +428,8 @@ in the order that they appear in the list; for example:
 An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys.
 
 In *query*, *count* and *start* may each be either an unsigned numeric literal
-or a dynamic parameter whose value is a numeric.
+or a dynamic parameter whose value is numeric.
+Support for decimal or non-integer values is adapter-dependent.
 
 An aggregate query is a query that contains a GROUP BY or a HAVING
 clause, or aggregate functions in the SELECT clause. In the SELECT,
