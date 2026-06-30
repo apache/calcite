@@ -113,16 +113,34 @@ public class EnumUtils {
   public static final List<String> LEFT_RIGHT =
       ImmutableList.of("left", "right");
 
-  /** Converts a dynamic FETCH or OFFSET parameter to the representation
+  /** Converts a FETCH or OFFSET value to the representation
    * supported by the enumerable runtime. */
-  public static BigDecimal numberToBigDecimalLimit(Number value) {
-    if (value instanceof BigDecimal) {
-      return (BigDecimal) value;
+  public static BigDecimal numberToBigDecimalLimit(Object value, String kind) {
+    return numberToBigDecimalLimit(value, kind, FetchOffsetRoundingPolicy.NONE);
+  }
+
+  /** Converts a FETCH or OFFSET value to the representation
+   * supported by the enumerable runtime. */
+  public static BigDecimal numberToBigDecimalLimit(Object value, String kind,
+      FetchOffsetRoundingPolicy roundingPolicy) {
+    if (!(value instanceof Number)) {
+      throw new IllegalArgumentException(kind + " must be a number");
     }
-    if (value instanceof BigInteger) {
-      return new BigDecimal((BigInteger) value);
+    final Number number = (Number) value;
+    final BigDecimal decimal;
+    if (number instanceof BigDecimal) {
+      decimal = (BigDecimal) number;
+    } else if (number instanceof BigInteger) {
+      decimal = new BigDecimal((BigInteger) number);
+    } else if (number instanceof Float || number instanceof Double) {
+      decimal = BigDecimal.valueOf(number.doubleValue());
+    } else {
+      decimal = BigDecimal.valueOf(number.longValue());
     }
-    return BigDecimal.valueOf(value.longValue());
+    if (decimal.signum() < 0) {
+      throw new IllegalArgumentException(kind + " must not be negative");
+    }
+    return roundingPolicy.round(decimal);
   }
 
   /** Declares a method that overrides another method. */

@@ -48,6 +48,7 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.framework.qual.HasQualifierParameter;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.AbstractList;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -3273,7 +3274,7 @@ public abstract class EnumerableDefaults {
         TreeMap<TKey, List<TSource>> map = new TreeMap<>(comparator);
         BigDecimal size = BigDecimal.ZERO;
         BigDecimal actualOffset = offset.max(BigDecimal.ZERO);
-        BigDecimal needed = fetch.add(actualOffset);
+        BigDecimal needed = rowsRequired(actualOffset).add(rowsRequired(fetch));
 
         // read the input into a tree map
         try (Enumerator<TSource> os = source.enumerator()) {
@@ -3315,18 +3316,24 @@ public abstract class EnumerableDefaults {
 
         // skip the first 'offset' rows by deleting them from the map
         if (actualOffset.compareTo(BigDecimal.ZERO) > 0) {
-          // search the key up to (but excluding) which we have to remove entries from the map
+          // search the key up to which we have to remove entries from the map
           BigDecimal skipped = BigDecimal.ZERO;
+          BigDecimal rowsToSkip = rowsRequired(actualOffset);
           TKey until = (TKey) DUMMY;
+          boolean removeUntilInclusive = false;
           for (Map.Entry<TKey, List<TSource>> e : map.entrySet()) {
             skipped = skipped.add(BigDecimal.valueOf(e.getValue().size()));
 
-            if (skipped.compareTo(actualOffset) > 0) {
+            if (skipped.compareTo(rowsToSkip) >= 0) {
               // we might need to remove entries from the list
               List<TSource> l = e.getValue();
-              BigDecimal toKeep = skipped.subtract(actualOffset);
+              BigDecimal toKeep = skipped.subtract(rowsToSkip);
               if (toKeep.compareTo(BigDecimal.valueOf(l.size())) < 0) {
-                l.subList(0, l.size() - toKeep.intValue()).clear();
+                if (toKeep.signum() == 0) {
+                  removeUntilInclusive = true;
+                } else {
+                  l.subList(0, l.size() - toKeep.intValueExact()).clear();
+                }
               }
 
               until = e.getKey();
@@ -3337,7 +3344,7 @@ public abstract class EnumerableDefaults {
             // the offset is bigger than the number of rows in the map
             return Linq4j.emptyEnumerator();
           }
-          map.headMap(until, false).clear();
+          map.headMap(until, removeUntilInclusive).clear();
         }
 
         return new LookupImpl<>(map).valuesEnumerable().enumerator();
@@ -3805,6 +3812,10 @@ public abstract class EnumerableDefaults {
       }
     }
     return toRet;
+  }
+
+  private static BigDecimal rowsRequired(BigDecimal count) {
+    return count.max(BigDecimal.ZERO).setScale(0, RoundingMode.CEILING);
   }
 
   /**

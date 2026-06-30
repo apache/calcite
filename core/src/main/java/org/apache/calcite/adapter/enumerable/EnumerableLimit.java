@@ -37,7 +37,6 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
@@ -102,36 +101,50 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
             result.format);
 
     Expression v = builder.append("child", result.block);
+    Expression roundingPolicyExp = getRoundingPolicy(implementor);
     if (offset != null) {
       v =
           builder.append("offset",
               Expressions.call(BuiltInMethod.SKIP_BIG_DECIMAL.method, v,
-                  getExpression(offset)));
+                  getExpression(offset, "OFFSET", roundingPolicyExp)));
     }
     if (fetch != null) {
       v =
           builder.append("fetch",
               Expressions.call(BuiltInMethod.TAKE_BIG_DECIMAL.method, v,
-                  getExpression(fetch)));
+                  getExpression(fetch, "FETCH", roundingPolicyExp)));
     }
 
     builder.add(Expressions.return_(null, v));
     return implementor.result(physType, builder.toBlock());
   }
 
-  static Expression getExpression(RexNode rexNode) {
+  static Expression getExpression(RexNode rexNode, String kind,
+      Expression roundingPolicy) {
+    final Expression value;
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
-      return Expressions.call(
-          BuiltInMethod.NUMBER_TO_BIG_DECIMAL_LIMIT.method,
-          Expressions.convert_(
-              Expressions.call(DataContext.ROOT,
-                  BuiltInMethod.DATA_CONTEXT_GET.method,
-                  Expressions.constant("?" + param.getIndex())),
-              Number.class));
+      value =
+          Expressions.call(DataContext.ROOT,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
+              Expressions.constant("?" + param.getIndex()));
     } else {
-      final BigDecimal value = RexLiteral.bigDecimalValue(rexNode);
-      return Expressions.constant(value);
+      value = Expressions.constant(RexLiteral.bigDecimalValue(rexNode));
     }
+    return Expressions.call(
+        BuiltInMethod.NUMBER_TO_BIG_DECIMAL_LIMIT.method,
+        value,
+        Expressions.constant(kind),
+        roundingPolicy);
+  }
+
+  static Expression getRoundingPolicy(EnumerableRelImplementor implementor) {
+    final Object roundingPolicy =
+        implementor.map.get(EnumerableRelImplementor.FETCH_OFFSET_ROUNDING_POLICY);
+    if (roundingPolicy == null) {
+      return Expressions.field(null, FetchOffsetRoundingPolicy.class, "NONE");
+    }
+    return implementor.stash((FetchOffsetRoundingPolicy) roundingPolicy,
+        FetchOffsetRoundingPolicy.class);
   }
 }

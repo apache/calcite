@@ -5912,49 +5912,58 @@ public class JdbcTest {
         .returnsUnordered();
   }
 
-  /** Negative FETCH/LIMIT literals are rejected by the parser, but dynamic
-   * parameter values are only known at execution time. */
-  @Test void testPreparedNegativeFetchWithBigDecimalWithoutOrderBy() {
+  @Test void testPreparedNegativeFetchWithBigDecimalWithoutOrderBy()
+      throws Exception {
     CalciteAssert.hr()
-        .query("select \"name\"\n"
-            + "from \"hr\".\"emps\"\n"
-            + "offset ? fetch next ? rows only")
-        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, BigDecimal.ZERO);
-          p.setBigDecimal(2, BigDecimal.valueOf(-1));
-        })
-        .returnsUnordered();
+        .doWithConnection(connection -> {
+          final String sql = "select \"name\"\n"
+              + "from \"hr\".\"emps\"\n"
+              + "offset ? fetch next ? rows only";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setBigDecimal(1, BigDecimal.ZERO);
+            p.setBigDecimal(2, BigDecimal.valueOf(-1));
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString("FETCH must not be negative"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
   }
 
-  /** Negative OFFSET literals are rejected by the parser, but dynamic
-   * parameter values are only known at execution time. */
-  @Test void testPreparedNegativeOffsetWithBigDecimalWithoutOrderBy() {
+  @Test void testPreparedNegativeOffsetWithBigDecimalWithoutOrderBy()
+      throws Exception {
     CalciteAssert.hr()
-        .query("select \"name\"\n"
-            + "from \"hr\".\"emps\"\n"
-            + "offset ? fetch next ? rows only")
-        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, BigDecimal.valueOf(-1));
-          p.setBigDecimal(2, BigDecimal.valueOf(2));
-        })
-        .returnsUnordered("name=Bill", "name=Eric");
+        .doWithConnection(connection -> {
+          final String sql = "select \"name\"\n"
+              + "from \"hr\".\"emps\"\n"
+              + "offset ? fetch next ? rows only";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setBigDecimal(1, BigDecimal.valueOf(-1));
+            p.setBigDecimal(2, BigDecimal.valueOf(2));
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString("OFFSET must not be negative"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
   }
 
-  /** Negative FETCH/LIMIT literals are rejected by the parser, but dynamic
-   * parameter values are only known at execution time. */
-  @Test void testPreparedNegativeLimitWithBigDecimalWithoutOrderBy() {
+  @Test void testPreparedNegativeLimitWithBigDecimalWithoutOrderBy()
+      throws Exception {
     CalciteAssert.hr()
-        .query("select \"name\"\n"
-            + "from \"hr\".\"emps\"\n"
-            + "limit ? offset ?")
-        .explainContains("EnumerableLimit(offset=[?1], fetch=[?0])")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, BigDecimal.valueOf(-1));
-          p.setBigDecimal(2, BigDecimal.ZERO);
-        })
-        .returnsUnordered();
+        .doWithConnection(connection -> {
+          final String sql = "select \"name\"\n"
+              + "from \"hr\".\"emps\"\n"
+              + "limit ? offset ?";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setBigDecimal(1, BigDecimal.valueOf(-1));
+            p.setBigDecimal(2, BigDecimal.ZERO);
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString("FETCH must not be negative"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
   }
 
   @Test void testPreparedFetchWithBigDecimalAboveLongMaxWithoutOrderBy() {

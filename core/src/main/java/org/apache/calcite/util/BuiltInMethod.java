@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.FetchOffsetRoundingPolicy;
 import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
@@ -394,7 +395,8 @@ public enum BuiltInMethod {
       Calendar.class),
   TIME_ZONE_GET_OFFSET(TimeZone.class, "getOffset", long.class),
   LONG_VALUE(Number.class, "longValue"),
-  NUMBER_TO_BIG_DECIMAL_LIMIT(EnumUtils.class, "numberToBigDecimalLimit", Number.class),
+  NUMBER_TO_BIG_DECIMAL_LIMIT(EnumUtils.class, "numberToBigDecimalLimit",
+      Object.class, String.class, FetchOffsetRoundingPolicy.class),
   STRING_TO_UPPER(String.class, "toUpperCase"),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),

@@ -24,11 +24,18 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.schemata.hr.HrSchemaBig;
+import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.function.Consumer;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Tests for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableLimitSort}. */
@@ -177,48 +184,50 @@ public class EnumerableLimitSortTest {
             "empid=4");
   }
 
-  /** Negative FETCH literals are rejected by validation, but dynamic
-   * parameter values are only known at execution time. */
-  @Test void dynamicParametersWithNegativeBigDecimalFetch() {
-    tester("select empid from emps where empid <= 2 order by empid "
-        + "offset ? fetch next ? rows only")
+  @Test void fractionalOffsetAndFetchUseIndependentRowCounts() {
+    tester("select empid from emps where empid <= 4 order by empid "
+        + "offset 1.5 fetch next 1.5 rows only")
         .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
-            + "offset=[?0], fetch=[?1])")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, BigDecimal.ZERO);
-          p.setBigDecimal(2, BigDecimal.valueOf(-1));
-        })
-        .returnsOrdered();
-  }
-
-  /** Negative OFFSET literals are rejected by validation, but dynamic
-   * parameter values are only known at execution time. */
-  @Test void dynamicParametersWithNegativeBigDecimalOffset() {
-    tester("select empid from emps where empid <= 3 order by empid "
-        + "offset ? fetch next ? rows only")
-        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
-            + "offset=[?0], fetch=[?1])")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, BigDecimal.valueOf(-1));
-          p.setBigDecimal(2, BigDecimal.valueOf(2));
-        })
+            + "offset=[1.5:DECIMAL(2, 1)], fetch=[1.5:DECIMAL(2, 1)])")
         .returnsOrdered(
-            "empid=1",
-            "empid=2");
+            "empid=3",
+            "empid=4");
   }
 
-  /** Negative LIMIT literals are rejected by validation, but dynamic
-   * parameter values are only known at execution time. */
-  @Test void dynamicParametersWithNegativeBigDecimalLimit() {
-    tester("select empid from emps where empid <= 2 order by empid "
-        + "limit ? offset ?")
+  @Test void dynamicParametersWithNegativeBigDecimalFetch() throws Exception {
+    final String sql = "select empid from emps where empid <= 2 order by empid "
+        + "offset ? fetch next ? rows only";
+    tester(sql)
         .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
-            + "offset=[?1], fetch=[?0])")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, BigDecimal.valueOf(-1));
-          p.setBigDecimal(2, BigDecimal.ZERO);
-        })
-        .returnsOrdered();
+            + "offset=[?0], fetch=[?1])");
+    failsWithNegativeParameter(sql, p -> {
+      p.setBigDecimal(1, BigDecimal.ZERO);
+      p.setBigDecimal(2, BigDecimal.valueOf(-1));
+    }, "FETCH must not be negative");
+  }
+
+  @Test void dynamicParametersWithNegativeBigDecimalOffset() throws Exception {
+    final String sql = "select empid from emps where empid <= 3 order by empid "
+        + "offset ? fetch next ? rows only";
+    tester(sql)
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?0], fetch=[?1])");
+    failsWithNegativeParameter(sql, p -> {
+      p.setBigDecimal(1, BigDecimal.valueOf(-1));
+      p.setBigDecimal(2, BigDecimal.valueOf(2));
+    }, "OFFSET must not be negative");
+  }
+
+  @Test void dynamicParametersWithNegativeBigDecimalLimit() throws Exception {
+    final String sql = "select empid from emps where empid <= 2 order by empid "
+        + "limit ? offset ?";
+    tester(sql)
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[?1], fetch=[?0])");
+    failsWithNegativeParameter(sql, p -> {
+      p.setBigDecimal(1, BigDecimal.valueOf(-1));
+      p.setBigDecimal(2, BigDecimal.ZERO);
+    }, "FETCH must not be negative");
   }
 
   @Test void dynamicParametersWithBigDecimal() {
@@ -292,6 +301,29 @@ public class EnumerableLimitSortTest {
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+        });
+  }
+
+  private void failsWithNegativeParameter(String sql,
+      CalciteAssert.PreparedStatementConsumer consumer, String message)
+      throws Exception {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
+        .withSchema("s", new ReflectiveSchema(new HrSchemaBig()))
+        .doWithConnection(connection -> {
+          try (Hook.Closeable ignored =
+                   Hook.PLANNER.addThread((Consumer<RelOptPlanner>) planner -> {
+                     planner.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+                     planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+                   });
+               PreparedStatement p = connection.prepareStatement(sql)) {
+            consumer.accept(p);
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString(message));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
         });
   }
 }
