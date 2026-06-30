@@ -176,4 +176,8 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   @Override public boolean isDistinctOnAllowed() {
     return SqlConformanceEnum.DEFAULT.isDistinctOnAllowed();
   }
+
+  @Override public boolean isCorrelatedAggregateAllowed() {
+    return SqlConformanceEnum.DEFAULT.isCorrelatedAggregateAllowed();
+  }
 }

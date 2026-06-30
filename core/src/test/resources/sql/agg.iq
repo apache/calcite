@@ -4301,4 +4301,154 @@ GROUP BY GROUPING SETS ((deptno), ());
 
 !ok
 
+# [CALCITE-6104] Aggregate function that references outer column should be evaluated in outer query
+# Correlated aggregates are a non-standard extension.
+# They are rejected under DEFAULT conformance.
+!use scott
+
+SELECT (SELECT sum(sal) FROM dept) FROM emp;
+Aggregate function referencing outer column is not allowed under the current SQL conformance level
+!error
+
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT count(a) FROM xx LIMIT 1) AS ca
+FROM aa;
+Aggregate function referencing outer column is not allowed under the current SQL conformance level
+!error
+
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa,
+  (SELECT count(a) FROM xx LIMIT 1) AS ca
+FROM aa;
+Aggregate function referencing outer column is not allowed under the current SQL conformance level
+!error
+
+# Allowed under LENIENT conformance.
+!use scott-lenient
+
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+FROM aa;
++----+
+| SA |
++----+
+|  6 |
++----+
+(1 row)
+
+!ok
+
+# Inner table is empty: the scalar sub-query contributes NULL
+WITH aa (a) AS (VALUES 1, 2, 3),
+  empty_xx (x) AS (SELECT 1 FROM emp WHERE 1 = 0)
+SELECT (SELECT sum(a) FROM empty_xx LIMIT 1) AS sa
+FROM aa;
++----+
+| SA |
++----+
+|    |
++----+
+(1 row)
+
+!ok
+
+# Outer table is empty: the outer aggregate has no input rows
+WITH empty_aa (a) AS (SELECT 1 FROM emp WHERE 1 = 0),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+FROM empty_aa;
++----+
+| SA |
++----+
+|    |
++----+
+(1 row)
+
+!ok
+
+# Aggregated column contains a mix of values and NULLs
+WITH aa (a) AS (VALUES 1, NULL, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa
+FROM aa;
++----+
+| SA |
++----+
+|  4 |
++----+
+(1 row)
+
+!ok
+
+# Aggregate with no column references aggregates at the innermost level
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(1) FROM xx LIMIT 1) AS s
+FROM aa;
++---+
+| S |
++---+
+| 3 |
+| 3 |
+| 3 |
++---+
+(3 rows)
+
+!ok
+
+# Aggregate referencing only inner column aggregates at the inner level
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(x) FROM xx LIMIT 1) AS s
+FROM aa;
++----+
+| S  |
++----+
+| 60 |
+| 60 |
+| 60 |
++----+
+(3 rows)
+
+!ok
+
+# Two scalar sub-queries with outer-only aggregates are both lifted to the outer query
+WITH aa (a) AS (VALUES 1, 2, 3),
+  xx (x) AS (VALUES 10, 20, 30)
+SELECT (SELECT sum(a) FROM xx LIMIT 1) AS sa,
+  (SELECT count(a) FROM xx LIMIT 1) AS ca
+FROM aa;
++----+----+
+| SA | CA |
++----+----+
+|  6 |  3 |
++----+----+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[*($t0, $t2)], expr#4=[*($t1, $t2)], SA=[$t3], CA=[$t4])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[COUNT()])
+      EnumerableValues(tuples=[[{ 1 }, { 2 }, { 3 }]])
+    EnumerableLimit(fetch=[1])
+      EnumerableValues(tuples=[[{ 1 }, { 1 }, { 1 }]])
+!plan
+
+SELECT (SELECT sum(sal) FROM dept) AS sum_sal
+FROM emp;
++----------+
+| SUM_SAL  |
++----------+
+| 29025.00 |
++----------+
+(1 row)
+
+!ok
+
+!use scott
+
 # End agg.iq
