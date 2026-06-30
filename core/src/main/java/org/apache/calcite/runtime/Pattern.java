@@ -18,7 +18,8 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -68,9 +69,8 @@ public interface Pattern {
   }
 
   /** Builds a pattern expression. */
-  @SuppressWarnings("JdkObsolete")
   class PatternBuilder {
-    final Stack<Pattern> stack = new Stack<>(); // TODO: replace with Deque
+    final Deque<Pattern> stack = new ArrayDeque<>();
 
     private PatternBuilder() {}
 
