@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -217,12 +218,26 @@ class ElasticsearchRules {
       super(config);
     }
 
-    @Override public RelNode convert(RelNode relNode) {
+    @Override public @Nullable RelNode convert(RelNode relNode) {
       final Sort sort = (Sort) relNode;
+      final RexLiteral fetch =
+          sort.fetch == null
+              ? null
+              : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+      if (sort.fetch != null && fetch == null) {
+        return null;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).longValueExact();
+        } catch (ArithmeticException e) {
+          return null;
+        }
+      }
       final RelTraitSet traitSet = sort.getTraitSet().replace(out).replace(sort.getCollation());
       return new ElasticsearchSort(relNode.getCluster(), traitSet,
         convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)), sort.getCollation(),
-        sort.offset, sort.fetch);
+        sort.offset, fetch);
     }
   }
 

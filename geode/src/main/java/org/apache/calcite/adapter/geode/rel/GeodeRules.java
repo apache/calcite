@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -221,6 +222,20 @@ public class GeodeRules {
 
     @Override public void onMatch(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
+      final RexLiteral fetch =
+          sort.fetch == null
+              ? null
+              : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+      if (sort.fetch != null && fetch == null) {
+        return;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).longValueExact();
+        } catch (ArithmeticException e) {
+          return;
+        }
+      }
 
       final RelTraitSet traitSet = sort.getTraitSet()
           .replace(GeodeRel.CONVENTION)
@@ -229,7 +244,7 @@ public class GeodeRules {
       GeodeSort geodeSort =
           new GeodeSort(sort.getCluster(), traitSet,
               convert(call.getPlanner(), sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-              sort.getCollation(), sort.fetch);
+              sort.getCollation(), fetch);
 
       call.transformTo(geodeSort);
     }

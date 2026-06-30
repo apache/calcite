@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.PlanTooComplexError;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
@@ -48,6 +49,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -63,9 +65,11 @@ import com.google.common.collect.Range;
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -838,6 +842,88 @@ public class RexUtil {
       Util.swallow(ex, null);
       return false;
     }
+  }
+
+  /** Returns whether an expression contains a dynamic function. */
+  public static boolean containsDynamicFunction(RexNode e) {
+    try {
+      e.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (call.getOperator().isDynamicFunction()) {
+                throw Util.FoundOne.NULL;
+              }
+              return super.visitCall(call);
+            }
+          });
+      return false;
+    } catch (Util.FoundOne ex) {
+      Util.swallow(ex, null);
+      return true;
+    }
+  }
+
+  /** Returns whether an expression contains a dynamic parameter. */
+  public static boolean containsDynamicParam(RexNode e) {
+    try {
+      e.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+              throw Util.FoundOne.NULL;
+            }
+          });
+      return false;
+    } catch (Util.FoundOne ex) {
+      Util.swallow(ex, null);
+      return true;
+    }
+  }
+
+  /** Converts a FETCH expression result to its validated canonical representation. */
+  public static BigDecimal validateFetchValue(@Nullable Number value) {
+    if (value == null) {
+      throw new IllegalArgumentException("FETCH expression evaluated to NULL");
+    }
+    final BigDecimal decimal = NumberUtil.toBigDecimal(value);
+    try {
+      decimal.toBigIntegerExact();
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is not an integer", e);
+    }
+    if (decimal.signum() < 0) {
+      throw new IllegalArgumentException("FETCH value " + value
+          + " is out of range; expected a non-negative value");
+    }
+    return decimal;
+  }
+
+  /** Reduces a constant FETCH expression to a validated literal. */
+  public static @Nullable RexLiteral reduceFetchToLiteral(
+      RelOptCluster cluster, RexNode fetch) {
+    final RexLiteral literal;
+    if (fetch instanceof RexLiteral) {
+      literal = (RexLiteral) fetch;
+    } else {
+      if (!isConstant(fetch)
+          || !isDeterministic(fetch)
+          || containsDynamicFunction(fetch)
+          || containsDynamicParam(fetch)) {
+        return null;
+      }
+      final RexExecutor executor =
+          Util.first(cluster.getPlanner().getExecutor(), EXECUTOR);
+      final List<RexNode> reducedValues = new ArrayList<>(1);
+      executor.reduce(cluster.getRexBuilder(),
+          Collections.singletonList(fetch), reducedValues);
+      final RexNode reduced = reducedValues.get(0);
+      if (!(reduced instanceof RexLiteral)) {
+        return null;
+      }
+      literal = (RexLiteral) reduced;
+    }
+    validateFetchValue(literal.getValueAs(Number.class));
+    return literal;
   }
 
   public static List<RexNode> retainDeterministic(List<RexNode> list) {

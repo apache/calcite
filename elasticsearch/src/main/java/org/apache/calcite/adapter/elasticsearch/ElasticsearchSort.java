@@ -78,7 +78,7 @@ public class ElasticsearchSort extends Sort implements ElasticsearchRel {
     }
 
     if (fetch != null) {
-      implementor.fetch(RexLiteral.numberValue(fetch).longValue());
+      implementor.fetch(RexLiteral.bigDecimalValue(fetch).longValueExact());
     }
   }
 

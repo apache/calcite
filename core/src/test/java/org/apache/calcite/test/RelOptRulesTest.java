@@ -1738,6 +1738,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testSortUnionTransposeWithNonDeterministicFetch() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name fetch next (rand_integer(10)) rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  @Test void testSortUnionTransposePushesParameterizedFetchExpression() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name fetch next (? + 1) rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .check();
+  }
+
   @Test void testSortRemovalAllKeysConstant() {
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -5980,11 +6002,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6647">[CALCITE-6647]
-   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
-   </a>. */
-  @Test void testSortWithDynamicParam() {
+  /** Verifies that SortUnionTransposeRule pushes a deterministic dynamic FETCH
+   * past a UNION only once. */
+  @Test void testSortWithDynamicParamPushesOnce() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(SortProjectTransposeRule.class);
     builder.addRuleClass(SortUnionTransposeRule.class);
@@ -9698,6 +9718,16 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testDecorrelateProjectWithFetchExpression() {
+    final String query = "SELECT name, "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno order by sal "
+        + "fetch next (1 + 0) rows only) "
+        + "FROM dept";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7289">[CALCITE-7289]
    * Select NULL subquery throwing exception</a>. */
   @Test void testNullSelect() {
@@ -12059,6 +12089,33 @@ class RelOptRulesTest extends RelOptTestBase {
         .withLateDecorrelate(true)
         .withTopDownGeneralDecorrelate(true)
         .check();
+  }
+
+  @Test void testNondeterministicFetchPreventsDecorrelation() {
+    checkNondeterministicFetchPreventsDecorrelation(false);
+  }
+
+  @Test void testNondeterministicFetchPreventsTopDownDecorrelation() {
+    checkNondeterministicFetchPreventsDecorrelation(true);
+  }
+
+  private void checkNondeterministicFetchPreventsDecorrelation(boolean topDown) {
+    final String sql = "select t.deptno, e.ename\n"
+        + "from (select distinct deptno from emp) t,\n"
+        + "lateral (select ename from emp\n"
+        + "  where emp.deptno = t.deptno\n"
+        + "  order by sal\n"
+        + "  fetch next (rand_integer(2) + 1) rows only) e";
+
+    final RelOptFixture fixture = sql(sql)
+        .withRule() // empty program
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(topDown);
+    if (topDown) {
+      fixture.check();
+    } else {
+      fixture.checkUnchanged();
+    }
   }
 
   @Test void testTopDownGeneralDecorrelateForFilterSome() {

@@ -575,6 +575,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Its output does not change the input ordering, so there's no
     // need to call propagateExpr.
 
+    if (isCorVarDefined && !canDecorrelateFetch(rel)) {
+      return null;
+    }
+
     final RelNode oldInput = rel.getInput();
     final Frame frame = getInvoke(oldInput, isCorVarDefined, rel, true);
     if (frame == null) {
@@ -1137,8 +1141,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(sort, result, mapOldToNewOutputs, corDefOutputs);
   }
 
+  static boolean canDecorrelateFetch(Sort sort) {
+    return sort.fetch == null
+        || RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch) != null;
+  }
+
   protected @Nullable Frame decorrelateSortAsAggregate(Sort sort, final Frame frame) {
-    if (sort.offset != null || sort.fetch == null) {
+    if (sort.offset != null || !(sort.fetch instanceof RexLiteral)) {
       return null;
     }
 

@@ -22,6 +22,7 @@ import com.google.common.collect.Iterators;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -72,10 +73,33 @@ class Scrolling {
     Iterator<ElasticsearchJson.SearchHit> result = flatten(iterator);
     // apply limit
     if (limit != Long.MAX_VALUE) {
-      result = Iterators.limit(result, (int) limit);
+      result = limit(result, limit);
     }
 
     return result;
+  }
+
+  private static <E> Iterator<E> limit(Iterator<E> iterator, long limit) {
+    checkArgument(limit >= 0, "limit: %s >= 0", limit);
+    return new Iterator<E>() {
+      private long remaining = limit;
+
+      @Override public boolean hasNext() {
+        return remaining > 0 && iterator.hasNext();
+      }
+
+      @Override public E next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        --remaining;
+        return iterator.next();
+      }
+
+      @Override public void remove() {
+        iterator.remove();
+      }
+    };
   }
 
   /**

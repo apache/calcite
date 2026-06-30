@@ -17,6 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -33,10 +38,14 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Comparator;
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
@@ -54,6 +63,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
     super(cluster, traitSet, input);
+    validateLiteralFetch(fetch);
     this.offset = offset;
     this.fetch = fetch;
     assert getConvention() instanceof EnumerableConvention;
@@ -110,8 +120,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     if (fetch != null) {
       v =
           builder.append("fetch",
-              Expressions.call(v, BuiltInMethod.TAKE.method,
-                  getExpression(fetch)));
+              Expressions.call(EnumerableLimit.class, "take", v,
+                  getExpressionForFetch(fetch, implementor, builder)));
     }
 
     builder.add(Expressions.return_(null, v));
@@ -127,10 +137,105 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
               Expressions.constant("?" + param.getIndex())),
           Integer.class);
     } else {
-      // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET, not BIGINT types.
-      //  Currently, using BIGINT types for execution will result in an error message.
+      // TODO: Enumerable runtime only supports INT types for OFFSET, not BIGINT types.
+      //  Currently, using BIGINT types for OFFSET will result in an error message.
       //  This issue needs to be fixed. For more information, see CALCITE-7156.
       return Expressions.constant(RexLiteral.intValue(rexNode));
     }
   }
+
+  static Expression getExpressionForFetch(RexNode rexNode,
+      EnumerableRelImplementor implementor, BlockBuilder builder) {
+    if (rexNode instanceof RexDynamicParam) {
+      final RexDynamicParam param = (RexDynamicParam) rexNode;
+      return Expressions.call(EnumerableLimit.class, "toFetchValue",
+          Expressions.convert_(
+              Expressions.call(DataContext.ROOT,
+                  BuiltInMethod.DATA_CONTEXT_GET.method,
+                  Expressions.constant("?" + param.getIndex())),
+              Number.class));
+    } else if (rexNode instanceof RexLiteral) {
+      return Expressions.constant(
+          toFetchValue(((RexLiteral) rexNode).getValueAs(Number.class)));
+    } else {
+      final Expression expression =
+          RexToLixTranslator.forAggregation(implementor.getTypeFactory(),
+              builder, null, implementor.getConformance())
+              .translate(rexNode);
+      return Expressions.call(EnumerableLimit.class, "toFetchValue",
+          Expressions.convert_(Expressions.box(expression), Number.class));
+    }
+  }
+
+  /** Converts a FETCH expression result to Calcite's canonical representation. */
+  public static BigDecimal toFetchValue(@Nullable Number value) {
+    return RexUtil.validateFetchValue(value);
+  }
+
+  /** Applies a FETCH value without narrowing it to {@code int} or {@code long}. */
+  public static <T> Enumerable<T> take(Enumerable<T> source, BigDecimal fetch) {
+    final BigInteger count = fetch.toBigIntegerExact();
+    return new AbstractEnumerable<T>() {
+      @Override public Enumerator<T> enumerator() {
+        final Enumerator<T> input = source.enumerator();
+        return new Enumerator<T>() {
+          private BigInteger remaining = count;
+          private boolean done;
+
+          @Override public T current() {
+            return input.current();
+          }
+
+          @Override public boolean moveNext() {
+            if (done) {
+              return false;
+            }
+            if (remaining.signum() == 0 || !input.moveNext()) {
+              done = true;
+              return false;
+            }
+            // Preserve take(int)'s eager evaluation of the current row.
+            input.current();
+            remaining = remaining.subtract(BigInteger.ONE);
+            return true;
+          }
+
+          @Override public void reset() {
+            input.reset();
+            remaining = count;
+            done = false;
+          }
+
+          @Override public void close() {
+            input.close();
+          }
+        };
+      }
+    };
+  }
+
+  /** Sorts and applies FETCH while preserving an arbitrary-precision value. */
+  public static <T, TKey> Enumerable<T> orderBy(Enumerable<T> source,
+      Function1<T, TKey> keySelector, @Nullable Comparator<TKey> comparator,
+      int offset, @Nullable BigDecimal fetch) {
+    if (fetch != null
+        && fetch.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) <= 0
+        && comparator != null) {
+      return EnumerableDefaults.orderBy(source, keySelector, comparator,
+          offset, fetch.intValueExact());
+    }
+    Enumerable<T> result = EnumerableDefaults.orderBy(source, keySelector, comparator);
+    if (offset > 0) {
+      result = result.skip(offset);
+    }
+    return fetch == null ? result : take(result, fetch);
+  }
+
+  static void validateLiteralFetch(@Nullable RexNode fetch) {
+    if (fetch instanceof RexLiteral) {
+      final Number value = ((RexLiteral) fetch).getValueAs(Number.class);
+      toFetchValue(value);
+    }
+  }
+
 }

@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -46,6 +47,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.AbstractList;
@@ -262,14 +264,28 @@ public class MongoRules {
       super(config);
     }
 
-    @Override public RelNode convert(RelNode rel) {
+    @Override public @Nullable RelNode convert(RelNode rel) {
       final Sort sort = (Sort) rel;
+      final RexLiteral fetch =
+          sort.fetch == null
+              ? null
+              : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+      if (sort.fetch != null && fetch == null) {
+        return null;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).longValueExact();
+        } catch (ArithmeticException e) {
+          return null;
+        }
+      }
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(out)
               .replace(sort.getCollation());
       return new MongoSort(rel.getCluster(), traitSet,
           convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), sort.offset, sort.fetch);
+          sort.getCollation(), sort.offset, fetch);
     }
   }
 

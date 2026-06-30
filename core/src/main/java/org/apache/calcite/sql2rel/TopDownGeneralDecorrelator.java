@@ -616,6 +616,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
   }
 
   public RelNode unnestInternal(Sort sort, boolean allowEmptyOutputFromRewrite) {
+    if (!RelDecorrelator.canDecorrelateFetch(sort)) {
+      throw new UnsupportedOperationException(
+          "Cannot decorrelate Sort with a runtime FETCH expression");
+    }
     RelNode newInput = unnest(sort.getInput(), allowEmptyOutputFromRewrite);
     UnnestedQuery inputInfo =
         requireNonNull(mapRelToUnnestedQuery.get(sort.getInput()));

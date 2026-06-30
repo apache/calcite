@@ -164,6 +164,15 @@ public interface CalciteResource {
   @BaseMessage("Values passed to {0} operator must have compatible types")
   ExInst<SqlValidatorException> incompatibleValueType(String a0);
 
+  @BaseMessage("FETCH expression must have an integral numeric type; actual type is ''{0}''")
+  ExInst<SqlValidatorException> fetchExpressionMustBeIntegral(String type);
+
+  @BaseMessage("FETCH expression cannot reference table column ''{0}''")
+  ExInst<SqlValidatorException> fetchExpressionCannotReferenceColumn(String column);
+
+  @BaseMessage("FETCH expression evaluated to NULL")
+  ExInst<SqlValidatorException> fetchExpressionEvaluatedToNull();
+
   @BaseMessage("Values in expression list must have compatible types")
   ExInst<SqlValidatorException> incompatibleTypesInList();
 

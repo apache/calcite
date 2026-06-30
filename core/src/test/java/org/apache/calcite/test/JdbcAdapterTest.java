@@ -1395,6 +1395,60 @@ class JdbcAdapterTest {
         .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
   }
 
+  @Test void testFetchExpressionPushDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno from scott.emp "
+            + "fetch next (1 + abs(-2)) rows only")
+        .explainContains("JdbcSort(fetch=[3])")
+        .returnsCount(3);
+  }
+
+  @Test void testParameterizedFetchExpressionIsNotPushedDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno from scott.emp "
+            + "fetch next (? + 1) rows only")
+        .consumesPreparedStatement(p -> p.setInt(1, 2))
+        .explainContains("EnumerableLimit(fetch=[+(?0, 1)])\n"
+            + "  JdbcToEnumerableConverter\n")
+        .returnsCount(3);
+  }
+
+  @Test void testDynamicFetchExpressionIsNotPushedDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno from scott.emp "
+            + "fetch next (extract(day from current_date)) rows only")
+        .explainContains("EnumerableLimit(fetch=[EXTRACT(FLAG(DAY), CURRENT_DATE)])\n"
+            + "  JdbcToEnumerableConverter\n");
+  }
+
+  @Test void testParameterizedFetchExpressionRepeatedExecution() throws Exception {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .doWithConnection(connection -> {
+          final String sql = "select empno from scott.emp order by empno "
+              + "fetch next (? + 1) rows only";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setInt(1, 0);
+            try (ResultSet resultSet = p.executeQuery()) {
+              assertThat(rowCount(resultSet), is(1));
+            }
+            p.setInt(1, 2);
+            try (ResultSet resultSet = p.executeQuery()) {
+              assertThat(rowCount(resultSet), is(3));
+            }
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  private static int rowCount(ResultSet resultSet) throws SQLException {
+    int count = 0;
+    while (resultSet.next()) {
+      count++;
+    }
+    return count;
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4619">[CALCITE-4619]

@@ -133,6 +133,9 @@ public class SortRemoveRedundantRule
   private static Optional<BigDecimal> getRowCountThreshold(Sort sort) {
     if (RelOptUtil.isLimit(sort)) {
       assert sort.fetch != null;
+      if (!(sort.fetch instanceof RexLiteral)) {
+        return Optional.empty();
+      }
       final BigDecimal fetch = RexLiteral.bigDecimalValue(sort.fetch);
 
       // We don't need to deal with fetch is 0.

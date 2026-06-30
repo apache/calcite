@@ -3564,6 +3564,18 @@ class RexProgramTest extends RexProgramTestBase {
         hasSize(0));
   }
 
+  @Test void testContainsDynamicParam() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexNode literal = rexBuilder.makeExactLiteral(BigDecimal.ONE, intType);
+    final RexNode dynamicParam = rexBuilder.makeDynamicParam(intType, 0);
+    final RexNode expression =
+        rexBuilder.makeCall(SqlStdOperatorTable.PLUS, literal, dynamicParam);
+
+    assertThat(RexUtil.containsDynamicParam(literal), is(false));
+    assertThat(RexUtil.containsDynamicParam(dynamicParam), is(true));
+    assertThat(RexUtil.containsDynamicParam(expression), is(true));
+  }
+
   @Test void testConstantMap() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);

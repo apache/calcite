@@ -850,6 +850,20 @@ public class DruidRules {
     @Override public void onMatch(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
       final DruidQuery query = call.rel(1);
+      final RexLiteral fetch =
+          sort.fetch == null
+              ? null
+              : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+      if (sort.fetch != null && fetch == null) {
+        return;
+      }
+      if (fetch != null) {
+        try {
+          RexLiteral.bigDecimalValue(fetch).intValueExact();
+        } catch (ArithmeticException e) {
+          return;
+        }
+      }
       if (!DruidQuery.isValidSignature(query.signature() + 'l')) {
         return;
       }
@@ -865,7 +879,8 @@ public class DruidRules {
       }
 
       final RelNode newSort = sort
-          .copy(sort.getTraitSet(), ImmutableList.of(Util.last(query.rels)));
+          .copy(sort.getTraitSet(), Util.last(query.rels), sort.getCollation(),
+              sort.offset, fetch);
       call.transformTo(DruidQuery.extendQuery(query, newSort));
     }
 

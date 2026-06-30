@@ -25,12 +25,14 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
+
 import static org.apache.calcite.adapter.enumerable.EnumerableLimit.getExpression;
+import static org.apache.calcite.adapter.enumerable.EnumerableLimit.getExpressionForFetch;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Sort} in
@@ -52,6 +54,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
+    EnumerableLimit.validateLiteralFetch(fetch);
     assert this.getConvention() instanceof EnumerableConvention;
     assert this.getConvention() == input.getConvention();
   }
@@ -98,9 +101,9 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
 
     final Expression fetchVal;
     if (this.fetch == null) {
-      fetchVal = Expressions.constant(Integer.MAX_VALUE);
+      fetchVal = Expressions.constant(null, BigDecimal.class);
     } else {
-      fetchVal = getExpression(this.fetch);
+      fetchVal = getExpressionForFetch(this.fetch, implementor, builder);
     }
 
     final Expression offsetVal;
@@ -112,17 +115,13 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
 
     builder.add(
         Expressions.return_(null,
-            Expressions.call(BuiltInMethod.ORDER_BY_WITH_FETCH_AND_OFFSET.method,
+            Expressions.call(EnumerableLimit.class, "orderBy",
                 Expressions.list(childExp,
                         builder.append("keySelector", pair.left))
                     .appendIfNotNull(
                         builder.appendIfNotNull("comparator", pair.right))
-                    .appendIfNotNull(
-                        builder.appendIfNotNull("offset",
-                            Expressions.constant(offsetVal)))
-                    .appendIfNotNull(
-                        builder.appendIfNotNull("fetch",
-                            Expressions.constant(fetchVal))))));
+                    .append(builder.append("offset", offsetVal))
+                    .append(builder.append("fetch", fetchVal)))));
     return implementor.result(physType, builder.toBlock());
   }
 }

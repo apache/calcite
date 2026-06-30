@@ -127,6 +127,34 @@ class CassandraAdapterTest {
         .explainContains("CassandraLimit(fetch=[8])\n");
   }
 
+  @Test void testFetchExpression() {
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" "
+            + "where \"username\" = '!PUBLIC!' "
+            + "fetch next (1 + abs(-2)) rows only")
+        .returnsCount(3)
+        .explainContains("CassandraLimit(fetch=[3])\n");
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" "
+            + "where \"username\" = '!PUBLIC!' "
+            + "fetch next (0 - 1) rows only")
+        .throws_("FETCH value -1 is out of range");
+  }
+
+  @Test void testFetchExpressionBeyondIntegerRange() {
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" "
+            + "where \"username\" = '!PUBLIC!' "
+            + "fetch next "
+            + "(cast(3000000000 as bigint) + 1) rows only")
+        .returnsCount(146)
+        .explainContains("EnumerableLimit(fetch=[+(3000000000:BIGINT, 1)])\n"
+            + "  CassandraToEnumerableConverter\n");
+  }
+
   @Test void testSortLimit() {
     CalciteAssert.that()
         .with(TWISSANDRA)
