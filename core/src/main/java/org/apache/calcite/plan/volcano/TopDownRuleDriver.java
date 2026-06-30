@@ -28,12 +28,13 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import java.util.function.Predicate;
 
 import static java.util.Objects.requireNonNull;
@@ -47,7 +48,6 @@ import static java.util.Objects.requireNonNull;
  * A Task is a piece of work to be executed, it may apply some rules
  * or schedule other tasks.
  */
-@SuppressWarnings("JdkObsolete")
 class TopDownRuleDriver implements RuleDriver {
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTaskTracer();
@@ -62,7 +62,7 @@ class TopDownRuleDriver implements RuleDriver {
   /**
    * All tasks waiting for execution.
    */
-  private final Stack<Task> tasks = new Stack<>(); // TODO: replace with Deque
+  private final Deque<Task> tasks = new ArrayDeque<>();
 
   /**
    * A task that is currently applying and may generate new RelNode.
@@ -350,7 +350,7 @@ class TopDownRuleDriver implements RuleDriver {
       for (RelNode rel : physicals) {
         Task task = getOptimizeInputTask(rel, group);
         if (task != null) {
-          tasks.add(task);
+          tasks.push(task);
         }
       }
     }
@@ -602,7 +602,7 @@ class TopDownRuleDriver implements RuleDriver {
                     requireNonNull(group.getTraitSet().getConvention(),
                         () -> "convention for " + group))));
     if (match != null) {
-      tasks.add(new ApplyRule(match, group, false));
+      tasks.push(new ApplyRule(match, group, false));
     }
     return null;
   }
