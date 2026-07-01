@@ -2480,6 +2480,13 @@ public class SqlToRelConverter {
     final SqlLambdaScope scope = (SqlLambdaScope) validator().getLambdaScope(call);
 
     final Map<String, RexNode> nameToNodeMap = new HashMap<>();
+    // For nested lambdas, inherit the parent blackboard's nameToNodeMap so that
+    // the inner lambda can resolve references to outer lambda parameters.
+    // e.g., in x -> EXISTS(arr, y -> x + y = 4), the inner lambda's blackboard
+    // needs access to "X" from the outer lambda's nameToNodeMap.
+    if (bb.nameToNodeMap != null) {
+      nameToNodeMap.putAll(bb.nameToNodeMap);
+    }
     final List<RexLambdaRef> parameters = new ArrayList<>(scope.getParameterTypes().size());
     final Map<String, RelDataType> parameterTypes = scope.getParameterTypes();
 
@@ -5759,11 +5766,16 @@ public class SqlToRelConverter {
         SqlQualified qualified) {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
-        if (node == null) {
+        if (node != null) {
+          return Pair.of(node, null);
+        }
+        // If the identifier is not found in nameToNodeMap and the current scope
+        // is a lambda scope, fall through to standard scope resolution to allow
+        // external references (e.g., t2.v in a JOIN ON lambda expression).
+        if (!(scope instanceof SqlLambdaScope)) {
           throw new AssertionError("Unknown identifier '" + qualified.identifier
               + "' encountered while expanding expression");
         }
-        return Pair.of(node, null);
       }
       final SqlNameMatcher nameMatcher =
           scope.getValidator().getCatalogReader().nameMatcher();
@@ -5782,6 +5794,13 @@ public class SqlToRelConverter {
       // preserved.
       final SqlValidatorScope ancestorScope = resolve.scope;
       boolean isParent = ancestorScope != scope;
+      // When in a lambda scope, external references to tables that are part
+      // of the current blackboard's inputs should be resolved locally, not
+      // as correlation variables. The lambda blackboard inherits inputs from
+      // its parent blackboard.
+      if (isParent && scope instanceof SqlLambdaScope && inputs != null) {
+        isParent = false;
+      }
       if ((inputs != null) && !isParent) {
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());

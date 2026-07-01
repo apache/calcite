@@ -118,8 +118,17 @@ public class RexVisitorImpl<@Nullable R> implements RexVisitor<R> {
     return null;
   }
 
+  /**
+   * Visits a lambda expression. When {@code deep} is true, recurses into
+   * the lambda body to analyze its sub-expressions (critical for InputFinder
+   * to detect field references inside lambda bodies during pushDownJoinConditions).
+   * When {@code deep} is false, returns null without recursing.
+   */
   @Override public R visitLambda(RexLambda lambda) {
-    return null;
+    if (!deep) {
+      return null;
+    }
+    return lambda.getExpression().accept(this);
   }
 
   @Override public R visitLambdaRef(RexLambdaRef lambdaRef) {

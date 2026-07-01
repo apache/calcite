@@ -910,8 +910,9 @@ public class RexProgramBuilder {
     }
 
     @Override public RexNode visitLambda(RexLambda lambda) {
-      super.visitLambda(lambda);
-      return registerInternal(lambda);
+      // Lambda body references are at a different scope level.
+      // Do not validate or register lambda body indices against this program's input.
+      return lambda;
     }
   }
 

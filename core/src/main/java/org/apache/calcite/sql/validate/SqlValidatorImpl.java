@@ -3333,10 +3333,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           alias,
           lambdaNamespace,
           forceNullable);
-      operands = call.getOperandList();
-      for (int i = 0; i < operands.size(); i++) {
-        registerOperandSubQueries(parentScope, call, i);
-      }
+      // Register sub-queries inside the body under lambdaScope, so that
+      // nested lambdas can resolve outer lambda parameters.
+      registerOperandSubQueries(lambdaScope, call, 1);
       break;
 
     case WITH:
@@ -6621,6 +6620,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     requireNonNull(scope, "scope");
     final LambdaNamespace ns =
         getNamespaceOrThrow(lambdaExpr).unwrap(LambdaNamespace.class);
+
+    // Check for duplicate lambda parameter names
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+    final Set<String> seen = nameMatcher.createSet();
+    for (SqlNode param : lambdaExpr.getParameters()) {
+      final String name = ((SqlIdentifier) param).getSimple();
+      if (!seen.add(name)) {
+        throw newValidationError(param,
+            RESOURCE.duplicateLambdaParameter(name));
+      }
+      // Check against enclosing lambda scopes: x -> ... x -> ...
+      SqlValidatorScope parentScope = scope.getParent();
+      while (parentScope instanceof DelegatingScope) {
+        if (parentScope instanceof SqlLambdaScope) {
+          final SqlLambdaScope parentLambda = (SqlLambdaScope) parentScope;
+          if (parentLambda.getParameterTypes().keySet().stream()
+              .anyMatch(p -> nameMatcher.matches(p, name))) {
+            throw newValidationError(param,
+                RESOURCE.duplicateLambdaParameter(name));
+          }
+        }
+        parentScope = ((DelegatingScope) parentScope).getParent();
+      }
+    }
 
     deriveType(scope, lambdaExpr.getExpression());
     RelDataType type = deriveTypeImpl(scope, lambdaExpr);
