@@ -24,4 +24,15 @@ public abstract class FileRules {
    * a {@link CsvTableScan} and pushes down projects if possible. */
   public static final CsvProjectTableScanRule PROJECT_SCAN =
       CsvProjectTableScanRule.Config.DEFAULT.toRule();
+
+  /** Rule that matches a {@link org.apache.calcite.rel.core.Filter} on
+   * a {@link CsvTableScan} and pushes down simple equality predicates. */
+  public static final CsvFilterTableScanRule FILTER_SCAN =
+      CsvFilterTableScanRule.Config.DEFAULT.toRule();
+
+  /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
+   * a {@link org.apache.calcite.rel.core.Filter} on a {@link CsvTableScan}
+   * and pushes down simple equality predicates. */
+  public static final CsvProjectFilterTableScanRule PROJECT_FILTER_SCAN =
+      CsvProjectFilterTableScanRule.Config.DEFAULT.toRule();
 }

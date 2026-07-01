@@ -417,6 +417,63 @@ class FileAdapterTest {
     sql("model-with-custom-table", sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7618">[CALCITE-7618]
+   * Add filter pushdown support to file adapter's CSV implementation</a>.
+   *
+   * <p>Verifies that a simple equality filter is pushed into {@link CsvTableScan},
+   * eliminating the {@code EnumerableCalc} that would otherwise evaluate it. */
+  @Test void testFilterPushDown() {
+    final String sql = "explain plan for select * from EMPS where deptno = 20";
+    final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
+        + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]], filters=[[2=20]])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  @Test void testFilterPushDownWithProject() {
+    final String sql = "explain plan for select name, empno from EMPS where deptno = 20";
+    final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]],"
+             +  " fields=[[1, 0]], filters=[[2=20]])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7618">[CALCITE-7618]
+   * Add filter pushdown support to file adapter's CSV implementation</a>.
+   *
+   * <p>Verifies that filter pushdown returns correct query results. */
+  @Test void testFilterPushDownResult() {
+    final String sql = "select name, empno from EMPS where deptno = 20";
+    sql("smart", sql)
+        .returns("NAME=Eric; EMPNO=110",
+            "NAME=Wilma; EMPNO=120")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7618">[CALCITE-7618]
+   * Add filter pushdown support to file adapter's CSV implementation</a>.
+   *
+   * <p>Verifies that non-equality (non-pushable) filters remain as a residual
+   * {@code EnumerableCalc} above the scan rather than being silently dropped. */
+  @Test void testNonPushableFilterRemains() {
+    // empno > 110 is a range filter; CsvEnumerator only supports equality,
+    // so it cannot be pushed down and must stay in the plan as EnumerableCalc.
+    final String sql = "select name from EMPS where empno > 110";
+    sql("smart", sql)
+        .returns("NAME=Wilma",
+            "NAME=Alice")
+        .ok();
+  }
+
+  @Test void testFilterOnNullValues() {
+    final String sql = "select name, age from long_emps where age is null";
+    sql("bug", sql)
+        .returns("NAME=John; AGE=null",
+            "NAME=Alice; AGE=null")
+        .ok();
+  }
+
   @Test void testPushDownProject() {
     final String sql = "explain plan for select * from EMPS";
     final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
@@ -471,21 +528,15 @@ class FileAdapterTest {
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> \"EnumerableAggregate\\ngroup = "
-          + "{}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
-          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0, 3]\\n\" -> "
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0]\\nfilters = [3=F]\\n\" "
+          + "-> \"EnumerableAggregate\\ngroup = {}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
           + "}\n";
       extra = " as dot ";
       break;
     case "text":
       expected = "PLAN="
           + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
-          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
-          + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
+          + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[0]], filters=[[3=F]])\n";
       extra = "";
       break;
     }
