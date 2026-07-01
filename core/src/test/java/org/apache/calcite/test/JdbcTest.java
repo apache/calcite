@@ -5500,7 +5500,6 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-685">[CALCITE-685]
    * Correlated scalar sub-query in SELECT clause throws</a>. */
-  @Disabled("[CALCITE-685]")
   @Test void testCorrelatedScalarSubQuery() {
     final String sql = "select e.department_id, sum(e.employee_id),\n"
         + "       ( select sum(e2.employee_id)\n"
@@ -5508,19 +5507,35 @@ public class JdbcTest {
         + "         where e.department_id = e2.department_id\n"
         + "       )\n"
         + "from employee e\n"
-        + "group by e.department_id\n";
-    final String explain = "EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
-        + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
-        + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
-        + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
-        + "    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[$cor0], expr#18=[$t17.department_id], expr#19=[=($t18, $t7)], employee_id=[$t0], department_id=[$t7], $condition=[$t19])\n"
-        + "      EnumerableTableScan(table=[[foodmart2, employee]])\n";
+        + "group by e.department_id\n"
+        + "order by e.department_id";
+    final String explain = "EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}], "
+        + "EXPR$0=[$t3])\n"
+        + "  EnumerableMergeJoin(condition=[=($0, $2)], joinType=[left])\n"
+        + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "      EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
+        + "        EnumerableTableScan(table=[[foodmart2, employee]])\n"
+        + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "      EnumerableAggregate(group=[{7}], EXPR$0=[$SUM0($0)])\n"
+        + "        EnumerableTableScan(table=[[foodmart2, employee]])\n";
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .with(Lex.JAVA)
         .query(sql)
         .explainContains(explain)
-        .returnsCount(0);
+        .returnsOrdered(
+            "department_id=1; EXPR$1=75; EXPR$2=75",
+            "department_id=2; EXPR$1=160; EXPR$2=160",
+            "department_id=3; EXPR$1=126; EXPR$2=126",
+            "department_id=4; EXPR$1=87; EXPR$2=87",
+            "department_id=5; EXPR$1=398; EXPR$2=398",
+            "department_id=11; EXPR$1=44166; EXPR$2=44166",
+            "department_id=14; EXPR$1=8859; EXPR$2=8859",
+            "department_id=15; EXPR$1=133341; EXPR$2=133341",
+            "department_id=16; EXPR$1=160636; EXPR$2=160636",
+            "department_id=17; EXPR$1=137346; EXPR$2=137346",
+            "department_id=18; EXPR$1=165879; EXPR$2=165879",
+            "department_id=19; EXPR$1=17670; EXPR$2=17670");
   }
 
   @Test void testLeftJoin() {
