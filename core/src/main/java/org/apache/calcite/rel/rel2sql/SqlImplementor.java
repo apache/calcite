@@ -713,9 +713,19 @@ public abstract class SqlImplementor {
           break;
         case ROW:
         case ITEM:
-          final SqlNode expr = toSql(program, referencedExpr);
-          sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
-          break;
+          // The referenced expression (e.g. an array/map ITEM access) must be
+          // unparsed as its own SqlNode so that the target dialect quotes each
+          // part correctly. Combine it with the accessed field names using the
+          // DOT operator instead of collapsing everything into a single
+          // identifier name (which would get quoted as one token).
+          SqlNode dotNode = toSql(program, referencedExpr);
+          RexFieldAccess dotAccess;
+          while ((dotAccess = accesses.pollLast()) != null) {
+            dotNode =
+                SqlStdOperatorTable.DOT.createCall(POS, dotNode,
+                    new SqlIdentifier(dotAccess.getField().getName(), POS));
+          }
+          return dotNode;
         default:
           sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
         }
