@@ -175,6 +175,13 @@ public class PrestoSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public SqlNode rewriteGroupingIdExpr(SqlNode aggCall) {
+    // Presto does not support GROUPING_ID; rewrite to GROUPING.
+    final SqlCall call = (SqlCall) aggCall;
+    return SqlStdOperatorTable.GROUPING.createCall(
+        call.getParserPosition(), call.getOperandList());
+  }
+
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
   }

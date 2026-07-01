@@ -921,6 +921,17 @@ public class SqlDialect {
   }
 
   /**
+   * Rewrites GROUPING_ID(...) to GROUPING(...) for dialects that do not
+   * support GROUPING_ID (e.g. PostgreSQL, Presto).
+   *
+   * <p>The default implementation returns the call unchanged. Dialects that
+   * need the rewrite should override this method.
+   */
+  public SqlNode rewriteGroupingIdExpr(SqlNode aggCall) {
+    return aggCall;
+  }
+
+  /**
    * Helper for rewrites of MAX/MIN.
    * Some dialects (e.g. Postgres and Redshift), rewrite as
    * BOOL_OR/BOOL_AND if the return type is BOOLEAN.

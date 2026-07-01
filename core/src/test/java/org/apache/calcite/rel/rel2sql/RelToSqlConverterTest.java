@@ -1032,6 +1032,45 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expectedSql);
   }
 
+  @Test void testGroupingIdRewriteInPostgresql() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(b.groupKey(6, 7),
+            b.aggregateCall(SqlStdOperatorTable.GROUPING_ID,
+                b.field("DEPTNO")).as("g"))
+        .build();
+    final String expectedPostgresql = "SELECT \"COMM\", \"DEPTNO\", GROUPING(\"DEPTNO\") AS \"g\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"COMM\", \"DEPTNO\"";
+    relFn(relFn).withPostgresql().ok(expectedPostgresql);
+  }
+
+  @Test void testGroupingIdRewriteInPresto() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(b.groupKey(6, 7),
+            b.aggregateCall(SqlStdOperatorTable.GROUPING_ID,
+                b.field("DEPTNO")).as("g"))
+        .build();
+    final String expectedPresto = "SELECT \"COMM\", \"DEPTNO\", GROUPING(\"DEPTNO\") AS \"g\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"COMM\", \"DEPTNO\"";
+    relFn(relFn).withPresto().ok(expectedPresto);
+  }
+
+  @Test void testGroupingIdNotRewrittenInDefault() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(b.groupKey(6, 7),
+            b.aggregateCall(SqlStdOperatorTable.GROUPING_ID,
+                b.field("DEPTNO")).as("g"))
+        .build();
+    final String expectedSql = "SELECT \"COMM\", \"DEPTNO\", GROUPING_ID(\"DEPTNO\") AS \"g\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"COMM\", \"DEPTNO\"";
+    relFn(relFn).ok(expectedSql);
+  }
+
   /** As {@link #testGroupSuperset()},
    * but HAVING has one standalone condition. */
   @Test void testGroupSuperset2() {

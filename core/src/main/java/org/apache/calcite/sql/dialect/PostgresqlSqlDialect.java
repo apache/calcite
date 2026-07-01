@@ -229,6 +229,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return rewriteMaxMin(aggCall, relDataType);
   }
 
+  @Override public SqlNode rewriteGroupingIdExpr(SqlNode aggCall) {
+    // PostgreSQL does not support GROUPING_ID; rewrite to GROUPING.
+    final SqlCall call = (SqlCall) aggCall;
+    return SqlStdOperatorTable.GROUPING.createCall(
+        call.getParserPosition(), call.getOperandList());
+  }
+
   @Override public boolean supportsGroupByLiteral() {
     return false;
   }

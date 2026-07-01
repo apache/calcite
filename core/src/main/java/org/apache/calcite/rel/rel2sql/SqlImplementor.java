@@ -1283,10 +1283,14 @@ public abstract class SqlImplementor {
 
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
-      return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
+      SqlNode node = toSql(aggCall.getAggregation(), aggCall.isDistinct(),
           Util.transform(aggCall.rexList, e -> toSql(null, e)),
           Util.transform(aggCall.getArgList(), this::field),
           aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
+      if (aggCall.getAggregation().getName().equals("GROUPING_ID")) {
+        node = dialect.rewriteGroupingIdExpr(node);
+      }
+      return node;
     }
 
     /** Converts a call to an aggregate function, with a given list of operands,
