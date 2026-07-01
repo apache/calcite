@@ -73,6 +73,6 @@ public abstract class CsvTable extends AbstractTable {
 
   /** Various degrees of table "intelligence". */
   public enum Flavor {
-    SCANNABLE, FILTERABLE, TRANSLATABLE
+    SCANNABLE, FILTERABLE, TRANSLATABLE, STREAMABLE_SCANNABLE
   }
 }
