@@ -54,11 +54,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsofJoin;
@@ -547,9 +551,97 @@ public class RelToSqlConverter extends SqlImplementor
     return result(join, leftResult, rightResult);
   }
 
+  /**
+   * Returns whether any expression (including nested sub-queries)
+   * references a correlated variable whose row type matches the given input.
+   */
+  private static boolean inputRowTypeMatchesCorrelVariable(
+      RelNode input,
+      Set<CorrelationId> correlIds,
+      Iterable<? extends RexNode> exprs) {
+
+    if (correlIds.isEmpty()) {
+      return false;
+    }
+
+    final RelDataType inputRowType = input.getRowType();
+
+    /** Visitor that detects matching correlated variables. */
+    class Finder extends RexVisitorImpl<Void> {
+      boolean found;
+
+      Finder() {
+        super(true);
+      }
+
+      @Override public Void visitCorrelVariable(RexCorrelVariable v) {
+        if (correlIds.contains(v.id)
+            && v.getType().equals(inputRowType)) {
+          found = true;
+        }
+        return null;
+      }
+
+      @Override public Void visitSubQuery(RexSubQuery subQuery) {
+        if (!found && containsInRelTree(subQuery.rel)) {
+          found = true;
+        }
+        return found ? null : super.visitSubQuery(subQuery);
+      }
+
+      private boolean containsInRelTree(RelNode rel) {
+        if (found) {
+          return true;
+        }
+
+        rel.accept(new RexShuttle() {
+          @Override public RexNode visitCorrelVariable(
+              RexCorrelVariable v) {
+            if (correlIds.contains(v.id)
+                && v.getType().equals(inputRowType)) {
+              found = true;
+            }
+            return v;
+          }
+
+          @Override public RexNode visitSubQuery(
+              RexSubQuery subQuery) {
+            if (!found) {
+              containsInRelTree(subQuery.rel);
+            }
+            return subQuery;
+          }
+        });
+
+        if (found) {
+          return true;
+        }
+
+        for (RelNode child : rel.getInputs()) {
+          if (containsInRelTree(child)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+    }
+
+    final Finder finder = new Finder();
+
+    for (RexNode expr : exprs) {
+      expr.accept(finder);
+      if (finder.found) {
+        return true;
+      }
+    }
+    return false;
+  }
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
+    final Set<CorrelationId> definedHere = e.getVariablesSet();
+
     if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
@@ -564,8 +656,22 @@ public class RelToSqlConverter extends SqlImplementor
       return builder.result();
     } else {
       Result x = visitInput(e, 0, Clause.WHERE);
-      if (!e.getVariablesSet().isEmpty()) {
-        x = x.resetAlias();
+      final boolean pushed = !definedHere.isEmpty()
+          && !(e.getInput() instanceof Join) && !(e.getInput() instanceof Correlate)
+           &&  inputRowTypeMatchesCorrelVariable(
+          e.getInput(), definedHere, ImmutableList.of(e.getCondition()));
+      if (pushed) {
+        String alias = x.neededAlias;
+        if (alias != null) {
+          x = x.resetAliasForCorrelation(alias, e.getInput().getRowType());
+        } else {
+          alias = unqualifiedName(x.node);
+          if (alias == null) {
+            alias = "t";
+          }
+          x = x.resetAliasForCorrelation
+              (alias, e.getInput().getRowType());
+        }
       }
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
