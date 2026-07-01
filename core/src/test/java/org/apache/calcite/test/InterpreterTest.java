@@ -371,6 +371,42 @@ class InterpreterTest {
             "[1943, 1, true, -3]");
   }
 
+  /** Tests a GROUP BY query after replacing
+   * {@link org.apache.calcite.sql.fun.SqlInternalOperators#LITERAL_AGG}. */
+  @Test void testAggregateRemoveLiteralAggOnEmptyInput() {
+    rootSchema().add("beatles", new ScannableTableTest.BeatlesTable());
+    final Function<RelBuilder, RelNode> relFn =
+        b -> applyAggregateRemoveLiteralAggRule(b.scan("beatles")
+            .empty()
+            .aggregate(b.groupKey("k"),
+                b.literalAgg(true).as("t"))
+            .build());
+    fixture().withRel(relFn)
+        .returnsRows();
+  }
+
+  /** Tests a GROUP BY () query after replacing
+   * {@link org.apache.calcite.sql.fun.SqlInternalOperators#LITERAL_AGG}. */
+  @Test void testAggregateRemoveLiteralAggWithOnlyLiteralAgg() {
+    rootSchema().add("beatles", new ScannableTableTest.BeatlesTable());
+    final Function<RelBuilder, RelNode> relFn =
+        b -> applyAggregateRemoveLiteralAggRule(b.scan("beatles")
+            .aggregate(b.groupKey(),
+                b.literalAgg(true).as("t"))
+            .build());
+    fixture().withRel(relFn)
+        .returnsRows("[true]");
+  }
+
+  private static RelNode applyAggregateRemoveLiteralAggRule(RelNode rel) {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(CoreRules.AGGREGATE_REMOVE_LITERAL_AGG)
+        .build();
+    final HepPlanner hep = new HepPlanner(program);
+    hep.setRoot(rel);
+    return hep.findBestExp();
+  }
+
   /** Tests executing a plan on a single-column
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test void testInterpretSimpleScannableTable() {

@@ -12004,6 +12004,92 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateRemoveLiteralAggRuleWithAnySubQuery() {
+    final String sql = "select deptno, name = ANY (\n"
+        + "  select mgr from emp)\n"
+        + "from dept";
+    sql(sql)
+        .withSubQueryRules()
+        .withLateDecorrelate(true)
+        .withAfter((fixture, rel) -> applyAggregateRemoveLiteralAggRule(rel))
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateRemoveLiteralAggRuleWithInSubQuery() {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where deptno in (select deptno from sales.emp where empno < 20)\n"
+        + "or emp.sal < 100";
+    sql(sql)
+        .withSubQueryRules()
+        .withLateDecorrelate(true)
+        .withAfter((fixture, rel) -> applyAggregateRemoveLiteralAggRule(rel))
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateRemoveLiteralAggRuleWithRegularAggCall() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(b.groupKey("DEPTNO"),
+            b.count().as("c"),
+            b.literalAgg(true).as("i"))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_REMOVE_LITERAL_AGG)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateRemoveLiteralAggRuleWithEmptyInput() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelBuilder builder =
+          RelBuilderTest.createBuilder(c -> c.withAggregateUnique(true));
+      return builder
+          .scan("EMP")
+          .empty()
+          .aggregate(builder.groupKey("DEPTNO"),
+              builder.literalAgg(true).as("i"))
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_REMOVE_LITERAL_AGG)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateRemoveLiteralAggRuleWithOnlyLiteralAgg() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(b.groupKey(),
+            b.literalAgg(true).as("i"))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_REMOVE_LITERAL_AGG)
+        .check();
+  }
+
+  private static RelNode applyAggregateRemoveLiteralAggRule(RelNode rel) {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(CoreRules.AGGREGATE_REMOVE_LITERAL_AGG)
+        .build();
+    final HepPlanner hep = new HepPlanner(program);
+    hep.setRoot(rel);
+    return hep.findBestExp();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7178">[CALCITE-7178]
    * FETCH and OFFSET in EnumerableMergeUnionRule do not support BIGINT</a>. */
   @Test void testEnumerableMergeUnionRule() {
