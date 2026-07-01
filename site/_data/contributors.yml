@@ -315,8 +315,8 @@
 - name: Sergey Nuyanzin
   apacheId: snuyanzin
   githubId: snuyanzin
-  org: EPAM
-  role: Committer
+  org: Confluent
+  role: PMC
 - name: Shuyi Chen
   apacheId: shuyichen
   githubId: suez1224
