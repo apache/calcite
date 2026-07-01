@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
@@ -48,8 +49,10 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -536,8 +539,17 @@ public class RelToSqlConverter extends SqlImplementor
       rightLateralAs =  SqlStdOperatorTable.AS.createCall(POS, rightLateral, id);
     }
 
-    final SqlNode join =
-        new SqlJoin(POS,
+    // A LEFT correlate preserves left rows with an empty right side, which a
+    // comma join would drop; emit LEFT JOIN LATERAL ... ON TRUE for it.
+    final SqlNode join = e.getJoinType() == JoinRelType.LEFT
+        ? new SqlJoin(POS,
+            leftResult.asFrom(),
+            SqlLiteral.createBoolean(false, POS),
+            JoinType.LEFT.symbol(POS),
+            rightLateralAs,
+            JoinConditionType.ON.symbol(POS),
+            SqlLiteral.createBoolean(true, POS))
+        : new SqlJoin(POS,
             leftResult.asFrom(),
             SqlLiteral.createBoolean(false, POS),
             JoinType.COMMA.symbol(POS),
@@ -1505,6 +1517,15 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   public Result visit(Uncollect e) {
+    final int inputFieldCount = e.getInput().getRowType().getFieldCount();
+    if (!e.getPassthroughFieldIndices().isEmpty()
+        || e.getCollectionFieldIndices().cardinality() != inputFieldCount
+        || e.isOuter) {
+      // A generalized Uncollect needs LATERAL join syntax: rewrite it to a
+      // Correlate over a plain Uncollect (the inverse of
+      // CoreRules#CORRELATE_UNCOLLECT_MERGE) and dispatch that instead.
+      return dispatch(generalizedUncollectToCorrelate(e));
+    }
     final Result x = visitInput(e, 0);
     final SqlOperator operator =
         e.withOrdinality ? SqlStdOperatorTable.UNNEST_WITH_ORDINALITY : SqlStdOperatorTable.UNNEST;
@@ -1515,6 +1536,52 @@ public class RelToSqlConverter extends SqlImplementor
                 () -> "x.neededAlias is null, node is " + x.node));
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
     return result(asNode, ImmutableList.of(Clause.FROM), e, null);
+  }
+
+  /**
+   * Rewrites a generalized {@link Uncollect} (passthrough fields, a subset of
+   * collection fields, or outer semantics) into the equivalent
+   * {@code Project(Correlate(input, Uncollect(Project($cor.c...))))}.
+   */
+  private static RelNode generalizedUncollectToCorrelate(Uncollect e) {
+    final RelOptCluster cluster = e.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelNode input = e.getInput();
+    final int inputFieldCount = input.getRowType().getFieldCount();
+
+    final CorrelationId corrId = cluster.createCorrel();
+    final RexNode corr = rexBuilder.makeCorrel(input.getRowType(), corrId);
+    final List<RexNode> collectionExprs = new ArrayList<>();
+    final List<String> collectionNames = new ArrayList<>();
+    for (int i : e.getCollectionFieldIndices()) {
+      collectionExprs.add(rexBuilder.makeFieldAccess(corr, i));
+      collectionNames.add(input.getRowType().getFieldList().get(i).getName());
+    }
+    final RelNode innerProject =
+        LogicalProject.create(LogicalValues.createOneRow(cluster),
+            ImmutableList.of(), collectionExprs, collectionNames,
+            ImmutableSet.of());
+    final Uncollect plainUncollect =
+        Uncollect.create(e.getTraitSet(), innerProject, e.withOrdinality,
+            Collections.emptyList());
+    final RelNode correlate =
+        LogicalCorrelate.create(input, plainUncollect, ImmutableList.of(),
+            corrId, e.getCollectionFieldIndices(),
+            e.isOuter ? JoinRelType.LEFT : JoinRelType.INNER);
+
+    // Keep only the passthrough fields and the unnested columns, in the
+    // generalized Uncollect's output order.
+    final List<RexNode> projects = new ArrayList<>();
+    for (int i : e.getPassthroughFieldIndices()) {
+      projects.add(rexBuilder.makeInputRef(correlate, i));
+    }
+    final int elementFieldCount =
+        e.getRowType().getFieldCount() - e.getPassthroughFieldIndices().cardinality();
+    for (int k = 0; k < elementFieldCount; k++) {
+      projects.add(rexBuilder.makeInputRef(correlate, inputFieldCount + k));
+    }
+    return LogicalProject.create(correlate, ImmutableList.of(), projects,
+        e.getRowType().getFieldNames(), ImmutableSet.of());
   }
 
   public Result visit(TableFunctionScan e) {

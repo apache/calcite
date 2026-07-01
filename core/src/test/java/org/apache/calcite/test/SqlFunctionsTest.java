@@ -2118,20 +2118,32 @@ class SqlFunctionsTest {
             "2024-01-01 00:00:00", "Asia/Sanghai"));
   }
 
-  // Tests for ZipPaddedEnumerator, accessed via the public SqlFunctions.flatZip API.
+  // A set of unit tests for SqlFunctions.flatUncollect, used by the
+  // Enumerable implementation of Uncollect's pass-through/outer semantics.
+  static final int FIELD_IS_SCALAR = -1;
 
-  /** Invokes {@link SqlFunctions#flatZip} over scalar collections and collects output rows. */
+  // Tests for ZipPaddedEnumerator, accessed via the public
+  // SqlFunctions.flatUncollect API (no pass-through fields, all
+  // input fields are scalar collections).
+
+  /** Invokes {@link SqlFunctions#flatUncollect} over scalar
+   * collections (no pass-through fields) and collects output rows. */
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static List<List<Object>> zipScalars(
       boolean withOrdinality, List<Comparable>... inputs) {
     final int n = inputs.length;
+    final int[] collectionIndices = new int[n];
     final int[] fieldCounts = new int[n];
-    Arrays.fill(fieldCounts, 1);
     final SqlFunctions.FlatProductInputType[] types =
         new SqlFunctions.FlatProductInputType[n];
-    Arrays.fill(types, SCALAR);
+    for (int i = 0; i < n; i++) {
+      collectionIndices[i] = i;
+      fieldCounts[i] = FIELD_IS_SCALAR;
+      types[i] = SCALAR;
+    }
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(fieldCounts, withOrdinality, types);
+        SqlFunctions.flatUncollect(
+            new int[]{}, collectionIndices, fieldCounts, types, withOrdinality, n, false);
     final Object arg = n == 1 ? inputs[0] : inputs;
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row : fn.apply(arg)) {
@@ -2141,8 +2153,8 @@ class SqlFunctionsTest {
   }
 
   @Test void testZipPaddedSingleCollectionWithOrdinality() {
-    // Single scalar collection with ordinality uses ZipPaddedEnumerator, not
-    // the LIST_AS_ENUMERABLE shortcut.
+    // Single scalar collection with ordinality: two output columns
+    // (element, ordinality), so no single-column scalar unwrapping applies.
     List<List<Object>> rows = zipScalars(true, Arrays.asList(10, 20, 30));
     assertThat(rows, hasSize(3));
     assertThat(rows.get(0), is(list(10, 1)));
@@ -2199,13 +2211,211 @@ class SqlFunctionsTest {
     assertThat(rows.get(2), is(Arrays.asList(30, null, 3)));
   }
 
+  /** Applies {@code fn} to a single input row and collects all output rows. */
+  private static List<List<Object>> collectRows(
+      Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn,
+      Object inputRow) {
+    final List<List<Object>> result = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row : fn.apply(inputRow)) {
+      result.add(new ArrayList<>(row));
+    }
+    return result;
+  }
+
+  /** Like {@link #collectRows}, but for the single-output-column case, where
+   * {@link SqlFunctions#flatUncollect} returns bare scalars
+   * (matching {@link org.apache.calcite.adapter.enumerable.JavaRowFormat#SCALAR})
+   * rather than singleton rows. */
+  @SuppressWarnings("rawtypes")
+  private static List<Object> collectScalarRows(
+      Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn,
+      Object inputRow) {
+    final List<Object> result = new ArrayList<>();
+    for (Object row : (Enumerable) fn.apply(inputRow)) {
+      result.add(row);
+    }
+    return result;
+  }
+
+  @Test void testFlatUncollectInner() {
+    // Row schema: [name, arr] — passthrough=0, collection=1, INNER semantics.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            2,
+            false);
+
+    // Non-empty collection -> one output row per element.
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"a", Arrays.asList(10, 20, 30)});
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list("a", 10)));
+    assertThat(rows.get(1), is(list("a", 20)));
+    assertThat(rows.get(2), is(list("a", 30)));
+    // Empty collection -> row dropped.
+    assertThat(collectRows(fn, new Object[]{"b", Collections.emptyList()}), hasSize(0));
+    // Null collection -> row dropped (null-safe).
+    assertThat(collectRows(fn, new Object[]{"c", null}), hasSize(0));
+  }
+
+  @Test void testFlatUncollectOuter() {
+    // Row schema: [name, arr] — passthrough=0, collection=1, OUTER (LEFT JOIN) semantics.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            2,
+            true);
+
+    // Non-empty collection -> same behaviour as INNER.
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"a", Arrays.asList(1, 2)});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("a", 1)));
+    assertThat(rows.get(1), is(list("a", 2)));
+
+    // Empty collection -> one null row; passthrough field preserved.
+    List<List<Object>> emptyRows =
+        collectRows(fn, new Object[]{"b", Collections.emptyList()});
+    assertThat(emptyRows, hasSize(1));
+    assertThat(emptyRows.get(0), is(Arrays.asList("b", null)));
+
+    // Null collection -> one null row; passthrough field preserved.
+    List<List<Object>> nullRows =
+        collectRows(fn, new Object[]{"c", null});
+    assertThat(nullRows, hasSize(1));
+    assertThat(nullRows.get(0), is(Arrays.asList("c", null)));
+  }
+
+  @Test void testFlatUncollectOrdinality() {
+    // INNER + withOrdinality: ordinality column starts at 1.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> innerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            true,
+            2,
+            false);
+
+    List<List<Object>> rows =
+        collectRows(innerFn, new Object[]{"a", Arrays.asList(10, 20)});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("a", 10, 1)));
+    assertThat(rows.get(1), is(list("a", 20, 2)));
+
+    // OUTER + withOrdinality + empty -> one null row; ordinality column also null.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            true,
+            2,
+            true);
+
+    List<List<Object>> outerEmpty =
+        collectRows(outerFn, new Object[]{"b", Collections.emptyList()});
+    assertThat(outerEmpty, hasSize(1));
+    assertThat(outerEmpty.get(0), is(Arrays.asList("b", null, null)));
+  }
+
+  @Test void testFlatUncollectMultiCollection() {
+    // Row schema: [a, b] — no passthrough, both fields are scalar collections.
+    // INNER: zip [1,2,3] with [10,20] -> 3 rows, shorter collection padded with null.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> innerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{FIELD_IS_SCALAR, FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR, SCALAR},
+            false,
+            2,
+            false);
+
+    List<List<Object>> rows =
+        collectRows(innerFn, new Object[]{Arrays.asList(1, 2, 3), Arrays.asList(10, 20)});
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list(1, 10)));
+    assertThat(rows.get(1), is(list(2, 20)));
+    assertThat(rows.get(2), is(Arrays.asList(3, null)));
+
+    // OUTER: one collection non-empty, the other null -> zip produces rows (not all-empty).
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{FIELD_IS_SCALAR, FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR, SCALAR},
+            false,
+            2,
+            true);
+
+    List<List<Object>> partialRows =
+        collectRows(outerFn, new Object[]{Arrays.asList(1, 2), null});
+    assertThat(partialRows, hasSize(2));
+    assertThat(partialRows.get(0), is(Arrays.asList(1, null)));
+    assertThat(partialRows.get(1), is(Arrays.asList(2, null)));
+
+    // OUTER: both collections null -> one null row.
+    List<List<Object>> bothNull =
+        collectRows(outerFn, new Object[]{null, null});
+    assertThat(bothNull, hasSize(1));
+    assertThat(bothNull.get(0), is(Arrays.asList(null, null)));
+
+    // OUTER: both collections empty -> one null row.
+    List<List<Object>> bothEmpty =
+        collectRows(outerFn, new Object[]{Collections.emptyList(), Collections.emptyList()});
+    assertThat(bothEmpty, hasSize(1));
+    assertThat(bothEmpty.get(0), is(Arrays.asList(null, null)));
+  }
+
+  @Test void testFlatUncollectScalarRowFormat() {
+    // When inputFieldCount==1, the input object IS the collection (JavaRowFormat.SCALAR).
+    // The output row type is also a single column (no pass-through, one
+    // scalar collection, no ordinality), so rows are bare scalars, not
+    // singleton lists, matching PhysTypeImpl's own SCALAR optimization.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            1,
+            false);
+
+    List<Object> rows = collectScalarRows(fn, Arrays.asList(10, 20, 30));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(10));
+    assertThat(rows.get(1), is(20));
+    assertThat(rows.get(2), is(30));
+
+    // Empty in OUTER scalar-format -> one bare null row.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            1,
+            true);
+
+    List<Object> outerEmpty = collectScalarRows(outerFn, Collections.emptyList());
+    assertThat(outerEmpty, hasSize(1));
+    assertThat(outerEmpty.get(0), is(nullValue()));
+  }
+
   @Test void testZipPaddedStructElements() {
     // Two LIST (struct) collections of width 2: [(1,2),(3,4)] and [(10,20)]
-    // → [1,2,10,20], [3,4,null,null]
+    // -> [1,2,10,20], [3,4,null,null]
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{2, 2}, false,
-            new SqlFunctions.FlatProductInputType[]{LIST, LIST});
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1}, new int[]{2, 2},
+            new SqlFunctions.FlatProductInputType[]{LIST, LIST}, false, 2, false);
     final List<List<Comparable>> col1 =
         Arrays.asList(FlatLists.of(1, 2), FlatLists.of(3, 4));
     final List<List<Comparable>> col2 =

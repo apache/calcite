@@ -626,4 +626,241 @@ WHERE (
 
 !ok
 
+# Tests for [CALCITE-7608] Enhance Uncollect
+!use scott
+!set hep-rules "
++CoreRules.CORRELATE_UNCOLLECT_MERGE"
+
+# Validated on Postgres by replacing COLLECT with ARRAY_AGG
+SELECT u.x, z
+FROM (
+    SELECT x, COLLECT(y) as ys
+    FROM (VALUES (1, 1), (2, 2), (1, 3)) AS t (x, y)
+    GROUP BY x) AS u,
+  UNNEST(u.ys) AS z;
++---+---+
+| X | Z |
++---+---+
+| 1 | 1 |
+| 1 | 3 |
+| 2 | 2 |
++---+---+
+(3 rows)
+
+!ok
+EnumerableUncollect(passthrough=[[X]], collectionFields=[[YS]])
+  EnumerableAggregate(group=[{0}], YS=[COLLECT($1)])
+    EnumerableValues(tuples=[[{ 1, 1 }, { 2, 2 }, { 1, 3 }]])
+!plan
+
+# Lateral UNNEST with ordinality
+# Validated on Postgres by replacing COLLECT with ARRAY_AGG
+SELECT u.x, z, o
+FROM (
+    SELECT x, collect(y) as ys
+    FROM (VALUES (10, 'a'), (10, 'b'), (20, 'c')) AS t (x, y)
+    GROUP BY x) AS u,
+  UNNEST(u.ys) WITH ORDINALITY AS t(z, o);
++----+---+---+
+| X  | Z | O |
++----+---+---+
+| 10 | a | 1 |
+| 10 | b | 2 |
+| 20 | c | 1 |
++----+---+---+
+(3 rows)
+
+!ok
+EnumerableUncollect(passthrough=[[X]], collectionFields=[[YS]], withOrdinality=[true])
+  EnumerableAggregate(group=[{0}], YS=[COLLECT($1)])
+    EnumerableValues(tuples=[[{ 10, 'a' }, { 10, 'b' }, { 20, 'c' }]])
+!plan
+
+# Two scalar arrays of different lengths: shorter is padded with NULL.
+# Pass-through field n is carried unchanged.
+# Validated on Postgres
+SELECT n, a, b
+FROM (SELECT 'test' AS n, ARRAY[1, 2, 3] AS arr1, ARRAY[10, 20] AS arr2) AS u,
+UNNEST(u.arr1, u.arr2) AS t(a, b);
++------+---+----+
+| N    | A | B  |
++------+---+----+
+| test | 3 |    |
+| test | 1 | 10 |
+| test | 2 | 20 |
++------+---+----+
+(3 rows)
+
+!ok
+EnumerableUncollect(passthrough=[[N]], collectionFields=[[ARR1, ARR2]])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=['test'], expr#2=[1], expr#3=[2], expr#4=[3], expr#5=[ARRAY($t2, $t3, $t4)], expr#6=[10], expr#7=[20], expr#8=[ARRAY($t6, $t7)], N=[$t1], ARR1=[$t5], ARR2=[$t8])
+    EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# MAP column: each map entry produces a (KEY, VALUE) pair.
+# Pass-through field id is carried unchanged.
+# Postgres does not support UNNEST(MAP), so this is manually validated
+SELECT id, k, v
+FROM (SELECT 42 AS id, MAP['a', 1, 'b', 2] AS m) AS u,
+UNNEST(u.m) AS t(k, v);
++----+---+---+
+| ID | K | V |
++----+---+---+
+| 42 | a | 1 |
+| 42 | b | 2 |
++----+---+---+
+(2 rows)
+
+!ok
+EnumerableUncollect(passthrough=[[ID]], collectionFields=[[M]])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[42], expr#2=['a'], expr#3=[1], expr#4=['b'], expr#5=[2], expr#6=[MAP($t2, $t3, $t4, $t5)], ID=[$t1], M=[$t6])
+    EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# ARRAY of ROW: each element is a struct expanded into multiple columns.
+# Pass-through field id is carried unchanged.
+# validated on Postgres using a user-defined type for ROW
+SELECT id, a, b
+FROM (SELECT 99 AS id, ARRAY[ROW(1, 'x'), ROW(2, 'y')] AS arr) AS u,
+UNNEST(u.arr) AS t(a, b);
++----+---+---+
+| ID | A | B |
++----+---+---+
+| 99 | 1 | x |
+| 99 | 2 | y |
++----+---+---+
+(2 rows)
+
+!ok
+EnumerableUncollect(passthrough=[[ID]], collectionFields=[[ARR]])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[99], expr#2=[1], expr#3=['x'], expr#4=[ROW($t2, $t3)], expr#5=[2], expr#6=['y'], expr#7=[ROW($t5, $t6)], expr#8=[ARRAY($t4, $t7)], ID=[$t1], ARR=[$t8])
+    EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# LEFT JOIN UNNEST tests
+!use hr
+
+# depts LEFT JOIN UNNEST(employees).
+# Marketing has 0 employees; the INNER comma-join drops Marketing;
+# the LEFT JOIN preserves Marketing with NULL-padded employee columns.
+# Validated on Postgres
+select d."name", e.*
+from "hr"."depts" as d
+LEFT JOIN UNNEST(d."employees") as e ON TRUE;
++-----------+-------+--------+-----------+---------+------------+
+| name      | empid | deptno | name0     | salary  | commission |
++-----------+-------+--------+-----------+---------+------------+
+| HR        |   200 |     20 | Eric      |  8000.0 |        500 |
+| Marketing |       |        |           |         |            |
+| Sales     |   100 |     10 | Bill      | 10000.0 |       1000 |
+| Sales     |   150 |     10 | Sebastian |  7000.0 |            |
++-----------+-------+--------+-----------+---------+------------+
+(4 rows)
+
+!ok
+EnumerableUncollect(passthrough=[[name]], collectionFields=[[employees]], isOuter=[true])
+  EnumerableCalc(expr#0..3=[{inputs}], name=[$t1], employees=[$t2])
+    EnumerableTableScan(table=[[hr, depts]])
+!plan
+
+# depts LEFT JOIN UNNEST(employees) WITH ORDINALITY.
+# Marketing (empty employees) is preserved; its ORDINALITY is NULL.
+# Validated on Postgres
+select d."name", e.*
+from "hr"."depts" as d
+LEFT JOIN UNNEST(d."employees") WITH ORDINALITY as e ON TRUE;
++-----------+-------+--------+-----------+---------+------------+------------+
+| name      | empid | deptno | name0     | salary  | commission | ORDINALITY |
++-----------+-------+--------+-----------+---------+------------+------------+
+| HR        |   200 |     20 | Eric      |  8000.0 |        500 |          1 |
+| Marketing |       |        |           |         |            |            |
+| Sales     |   100 |     10 | Bill      | 10000.0 |       1000 |          1 |
+| Sales     |   150 |     10 | Sebastian |  7000.0 |            |          2 |
++-----------+-------+--------+-----------+---------+------------+------------+
+(4 rows)
+
+!ok
+
+# Null array tests for Uncollect.
+# LEFT JOIN preserves left rows with NULL for element columns.
+# INNER: rows 1 and 3 yield elements; row 2 (null array) is dropped.
+# Validated on Postgres
+SELECT u.x, z
+FROM (VALUES
+    (1, ARRAY[10, 20]),
+    (2, CAST(NULL AS INTEGER ARRAY)),
+    (3, ARRAY[30])) AS u(x, arr),
+UNNEST(u.arr) AS z;
++---+----+
+| X | Z  |
++---+----+
+| 1 | 10 |
+| 1 | 20 |
+| 3 | 30 |
++---+----+
+(3 rows)
+
+!ok
+
+# OUTER: rows 1 and 3 yield elements; row 2 (null array) yields one row with NULL z.
+# Validated on Postgres
+SELECT u.x, z
+FROM (VALUES
+    (1, ARRAY[10, 20]),
+    (2, CAST(NULL AS INTEGER ARRAY)),
+    (3, ARRAY[30])) AS u(x, arr)
+LEFT JOIN UNNEST(u.arr) AS z ON TRUE;
++---+----+
+| X | Z  |
++---+----+
+| 1 | 10 |
+| 1 | 20 |
+| 2 |    |
+| 3 | 30 |
++---+----+
+(4 rows)
+
+!ok
+
+# OUTER + ordinality: null array row is preserved with NULL element and NULL ordinality.
+# Validated on Postgres
+SELECT u.x, z, o
+FROM (VALUES
+    (1, ARRAY[10, 20]),
+    (2, CAST(NULL AS INTEGER ARRAY)),
+    (3, ARRAY[30])) AS u(x, arr)
+LEFT JOIN UNNEST(u.arr) WITH ORDINALITY AS t(z, o) ON TRUE;
++---+----+---+
+| X | Z  | O |
++---+----+---+
+| 1 | 10 | 1 |
+| 1 | 20 | 2 |
+| 2 |    |   |
+| 3 | 30 | 1 |
++---+----+---+
+(4 rows)
+
+!ok
+
+# OUTER with no pass-through column
+SELECT z
+FROM (VALUES
+    (1, ARRAY[10, 20]),
+    (2, CAST(NULL AS INTEGER ARRAY)),
+    (3, ARRAY[30])) AS u(x, arr)
+LEFT JOIN UNNEST(u.arr) AS z ON TRUE;
++----+
+| Z  |
++----+
+| 10 |
+| 20 |
+|    |
+| 30 |
++----+
+(4 rows)
+
+!ok
+
+!set hep-rules original
+
 # End unnest.iq
