@@ -990,6 +990,11 @@ public class CoreRules {
   public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
       AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
 
+  /** Rule that removes {@code LITERAL_AGG} aggregate calls by replacing them
+   * with literal expressions in a {@link Project}. */
+  public static final AggregateRemoveLiteralAggRule AGGREGATE_REMOVE_LITERAL_AGG =
+      AggregateRemoveLiteralAggRule.Config.DEFAULT.toRule();
+
   /** Rule that converts a {@link Correlate} after an {@link Uncollect} into a simple
    * Uncollect, if possible. */
   public static final RelOptRule UNNEST_DECORRELATE =
