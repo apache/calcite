@@ -987,7 +987,7 @@ public class EnumUtils {
                         right_, rightPhysType)),
                 implementor.allCorrelateVariables,
                 implementor.getConformance(),
-                nullable)));
+                nullable, implementor.getRexImplementorTable())));
     Class clazz = nullable ? NullablePredicate2.class : Predicate2.class;
     return Expressions.lambda(clazz, builder.toBlock(), left_, right_);
   }

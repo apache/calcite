@@ -166,7 +166,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
               typeFactory,
               builder2,
               new RexToLixTranslator.InputGetterImpl(input, result.physType),
-              implementor.allCorrelateVariables, implementor.getConformance());
+              implementor.allCorrelateVariables, implementor.getConformance(),
+              false, implementor.getRexImplementorTable());
       builder2.add(
           Expressions.ifThen(
               condition,
@@ -198,7 +199,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             physType,
             DataContext.ROOT,
             new RexToLixTranslator.InputGetterImpl(input, result.physType),
-            implementor.allCorrelateVariables);
+            implementor.allCorrelateVariables,
+            implementor.getRexImplementorTable());
     builder3.add(
         Expressions.return_(
             null, physType.record(expressions)));

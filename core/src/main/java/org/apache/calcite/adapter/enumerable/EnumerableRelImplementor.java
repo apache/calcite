@@ -488,6 +488,13 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         SqlConformanceEnum.DEFAULT);
   }
 
+  /** Returns the table of code-generation implementors to use, defaulting to
+   * the built-in {@link RexImpTable#instance()}. */
+  public RexImplementorTable getRexImplementorTable() {
+    return (RexImplementorTable) map.getOrDefault("_rexImplementorTable",
+        RexImpTable.INSTANCE);
+  }
+
   /** Visitor that finds types in an {@link Expression} tree. */
   @VisibleForTesting
   static class TypeFinder extends VisitorImpl<Void> {

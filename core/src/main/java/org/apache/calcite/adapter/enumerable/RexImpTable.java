@@ -557,7 +557,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>Immutable.
  */
-public class RexImpTable {
+public class RexImpTable implements RexImplementorTable {
   /** The singleton instance. */
   public static final RexImpTable INSTANCE;
 
@@ -567,6 +567,11 @@ public class RexImpTable {
     builder.populate2();
     builder.populate3();
     INSTANCE = new RexImpTable(builder);
+  }
+
+  /** Returns the table of built-in implementors. */
+  public static RexImplementorTable instance() {
+    return INSTANCE;
   }
 
   public static final ConstantExpression NULL_EXPR =
@@ -1457,7 +1462,9 @@ public class RexImpTable {
     };
   }
 
-  private static RexCallImplementor wrapAsRexCallImplementor(
+  /** Wraps a {@link CallImplementor} (for example, one built with
+   * {@link #createImplementor}) as a {@link RexCallImplementor}. */
+  public static RexCallImplementor wrapAsRexCallImplementor(
       final CallImplementor implementor) {
     return new AbstractRexCallImplementor("udf", NullPolicy.NONE, false) {
       @Override Expression implementSafe(RexToLixTranslator translator,
@@ -1467,7 +1474,7 @@ public class RexImpTable {
     };
   }
 
-  public @Nullable RexCallImplementor get(final SqlOperator operator) {
+  @Override public @Nullable RexCallImplementor get(final SqlOperator operator) {
     if (operator instanceof SqlUserDefinedFunction) {
       org.apache.calcite.schema.Function udf =
           ((SqlUserDefinedFunction) operator).getFunction();
@@ -1502,7 +1509,7 @@ public class RexImpTable {
     return null;
   }
 
-  public @Nullable AggImplementor get(final SqlAggFunction aggregation,
+  @Override public @Nullable AggImplementor get(final SqlAggFunction aggregation,
       boolean forWindowAggregate) {
     if (aggregation instanceof SqlUserDefinedAggFunction) {
       final SqlUserDefinedAggFunction udaf =
@@ -1531,24 +1538,18 @@ public class RexImpTable {
     return aggSupplier.get();
   }
 
-  public MatchImplementor get(final SqlMatchFunction function) {
+  @Override public @Nullable MatchImplementor get(
+      final SqlMatchFunction function) {
     final Supplier<? extends MatchImplementor> supplier =
         matchMap.get(function);
-    if (supplier != null) {
-      return supplier.get();
-    } else {
-      throw new IllegalStateException("Supplier should not be null");
-    }
+    return supplier != null ? supplier.get() : null;
   }
 
-  public TableFunctionCallImplementor get(final SqlWindowTableFunction operator) {
+  @Override public @Nullable TableFunctionCallImplementor get(
+      final SqlWindowTableFunction operator) {
     final Supplier<? extends TableFunctionCallImplementor> supplier =
         tvfImplementorMap.get(operator);
-    if (supplier != null) {
-      return supplier.get();
-    } else {
-      throw new IllegalStateException("Supplier should not be null");
-    }
+    return supplier != null ? supplier.get() : null;
   }
 
   static Expression optimize(Expression expression) {
