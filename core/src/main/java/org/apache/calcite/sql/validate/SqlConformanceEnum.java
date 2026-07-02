@@ -409,6 +409,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowBareBracketArrayLiteral() {
+    switch (this) {
+    case BABEL:
+    case BIG_QUERY:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public boolean allowPluralTimeUnits() {
     switch (this) {
     case BABEL:

@@ -150,6 +150,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowExtendedTrim();
   }
 
+  @Override public boolean allowBareBracketArrayLiteral() {
+    return delegate.allowBareBracketArrayLiteral();
+  }
+
   @Override public boolean allowPluralTimeUnits() {
     return delegate.allowPluralTimeUnits();
   }
