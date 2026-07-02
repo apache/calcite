@@ -2998,14 +2998,26 @@ class RelToSqlConverterTest {
    * SqlItemOperator fails in RelToSqlConverter</a>. */
   @Test void testSqlItemOperator() {
     sql("SELECT foo[0].\"EXPR$1\" FROM (SELECT ARRAY[ROW('a', 'b')] AS foo)")
-        .ok("SELECT \"ARRAY[ROW('a', 'b')][0]\".\"EXPR$1\"\n"
+        .ok("SELECT ARRAY[ROW('a', 'b')][0].\"EXPR$1\"\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT foo['k'].\"EXPR$1\" FROM (SELECT MAP['k', ROW('a', 'b')] AS foo)")
-        .ok("SELECT \"MAP['k', ROW('a', 'b')]['k']\".\"EXPR$1\"\n"
+        .ok("SELECT MAP['k', ROW('a', 'b')]['k'].\"EXPR$1\"\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("select\"books\"[0].\"title\" from \"authors\"")
         .schema(CalciteAssert.SchemaSpec.BOOKSTORE)
-        .ok("SELECT \"`books`[0]\".\"title\"\n"
+        .ok("SELECT \"books\"[0].\"title\"\n"
+            + "FROM \"bookstore\".\"authors\"");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6344">[CALCITE-6344]
+   * RelToSqlConverter invalid quotation for arrays and item operator
+   * (ansi dialect)</a>. */
+  @Test void testSqlItemOperator2() {
+    sql("SELECT \"books\"[0].\"title\" from \"bookstore\".\"authors\"")
+        .schema(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .withPostgresql()
+        .ok("SELECT \"books\"[0].\"title\"\n"
             + "FROM \"bookstore\".\"authors\"");
   }
 
