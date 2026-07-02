@@ -48,6 +48,7 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
@@ -2285,6 +2286,33 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7635">[CALCITE-7635]
+   * Simplification result of conjunction of comparisons depends on terms order</a>. */
+  @Test void testSimplifyAndComparison() {
+    List<RexNode> args =
+        ImmutableList.of(lt(vInt(), literal(10)),
+        gt(vInt(), literal(0)),
+        lt(vInt(), literal(20)));
+    for (List<RexNode> params : Collections2.permutations(args)) {
+      checkSimplifyFilter(
+          and(params),
+          "SEARCH(?0.int0, Sarg[(0..10)])");
+    }
+  }
+
+  @Test void testSimplifyComparisonWithPredicates() {
+    RelOptPredicateList relOptPredicateList =
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(lt(vInt(), literal(10)), gt(vInt(), literal(0))));
+    checkSimplifyWithPredicates(lt(vInt(), literal(20)), relOptPredicateList,
+        RexUnknownAs.UNKNOWN, "IS NOT NULL(?0.int0)");
+    checkSimplifyWithPredicates(lt(vInt(), literal(20)), relOptPredicateList,
+        RexUnknownAs.FALSE, "true");
+    checkSimplifyWithPredicates(lt(vInt(), literal(20)), relOptPredicateList,
+        RexUnknownAs.TRUE, "true");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7160">[CALCITE-7160]
    * Simplify AND/OR with DISTINCT predicates to SEARCH</a>. */
   @Test void testSimplifyAndIsDistinctFrom() {
@@ -4375,7 +4403,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyFilter(ne(refNullable, literal(9)), relOptPredicateList,
         "false");
     checkSimplifyFilter(ne(refNullable, literal(5)), relOptPredicateList,
-        "IS NOT NULL($0)");
+        "true");
   }
 
   /** Tests
