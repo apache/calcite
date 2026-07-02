@@ -31,14 +31,19 @@ import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.jts.io.gml2.GMLReader;
+import org.locationtech.jts.io.gml2.GMLHandler;
 import org.locationtech.jts.io.gml2.GMLWriter;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import static java.lang.Integer.parseInt;
 
@@ -135,8 +140,18 @@ public class SpatialTypeUtils {
    */
   public static Geometry fromGml(String gml) {
     try {
-      GMLReader reader = new GMLReader();
-      return reader.read(gml, GEOMETRY_FACTORY);
+      // GMLReader.read builds its own SAXParserFactory with DOCTYPE enabled, so
+      // parse with a hardened reader and feed JTS's GMLHandler. Disallowing the
+      // DOCTYPE declaration rejects any external subset or entities outright.
+      final SAXParserFactory factory = SAXParserFactory.newInstance();
+      factory.setNamespaceAware(true);
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      final SAXParser parser = factory.newSAXParser();
+      final XMLReader xmlReader = parser.getXMLReader();
+      final GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, null);
+      xmlReader.setContentHandler(handler);
+      xmlReader.parse(new InputSource(new StringReader(gml)));
+      return handler.getGeometry();
     } catch (SAXException | IOException | ParserConfigurationException e) {
       throw new RuntimeException("Unable to parse GML");
     }
