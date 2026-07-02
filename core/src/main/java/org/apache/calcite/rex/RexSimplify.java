@@ -800,7 +800,7 @@ public class RexSimplify {
     } else {
       e2 = rexBuilder.makeCall(e.getParserPosition(), e.op, operands);
     }
-    return simplifyUsingPredicates(e2, clazz);
+    return simplifyUsingPredicates(e2, clazz, unknownAs);
   }
 
 
@@ -1972,7 +1972,9 @@ public class RexSimplify {
         // or weaken terms that are partially implied.
         // E.g. given predicate "x >= 5" and term "x between 3 and 10"
         // we weaken to term to "x between 5 and 10".
-        final RexNode term2 = simplifyUsingPredicates(term, clazz);
+        // Note: we use RexUnknownAs.FALSE because the current method
+        // simplifies AND expressions "For Unknown As False".
+        final RexNode term2 = simplifyUsingPredicates(term, clazz, FALSE);
         if (term2 != term) {
           terms.set(i, term = term2);
         }
@@ -2097,7 +2099,7 @@ public class RexSimplify {
   }
 
   private <C extends Comparable<C>> RexNode simplifyUsingPredicates(RexNode e,
-      Class<C> clazz) {
+      Class<C> clazz, RexUnknownAs unknownAs) {
     if (predicates.pulledUpPredicates.isEmpty()) {
       return e;
     }
@@ -2126,6 +2128,13 @@ public class RexSimplify {
     } else if (rangeSet2.equals(RangeSets.rangeSetAll())) {
       // Range is always satisfied given these predicates; but nullability might
       // be problematic
+      if (unknownAs != UNKNOWN) {
+        // If unknownAs FALSE: row is already excluded for null input, so the IS_NOT_NULL
+        // guard is redundant, just return TRUE.
+        // If unknownAs TRUE: null rows pass regardless, and non-null rows also pass
+        // (range satisfied), the overall result is always TRUE.
+        return rexBuilder.makeLiteral(true);
+      }
       return simplify(
           rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.IS_NOT_NULL, comparison.ref),
           RexUnknownAs.UNKNOWN);
