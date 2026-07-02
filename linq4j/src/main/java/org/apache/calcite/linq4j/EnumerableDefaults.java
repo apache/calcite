@@ -48,6 +48,7 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.framework.qual.HasQualifierParameter;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.AbstractList;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -3244,26 +3245,43 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TKey> keySelector,
       Comparator<TKey> comparator,
       int offset, int fetch) {
+    return orderBy(source, keySelector, comparator,
+        BigDecimal.valueOf(offset), BigDecimal.valueOf(fetch));
+  }
+
+  /**
+   * A sort implementation optimized for a sort with a fetch size (LIMIT).
+   *
+   * @param offset how many rows are skipped from the sorted output.
+   *               Must be greater than or equal to 0.
+   * @param fetch how many rows are retrieved. Must be greater than or equal to 0.
+   */
+  public static <TSource, TKey> Enumerable<TSource> orderBy(
+      Enumerable<TSource> source,
+      Function1<TSource, TKey> keySelector,
+      Comparator<TKey> comparator,
+      BigDecimal offset, BigDecimal fetch) {
     // As discussed in CALCITE-3920 and CALCITE-4157, this method avoids to sort the complete input,
     // if only the first N rows are actually needed. A TreeMap implementation has been chosen,
     // so that it behaves similar to the orderBy method without fetch/offset.
     // The TreeMap has a better performance if there are few distinct sort keys.
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
-        if (fetch == 0) {
+        if (fetch.compareTo(BigDecimal.ZERO) <= 0) {
           return Linq4j.emptyEnumerator();
         }
 
         TreeMap<TKey, List<TSource>> map = new TreeMap<>(comparator);
-        long size = 0;
-        long needed = fetch + (long) offset;
+        BigDecimal size = BigDecimal.ZERO;
+        BigDecimal actualOffset = offset.max(BigDecimal.ZERO);
+        BigDecimal needed = rowsRequired(actualOffset).add(rowsRequired(fetch));
 
         // read the input into a tree map
         try (Enumerator<TSource> os = source.enumerator()) {
           while (os.moveNext()) {
             TSource o = os.current();
             TKey key = keySelector.apply(o);
-            if (needed >= 0 && size >= needed) {
+            if (needed.signum() >= 0 && size.compareTo(needed) >= 0) {
               // the current row will never appear in the output, so just skip it
               @KeyFor("map") TKey lastKey = map.lastKey();
               if (comparator.compare(key, lastKey) >= 0) {
@@ -3277,7 +3295,7 @@ public abstract class EnumerableDefaults {
               } else {
                 l.remove(l.size() - 1);
               }
-              size--;
+              size = size.subtract(BigDecimal.ONE);
             }
             // add the current element to the map
             map.compute(key, (k, l) -> {
@@ -3292,24 +3310,30 @@ public abstract class EnumerableDefaults {
               l.add(o);
               return l;
             });
-            size++;
+            size = size.add(BigDecimal.ONE);
           }
         }
 
         // skip the first 'offset' rows by deleting them from the map
-        if (offset > 0) {
-          // search the key up to (but excluding) which we have to remove entries from the map
-          int skipped = 0;
+        if (actualOffset.compareTo(BigDecimal.ZERO) > 0) {
+          // search the key up to which we have to remove entries from the map
+          BigDecimal skipped = BigDecimal.ZERO;
+          BigDecimal rowsToSkip = rowsRequired(actualOffset);
           TKey until = (TKey) DUMMY;
+          boolean removeUntilInclusive = false;
           for (Map.Entry<TKey, List<TSource>> e : map.entrySet()) {
-            skipped += e.getValue().size();
+            skipped = skipped.add(BigDecimal.valueOf(e.getValue().size()));
 
-            if (skipped > offset) {
+            if (skipped.compareTo(rowsToSkip) >= 0) {
               // we might need to remove entries from the list
               List<TSource> l = e.getValue();
-              int toKeep = skipped - offset;
-              if (toKeep < l.size()) {
-                l.subList(0, l.size() - toKeep).clear();
+              BigDecimal toKeep = skipped.subtract(rowsToSkip);
+              if (toKeep.compareTo(BigDecimal.valueOf(l.size())) < 0) {
+                if (toKeep.signum() == 0) {
+                  removeUntilInclusive = true;
+                } else {
+                  l.subList(0, l.size() - toKeep.intValueExact()).clear();
+                }
               }
 
               until = e.getKey();
@@ -3320,7 +3344,7 @@ public abstract class EnumerableDefaults {
             // the offset is bigger than the number of rows in the map
             return Linq4j.emptyEnumerator();
           }
-          map.headMap(until, false).clear();
+          map.headMap(until, removeUntilInclusive).clear();
         }
 
         return new LookupImpl<>(map).valuesEnumerable().enumerator();
@@ -3790,6 +3814,10 @@ public abstract class EnumerableDefaults {
     return toRet;
   }
 
+  private static BigDecimal rowsRequired(BigDecimal count) {
+    return count.max(BigDecimal.ZERO).setScale(0, RoundingMode.CEILING);
+  }
+
   /**
    * Bypasses a specified number of elements in a
    * sequence and then returns the remaining elements.
@@ -3799,6 +3827,18 @@ public abstract class EnumerableDefaults {
     return skipWhile(source, (v1, v2) -> {
       // Count is 1-based
       return v2 < count;
+    });
+  }
+
+  /**
+   * Bypasses a specified number of elements in a
+   * sequence and then returns the remaining elements.
+   */
+  public static <TSource> Enumerable<TSource> skip(Enumerable<TSource> source,
+      final BigDecimal count) {
+    return skipWhileBigDecimal(source, (v1, v2) -> {
+      // Count is 1-based
+      return v2.compareTo(count) < 0;
     });
   }
 
@@ -3958,6 +3998,19 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Returns a specified number of contiguous elements
+   * from the start of a sequence.
+   */
+  public static <TSource> Enumerable<TSource> take(Enumerable<TSource> source,
+      final BigDecimal count) {
+    return takeWhileBigDecimal(
+        source, (v1, v2) -> {
+          // Count is 1-based
+          return v2.compareTo(count) < 0;
+        });
+  }
+
+  /**
    * Returns elements from a sequence as long as a
    * specified condition is true.
    */
@@ -3993,6 +4046,36 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         return new TakeWhileLongEnumerator<>(source.enumerator(), predicate);
+      }
+    };
+  }
+
+  /**
+   * Returns elements from a sequence as long as a
+   * specified condition is true. The element's index is used in the
+   * logic of the predicate function.
+   */
+  public static <TSource> Enumerable<TSource> takeWhileBigDecimal(
+      final Enumerable<TSource> source,
+      final Predicate2<TSource, BigDecimal> predicate) {
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        return new TakeWhileBigDecimalEnumerator<>(source.enumerator(), predicate);
+      }
+    };
+  }
+
+  /**
+   * Bypasses elements in a sequence as long as a
+   * specified condition is true. The element's index is used in the
+   * logic of the predicate function.
+   */
+  public static <TSource> Enumerable<TSource> skipWhileBigDecimal(
+      final Enumerable<TSource> source,
+      final Predicate2<TSource, BigDecimal> predicate) {
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        return new SkipWhileBigDecimalEnumerator<>(source.enumerator(), predicate);
       }
     };
   }
@@ -4577,6 +4660,50 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Enumerable that implements take-while.
+   *
+   * @param <TSource> element type */
+  static class TakeWhileBigDecimalEnumerator<TSource> implements Enumerator<TSource> {
+    private final Enumerator<TSource> enumerator;
+    private final Predicate2<TSource, BigDecimal> predicate;
+
+    boolean done = false;
+    BigDecimal n = BigDecimal.valueOf(-1);
+
+    TakeWhileBigDecimalEnumerator(Enumerator<TSource> enumerator,
+        Predicate2<TSource, BigDecimal> predicate) {
+      this.enumerator = enumerator;
+      this.predicate = predicate;
+    }
+
+    @Override public TSource current() {
+      return enumerator.current();
+    }
+
+    @Override public boolean moveNext() {
+      if (!done) {
+        if (enumerator.moveNext()) {
+          n = n.add(BigDecimal.ONE);
+          if (predicate.apply(enumerator.current(), n)) {
+            return true;
+          }
+        }
+        done = true;
+      }
+      return false;
+    }
+
+    @Override public void reset() {
+      enumerator.reset();
+      done = false;
+      n = BigDecimal.valueOf(-1);
+    }
+
+    @Override public void close() {
+      enumerator.close();
+    }
+  }
+
   /** Enumerator that implements skip-while.
    *
    * @param <TSource> element type */
@@ -4616,6 +4743,53 @@ public abstract class EnumerableDefaults {
       enumerator.reset();
       started = false;
       n = -1;
+    }
+
+    @Override public void close() {
+      enumerator.close();
+    }
+  }
+
+  /** Enumerator that implements skip-while.
+   *
+   * @param <TSource> element type */
+  static class SkipWhileBigDecimalEnumerator<TSource> implements Enumerator<TSource> {
+    private final Enumerator<TSource> enumerator;
+    private final Predicate2<TSource, BigDecimal> predicate;
+
+    boolean started = false;
+    BigDecimal n = BigDecimal.valueOf(-1);
+
+    SkipWhileBigDecimalEnumerator(Enumerator<TSource> enumerator,
+        Predicate2<TSource, BigDecimal> predicate) {
+      this.enumerator = enumerator;
+      this.predicate = predicate;
+    }
+
+    @Override public TSource current() {
+      return enumerator.current();
+    }
+
+    @Override public boolean moveNext() {
+      for (;;) {
+        if (!enumerator.moveNext()) {
+          return false;
+        }
+        if (started) {
+          return true;
+        }
+        n = n.add(BigDecimal.ONE);
+        if (!predicate.apply(enumerator.current(), n)) {
+          started = true;
+          return true;
+        }
+      }
+    }
+
+    @Override public void reset() {
+      enumerator.reset();
+      started = false;
+      n = BigDecimal.valueOf(-1);
     }
 
     @Override public void close() {

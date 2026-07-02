@@ -72,6 +72,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
@@ -111,6 +112,36 @@ public class EnumUtils {
 
   public static final List<String> LEFT_RIGHT =
       ImmutableList.of("left", "right");
+
+  /** Converts a FETCH or OFFSET value to the representation
+   * supported by the enumerable runtime. */
+  public static BigDecimal numberToBigDecimalLimit(Object value, String kind) {
+    return numberToBigDecimalLimit(value, kind, FetchOffsetRoundingPolicy.NONE);
+  }
+
+  /** Converts a FETCH or OFFSET value to the representation
+   * supported by the enumerable runtime. */
+  public static BigDecimal numberToBigDecimalLimit(Object value, String kind,
+      FetchOffsetRoundingPolicy roundingPolicy) {
+    if (!(value instanceof Number)) {
+      throw new IllegalArgumentException(kind + " must be a number");
+    }
+    final Number number = (Number) value;
+    final BigDecimal decimal;
+    if (number instanceof BigDecimal) {
+      decimal = (BigDecimal) number;
+    } else if (number instanceof BigInteger) {
+      decimal = new BigDecimal((BigInteger) number);
+    } else if (number instanceof Float || number instanceof Double) {
+      decimal = BigDecimal.valueOf(number.doubleValue());
+    } else {
+      decimal = BigDecimal.valueOf(number.longValue());
+    }
+    if (decimal.signum() < 0) {
+      throw new IllegalArgumentException(kind + " must not be negative");
+    }
+    return roundingPolicy.round(decimal);
+  }
 
   /** Declares a method that overrides another method. */
   public static MethodDeclaration overridingMethodDecl(Method method,
