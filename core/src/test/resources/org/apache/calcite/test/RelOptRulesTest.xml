@@ -16292,14 +16292,14 @@ select empno, cast(job as varchar(128)) from sales.empnullables]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
-  LogicalProject(DEPTNO=[$0], NAME=[$2])
+  LogicalProject(DEPTNO=[$0], NAME=[CAST($2):VARCHAR(128)])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
-  LogicalCalc(expr#0..8=[{inputs}], expr#9=[CAST($t2):VARCHAR(10) NOT NULL], DEPTNO=[$t0], NAME=[$t9])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[CAST($t2):VARCHAR(128)], DEPTNO=[$t0], NAME=[$t9])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>

@@ -140,7 +140,7 @@ t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from 
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
-  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_real=[CAST($5):REAL NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
+  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[$2], t1_int=[$3], t1_bigint=[$4], t1_real=[$5], t1_double=[$6], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
     LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
     </Resource>
@@ -152,7 +152,7 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
-  LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+  LogicalValues(tuples=[[{ 'a', 1, 1.0, 0, 0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2.0, 0, 0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3.0, 0, 0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4.0, 0, 0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5.0, 0, 0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
 ]]>
     </Resource>
   </TestCase>
@@ -164,6 +164,19 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
   LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInsertVarcharNarrowingKeepsSourceType">
+    <Resource name="sql">
+      <![CDATA[insert into t1 select CAST('AVeryLongLongStringValue' AS VARCHAR(64)), t2_smallint, t2_int, t2_bigint,
+t2_real, t2_double, t2_decimal, t2_timestamp, t2_date, t2_binary, t2_boolean from t2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
+  LogicalProject(t1_varchar20=['AVeryLongLongStringValue':VARCHAR(64)], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10])
+    LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
     </Resource>
   </TestCase>
@@ -206,6 +219,22 @@ LogicalProject(X=[$0])
     LogicalAggregate(group=[{0}])
       LogicalProject(X=[$0])
         LogicalValues(tuples=[[{ 3 }, { 4 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeVarcharNarrowingKeepsSourceType">
+    <Resource name="sql">
+      <![CDATA[merge into t1
+using t2 on t1.t1_smallint = t2.t2_smallint
+when matched then update set t1_varchar20 = CAST('AVeryLongLongStringValue' AS VARCHAR(64))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[MERGE], updateColumnList=[[t1_varchar20]], flattened=[false])
+  LogicalProject(t1_varchar20=[$11], t1_smallint=[$12], t1_int=[$13], t1_bigint=[$14], t1_real=[$15], t1_double=[$16], t1_decimal=[$17], t1_timestamp=[$18], t1_date=[$19], t1_binary=[$20], t1_boolean=[$21], $f11=['AVeryLongLongStringValue':VARCHAR(64)])
+    LogicalJoin(condition=[=($12, $1)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, T2]])
+      LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
     </Resource>
   </TestCase>
@@ -282,7 +311,19 @@ LogicalUnion(all=[false])
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20, t1_date, t1_int]], sourceExpressionList=[[$11, $12, $13]], flattened=[false])
-  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=['123':VARCHAR(20)], EXPR$1=[2020-01-03], EXPR$2=[12])
+  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=['123':VARCHAR(20)], EXPR$1=[2020-01-03], EXPR$2=[12.3:DECIMAL(3, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, T1]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUpdateVarcharNarrowingKeepsSourceType">
+    <Resource name="sql">
+      <![CDATA[update t1 set t1_varchar20 = CAST('AVeryLongLongStringValue' AS VARCHAR(64))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20]], sourceExpressionList=[[$11]], flattened=[false])
+  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=['AVeryLongLongStringValue':VARCHAR(64)])
     LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
     </Resource>
