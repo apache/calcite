@@ -1522,7 +1522,7 @@ public abstract class ReturnTypes {
     }
     final RelDataType firstColType = fieldType.getType();
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    return typeFactory.createTypeWithNullability(firstColType, true);
+    return typeFactory.copyType(firstColType);
   };
 
   /**

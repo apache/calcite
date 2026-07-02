@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
@@ -99,6 +100,10 @@ public class AggregateMinMaxToLimitRule
               isDesc ? builder.desc(r) : r)
           .build());
 
+      final RelDataType aggCallType = aggCall.getType();
+      if (!subQuery.getType().equals(aggCallType)) {
+        subQuery = builder.getRexBuilder().makeCast(aggCallType, subQuery, false, false);
+      }
       newProjects.add(subQuery);
     }
 

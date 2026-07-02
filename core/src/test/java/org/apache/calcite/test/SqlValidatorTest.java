@@ -555,7 +555,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testBinaryStringFails() {
     expr("select x'ffee'='abc' from (values(true))")
-        .columnType("BOOLEAN");
+        .columnType("BOOLEAN NOT NULL");
     sql("select ^x'ffee'='abc'^ from (values(true))")
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply '=' to arguments of type "
@@ -2132,7 +2132,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
     sql("select row((select deptno from dept where dept.deptno = emp.deptno), emp.ename)\n"
         + "from emp")
-        .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
     sql("select ROW^(x'12') <> ROW(0.01)^")
         .fails("Cannot apply '<>' to arguments of type.*");
     // Test cases for [CALCITE-6911] https://issues.apache.org/jira/browse/CALCITE-6911
@@ -10140,18 +10140,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "INTEGER HISAL\\)>\\)'\\. Supported form\\(s\\): "
             + "'\\$SCALAR_QUERY\\(<ROW\\(SINGLE FIELD\\)>\\)'");
 
-    // Note that X is a field (not a record) and is nullable even though
-    // EMP.NAME is NOT NULL.
+    // Scalar subquery type copies the select column type (including nullability).
     sql("SELECT  ename,(select name from dept where deptno=1) FROM emp")
-        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) EXPR$1) NOT NULL");
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) NOT NULL EXPR$1) NOT NULL");
 
     // scalar subqery inside AS operator
     sql("SELECT  ename,(select name from dept where deptno=1) as X FROM emp")
-        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) X) NOT NULL");
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) NOT NULL X) NOT NULL");
 
     // scalar subqery inside + operator
     sql("SELECT  ename, 1 + (select deptno from dept where deptno=1) as X FROM emp")
-        .type("RecordType(VARCHAR(20) NOT NULL ENAME, INTEGER X) NOT NULL");
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, INTEGER NOT NULL X) NOT NULL");
 
     // scalar sub-query inside WHERE
     sql("select * from emp where (select true from dept)").ok();

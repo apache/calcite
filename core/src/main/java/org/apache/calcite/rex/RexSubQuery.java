@@ -108,15 +108,19 @@ public class RexSubQuery extends RexCall {
         ImmutableList.of(), rel);
   }
 
-  /** Creates a scalar sub-query. */
+  /** Creates a scalar sub-query.
+   *
+   * <p>The expression's type is the single output column's type, as returned by
+   * {@link RelDataTypeFactory#copyType(RelDataType)}
+   * (see <a href="https://issues.apache.org/jira/browse/CALCITE-2901">[CALCITE-2901]</a>).
+   */
   public static RexSubQuery scalar(RelNode rel) {
     final List<RelDataTypeField> fieldList = rel.getRowType().getFieldList();
     if (fieldList.size() != 1) {
       throw new IllegalArgumentException();
     }
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
-    final RelDataType type =
-        typeFactory.createTypeWithNullability(fieldList.get(0).getType(), true);
+    final RelDataType type = typeFactory.copyType(fieldList.get(0).getType());
     return new RexSubQuery(type, SqlStdOperatorTable.SCALAR_QUERY,
         ImmutableList.of(), rel);
   }
