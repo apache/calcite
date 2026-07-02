@@ -2395,6 +2395,67 @@ public class RelBuilder {
     return this;
   }
 
+  /**
+   * Creates an {@link Uncollect} that unnests the collection-typed fields at
+   * the given 0-based indices of the top-of-stack relation, with explicit
+   * control over which other fields pass through to the output.
+   *
+   * <p>Output columns: all passthrough fields first (in ascending input index
+   * order), then all collection-element columns (in ascending input index
+   * order); all other input fields are dropped.
+   *
+   * @param passthroughFieldIndices 0-based indices of non-collection fields
+   *                                to include in the output unchanged
+   * @param collectionFieldIndices  0-based indices of the collection-typed
+   *                                fields to unnest
+   * @param withOrdinality          whether to append an ORDINALITY column
+   * @param outer                   if true, preserves input rows with null/empty
+   *                                collections (LEFT JOIN); if false, drops them (INNER)
+   */
+  public RelBuilder uncollect(
+      List<Integer> passthroughFieldIndices,
+      List<Integer> collectionFieldIndices,
+      boolean withOrdinality,
+      boolean outer) {
+    return uncollect(ImmutableBitSet.of(passthroughFieldIndices),
+        ImmutableBitSet.of(collectionFieldIndices), withOrdinality, outer);
+  }
+
+  /**
+   * Creates an {@link Uncollect} that unnests the collection-typed fields at
+   * the given 0-based indices of the top-of-stack relation, with explicit
+   * control over which other fields pass through to the output.
+   *
+   * <p>Output columns: all passthrough fields first (in ascending input index
+   * order), then all collection-element columns (in ascending input index
+   * order); all other input fields are dropped.
+   *
+   * @param passthroughFieldIndices 0-based indices of non-collection fields
+   *                                to include in the output unchanged
+   * @param collectionFieldIndices  0-based indices of the collection-typed
+   *                                fields to unnest
+   * @param withOrdinality          whether to append an ORDINALITY column
+   * @param outer                   if true, preserves input rows with null/empty
+   *                                collections (LEFT JOIN); if false, drops them (INNER)
+   */
+  public RelBuilder uncollect(
+      ImmutableBitSet passthroughFieldIndices,
+      ImmutableBitSet collectionFieldIndices,
+      boolean withOrdinality,
+      boolean outer) {
+    Frame frame = stack.pop();
+    stack.push(
+        new Frame(
+            Uncollect.create(
+                cluster.traitSetOf(Convention.NONE),
+                frame.rel,
+                withOrdinality,
+                passthroughFieldIndices,
+                collectionFieldIndices,
+                outer)));
+    return this;
+  }
+
   /** Ensures that the field names match those given.
    *
    * <p>If all fields have the same name, adds nothing;

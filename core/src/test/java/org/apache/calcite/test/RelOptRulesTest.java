@@ -768,6 +768,60 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} converts
+   * a Correlate over an Uncollect of a struct-element array into a single,
+   * generalized Uncollect, remapping the outer project. */
+  @Test void testCorrelateUncollectMergeStructArray() {
+    final String sql = "select t2.ename\n"
+        + "from DEPT_NESTED as t1,\n"
+        + "unnest(t1.employees) as t2";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} converts
+   * a Correlate over a scalar-array Uncollect into a single, generalized
+   * Uncollect while preserving a non-collection left field in the outer
+   * project. */
+  @Test void testCorrelateUncollectMergeScalarArray() {
+    final String sql = "select t1.name, t2.admin\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) as t2(admin)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} correctly
+   * maps the ORDINALITY column when {@code WITH ORDINALITY} is used. */
+  @Test void testCorrelateUncollectMergeOrdinality() {
+    final String sql = "select t2.admin, t2.rn\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) WITH ORDINALITY as t2(admin, rn)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires
+   * when the outer project references the collection-typed field directly.
+   * The collection field appears in both {@code passthrough} and
+   * {@code collectionFields}, so both its raw value and its element columns
+   * are included in the output. */
+  @Test void testCorrelateUncollectMergePassthroughCollectionRef() {
+    final String sql = "select t1.admins, t2.admin\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) as t2(admin)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
   @Test void testFilterProjectTransposeRule3() {
     final String sql = "select * from (select deptno from emp) as d\n"
         + "where NOT EXISTS (\n"

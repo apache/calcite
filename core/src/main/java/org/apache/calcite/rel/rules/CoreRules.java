@@ -990,6 +990,11 @@ public class CoreRules {
   public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
       AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
 
+  /** Rule that converts a {@link Correlate} over an {@link Uncollect} into a
+   * single, generalized {@link Uncollect}, if possible. */
+  public static final RelOptRule CORRELATE_UNCOLLECT_MERGE =
+      CorrelateUncollectMergeRule.Config.DEFAULT.toRule();
+
   /** Rule that converts a {@link Correlate} after an {@link Uncollect} into a simple
    * Uncollect, if possible. */
   public static final RelOptRule UNNEST_DECORRELATE =
