@@ -21,6 +21,8 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -29,7 +31,9 @@ import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 
 /**
  * Test for {@link org.apache.calcite.adapter.enumerable.PhysTypeImpl}.
@@ -97,5 +101,34 @@ public final class PhysTypeTest {
         + "}\n"
         + ")";
     assertThat(expected, is(Expressions.toString(e)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7206">[CALCITE-7206]
+   * Duplicate 'compare' method in the Enumerable merge join comparator when the
+   * row Java class is Object</a>.
+   *
+   * <p>When the row is a single column whose Java class is {@link Object} (for
+   * example a merge join key of type {@code ANY}), the primary
+   * {@code compare(Object, Object)} method and the generated bridge method have
+   * the same signature, so the emitted {@link java.util.Comparator} must not
+   * declare the bridge method twice or it fails to compile. */
+  @Test void testMergeJoinComparatorWithObjectRowHasNoDuplicateBridge() {
+    final RelDataType rowType =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(
+                TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),
+            ImmutableList.of("anyField"));
+    final PhysType rowPhysType =
+        PhysTypeImpl.of(TYPE_FACTORY, rowType, JavaRowFormat.SCALAR, false);
+    final RelCollation collation = RelCollations.of(0);
+    final Expression comparator =
+        rowPhysType.generateMergeJoinComparator(collation);
+    final String generated = Expressions.toString(comparator);
+    // The primary compare method is still generated ...
+    assertThat(generated, containsString("public int compare(Object v0, Object v1)"));
+    // ... but the bridge compare(Object o0, Object o1) would collide with it and
+    // must therefore be omitted.
+    assertThat(generated, not(containsString("Object o0, Object o1")));
   }
 }
