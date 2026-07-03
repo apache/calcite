@@ -499,7 +499,10 @@ public class PhysTypeImpl implements PhysType {
                 ImmutableList.of(parameterV0, parameterV1),
                 body.toBlock()));
 
-    if (EnumerableRules.BRIDGE_METHODS) {
+    // When javaRowClass is Object the primary compare method already has the
+    // signature compare(Object, Object), so a bridge method would be a
+    // duplicate and the generated Comparator would fail to compile.
+    if (EnumerableRules.BRIDGE_METHODS && javaRowClass != Object.class) {
       final ParameterExpression parameterO0 =
           Expressions.parameter(Object.class, "o0");
       final ParameterExpression parameterO1 =
