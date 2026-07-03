@@ -10009,6 +10009,19 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7634">[CALCITE-7634]
+   * JoinExpandOrToUnionRule incorrectly expands OR branches with non-equi
+   * predicates referencing both join inputs</a>. */
+  @Test void testJoinConditionOrExpansionRuleWithCrossInputPredicate() {
+    String sql = "select * from EMP as p1\n"
+        + "inner join EMP as p2 on (p1.empno = p2.empno and p1.sal < p2.sal)\n"
+        + "or (p1.mgr = p2.mgr and p1.comm < p2.comm)\n"
+        + "or p1.deptno = p2.deptno";
+    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
   @Test void testJoinConditionOrExpansionRuleMultiOr() {

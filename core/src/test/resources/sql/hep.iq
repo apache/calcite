@@ -238,6 +238,44 @@ EnumerableHashJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND(
 !}
 !set hep-rules original
 
+# [CALCITE-7634] JoinExpandOrToUnionRule incorrectly expands OR branches with non-equi predicates referencing both join inputs
+!set hep-rules "
++CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE"
+
+with emp_nulls (empno, mgr, sal, comm, deptno) as (values
+  (1, 10, 100, cast(null as integer), 20),
+  (2, 10, 200, 5, 20),
+  (3, 30, 300, cast(null as integer), 30))
+select p1.empno as e1, p2.empno as e2
+from emp_nulls as p1
+inner join emp_nulls as p2 on (p1.empno = p2.empno and p1.sal < p2.sal)
+or (p1.mgr = p2.mgr and p1.comm < p2.comm)
+or p1.deptno = p2.deptno
+order by e1, e2;
++----+----+
+| E1 | E2 |
++----+----+
+|  1 |  1 |
+|  1 |  2 |
+|  2 |  1 |
+|  2 |  2 |
+|  3 |  3 |
++----+----+
+(5 rows)
+
+!ok
+EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+  EnumerableCalc(expr#0..9=[{inputs}], E1=[$t0], E2=[$t5])
+    EnumerableUnion(all=[true])
+      EnumerableNestedLoopJoin(condition=[OR(AND(=($0, $5), <($2, $7)), AND(=($1, $6), <($3, $8)))], joinType=[inner])
+        EnumerableValues(tuples=[[{ 1, 10, 100, null, 20 }, { 2, 10, 200, 5, 20 }, { 3, 30, 300, null, 30 }]])
+        EnumerableValues(tuples=[[{ 1, 10, 100, null, 20 }, { 2, 10, 200, 5, 20 }, { 3, 30, 300, null, 30 }]])
+      EnumerableMergeJoin(condition=[AND(=($4, $9), IS NOT TRUE(OR(AND(=($0, $5), <($2, $7)), AND(=($1, $6), <($3, $8)))))], joinType=[inner])
+        EnumerableValues(tuples=[[{ 1, 10, 100, null, 20 }, { 2, 10, 200, 5, 20 }, { 3, 30, 300, null, 30 }]])
+        EnumerableValues(tuples=[[{ 1, 10, 100, null, 20 }, { 2, 10, 200, 5, 20 }, { 3, 30, 300, null, 30 }]])
+!plan
+!set hep-rules original
+
 # [CALCITE-5740] Support for AggToSemiJoinRule
 !set hep-rules "
 +CoreRules.AGGREGATE_PROJECT_MERGE,

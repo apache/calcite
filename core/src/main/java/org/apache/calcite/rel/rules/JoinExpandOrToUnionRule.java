@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
@@ -155,10 +156,6 @@ public class JoinExpandOrToUnionRule
       // equality (when the above conditions are met), that are
       // single-side (refer to only on of the collections joined),
       // or which are constant, they will all trigger the expansion.
-      if (!doesNotReferToBothInputs(cond, leftFieldCount)) {
-        return false;
-      }
-
       if (RexUtil.SubQueryFinder.find(cond) != null
               || RexUtil.containsCorrelation(cond)) {
         // The "call" does not support sub-queries or correlation yet
@@ -170,7 +167,14 @@ public class JoinExpandOrToUnionRule
         // Checks if the "call" is valid for use as a join key.
         if (isEquiJoinCond(call, leftFieldCount)) {
           hasJoinKeyCond = true;
+          continue;
         }
+      }
+
+      // Non-equality predicates may be pushed into the expanded branch only
+      // if they do not correlate the two join inputs.
+      if (!doesNotReferToBothInputs(cond, leftFieldCount)) {
+        return false;
       }
     }
     return hasJoinKeyCond;
@@ -204,9 +208,9 @@ public class JoinExpandOrToUnionRule
   /**
    * Counts the number of InputRefs in a RexNode expression. */
   private static class RexInputRefCounter extends RexVisitorImpl<Void> {
-    private int leftFieldCount;
-    public int leftInputRefCount = 0;
-    public int rightInputRefCount = 0;
+    private final int leftFieldCount;
+    private int leftInputRefCount = 0;
+    private int rightInputRefCount = 0;
 
     RexInputRefCounter(int leftFieldCount) {
       super(true);
@@ -215,7 +219,7 @@ public class JoinExpandOrToUnionRule
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
       if (inputRef.getIndex() < leftFieldCount) {
-        leftFieldCount++;
+        leftInputRefCount++;
       } else {
         rightInputRefCount++;
       }
@@ -367,7 +371,9 @@ public class JoinExpandOrToUnionRule
     for (int i = 0; i < orConds.size(); i++) {
       RexNode orCond = orConds.get(i);
       for (int j = 0; j < i; j++) {
-        orCond = relBuilder.and(orCond, relBuilder.not(orConds.get(j)));
+        orCond =
+            relBuilder.and(orCond,
+                relBuilder.call(SqlStdOperatorTable.IS_NOT_TRUE, orConds.get(j)));
       }
 
       relBuilder.push(join.getLeft())
