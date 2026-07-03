@@ -126,7 +126,7 @@ class TableNamespace extends AbstractNamespace {
       final SqlValidatorTable validatorTable =
           requireNonNull(
             relOptTable.unwrap(SqlValidatorTable.class),
-            () -> "cant unwrap SqlValidatorTable from " + relOptTable);
+            () -> "can't unwrap SqlValidatorTable from " + relOptTable);
       return new TableNamespace(validator, validatorTable, ImmutableList.of());
     }
     return new TableNamespace(validator, table, extendedFields);
