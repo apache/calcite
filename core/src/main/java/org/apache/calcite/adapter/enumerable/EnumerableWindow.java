@@ -224,12 +224,14 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       List<AggImpState> aggs = new ArrayList<>();
       List<AggregateCall> aggregateCalls = group.getAggregateCalls(this);
+      final RexImplementorTable implementorTable =
+          RexImplementorTables.of(getCluster());
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
         if (call.ignoreNulls()) {
           throw new UnsupportedOperationException("IGNORE NULLS not supported");
         }
-        aggs.add(new AggImpState(aggIdx, call, true));
+        aggs.add(new AggImpState(aggIdx, call, true, implementorTable));
       }
 
       // The output from this stage is the input plus the aggregate functions.

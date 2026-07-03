@@ -35,10 +35,22 @@ public class AggImpState {
   public @MonotonicNonNull List<Expression> state;
   public @MonotonicNonNull Expression accumulatorAdder;
 
+  /**
+   * Creates an AggImpState, resolving the implementor from the built-in table.
+   *
+   * @deprecated Use {@link #AggImpState(int, AggregateCall, boolean, RexImplementorTable)}.
+   */
+  @Deprecated // to be removed before 2.0
   public AggImpState(int aggIdx, AggregateCall call, boolean windowContext) {
+    this(aggIdx, call, windowContext, RexImpTable.INSTANCE);
+  }
+
+  public AggImpState(int aggIdx, AggregateCall call, boolean windowContext,
+      RexImplementorTable implementorTable) {
     this.aggIdx = aggIdx;
     this.call = call;
-    AggImplementor implementor = RexImpTable.INSTANCE.get(call.getAggregation(), windowContext);
+    AggImplementor implementor =
+        implementorTable.get(call.getAggregation(), windowContext);
     if (implementor == null) {
       throw new IllegalArgumentException(
           "Unable to get aggregate implementation for aggregate "

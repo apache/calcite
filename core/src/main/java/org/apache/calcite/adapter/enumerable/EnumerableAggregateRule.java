@@ -22,6 +22,7 @@ import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,6 +49,13 @@ class EnumerableAggregateRule extends ConverterRule {
     final Aggregate agg = (Aggregate) rel;
     final RelTraitSet traitSet = rel.getCluster()
         .traitSet().replace(EnumerableConvention.INSTANCE);
+    final RexImplementorTable implementorTable =
+        RexImplementorTables.of(rel.getCluster());
+    for (AggregateCall aggCall : agg.getAggCallList()) {
+      if (implementorTable.get(aggCall.getAggregation(), false) == null) {
+        return null;
+      }
+    }
     try {
       return new EnumerableAggregate(
           rel.getCluster(),
