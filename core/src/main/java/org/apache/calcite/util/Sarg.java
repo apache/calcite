@@ -199,7 +199,15 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   }
 
   @Override public int compareTo(Sarg<C> o) {
-    return RangeSets.compare(rangeSet, o.rangeSet);
+    int c = RangeSets.compare(rangeSet, o.rangeSet);
+    if (c != 0) {
+      return c;
+    }
+    // Tie-break on nullAs so that compareTo is consistent with equals and
+    // hashCode, which both account for nullAs. Two Sargs over the same ranges
+    // but with different null semantics must not compare as equal, otherwise a
+    // sorted collection keyed on Sarg would silently drop one of them.
+    return Integer.compare(nullAs.ordinal(), o.nullAs.ordinal());
   }
 
   @Override public int hashCode() {

@@ -67,6 +67,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.test.Matchers.isRangeSet;
@@ -4096,6 +4097,31 @@ class RexProgramTest extends RexProgramTestBase {
                 .add(Range.greaterThan(new BigDecimal("1.00000000000")))
                 .build());
     assertThat(sarg.isComplementedPoints(), is(true));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7555">[CALCITE-7555]
+   * {@code Sarg.compareTo} collapses semantically different search arguments
+   * that have different {@code nullAs}</a>.
+   *
+   * <p>{@link Sarg#equals} and {@link Sarg#hashCode} account for
+   * {@link Sarg#nullAs}, but {@link Sarg#compareTo} used to order only by the
+   * range set, so two Sargs over the same ranges but with different null
+   * semantics were unequal yet compared as {@code 0}. A sorted collection keyed
+   * on Sarg would then silently drop one of them. */
+  @Test void testSargCompareToIsConsistentWithEquals() {
+    final ImmutableRangeSet<Integer> singleton =
+        ImmutableRangeSet.of(Range.singleton(1));
+    final Sarg<Integer> unknown = Sarg.of(RexUnknownAs.UNKNOWN, singleton);
+    final Sarg<Integer> falseSarg = Sarg.of(RexUnknownAs.FALSE, singleton);
+
+    assertFalse(unknown.equals(falseSarg));
+    assertThat(unknown.compareTo(falseSarg) == 0, is(false));
+
+    final TreeSet<Sarg<Integer>> values = new TreeSet<>();
+    values.add(unknown);
+    values.add(falseSarg);
+    assertThat(values, hasSize(2));
   }
 
   @Test void testInterpreter() {
