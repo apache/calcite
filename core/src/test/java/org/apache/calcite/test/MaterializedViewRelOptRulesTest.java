@@ -364,6 +364,36 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7636">[CALCITE-7636]
+   * Materialized view union rewriting drops rows when the view filter is not
+   * null-rejecting</a>.
+   *
+   * <p>The view is filtered on a predicate over the nullable {@code commission}
+   * column, so the predicate is UNKNOWN for rows where {@code commission} is
+   * null. The query-branch of the union must keep those rows (using
+   * {@code IS NOT TRUE}), otherwise they are dropped from both branches and
+   * whole groups disappear from the result. */
+  @Test void testAggregateMaterializationUnionRewritingNullablePredicate() {
+    sql("select \"deptno\", sum(\"salary\") as s\n"
+            + "from \"emps\" where \"deptno\" > 5 and \"commission\" > 1000\n"
+            + "group by \"deptno\"",
+        "select \"deptno\", sum(\"salary\") as s\n"
+            + "from \"emps\" where \"deptno\" > 5\n"
+            + "group by \"deptno\"")
+        .checkingThatResultContains(""
+            + "EnumerableAggregate(group=[{0}], S=[$SUM0($1)])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], "
+            + "expr#6=[5], expr#7=[>($t5, $t6)], expr#8=[1000], expr#9=[CAST($t4):INTEGER], "
+            + "expr#10=[<($t8, $t9)], expr#11=[IS NOT TRUE($t10)], expr#12=[AND($t7, $t11)], "
+            + "proj#0..4=[{exprs}], $condition=[$t12])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n"
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
   @Test void testJoinAggregateMaterializationNoAggregateFuncs1() {
     sql("select \"empid\", \"depts\".\"deptno\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 10\n"

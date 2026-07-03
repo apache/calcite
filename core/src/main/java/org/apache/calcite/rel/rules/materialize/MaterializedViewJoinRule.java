@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
@@ -203,7 +204,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
       otherCompensationPred = newOtherCompensationPred;
     }
     final RexNode queryCompensationPred =
-        RexUtil.not(
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE,
             RexUtil.composeConjunction(rexBuilder,
                 ImmutableList.of(compensationColumnsEquiPred,
                     otherCompensationPred)));

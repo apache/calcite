@@ -128,6 +128,29 @@ public class MaterializationTest {
         .sameResultWithMaterializationsDisabled();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7636">[CALCITE-7636]
+   * Materialized view union rewriting drops rows when the view filter is not
+   * null-rejecting</a>.
+   *
+   * <p>The view filters on {@code commission > 400}, which is UNKNOWN for the
+   * null-commission employee. The union-rewritten result must keep that row and
+   * therefore match the result computed without materializations. */
+  @Test void testUnionRewritingNullableAggregatePredicate() {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(HR_FKUK_MODEL, "m0",
+              "select \"deptno\", sum(\"salary\") as s from \"emps\" "
+              + "where \"deptno\" > 5 and \"commission\" > 400 group by \"deptno\"")
+          .query("select \"deptno\", sum(\"salary\") as s from \"emps\" "
+              + "where \"deptno\" > 5 group by \"deptno\"")
+          .enableMaterializations(true)
+          .explainContains("EnumerableUnion(all=[true])")
+          .sameResultWithMaterializationsDisabled();
+    }
+  }
+
   @Test void testViewMaterialization() {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();

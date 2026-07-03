@@ -291,7 +291,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       otherCompensationPred = newOtherCompensationPred;
     }
     final RexNode queryCompensationPred =
-        RexUtil.not(
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE,
             RexUtil.composeConjunction(rexBuilder,
                 ImmutableList.of(compensationColumnsEquiPred,
                     otherCompensationPred)));
