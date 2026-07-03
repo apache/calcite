@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.AggImpState;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexImplementorTables;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.enumerable.impl.AggAddContextImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -143,7 +144,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
       int stateOffset = 0;
-      final AggImpState agg = new AggImpState(0, call, false);
+      final AggImpState agg =
+          new AggImpState(0, call, false,
+              RexImplementorTables.of(rel.getCluster()));
       int stateSize = requireNonNull(agg.state, "agg.state").size();
 
       final BlockBuilder builder2 = new BlockBuilder();
