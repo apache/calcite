@@ -5063,6 +5063,15 @@ public class RelBuilder {
             @Override public boolean hasEmptyGroup() {
               return !SqlWindow.isAlwaysNonEmpty(lowerBound, upperBound);
             }
+
+            @Override public RelDataType getCollationType() {
+              // Inverse distribution functions such as PERCENTILE_CONT/DISC
+              // used as analytic functions ("... WITHIN GROUP (ORDER BY x)
+              // OVER (...)") derive their return type from the sort key.
+              checkArgument(!sortKeys.isEmpty(),
+                  "collation type requested but no sort key present");
+              return sortKeys.get(0).left.getType();
+            }
           };
       final RelDataType type = op.inferReturnType(bind);
       final RexNode over = getRexBuilder()

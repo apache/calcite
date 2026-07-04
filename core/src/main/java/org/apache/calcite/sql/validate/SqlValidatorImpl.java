@@ -6585,7 +6585,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateWindow(
       SqlNode windowOrId,
       SqlValidatorScope scope,
-      @Nullable SqlCall call) {
+      @Nullable SqlCall call,
+      @Nullable SqlNodeList groupOrderList) {
     // Enable nested aggregates with window aggregates (OVER operator)
     inWindow = true;
 
@@ -6608,9 +6609,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetWindow.setWindowCall(call);
     targetWindow.validate(this, scope);
     targetWindow.setWindowCall(null);
-    call.validate(this, scope);
+    if (groupOrderList == null) {
+      // A bare "PERCENTILE_CONT(x) WITHIN GROUP (ORDER BY y)" call has already
+      // been validated by SqlWithinGroupOperator, so re-validating the naked
+      // aggregate here would fail (it needs the WITHIN GROUP sort key to
+      // derive its type). Only validate when there is no group order list.
+      call.validate(this, scope);
+    }
 
-    validateAggregateParams(call, null, null, null, scope);
+    validateAggregateParams(call, null, null, groupOrderList, scope);
 
     // Disable nested aggregates post validation
     inWindow = false;

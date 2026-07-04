@@ -8544,6 +8544,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL C, INTEGER NOT NULL D) NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6036">[CALCITE-6036]
+   * Support WITHIN GROUP (ORDER BY x) OVER (PARTITION BY y)</a>. Combining a
+   * WITHIN GROUP clause with an OVER clause is non-standard (Oracle) syntax that
+   * is only allowed under a conformance that enables it, such as BABEL. */
+  @Test void testPercentileWithinGroupOver() {
+    final String sql = "select\n"
+        + " percentile_cont(0.25) within group (order by sal)\n"
+        + "   over (partition by deptno) as c\n"
+        + "from emp";
+    // Enabled under BABEL conformance.
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BABEL)
+        .type("RecordType(INTEGER NOT NULL C) NOT NULL");
+  }
+
+  @Test void testPercentileWithinGroupOverFailsInDefaultConformance() {
+    final String sql = "select\n"
+        + " ^percentile_cont(0.25) within group (order by sal)^\n"
+        + "   over (partition by deptno) as c\n"
+        + "from emp";
+    // Rejected under the default conformance, which does not allow WITHIN GROUP
+    // to be combined with an OVER clause.
+    sql(sql)
+        .fails("OVER must be applied to aggregate function");
+  }
+
   /** Tests that {@code PERCENTILE_CONT} only allows numeric fields. */
   @Test void testPercentileContMustOrderByNumeric() {
     final String sql = "select\n"

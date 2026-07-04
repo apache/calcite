@@ -290,10 +290,31 @@ public interface SqlValidator {
    * @param call       the SqlNode if a function call if the window is attached
    *                   to one.
    */
+  default void validateWindow(
+      SqlNode windowOrId,
+      SqlValidatorScope scope,
+      @Nullable SqlCall call) {
+    validateWindow(windowOrId, scope, call, null);
+  }
+
+  /**
+   * Validates a window clause where the windowed function carries an inline
+   * {@code WITHIN GROUP (ORDER BY ...)} sort key, as in
+   * {@code PERCENTILE_CONT(x) WITHIN GROUP (ORDER BY y) OVER (PARTITION BY z)}.
+   *
+   * @param windowOrId    SqlNode that can be either SqlWindow with all the
+   *                      components of a window spec or a SqlIdentifier with the
+   *                      name of a window spec.
+   * @param scope         Naming scope
+   * @param call          the aggregate function call the window is attached to.
+   * @param groupOrderList the {@code WITHIN GROUP} order list carried by the
+   *                       aggregate, or null if there is none.
+   */
   void validateWindow(
       SqlNode windowOrId,
       SqlValidatorScope scope,
-      @Nullable SqlCall call);
+      @Nullable SqlCall call,
+      @Nullable SqlNodeList groupOrderList);
 
   /** Returns whether the validator is currently validating within a window
    * expression. */
