@@ -30,6 +30,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -263,6 +264,20 @@ public abstract class EnumerableAggregateBase extends Aggregate {
               List<RexNode> args = new ArrayList<>();
               for (int index : agg.call.getArgList()) {
                 args.add(RexInputRef.of(index, inputTypes));
+              }
+              // Percentile functions such as PERCENTILE_CONT and
+              // PERCENTILE_DISC take the fraction as their only argument, but
+              // aggregate over the WITHIN GROUP (ORDER BY ...) column. Expose
+              // that collation column as an extra argument so that the
+              // accumulator can collect its values (already sorted by
+              // SourceSorter).
+              if (agg.call.getAggregation().isPercentile()) {
+                for (RelFieldCollation fieldCollation
+                    : agg.call.collation.getFieldCollations()) {
+                  args.add(
+                      RexInputRef.of(fieldCollation.getFieldIndex(),
+                          inputTypes));
+                }
               }
               return args;
             }

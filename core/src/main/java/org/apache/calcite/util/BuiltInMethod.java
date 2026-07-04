@@ -408,6 +408,8 @@ public enum BuiltInMethod {
   COLLECTION_ADD(Collection.class, "add", Object.class),
   COLLECTION_ADDALL(Collection.class, "addAll", Collection.class),
   COLLECTION_RETAIN_ALL(Collection.class, "retainAll", Collection.class),
+  PERCENTILE_CONT(SqlFunctions.class, "percentileCont", List.class, double.class),
+  PERCENTILE_DISC(SqlFunctions.class, "percentileDisc", List.class, double.class),
   LIST_CONTAINS(List.class, "contains", Object.class),
   LIST_GET(List.class, "get", int.class),
   LIST_TO_ARRAY(List.class, "toArray"),

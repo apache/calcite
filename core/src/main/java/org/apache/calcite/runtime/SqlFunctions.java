@@ -133,6 +133,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
@@ -4051,6 +4052,55 @@ public class SqlFunctions {
   public static BigDecimal mod(BigDecimal b0, BigDecimal b1) {
     final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
     return bigDecimals[1];
+  }
+
+  // PERCENTILE_CONT / PERCENTILE_DISC
+
+  /** Support the PERCENTILE_CONT aggregate function.
+   *
+   * <p>The {@code values} list must already be sorted according to the
+   * {@code WITHIN GROUP (ORDER BY ...)} clause. The fraction must be in the
+   * range 0 to 1 inclusive. The result is a linear interpolation between the
+   * two values that surround the desired position. */
+  public static BigDecimal percentileCont(List<? extends Number> values,
+      double fraction) {
+    final int n = values.size();
+    if (n == 0) {
+      throw new NoSuchElementException(
+          "PERCENTILE_CONT is not defined on an empty group");
+    }
+    final double rank = fraction * (n - 1);
+    final int lo = (int) Math.floor(rank);
+    final int hi = (int) Math.ceil(rank);
+    final BigDecimal loValue = toBigDecimal(values.get(lo));
+    if (lo == hi) {
+      return loValue;
+    }
+    final BigDecimal hiValue = toBigDecimal(values.get(hi));
+    final BigDecimal frac = BigDecimal.valueOf(rank - lo);
+    return loValue.add(hiValue.subtract(loValue).multiply(frac));
+  }
+
+  /** Support the PERCENTILE_DISC aggregate function.
+   *
+   * <p>The {@code values} list must already be sorted according to the
+   * {@code WITHIN GROUP (ORDER BY ...)} clause. The fraction must be in the
+   * range 0 to 1 inclusive. The result is an actual value from the group: the
+   * first whose cumulative distribution is greater than or equal to the
+   * fraction. */
+  public static Object percentileDisc(List<?> values, double fraction) {
+    final int n = values.size();
+    if (n == 0) {
+      throw new NoSuchElementException(
+          "PERCENTILE_DISC is not defined on an empty group");
+    }
+    int index = (int) Math.ceil(fraction * n) - 1;
+    if (index < 0) {
+      index = 0;
+    } else if (index >= n) {
+      index = n - 1;
+    }
+    return requireNonNull(values.get(index));
   }
 
   // FLOOR
