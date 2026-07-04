@@ -246,7 +246,7 @@ public class PigRelBuilder extends RelBuilder {
         // If both schemas are valid, they must be compatible
         throw new IllegalArgumentException(
             "Pig script schema does not match database schema for table " + names + ".\n"
-                + "\t Scrip schema: " + userSchema.getRowType().getFullTypeString() + "\n"
+                + "\t Script schema: " + userSchema.getRowType().getFullTypeString() + "\n"
                 + "\t Database schema: " + systemSchema.getRowType().getFullTypeString());
       }
       // We choose to use systemSchema if it is valid
