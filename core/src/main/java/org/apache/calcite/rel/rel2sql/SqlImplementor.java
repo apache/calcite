@@ -105,6 +105,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -1119,6 +1120,23 @@ public abstract class SqlImplementor {
       for (RexFieldCollation rfc : rexWindow.orderKeys) {
         addOrderItem(orderNodes, program, rfc);
       }
+
+      SqlAggFunction sqlAggregateFunction = rexOver.getAggOperator();
+
+      // Inverse distribution functions such as PERCENTILE_CONT/DISC take their
+      // sort key from a "WITHIN GROUP (ORDER BY ...)" clause rather than the
+      // window's ORDER BY, as in
+      // "PERCENTILE_CONT(x) WITHIN GROUP (ORDER BY y) OVER (PARTITION BY z)".
+      // Route the window's order keys into a WITHIN GROUP wrapper and leave the
+      // OVER clause with only the partition.
+      final SqlNodeList groupOrderList;
+      if (sqlAggregateFunction.requiresGroupOrder() == Optionality.MANDATORY
+          && !orderNodes.isEmpty()) {
+        groupOrderList = new SqlNodeList(orderNodes, POS);
+        orderNodes = Expressions.list();
+      } else {
+        groupOrderList = null;
+      }
       final SqlNodeList orderList =
           new SqlNodeList(orderNodes, POS);
 
@@ -1131,8 +1149,6 @@ public abstract class SqlImplementor {
       // Not sure if we can collapse this CASE expression back into
       // "disallow partial" and set the allowPartial = false.
       final SqlLiteral allowPartial = null;
-
-      SqlAggFunction sqlAggregateFunction = rexOver.getAggOperator();
 
       SqlNode lowerBound = null;
       SqlNode upperBound = null;
@@ -1149,15 +1165,22 @@ public abstract class SqlImplementor {
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
       return createOverCall(sqlAggregateFunction, nodeList, sqlWindow,
-          rexOver.isDistinct(), rexOver.ignoreNulls());
+          rexOver.isDistinct(), rexOver.ignoreNulls(), groupOrderList);
     }
 
     private static SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
         SqlWindow window, boolean isDistinct, boolean ignoreNulls) {
+      return createOverCall(op, operands, window, isDistinct, ignoreNulls, null);
+    }
+
+    private static SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
+        SqlWindow window, boolean isDistinct, boolean ignoreNulls,
+        @Nullable SqlNodeList groupOrderList) {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
         final SqlCall node =
-            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct, ignoreNulls);
+            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct, ignoreNulls,
+                groupOrderList);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
       SqlCall aggFunctionCall;
@@ -1170,6 +1193,11 @@ public abstract class SqlImplementor {
       if (ignoreNulls) {
         aggFunctionCall =
             SqlStdOperatorTable.IGNORE_NULLS.createCall(null, POS, aggFunctionCall);
+      }
+      if (groupOrderList != null && !groupOrderList.isEmpty()) {
+        aggFunctionCall =
+            SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, aggFunctionCall,
+                groupOrderList);
       }
       return SqlStdOperatorTable.OVER.createCall(POS, aggFunctionCall,
           window);

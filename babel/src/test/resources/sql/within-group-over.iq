@@ -1,0 +1,93 @@
+# within-group-over.iq - WITHIN GROUP (ORDER BY) OVER (PARTITION BY)
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for the non-standard (Oracle) syntax that lets an aggregate function
+# with a "WITHIN GROUP (ORDER BY ...)" sort key also carry an "OVER (...)"
+# clause, so that it behaves as an analytic (window) function. The WITHIN GROUP
+# order key orders the aggregate's input but does not restrict the window frame:
+# the aggregate is computed over the whole partition and broadcast to every row
+# (matching Oracle). This syntax is enabled by the BABEL conformance
+# (SqlConformance.allowWithinGroupOverAggregate).
+#
+!use scott-babel
+!set outputformat mysql
+
+# The following 3 tests are related to this issue.
+# Results were validated on Oracle.
+
+# LISTAGG as an analytic function, partitioned by deptno. The result is the same
+# for every row of the partition (broadcast), which distinguishes the analytic
+# form from a per-row accumulating window.
+select deptno,
+    listagg(ename, ',') within group (order by ename)
+        over (partition by deptno) as names
+from emp
+where deptno in (10, 20)
+order by deptno, ename;
++--------+------------------------------+
+| DEPTNO | NAMES                        |
++--------+------------------------------+
+|     10 | CLARK,KING,MILLER            |
+|     10 | CLARK,KING,MILLER            |
+|     10 | CLARK,KING,MILLER            |
+|     20 | ADAMS,FORD,JONES,SCOTT,SMITH |
+|     20 | ADAMS,FORD,JONES,SCOTT,SMITH |
+|     20 | ADAMS,FORD,JONES,SCOTT,SMITH |
+|     20 | ADAMS,FORD,JONES,SCOTT,SMITH |
+|     20 | ADAMS,FORD,JONES,SCOTT,SMITH |
++--------+------------------------------+
+(8 rows)
+
+!ok
+
+# The WITHIN GROUP order key controls the concatenation order (here descending),
+# independently of the OVER partition.
+select deptno,
+    listagg(ename, ',') within group (order by ename desc)
+        over (partition by deptno) as names
+from emp
+where deptno = 10
+order by ename;
++--------+-------------------+
+| DEPTNO | NAMES             |
++--------+-------------------+
+|     10 | MILLER,KING,CLARK |
+|     10 | MILLER,KING,CLARK |
+|     10 | MILLER,KING,CLARK |
++--------+-------------------+
+(3 rows)
+
+!ok
+
+# Contrast: the aggregate (GROUP BY) form collapses each group to a single row.
+select deptno,
+    listagg(ename, ',') within group (order by ename) as names
+from emp
+where deptno in (10, 20)
+group by deptno
+order by deptno;
++--------+------------------------------+
+| DEPTNO | NAMES                        |
++--------+------------------------------+
+|     10 | CLARK,KING,MILLER            |
+|     20 | ADAMS,FORD,JONES,SCOTT,SMITH |
++--------+------------------------------+
+(2 rows)
+
+!ok
+
+# End within-group-over.iq

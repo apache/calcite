@@ -90,6 +90,24 @@ public interface SqlConformance {
   boolean allowCharLiteralAlias();
 
   /**
+   * Whether to allow an inverse distribution function such as
+   * {@code PERCENTILE_CONT} or {@code PERCENTILE_DISC} to combine a
+   * {@code WITHIN GROUP (ORDER BY ...)} clause with an {@code OVER} clause, so
+   * that it may be used as an analytic (window) function. For example,
+   *
+   * <blockquote><pre>
+   *   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)
+   *     OVER (PARTITION BY y)</pre></blockquote>
+   *
+   * <p>This is non-standard SQL supported by Oracle.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL};
+   * false otherwise.
+   */
+  boolean allowWithinGroupOverAggregate();
+
+  /**
    * Whether to allow aliases from the {@code SELECT} clause to be used as
    * column names in the {@code GROUP BY} clause.
    *

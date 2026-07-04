@@ -8275,6 +8275,92 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6036">[CALCITE-6036]
+   * Support WITHIN GROUP (ORDER BY x) OVER (PARTITION BY y)</a>. Checks that an
+   * inverse distribution function used as an analytic function is unparsed with
+   * the sort key inside a {@code WITHIN GROUP} clause and the partition inside
+   * the {@code OVER} clause. */
+  @Test void testWithinGroupOver() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(
+            b.aggregateCall(SqlStdOperatorTable.PERCENTILE_CONT, b.literal(0.5))
+                .over()
+                .partitionBy(b.field("DEPTNO"))
+                .orderBy(b.field("SAL"))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("c"))
+        .build();
+    final String expected = "SELECT PERCENTILE_CONT(5E-1) "
+        + "WITHIN GROUP (ORDER BY \"SAL\") "
+        + "OVER (PARTITION BY \"DEPTNO\") AS \"c\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    relFn(relFn).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6036">[CALCITE-6036]
+   * Support WITHIN GROUP (ORDER BY x) OVER (PARTITION BY y)</a>. Checks that
+   * expressions (rather than plain column references) under both the WITHIN
+   * GROUP order key and the OVER partition key are unparsed correctly. */
+  @Test void testWithinGroupOverWithExpressions() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(
+            b.aggregateCall(SqlStdOperatorTable.PERCENTILE_CONT, b.literal(0.5))
+                .over()
+                .partitionBy(
+                    b.call(SqlStdOperatorTable.PLUS, b.field("DEPTNO"),
+                        b.literal(1)))
+                .orderBy(
+                    b.call(SqlStdOperatorTable.MULTIPLY, b.field("SAL"),
+                        b.literal(2)))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("c"))
+        .build();
+    final String expected = "SELECT PERCENTILE_CONT(5E-1) "
+        + "WITHIN GROUP (ORDER BY \"SAL\" * 2) "
+        + "OVER (PARTITION BY \"DEPTNO\" + 1) AS \"c\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    relFn(relFn).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6036">[CALCITE-6036]
+   * Support WITHIN GROUP (ORDER BY x) OVER (PARTITION BY y)</a>. Checks
+   * unparsing with multiple partition and sort expressions, including a
+   * descending sort key. */
+  @Test void testWithinGroupOverWithMultipleExpressions() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(
+            b.aggregateCall(SqlStdOperatorTable.PERCENTILE_DISC, b.literal(0.5))
+                .over()
+                .partitionBy(
+                    b.field("DEPTNO"),
+                    b.call(SqlStdOperatorTable.PLUS, b.field("MGR"),
+                        b.literal(1)))
+                .orderBy(
+                    b.desc(
+                        b.call(SqlStdOperatorTable.MINUS, b.field("SAL"),
+                            b.field("COMM"))))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("c"))
+        .build();
+    final String expected = "SELECT PERCENTILE_DISC(5E-1) "
+        + "WITHIN GROUP (ORDER BY \"SAL\" - \"COMM\" DESC) "
+        + "OVER (PARTITION BY \"DEPTNO\", \"MGR\" + 1) AS \"c\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testJsonValueExpressionOperator() {
     String query = "select \"product_name\" format json, "
         + "\"product_name\" format json encoding utf8, "

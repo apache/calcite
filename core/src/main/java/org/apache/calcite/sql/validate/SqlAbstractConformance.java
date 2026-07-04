@@ -33,6 +33,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowCharLiteralAlias();
   }
 
+  @Override public boolean allowWithinGroupOverAggregate() {
+    return SqlConformanceEnum.DEFAULT.allowWithinGroupOverAggregate();
+  }
+
   @Override public boolean isSupportedDualTable() {
     return SqlConformanceEnum.DEFAULT.isSupportedDualTable();
   }
