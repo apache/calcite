@@ -395,7 +395,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private static String quoteCharLiteral(RexLiteral literal) {
       String value = literalValue(literal);
       if (literal.getTypeName() == CHAR) {
-        value = "'" + value + "'";
+        value = "'" + value.replace("'", "''") + "'";
       }
       return value;
     }
