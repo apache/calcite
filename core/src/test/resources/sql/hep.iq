@@ -77,6 +77,34 @@ EnumerableAggregate(group=[{0, 1}])
 !plan
 !set hep-rules original
 
+# [CALCITE-7638] SetOpToFilterRule MINUS drops rows when right-side filters evaluate to UNKNOWN.
+!set hep-rules "
++CoreRules.PROJECT_FILTER_TRANSPOSE,
++CoreRules.MINUS_FILTER_TO_FILTER"
+
+SELECT mgr, comm FROM (
+  SELECT mgr, comm FROM emp WHERE mgr = 7698
+  EXCEPT
+  SELECT mgr, comm FROM emp WHERE comm = 500
+) ORDER BY comm NULLS LAST;
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7698 |    0.00 |
+| 7698 |  300.00 |
+| 7698 | 1400.00 |
+| 7698 |         |
++------+---------+
+(4 rows)
+
+!ok
+EnumerableSort(sort0=[$1], dir0=[ASC])
+  EnumerableAggregate(group=[{0, 1}])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[7698], expr#10=[=($t8, $t9)], expr#11=[CAST($t6):DECIMAL(12, 2)], expr#12=[500.00:DECIMAL(12, 2)], expr#13=[=($t11, $t12)], expr#14=[IS NOT TRUE($t13)], expr#15=[AND($t10, $t14)], MGR=[$t3], COMM=[$t6], $condition=[$t15])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!set hep-rules original
+
 # Testing with the planner-rules shows that due to cost-based selection issues,
 # the planner fails to choose a plan that includes the Aggregate operator.
 !set planner-rules "

@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
@@ -96,7 +97,7 @@ import java.util.stream.Collectors;
  * is rewritten to
  *
  * SELECT DISTINCT mgr, comm FROM emp
- * WHERE mgr = 12 AND NOT(comm = 5)
+ * WHERE mgr = 12 AND (comm = 5) IS NOT TRUE
  * </pre></blockquote>
  */
 @Value.Enclosing
@@ -214,17 +215,19 @@ public class SetOpToFilterRule
 
   /**
    * Creates a combined condition where the first condition
-   * is kept as-is and all subsequent conditions are negated,
+   * is kept as-is and all subsequent conditions are IS NOT TRUE,
    * then joined with AND operators.
    *
    * <p>For example, given conditions [cond1, cond2, cond3],
-   * this constructs (cond1 AND NOT(cond2) AND NOT(cond3)).
+   * this constructs (cond1 AND cond2 IS NOT TRUE AND cond3 IS NOT TRUE).
+   * The right-side filter matches only TRUE rows, so FALSE and UNKNOWN
+   * both represent rows that are not present in that MINUS input.
    */
-  private static RexNode andFirstNotRest(RelBuilder builder, List<RexNode> conds) {
+  private static RexNode andFirstIsNotTrueRest(RelBuilder builder, List<RexNode> conds) {
     List<RexNode> allConds = new ArrayList<>();
     allConds.add(conds.get(0));
     for (int i = 1; i < conds.size(); i++) {
-      allConds.add(builder.not(conds.get(i)));
+      allConds.add(builder.call(SqlStdOperatorTable.IS_NOT_TRUE, conds.get(i)));
     }
     return builder.and(allConds);
   }
@@ -233,7 +236,8 @@ public class SetOpToFilterRule
    * Combines conditions according to set operation:
    * UNION: OR combination
    * INTERSECT: AND combination
-   * MINUS: Special handling where first source uses AND-NOT combination.
+   * MINUS: Special handling where first source keeps rows that match the
+   * first input and do not match any subsequent input.
    */
   private static RexNode combineConditions(RelBuilder builder, List<RexNode> conds,
       SetOp setOp, boolean isFirstSource) {
@@ -243,7 +247,7 @@ public class SetOpToFilterRule
       return builder.and(conds);
     } else if (setOp instanceof Minus) {
       return isFirstSource
-          ? andFirstNotRest(builder, conds)
+          ? andFirstIsNotTrueRest(builder, conds)
           : builder.or(conds);
     }
     // unreachable
