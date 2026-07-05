@@ -213,6 +213,20 @@ class GeodeZipsTest extends AbstractGeodeTest {
             GeodeAssertions.query(expectedQuery));
   }
 
+  /** Value that already contains adjacent single quotes: the literal {@code 'I''''m fine'}
+   * denotes the runtime value {@code I''m fine}, and every embedded quote is doubled so the
+   * OQL round-trips back to that same value. */
+  @Test void testFilterWithAdjacentSingleQuoteLiteral() {
+    String expectedQuery = "SELECT city AS city FROM /zips "
+        + "WHERE city = 'I''''m fine'";
+    calciteAssert()
+        .query("SELECT city as city "
+            + "FROM view WHERE city = 'I''''m fine'")
+        .returnsCount(0)
+        .queryContains(
+            GeodeAssertions.query(expectedQuery));
+  }
+
   @Test void testWhereWithOrForNumericField() {
     calciteAssert()
         .query("SELECT pop as pop "
