@@ -8641,6 +8641,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7645">[CALCITE-7645]
+   * AggregateUnionTransposeRule drops aggregate FILTER when rebuilding
+   * pushed-down aggregate calls</a>. */
+  @Test void testAggregateUnionTransposeWithFilterAndNullableInput() {
+    final String sql = "select min(v) filter (where p)\n"
+        + "from (\n"
+        + "  select * from (values (10, false), (100, true)) as t(v, p)\n"
+        + "  union all\n"
+        + "  select * from (values (cast(null as integer), true), (200, true)) as t(v, p)\n"
+        + ")";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
+  }
+
   /** If all inputs to UNION are already unique, AggregateUnionTransposeRule is
    * a no-op. */
   @Test void testAggregateUnionTransposeWithAllInputsUnique() {

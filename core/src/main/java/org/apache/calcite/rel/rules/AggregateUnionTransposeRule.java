@@ -166,8 +166,9 @@ public class AggregateUnionTransposeRule
           AggregateCall newCall =
               AggregateCall.create(origCall.getParserPosition(), origCall.getAggregation(),
                   origCall.isDistinct(), origCall.isApproximate(), origCall.ignoreNulls(),
-                  origCall.rexList, origCall.getArgList(), -1, origCall.distinctKeys,
-                  origCall.collation, aggRel.getGroupSet().isEmpty(), input, null,
+                  origCall.rexList, origCall.getArgList(), origCall.filterArg,
+                  origCall.distinctKeys, origCall.collation,
+                  aggRel.getGroupSet().isEmpty(), input, null,
                   origCall.getName());
           childAggCalls.set(i, newCall);
         }
