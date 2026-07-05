@@ -931,6 +931,35 @@ LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
       <![CDATA[select min(deptno), max(deptno) from emp]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateMinMaxToLimitRuleWithFilter">
+    <Resource name="sql">
+      <![CDATA[select min(v) filter (where p), max(v) filter (where p)
+from (values (10, false), (100, true), (200, true),
+    (300, false), (cast(null as integer), true)) as t(v, p)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0) FILTER $1], EXPR$1=[MAX($0) FILTER $1])
+  LogicalValues(tuples=[[{ 10, false }, { 100, true }, { 200, true }, { 300, false }, { null, true }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+  LogicalProject(V=[$0])
+    LogicalFilter(condition=[AND($1, IS NOT NULL($0))])
+      LogicalValues(tuples=[[{ 10, false }, { 100, true }, { 200, true }, { 300, false }, { null, true }]])
+})], $f1=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+  LogicalProject(V=[$0])
+    LogicalFilter(condition=[AND($1, IS NOT NULL($0))])
+      LogicalValues(tuples=[[{ 10, false }, { 100, true }, { 200, true }, { 300, false }, { null, true }]])
+})])
+  LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateProjectMerge">
     <Resource name="sql">
       <![CDATA[select x, sum(z), y from (

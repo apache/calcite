@@ -92,12 +92,23 @@ public class AggregateMinMaxToLimitRule
       // MIN is ASC, MAX is DESC
       final boolean isDesc = aggCall.getAggregation().kind == SqlKind.MAX;
 
-      RexNode subQuery = builder.scalarQuery(b -> b.push(aggInput)
-          .project(r)
-          .filter(b.isNotNull(r))
-          .sortLimit(0, 1,
-              isDesc ? builder.desc(r) : r)
-          .build());
+      RexNode subQuery = builder.scalarQuery(b -> {
+        b.push(aggInput);
+        final RexNode inputField = b.field(idx);
+        final List<RexNode> predicates = new ArrayList<>();
+        predicates.add(b.isNotNull(inputField));
+        if (aggCall.hasFilter()) {
+          // filterArg references the aggregate input, so apply it before projection
+          predicates.add(b.field(aggCall.filterArg));
+        }
+        b.filter(predicates)
+            // Scalar sub-query must return only the MIN/MAX argument
+            .project(inputField);
+        final RexNode sortField = b.field(0);
+        return b.sortLimit(0, 1,
+                isDesc ? b.desc(sortField) : sortField)
+            .build();
+      });
 
       newProjects.add(subQuery);
     }
