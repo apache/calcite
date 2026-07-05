@@ -1077,7 +1077,8 @@ public abstract class SqlImplementor {
         partitionKeys.add(this.field(partition));
       }
       for (RelFieldCollation collation : group.orderKeys.getFieldCollations()) {
-        this.addOrderItem(orderByKeys, collation);
+        // A window ORDER BY has no ordinal notion; resolve via field().
+        this.addOrderItem(orderByKeys, collation, false);
       }
       SqlLiteral isRows = SqlLiteral.createBoolean(group.isRows, POS);
       SqlNode lowerBound = null;
@@ -1290,6 +1291,15 @@ public abstract class SqlImplementor {
     }
 
     void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field) {
+      addOrderItem(orderByList, field, true);
+    }
+
+    /** Adds an ORDER BY item, optionally allowing an expression key to be
+     * emitted as a positional ordinal. Ordinals are valid only in a
+     * statement-level ORDER BY; callers such as a window's ORDER BY must pass
+     * {@code allowsOrdinal = false}. */
+    void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field,
+        boolean allowsOrdinal) {
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
@@ -1303,7 +1313,7 @@ public abstract class SqlImplementor {
                   RelFieldCollation.NullDirection.UNSPECIFIED);
         }
       }
-      orderByList.add(toSql(field));
+      orderByList.add(toSql(field, allowsOrdinal));
     }
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
@@ -1426,7 +1436,15 @@ public abstract class SqlImplementor {
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = orderField(collation.getFieldIndex());
+      return toSql(collation, true);
+    }
+
+    /** Converts a collation to an ORDER BY item; see
+     * {@link #addOrderItem(List, RelFieldCollation, boolean)}. */
+    public SqlNode toSql(RelFieldCollation collation, boolean allowsOrdinal) {
+      SqlNode node = allowsOrdinal
+          ? orderField(collation.getFieldIndex())
+          : field(collation.getFieldIndex());
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:
