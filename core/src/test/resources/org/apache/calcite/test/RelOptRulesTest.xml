@@ -1311,6 +1311,38 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionTransposeWithFilterAndNullableInput">
+    <Resource name="sql">
+      <![CDATA[select min(v) filter (where p)
+from (
+  select * from (values (10, false), (100, true)) as t(v, p)
+  union all
+  select * from (values (cast(null as integer), true), (200, true)) as t(v, p)
+)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0) FILTER $1])
+  LogicalUnion(all=[true])
+    LogicalProject(V=[$0], P=[$1])
+      LogicalValues(tuples=[[{ 10, false }, { 100, true }]])
+    LogicalProject(V=[$0], P=[$1])
+      LogicalValues(tuples=[[{ null, true }, { 200, true }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0) FILTER $1])
+      LogicalProject(V=[$0], P=[$1])
+        LogicalValues(tuples=[[{ 10, false }, { 100, true }]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0) FILTER $1])
+      LogicalProject(V=[$0], P=[$1])
+        LogicalValues(tuples=[[{ null, true }, { 200, true }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionTransposeWithOneInputNonNullable">
     <Resource name="sql">
       <![CDATA[select deptno, SUM(t) from (
