@@ -10776,6 +10776,33 @@ LogicalMinus(all=[false])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMinusToFilterRuleWithNullableFilter">
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm FROM empnullables WHERE mgr = 12
+EXCEPT
+SELECT mgr, comm FROM empnullables WHERE comm = 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[AND(=($0, 12), IS NOT TRUE(=($1, 5)))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMinusToFilterRuleWithOneFilter">
     <Resource name="planBefore">
       <![CDATA[

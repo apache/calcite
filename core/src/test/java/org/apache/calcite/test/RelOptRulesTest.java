@@ -11426,6 +11426,19 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7638">[CALCITE-7638]
+   * SetOpToFilterRule MINUS drops rows when right-side filters evaluate to UNKNOWN</a>. */
+  @Test void testMinusToFilterRuleWithNullableFilter() {
+    final String sql = "SELECT mgr, comm FROM empnullables WHERE mgr = 12\n"
+        + "EXCEPT\n"
+        + "SELECT mgr, comm FROM empnullables WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
    * Add rule for convert Minus to Filter</a>. */
   @Test void testMinusToFilterRuleWithOneFilter() {
