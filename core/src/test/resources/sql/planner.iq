@@ -146,6 +146,55 @@ EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
           EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
 !set planner-rules original
+
+# [CALCITE-7643] AggregateMinMaxToLimitRule drops FILTER condition for filtered MIN/MAX aggregates
+select min(v) filter (where p), max(v) filter (where p)
+from (values (10, false), (100, true), (200, true),
+    (300, false), (cast(null as integer), true)) as t(v, p);
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|    100 |    200 |
++--------+--------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], EXPR$0=[MIN($0) FILTER $1], EXPR$1=[MAX($0) FILTER $1])
+  EnumerableValues(tuples=[[{ 10, false }, { 100, true }, { 200, true }, { 300, false }, { null, true }]])
+!plan
+
+!set planner-rules "
++AGGREGATE_MIN_MAX_TO_LIMIT,
+-EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
++PROJECT_SUB_QUERY_TO_CORRELATE"
+select min(v) filter (where p), max(v) filter (where p)
+from (values (10, false), (100, true), (200, true),
+    (300, false), (cast(null as integer), true)) as t(v, p);
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|    100 |    200 |
++--------+--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+      EnumerableValues(tuples=[[{ 1 }]])
+      EnumerableCalc(expr#0..1=[{inputs}], V=[$t0])
+        EnumerableLimit(fetch=[1])
+          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t0)], expr#3=[AND($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+            EnumerableValues(tuples=[[{ 10, false }, { 100, true }, { 200, true }, { 300, false }, { null, true }]])
+    EnumerableCalc(expr#0..1=[{inputs}], V=[$t0])
+      EnumerableLimit(fetch=[1])
+        EnumerableSort(sort0=[$0], dir0=[DESC])
+          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t0)], expr#3=[AND($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+            EnumerableValues(tuples=[[{ 10, false }, { 100, true }, { 200, true }, { 300, false }, { null, true }]])
+!plan
+!set planner-rules original
 !use blank
 
 # Test case for [CALCITE-7501] Assertion error in alias expansion for LEFT JOIN USING

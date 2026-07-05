@@ -11670,6 +11670,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7643">[CALCITE-7643]
+   * AggregateMinMaxToLimitRule drops FILTER condition for filtered
+   * MIN/MAX aggregates</a>. */
+  @Test void testAggregateMinMaxToLimitRuleWithFilter() {
+    final String sql = "select min(v) filter (where p), max(v) filter (where p)\n"
+        + "from (values (10, false), (100, true), (200, true),\n"
+        + "    (300, false), (cast(null as integer), true)) as t(v, p)";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_MIN_MAX_TO_LIMIT)
+        .check();
+  }
+
   @Test void testOuterJoinForDphyp() {
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
