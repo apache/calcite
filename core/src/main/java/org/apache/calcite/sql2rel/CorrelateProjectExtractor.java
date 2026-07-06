@@ -88,6 +88,20 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     this.builderFactory = factory;
   }
 
+  /** Returns whether {@code node} is a direct field access on the correlation
+   * variable with the specified id, such as {@code $cor0.DEPTNO}. A nested
+   * access such as {@code $cor0.REC.DEPTNO} is not direct. */
+  private static boolean isDirectFieldAccess(RexNode node, CorrelationId id) {
+    if (node instanceof RexFieldAccess) {
+      RexFieldAccess access = (RexFieldAccess) node;
+      if (access.getReferenceExpr() instanceof RexCorrelVariable) {
+        RexCorrelVariable correlVar = (RexCorrelVariable) access.getReferenceExpr();
+        return correlVar.id.equals(id);
+      }
+    }
+    return false;
+  }
+
   @Override public RelNode visit(LogicalCorrelate correlate) {
     RelNode left = correlate.getLeft().accept(this);
     RelNode right = correlate.getRight().accept(this);
@@ -95,8 +109,12 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     // Find the correlated expressions from the right side that can be moved to the left
     Set<RexNode> callsWithCorrelationInRight =
         findCorrelationDependentCalls(correlate.getCorrelationId(), right);
+    // Only direct field accesses on the correlation variable, such as
+    // $cor0.DEPTNO, are left in place. A nested field access, such as
+    // $cor0.REC.DEPTNO, is extracted
     boolean isTrivialCorrelation =
-        callsWithCorrelationInRight.stream().allMatch(exp -> exp instanceof RexFieldAccess);
+        callsWithCorrelationInRight.stream()
+            .allMatch(exp -> isDirectFieldAccess(exp, correlate.getCorrelationId()));
     // Early exit condition
     if (isTrivialCorrelation) {
       if (correlate.getLeft().equals(left) && correlate.getRight().equals(right)) {
@@ -116,27 +134,42 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     // Transform the correlated expression from the right side to an expression over the left side
     builder.push(left);
 
+    ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     List<RexNode> callsWithCorrelationOverLeft = new ArrayList<>();
     for (RexNode callInRight : callsWithCorrelationInRight) {
-      callsWithCorrelationOverLeft.add(replaceCorrelationsWithInputRef(callInRight, builder));
+      if (isDirectFieldAccess(callInRight, correlate.getCorrelationId())) {
+        // Direct field accesses stay in the right side and keep reading their
+        // original left column; that column must remain a required column.
+        requiredColumns.set(((RexFieldAccess) callInRight).getField().getIndex());
+      } else {
+        callsWithCorrelationOverLeft.add(replaceCorrelationsWithInputRef(callInRight, builder));
+      }
     }
     builder.projectPlus(callsWithCorrelationOverLeft);
 
     // Construct the mapping to transform the expressions in the right side based on the new
     // projection in the left side.
     Map<RexNode, RexNode> transformMapping = new HashMap<>();
+    int newFieldIndex = oldLeft;
     for (RexNode callInRight : callsWithCorrelationInRight) {
-      RexBuilder xb = builder.getRexBuilder();
-      RexNode v = xb.makeCorrel(builder.peek().getRowType(), correlate.getCorrelationId());
-      RexNode flatCorrelationInRight = xb.makeFieldAccess(v, oldLeft + transformMapping.size());
-      transformMapping.put(callInRight, flatCorrelationInRight);
+      if (!isDirectFieldAccess(callInRight, correlate.getCorrelationId())) {
+        RexBuilder xb = builder.getRexBuilder();
+        RexNode v = xb.makeCorrel(builder.peek().getRowType(), correlate.getCorrelationId());
+        RexNode flatCorrelationInRight = xb.makeFieldAccess(v, newFieldIndex);
+        transformMapping.put(callInRight, flatCorrelationInRight);
+        newFieldIndex++;
+      }
     }
 
-    // Select the required fields/columns from the left side of the correlation. Based on the code
-    // above all these fields should be at the end of the left relational expression.
+    // Select the required fields/columns from the left side of the correlation: the columns
+    // read by the direct field accesses plus the newly projected columns, which are at the
+    // end of the left relational expression.
     List<RexNode> requiredFields =
         builder.fields(
-            ImmutableBitSet.range(oldLeft, oldLeft + callsWithCorrelationOverLeft.size()).asList());
+            requiredColumns
+                .set(oldLeft, oldLeft + callsWithCorrelationOverLeft.size())
+                .build()
+                .asList());
 
     final int newLeft = builder.fields().size();
     // Transform the expressions in the right side using the mapping constructed earlier.
@@ -264,8 +297,13 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
    * +(10, $cor0.DEPTNO) -> TRUE
    * /(100,+(10, $cor0.DEPTNO)) -> TRUE
    * CAST(+(10, $cor0.DEPTNO)):INTEGER NOT NULL -> TRUE
+   * CASE(IS NOT NULL($cor0.PATH), $cor0.PATH, ARRAY(null:INTEGER)) -> TRUE
    * +($0, $cor0.DEPTNO) -> FALSE
    * }</pre>
+   *
+   * <p>A subexpression built only from literals and dynamic parameters, such
+   * as {@code ARRAY(null:INTEGER)} above, is neutral: it neither qualifies nor
+   * disqualifies the enclosing call.
    */
   private static class SimpleCorrelationDetector
       extends RexVisitorImpl<@Nullable Boolean> {
@@ -284,7 +322,8 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
       return Boolean.FALSE;
     }
 
-    @Override public Boolean visitCall(RexCall call) {
+    @Override public @Nullable Boolean visitCall(RexCall call) {
+      // Constant operands must not disqualify the call
       Boolean hasSimpleCorrelation = null;
       for (RexNode op : call.operands) {
         Boolean b = op.accept(this);
@@ -292,7 +331,8 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
           hasSimpleCorrelation = hasSimpleCorrelation == null ? b : hasSimpleCorrelation && b;
         }
       }
-      return hasSimpleCorrelation == null ? Boolean.FALSE : hasSimpleCorrelation;
+      // If unsure return null; caller will decide
+      return hasSimpleCorrelation;
     }
 
     @Override public @Nullable Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
@@ -332,8 +372,10 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   }
 
   /**
-   * A visitor traversing row expressions and replacing calls with other expressions according
-   * to the specified mapping.
+   * A visitor traversing row expressions and replacing calls and field
+   * accesses with other expressions according to the specified mapping.
+   * The mapping is consulted before recursing so that the outermost
+   * matching expression wins.
    */
   private static final class CallReplacer extends RexShuttle {
     private final Map<RexNode, RexNode> mapping;
@@ -348,6 +390,15 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
         return newCall;
       } else {
         return super.visitCall(oldCall);
+      }
+    }
+
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+      RexNode replacement = mapping.get(fieldAccess);
+      if (replacement != null) {
+        return replacement;
+      } else {
+        return super.visitFieldAccess(fieldAccess);
       }
     }
   }

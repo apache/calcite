@@ -1770,15 +1770,15 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(C=[$0], D=[$1], C0=[$4], F=[$5])
-  LogicalJoin(condition=[AND(=($0, $6), =($3, $7))], joinType=[inner])
-    LogicalProject(C=[$0], D=[$1], C0=[$0], $f3=[+($0, $1)])
+LogicalProject(C=[$0], D=[$1], C0=[$3], F=[$4])
+  LogicalJoin(condition=[AND(=($0, $5), =($2, $6))], joinType=[inner])
+    LogicalProject(C=[$0], D=[$1], $f2=[+($0, $1)])
       LogicalValues(tuples=[[{ 4, 5 }]])
-    LogicalProject(C=[$1], F=[*($0, $1)], C2=[$1], $f3=[$2])
+    LogicalProject(C=[$1], F=[*($0, $1)], C2=[$1], $f2=[$2])
       LogicalJoin(condition=[=($2, *($0, $1))], joinType=[inner])
         LogicalValues(tuples=[[{ 2 }]])
         LogicalAggregate(group=[{0, 1}])
-          LogicalProject(C=[$0], $f3=[+($0, $1)])
+          LogicalProject(C=[$0], $f2=[+($0, $1)])
             LogicalValues(tuples=[[{ 4, 5 }]])
 ]]>
     </Resource>
@@ -1796,18 +1796,18 @@ cross join lateral
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(C=[$0], N=[$3])
-  LogicalJoin(condition=[AND(=($0, $4), =($2, $5))], joinType=[inner])
-    LogicalProject(C=[$0], C0=[$0], $f2=[+($0, 1)])
+LogicalProject(C=[$0], N=[$2])
+  LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+    LogicalProject(C=[$0], $f1=[+($0, 1)])
       LogicalValues(tuples=[[{ 4 }]])
-    LogicalProject(N=[+($0, $1)], EXPR$0=[+($0, $1)], $f2=[$2])
+    LogicalProject(N=[+($0, $1)], EXPR$0=[+($0, $1)], $f1=[$2])
       LogicalJoin(condition=[=($0, $1)], joinType=[inner])
         LogicalValues(tuples=[[{ 2 }]])
-        LogicalProject(EXPR$0=[$1], $f2=[$1])
+        LogicalProject(EXPR$0=[$1], $f1=[$1])
           LogicalJoin(condition=[true], joinType=[inner])
             LogicalValues(tuples=[[{ 3 }]])
             LogicalAggregate(group=[{0}])
-              LogicalProject($f2=[+($0, 1)])
+              LogicalProject($f1=[+($0, 1)])
                 LogicalValues(tuples=[[{ 4 }]])
 ]]>
     </Resource>
@@ -5222,9 +5222,9 @@ LogicalProject(C=[$0], D=[$1], C0=[$2])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(C=[$0], D=[$1], D0=[$4], C0=[$5])
-  LogicalJoin(condition=[AND(=($0, $6), =($2, $5))], joinType=[left])
-    LogicalProject(C=[$0], D=[$1], $f2=[+($0, $1)], C0=[$0])
+LogicalProject(C=[$0], D=[$1], D0=[$3], C0=[$4])
+  LogicalJoin(condition=[AND(=($0, $5), =($2, $4))], joinType=[left])
+    LogicalProject(C=[$0], D=[$1], $f2=[+($0, $1)])
       LogicalValues(tuples=[[{ 4, 5 }]])
     LogicalProject(C=[$1], EXPR$1=[*($0, $1)], C2=[$1])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -5247,18 +5247,18 @@ as r(n) on c=n]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(C=[$0], N=[$3])
-  LogicalJoin(condition=[AND(=($0, $3), =($2, $4))], joinType=[left])
-    LogicalProject(C=[$0], C0=[$0], $f2=[+($0, 1)])
+LogicalProject(C=[$0], N=[$2])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+    LogicalProject(C=[$0], $f1=[+($0, 1)])
       LogicalValues(tuples=[[{ 4 }]])
-    LogicalProject(EXPR$0=[+($0, $1)], $f2=[$2])
+    LogicalProject(EXPR$0=[+($0, $1)], $f1=[$2])
       LogicalJoin(condition=[=($0, $1)], joinType=[inner])
         LogicalValues(tuples=[[{ 2 }]])
-        LogicalProject(EXPR$0=[$1], $f2=[$1])
+        LogicalProject(EXPR$0=[$1], $f1=[$1])
           LogicalJoin(condition=[true], joinType=[inner])
             LogicalValues(tuples=[[{ 3 }]])
             LogicalAggregate(group=[{0}])
-              LogicalProject($f2=[+($0, 1)])
+              LogicalProject($f1=[+($0, 1)])
                 LogicalValues(tuples=[[{ 4 }]])
 ]]>
     </Resource>
