@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -259,6 +260,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     HepProgram unionRewritingPullProgram = config.unionRewritingPullProgram();
     if (unionRewritingPullProgram != null) {
       final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
+      if (newAggregateInput instanceof HepRelVertex) {
+        // We cannot apply a new HepPlanner on a previous HepRelVertex tree, we must strip first
+        newAggregateInput = RelOptUtil.stripAll(newAggregateInput);
+      }
       tmpPlanner.setRoot(newAggregateInput);
       newAggregateInput = tmpPlanner.findBestExp();
       target = newAggregateInput.getInput(0);

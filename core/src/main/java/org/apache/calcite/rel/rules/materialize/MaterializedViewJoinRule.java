@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.rel.rules.materialize;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -168,8 +170,11 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     RelNode target = node;
     HepProgram unionRewritingPullProgram = config.unionRewritingPullProgram();
     if (unionRewritingPullProgram != null) {
-      final HepPlanner tmpPlanner =
-          new HepPlanner(unionRewritingPullProgram);
+      final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
+      if (newNode.getInput(0) instanceof HepRelVertex) {
+        // We cannot apply a new HepPlanner on a previous HepRelVertex tree, we must strip first
+        newNode = RelOptUtil.stripAll(newNode);
+      }
       tmpPlanner.setRoot(newNode);
       newNode = tmpPlanner.findBestExp();
       target = newNode.getInput(0);
