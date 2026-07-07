@@ -183,7 +183,7 @@ class PigRelUdfConverter {
             ((ScalarFunctionImpl) pigUdf.getFunction()).method.getDeclaringClass();
         if (Accumulator.class.isAssignableFrom(udfClass)) {
           throw new UnsupportedOperationException(
-              "Cannot find corresponding SqlAgg func for Pig aggegate " + pigUdfClassName);
+              "Cannot find corresponding SqlAgg func for Pig aggregate " + pigUdfClassName);
         }
       }
       return sqlAggFunction;
