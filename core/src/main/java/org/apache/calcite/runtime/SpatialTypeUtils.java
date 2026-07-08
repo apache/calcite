@@ -143,8 +143,11 @@ public class SpatialTypeUtils {
       // GMLReader.read builds its own SAXParserFactory with DOCTYPE enabled, so
       // parse with a hardened reader and feed JTS's GMLHandler. Disallowing the
       // DOCTYPE declaration rejects any external subset or entities outright.
+      // JTS's GMLReader parses without namespace awareness, and GML values here
+      // use the gml: prefix without declaring it, so keep the parser
+      // non-namespace-aware to match.
       final SAXParserFactory factory = SAXParserFactory.newInstance();
-      factory.setNamespaceAware(true);
+      factory.setNamespaceAware(false);
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       final SAXParser parser = factory.newSAXParser();
       final XMLReader xmlReader = parser.getXMLReader();
