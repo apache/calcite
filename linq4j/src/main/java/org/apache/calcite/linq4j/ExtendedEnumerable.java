@@ -1096,6 +1096,12 @@ public interface ExtendedEnumerable<TSource> {
   Enumerable<TSource> skip(int count);
 
   /**
+   * Bypasses a specified number of elements in a
+   * sequence and then returns the remaining elements.
+   */
+  Enumerable<TSource> skip(BigDecimal count);
+
+  /**
    * Bypasses elements in a sequence as long as a
    * specified condition is true and then returns the remaining
    * elements.
@@ -1109,6 +1115,14 @@ public interface ExtendedEnumerable<TSource> {
    * predicate function.
    */
   Enumerable<TSource> skipWhile(Predicate2<TSource, Integer> predicate);
+
+  /**
+   * Bypasses elements in a sequence as long as a
+   * specified condition is true and then returns the remaining
+   * elements. The element's index is used in the logic of the
+   * predicate function.
+   */
+  Enumerable<TSource> skipWhileBigDecimal(Predicate2<TSource, BigDecimal> predicate);
 
   /**
    * Computes the sum of the sequence of Decimal values
@@ -1187,6 +1201,12 @@ public interface ExtendedEnumerable<TSource> {
   Enumerable<TSource> take(int count);
 
   /**
+   * Returns a specified number of contiguous elements
+   * from the start of a sequence.
+   */
+  Enumerable<TSource> take(BigDecimal count);
+
+  /**
    * Returns elements from a sequence as long as a
    * specified condition is true.
    */
@@ -1198,6 +1218,13 @@ public interface ExtendedEnumerable<TSource> {
    * logic of the predicate function.
    */
   Enumerable<TSource> takeWhile(Predicate2<TSource, Integer> predicate);
+
+  /**
+   * Returns elements from a sequence as long as a
+   * specified condition is true. The element's index is used in the
+   * logic of the predicate function.
+   */
+  Enumerable<TSource> takeWhileBigDecimal(Predicate2<TSource, BigDecimal> predicate);
 
   /**
    * Creates a {@code Map<TKey, TValue>} from an

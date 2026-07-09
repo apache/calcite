@@ -21,7 +21,9 @@ import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.FetchOffsetRoundingPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaParameter;
@@ -1196,6 +1198,13 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           CatalogReader.THREAD_LOCAL.set(catalogReader);
           final SqlConformance conformance = context.config().conformance();
           internalParameters.put("_conformance", conformance);
+          final FetchOffsetRoundingPolicy fetchOffsetRoundingPolicy =
+              planner.getContext().unwrap(FetchOffsetRoundingPolicy.class);
+          if (fetchOffsetRoundingPolicy != null) {
+            internalParameters.put(
+                EnumerableRelImplementor.FETCH_OFFSET_ROUNDING_POLICY,
+                fetchOffsetRoundingPolicy);
+          }
           bindable =
               EnumerableInterpretable.toBindable(internalParameters,
                   context.spark(), enumerable,

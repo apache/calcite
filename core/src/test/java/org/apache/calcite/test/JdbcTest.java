@@ -5793,6 +5793,256 @@ public class JdbcTest {
         Matchers.returnsUnordered("name=Eric"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedOffsetFetchWithBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.valueOf(3));
+          p.setBigDecimal(2, BigDecimal.valueOf(4));
+        })
+        .returnsUnordered("name=Eric");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedFetchWithFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2, new BigDecimal("1.5"));
+        })
+        .returnsUnordered("name=Bill", "name=Theodore");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedOffsetWithFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, new BigDecimal("1.5"));
+          p.setBigDecimal(2, BigDecimal.ONE);
+        })
+        .returnsUnordered("name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testFetchLiteralFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset 0 fetch next 1.5 rows only")
+        .explainContains("EnumerableLimit(offset=[0], fetch=[1.5:DECIMAL(2, 1)])")
+        .returnsUnordered("name=Bill", "name=Theodore");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testOffsetLiteralFractionalBigDecimal() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset 1.5 fetch next 1 rows only")
+        .explainContains("EnumerableLimit(offset=[1.5:DECIMAL(2, 1)], fetch=[1])")
+        .returnsUnordered("name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedOffsetFetchWithIntegerParameters() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 1);
+          p.setInt(2, 2);
+        })
+        .returnsUnordered("name=Theodore", "name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedOffsetFetchWithLongParameters() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setLong(1, 1L);
+          p.setLong(2, 2L);
+        })
+        .returnsUnordered("name=Theodore", "name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedOffsetWithBigDecimalAboveIntegerMax() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1,
+              BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE));
+          p.setBigDecimal(2, BigDecimal.ONE);
+        })
+        .returnsUnordered();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testOffsetLiteralAboveIntegerMax() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "order by \"empid\" offset 2147483648 fetch next 1 rows only")
+        .explainContains("EnumerableLimit(offset=[2147483648:BIGINT], fetch=[1])")
+        .returnsUnordered();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedOffsetFetchWithBigDecimalWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2, BigDecimal.ZERO);
+        })
+        .returnsUnordered();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedNegativeFetchWithBigDecimalWithoutOrderBy()
+      throws Exception {
+    CalciteAssert.hr()
+        .doWithConnection(connection -> {
+          final String sql = "select \"name\"\n"
+              + "from \"hr\".\"emps\"\n"
+              + "offset ? fetch next ? rows only";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setBigDecimal(1, BigDecimal.ZERO);
+            p.setBigDecimal(2, BigDecimal.valueOf(-1));
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString("FETCH must not be negative"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedNegativeOffsetWithBigDecimalWithoutOrderBy()
+      throws Exception {
+    CalciteAssert.hr()
+        .doWithConnection(connection -> {
+          final String sql = "select \"name\"\n"
+              + "from \"hr\".\"emps\"\n"
+              + "offset ? fetch next ? rows only";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setBigDecimal(1, BigDecimal.valueOf(-1));
+            p.setBigDecimal(2, BigDecimal.valueOf(2));
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString("OFFSET must not be negative"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedNegativeLimitWithBigDecimalWithoutOrderBy()
+      throws Exception {
+    CalciteAssert.hr()
+        .doWithConnection(connection -> {
+          final String sql = "select \"name\"\n"
+              + "from \"hr\".\"emps\"\n"
+              + "limit ? offset ?";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            p.setBigDecimal(1, BigDecimal.valueOf(-1));
+            p.setBigDecimal(2, BigDecimal.ZERO);
+            final SQLException e = assertThrows(SQLException.class, p::executeQuery);
+            assertThat(e.getMessage(), containsString("FETCH must not be negative"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testPreparedFetchWithBigDecimalAboveLongMaxWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset ? fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, BigDecimal.ZERO);
+          p.setBigDecimal(2,
+              BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.ONE));
+        })
+        .returnsUnordered(
+            "name=Bill",
+            "name=Eric",
+            "name=Sebastian",
+            "name=Theodore");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testFetchLiteralAboveLongMaxWithoutOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"name\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "offset 0 fetch next 9223372036854775808 rows only")
+        .explainContains("EnumerableLimit(offset=[0], "
+            + "fetch=[9223372036854775808:DECIMAL(19, 0)])")
+        .returnsUnordered(
+            "name=Bill",
+            "name=Eric",
+            "name=Sebastian",
+            "name=Theodore");
+  }
+
   private void checkPreparedOffsetFetch(final int offset, final int fetch,
       final Matcher<? super ResultSet> matcher) throws Exception {
     CalciteAssert.hr()
@@ -5804,8 +6054,8 @@ public class JdbcTest {
                    connection.prepareStatement(sql)) {
             final ParameterMetaData pmd = p.getParameterMetaData();
             assertThat(pmd.getParameterCount(), is(2));
-            assertThat(pmd.getParameterType(1), is(Types.INTEGER));
-            assertThat(pmd.getParameterType(2), is(Types.INTEGER));
+            assertThat(pmd.getParameterType(1), is(Types.DECIMAL));
+            assertThat(pmd.getParameterType(2), is(Types.DECIMAL));
             p.setInt(1, offset);
             p.setInt(2, fetch);
             try (ResultSet r = p.executeQuery()) {

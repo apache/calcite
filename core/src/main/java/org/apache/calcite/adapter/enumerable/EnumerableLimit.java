@@ -101,36 +101,50 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
             result.format);
 
     Expression v = builder.append("child", result.block);
+    Expression roundingPolicyExp = getRoundingPolicy(implementor);
     if (offset != null) {
       v =
           builder.append("offset",
-              Expressions.call(v, BuiltInMethod.SKIP.method,
-                  getExpression(offset)));
+              Expressions.call(BuiltInMethod.SKIP_BIG_DECIMAL.method, v,
+                  getExpression(offset, "OFFSET", roundingPolicyExp)));
     }
     if (fetch != null) {
       v =
           builder.append("fetch",
-              Expressions.call(v, BuiltInMethod.TAKE.method,
-                  getExpression(fetch)));
+              Expressions.call(BuiltInMethod.TAKE_BIG_DECIMAL.method, v,
+                  getExpression(fetch, "FETCH", roundingPolicyExp)));
     }
 
     builder.add(Expressions.return_(null, v));
     return implementor.result(physType, builder.toBlock());
   }
 
-  static Expression getExpression(RexNode rexNode) {
+  static Expression getExpression(RexNode rexNode, String kind,
+      Expression roundingPolicy) {
+    final Expression value;
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
-      return Expressions.convert_(
+      value =
           Expressions.call(DataContext.ROOT,
               BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant("?" + param.getIndex())),
-          Integer.class);
+              Expressions.constant("?" + param.getIndex()));
     } else {
-      // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET, not BIGINT types.
-      //  Currently, using BIGINT types for execution will result in an error message.
-      //  This issue needs to be fixed. For more information, see CALCITE-7156.
-      return Expressions.constant(RexLiteral.intValue(rexNode));
+      value = Expressions.constant(RexLiteral.bigDecimalValue(rexNode));
     }
+    return Expressions.call(
+        BuiltInMethod.NUMBER_TO_BIG_DECIMAL_LIMIT.method,
+        value,
+        Expressions.constant(kind),
+        roundingPolicy);
+  }
+
+  static Expression getRoundingPolicy(EnumerableRelImplementor implementor) {
+    final Object roundingPolicy =
+        implementor.map.get(EnumerableRelImplementor.FETCH_OFFSET_ROUNDING_POLICY);
+    if (roundingPolicy == null) {
+      return Expressions.field(null, FetchOffsetRoundingPolicy.class, "NONE");
+    }
+    return implementor.stash((FetchOffsetRoundingPolicy) roundingPolicy,
+        FetchOffsetRoundingPolicy.class);
   }
 }

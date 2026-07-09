@@ -1264,6 +1264,28 @@ public class Linq4jTest {
             .toList(), hasSize(0));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testTakeEnumerableDefaultsBigDecimalSize() {
+    assertThat(
+        EnumerableDefaults.take(Linq4j.asEnumerable(depts),
+        new BigDecimal("1.5")).toList(), hasSize(2));
+    assertThat(
+        EnumerableDefaults.take(Linq4j.asEnumerable(depts),
+        BigDecimal.valueOf(-2)).toList(), hasSize(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testTakeListEnumerableBigDecimalSize() {
+    assertThat(Linq4j.asEnumerable(depts).take(new BigDecimal("1.5"))
+        .toList(), hasSize(2));
+    assertThat(Linq4j.asEnumerable(depts).take(BigDecimal.valueOf(-2))
+        .toList(), hasSize(0));
+  }
+
   @Test void testTakeQueryableZeroOrNegativeSize() {
     assertThat(QueryableDefaults.take(Linq4j.asEnumerable(depts).asQueryable(), 0)
             .toList(), hasSize(0));
@@ -1422,6 +1444,28 @@ public class Linq4jTest {
         Linq4j.asEnumerable(depts).asQueryable().skipWhileN(
             Expressions.lambda((v1, v2) -> v1.name.equals("Sales")
                 || v2 == 1)).count(), is(1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testSkipEnumerableDefaultsBigDecimalSize() {
+    assertThat(
+        EnumerableDefaults.skip(Linq4j.asEnumerable(depts),
+        new BigDecimal("1.5")).count(), is(1));
+    assertThat(
+        EnumerableDefaults.skip(Linq4j.asEnumerable(depts),
+        BigDecimal.valueOf(-2)).count(), is(3));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testSkipListEnumerableBigDecimalSize() {
+    assertThat(Linq4j.asEnumerable(depts).skip(new BigDecimal("1.5"))
+        .count(), is(1));
+    assertThat(Linq4j.asEnumerable(depts).skip(BigDecimal.valueOf(-2))
+        .count(), is(3));
   }
 
   @Test void testOrderBy() {

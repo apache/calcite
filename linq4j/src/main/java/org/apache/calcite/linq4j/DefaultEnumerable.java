@@ -693,12 +693,20 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.skip(getThis(), count);
   }
 
+  @Override public Enumerable<T> skip(BigDecimal count) {
+    return EnumerableDefaults.skip(getThis(), count);
+  }
+
   @Override public Enumerable<T> skipWhile(Predicate1<T> predicate) {
     return EnumerableDefaults.skipWhile(getThis(), predicate);
   }
 
   @Override public Enumerable<T> skipWhile(Predicate2<T, Integer> predicate) {
     return EnumerableDefaults.skipWhile(getThis(), predicate);
+  }
+
+  @Override public Enumerable<T> skipWhileBigDecimal(Predicate2<T, BigDecimal> predicate) {
+    return EnumerableDefaults.skipWhileBigDecimal(getThis(), predicate);
   }
 
   @Override public BigDecimal sum(BigDecimalFunction1<T> selector) {
@@ -745,12 +753,20 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.take(getThis(), count);
   }
 
+  @Override public Enumerable<T> take(BigDecimal count) {
+    return EnumerableDefaults.take(getThis(), count);
+  }
+
   @Override public Enumerable<T> takeWhile(Predicate1<T> predicate) {
     return EnumerableDefaults.takeWhile(getThis(), predicate);
   }
 
   @Override public Enumerable<T> takeWhile(Predicate2<T, Integer> predicate) {
     return EnumerableDefaults.takeWhile(getThis(), predicate);
+  }
+
+  @Override public Enumerable<T> takeWhileBigDecimal(Predicate2<T, BigDecimal> predicate) {
+    return EnumerableDefaults.takeWhileBigDecimal(getThis(), predicate);
   }
 
   @Override public <TKey extends Comparable<TKey>> OrderedEnumerable<T> thenBy(

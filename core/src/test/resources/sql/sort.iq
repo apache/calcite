@@ -419,8 +419,13 @@ order by arr desc;
 
 # [CALCITE-7156] OFFSET and FETCH in EnumerableLimit need to support BIGINT
 select * from "hr"."emps" limit 3000000000 offset 2500000000;
-java.lang.ArithmeticException: Integer overflow: 2500000000 is out of range for INT
-!error
++-------+--------+------+--------+------------+
+| empid | deptno | name | salary | commission |
++-------+--------+------+--------+------------+
++-------+--------+------+--------+------------+
+(0 rows)
+
+!ok
 
 # [CALCITE-7367] NULLS FIRST throws ClassCastException when sorting arrays
 select * from

@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -26,19 +28,32 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -96,5 +111,50 @@ public class CodeGeneratorTest {
     assertFalse(javaCode.contains("case_when_value2"));
     assertFalse(javaCode.contains("case_when_value3"));
     assertFalse(javaCode.contains("case_when_value4"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test public void testFetchOffsetRoundingPolicy() {
+    final JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+    final RelDataType rowType =
+        typeFactory.builder().add("i", SqlTypeName.INTEGER).build();
+    final RelDataType integerType = rowType.getFieldList().get(0).getType();
+    final ImmutableList<ImmutableList<RexLiteral>> tuples =
+        ImmutableList.of(
+            ImmutableList.of(
+                rexBuilder.makeExactLiteral(BigDecimal.ONE,
+                integerType)),
+            ImmutableList.of(
+                rexBuilder.makeExactLiteral(BigDecimal.valueOf(2),
+                integerType)),
+            ImmutableList.of(
+                rexBuilder.makeExactLiteral(BigDecimal.valueOf(3),
+                integerType)));
+    final EnumerableValues values =
+        EnumerableValues.create(cluster, rowType, tuples);
+    final RelDataType decimalType =
+        typeFactory.createSqlType(SqlTypeName.DECIMAL, 2, 1);
+    final EnumerableLimit limit =
+        EnumerableLimit.create(values, null,
+            rexBuilder.makeExactLiteral(new BigDecimal("1.5"), decimalType));
+
+    final Map<String, Object> parameters = new HashMap<>();
+    parameters.put(EnumerableRelImplementor.FETCH_OFFSET_ROUNDING_POLICY,
+        (FetchOffsetRoundingPolicy) value ->
+            value.setScale(0, RoundingMode.DOWN));
+    final Bindable bindable =
+        EnumerableInterpretable.toBindable(parameters, null, limit,
+            EnumerableRel.Prefer.ARRAY);
+
+    final Enumerable<?> enumerable = bindable.bind(DataContexts.of(parameters));
+    final List<?> result = enumerable.toList();
+    assertThat(result, hasSize(1));
   }
 }
