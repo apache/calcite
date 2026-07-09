@@ -151,6 +151,9 @@ public class SpatialTypeUtils {
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       final SAXParser parser = factory.newSAXParser();
       final XMLReader xmlReader = parser.getXMLReader();
+      // GMLReader itself passes a null delegate ErrorHandler; the parameter is
+      // not annotated, so suppress the nullness warning it would otherwise emit.
+      @SuppressWarnings("argument.type.incompatible")
       final GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, null);
       xmlReader.setContentHandler(handler);
       xmlReader.parse(new InputSource(new StringReader(gml)));
