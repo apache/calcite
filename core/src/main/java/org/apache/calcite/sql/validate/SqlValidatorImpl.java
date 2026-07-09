@@ -1763,11 +1763,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void handleOffsetFetch(@Nullable SqlNode offset, @Nullable SqlNode fetch) {
     if (offset instanceof SqlDynamicParam) {
       setValidatedNodeType(offset,
-          typeFactory.createSqlType(SqlTypeName.INTEGER));
+          typeFactory.createSqlType(SqlTypeName.DECIMAL));
     }
     if (fetch instanceof SqlDynamicParam) {
       setValidatedNodeType(fetch,
-          typeFactory.createSqlType(SqlTypeName.INTEGER));
+          typeFactory.createSqlType(SqlTypeName.DECIMAL));
     }
   }
 

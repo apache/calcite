@@ -78,6 +78,9 @@ import static java.util.Objects.requireNonNull;
  * operators of {@link EnumerableConvention} calling convention.
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
+  public static final String FETCH_OFFSET_ROUNDING_POLICY =
+      "_fetchOffsetRoundingPolicy";
+
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       new HashMap<>();

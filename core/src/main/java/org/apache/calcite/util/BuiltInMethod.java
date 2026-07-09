@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.FetchOffsetRoundingPolicy;
 import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
@@ -296,7 +297,7 @@ public enum BuiltInMethod {
   ORDER_BY(ExtendedEnumerable.class, "orderBy", Function1.class,
       Comparator.class),
   ORDER_BY_WITH_FETCH_AND_OFFSET(EnumerableDefaults.class, "orderBy", Enumerable.class,
-      Function1.class, Comparator.class, int.class, int.class),
+      Function1.class, Comparator.class, BigDecimal.class, BigDecimal.class),
   UNION(ExtendedEnumerable.class, "union", Enumerable.class),
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
   REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
@@ -308,7 +309,11 @@ public enum BuiltInMethod {
   INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class, boolean.class),
   EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class, boolean.class),
   SKIP(ExtendedEnumerable.class, "skip", int.class),
+  SKIP_BIG_DECIMAL(EnumerableDefaults.class, "skip", Enumerable.class,
+      BigDecimal.class),
   TAKE(ExtendedEnumerable.class, "take", int.class),
+  TAKE_BIG_DECIMAL(EnumerableDefaults.class, "take", Enumerable.class,
+      BigDecimal.class),
   SINGLETON_ENUMERABLE(Linq4j.class, "singletonEnumerable", Object.class),
   EMPTY_ENUMERABLE(Linq4j.class, "emptyEnumerable"),
   NULLS_COMPARATOR(Functions.class, "nullsComparator", boolean.class,
@@ -390,6 +395,8 @@ public enum BuiltInMethod {
       Calendar.class),
   TIME_ZONE_GET_OFFSET(TimeZone.class, "getOffset", long.class),
   LONG_VALUE(Number.class, "longValue"),
+  NUMBER_TO_BIG_DECIMAL_LIMIT(EnumUtils.class, "numberToBigDecimal",
+      Object.class, String.class, FetchOffsetRoundingPolicy.class),
   STRING_TO_UPPER(String.class, "toUpperCase"),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),

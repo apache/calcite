@@ -29,6 +29,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -169,6 +170,20 @@ public final class EnumUtilsTest {
     final Expression e2 = EnumUtils.convert(nullLiteral2, String.class);
     assertThat(Expressions.toString(e1), is("(String) null"));
     assertThat(Expressions.toString(e2), is("(String) (Object) null"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7624">[CALCITE-7624]
+   * Support BigDecimal for FETCH and OFFSET in Enumerable</a>. */
+  @Test void testNumberToBigDecimalPreservesFractionalNumber() {
+    final FetchOffsetRoundingPolicy ceiling =
+        value -> value.setScale(0, RoundingMode.CEILING);
+    assertThat(EnumUtils.numberToBigDecimal(1.5D, "FETCH"),
+        is(new BigDecimal("1.5")));
+    assertThat(EnumUtils.numberToBigDecimal(1.5F, "OFFSET"),
+        is(new BigDecimal("1.5")));
+    assertThat(EnumUtils.numberToBigDecimal(1.5D, "FETCH", ceiling),
+        is(BigDecimal.valueOf(2)));
   }
 
   @Test void testMethodCallExpression() {
