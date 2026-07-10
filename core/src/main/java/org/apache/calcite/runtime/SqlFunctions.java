@@ -210,18 +210,24 @@ public class SqlFunctions {
 
   @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
-      lists -> {
-        final List<Enumerator<@Nullable Object>> enumerators = new ArrayList<>();
-        for (Object list : lists) {
-          enumerators.add(Linq4j.enumerator((List) list));
-        }
-        final Enumerator<List<@Nullable Object>> product = Linq4j.product(enumerators);
-        return new AbstractEnumerable<@Nullable Object[]>() {
-          @Override public Enumerator<@Nullable Object[]> enumerator() {
-            return Linq4j.transform(product, List::toArray);
-          }
-        };
-      };
+      SqlFunctions::arrayCartesianProduct;
+
+  /**
+   * WARNING: keep this logic as a static method. JDK 8 and 11 produce invalid bytecode when
+   * checkerframework annotations are used on static lambdas. See CALCITE-6393.
+   */
+  private static Enumerable<@Nullable Object[]> arrayCartesianProduct(Object[] lists) {
+    final List<Enumerator<@Nullable Object>> enumerators = new ArrayList<>();
+    for (Object list : lists) {
+      enumerators.add(Linq4j.enumerator((List) list));
+    }
+    final Enumerator<List<@Nullable Object>> product = Linq4j.product(enumerators);
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return Linq4j.transform(product, List::toArray);
+      }
+    };
+  }
 
   /** Holds, for each thread, a map from sequence name to sequence current
    * value.
