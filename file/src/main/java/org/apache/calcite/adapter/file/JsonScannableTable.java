@@ -46,11 +46,20 @@ public class JsonScannableTable extends JsonTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
-        JavaTypeFactory typeFactory = root.getTypeFactory();
-        return new JsonEnumerator(getDataList(typeFactory));
-      }
-    };
+    return new JsonScannableTableEnumerable(root);
+  }
+
+  /** Enumerable for {@link JsonScannableTable}. */
+  private class JsonScannableTableEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    private final DataContext root;
+
+    JsonScannableTableEnumerable(DataContext root) {
+      this.root = root;
+    }
+
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      JavaTypeFactory typeFactory = root.getTypeFactory();
+      return new JsonEnumerator(getDataList(typeFactory));
+    }
   }
 }

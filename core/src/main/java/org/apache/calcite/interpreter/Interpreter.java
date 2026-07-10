@@ -118,11 +118,19 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       rows = Linq4j.iterableEnumerator(queue);
     }
 
-    return new TransformedEnumerator<Row, @Nullable Object[]>(rows) {
-      @Override protected @Nullable Object[] transform(Row row) {
-        return row.getValues();
-      }
-    };
+    return new InterpreterEnumerator(rows);
+  }
+
+  /** Enumerator for {@link Interpreter}. */
+  private static class InterpreterEnumerator
+      extends TransformedEnumerator<Row, @Nullable Object[]> {
+    InterpreterEnumerator(Enumerator<Row> rows) {
+      super(rows);
+    }
+
+    @Override protected @Nullable Object[] transform(Row row) {
+      return row.getValues();
+    }
   }
 
   @SuppressWarnings("CatchAndPrintStackTrace")

@@ -205,30 +205,48 @@ public class EnumerableInterpretable extends ConverterImpl
 
       @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
         final Enumerable<?> enumerable = bindable.bind(dataContext);
-        return new AbstractEnumerable<@Nullable Object[]>() {
-          @Override public Enumerator<@Nullable Object[]> enumerator() {
-            final Enumerator<?> enumerator = enumerable.enumerator();
-            return new Enumerator<@Nullable Object[]>() {
-              @Override public @Nullable Object[] current() {
-                return new Object[] {enumerator.current()};
-              }
-
-              @Override public boolean moveNext() {
-                return enumerator.moveNext();
-              }
-
-              @Override public void reset() {
-                enumerator.reset();
-              }
-
-              @Override public void close() {
-                enumerator.close();
-              }
-            };
-          }
-        };
+        return new BoxEnumerable(enumerable);
       }
     };
+  }
+
+  /** Enumerable for {@link #box(Bindable)}. */
+  private static class BoxEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    private final Enumerable<?> enumerable;
+
+    BoxEnumerable(Enumerable<?> enumerable) {
+      this.enumerable = enumerable;
+    }
+
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      final Enumerator<?> enumerator = enumerable.enumerator();
+      return new BoxEnumerator(enumerator);
+    }
+  }
+
+  /** Enumerator for {@link #box(Bindable)}. */
+  private static class BoxEnumerator implements Enumerator<@Nullable Object[]> {
+    private final Enumerator<?> enumerator;
+
+    BoxEnumerator(Enumerator<?> enumerator) {
+      this.enumerator = enumerator;
+    }
+
+    @Override public @Nullable Object[] current() {
+      return new Object[] { enumerator.current()};
+    }
+
+    @Override public boolean moveNext() {
+      return enumerator.moveNext();
+    }
+
+    @Override public void reset() {
+      enumerator.reset();
+    }
+
+    @Override public void close() {
+      enumerator.close();
+    }
   }
 
   /** Interpreter node that reads from an {@link Enumerable}.

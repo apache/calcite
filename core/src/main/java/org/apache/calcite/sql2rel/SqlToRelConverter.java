@@ -2967,32 +2967,7 @@ public class SqlToRelConverter {
     final Set<String> patternVarsSet = new HashSet<>();
     SqlNode pattern = matchRecognize.getPattern();
     final SqlBasicVisitor<@Nullable RexNode> patternVarVisitor =
-        new SqlBasicVisitor<@Nullable RexNode>() {
-          @Override public RexNode visit(SqlCall call) {
-            List<SqlNode> operands = call.getOperandList();
-            List<RexNode> newOperands = new ArrayList<>();
-            for (SqlNode node : operands) {
-              RexNode arg = requireNonNull(node.accept(this), node::toString);
-              newOperands.add(arg);
-            }
-            return rexBuilder.makeCall(call.getParserPosition(),
-              validator().getUnknownType(), call.getOperator(), newOperands);
-          }
-
-          @Override public RexNode visit(SqlIdentifier id) {
-            assert id.isSimple();
-            patternVarsSet.add(id.getSimple());
-            return rexBuilder.makeLiteral(id.getSimple());
-          }
-
-          @Override public RexNode visit(SqlLiteral literal) {
-            if (literal instanceof SqlNumericLiteral) {
-              return rexBuilder.makeExactLiteral(BigDecimal.valueOf(literal.intValue(true)));
-            } else {
-              return rexBuilder.makeLiteral(literal.booleanValue());
-            }
-          }
-        };
+        new PatternVarVisitor(patternVarsSet);
     final RexNode patternNode = pattern.accept(patternVarVisitor);
     if (patternNode == null) {
       throw new AssertionError("pattern is not found in " + pattern);
@@ -7122,6 +7097,40 @@ public class SqlToRelConverter {
         return measureScope.lookupMeasure(identifier.getSimple());
       }
       return super.lookupMeasure(identifier);
+    }
+  }
+
+  /** Visitor for {@link #convertMatchRecognize(Blackboard, SqlMatchRecognize)}. */
+  private class PatternVarVisitor extends SqlBasicVisitor<@Nullable RexNode> {
+    private final Set<String> patternVarsSet;
+
+    PatternVarVisitor(Set<String> patternVarsSet) {
+      this.patternVarsSet = patternVarsSet;
+    }
+
+    @Override public RexNode visit(SqlCall call) {
+      List<SqlNode> operands = call.getOperandList();
+      List<RexNode> newOperands = new ArrayList<>();
+      for (SqlNode node : operands) {
+        RexNode arg = requireNonNull(node.accept(this), node::toString);
+        newOperands.add(arg);
+      }
+      return rexBuilder.makeCall(call.getParserPosition(),
+        validator().getUnknownType(), call.getOperator(), newOperands);
+    }
+
+    @Override public RexNode visit(SqlIdentifier id) {
+      assert id.isSimple();
+      patternVarsSet.add(id.getSimple());
+      return rexBuilder.makeLiteral(id.getSimple());
+    }
+
+    @Override public RexNode visit(SqlLiteral literal) {
+      if (literal instanceof SqlNumericLiteral) {
+        return rexBuilder.makeExactLiteral(BigDecimal.valueOf(literal.intValue(true)));
+      } else {
+        return rexBuilder.makeLiteral(literal.booleanValue());
+      }
     }
   }
 }
