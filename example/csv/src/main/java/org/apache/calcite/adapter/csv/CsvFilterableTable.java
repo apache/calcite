@@ -63,12 +63,28 @@ public class CsvFilterableTable extends CsvTable
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
-        return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
-            CsvEnumerator.arrayConverter(fieldTypes, fields, false), ',');
-      }
-    };
+    return new CsvFilterableTableEnumerable(cancelFlag, filterValues, fieldTypes, fields);
+  }
+
+  /** Enumerable for {@link CsvFilterableTable}. */
+  private class CsvFilterableTableEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    private final AtomicBoolean cancelFlag;
+    private final @Nullable String[] filterValues;
+    private final List<RelDataType> fieldTypes;
+    private final List<Integer> fields;
+
+    CsvFilterableTableEnumerable(AtomicBoolean cancelFlag, @Nullable String[] filterValues,
+        List<RelDataType> fieldTypes, List<Integer> fields) {
+      this.cancelFlag = cancelFlag;
+      this.filterValues = filterValues;
+      this.fieldTypes = fieldTypes;
+      this.fields = fields;
+    }
+
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
+          CsvEnumerator.arrayConverter(fieldTypes, fields, false), ',');
+    }
   }
 
   private static boolean addFilter(RexNode filter, @Nullable Object[] filterValues) {

@@ -93,38 +93,57 @@ public class ListTransientTable extends AbstractQueryableTable
 
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
 
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
-        return new Enumerator<@Nullable Object[]>() {
-          @SuppressWarnings({"rawtypes", "unchecked"})
-          private final List list = new ArrayList(rows);
-          private int i = -1;
+    return new ListTransientTableEnumerable(cancelFlag);
+  }
 
-          // TODO cleaner way to handle non-array objects?
-          @Override public Object[] current() {
-            Object current = list.get(i);
-            return current != null && current.getClass().isArray()
-                ? (Object[]) current
-                : new Object[]{current};
-          }
+  /** Enumerable for {@link ListTransientTable}. */
+  private class ListTransientTableEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    private final @Nullable AtomicBoolean cancelFlag;
 
-          @Override public boolean moveNext() {
-            if (cancelFlag != null && cancelFlag.get()) {
-              return false;
-            }
+    ListTransientTableEnumerable(@Nullable AtomicBoolean cancelFlag) {
+      this.cancelFlag = cancelFlag;
+    }
 
-            return ++i < list.size();
-          }
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      return new ListTransientTableEnumerator(cancelFlag);
+    }
+  }
 
-          @Override public void reset() {
-            i = -1;
-          }
+  /** Enumerator for {@link ListTransientTable}. */
+  private class ListTransientTableEnumerator implements Enumerator<@Nullable Object[]> {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private final List list;
+    private final @Nullable AtomicBoolean cancelFlag;
+    private int i;
 
-          @Override public void close() {
-          }
-        };
+    ListTransientTableEnumerator(@Nullable AtomicBoolean cancelFlag) {
+      this.cancelFlag = cancelFlag;
+      list = new ArrayList(rows);
+      i = -1;
+    }
+
+    // TODO cleaner way to handle non-array objects?
+    @Override public Object[] current() {
+      Object current = list.get(i);
+      return current != null && current.getClass().isArray()
+          ? (Object[]) current
+          : new Object[]{current};
+    }
+
+    @Override public boolean moveNext() {
+      if (cancelFlag != null && cancelFlag.get()) {
+        return false;
       }
-    };
+
+      return ++i < list.size();
+    }
+
+    @Override public void reset() {
+      i = -1;
+    }
+
+    @Override public void close() {
+    }
   }
 
   @Override public Expression getExpression(SchemaPlus schema, String tableName,

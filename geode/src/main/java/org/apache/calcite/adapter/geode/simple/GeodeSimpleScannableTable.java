@@ -58,18 +58,29 @@ public class GeodeSimpleScannableTable extends AbstractTable implements Scannabl
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
-        return new GeodeSimpleEnumerator<@Nullable Object[]>(clientCache, regionName) {
-          @Override public @Nullable Object[] convert(Object obj) {
-            Object values = convertToRowValues(relDataType.getFieldList(), obj);
-            if (values instanceof Object[]) {
-              return (Object[]) values;
-            }
-            return new Object[]{values};
-          }
-        };
+    return new GeodeSimpleScannableTableEnumerable();
+  }
+
+  /** Enumerable for {@link GeodeSimpleScannableTable}. */
+  private class GeodeSimpleScannableTableEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      return new GeodeSimpleScannableTableEnumerator();
+    }
+  }
+
+  /** Enumerator for {@link GeodeSimpleScannableTable}. */
+  private class GeodeSimpleScannableTableEnumerator
+      extends GeodeSimpleEnumerator<@Nullable Object[]> {
+    GeodeSimpleScannableTableEnumerator() {
+      super(GeodeSimpleScannableTable.this.clientCache, GeodeSimpleScannableTable.this.regionName);
+    }
+
+    @Override public @Nullable Object[] convert(Object obj) {
+      Object values = convertToRowValues(relDataType.getFieldList(), obj);
+      if (values instanceof Object[]) {
+        return (Object[]) values;
       }
-    };
+      return new Object[]{values};
+    }
   }
 }

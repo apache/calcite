@@ -217,121 +217,148 @@ public class FilesTableFunction {
         default:
           enumerable = sourceLinux();
         }
-        return new AbstractEnumerable<@Nullable Object[]>() {
-          @Override public Enumerator<@Nullable Object[]> enumerator() {
-            final Enumerator<String> e = enumerable.enumerator();
-            return new Enumerator<@Nullable Object[]>() {
-              @Nullable Object @Nullable [] current;
-
-              @Override public Object[] current() {
-                return requireNonNull(current, "current");
-              }
-
-              @Override public boolean moveNext() {
-                current = new Object[fieldNames.size()];
-                for (int i = 0; i < current.length; i++) {
-                  if (!e.moveNext()) {
-                    return false;
-                  }
-                  final String v = e.current();
-                  try {
-                    current[i] = field(fieldNames.get(i), v);
-                  } catch (RuntimeException e) {
-                    throw new RuntimeException("while parsing value ["
-                        + v + "] of field [" + fieldNames.get(i)
-                        + "] in line [" + Arrays.toString(current) + "]", e);
-                  }
-                }
-                switch (osName) {
-                case "Mac OS X":
-                  // post-process fields: compute filename, dir_name, depth from path
-                  String path = requireNonNull((String) current[14]);
-                  if (".".equals(path)) {
-                    current[14] = path = "";
-                    current[3] = 0; // depth
-                  } else if (path.startsWith("./")) {
-                    current[14] = path = path.substring(2);
-                    current[3] = count(path, '/') + 1; // depth
-                  } else {
-                    current[3] = count(path, '/'); // depth
-                  }
-                  final int slash = path.lastIndexOf('/');
-                  if (slash >= 0) {
-                    current[5] = path.substring(slash + 1); // filename
-                    current[9] = path.substring(0, slash); // dir_name
-                  } else {
-                    current[5] = path; // filename
-                    current[9] = ""; // dir_name
-                  }
-
-                  // detect output format: BSD outputs single chars, GNU outputs words
-                  final String type = requireNonNull((String) current[19]);
-                  if (type.length() > 1) {
-                    // GNU stat outputs descriptive types like "regular file", "directory"
-                    current[19] = type.contains("directory") ? "d"
-                        : type.contains("regular") ? "f"
-                        : type.contains("symbolic") ? "l"
-                        : type.contains("block") ? "b"
-                        : type.contains("character") ? "c"
-                        : type.contains("fifo") ? "p"
-                        : type.contains("socket") ? "s"
-                        : "?";
-                  } else {
-                    // BSD stat outputs single characters: "/" "*" "@" or ""
-                    current[19] = "/".equals(type) ? "d"
-                        : "".equals(type) || "*".equals(type) ? "f"
-                        : "@".equals(type) ? "l"
-                        : type;
-                  }
-                  break;
-                default:
-                  break;
-                }
-                return true;
-              }
-
-              private int count(String s, char c) {
-                int n = 0;
-                for (int i = 0, len = s.length(); i < len; i++) {
-                  if (s.charAt(i) == c) {
-                    ++n;
-                  }
-                }
-                return n;
-              }
-
-              @Override public void reset() {
-                throw new UnsupportedOperationException();
-              }
-
-              @Override public void close() {
-                e.close();
-              }
-
-              private Object field(String field, String value) {
-                switch (field) {
-                case "block_count":
-                case "depth":
-                case "device":
-                case "gid":
-                case "uid":
-                case "hard":
-                  return Integer.valueOf(value);
-                case "inode":
-                case "size":
-                  return Long.valueOf(value);
-                case "access_time":
-                case "change_time":
-                case "mod_time":
-                  return new BigDecimal(value).multiply(THOUSAND).longValue();
-                default:
-                  return value;
-                }
-              }
-            };
-          }
-        };
+        return new FilesTableFunctionEnumerable(enumerable, fieldNames, osName);
       }
     };
+  }
+
+  /** Enumerable for {@link FilesTableFunction}. */
+  private static class FilesTableFunctionEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    private final Enumerable<String> enumerable;
+    private final List<String> fieldNames;
+    private final String osName;
+
+    FilesTableFunctionEnumerable(Enumerable<String> enumerable, List<String> fieldNames,
+        String osName) {
+      this.enumerable = enumerable;
+      this.fieldNames = fieldNames;
+      this.osName = osName;
+    }
+
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      final Enumerator<String> e = enumerable.enumerator();
+      return new FilesTableFunctionEnumerator(fieldNames, e, osName);
+    }
+  }
+
+  /** Enumerator for {@link FilesTableFunction}. */
+  private static class FilesTableFunctionEnumerator implements Enumerator<@Nullable Object[]> {
+    private final List<String> fieldNames;
+    private final Enumerator<String> e;
+    private final String osName;
+    @Nullable Object @Nullable [] current;
+
+    FilesTableFunctionEnumerator(List<String> fieldNames, Enumerator<String> e,
+        String osName) {
+      this.fieldNames = fieldNames;
+      this.e = e;
+      this.osName = osName;
+    }
+
+    @Override public Object[] current() {
+      return requireNonNull(current, "current");
+    }
+
+    @Override public boolean moveNext() {
+      current = new Object[fieldNames.size()];
+      for (int i = 0; i < current.length; i++) {
+        if (!e.moveNext()) {
+          return false;
+        }
+        final String v = e.current();
+        try {
+          current[i] = field(fieldNames.get(i), v);
+        } catch (RuntimeException e) {
+          throw new RuntimeException("while parsing value ["
+              + v + "] of field [" + fieldNames.get(i)
+              + "] in line [" + Arrays.toString(current) + "]", e);
+        }
+      }
+      switch (osName) {
+      case "Mac OS X":
+        // post-process fields: compute filename, dir_name, depth from path
+        String path = requireNonNull((String) current[14]);
+        if (".".equals(path)) {
+          current[14] = path = "";
+          current[3] = 0; // depth
+        } else if (path.startsWith("./")) {
+          current[14] = path = path.substring(2);
+          current[3] = count(path, '/') + 1; // depth
+        } else {
+          current[3] = count(path, '/'); // depth
+        }
+        final int slash = path.lastIndexOf('/');
+        if (slash >= 0) {
+          current[5] = path.substring(slash + 1); // filename
+          current[9] = path.substring(0, slash); // dir_name
+        } else {
+          current[5] = path; // filename
+          current[9] = ""; // dir_name
+        }
+
+        // detect output format: BSD outputs single chars, GNU outputs words
+        final String type = requireNonNull((String) current[19]);
+        if (type.length() > 1) {
+          // GNU stat outputs descriptive types like "regular file", "directory"
+          current[19] = type.contains("directory") ? "d"
+              : type.contains("regular") ? "f"
+              : type.contains("symbolic") ? "l"
+              : type.contains("block") ? "b"
+              : type.contains("character") ? "c"
+              : type.contains("fifo") ? "p"
+              : type.contains("socket") ? "s"
+              : "?";
+        } else {
+          // BSD stat outputs single characters: "/" "*" "@" or ""
+          current[19] = "/".equals(type) ? "d"
+              : "".equals(type) || "*".equals(type) ? "f"
+              : "@".equals(type) ? "l"
+              : type;
+        }
+        break;
+      default:
+        break;
+      }
+      return true;
+    }
+
+    private int count(String s, char c) {
+      int n = 0;
+      for (int i = 0, len = s.length(); i < len; i++) {
+        if (s.charAt(i) == c) {
+          ++n;
+        }
+      }
+      return n;
+    }
+
+    @Override public void reset() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public void close() {
+      e.close();
+    }
+
+    private Object field(String field, String value) {
+      switch (field) {
+      case "block_count":
+      case "depth":
+      case "device":
+      case "gid":
+      case "uid":
+      case "hard":
+        return Integer.valueOf(value);
+      case "inode":
+      case "size":
+        return Long.valueOf(value);
+      case "access_time":
+      case "change_time":
+      case "mod_time":
+        return new BigDecimal(value).multiply(THOUSAND).longValue();
+      default:
+        return value;
+      }
+    }
   }
 }

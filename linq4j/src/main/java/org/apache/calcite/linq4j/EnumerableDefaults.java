@@ -4879,32 +4879,35 @@ public abstract class EnumerableDefaults {
     }
 
     @Override public Set<Entry<@KeyFor("this") K, V>> entrySet() {
-      return new AbstractSet<Entry<@KeyFor("this") K, V>>() {
-        @SuppressWarnings("override.return.invalid")
-        @Override public Iterator<Entry<K, V>> iterator() {
-          final Iterator<Entry<Wrapped<K>, V>> iterator =
-              map.entrySet().iterator();
+      return new WrapMapEntrySet();
+    }
 
-          return new Iterator<Entry<K, V>>() {
-            @Override public boolean hasNext() {
-              return iterator.hasNext();
-            }
+    /** EntrySet for {@link WrapMap}. */
+    private class WrapMapEntrySet extends AbstractSet<Entry<@KeyFor("this") K, V>> {
+      @SuppressWarnings("override.return.invalid")
+      @Override public Iterator<Entry<K, V>> iterator() {
+        final Iterator<Entry<Wrapped<K>, V>> iterator =
+            map.entrySet().iterator();
 
-            @Override public Entry<K, V> next() {
-              Entry<Wrapped<K>, V> next = iterator.next();
-              return new SimpleEntry<>(next.getKey().element, next.getValue());
-            }
+        return new Iterator<Entry<K, V>>() {
+          @Override public boolean hasNext() {
+            return iterator.hasNext();
+          }
 
-            @Override public void remove() {
-              iterator.remove();
-            }
-          };
-        }
+          @Override public Entry<K, V> next() {
+            Entry<Wrapped<K>, V> next = iterator.next();
+            return new SimpleEntry<>(next.getKey().element, next.getValue());
+          }
 
-        @Override public int size() {
-          return map.size();
-        }
-      };
+          @Override public void remove() {
+            iterator.remove();
+          }
+        };
+      }
+
+      @Override public int size() {
+        return map.size();
+      }
     }
 
     @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")

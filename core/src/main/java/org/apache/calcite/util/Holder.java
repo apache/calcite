@@ -64,6 +64,6 @@ public class Holder<E> {
   /** Creates a holder containing null. */
   @SuppressWarnings("ConstantConditions")
   public static <E> Holder<@Nullable E> empty() {
-    return new Holder<@Nullable E>(null);
+    return new Holder<>(null);
   }
 }

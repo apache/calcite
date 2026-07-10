@@ -60,31 +60,40 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
 
   @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
-        if (tableOptions.getConsumer() != null) {
-          return new KafkaMessageEnumerator(tableOptions.getConsumer(),
-              tableOptions.getRowConverter(), cancelFlag);
-        }
+    return new KafkaStreamTableEnumerable(cancelFlag);
+  }
 
-        Properties consumerConfig = new Properties();
-        consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-            tableOptions.getBootstrapServers());
-        // by default it's <byte[], byte[]>
-        consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-            "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-            "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+  /** Enumerable for {@link KafkaStreamTable}. */
+  private class KafkaStreamTableEnumerable extends AbstractEnumerable<@Nullable Object[]> {
+    private final AtomicBoolean cancelFlag;
 
-        if (tableOptions.getConsumerParams() != null) {
-          consumerConfig.putAll(tableOptions.getConsumerParams());
-        }
-        Consumer consumer = new KafkaConsumer<>(consumerConfig);
-        consumer.subscribe(Collections.singletonList(tableOptions.getTopicName()));
+    KafkaStreamTableEnumerable(AtomicBoolean cancelFlag) {
+      this.cancelFlag = cancelFlag;
+    }
 
-        return new KafkaMessageEnumerator(consumer, tableOptions.getRowConverter(), cancelFlag);
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      if (tableOptions.getConsumer() != null) {
+        return new KafkaMessageEnumerator(tableOptions.getConsumer(),
+            tableOptions.getRowConverter(), cancelFlag);
       }
-    };
+
+      Properties consumerConfig = new Properties();
+      consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+          tableOptions.getBootstrapServers());
+      // by default it's <byte[], byte[]>
+      consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+          "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+      consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+          "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+
+      if (tableOptions.getConsumerParams() != null) {
+        consumerConfig.putAll(tableOptions.getConsumerParams());
+      }
+      Consumer consumer = new KafkaConsumer<>(consumerConfig);
+      consumer.subscribe(Collections.singletonList(tableOptions.getTopicName()));
+
+      return new KafkaMessageEnumerator(consumer, tableOptions.getRowConverter(), cancelFlag);
+    }
   }
 
   @Override public RelDataType getRowType(final RelDataTypeFactory typeFactory) {
