@@ -117,6 +117,16 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    // BigQuery treats backslash as an escape character inside string literals,
+    // so a literal backslash must be doubled before the base method escapes the
+    // enclosing quote as \'. Otherwise a value containing a backslash (e.g.
+    // "x\" or "\'; ...") terminates the literal early and the trailing text is
+    // parsed as SQL rather than data.
+    super.quoteStringLiteral(buf, charsetName, val.replace("\\", "\\\\"));
+  }
+
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
             && RexUtil.isLiteral(call.getOperands().get(0), false)

@@ -3905,6 +3905,20 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expectedBigQuery);
   }
 
+  /** Tests that a backslash in a character literal is escaped for BigQuery,
+   * which uses backslash as the escape character. Without doubling the
+   * backslash the generated literal is terminated early. */
+  @Test void testCharLiteralWithBackslashForBigQuery() {
+    final String query = "select 'a\\b' from \"product\"";
+    final String expectedPostgresql = "SELECT 'a\\b'\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedBigQuery = "SELECT 'a\\\\b'\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withPostgresql().ok(expectedPostgresql)
+        .withBigQuery().ok(expectedBigQuery);
+  }
+
   @Test void testIdentifier() {
     // Note that IGNORE is reserved in BigQuery but not in standard SQL
     final String query = "select *\n"
