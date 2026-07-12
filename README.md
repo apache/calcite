@@ -17,8 +17,8 @@ limitations under the License.
 {% endcomment %}
 -->
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.calcite/calcite-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.apache.calcite/calcite-core)
-[![CI Status](https://github.com/apache/calcite/workflows/CI/badge.svg?branch=main)](https://github.com/apache/calcite/actions?query=branch%3Amain)
+[![Maven Central](https://maven-badges.sml.io/maven-central/org.apache.calcite/calcite-core/badge.svg)](https://central.sonatype.com/artifact/org.apache.calcite/calcite-core)
+[![CI Status](https://github.com/apache/calcite/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/apache/calcite/actions?query=branch%3Amain)
 
 # Apache Calcite
 
