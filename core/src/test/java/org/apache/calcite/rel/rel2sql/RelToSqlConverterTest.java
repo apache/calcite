@@ -1617,6 +1617,67 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7652">[CALCITE-7652]
+   * MssqlSqlDialect unparses CAST to TIMESTAMP as "TIMESTAMP", which is invalid
+   * in SQL Server (should be DATETIME2)</a>. */
+  @Test void testCastToTimestampMssql() {
+    final String query = "select cast(\"hire_date\" as timestamp(3))\n"
+        + "from \"employee\"";
+    final String expectedMssql = "SELECT CAST([hire_date] AS DATETIME2(3))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query).withMssql().ok(expectedMssql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7652">[CALCITE-7652]
+   * MssqlSqlDialect unparses CAST to TIMESTAMP as "TIMESTAMP", which is invalid
+   * in SQL Server (should be DATETIME2)</a>. TIMESTAMP WITH LOCAL TIME ZONE maps
+   * to DATETIMEOFFSET. */
+  @Test void testCastToTimestampWithLocalTimeZoneMssql() {
+    final String query = "select cast(\"hire_date\" as timestamp(3) with local time zone)\n"
+        + "from \"employee\"";
+    final String expectedMssql = "SELECT CAST([hire_date] AS DATETIMEOFFSET(3))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query).withMssql().ok(expectedMssql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7652">[CALCITE-7652]
+   * MssqlSqlDialect unparses CAST to TIMESTAMP as "TIMESTAMP", which is invalid
+   * in SQL Server (should be DATETIME2)</a>. SQL Server's DATETIME2 and
+   * DATETIMEOFFSET support a fractional-seconds precision of at most 7, so a
+   * higher precision (only reachable through a custom type system, since
+   * Calcite's default caps TIMESTAMP precision at 3) is clamped to 7. */
+  @Test void testCastToTimestampMssqlClampsPrecision() {
+    final RelDataTypeSystem typeSystem = new RelDataTypeSystemImpl() {
+      @Override public int getMaxPrecision(SqlTypeName typeName) {
+        switch (typeName) {
+        case TIMESTAMP:
+        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+          return 9;
+        default:
+          return super.getMaxPrecision(typeName);
+        }
+      }
+    };
+    final SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(typeSystem);
+    final RelDataType timestamp9 =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 9);
+    final SqlNode timestampCast = MssqlSqlDialect.DEFAULT.getCastSpec(timestamp9);
+    assertThat(timestampCast, notNullValue());
+    assertThat(timestampCast.toSqlString(MssqlSqlDialect.DEFAULT).getSql(),
+        is("DATETIME2(7)"));
+
+    final RelDataType timestampTz9 =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 9);
+    final SqlNode timestampTzCast =
+        MssqlSqlDialect.DEFAULT.getCastSpec(timestampTz9);
+    assertThat(timestampTzCast, notNullValue());
+    assertThat(timestampTzCast.toSqlString(MssqlSqlDialect.DEFAULT).getSql(),
+        is("DATETIMEOFFSET(7)"));
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4706">[CALCITE-4706]

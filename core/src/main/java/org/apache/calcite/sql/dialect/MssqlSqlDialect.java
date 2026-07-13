@@ -22,8 +22,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -80,6 +82,10 @@ public class MssqlSqlDialect extends SqlDialect {
       SqlBasicFunction.create("SUBSTRING", ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
+  /** Maximum fractional-seconds precision of SQL Server's {@code DATETIME2}
+   * and {@code DATETIMEOFFSET} types. */
+  private static final int MAX_DATETIME_PRECISION = 7;
+
   /** Whether to generate "SELECT TOP(fetch)" rather than
    * "SELECT ... FETCH NEXT fetch ROWS ONLY". */
   private final boolean top;
@@ -90,6 +96,39 @@ public class MssqlSqlDialect extends SqlDialect {
     // MSSQL 2008 (version 10) and earlier only supports TOP
     // MSSQL 2012 (version 11) and higher supports OFFSET and FETCH
     top = context.databaseMajorVersion() < 11;
+  }
+
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case TIMESTAMP:
+      // In SQL Server, TIMESTAMP is a deprecated synonym for ROWVERSION
+      // (a binary, auto-generated type), not a temporal type. The correct
+      // fixed-precision date/time type is DATETIME2 (SQL Server 2008+).
+      return createDatetimeCastSpec("DATETIME2", type);
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      // SQL Server's timezone-aware date/time type.
+      return createDatetimeCastSpec("DATETIMEOFFSET", type);
+    default:
+      return super.getCastSpec(type);
+    }
+  }
+
+  /** Builds a SQL Server date/time cast target such as {@code DATETIME2(3)}.
+   *
+   * <p>SQL Server supports a fractional-seconds precision in the range
+   * {@code [0, 7]}. An unspecified precision is omitted, letting SQL Server
+   * apply its own default (7); a higher precision is clamped to 7. A precision
+   * above 7 is only reachable through a custom type system, since Calcite's
+   * default caps TIMESTAMP precision at
+   * {@link org.apache.calcite.sql.type.SqlTypeName#MAX_DATETIME_PRECISION}. */
+  private static SqlNode createDatetimeCastSpec(String typeAlias, RelDataType type) {
+    final int precision = type.getPrecision();
+    final String spec = precision < 0
+        ? typeAlias
+        : typeAlias + "(" + Math.min(precision, MAX_DATETIME_PRECISION) + ")";
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(spec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
   }
 
   /** {@inheritDoc}
