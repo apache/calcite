@@ -23,6 +23,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests {@link org.apache.calcite.runtime.SpatialTypeUtilsTest}.
@@ -52,5 +53,23 @@ class SpatialTypeUtilsTest {
     Geometry g1 = gf.createPoint(new Coordinate(1, 2));
     g1.setSRID(1234);
     assertThat(SpatialTypeUtils.asEwkt(g1), is("srid:1234;POINT (1 2)"));
+  }
+
+  @Test void testFromGml() {
+    Geometry g = SpatialTypeUtils.fromGml("<gml:Point xmlns:gml=\"http://www.opengis.net/gml\">"
+        + "<gml:coordinates>1,2</gml:coordinates></gml:Point>");
+    assertThat(g.getCoordinate().getX(), is(1D));
+    assertThat(g.getCoordinate().getY(), is(2D));
+  }
+
+  /** Tests that GML parsing does not process DOCTYPE declarations or external
+   * entities, so a crafted document cannot read local files or open network
+   * connections (XXE). */
+  @Test void testFromGmlRejectsDoctype() {
+    String gml = "<?xml version=\"1.0\"?>\n"
+        + "<!DOCTYPE Point [ <!ENTITY xxe \"1,2\"> ]>\n"
+        + "<gml:Point xmlns:gml=\"http://www.opengis.net/gml\">"
+        + "<gml:coordinates>&xxe;</gml:coordinates></gml:Point>";
+    assertThrows(RuntimeException.class, () -> SpatialTypeUtils.fromGml(gml));
   }
 }
