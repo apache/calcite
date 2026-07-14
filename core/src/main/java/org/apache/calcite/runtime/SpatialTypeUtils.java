@@ -35,6 +35,7 @@ import org.locationtech.jts.io.gml2.GMLHandler;
 import org.locationtech.jts.io.gml2.GMLWriter;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -150,7 +151,7 @@ public class SpatialTypeUtils {
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       SAXParser parser = factory.newSAXParser();
-      GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, null);
+      GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, new DefaultHandler());
       parser.parse(new InputSource(new StringReader(gml)), handler);
       return handler.getGeometry();
     } catch (SAXException | IOException | ParserConfigurationException e) {
