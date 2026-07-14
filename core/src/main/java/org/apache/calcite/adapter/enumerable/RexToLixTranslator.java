@@ -401,10 +401,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       final RelDataType targetDataType = targetType.getComponentType();
       assert sourceDataType != null;
       assert targetDataType != null;
+      final Type sourceComponentClass = typeFactory.getJavaClass(sourceDataType);
       final ParameterExpression parameter =
-          Expressions.parameter(typeFactory.getJavaClass(sourceDataType), "root");
+          Expressions.parameter(sourceComponentClass, "root");
+      // A NULL component type maps to java.lang.Void. Such elements are always null,
+      // so convert to a null constant instead of the parameter.
+      final Expression element =
+          sourceComponentClass == Void.class ? Expressions.constant(null) : parameter;
       Expression convert =
-          getConvertExpression(sourceDataType, targetDataType, parameter, format);
+          getConvertExpression(sourceDataType, targetDataType, element, format);
       return Expressions.call(BuiltInMethod.LIST_TRANSFORM.method, operand,
           Expressions.lambda(Function1.class, convert, parameter));
 
