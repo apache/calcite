@@ -107,6 +107,14 @@ public class SqlDotOperator extends SqlSpecialOperator {
       return validator.getTypeFactory().createTypeWithNullability(nodeType, true);
     }
 
+    if (nodeType.getSqlTypeName() == SqlTypeName.ANY
+        && SqlValidatorUtil.inLambdaWithUntypedParameters(scope)) {
+      // The lambda parameters' types are not known until the enclosing call
+      // has inferred its operand types.  Field resolution happens when the
+      // lambda type checker re-validates the lambda body.
+      return validator.getTypeFactory().createTypeWithNullability(nodeType, true);
+    }
+
     if (!nodeType.isStruct()) {
       throw SqlUtil.newContextException(operand.getParserPosition(),
           Static.RESOURCE.incompatibleTypes());

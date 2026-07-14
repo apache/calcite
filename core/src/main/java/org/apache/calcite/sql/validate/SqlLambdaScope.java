@@ -62,16 +62,17 @@ public class SqlLambdaScope extends ListScope {
   }
 
   @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
-    if (identifier.isSimple()) {
-      final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
-      final String name = identifier.getSimple();
-      boolean found = lambdaExpr.getParameters()
-          .stream()
-          .anyMatch(param ->
-              nameMatcher.matches(((SqlIdentifier) param).getSimple(), name));
-      if (found) {
-        return SqlQualified.create(this, 1, null, identifier);
-      }
+    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+    final String name = identifier.names.get(0);
+    boolean found = lambdaExpr.getParameters()
+        .stream()
+        .anyMatch(param ->
+            nameMatcher.matches(((SqlIdentifier) param).getSimple(), name));
+    if (found) {
+      // If the first component names a parameter, in a compound identifier
+      // such as 'x.name' the remaining components are fields of the
+      // parameter's struct.
+      return SqlQualified.create(this, 1, null, identifier);
     }
     if (!validator.config().conformance().allowLambdaClosure()) {
       throw validator.newValidationError(identifier,
