@@ -104,11 +104,11 @@ public final class BookstoreSchema {
   /** Coordinate. */
   public static class Coordinate {
     public final BigDecimal latitude;
-    public final BigDecimal longtitude;
+    public final BigDecimal longitude;
 
-    public Coordinate(BigDecimal latitude, BigDecimal longtitude) {
+    public Coordinate(BigDecimal latitude, BigDecimal longitude) {
       this.latitude = latitude;
-      this.longtitude = longtitude;
+      this.longitude = longitude;
     }
   }
 
