@@ -57,6 +57,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -1676,6 +1677,26 @@ public class SqlValidatorUtil {
     @Override protected Map<String, Table> getTableMap() {
       return tableMap;
     }
+  }
+
+  /** Returns whether {@code scope} is enclosed in the scope of a lambda
+   * expression whose parameter types have not yet been inferred.
+   *
+   * <p>Un-inferred parameters have type ANY, and so does any expression
+   * computed from them, whatever its shape; field resolution on such
+   * values must be deferred until the enclosing call has inferred the
+   * parameter types and re-validates the lambda body (see
+   * {@link SqlValidator#validateLambda}). */
+  public static boolean inLambdaWithUntypedParameters(SqlValidatorScope scope) {
+    for (SqlValidatorScope s = scope; s instanceof DelegatingScope;
+        s = ((DelegatingScope) s).getParent()) {
+      if (s instanceof SqlLambdaScope
+          && ((SqlLambdaScope) s).getParameterTypes().values().stream()
+              .anyMatch(t -> t.getSqlTypeName() == SqlTypeName.ANY)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Flattens any FILTER, WITHIN DISTINCT, WITHIN GROUP surrounding a call to

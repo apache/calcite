@@ -8034,6 +8034,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // Resolve rest of identifier
       for (; i < id.names.size(); i++) {
+        if (type.getSqlTypeName() == SqlTypeName.ANY
+            && SqlValidatorUtil.inLambdaWithUntypedParameters(scope)) {
+          // The lambda parameters' types are not known until the enclosing
+          // call has inferred its operand types.  Field resolution happens
+          // when the lambda type checker re-validates the lambda body.
+          return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.ANY), true);
+        }
         String name = id.names.get(i);
         final RelDataTypeField field;
         if (name.isEmpty()) {

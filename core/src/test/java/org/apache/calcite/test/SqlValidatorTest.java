@@ -8776,6 +8776,55 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "reference to 'EMP.DEPTNO' from enclosing scope");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7654">[CALCITE-7654]
+   * Lambda functions handle incorrectly field accesses</a>.  */
+  @Test void testLambdaStructFieldAccess() {
+    SqlOperatorTable chain =
+        SqlOperatorTables.chain(
+            SqlOperatorTables.of(SqlLibraryOperators.EXISTS),
+            SqlStdOperatorTable.instance());
+    final SqlValidatorFixture s = fixture().withOperatorTable(chain);
+    // EMPLOYEES is ARRAY<ROW(EMPNO, ENAME, DETAIL)>.
+    // Parenthesized form: parses as DOT(e, empno).
+    s.withSql("select \"EXISTS\"(employees, e -> (e).empno > 0)\n"
+            + "from dept_nested")
+        .columnType("BOOLEAN");
+    // Unparenthesized form: parses as compound identifier e.empno.
+    s.withSql("select \"EXISTS\"(employees, e -> e.empno > 0)\n"
+            + "from dept_nested")
+        .columnType("BOOLEAN");
+    // Nested field access.
+    s.withSql("select \"EXISTS\"(employees, e -> (e).detail.skills is not null)\n"
+            + "from dept_nested")
+        .columnType("BOOLEAN");
+    // Field access through an array index: DETAIL.SKILLS is
+    // ARRAY<ROW(TYPE, DESC, OTHERS)>.
+    s.withSql("select \"EXISTS\"(employees,\n"
+            + "  e -> (e).detail.skills[1].\"TYPE\" = 'a')\n"
+            + "from dept_nested")
+        .columnType("BOOLEAN");
+    // Same, starting from a compound identifier.
+    s.withSql("select \"EXISTS\"(employees,\n"
+            + "  e -> e.detail.skills[1].\"TYPE\" = 'a')\n"
+            + "from dept_nested")
+        .columnType("BOOLEAN");
+    // A field that does not exist in the parameter's type.
+    s.withSql("select \"EXISTS\"(employees, e -> e.^bad^ > 0)\n"
+            + "from dept_nested")
+        .fails("Unknown field 'BAD'");
+    // An unknown field behind an array index produces an error.
+    s.withSql("select \"EXISTS\"(employees,\n"
+            + "  e -> e.detail.skills[1].^bad^ = 'a')\n"
+            + "from dept_nested")
+        .fails("Unknown field 'BAD'");
+    // Field access on an expression that is not a simple access chain.
+    s.withSql("select \"EXISTS\"(employees,\n"
+            + "  e -> coalesce((e).detail, e.detail).skills is not null)\n"
+            + "from dept_nested")
+        .columnType("BOOLEAN");
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7193">[CALCITE-7193]
    * In an aggregation validator treats lambda variable names as column names</a>. */
   @Test void testGroupByLambda() {
