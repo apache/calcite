@@ -16083,12 +16083,9 @@ public class SqlOperatorTest {
         "DECIMAL(19, 9)");
     f.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
         "INTEGER");
-    f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
+    f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(2, 1)");
     // with zero values
-    f.checkAgg("covar_samp(x)", new String[]{}, isNullValue());
+    f.checkAgg("covar_samp(x, x)", new String[]{}, isNullValue());
   }
 
   @Test void testRegrSxxFunc() {
@@ -16264,7 +16261,7 @@ public class SqlOperatorTest {
             false);
     f.checkType("var_samp(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("var_samp(CAST(NULL AS INTEGER))", "INTEGER");
-    f.checkAggType("var_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("var_samp(DISTINCT 1.5)", "DECIMAL(2, 1)");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!f.brokenTestsEnabled()) {
       return;
@@ -16292,7 +16289,7 @@ public class SqlOperatorTest {
             false);
     f.checkType("variance(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("variance(CAST(NULL AS INTEGER))", "INTEGER");
-    f.checkAggType("variance(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("variance(DISTINCT 1.5)", "DECIMAL(2, 1)");
 
     final String[] values2 = {"cast(64.34 as double)", "64.34", "64.34"};
     f.checkAgg("variance(x)", values2, isExactly(0));
