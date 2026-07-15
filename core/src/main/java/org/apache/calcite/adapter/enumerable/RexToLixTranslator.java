@@ -341,6 +341,16 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return expressionHandlingSafe(convert3, safe, targetType);
   }
 
+  /** Returns whether every runtime value of {@code type} is null.
+   * This holds for the NULL type, which describes untyped NULL literals,
+   * and for the UNKNOWN type, e.g. the element type inferred for the
+   * no-argument array constructor ARRAY().  Such values are never
+   * created, but the code generated needs to typecheck. */
+  private static boolean valueIsAlwaysNull(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    return typeName == SqlTypeName.UNKNOWN || typeName == SqlTypeName.NULL;
+  }
+
   private Expression getConvertExpression(
       RelDataType sourceType,
       RelDataType targetType,
@@ -366,6 +376,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
 
     if (targetType.getSqlTypeName() == SqlTypeName.ROW) {
+      if (valueIsAlwaysNull(sourceType)) {
+        return Expressions.constant(null);
+      }
       assert sourceType.getSqlTypeName() == SqlTypeName.ROW;
       List<RelDataTypeField> targetTypes = targetType.getFieldList();
       List<RelDataTypeField> sourceTypes = sourceType.getFieldList();
@@ -397,6 +410,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     switch (targetType.getSqlTypeName()) {
     case ARRAY:
     case MULTISET:
+      if (valueIsAlwaysNull(sourceType)) {
+        return Expressions.constant(null);
+      }
       final RelDataType sourceDataType = sourceType.getComponentType();
       final RelDataType targetDataType = targetType.getComponentType();
       assert sourceDataType != null;

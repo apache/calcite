@@ -200,7 +200,7 @@ public class SqlCastFunction extends SqlFunction {
       RelDataType valueType =
           createTypeWithNullabilityFromExpr(
               typeFactory, expressionValueType, targetValueType, safe);
-      SqlTypeUtil.createMapType(typeFactory, keyType, valueType, isNullable);
+      return SqlTypeUtil.createMapType(typeFactory, keyType, valueType, isNullable);
     }
 
     return typeFactory.createTypeWithNullability(targetType, isNullable);

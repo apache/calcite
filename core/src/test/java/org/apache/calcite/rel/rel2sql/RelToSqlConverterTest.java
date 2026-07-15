@@ -3032,25 +3032,25 @@ class RelToSqlConverterTest {
         + " as MAP<varchar,varchar> array)";
     final String expectedClickHouse2 =
         "SELECT CAST(array(map('a', '1'), map('b', '2'), map('c', '3'))"
-            + " AS Array(Map(`String`, `Nullable(String)`)))";
+            + " AS Array(Map(`String`, `String`)))";
     sql(query2).withClickHouse().ok(expectedClickHouse2);
 
     final String query3 = "select cast(MAP['a',ARRAY[1,2,3]]"
         + " as MAP<varchar,integer array>)";
     final String expectedClickHouse3 =
-        "SELECT CAST(map('a', array(1, 2, 3)) AS Map(`String`, Array(`Nullable(Int32)`)))";
+        "SELECT CAST(map('a', array(1, 2, 3)) AS Map(`String`, Array(`Int32`)))";
     sql(query3).withClickHouse().ok(expectedClickHouse3);
 
     final String query4 = "select cast(MAP['a',ARRAY[1.0,2.0,3.0]]"
         + " as MAP<varchar,real array>)";
     final String expectedClickHouse4 =
-        "SELECT CAST(map('a', array(1.0, 2.0, 3.0)) AS Map(`String`, Array(`Nullable(Float32)`)))";
+        "SELECT CAST(map('a', array(1.0, 2.0, 3.0)) AS Map(`String`, Array(`Float32`)))";
     sql(query4).withClickHouse().ok(expectedClickHouse4);
 
     final String query5 = "select cast(MAP['a',MAP['b','c']]"
         + " as MAP<varchar,MAP<varchar,varchar>>)";
     final String expectedClickHouse5 =
-        "SELECT CAST(map('a', map('b', 'c')) AS Map(`String`, Map(`String`, `Nullable(String)`)))";
+        "SELECT CAST(map('a', map('b', 'c')) AS Map(`String`, Map(`String`, `String`)))";
     sql(query5).withClickHouse().ok(expectedClickHouse5);
   }
 
@@ -5652,15 +5652,15 @@ class RelToSqlConverterTest {
   @Test void testCastAsMapType() {
     sql("SELECT CAST(MAP['A', 1.0] AS MAP<VARCHAR, DOUBLE>)")
         .ok("SELECT CAST(MAP['A', 1.0] AS "
-            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", DOUBLE NULL >)\n"
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", DOUBLE >)\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT CAST(MAP['A', ARRAY[1, 2, 3]] AS MAP<VARCHAR, INT ARRAY>)")
         .ok("SELECT CAST(MAP['A', ARRAY[1, 2, 3]] AS "
-            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", INTEGER ARRAY NULL >)\n"
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", INTEGER ARRAY >)\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT CAST(MAP[ARRAY['A'], MAP[1, 2]] AS MAP<VARCHAR ARRAY, MAP<INT, INT>>)")
         .ok("SELECT CAST(MAP[ARRAY['A'], MAP[1, 2]] AS "
-            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\" ARRAY, MAP< INTEGER, INTEGER NULL > NULL >)\n"
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\" ARRAY, MAP< INTEGER, INTEGER > >)\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
   }
 

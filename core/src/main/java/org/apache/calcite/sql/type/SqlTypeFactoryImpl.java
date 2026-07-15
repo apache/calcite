@@ -28,6 +28,7 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -191,11 +192,33 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
     RelDataType type0 = types.get(0);
     if (type0.getSqlTypeName() != null) {
-      RelDataType resultType = leastRestrictiveSqlType(types);
-      if (resultType != null) {
-        return resultType;
+      // First preprocess to filter out UNKNOWN types.
+      // leastRestrictive() can be thought as a form of type unification,
+      // and UNKNOWN behaves like an unbound type variable: it unifies with any type
+      // without constraining the result.
+      // Note that UNKNOWN can be nullable, so this information is carried over to the result.
+      List<RelDataType> knownTypes = new ArrayList<>(types.size());
+      // True if any UNKNOWN type is nullable
+      boolean anyUnknownIsNullable = false;
+      for (RelDataType type : types) {
+        if (type.getSqlTypeName() == SqlTypeName.UNKNOWN) {
+          anyUnknownIsNullable |= type.isNullable();
+        } else {
+          knownTypes.add(type);
+        }
       }
-      return leastRestrictiveByCast(types, mappingRule);
+      if (knownTypes.isEmpty()) {
+        // All types are unknown
+        return createTypeWithNullability(createUnknownType(), anyUnknownIsNullable);
+      }
+      RelDataType resultType = leastRestrictiveSqlType(knownTypes);
+      if (resultType == null) {
+        resultType = leastRestrictiveByCast(knownTypes, mappingRule);
+      }
+      if (resultType != null && anyUnknownIsNullable) {
+        resultType = createTypeWithNullability(resultType, true);
+      }
+      return resultType;
     }
 
     return super.leastRestrictive(types, mappingRule);
