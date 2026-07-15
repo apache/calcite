@@ -1581,8 +1581,10 @@ public abstract class ReturnTypes {
     final RelDataType relDataType =
         typeFactory.getTypeSystem().deriveAvgAggType(typeFactory,
             opBinding.getOperandType(0));
+    final SqlKind kind = opBinding.getOperator().kind;
     if (opBinding.hasEmptyGroup() || opBinding.hasFilter()
-        || opBinding.getOperator().kind == SqlKind.STDDEV_SAMP) {
+        || kind == SqlKind.STDDEV_SAMP
+        || kind == SqlKind.VAR_SAMP) {
       return typeFactory.createTypeWithNullability(relDataType, true);
     } else {
       return relDataType;
@@ -1594,7 +1596,8 @@ public abstract class ReturnTypes {
     final RelDataType relDataType =
         typeFactory.getTypeSystem().deriveCovarType(typeFactory,
             opBinding.getOperandType(0), opBinding.getOperandType(1));
-    if (opBinding.hasEmptyGroup() || opBinding.hasFilter()) {
+    if (opBinding.hasEmptyGroup() || opBinding.hasFilter()
+        || opBinding.getOperator().kind == SqlKind.COVAR_SAMP) {
       return typeFactory.createTypeWithNullability(relDataType, true);
     } else {
       return relDataType;

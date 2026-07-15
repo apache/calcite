@@ -338,7 +338,7 @@ LogicalProject(SAL=[$0], SD=[$2], SDP=[$3], VP=[$4], VS=[$5])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], SD=[$2], SDP=[$3], VP=[$4], VS=[$5])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CAST(0):INTEGER], SDP=[0], VP=[0], VS=[0])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CAST(0):INTEGER], SDP=[0], VP=[0], VS=[CAST(0):INTEGER])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -472,7 +472,7 @@ LogicalProject(SAL=[$0], VS=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], VS=[$2])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[0])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[CAST(0):INTEGER])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -569,7 +569,7 @@ LogicalProject(SAL=[$0], VS=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], VS=[$2])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[0])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[CAST(0):INTEGER])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[*($5, $7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
