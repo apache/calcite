@@ -1527,7 +1527,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(ARRAY[1,2,3] AS VARIANT ARRAY)")
         .columnType("VARIANT NOT NULL ARRAY NOT NULL");
     expr("cast(MAP['a','b','c','d'] AS MAP<VARCHAR, VARIANT>)")
-        .columnType("(VARCHAR NOT NULL, VARIANT) MAP NOT NULL");
+        .columnType("(VARCHAR NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
     // Test case for [CALCITE-7293] https://issues.apache.org/jira/browse/CALCITE-7293
     // MAP constructor cannot handle VARIANT values that need casts
     expr("MAP['a', CAST('x' AS VARIANT), 'b', CAST(NULL AS VARIANT)]")
@@ -9640,16 +9640,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testCastMapType() {
     sql("select cast(\"int2IntMapType\" as map<int,int>) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
+        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
     sql("select cast(\"int2varcharArrayMapType\" as map<int,varchar array>) "
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(INTEGER NOT NULL, VARCHAR ARRAY) MAP NOT NULL");
+        .columnType("(INTEGER NOT NULL, VARCHAR NOT NULL ARRAY NOT NULL) MAP NOT NULL");
     sql("select cast(\"varcharMultiset2IntIntMapType\" as map<varchar(5) multiset, map<int, int>>)"
         + " from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(VARCHAR(5) MULTISET NOT NULL, "
-            + "(INTEGER NOT NULL, INTEGER) MAP) MAP NOT NULL");
+        .columnType("(VARCHAR(5) NOT NULL MULTISET NOT NULL, "
+            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
   }
 
   @Test void testCastAsRowType() {

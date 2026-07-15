@@ -1843,6 +1843,39 @@ public class SqlOperatorTest {
     f.checkNull("cast(null as row(f0 varchar, f1 varchar))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7658">
+   * [CALCITE-7658] Type checker rejects
+   * CAST(ARRAY() AS ROW(x INT) ARRAY)</a>.
+   *
+   * <p>The Spark {@code ARRAY()} function creates an empty array whose
+   * element type is UNKNOWN; such an array can be cast to any array type. */
+  @Test void testCastEmptyArray() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("cast(array() as integer array)", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("cast(array() as row(x int) array)", "[]",
+        "RecordType(INTEGER NOT NULL X) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("cast(array() as integer array array)", "[]",
+        "INTEGER ARRAY NOT NULL ARRAY NOT NULL");
+    f.checkScalar("cast(array() as map<varchar, integer> array)", "[]",
+        "(VARCHAR NOT NULL, INTEGER) MAP NOT NULL ARRAY NOT NULL");
+    // A non-empty array with UNKNOWN or NULL element type contains only nulls
+    f.checkScalar("cast(array_append(array(), null) as row(x int) array)",
+        "[null]",
+        "RecordType(INTEGER NOT NULL X) ARRAY NOT NULL");
+    f.checkScalar("cast(array(null) as row(x int) array)",
+        "[null]",
+        "RecordType(INTEGER NOT NULL X) ARRAY NOT NULL");
+    // The empty MAP() has UNKNOWN key and value types
+    f.checkScalar("cast(map() as map<varchar, integer>)", "{}",
+        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("cast(map() as map<varchar, row(x int)>)", "{}",
+        "(VARCHAR NOT NULL, RecordType(INTEGER X) NOT NULL) MAP NOT NULL");
+    f.checkScalar("cast(map() as map<varchar, integer array>)", "{}",
+        "(VARCHAR NOT NULL, INTEGER ARRAY NOT NULL) MAP NOT NULL");
+  }
+
   /** Test cases for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4918">
    * [CALCITE-4918] Add a VARIANT data type</a>. */
@@ -8229,7 +8262,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_append(array(null), null)", "[null, null]",
         "NULL ARRAY NOT NULL");
     f.checkScalar("array_append(array(), null)", "[null]",
-        "UNKNOWN ARRAY NOT NULL");
+        "NULL ARRAY NOT NULL");
     f.checkScalar("array_append(array(), 1)", "[1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_append(array[array[1, 2]], array[3, 4])", "[[1, 2], [3, 4]]",
@@ -8568,7 +8601,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_prepend(array(null), null)", "[null, null]",
         "NULL ARRAY NOT NULL");
     f.checkScalar("array_prepend(array(), null)", "[null]",
-        "UNKNOWN ARRAY NOT NULL");
+        "NULL ARRAY NOT NULL");
     f.checkScalar("array_prepend(array(), 1)", "[1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_prepend(array[array[1, 2]], array[3, 4])", "[[3, 4], [1, 2]]",
@@ -13606,6 +13639,22 @@ public class SqlOperatorTest {
           "RecordType(INTEGER EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
       f2.checkScalar("array(row(1, 2), row(3, 4))", "[{1, 2}, {3, 4}]",
           "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+      // Tests for unification of UNKNOWN with other types; array() has a type
+      // of UNKNOWN ARRAY, yet the type of ARRAY() is inferred from other operands.
+      f2.checkScalar("array(array(1), array())", "[[1], []]",
+          "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+      f2.checkScalar("array(array(), array(1))", "[[], [1]]",
+          "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+      f2.checkScalar("array(array(row(1, 2)), array())", "[[{1, 2}], []]",
+          "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL "
+              + "ARRAY NOT NULL ARRAY NOT NULL");
+      f2.checkScalar("array(array(), array(row(1, 2)))", "[[], [{1, 2}]]",
+          "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL "
+              + "ARRAY NOT NULL ARRAY NOT NULL");
+      f2.checkScalar("array(array(array(1)), array())", "[[[1]], []]",
+          "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+      f2.checkScalar("array(array(), array(array(1)))", "[[], [[1]]]",
+          "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
       // checkFails
       f2.checkFails("^array(row(1), row(2, 3))^",
           "Parameters must be of the same type", false);
@@ -13622,6 +13671,32 @@ public class SqlOperatorTest {
           "[1         , 2         , Hi        , null]", "CHAR(10) ARRAY NOT NULL");
     };
     f.forEachLibrary(libraries, consumer);
+  }
+
+  /** Tests that empty collections created by the Spark
+   * {@code ARRAY()} and {@code MAP()} functions, whose element
+   * types are UNKNOWN, unify with collections with known types. */
+  @Test void testEmptyCollections() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array(map(1, 2), map())", "[{1=2}, {}]",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array(map(), map(1, 2))", "[{}, {1=2}]",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    // Nested: empty collections inside a ROW unify field by field
+    f.checkScalar("array(row(array(), map()))", "[{[], {}}]",
+        "RecordType(UNKNOWN NOT NULL ARRAY NOT NULL EXPR$0, "
+            + "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array(row(array(1), map(1, 2)), row(array(), map()))",
+        "[{[1], {1=2}}, {[], {}}]",
+        "RecordType(INTEGER NOT NULL ARRAY NOT NULL EXPR$0, "
+            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array(row(array(), map()), row(array(1), map(1, 2)))",
+        "[{[], {}}, {[1], {1=2}}]",
+        "RecordType(INTEGER NOT NULL ARRAY NOT NULL EXPR$0, "
+            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
   }
 
   @Test void testArrayQueryConstructor() {
@@ -13930,6 +14005,22 @@ public class SqlOperatorTest {
     f1.checkScalar("map('k1', 1, 'k2', 2.0)",
         "{k1=1.0, k2=2.0}",
         "(CHAR(2) NOT NULL, DECIMAL(11, 1) NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('a', array(1), 'b', array())", "{a=[1], b=[]}",
+        "(CHAR(1) NOT NULL, INTEGER NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('a', array(), 'b', array(1))", "{a=[], b=[1]}",
+        "(CHAR(1) NOT NULL, INTEGER NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('a', map(1, 2), 'b', map())", "{a={1=2}, b={}}",
+        "(CHAR(1) NOT NULL, (INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('a', map(), 'b', map(1, 2))", "{a={}, b={1=2}}",
+        "(CHAR(1) NOT NULL, (INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
+    // Avatica's conversion of MAP to STRING is broken, so we only check
+    // the type for the following 2 tests
+    f1.checkType("map('a', array(row(1, 2)), 'b', array())",
+        "(CHAR(1) NOT NULL, RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+    f1.checkType("map('a', array(), 'b', array(row(1, 2)))",
+        "(CHAR(1) NOT NULL, RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL) MAP NOT NULL");
   }
 
   @Test void testMapQueryConstructor() {
