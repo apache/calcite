@@ -1979,12 +1979,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
     // test multiple partition keys for input table with set semantic
     sql("select * from table(topn(table orders partition by (orderId, productid), 3))")
+        .rewritesTo("SELECT *\n"
+            + "FROM TABLE(TOPN((SELECT *\n"
+            + "FROM `ORDERS`) PARTITION BY (`ORDERID`, `PRODUCTID`), 3))")
+        .ok();
+    sql("select * from table(topn(table orders partition by (orderId), 3))")
+        .rewritesTo("SELECT *\n"
+            + "FROM TABLE(TOPN((SELECT *\n"
+            + "FROM `ORDERS`) PARTITION BY `ORDERID`, 3))")
         .ok();
     // test one order key for input table with set semantic
     sql("select * from table(topn(table orders order by orderId, 3))")
         .ok();
+    sql("select * from table(topn(table orders order by (orderId), 3))")
+        .rewritesTo("SELECT *\n"
+            + "FROM TABLE(TOPN((SELECT *\n"
+            + "FROM `ORDERS`) ORDER BY `ORDERID`, 3))")
+        .ok();
     // test multiple order keys for input table with set semantic
     sql("select * from table(topn(table orders order by (orderId, productid), 3))")
+        .rewritesTo("SELECT *\n"
+            + "FROM TABLE(TOPN((SELECT *\n"
+            + "FROM `ORDERS`) ORDER BY (`ORDERID`, `PRODUCTID`), 3))")
         .ok();
     // test complex order-by clause for input table with set semantic
     sql("select * from table(topn(table orders order by (orderId desc, productid asc), 3))")
