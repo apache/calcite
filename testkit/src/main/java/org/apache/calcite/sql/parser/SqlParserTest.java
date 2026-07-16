@@ -2859,6 +2859,16 @@ public class SqlParserTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5216">[CALCITE-5216]
+   * Cannot parse parenthesized nested WITH clause</a>. */
+  @Test void testNestedWithParenthesized() {
+    final String sql = "with a as (with b as (select 1)(select 1)) select * from a";
+    final String expected = "WITH `A` AS (WITH `B` AS (SELECT 1) SELECT 1) SELECT *\n"
+        + "FROM `A`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5252">[CALCITE-5252]
    * JDBC adapter sometimes miss parentheses around SELECT in WITH_ITEM body</a>. */
   @Test void testWithAsUnion() {
