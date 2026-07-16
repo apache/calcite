@@ -463,13 +463,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "WHERE product_id > 0\n"
         + "GROUP BY product_id";
-    final String expectedFirebolt = "SELECT"
-        + " SUM(CASE WHEN \"net_weight\" > 0E0 IS TRUE"
-        + " THEN \"shelf_width\" ELSE NULL END), "
-        + "SUM(\"shelf_width\")\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" > 0\n"
-        + "GROUP BY \"product_id\"";
+    final String expectedFirebolt = expectedBigQuery;
     final String expectedMysql = "SELECT"
         + " SUM(CASE WHEN `net_weight` > 0E0 IS TRUE"
         + " THEN `shelf_width` ELSE NULL END), SUM(`shelf_width`)\n"
@@ -4009,12 +4003,16 @@ class RelToSqlConverterTest {
         + " 4 AS \"fo$ur\", 5 AS \"ignore\", 6 AS \"si`x\"\n"
         + "FROM foodmart.days) AS t\n"
         + "WHERE one < tWo AND THREE < \"fo$ur\"";
+    // Firebolt quotes like Exasol, except that IGNORE is not reserved
+    final String expectedFirebolt =
+        expectedExasol.replace("\"ignore\"", "ignore");
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withMysql().ok(expectedMysql)
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
-        .withExasol().ok(expectedExasol);
+        .withExasol().ok(expectedExasol)
+        .withFirebolt().ok(expectedFirebolt);
   }
 
   @Test void testModFunctionForHive() {
@@ -6108,7 +6106,7 @@ class RelToSqlConverterTest {
     String expectedPresto = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";
     String expectedTrino = expectedPresto;
-    String expectedFirebolt = expectedPostgresql;
+    String expectedFirebolt = expectedPostgresql.replace("\"", "");
     String expectedStarRocks = "SELECT DATE_TRUNC('MINUTE', `hire_date`)\n"
         + "FROM `foodmart`.`employee`";
     String expectedDoris = "SELECT DATE_TRUNC(`hire_date`, 'MINUTE')\n"
@@ -6408,16 +6406,16 @@ class RelToSqlConverterTest {
     final String sql0 = "select  * from \"employee\" where  \"hire_date\" - "
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect0 = "SELECT *\n"
-        + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE (\"hire_date\" - INTERVAL '19800 SECOND ')"
+        + "FROM foodmart.employee\n"
+        + "WHERE (hire_date - INTERVAL '19800 SECOND ')"
         + " > TIMESTAMP '2005-10-17 00:00:00'";
     sql(sql0).withFirebolt().ok(expect0);
 
     final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
         + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect1 = "SELECT *\n"
-        + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE (\"hire_date\" + INTERVAL '10 HOUR ')"
+        + "FROM foodmart.employee\n"
+        + "WHERE (hire_date + INTERVAL '10 HOUR ')"
         + " > TIMESTAMP '2005-10-17 00:00:00'";
     sql(sql1).withFirebolt().ok(expect1);
 
@@ -6515,7 +6513,7 @@ class RelToSqlConverterTest {
         + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
         + "FROM `foodmart`.`employee`\n"
         + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')";
-    final String expectedFirebolt = expectedPostgresql;
+    final String expectedFirebolt = expectedPostgresql.replace("\"", "");
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
         .withFirebolt().ok(expectedFirebolt)
@@ -6542,7 +6540,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
-    final String expectedFirebolt = expectedPresto;
+    final String expectedFirebolt = expectedPresto.replace("\"", "");
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
     final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2)\n"
@@ -6582,7 +6580,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
-    final String expectedFirebolt = expectedPresto;
+    final String expectedFirebolt = expectedPresto.replace("\"", "");
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
@@ -7996,7 +7994,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT 1 AS a, 'x' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
-    final String expectedFirebolt = expectedPostgresql;
+    final String expectedFirebolt = expectedPostgresql.replace("\"", "");
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
