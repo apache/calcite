@@ -322,9 +322,8 @@ class JdbcAdapterTest {
             + "          JdbcProject($f2=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
             + "            JdbcTableScan(table=[[SCOTT, EMP]])\n"
             + "    JdbcToEnumerableConverter\n"
-            + "      JdbcAggregate(group=[{0, 1}], i=[LITERAL_AGG(true)], em=[MAX($2)])\n"
-            + "        JdbcProject(DEPTNO=[$7], ENAME=[CAST($1):VARCHAR(14)],"
-            + " $f2=[AND(IS NOT NULL($7), IS NOT NULL($1))])\n"
+            + "      JdbcAggregate(group=[{0, 1}], i=[LITERAL_AGG(true)])\n"
+            + "        JdbcProject(DEPTNO=[$7], ENAME=[CAST($1):VARCHAR(14)])\n"
             + "          JdbcFilter(condition=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
             + "            JdbcTableScan(table=[[SCOTT, EMP]])\n\n");
   }

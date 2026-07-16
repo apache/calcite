@@ -93,6 +93,9 @@ public class RexSimplify {
 
   private static final Strong STRONG = new Strong();
 
+  /** Maximum number of terms for which to apply the absorption law. */
+  private static final int MAX_TERMS_FOR_ABSORPTION = 20;
+
   /**
    * Creates a RexSimplify.
    *
@@ -1843,6 +1846,9 @@ public class RexSimplify {
                 SqlStdOperatorTable.IS_NULL, notSatisfiableNullable), UNKNOWN));
       }
     }
+    // Absorption law: a AND (a OR b) => a
+    absorb(terms, SqlKind.OR);
+
     // Add the NOT disjunctions back in.
     for (RexNode notDisjunction : notTerms) {
       terms.add(simplify(not(notDisjunction), UNKNOWN));
@@ -2087,6 +2093,9 @@ public class RexSimplify {
     if (!Collections.disjoint(nullOperands, strongOperands)) {
       return rexBuilder.makeLiteral(false);
     }
+    // Absorption law: a AND (a OR b) => a
+    absorb(terms, SqlKind.OR);
+
     // Remove not necessary IS NOT NULL expressions.
     // Example. IS NOT NULL(x) AND x < 5  : x < 5
     for (RexNode operand : notNullOperands) {
@@ -2367,7 +2376,47 @@ public class RexSimplify {
         break;
       }
     }
+
+    // Absorption law: a OR (a AND b) => a
+    absorb(terms, SqlKind.AND);
+
     return RexUtil.composeDisjunction(rexBuilder, terms);
+  }
+
+  /**
+   * Applies the absorption law to a list of terms, removing any composite term
+   * that is absorbed by a sibling term.
+   *
+   * <p>When {@code compositeKind} is {@link SqlKind#OR}, removes any
+   * {@code (a OR b)} term whose disjunctions contain a sibling {@code a}, so
+   * {@code a AND (a OR b) => a}. When it is {@link SqlKind#AND}, removes any
+   * {@code (a AND b)} term whose conjunctions contain a sibling {@code a}, so
+   * {@code a OR (a AND b) => a}.
+   *
+   * <p>The absorbing sibling {@code a} must be deterministic; otherwise its two
+   * occurrences might evaluate differently and the rewrite would not be
+   * equivalence-preserving.
+   */
+  private static void absorb(List<RexNode> terms, SqlKind compositeKind) {
+    if (terms.size() > MAX_TERMS_FOR_ABSORPTION) {
+      return;
+    }
+    for (int i = 0; i < terms.size(); i++) {
+      final RexNode term = terms.get(i);
+      if (term.getKind() == compositeKind) {
+        final List<RexNode> components = compositeKind == SqlKind.OR
+            ? RelOptUtil.disjunctions(term)
+            : RelOptUtil.conjunctions(term);
+        for (RexNode other : terms) {
+          if (other != term && components.contains(other)
+              && RexUtil.isDeterministic(other)) {
+            terms.remove(i);
+            i--;
+            break;
+          }
+        }
+      }
+    }
   }
 
   private Pair<Comparable, RuntimeException> evaluate(RexNode e, Map<RexNode, Comparable> map) {

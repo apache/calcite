@@ -513,6 +513,45 @@ class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7657">[CALCITE-7657]
+   * Apply the absorption law to simplify boolean expressions</a>. */
+  @Test void testAbsorptionLaw() {
+    // AND absorption: a AND (a OR b) => a
+    checkSimplify(and(vBool(), or(vBool(), vBool(1))), "?0.bool0");
+    checkSimplify(and(or(vBool(), vBool(1)), vBool()), "?0.bool0");
+
+    // OR absorption: a OR (a AND b) => a
+    checkSimplify(or(vBool(), and(vBool(), vBool(1))), "?0.bool0");
+    checkSimplify(or(and(vBool(), vBool(1)), vBool()), "?0.bool0");
+
+    // with not-null booleans
+    checkSimplify(and(vBoolNotNull(), or(vBoolNotNull(), vBoolNotNull(1))), "?0.notNullBool0");
+    checkSimplify(or(vBoolNotNull(), and(vBoolNotNull(), vBoolNotNull(1))), "?0.notNullBool0");
+
+    // filter mode (unknownAsFalse)
+    checkSimplifyFilter(and(vBool(), or(vBool(), vBool(1))), "?0.bool0");
+    checkSimplifyFilter(or(vBool(), and(vBool(), vBool(1))), "?0.bool0");
+  }
+
+  @Test void testAbsorptionLawWithNonDeterministic() {
+    // a is a non-deterministic boolean ("NDC()")
+    final SqlOperator ndc = getNoDeterministicOperator();
+    final RexNode a = rexBuilder.makeCall(ndc);
+    final RexNode b = gt(vInt(1), literal(1));
+
+    // a AND (a OR b) must NOT be simplified to a
+    checkSimplifyUnchanged(and(a, or(a, b)));
+    // a OR (a AND b) must NOT be simplified to a
+    checkSimplifyUnchanged(or(a, and(a, b)));
+
+    // Sanity check: when a is deterministic, absorption does apply.
+    final SqlOperator dc = getDeterministicOperator();
+    final RexNode da = rexBuilder.makeCall(dc);
+    checkSimplify(and(da, or(da, b)), "DC()");
+    checkSimplify(or(da, and(da, b)), "DC()");
+  }
+
   @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy")
   @Test void reproducerFor3457() {
     // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
@@ -3064,10 +3103,9 @@ class RexProgramTest extends RexProgramTestBase {
     // ==>
     // "A IS NOT NULL"
     SqlOperator dc = getDeterministicOperator();
-    checkSimplify2(
+    checkSimplify(
         and(or(isNotNull(rexBuilder.makeCall(dc)), gt(vInt(2), literal(2))),
             isNotNull(rexBuilder.makeCall(dc))),
-        "AND(OR(IS NOT NULL(DC()), >(?0.int2, 2)), IS NOT NULL(DC()))",
         "IS NOT NULL(DC())");
   }
 
@@ -3962,7 +4000,7 @@ class RexProgramTest extends RexProgramTestBase {
     //    -> "x = x AND y < y" (treating unknown as unknown)
     //    -> false (treating unknown as false)
     checkSimplify3(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "AND(OR(null, IS NOT NULL(?0.int1)), null, IS NULL(?0.int2))",
+        "AND(null, IS NULL(?0.int2))",
         "false",
         "IS NULL(?0.int2)");
 
@@ -3970,7 +4008,7 @@ class RexProgramTest extends RexProgramTestBase {
     //   -> "OR(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "y IS NOT NULL" (treating unknown as false)
     checkSimplify3(not(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "OR(AND(null, IS NULL(?0.int1)), null, IS NOT NULL(?0.int2))",
+        "OR(null, IS NOT NULL(?0.int2))",
         "IS NOT NULL(?0.int2)",
         "true");
   }
@@ -4028,7 +4066,7 @@ class RexProgramTest extends RexProgramTestBase {
     //   -> "AND(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "FALSE" (treating unknown as false)
     checkSimplify3(not(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "AND(null, IS NULL(?0.int1), OR(null, IS NOT NULL(?0.int2)))",
+        "AND(null, IS NULL(?0.int1))",
         "false",
         "IS NULL(?0.int1)");
   }
