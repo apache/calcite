@@ -749,6 +749,76 @@ public class RelBuilderTest {
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7657">[CALCITE-7657]
+   * Apply the absorption law to simplify boolean expressions</a>. */
+  @Test void testFilterAndAbsorptionLaw() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 10 AND (deptno = 10 OR sal > 100)
+    // Should be simplified to:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 10
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.and(
+                    b.equals(b.field("DEPTNO"), b.literal(10)),
+                    b.or(
+                        b.equals(b.field("DEPTNO"), b.literal(10)),
+                        b.greaterThan(b.field("SAL"), b.literal(100)))))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[=($7, 10)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testFilterOrAbsorptionLaw() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 10 OR (deptno = 10 AND sal > 100)
+    // Should be simplified to:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 10
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.or(
+                    b.equals(b.field("DEPTNO"), b.literal(10)),
+                    b.and(
+                        b.equals(b.field("DEPTNO"), b.literal(10)),
+                        b.greaterThan(b.field("SAL"), b.literal(100)))))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[=($7, 10)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testFilterAbsorptionLawWithNonDeterministic() {
+    final Function<RelBuilder, RelNode> f = b -> {
+      final RexNode rand =
+          b.greaterThan(
+              b.call(SqlStdOperatorTable.RAND), b.literal(0.5));
+      return b.scan("EMP")
+          .filter(
+              b.and(rand,
+                  b.or(rand,
+                      b.greaterThan(b.field("SAL"), b.literal(100)))))
+          .build();
+    };
+
+    final String expected = "LogicalFilter(condition=[AND(>(RAND(), 0.5E0),"
+        + " OR(>(RAND(), 0.5E0), >($5, 100)))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   @Test void testBadFieldName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {

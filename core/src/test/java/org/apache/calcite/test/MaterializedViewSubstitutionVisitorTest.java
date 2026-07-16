@@ -1653,7 +1653,7 @@ public class MaterializedViewSubstitutionVisitorTest {
                         SqlStdOperatorTable.NOT,
                         i4))));
     f.checkSatisfiable(e8,
-        "AND(=($0, 0), $2, $3, OR(NOT($2), NOT($3), NOT($4)), NOT($4))");
+        "AND(=($0, 0), $2, $3, NOT($4))");
   }
 
   @Test void testSplitFilter() {
