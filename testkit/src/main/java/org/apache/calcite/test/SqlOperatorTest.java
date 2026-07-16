@@ -3502,7 +3502,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f0 = fixture();
     // This query does not fail if checked arithmetic is not used
     f0.checkScalar("SELECT -CAST(-32768 AS SMALLINT)",
-        "-32768", "SMALLINT");
+        "-32768", "SMALLINT NOT NULL");
     // The last two queries should fail in any conformance level
     // because the value "32768" cannot be represented as a SMALLINT
     f0.checkFails("SELECT CAST(32768 AS SMALLINT)",
@@ -16423,6 +16423,8 @@ public class SqlOperatorTest {
    * ANY/SOME, ALL operators should support collection expressions</a>. */
   @Test void testQuantifyCollectionOperators() {
     final SqlOperatorFixture f = fixture();
+    final String someScalarQuantifyBooleanType = "BOOLEAN";
+    final String allScalarQuantifyBooleanType = "BOOLEAN NOT NULL";
     QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
 
     Function2<String, Boolean, Void> checkBoolean = (sql, result) -> {
@@ -16474,7 +16476,7 @@ public class SqlOperatorTest {
         "BOOLEAN", isNullValue());
     f.check("SELECT (SELECT * FROM UNNEST(ARRAY[3]) LIMIT 1) = "
             + "some(x.t) FROM (SELECT ARRAY[1,2,3,null] as t) as x",
-        "BOOLEAN", true);
+        someScalarQuantifyBooleanType, true);
 
 
     checkNull.apply("1 = all (COLLECTION[1,1,null])");
@@ -16509,7 +16511,7 @@ public class SqlOperatorTest {
         "BOOLEAN", isNullValue());
     f.check("SELECT (SELECT * FROM UNNEST(ARRAY[3]) LIMIT 1) = "
             + "all(x.t) FROM (SELECT ARRAY[3,3] as t) as x",
-        "BOOLEAN", true);
+        allScalarQuantifyBooleanType, true);
   }
 
   @Test void testQuantifyOperatorsWithTypeException() {

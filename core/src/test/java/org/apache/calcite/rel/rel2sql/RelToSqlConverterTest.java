@@ -6704,31 +6704,31 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT NULL) END AS `$f0`\n"
         + "FROM `foodmart`.`product`) AS `t0` ON TRUE\n"
-        + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
+        + "WHERE `product`.`net_weight` > CAST(CAST(`t0`.`$f0` AS SIGNED) AS DOUBLE)";
     final String expectedPostgresql = "SELECT \"product\".\"product_class_id\" AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(\"product_class_id\") ELSE (SELECT CAST(NULL AS INTEGER)\n"
         + "UNION ALL\n"
         + "SELECT CAST(NULL AS INTEGER)) END AS \"$f0\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t0\" ON TRUE\n"
-        + "WHERE \"product\".\"net_weight\" > CAST(\"t0\".\"$f0\" AS DOUBLE PRECISION)";
+        + "WHERE \"product\".\"net_weight\" > CAST(CAST(\"t0\".\"$f0\" AS INTEGER) AS DOUBLE PRECISION)";
     final String expectedHsqldb = "SELECT product.product_class_id AS C\n"
         + "FROM foodmart.product\n"
         + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(product_class_id) ELSE ((VALUES 0E0)\n"
         + "UNION ALL\n"
         + "(VALUES 0E0)) END AS $f0\n"
         + "FROM foodmart.product) AS t0 ON TRUE\n"
-        + "WHERE product.net_weight > CAST(t0.$f0 AS DOUBLE)";
+        + "WHERE product.net_weight > CAST(CAST(t0.$f0 AS INTEGER) AS DOUBLE)";
     final String expectedSpark = "SELECT `product`.`product_class_id` `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(`product_class_id`) ELSE RAISE_ERROR('more than one value in agg SINGLE_VALUE') END `$f0`\n"
         + "FROM `foodmart`.`product`) `t0` ON TRUE\n"
-        + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
+        + "WHERE `product`.`net_weight` > CAST(CAST(`t0`.`$f0` AS INTEGER) AS DOUBLE)";
     final String expectedHive = "SELECT `product`.`product_class_id` `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(`product_class_id`) ELSE ASSERT_TRUE(FALSE) END `$f0`\n"
         + "FROM `foodmart`.`product`) `t0` ON TRUE\n"
-        + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
+        + "WHERE `product`.`net_weight` > CAST(CAST(`t0`.`$f0` AS INT) AS DOUBLE)";
     sql(query)
         .withConfig(c -> c.withExpand(true))
         .withMysql().ok(expectedMysql)

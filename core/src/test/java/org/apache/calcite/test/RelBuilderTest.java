@@ -53,6 +53,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -76,6 +77,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.Frameworks;
@@ -966,6 +968,102 @@ public class RelBuilderTest {
             + " type of 1 in the output plan since the convention is to omit type of INTEGER",
         "LogicalProject($f0=[1:BIGINT])\n"
             + "  LogicalValues(tuples=[[]])\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2901">[CALCITE-2901]
+   * RexSubQuery.scalar needs to allow specifying a different nullability value
+   * instead of the hard coded "true" value</a>. */
+  @Test void testScalarSubQueryPreservesColumnNullability() {
+    final RelDataTypeFactory tf =
+        RelBuilder.create(config().build()).getCluster().getTypeFactory();
+
+    // INTEGER NOT NULL literal row (historical bug: scalar type was forced nullable).
+    final RelBuilder b0 = RelBuilder.create(config().build());
+    assertScalarSubQueryTypeMatchesColumn(b0.values(new String[]{"x"}, 42).build());
+
+    // Nullable INTEGER explicit row type.
+    final RelBuilder b1 = RelBuilder.create(config().build());
+    final RelDataType nullableInt =
+        tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.INTEGER), true);
+    final RelDataType nullableRow = tf.builder().add("y", nullableInt).build();
+    assertScalarSubQueryTypeMatchesColumn(b1.values(nullableRow, 1).build());
+
+    // DECIMAL(10, 2) NOT NULL — precision and scale must survive copyType.
+    final RelBuilder b2 = RelBuilder.create(config().build());
+    final RelDataType dec =
+        tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.DECIMAL, 10, 2), false);
+    final RelDataType decRow = tf.builder().add("d", dec).build();
+    assertScalarSubQueryTypeMatchesColumn(
+        b2.values(decRow, new BigDecimal("123.45")).build());
+
+    // CHAR(5) NOT NULL.
+    final RelBuilder b3 = RelBuilder.create(config().build());
+    final RelDataType ch =
+        tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.CHAR, 5), false);
+    final RelDataType chRow = tf.builder().add("c", ch).build();
+    assertScalarSubQueryTypeMatchesColumn(b3.values(chRow, "abcde").build());
+
+    // VARCHAR(10) NULLABLE with a non-null cell — column type stays nullable.
+    final RelBuilder b4 = RelBuilder.create(config().build());
+    final RelDataType vc =
+        tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.VARCHAR, 10), true);
+    final RelDataType vcRow = tf.builder().add("s", vc).build();
+    assertScalarSubQueryTypeMatchesColumn(b4.values(vcRow, "abc").build());
+
+    // BOOLEAN NOT NULL literal.
+    final RelBuilder b5 = RelBuilder.create(config().build());
+    assertScalarSubQueryTypeMatchesColumn(b5.values(new String[]{"f"}, true).build());
+
+    // REAL NOT NULL.
+    final RelBuilder b6 = RelBuilder.create(config().build());
+    final RelDataType realNn =
+        tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.REAL), false);
+    final RelDataType realRow = tf.builder().add("r", realNn).build();
+    assertScalarSubQueryTypeMatchesColumn(b6.values(realRow, 1.25F).build());
+
+    // Zero-row VALUES: only declared row type exists; nullability must still match.
+    final RelBuilder b7 = RelBuilder.create(config().build());
+    final RelDataType nnInt =
+        tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.INTEGER), false);
+    final RelDataType emptyRow = tf.builder().add("k", nnInt).build();
+    assertScalarSubQueryTypeMatchesColumn(b7.values(emptyRow).build());
+
+    // Single column projected from a catalog table (EMPNO is NOT NULL in SCOTT).
+    final RelBuilder b8 = RelBuilder.create(config().build());
+    assertScalarSubQueryTypeMatchesColumn(
+        b8.scan("EMP").project(b8.field("EMPNO")).build());
+  }
+
+  /** Companion to {@link #testScalarSubQueryPreservesColumnNullability}: arity validation. */
+  @Test void testScalarSubQueryRequiresExactlyOneOutputColumn() {
+    final RelBuilder b = RelBuilder.create(config().build());
+    final RelNode twoCols =
+        b.scan("EMP").project(b.field("EMPNO"), b.field("ENAME")).build();
+    final IllegalArgumentException ex2 =
+        assertThrows(IllegalArgumentException.class, () -> RexSubQuery.scalar(twoCols));
+    assertThat(ex2.getMessage(), nullValue());
+
+    final RelBuilder b2 = RelBuilder.create(config().build());
+    final RelNode twoLiteralCols = b2.values(new String[]{"a", "b"}, 1, 2).build();
+    final IllegalArgumentException exLit =
+        assertThrows(IllegalArgumentException.class, () -> RexSubQuery.scalar(twoLiteralCols));
+    assertThat(exLit.getMessage(), nullValue());
+
+    final RelBuilder b3 = RelBuilder.create(config().build());
+    final RelNode threeCols =
+        b3.scan("EMP").project(b3.field("EMPNO"), b3.field("ENAME"), b3.field("JOB")).build();
+    assertThrows(IllegalArgumentException.class, () -> RexSubQuery.scalar(threeCols));
+  }
+
+  /** Asserts {@link RexSubQuery#scalar} matches the lone column type (CALCITE-2901). */
+  private static void assertScalarSubQueryTypeMatchesColumn(RelNode singleColumnRel) {
+    final RelDataType columnType =
+        singleColumnRel.getRowType().getFieldList().get(0).getType();
+    final RelDataType scalarType = RexSubQuery.scalar(singleColumnRel).getType();
+    final RelDataTypeFactory tf = singleColumnRel.getCluster().getTypeFactory();
+    assertThat(SqlTypeUtil.equalSansNullability(tf, columnType, scalarType), is(true));
+    assertThat(scalarType.isNullable(), is(columnType.isNullable()));
   }
 
   @Test void testProjectBloat() {

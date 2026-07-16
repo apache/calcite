@@ -1054,7 +1054,7 @@ class TpchTest {
         program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
-        + "LogicalProject(EXPR$0=[$5], EXPR$1=[$6])\n"
+        + "LogicalProject(EXPR$0=[CAST($5):BIGINT NOT NULL], EXPR$1=[CAST($6):BIGINT NOT NULL])\n"
         + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
@@ -1072,7 +1072,7 @@ class TpchTest {
             RuleSets.ofList(Collections.emptyList()),
             RuleSets.ofList(Collections.emptyList()));
     final String planAfter = ""
-        + "LogicalProject(EXPR$0=[$5], EXPR$1=[$8])\n"
+        + "LogicalProject(EXPR$0=[CAST($5):BIGINT NOT NULL], EXPR$1=[CAST($8):BIGINT NOT NULL])\n"
         + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($6, $7)], joinType=[left])\n"
         + "    LogicalProject(PS_PARTKEY=[$0], PS_SUPPKEY=[$1], PS_AVAILQTY=[$2], PS_SUPPLYCOST=[$3], PS_COMMENT=[$4], EXPR$0=[$6], $f6=[+($0, 1)])\n"
         + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
@@ -1169,7 +1169,7 @@ class TpchTest {
     final String planBefore = ""
         + "LogicalProject(C_CUSTKEY=[$0], C_NAME=[$1], C_ADDRESS=[$2], C_NATIONKEY=[$3], C_PHONE=[$4], C_ACCTBAL=[$5], C_MKTSEGMENT=[$6], C_COMMENT=[$7])\n"
         + "  LogicalProject(C_CUSTKEY=[$0], C_NAME=[$1], C_ADDRESS=[$2], C_NATIONKEY=[$3], C_PHONE=[$4], C_ACCTBAL=[$5], C_MKTSEGMENT=[$6], C_COMMENT=[$7])\n"
-        + "    LogicalFilter(condition=[AND(=(CAST($6):VARCHAR, 'AUTOMOBILE'), >($8, 5))])\n"
+        + "    LogicalFilter(condition=[AND(=(CAST($6):VARCHAR, 'AUTOMOBILE'), >(CAST($8):BIGINT NOT NULL, 5))])\n"
         + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "        LogicalTableScan(table=[[TPCH, CUSTOMER]])\n"
         + "        LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"

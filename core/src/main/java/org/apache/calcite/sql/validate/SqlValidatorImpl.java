@@ -6083,8 +6083,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     assert type instanceof RelRecordType;
     RelRecordType rec = (RelRecordType) type;
 
-    RelDataType nodeType = rec.getFieldList().get(0).getType();
-    nodeType = typeFactory.createTypeWithNullability(nodeType, true);
+    RelDataType nodeType =
+        typeFactory.copyType(rec.getFieldList().get(0).getType());
     fieldList.add(alias, nodeType);
   }
 

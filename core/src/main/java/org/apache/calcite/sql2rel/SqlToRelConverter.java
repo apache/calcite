@@ -6126,6 +6126,16 @@ public class SqlToRelConverter {
                   SqlStdOperatorTable.IS_NOT_NULL,
                   fieldAccess);
         }
+        if (kind == SqlKind.SCALAR_QUERY) {
+          fieldAccess =
+              StandardConvertletTable.castToValidatedType(
+                  expr.getParserPosition(),
+                  expr,
+                  fieldAccess,
+                  validator(),
+                  rexBuilder,
+                  false);
+        }
         return fieldAccess;
 
       case OVER:

@@ -141,7 +141,11 @@ public class SubQueryRemoveRule
               builder.field(0)));
     }
     builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
-    return field(builder, inputCount, offset);
+    final RexNode ref = field(builder, inputCount, offset);
+    if (ref.getType().equals(e.getType())) {
+      return ref;
+    }
+    return builder.getRexBuilder().makeCast(e.getType(), ref, false, false);
   }
 
   /**

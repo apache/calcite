@@ -219,12 +219,12 @@ class TypeCoercionTest {
     sql("select '1' from (values(true)) union values 2")
         .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
     sql("select (select 1+2 from (values true)) tt from (values(true)) union values '2'")
-        .type("RecordType(VARCHAR TT) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL TT) NOT NULL");
     // union with star
     sql("select * from (values(1, '3')) union select * from (values('2', 4))")
         .type("RecordType(VARCHAR NOT NULL EXPR$0, VARCHAR NOT NULL EXPR$1) NOT NULL");
     sql("select 1 from (values(true)) union values (select '1' from (values (true)) as tt)")
-        .type("RecordType(VARCHAR EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
     // union with func
     sql("select LOCALTIME from (values(true)) union values '1'")
         .type("RecordType(VARCHAR NOT NULL LOCALTIME) NOT NULL");
@@ -702,16 +702,16 @@ class TypeCoercionTest {
         .fails("(?s).*Cannot apply.*");
     // smallint int double
     expr("select t1_smallint||t1_int||t1_double from t1")
-        .columnType("VARCHAR");
+        .columnType("VARCHAR NOT NULL");
     // boolean float smallint
     expr("select t1_boolean||t1_real||t1_smallint from t1")
-        .columnType("VARCHAR");
+        .columnType("VARCHAR NOT NULL");
     // decimal
     expr("select t1_decimal||t1_varchar20 from t1")
-        .columnType("VARCHAR");
+        .columnType("VARCHAR NOT NULL");
     // date timestamp
     expr("select t1_timestamp||t1_date from t1")
-        .columnType("VARCHAR");
+        .columnType("VARCHAR NOT NULL");
   }
 
   /** Test case for {@link TypeCoercion#querySourceCoercion}. */
