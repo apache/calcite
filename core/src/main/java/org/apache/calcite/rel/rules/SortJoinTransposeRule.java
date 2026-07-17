@@ -105,9 +105,9 @@ public class SortJoinTransposeRule
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
 
-    // Do nothing if SORT contains dynamic parameters in offset or fetch
+    // The pushed fetch is calculated from literal offset and fetch values.
     if (sort.offset instanceof RexDynamicParam
-        || sort.fetch instanceof RexDynamicParam) {
+        || sort.fetch != null && !(sort.fetch instanceof RexLiteral)) {
       return false;
     }
 
