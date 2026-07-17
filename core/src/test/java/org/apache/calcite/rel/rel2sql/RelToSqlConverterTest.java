@@ -2016,6 +2016,40 @@ class RelToSqlConverterTest {
     relFn(relFn).withOracle().ok(expectedOracle);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7655">[CALCITE-7655]
+   * RelToSqlConverter incorrectly removes a subquery when grouping by a window function
+   * result</a>. */
+  @Test void testGroupByWindowFunction() {
+    final String query = "SELECT \"EMPNO\", \"row_number\", COUNT(*) AS \"c\"\n"
+        + "FROM (\n"
+        + "  SELECT \"EMPNO\",\n"
+        + "    ROW_NUMBER() OVER (ORDER BY \"EMPNO\" NULLS FIRST) AS \"row_number\"\n"
+        + "  FROM \"EMP\") AS \"t\"\n"
+        + "GROUP BY \"EMPNO\", \"row_number\"";
+
+    final String expectedMysql = "SELECT `EMPNO`, `row_number`, COUNT(*) AS `c`\n"
+        + "FROM (SELECT `EMPNO`, ROW_NUMBER() OVER (ORDER BY `EMPNO`) AS `row_number`\n"
+        + "FROM `SCOTT`.`EMP`) AS `t`\n"
+        + "GROUP BY `EMPNO`, `row_number`";
+    final String expectedOracle = "SELECT \"EMPNO\", \"row_number\", COUNT(*) \"c\"\n"
+        + "FROM (SELECT \"EMPNO\", ROW_NUMBER() OVER (ORDER BY \"EMPNO\" NULLS FIRST)"
+        + " \"row_number\"\n"
+        + "FROM \"SCOTT\".\"EMP\") \"t\"\n"
+        + "GROUP BY \"EMPNO\", \"row_number\"";
+    final String expectedPostgresql =
+        "SELECT \"EMPNO\", \"row_number\", COUNT(*) AS \"c\"\n"
+        + "FROM (SELECT \"EMPNO\", ROW_NUMBER() OVER (ORDER BY \"EMPNO\" NULLS FIRST)"
+        + " AS \"row_number\"\n"
+        + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+        + "GROUP BY \"EMPNO\", \"row_number\"";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withMysql().ok(expectedMysql)
+        .withOracle().ok(expectedOracle)
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
   @Test void testSemiJoin() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
