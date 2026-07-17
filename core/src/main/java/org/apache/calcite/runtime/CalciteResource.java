@@ -389,9 +389,6 @@ public interface CalciteResource {
   @BaseMessage("Windowed aggregate expression is illegal in {0} clause")
   ExInst<SqlValidatorException> windowedAggregateIllegalInClause(String a0);
 
-  @BaseMessage("GROUP BY ALL requires an explicit SELECT list; ''*'' is not supported")
-  ExInst<SqlValidatorException> groupByAllRequiresExplicitSelectList();
-
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
 
@@ -782,9 +779,6 @@ public interface CalciteResource {
 
   @BaseMessage("Streaming ORDER BY must start with monotonic expression")
   ExInst<SqlValidatorException> streamMustOrderByMonotonic();
-
-  @BaseMessage("ORDER BY ALL requires an explicit SELECT list; ''*'' is not supported")
-  ExInst<SqlValidatorException> orderByAllRequiresExplicitSelectList();
 
   @BaseMessage("Set operator cannot combine streaming and non-streaming inputs")
   ExInst<SqlValidatorException> streamSetOpInconsistentInputs();

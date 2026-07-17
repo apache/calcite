@@ -4528,4 +4528,21 @@ FROM emp;
 
 !use scott
 
+# [CALCITE-7647] Support SELECT * in GROUP BY ALL and ORDER BY ALL.
+# GROUP BY ALL expands SELECT * to every underlying column;
+# the star columns become grouping keys and the aggregate is excluded.
+# Expected output validated against DuckDB (https://shell.duckdb.org).
+select *, count(*) as c from (values (1, 'a'), (1, 'a'), (2, 'b')) as t(x, y)
+group by all
+order by x;
++---+---+---+
+| X | Y | C |
++---+---+---+
+| 1 | a | 2 |
+| 2 | b | 1 |
++---+---+---+
+(2 rows)
+
+!ok
+
 # End agg.iq

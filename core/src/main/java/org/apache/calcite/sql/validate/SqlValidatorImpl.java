@@ -5256,6 +5256,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /** Expands a single "*" or "t.*" select item into its underlying columns,
+   * for a GROUP BY ALL / ORDER BY ALL rewrite.
+   *
+   * <p>Calls the private {@code expandStar} core directly (not the public
+   * {@code expandStar(SqlNodeList, SqlSelect, boolean)} wrapper), with fresh
+   * collections: the wrapper would derive types over every select item and
+   * mark the expanded list, poisoning {@link AggregatingSelectScope}'s
+   * memoized grouping set with the not-yet-rewritten placeholder. The fresh
+   * {@code items}/{@code fields} must stay paired for NATURAL/USING index
+   * alignment. */
+  private List<SqlNode> expandStarForAllRewrite(SqlSelect select, SqlNode starItem) {
+    final SelectScope scope = (SelectScope) getWhereScope(select);
+    final List<SqlNode> items = new ArrayList<>();
+    expandStar(items, catalogReader.nameMatcher().createSet(), PairList.of(),
+        false, scope, starItem, false);
+    return items;
+  }
+
   protected void rewriteOrderByAll(SqlSelect select) {
     final SqlNodeList orderList = select.getOrderList();
     if (orderList == null || orderList.size() != 1) {
@@ -5288,8 +5306,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode selectItem : select.getSelectList()) {
       final SqlNode expr = SqlUtil.stripAs(selectItem);
       if (expr instanceof SqlIdentifier && ((SqlIdentifier) expr).isStar()) {
-        throw newValidationError(expr,
-            RESOURCE.orderByAllRequiresExplicitSelectList());
+        for (SqlNode column : expandStarForAllRewrite(select, expr)) {
+          keys.add(applyOrderByAllDirection(column, desc, nulls, pos));
+        }
+        continue;
       }
       keys.add(applyOrderByAllDirection(expr, desc, nulls, pos));
     }
@@ -5489,8 +5509,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       final SqlNode expr = SqlUtil.stripAs(selectItem);
       if (expr instanceof SqlIdentifier && ((SqlIdentifier) expr).isStar()) {
-        throw newValidationError(expr,
-            RESOURCE.groupByAllRequiresExplicitSelectList());
+        for (SqlNode column : expandStarForAllRewrite(select, expr)) {
+          if (aggOrOverFinder.findAgg(column) == null) {
+            keys.add(column);
+          }
+        }
+        continue;
       }
       if (aggOrOverFinder.findAgg(expr) == null) {
         keys.add(expr);

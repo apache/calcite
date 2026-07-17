@@ -426,6 +426,9 @@ in the order that they appear in the list; for example:
 "SELECT x, y FROM t ORDER BY ALL" is equivalent to
 "SELECT x, y FROM t ORDER BY x, y"
 An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys.
+A `*` in the SELECT clause is expanded to its underlying columns, each of which
+becomes a sort key; for example, "SELECT * FROM t ORDER BY ALL" sorts by every
+column of `t`.
 
 In *query*, *count* and *start* may each be either an unsigned numeric literal
 or a dynamic parameter whose value is numeric.
@@ -461,6 +464,9 @@ GROUP BY ALL on its own groups by every expression in the SELECT clause
 that is not an aggregate function; for example,
 "SELECT deptno, SUM(sal) FROM emp GROUP BY ALL" is equivalent to
 "SELECT deptno, SUM(sal) FROM emp GROUP BY deptno".
+A `*` in the SELECT clause is expanded to its underlying columns, each of which
+becomes a grouping key; for example,
+"SELECT *, COUNT(*) FROM emp GROUP BY ALL" groups by every column of `emp`.
 
 *selectWithoutFrom* is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
