@@ -626,6 +626,21 @@ public abstract class SqlImplementor {
         && ((SqlCall) node).getOperator() instanceof SqlOverOperator;
   }
 
+  /** Returns whether one of an aggregate's group keys contains an OVER expression. */
+  private static boolean groupKeysContainOver(Aggregate aggregate) {
+    final RelNode input = aggregate.getInput();
+    if (!(input instanceof Project)) {
+      return false;
+    }
+    final Project project = (Project) input;
+    for (int group : aggregate.getGroupSet()) {
+      if (RexOver.containsOver(project.getProjects().get(group))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Context for translating a {@link RexNode} expression (within a
    * {@link RelNode}) into a {@link SqlNode} expression (within a SQL parse
    * tree). */
@@ -2171,6 +2186,10 @@ public abstract class SqlImplementor {
         if (clauses.contains(Clause.GROUP_BY)) {
           // Avoid losing the distinct attribute of inner aggregate.
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
+        }
+
+        if (groupKeysContainOver(agg)) {
+          return true;
         }
       }
 
