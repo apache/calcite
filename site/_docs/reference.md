@@ -427,8 +427,13 @@ in the order that they appear in the list; for example:
 "SELECT x, y FROM t ORDER BY x, y"
 An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys.
 
-In *query*, *count* and *start* may each be either an unsigned numeric literal
-or a dynamic parameter whose value is numeric.
+In *query*, *start* may be either an unsigned numeric literal or a dynamic
+parameter whose value is numeric. The *count* in a LIMIT clause may be either
+an unsigned numeric literal or a dynamic parameter whose value is numeric. The
+*count* in a FETCH clause may be an unsigned numeric literal, a dynamic
+parameter whose value is numeric, or a scalar expression enclosed in
+parentheses. A FETCH *count* expression cannot reference columns from the query
+input, and cannot contain aggregate functions, window functions, or sub-queries.
 Support for decimal or non-integer values is adapter-dependent.
 
 An aggregate query is a query that contains a GROUP BY or a HAVING

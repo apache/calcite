@@ -4950,6 +4950,74 @@ class RelToSqlConverterTest {
         .withSybase().ok(expectedSybase);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testFetchExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (1 + 2) rows only";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 3";
+    sql(query).withMysql().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testNegativeFetchExpressionIsRejectedBeforeSqlGeneration() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (0 - 1) rows only";
+    final String error =
+        "FETCH value -1 is out of range; expected a non-negative value";
+    sql(query).throws_(error);
+    sql(query).withMysql().throws_(error);
+    sql(query).withSQLite().throws_(error);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testParameterizedFetchExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (? + 1) rows only";
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support FETCH expressions that cannot "
+            + "be reduced to a literal");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testParameterizedFetchExpressionWithSQLite() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (? + 1) rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "LIMIT ? + 1";
+    sql(query).withSQLite().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testDynamicFetchExpressionIsNotReduced() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (extract(day from current_date)) rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT (EXTRACT(DAY FROM CURRENT_DATE)) ROWS ONLY";
+    sql(query).ok(expected);
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support FETCH expressions that cannot "
+            + "be reduced to a literal");
+  }
+
   @Test void testSelectQueryComplex() {
     String query =
         "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "

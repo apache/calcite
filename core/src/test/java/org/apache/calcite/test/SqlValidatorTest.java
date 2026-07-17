@@ -10723,6 +10723,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testFetchExpressionType() {
+    sql("select name from dept fetch next (^upper('x')^) rows only")
+        .fails("FETCH expression must have a numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept fetch next (^'x'^) rows only")
+        .fails("FETCH expression must have a numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept fetch next 1.5 rows only").ok();
+    sql("select name from dept "
+        + "fetch next (^row_number() over ()^) rows only")
+        .fails("Windowed aggregate expression is illegal in FETCH clause");
+  }
+
   @Test void testRewriteWithOffsetWithoutOrderBy() {
     final String sql = "select name from dept offset 2";
     final String expected = "SELECT `NAME`\n"

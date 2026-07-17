@@ -78,6 +78,36 @@ class EnumerableMergeUnionTest {
             "empid=45; name=Pascal");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void mergeUnionDoesNotPushNonDeterministicFetch() {
+    tester(false,
+        new HrSchemaBig(),
+        "select * from (select empid, name from emps "
+            + "union all select empid, name from emps) "
+            + "order by empid fetch next (rand_integer(10)) rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "fetch=[RAND_INTEGER(10)])\n"
+            + "  EnumerableMergeUnion(all=[true])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void mergeUnionPushesParameterizedFetchExpression() {
+    tester(false,
+        new HrSchemaBig(),
+        "select * from (select empid, name from emps "
+            + "union all select empid, name from emps) "
+            + "order by empid fetch next (? + 1) rows only")
+        .explainContains("EnumerableLimit(fetch=[+(?0, 1)])\n"
+            + "  EnumerableMergeUnion(all=[true])\n"
+            + "    EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "fetch=[+(?0, 1)])\n");
+  }
+
   @Test void mergeUnionAllOrderByName() {
     tester(false,
         new HrSchemaBig(),

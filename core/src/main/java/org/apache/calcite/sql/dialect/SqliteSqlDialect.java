@@ -90,7 +90,7 @@ public class SqliteSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    unparseFetchUsingLimit(writer, offset, fetch);
+    unparseFetchUsingLimit(writer, offset, fetch, true);
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
