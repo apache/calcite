@@ -138,9 +138,16 @@ public class RelToSqlConverter extends SqlImplementor
   private final Deque<Frame> stack = new ArrayDeque<>();
 
   /** Creates a RelToSqlConverter. */
-  @SuppressWarnings("argument.type.incompatible")
   public RelToSqlConverter(SqlDialect dialect) {
-    super(dialect);
+    this(dialect, false);
+  }
+
+  /** Creates a RelToSqlConverter; if {@code preserveLiteralTypes}, literals
+   * whose type is not implied by their SQL text are wrapped in CASTs;
+   * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
+  @SuppressWarnings("argument.type.incompatible")
+  public RelToSqlConverter(SqlDialect dialect, boolean preserveLiteralTypes) {
+    super(dialect, preserveLiteralTypes);
     dispatcher =
         ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
             RelNode.class);
@@ -1187,11 +1194,11 @@ public class RelToSqlConverter extends SqlImplementor
         SqlNodeList sortExps = exprList(builder.context, e.getSortExps());
         sqlSelect.setOrderBy(sortExps);
         if (e.offset != null) {
-          SqlNode offset = builder.context.toSql(null, e.offset);
+          SqlNode offset = offsetFetchToSql(builder.context, e.offset);
           sqlSelect.setOffset(offset);
         }
         if (e.fetch != null) {
-          SqlNode fetch = builder.context.toSql(null, e.fetch);
+          SqlNode fetch = offsetFetchToSql(builder.context, e.fetch);
           sqlSelect.setFetch(fetch);
         }
         return result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
@@ -1249,11 +1256,18 @@ public class RelToSqlConverter extends SqlImplementor
    * The builder must have been created with OFFSET and FETCH clauses. */
   void offsetFetch(Sort e, Builder builder) {
     if (e.fetch != null) {
-      builder.setFetch(builder.context.toSql(null, e.fetch));
+      builder.setFetch(offsetFetchToSql(builder.context, e.fetch));
     }
     if (e.offset != null) {
-      builder.setOffset(builder.context.toSql(null, e.offset));
+      builder.setOffset(offsetFetchToSql(builder.context, e.offset));
     }
+  }
+
+  /** Converts an OFFSET or FETCH expression; these can never have a CAST. */
+  private SqlNode offsetFetchToSql(Context context, RexNode rex) {
+    return preserveLiteralTypes && rex instanceof RexLiteral
+        ? SqlImplementor.toSql(null, (RexLiteral) rex)
+        : context.toSql(null, rex);
   }
 
   public boolean hasTrickyRollup(Sort e, Aggregate aggregate) {

@@ -99,6 +99,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -138,6 +139,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -171,6 +173,12 @@ public abstract class SqlImplementor {
       SqlLiteral.createExactNumeric("1", POS);
 
   public final SqlDialect dialect;
+
+  /** If true, literals whose type is not implied by their SQL text are
+   * wrapped in CASTs that make the type explicit;
+   * see {@link #toSql(RexProgram, RexLiteral, SqlDialect)}. */
+  public final boolean preserveLiteralTypes;
+
   protected final Set<String> aliasSet = new LinkedHashSet<>();
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
@@ -185,7 +193,12 @@ public abstract class SqlImplementor {
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
   protected SqlImplementor(SqlDialect dialect) {
+    this(dialect, false);
+  }
+
+  protected SqlImplementor(SqlDialect dialect, boolean preserveLiteralTypes) {
     this.dialect = requireNonNull(dialect, "dialect");
+    this.preserveLiteralTypes = preserveLiteralTypes;
   }
 
   /** Visits a relational expression that has no parent. */
@@ -646,6 +659,13 @@ public abstract class SqlImplementor {
 
     public abstract SqlNode field(int ordinal);
 
+    /** Returns whether literals whose type is not implied by their SQL text
+     * are wrapped in CASTs;
+     * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
+    protected boolean preservesLiteralTypes() {
+      return false;
+    }
+
     /** Creates a reference to a field to be used in an ORDER BY clause.
      *
      * <p>By default, it returns the same result as {@link #field}.
@@ -750,7 +770,9 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
-        return SqlImplementor.toSql(program, (RexLiteral) rex);
+        return preservesLiteralTypes()
+            ? SqlImplementor.toSql(program, (RexLiteral) rex, dialect)
+            : SqlImplementor.toSql(program, (RexLiteral) rex);
 
       case CASE:
         final RexCall caseCall = (RexCall) rex;
@@ -1534,6 +1556,77 @@ public abstract class SqlImplementor {
     }
   }
 
+  /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
+   * to a {@link SqlNode}, preserving the literal's type.
+   *
+   * <p>The SQL text of a literal does not always imply the literal's type:
+   * {@code 1} parses as INTEGER even if the literal's type is TINYINT, and
+   * {@code NULL} loses its type entirely. This method wraps such literals in
+   * a CAST that makes the type explicit; {@code dialect} supplies the SQL
+   * syntax of the CAST target type. */
+  public static SqlNode toSql(@Nullable RexProgram program, RexLiteral literal,
+      SqlDialect dialect) {
+    switch (literal.getTypeName()) {
+    case ROW:
+      // Cast the fields rather than the ROW call, because few dialects can
+      // parse a cast to a ROW type.
+      //noinspection unchecked
+      final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
+      return SqlStdOperatorTable.ROW.createCall(POS,
+          list.stream().map(e -> toSql(program, e, dialect))
+              .collect(toImmutableList()));
+
+    case SYMBOL:
+    case SARG:
+      return toSql(program, literal);
+
+    default:
+      final SqlNode node = toSql(program, literal);
+      // A result that is not a SqlLiteral is already a CAST; for example
+      // NaN becomes CAST('NaN' AS DOUBLE).
+      return node instanceof SqlLiteral
+          ? castIfTypeAmbiguous((SqlLiteral) node, literal.getType(), dialect)
+          : node;
+    }
+  }
+
+  /** Wraps a literal in a CAST to {@code type} if the type that the
+   * validator would infer for the literal's SQL text differs from
+   * {@code type}. */
+  private static SqlNode castIfTypeAmbiguous(SqlLiteral literal, RelDataType type,
+      SqlDialect dialect) {
+    switch (type.getSqlTypeName()) {
+    case NULL:
+    case ANY:
+    case UNKNOWN:
+      // No valid SQL syntax for casts to these types
+      return literal;
+    default:
+      break;
+    }
+    if (typeMatches(literal, type)) {
+      return literal;
+    }
+    final SqlNode castSpec = dialect.getCastSpec(type);
+    if (castSpec == null) {
+      return literal;
+    }
+    return SqlStdOperatorTable.CAST.createCall(POS, literal, castSpec);
+  }
+
+  /** Returns whether the type that the validator infers for {@code literal}'s
+   * SQL text matches {@code type}. Ignores nullability, and collation. */
+  private static boolean typeMatches(SqlLiteral literal, RelDataType type) {
+    final RelDataTypeFactory typeFactory = RexBuilder.DEFAULT.getTypeFactory();
+    final RelDataType impliedType = literal.createSqlType(typeFactory);
+    if (SqlTypeUtil.isCharacter(impliedType) && SqlTypeUtil.isCharacter(type)) {
+      return impliedType.getSqlTypeName() == type.getSqlTypeName()
+          && impliedType.getPrecision() == type.getPrecision()
+          && Objects.equals(impliedType.getCharset(), type.getCharset());
+    }
+    return SqlTypeUtil.equalSansNullability(typeFactory, impliedType, type);
+  }
+
   /** Converts a {@link RexLiteral} to a {@link SqlLiteral}. */
   public static SqlNode toSql(RexLiteral literal) {
     SqlTypeName typeName = literal.getTypeName();
@@ -1648,10 +1741,21 @@ public abstract class SqlImplementor {
    * to use it. It is a good way to convert a {@link RexNode} to SQL text. */
   public static class SimpleContext extends Context {
     private final IntFunction<SqlNode> field;
+    private final boolean preserveLiteralTypes;
 
     public SimpleContext(SqlDialect dialect, IntFunction<SqlNode> field) {
+      this(dialect, field, false);
+    }
+
+    public SimpleContext(SqlDialect dialect, IntFunction<SqlNode> field,
+        boolean preserveLiteralTypes) {
       super(dialect, 0, false);
       this.field = field;
+      this.preserveLiteralTypes = preserveLiteralTypes;
+    }
+
+    @Override protected boolean preservesLiteralTypes() {
+      return preserveLiteralTypes;
     }
 
     @Override public SqlImplementor implementor() {
@@ -1672,6 +1776,10 @@ public abstract class SqlImplementor {
 
     @Override protected Context getAliasContext(RexCorrelVariable variable) {
       return SqlImplementor.this.getAliasContext(variable);
+    }
+
+    @Override protected boolean preservesLiteralTypes() {
+      return preserveLiteralTypes;
     }
 
     @Override public SqlImplementor implementor() {
