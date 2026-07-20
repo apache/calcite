@@ -388,6 +388,13 @@ public class AggregateCall {
     return aggFunction;
   }
 
+  /** Withs {@link #aggFunction}. */
+  public AggregateCall withFunction(SqlAggFunction aggFunction) {
+    return aggFunction.equals(this.aggFunction) ? this
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
+            rexList, argList, filterArg, distinctKeys, collation, type, name);
+  }
+
   /**
    * Returns the aggregate ordering definition (the {@code WITHIN GROUP} clause
    * in SQL), or the empty list if not specified.
