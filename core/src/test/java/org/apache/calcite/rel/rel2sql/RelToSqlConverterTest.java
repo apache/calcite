@@ -3032,25 +3032,25 @@ class RelToSqlConverterTest {
         + " as MAP<varchar,varchar> array)";
     final String expectedClickHouse2 =
         "SELECT CAST(array(map('a', '1'), map('b', '2'), map('c', '3'))"
-            + " AS Array(Map(`String`, `String`)))";
+            + " AS Array(Map(`String`, `Nullable(String)`)))";
     sql(query2).withClickHouse().ok(expectedClickHouse2);
 
     final String query3 = "select cast(MAP['a',ARRAY[1,2,3]]"
         + " as MAP<varchar,integer array>)";
     final String expectedClickHouse3 =
-        "SELECT CAST(map('a', array(1, 2, 3)) AS Map(`String`, Array(`Int32`)))";
+        "SELECT CAST(map('a', array(1, 2, 3)) AS Map(`String`, Array(`Nullable(Int32)`)))";
     sql(query3).withClickHouse().ok(expectedClickHouse3);
 
     final String query4 = "select cast(MAP['a',ARRAY[1.0,2.0,3.0]]"
         + " as MAP<varchar,real array>)";
     final String expectedClickHouse4 =
-        "SELECT CAST(map('a', array(1.0, 2.0, 3.0)) AS Map(`String`, Array(`Float32`)))";
+        "SELECT CAST(map('a', array(1.0, 2.0, 3.0)) AS Map(`String`, Array(`Nullable(Float32)`)))";
     sql(query4).withClickHouse().ok(expectedClickHouse4);
 
     final String query5 = "select cast(MAP['a',MAP['b','c']]"
         + " as MAP<varchar,MAP<varchar,varchar>>)";
     final String expectedClickHouse5 =
-        "SELECT CAST(map('a', map('b', 'c')) AS Map(`String`, Map(`String`, `String`)))";
+        "SELECT CAST(map('a', map('b', 'c')) AS Map(`String`, Map(`String`, `Nullable(String)`)))";
     sql(query5).withClickHouse().ok(expectedClickHouse5);
   }
 
@@ -4918,6 +4918,74 @@ class RelToSqlConverterTest {
         .withSybase().ok(expectedSybase);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testFetchExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (1 + 2) rows only";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 3";
+    sql(query).withMysql().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testNegativeFetchExpressionIsRejectedBeforeSqlGeneration() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (0 - 1) rows only";
+    final String error =
+        "FETCH value -1 is out of range; expected a non-negative value";
+    sql(query).throws_(error);
+    sql(query).withMysql().throws_(error);
+    sql(query).withSQLite().throws_(error);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testParameterizedFetchExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (? + 1) rows only";
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support FETCH expressions that cannot "
+            + "be reduced to a literal");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testParameterizedFetchExpressionWithSQLite() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (? + 1) rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "LIMIT ? + 1";
+    sql(query).withSQLite().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testDynamicFetchExpressionIsNotReduced() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "fetch next (extract(day from current_date)) rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT (EXTRACT(DAY FROM CURRENT_DATE)) ROWS ONLY";
+    sql(query).ok(expected);
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support FETCH expressions that cannot "
+            + "be reduced to a literal");
+  }
+
   @Test void testSelectQueryComplex() {
     String query =
         "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "
@@ -5652,15 +5720,15 @@ class RelToSqlConverterTest {
   @Test void testCastAsMapType() {
     sql("SELECT CAST(MAP['A', 1.0] AS MAP<VARCHAR, DOUBLE>)")
         .ok("SELECT CAST(MAP['A', 1.0] AS "
-            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", DOUBLE >)\n"
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", DOUBLE NULL >)\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT CAST(MAP['A', ARRAY[1, 2, 3]] AS MAP<VARCHAR, INT ARRAY>)")
         .ok("SELECT CAST(MAP['A', ARRAY[1, 2, 3]] AS "
-            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", INTEGER ARRAY >)\n"
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", INTEGER ARRAY NULL >)\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT CAST(MAP[ARRAY['A'], MAP[1, 2]] AS MAP<VARCHAR ARRAY, MAP<INT, INT>>)")
         .ok("SELECT CAST(MAP[ARRAY['A'], MAP[1, 2]] AS "
-            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\" ARRAY, MAP< INTEGER, INTEGER > >)\n"
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\" ARRAY, MAP< INTEGER, INTEGER NULL > NULL >)\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
   }
 

@@ -4075,12 +4075,31 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "OFFSET ? ROWS\n"
             + "FETCH NEXT ? ROWS ONLY");
+    // CALCITE-7592: Arithmetic and scalar expressions are allowed within parentheses.
+    sql("select a from foo fetch next (1 + abs(-2)) rows only")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "FETCH NEXT (1 + ABS(-2)) ROWS ONLY");
+    // Expressions without parentheses are not allowed.
+    sql("select a from foo fetch next 1 ^+^ 2 rows only")
+        .fails("(?s).*Encountered \"\\+\" at .*");
+    sql("select a from foo fetch next ? ^+^ abs(2) rows only")
+        .fails("(?s).*Encountered \"\\+\" at .*");
     // missing ROWS after FETCH
     sql("select a from foo offset 1 fetch next 3 ^only^")
         .fails("(?s).*Encountered \"only\" at .*");
     // FETCH before OFFSET is illegal
     sql("select a from foo fetch next 3 rows only ^offset^ 1")
         .fails("(?s).*Encountered \"offset\" at .*");
+    // Subqueries are not allowed in FETCH
+    sql("select a from foo fetch next ^select^ 2 rows only")
+        .fails("(?s).*Encountered \"select\" at .*");
+    sql("select a from foo fetch next (^select^ 2) rows only")
+        .fails("(?s).*Encountered \"select\" at .*");
+    sql("select a from foo fetch next (^select^ ?) rows only")
+        .fails("(?s).*Encountered \"select\" at .*");
+    sql("select a from foo fetch next (^select^ max(a) from foo) rows only")
+        .fails("(?s).*Encountered \"select\" at .*");
   }
 
   /**
