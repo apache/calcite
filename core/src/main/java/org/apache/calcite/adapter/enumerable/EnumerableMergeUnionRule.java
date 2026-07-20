@@ -27,7 +27,6 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -86,19 +85,19 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
     final Union union = call.rel(1);
     final int unionInputsSize = union.getInputs().size();
 
-    // Push down sort limit, if possible.
+    // Push down sort limit, if possible. Do not push it through UNION DISTINCT:
+    // duplicate rows do not count towards the final limit, so limiting an input
+    // before duplicate elimination could discard a row needed in the result.
     RexNode inputFetch = null;
-    if (sort.fetch != null) {
+    if (union.all && sort.fetch != null) {
       final boolean safeToReevaluate =
-          RexUtil.isDeterministic(sort.fetch);
+          RexUtil.isDeterministic(sort.fetch)
+              && (sort.offset == null || RexUtil.isDeterministic(sort.offset));
       if (sort.offset == null && safeToReevaluate) {
         inputFetch = sort.fetch;
-      } else if (safeToReevaluate
-          && sort.fetch instanceof RexLiteral
-          && sort.offset instanceof RexLiteral) {
+      } else if (safeToReevaluate) {
         inputFetch =
-            call.builder().literal(RexLiteral.bigDecimalValue(sort.fetch)
-                .add(RexLiteral.bigDecimalValue(sort.offset)));
+            RexUtil.makeOffsetFetchSum(sort.getCluster().getRexBuilder(), sort.offset, sort.fetch);
       }
     }
 

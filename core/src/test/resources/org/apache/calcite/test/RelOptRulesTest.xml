@@ -20032,6 +20032,36 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortUnionTransposePushesLiteralOffset">
+    <Resource name="sql">
+      <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name offset 2 rows fetch next 3 rows only]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[3])
+  LogicalUnion(all=[true])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[3])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[5])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[5])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortUnionTransposePushesParameterizedFetchExpression">
     <Resource name="sql">
       <![CDATA[select a.name from dept a
@@ -20062,6 +20092,36 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(?0, 1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortUnionTransposePushesParameterizedOffsetExpression">
+    <Resource name="sql">
+      <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name offset ? + 1 rows fetch next 2 rows only]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[+(?0, 1)], fetch=[2])
+  LogicalUnion(all=[true])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[+(?0, 1)], fetch=[2])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(CEIL(+(?0, 1)), 2)])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[+(CEIL(+(?0, 1)), 2)])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortUnionTransposeWithNonDeterministicFetch">
     <Resource name="sql">
       <![CDATA[select a.name from dept a
@@ -20072,6 +20132,24 @@ order by name fetch next (rand_integer(10)) rows only]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[RAND_INTEGER(10)])
+  LogicalUnion(all=[true])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortUnionTransposeWithNonDeterministicOffset">
+    <Resource name="sql">
+      <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name offset rand_integer(10) rows fetch next 2 rows only]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[RAND_INTEGER(10)], fetch=[2])
   LogicalUnion(all=[true])
     LogicalProject(NAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -21092,6 +21170,45 @@ LogicalProject(EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
         LogicalProject(EMPNO=[$0], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTopDownGeneralDecorrelateForSubqueryWithOffsetExpression">
+    <Resource name="sql">
+      <![CDATA[select empno from emp where sal > SOME(select sal from emp_b where emp.deptno = emp_b.deptno order by emp_b.sal offset 1 + 1 rows fetch next (1 + 1) rows only)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($5, {
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[+(1, 1)], fetch=[+(1, 1)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[$9])
+    LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{7}], condition=[>($5, $9)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(sort0=[$0], dir0=[ASC], offset=[+(1, 1)], fetch=[+(1, 1)])
+        LogicalProject(SAL=[$5])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(>($5, $9), IS NOT DISTINCT FROM($7, $10))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[AND(>($2, +(1, 1)), <=($2, +(+(1, 1), +(1, 1))))])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $5 NULLS LAST)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
     </Resource>
   </TestCase>

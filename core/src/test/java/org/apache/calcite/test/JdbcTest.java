@@ -3593,6 +3593,17 @@ public class JdbcTest {
             + "X=3\n");
   }
 
+  @Test void testOffsetExpression() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3), (4)) as t(x)\n";
+    with.query(values + "offset 1 + abs(-1) rows")
+        .returns("X=3\n"
+            + "X=4\n");
+    with.query(values + "order by x desc offset 1 + abs(-1) rows")
+        .returns("X=2\n"
+            + "X=1\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -3618,6 +3629,17 @@ public class JdbcTest {
     }
   }
 
+  @Test void testBindableOffsetExpression() {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      CalciteAssert.that()
+          .query("select * from (values (1), (2), (3), (4)) as t(x)\n"
+              + "offset rand_integer(1) + 2 rows")
+          .explainContains("BindableSort(offset=[+(RAND_INTEGER(1), 2)])")
+          .returns("X=3\n"
+              + "X=4\n");
+    }
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -3630,6 +3652,15 @@ public class JdbcTest {
     with.query(values + "fetch next (abs(-2)) rows only")
         .returns("X=1\n"
             + "X=2\n");
+  }
+
+  @Test void testOffsetExpressionFunctionArguments() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3)) as t(x)\n";
+    with.query(values + "offset abs(2) rows")
+        .returns("X=3\n");
+    with.query(values + "offset abs(-2) rows")
+        .returns("X=3\n");
   }
 
   /** Test case for
@@ -3645,6 +3676,17 @@ public class JdbcTest {
     with.query(values
         + "fetch next (cast(null as integer)) rows only")
         .throws_("FETCH expression evaluated to NULL");
+  }
+
+  @Test void testOffsetExpressionInvalidValue() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3)) as t(x)\n";
+    with.query(values + "offset 0 - 1 rows")
+        .throws_("OFFSET must not be negative");
+    with.query(values + "offset -1 rows")
+        .throws_("OFFSET must not be negative");
+    with.query(values + "offset cast(null as integer) rows")
+        .throws_("OFFSET expression evaluated to NULL");
   }
 
   /** Test case for
@@ -3681,6 +3723,9 @@ public class JdbcTest {
       with.query(sqlPrefix + "fetch next (0.5 + 1) rows only" + sqlSuffix)
           .returns("DNAME=Sales; ENAME=Bill\n"
               + "DNAME=Sales; ENAME=Theodore\n");
+      with.query(sqlPrefix + "offset 0.5 + 1 rows fetch next 1 row only"
+              + sqlSuffix)
+          .returns("DNAME=Sales; ENAME=Sebastian\n");
       with.query(sqlPrefix + "offset 1.5 rows fetch next 1 row only" + sqlSuffix)
           .returns("DNAME=Sales; ENAME=Sebastian\n");
     }
@@ -3690,20 +3735,24 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
   @Test void testCorrelatedPreparedFractionalOffset() throws Exception {
-    final String sql = "select d.\"name\" as dname, e.\"name\" as ename\n"
-        + "from \"hr\".\"depts\" d,\n"
-        + "lateral (select \"empid\", \"name\" from \"hr\".\"emps\"\n"
-        + "  where \"deptno\" = d.\"deptno\"\n"
-        + "  order by \"empid\" offset ? rows fetch next 1 row only) e\n"
-        + "order by e.\"empid\"";
-    for (boolean topDown : new boolean[] {false, true}) {
-      CalciteAssert.hr()
-          .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
-          .doWithConnection(connection -> {
-            checkPreparedBigDecimalParameter(connection, sql,
-                new BigDecimal("1.5"),
-                "DNAME=Sales; ENAME=Sebastian\n");
-          });
+    for (String offset
+        : new String[] {"?", "cast(? as decimal(2, 1)) + 0"}) {
+      final String sql = "select d.\"name\" as dname, e.\"name\" as ename\n"
+          + "from \"hr\".\"depts\" d,\n"
+          + "lateral (select \"empid\", \"name\" from \"hr\".\"emps\"\n"
+          + "  where \"deptno\" = d.\"deptno\"\n"
+          + "  order by \"empid\" offset " + offset
+          + " rows fetch next 1 row only) e\n"
+          + "order by e.\"empid\"";
+      for (boolean topDown : new boolean[] {false, true}) {
+        CalciteAssert.hr()
+            .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
+            .doWithConnection(connection -> {
+              checkPreparedBigDecimalParameter(connection, sql,
+                  new BigDecimal("1.5"),
+                  "DNAME=Sales; ENAME=Sebastian\n");
+            });
+      }
     }
   }
 
@@ -3739,6 +3788,34 @@ public class JdbcTest {
     }
   }
 
+  @Test void testCorrelatedPreparedOffsetExpression() throws Exception {
+    for (String offset : new String[] {"?", "? + 0"}) {
+      final String sql = "select d.\"name\" as dname, e.\"name\" as ename\n"
+          + "from \"hr\".\"depts\" d,\n"
+          + "lateral (select \"empid\", \"name\" from \"hr\".\"emps\"\n"
+          + "  where \"deptno\" = d.\"deptno\"\n"
+          + "  order by \"empid\" offset " + offset + " rows) e\n"
+          + "order by e.\"empid\"";
+      for (boolean topDown : new boolean[] {false, true}) {
+        CalciteAssert.hr()
+            .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
+            .doWithConnection(connection -> {
+              checkPreparedFetchRepeated(connection, sql,
+                  new int[] {1, 2},
+                  new String[] {
+                      "DNAME=Sales; ENAME=Theodore\n"
+                          + "DNAME=Sales; ENAME=Sebastian\n",
+                      "DNAME=Sales; ENAME=Sebastian\n"
+                  });
+              checkPreparedParameterFails(connection, sql, -1,
+                  "OFFSET must not be negative");
+              checkPreparedParameterNullFails(connection, sql,
+                  "OFFSET expression evaluated to NULL");
+            });
+      }
+    }
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -3754,6 +3831,19 @@ public class JdbcTest {
     with.query(values + "order by x fetch next "
         + "(cast(9223372036854775808 as decimal(20, 0)) + 1) rows only")
         .returns(expected);
+  }
+
+  @Test void testOffsetExpressionBeyondLong() {
+    final CalciteAssert.AssertThat with = CalciteAssert.that();
+    final String values = "select * from (values (1), (2), (3), (4)) as t(x)\n";
+    with.query(values + "offset 9223372036854775808 rows")
+        .returns("");
+    with.query(values + "offset "
+        + "cast(9223372036854775808 as decimal(20, 0)) + 1 rows")
+        .returns("");
+    with.query(values + "order by x offset "
+        + "cast(9223372036854775808 as decimal(20, 0)) + 1 rows")
+        .returns("");
   }
 
   /** Tests ORDER BY ... OFFSET ... FETCH. */
@@ -6277,6 +6367,34 @@ public class JdbcTest {
         });
   }
 
+  @Test void testPreparedOffsetExpression() throws Exception {
+    CalciteAssert.that()
+        .doWithConnection(connection -> {
+          final String values =
+              "select * from (values (1), (2), (3), (4)) as t(x)\n";
+          checkPreparedFetch(connection, values + "offset ? + 1 rows",
+              1, "X=3\nX=4\n");
+          checkPreparedFetch(connection,
+              values + "order by x desc offset ? + 1 rows",
+              1, "X=2\nX=1\n");
+          checkPreparedBigDecimalParameter(connection,
+              values + "offset cast(? as decimal(2, 1)) + 0 rows",
+              new BigDecimal("1.5"), "X=3\nX=4\n");
+          checkPreparedFetch(connection,
+              values + "offset abs(cast(? as integer)) rows",
+              -2, "X=3\nX=4\n");
+          checkPreparedBigDecimalParameter(connection,
+              values + "offset cast(? as decimal(20, 0)) rows",
+              new BigDecimal("9223372036854775808"), "");
+          checkPreparedParameterFails(connection,
+              values + "offset ? + 1 rows", -2,
+              "OFFSET must not be negative");
+          checkPreparedParameterNullFails(connection,
+              values + "offset ? + 1 rows",
+              "OFFSET expression evaluated to NULL");
+        });
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -6311,6 +6429,9 @@ public class JdbcTest {
           .doWithConnection(connection -> {
             final String values =
                 "select * from (values (1), (2), (3), (4)) as t(x)\n";
+            checkPreparedFetch(connection,
+                values + "offset ? + 1 rows",
+                1, "X=3\nX=4\n");
             final String offset = values + "offset ? rows";
             checkPreparedBigDecimalParameter(connection, offset,
                 new BigDecimal("1.5"),

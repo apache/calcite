@@ -1188,7 +1188,7 @@ public class RelToSqlConverter extends SqlImplementor
         SqlNodeList sortExps = exprList(builder.context, e.getSortExps());
         sqlSelect.setOrderBy(sortExps);
         if (e.offset != null) {
-          SqlNode offset = builder.context.toSql(null, e.offset);
+          SqlNode offset = toSqlOffset(e, builder.context);
           sqlSelect.setOffset(offset);
         }
         if (e.fetch != null) {
@@ -1253,8 +1253,15 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setFetch(toSqlFetch(e, builder.context));
     }
     if (e.offset != null) {
-      builder.setOffset(builder.context.toSql(null, e.offset));
+      builder.setOffset(toSqlOffset(e, builder.context));
     }
+  }
+
+  private static SqlNode toSqlOffset(Sort sort, Context context) {
+    final RexNode offset = requireNonNull(sort.offset, "offset");
+    final @Nullable RexLiteral reduced =
+        RexUtil.reduceOffsetToLiteral(sort.getCluster(), offset);
+    return context.toSql(null, reduced == null ? offset : reduced);
   }
 
   private static SqlNode toSqlFetch(Sort sort, Context context) {

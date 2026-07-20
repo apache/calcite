@@ -5600,6 +5600,19 @@ public class RelBuilderTest {
             ImmutableList.of()));
   }
 
+  @Test void testOffsetExpressionCannotReferenceInputField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("DEPT");
+    final RexNode field = builder.field("DEPTNO");
+
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(field, null, ImmutableList.of()));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(
+            builder.call(SqlStdOperatorTable.PLUS, builder.literal(1), field),
+            null, ImmutableList.of()));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -5610,6 +5623,16 @@ public class RelBuilderTest {
     assertThrows(IllegalArgumentException.class,
         () -> builder.sortLimit(null, builder.literal("x"), ImmutableList.of()));
     builder.sortLimit(null, builder.literal(new BigDecimal("1.5")),
+        ImmutableList.of());
+  }
+
+  @Test void testOffsetExpressionMustHaveNumericType() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("DEPT");
+
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(builder.literal("x"), null, ImmutableList.of()));
+    builder.sortLimit(builder.literal(new BigDecimal("1.5")), null,
         ImmutableList.of());
   }
 
@@ -5629,6 +5652,22 @@ public class RelBuilderTest {
 
     assertThat(
         builder.build(), hasTree("LogicalSort(fetch=[+(?0, 1)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
+  }
+
+  @Test void testOffsetExpressionAllowsScalarCallAndDynamicParameter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType intType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    builder.scan("DEPT")
+        .sortLimit(
+            builder.call(SqlStdOperatorTable.PLUS,
+                builder.getRexBuilder().makeDynamicParam(intType, 0),
+                builder.literal(1)),
+            null, ImmutableList.of());
+
+    assertThat(
+        builder.build(), hasTree("LogicalSort(offset=[+(?0, 1)])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
   }
 
@@ -5660,6 +5699,33 @@ public class RelBuilderTest {
         RexSubQuery.scalar(subQueryBuilder.values(new String[] {"N"}, 1).build());
     assertThrows(IllegalArgumentException.class,
         () -> builder.sortLimit(null, subQuery, ImmutableList.of()));
+  }
+
+  @Test void testOffsetExpressionCannotContainAggregateWindowOrSubQuery() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType intType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    builder.scan("DEPT");
+    final RexNode aggregate =
+        builder.call(SqlStdOperatorTable.SUM, builder.literal(1));
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(aggregate, null, ImmutableList.of()));
+
+    final RexNode over =
+        builder.getRexBuilder().makeOver(intType,
+            SqlStdOperatorTable.ROW_NUMBER, ImmutableList.of(),
+            ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.UNBOUNDED_FOLLOWING,
+            true, true, false, false, false);
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(over, null, ImmutableList.of()));
+
+    final RelBuilder subQueryBuilder = RelBuilder.create(config().build());
+    final RexNode subQuery =
+        RexSubQuery.scalar(subQueryBuilder.values(new String[] {"N"}, 1).build());
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.sortLimit(subQuery, null, ImmutableList.of()));
   }
 
   /** Test case for

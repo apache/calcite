@@ -1142,10 +1142,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   static boolean canDecorrelateOffsetFetch(Sort sort) {
+    final @Nullable RexLiteral offset = sort.offset == null
+        ? null
+        : RexUtil.reduceOffsetToLiteral(sort.getCluster(), sort.offset);
     final @Nullable RexLiteral fetch = sort.fetch == null
         ? null
         : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
-    return isNonNegativeIntegralLiteral(sort.offset)
+    return (sort.offset == null
+            || offset != null && isNonNegativeIntegralLiteral(offset))
         && (sort.fetch == null
             || fetch != null && isNonNegativeIntegralLiteral(fetch));
   }

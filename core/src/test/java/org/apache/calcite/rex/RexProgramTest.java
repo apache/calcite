@@ -3623,6 +3623,17 @@ class RexProgramTest extends RexProgramTestBase {
         containsString("FETCH value -1.5 is out of range"));
   }
 
+  @Test void testValidateOffsetValueAllowsFractionalBigDecimal() {
+    assertThat(RexUtil.validateOffsetValue(new BigDecimal("1.5")),
+        is(new BigDecimal("1.5")));
+
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class,
+            () -> RexUtil.validateOffsetValue(new BigDecimal("-1.5")));
+    assertThat(e.getMessage(),
+        containsString("OFFSET value -1.5 is out of range"));
+  }
+
   @Test void testConstantMap() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);

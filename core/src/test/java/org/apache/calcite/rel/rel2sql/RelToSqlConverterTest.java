@@ -4931,6 +4931,17 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  @Test void testOffsetExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "offset 1 + 2 rows";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 18446744073709551615\n"
+        + "OFFSET 3";
+    sql(query).withMysql().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -4940,6 +4951,17 @@ class RelToSqlConverterTest {
         + "fetch next (0 - 1) rows only";
     final String error =
         "FETCH value -1 is out of range; expected a non-negative value";
+    sql(query).throws_(error);
+    sql(query).withMysql().throws_(error);
+    sql(query).withSQLite().throws_(error);
+  }
+
+  @Test void testNegativeOffsetExpressionIsRejectedBeforeSqlGeneration() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "offset 0 - 1 rows";
+    final String error =
+        "OFFSET value -1 is out of range; expected a non-negative value";
     sql(query).throws_(error);
     sql(query).withMysql().throws_(error);
     sql(query).withSQLite().throws_(error);
@@ -4957,6 +4979,15 @@ class RelToSqlConverterTest {
             + "be reduced to a literal");
   }
 
+  @Test void testParameterizedOffsetExpressionWithLimitDialect() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "offset ? + 1 rows";
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support OFFSET expressions that cannot "
+            + "be reduced to a literal");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
    * Add expression support for FETCH</a>. */
@@ -4968,6 +4999,31 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "LIMIT ? + 1";
     sql(query).withSQLite().ok(expected);
+  }
+
+  @Test void testParameterizedOffsetExpressionWithSQLite() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "offset ? + 1 rows";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "LIMIT -1\n"
+        + "OFFSET ? + 1";
+    sql(query).withSQLite().ok(expected);
+  }
+
+  @Test void testDynamicOffsetExpressionIsNotReduced() {
+    final String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "offset extract(day from current_date) rows";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "OFFSET EXTRACT(DAY FROM CURRENT_DATE) ROWS";
+    sql(query).ok(expected);
+    sql(query).withPostgresql().ok(expected);
+    sql(query).withMysql().throws_(
+        "LIMIT dialect does not support OFFSET expressions that cannot "
+            + "be reduced to a literal");
   }
 
   /** Test case for

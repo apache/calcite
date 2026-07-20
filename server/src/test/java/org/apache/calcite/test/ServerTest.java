@@ -489,6 +489,28 @@ class ServerTest {
     }
   }
 
+  @Test void testOffsetExpressionCannotReferenceInputColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table person (id int not null, name varchar(20))");
+      try (PreparedStatement p =
+               c.prepareStatement("insert into person (id, name) values (?, ?)")) {
+        p.setInt(1, 1);
+        p.setString(2, "foo");
+        assertThat(p.executeUpdate(), is(1));
+      }
+
+      for (String offset : new String[] {"id", "(id)", "1 + id"}) {
+        final SQLException e =
+            assertThrows(
+                SQLException.class, () -> s.executeQuery("select * from person "
+                + "offset " + offset + " rows"));
+        assertThat(e.getMessage(),
+            containsString("OFFSET expression cannot reference table column 'ID'"));
+      }
+    }
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
    * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
