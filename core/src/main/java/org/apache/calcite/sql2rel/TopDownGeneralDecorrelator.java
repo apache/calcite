@@ -233,12 +233,14 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     RelNode preparedRel = prePlanner.findBestExp();
 
     // start decorrelating
-    TopDownGeneralDecorrelator decorrelator = createEmptyDecorrelator(builder);
     RelNode decorrelateNode = rel;
-    try {
-      decorrelateNode = decorrelator.correlateElimination(preparedRel, true);
-    } catch (UnsupportedOperationException e) {
-      // if the correlation exists in an unsupported operator, retain the original plan.
+    if (canDecorrelateOffsetFetch(preparedRel, false)) {
+      TopDownGeneralDecorrelator decorrelator = createEmptyDecorrelator(builder);
+      try {
+        decorrelateNode = decorrelator.correlateElimination(preparedRel, true);
+      } catch (UnsupportedOperationException e) {
+        // if the correlation exists in an unsupported operator, retain the original plan.
+      }
     }
 
     HepProgram postProgram = HepProgram.builder()
@@ -253,6 +255,29 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     HepPlanner postPlanner = new HepPlanner(postProgram);
     postPlanner.setRoot(decorrelateNode);
     return postPlanner.findBestExp();
+  }
+
+  /** Returns whether correlated Sorts in a tree have OFFSET and FETCH values
+   * that can be decorrelated without changing their row-count semantics. */
+  private static boolean canDecorrelateOffsetFetch(RelNode rel,
+      boolean isCorVarDefined) {
+    if (isCorVarDefined && rel instanceof Sort
+        && !RelDecorrelator.canDecorrelateOffsetFetch((Sort) rel)) {
+      return false;
+    }
+    if (rel instanceof Correlate) {
+      final Correlate correlate = (Correlate) rel;
+      if (!canDecorrelateOffsetFetch(correlate.getLeft(), isCorVarDefined)) {
+        return false;
+      }
+      return canDecorrelateOffsetFetch(correlate.getRight(), true);
+    }
+    for (RelNode input : rel.getInputs()) {
+      if (!canDecorrelateOffsetFetch(input, isCorVarDefined)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

@@ -106,13 +106,15 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       v =
           builder.append("offset",
               Expressions.call(BuiltInMethod.SKIP_BIG_DECIMAL.method, v,
-                  getExpression(offset, "OFFSET", roundingPolicyExp)));
+                  getExpression(offset, "OFFSET", implementor, builder,
+                      roundingPolicyExp, false)));
     }
     if (fetch != null) {
       v =
           builder.append("fetch",
               Expressions.call(BuiltInMethod.TAKE_BIG_DECIMAL.method, v,
-                  getExpression(fetch, "FETCH", roundingPolicyExp)));
+                  getExpression(fetch, "FETCH", implementor, builder,
+                      roundingPolicyExp, true)));
     }
 
     builder.add(Expressions.return_(null, v));
@@ -120,7 +122,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   }
 
   static Expression getExpression(RexNode rexNode, String kind,
-      Expression roundingPolicy) {
+      EnumerableRelImplementor implementor, BlockBuilder builder,
+      Expression roundingPolicy, boolean translateExpression) {
     final Expression value;
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
@@ -128,8 +131,17 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
           Expressions.call(DataContext.ROOT,
               BuiltInMethod.DATA_CONTEXT_GET.method,
               Expressions.constant("?" + param.getIndex()));
-    } else {
+    } else if (rexNode instanceof RexLiteral) {
       value = Expressions.constant(RexLiteral.bigDecimalValue(rexNode));
+    } else {
+      if (!translateExpression) {
+        throw new IllegalArgumentException(kind + " must be a literal or dynamic parameter");
+      }
+
+      value =
+          RexToLixTranslator.forAggregation(implementor.getTypeFactory(),
+              builder, null, implementor.getConformance())
+              .translate(rexNode);
     }
     return Expressions.call(
         BuiltInMethod.NUMBER_TO_BIG_DECIMAL_LIMIT.method,

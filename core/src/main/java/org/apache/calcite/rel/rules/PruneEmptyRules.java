@@ -41,7 +41,6 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -519,9 +518,8 @@ public abstract class PruneEmptyRules {
       return new RemoveEmptySingleRule(this) {
         @Override public boolean matches(final RelOptRuleCall call) {
           Sort sort = call.rel(0);
-          return sort.fetch != null
-              && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.bigDecimalValue(sort.fetch).equals(BigDecimal.ZERO);
+          return sort.fetch instanceof RexLiteral
+              && BigDecimal.ZERO.equals(RexLiteral.bigDecimalValue(sort.fetch));
         }
       };
     }

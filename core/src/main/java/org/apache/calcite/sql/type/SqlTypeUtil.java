@@ -1128,9 +1128,8 @@ public abstract class SqlTypeUtil {
             requireNonNull(fromType.getComponentType(), "componentType"),
             typeMappingRule);
       } else if (fromType.getFamily() == SqlTypeFamily.CHARACTER
-          || fromType.getSqlTypeName() == SqlTypeName.NULL
-          || fromType.getSqlTypeName() == SqlTypeName.UNKNOWN) {
-        // Cast from NULL, UNKNOWN, or string to array is legal
+          || fromType.getSqlTypeName() == SqlTypeName.NULL) {
+        // Cast from NULL or string to array is legal
         return true;
       }
       return false;
@@ -1146,9 +1145,8 @@ public abstract class SqlTypeUtil {
             requireNonNull(fromType.getValueType(), "valueType"),
             typeMappingRule);
       } else if (fromType.getFamily() == SqlTypeFamily.CHARACTER
-          || fromType.getSqlTypeName() == SqlTypeName.NULL
-          || fromType.getSqlTypeName() == SqlTypeName.UNKNOWN) {
-        // Cast from NULL, UNKNOWN, or string to map is legal
+          || fromType.getSqlTypeName() == SqlTypeName.NULL) {
+        // Cast from NULL or string to map is legal
         return true;
       }
       return false;
@@ -1166,10 +1164,7 @@ public abstract class SqlTypeUtil {
             toType, fromType.getFieldList().get(0).getType(), typeMappingRule);
       } else if (toTypeName == SqlTypeName.ROW) {
         if (fromTypeName != SqlTypeName.ROW) {
-          // UNKNOWN can arise e.g. as the element type inferred for the
-          // no-argument array constructor ARRAY()
-          return fromTypeName == SqlTypeName.NULL
-              || fromTypeName == SqlTypeName.UNKNOWN;
+          return fromTypeName == SqlTypeName.NULL;
         }
         int n = toType.getFieldCount();
         if (fromType.getFieldCount() != n) {

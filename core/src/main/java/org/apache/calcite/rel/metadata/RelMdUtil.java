@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -56,6 +57,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -482,6 +484,9 @@ public class RelMdUtil {
     if (decimal == null) {
       throw new IllegalArgumentException(
           "literal value " + number + " cannot be converted to BigDecimal");
+    }
+    if (decimal.signum() < 0) {
+      return defaultValue;
     }
     if (decimal.abs().compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) > 0) {
       throw new IllegalArgumentException(
@@ -1043,8 +1048,16 @@ public class RelMdUtil {
     if (fetch == null) {
       return true;
     }
+    final RelNode strippedInput = input.stripped();
+    if (strippedInput instanceof Sort) {
+      final Sort sort = (Sort) strippedInput;
+      if (Objects.equals(offset, sort.offset)
+          && Objects.equals(fetch, sort.fetch)) {
+        return true;
+      }
+    }
     final Double rowCount = mq.getMaxRowCount(input);
-    if (rowCount == null || offset instanceof RexDynamicParam || fetch instanceof RexDynamicParam) {
+    if (rowCount == null || offset instanceof RexDynamicParam || !(fetch instanceof RexLiteral)) {
       // Cannot be determined
       return false;
     }

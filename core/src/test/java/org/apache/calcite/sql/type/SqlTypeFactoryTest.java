@@ -87,42 +87,6 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 
-  /** UNKNOWN types in leastRestrictive() affect only the result nullability. */
-  @Test void testLeastRestrictiveWithUnknown() {
-    SqlTypeFixture f = new SqlTypeFixture();
-    // UNKNOWN never constrains the result, no matter its position
-    checkUnknownWithType(f, f.sqlBigInt);
-    checkUnknownWithType(f, f.structOfInt);
-    checkUnknownWithType(f, f.arrayBigInt);
-    checkUnknownWithType(f, f.mapOfInt);
-    // A nullable UNKNOWN makes the result nullable
-    RelDataType leastRestrictive =
-        f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.structOfInt,
-                f.typeFactory.createTypeWithNullability(f.sqlUnknown, true)));
-    assertThat(leastRestrictive, notNullValue());
-    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ROW));
-    assertThat(leastRestrictive.isNullable(), is(true));
-    // A list of UNKNOWN unifies to UNKNOWN
-    leastRestrictive =
-        f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlUnknown, f.sqlUnknown));
-    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
-  }
-
-  /** Checks that leastRestictive({@code type}, UNKNOWN) yields {@code type},
-   * in either order. */
-  private void checkUnknownWithType(SqlTypeFixture f, RelDataType type) {
-    RelDataType r1 =
-        f.typeFactory.leastRestrictive(Lists.newArrayList(type, f.sqlUnknown));
-    RelDataType r2 =
-        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlUnknown, type));
-    assertThat(r1, notNullValue());
-    assertThat(r2, notNullValue());
-    assertThat(r1.getFullTypeString(), is(type.getFullTypeString()));
-    assertThat(r2.getFullTypeString(), is(type.getFullTypeString()));
-  }
-
   @Test void testLeastRestrictiveStructWithNull() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =

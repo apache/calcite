@@ -116,7 +116,7 @@ public class EnumUtils {
   /** Converts a FETCH or OFFSET runtime value to {@link BigDecimal}.
    *
    * <p>The value must be numeric and non-negative. */
-  public static BigDecimal numberToBigDecimal(Object value, String kind) {
+  public static BigDecimal numberToBigDecimal(@Nullable Object value, String kind) {
     return numberToBigDecimal(value, kind, FetchOffsetRoundingPolicy.NONE);
   }
 
@@ -124,8 +124,11 @@ public class EnumUtils {
    *
    * <p>The value must be numeric and non-negative. The result is adjusted by
    * the configured rounding policy. */
-  public static BigDecimal numberToBigDecimal(Object value, String kind,
+  public static BigDecimal numberToBigDecimal(@Nullable Object value, String kind,
       FetchOffsetRoundingPolicy roundingPolicy) {
+    if (value == null) {
+      throw new IllegalArgumentException(kind + " expression evaluated to NULL");
+    }
     if (!(value instanceof Number)) {
       throw new IllegalArgumentException(kind + " must be a number");
     }

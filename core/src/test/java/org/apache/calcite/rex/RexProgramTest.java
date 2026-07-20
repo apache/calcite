@@ -83,6 +83,7 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.util.Objects.requireNonNull;
@@ -3591,6 +3592,35 @@ class RexProgramTest extends RexProgramTestBase {
     assertFalse(RexUtil.isDeterministic(n));
     assertThat(RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)),
         hasSize(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testContainsDynamicParam() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexNode literal = rexBuilder.makeExactLiteral(BigDecimal.ONE, intType);
+    final RexNode dynamicParam = rexBuilder.makeDynamicParam(intType, 0);
+    final RexNode expression =
+        rexBuilder.makeCall(SqlStdOperatorTable.PLUS, literal, dynamicParam);
+
+    assertThat(RexUtil.containsDynamicParam(literal), is(false));
+    assertThat(RexUtil.containsDynamicParam(dynamicParam), is(true));
+    assertThat(RexUtil.containsDynamicParam(expression), is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testValidateFetchValueAllowsFractionalBigDecimal() {
+    assertThat(RexUtil.validateFetchValue(new BigDecimal("1.5")),
+        is(new BigDecimal("1.5")));
+
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class,
+            () -> RexUtil.validateFetchValue(new BigDecimal("-1.5")));
+    assertThat(e.getMessage(),
+        containsString("FETCH value -1.5 is out of range"));
   }
 
   @Test void testConstantMap() {

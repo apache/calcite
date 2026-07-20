@@ -16,14 +16,22 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.FetchOffsetRoundingPolicy;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -35,37 +43,57 @@ import static java.util.Objects.requireNonNull;
  * {@link org.apache.calcite.rel.core.Sort}.
  */
 public class SortNode extends AbstractSingleNode<Sort> {
+  private final @Nullable Scalar offsetScalar;
+  private final @Nullable Context offsetContext;
+  private final @Nullable Scalar fetchScalar;
+  private final @Nullable Context fetchContext;
+  private final FetchOffsetRoundingPolicy fetchOffsetRoundingPolicy;
+
   public SortNode(Compiler compiler, Sort rel) {
     super(compiler, rel);
-  }
-
-  private static int getValueAsInt(RexNode node) {
-    return requireNonNull(((RexLiteral) node).getValueAs(Integer.class),
-        () -> "getValueAs(Integer.class) for " + node);
+    if (rel.offset != null && !(rel.offset instanceof RexLiteral)) {
+      this.offsetScalar = compiler.compile(ImmutableList.of(rel.offset), null);
+      this.offsetContext = compiler.createContext();
+    } else {
+      this.offsetScalar = null;
+      this.offsetContext = null;
+    }
+    if (rel.fetch != null && !(rel.fetch instanceof RexLiteral)) {
+      this.fetchScalar = compiler.compile(ImmutableList.of(rel.fetch), null);
+      this.fetchContext = compiler.createContext();
+    } else {
+      this.fetchScalar = null;
+      this.fetchContext = null;
+    }
+    final Object roundingPolicy = compiler.getDataContext()
+        .get(EnumerableRelImplementor.FETCH_OFFSET_ROUNDING_POLICY);
+    this.fetchOffsetRoundingPolicy =
+        roundingPolicy instanceof FetchOffsetRoundingPolicy
+            ? (FetchOffsetRoundingPolicy) roundingPolicy
+            : FetchOffsetRoundingPolicy.NONE;
   }
 
   @Override public void run() throws InterruptedException {
-    final int offset =
-        rel.offset == null
-            ? 0
-            : getValueAsInt(rel.offset);
-    final int fetch =
-        rel.fetch == null
-            ? -1
-            : getValueAsInt(rel.fetch);
+    final BigDecimal offset = getOffset();
+    final @Nullable BigDecimal fetch = getFetch();
     // In pure limit mode. No sort required.
     Row row;
   loop:
     if (rel.getCollation().getFieldCollations().isEmpty()) {
-      for (int i = 0; i < offset; i++) {
+      BigDecimal skipped = BigDecimal.ZERO;
+      while (skipped.compareTo(offset) < 0) {
         row = source.receive();
         if (row == null) {
           break loop;
         }
+        skipped = skipped.add(BigDecimal.ONE);
       }
-      if (fetch >= 0) {
-        for (int i = 0; i < fetch && (row = source.receive()) != null; i++) {
+      if (fetch != null) {
+        BigDecimal fetched = BigDecimal.ZERO;
+        while (fetched.compareTo(fetch) < 0
+            && (row = source.receive()) != null) {
           sink.send(row);
+          fetched = fetched.add(BigDecimal.ONE);
         }
       } else {
         while ((row = source.receive()) != null) {
@@ -79,10 +107,15 @@ public class SortNode extends AbstractSingleNode<Sort> {
         list.add(row);
       }
       list.sort(comparator());
-      final int end = fetch < 0 || offset + fetch > list.size()
+      final int start = offset.compareTo(BigDecimal.valueOf(list.size())) >= 0
           ? list.size()
-          : offset + fetch;
-      for (int i = offset; i < end; i++) {
+          : rowCount(offset);
+      final int available = list.size() - start;
+      final int end = fetch == null
+          || fetch.compareTo(BigDecimal.valueOf(available)) >= 0
+          ? list.size()
+          : start + rowCount(fetch);
+      for (int i = start; i < end; i++) {
         sink.send(list.get(i));
       }
     }
@@ -115,5 +148,36 @@ public class SortNode extends AbstractSingleNode<Sort> {
         return RelFieldCollation.compare(c2, c1, -nullComparison);
       };
     }
+  }
+
+  private @Nullable BigDecimal getFetch() {
+    if (rel.fetch == null) {
+      return null;
+    }
+    return getValue(rel.fetch, fetchScalar, fetchContext, "FETCH");
+  }
+
+  private BigDecimal getOffset() {
+    if (rel.offset == null) {
+      return BigDecimal.ZERO;
+    }
+    return getValue(rel.offset, offsetScalar, offsetContext, "OFFSET");
+  }
+
+  private BigDecimal getValue(RexNode node, @Nullable Scalar scalar,
+      @Nullable Context context, String kind) {
+    final @Nullable Object value;
+    if (node instanceof RexLiteral) {
+      value = RexLiteral.bigDecimalValue(node);
+    } else {
+      value =
+          requireNonNull(scalar, () -> kind + " scalar")
+              .execute(requireNonNull(context, () -> kind + " context"));
+    }
+    return EnumUtils.numberToBigDecimal(value, kind, fetchOffsetRoundingPolicy);
+  }
+
+  private static int rowCount(BigDecimal value) {
+    return value.setScale(0, RoundingMode.CEILING).intValueExact();
   }
 }

@@ -575,6 +575,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Its output does not change the input ordering, so there's no
     // need to call propagateExpr.
 
+    if (isCorVarDefined && !canDecorrelateOffsetFetch(rel)) {
+      return null;
+    }
+
     final RelNode oldInput = rel.getInput();
     final Frame frame = getInvoke(oldInput, isCorVarDefined, rel, true);
     if (frame == null) {
@@ -1137,8 +1141,31 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(sort, result, mapOldToNewOutputs, corDefOutputs);
   }
 
+  static boolean canDecorrelateOffsetFetch(Sort sort) {
+    final @Nullable RexLiteral fetch = sort.fetch == null
+        ? null
+        : RexUtil.reduceFetchToLiteral(sort.getCluster(), sort.fetch);
+    return isNonNegativeIntegralLiteral(sort.offset)
+        && (sort.fetch == null
+            || fetch != null && isNonNegativeIntegralLiteral(fetch));
+  }
+
+  private static boolean isNonNegativeIntegralLiteral(@Nullable RexNode node) {
+    if (node == null) {
+      return true;
+    }
+    if (!(node instanceof RexLiteral)) {
+      return false;
+    }
+    final @Nullable BigDecimal value =
+        ((RexLiteral) node).getValueAs(BigDecimal.class);
+    return value != null
+        && value.signum() >= 0
+        && value.stripTrailingZeros().scale() <= 0;
+  }
+
   protected @Nullable Frame decorrelateSortAsAggregate(Sort sort, final Frame frame) {
-    if (sort.offset != null || sort.fetch == null) {
+    if (sort.offset != null || !(sort.fetch instanceof RexLiteral)) {
       return null;
     }
 

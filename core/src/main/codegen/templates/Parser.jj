@@ -691,7 +691,7 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
  *
  * <blockquote><pre>
  *    [ OFFSET start { ROW | ROWS } ]
- *    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]</pre>
+ *    [ FETCH { FIRST | NEXT } [ count | (expression) ] { ROW | ROWS } ONLY ]</pre>
  * </blockquote>
  */
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
@@ -778,8 +778,24 @@ void FetchClause(SqlNode[] offsetFetch) :
 {
     // SQL:2008-style syntax. "OFFSET ... FETCH ...".
     // If you specify both LIMIT and FETCH, FETCH wins.
-    <FETCH> ( <FIRST> | <NEXT> ) offsetFetch[1] = UnsignedNumericLiteralOrParam()
+    <FETCH> ( <FIRST> | <NEXT> ) offsetFetch[1] = FetchCount()
     ( <ROW> | <ROWS> ) <ONLY>
+}
+
+/**
+ * Parses the row count of a FETCH clause. Expressions must be parenthesized.
+ */
+SqlNode FetchCount() :
+{
+    final SqlNode e;
+}
+{
+    (
+        e = UnsignedNumericLiteralOrParam()
+    |
+        <LPAREN> e = Expression(ExprContext.ACCEPT_NON_QUERY) <RPAREN>
+    )
+    { return e; }
 }
 
 /**

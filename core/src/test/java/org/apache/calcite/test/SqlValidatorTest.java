@@ -1527,7 +1527,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(ARRAY[1,2,3] AS VARIANT ARRAY)")
         .columnType("VARIANT NOT NULL ARRAY NOT NULL");
     expr("cast(MAP['a','b','c','d'] AS MAP<VARCHAR, VARIANT>)")
-        .columnType("(VARCHAR NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
+        .columnType("(VARCHAR NOT NULL, VARIANT) MAP NOT NULL");
     // Test case for [CALCITE-7293] https://issues.apache.org/jira/browse/CALCITE-7293
     // MAP constructor cannot handle VARIANT values that need casts
     expr("MAP['a', CAST('x' AS VARIANT), 'b', CAST(NULL AS VARIANT)]")
@@ -9640,16 +9640,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testCastMapType() {
     sql("select cast(\"int2IntMapType\" as map<int,int>) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+        .columnType("(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
     sql("select cast(\"int2varcharArrayMapType\" as map<int,varchar array>) "
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(INTEGER NOT NULL, VARCHAR NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+        .columnType("(INTEGER NOT NULL, VARCHAR ARRAY) MAP NOT NULL");
     sql("select cast(\"varcharMultiset2IntIntMapType\" as map<varchar(5) multiset, map<int, int>>)"
         + " from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(VARCHAR(5) NOT NULL MULTISET NOT NULL, "
-            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
+        .columnType("(VARCHAR(5) MULTISET NOT NULL, "
+            + "(INTEGER NOT NULL, INTEGER) MAP) MAP NOT NULL");
   }
 
   @Test void testCastAsRowType() {
@@ -10705,6 +10705,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql)
         .withValidatorIdentifierExpansion(false)
         .rewritesTo(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
+   * Add expression support for FETCH</a>. */
+  @Test void testFetchExpressionType() {
+    sql("select name from dept fetch next (^upper('x')^) rows only")
+        .fails("FETCH expression must have a numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept fetch next (^'x'^) rows only")
+        .fails("FETCH expression must have a numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept fetch next 1.5 rows only").ok();
+    sql("select name from dept "
+        + "fetch next (^row_number() over ()^) rows only")
+        .fails("Windowed aggregate expression is illegal in FETCH clause");
   }
 
   @Test void testRewriteWithOffsetWithoutOrderBy() {
