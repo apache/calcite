@@ -93,11 +93,14 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
       final boolean safeToReevaluate =
           RexUtil.isDeterministic(sort.fetch)
               && (sort.offset == null || RexUtil.isDeterministic(sort.offset));
-      if (sort.offset == null && safeToReevaluate) {
-        inputFetch = sort.fetch;
-      } else if (safeToReevaluate) {
-        inputFetch =
-            RexUtil.makeOffsetFetchSum(sort.getCluster().getRexBuilder(), sort.offset, sort.fetch);
+      if (safeToReevaluate) {
+        if (sort.offset == null) {
+          inputFetch = sort.fetch;
+        } else {
+          inputFetch =
+              RexUtil.makeOffsetFetchSum(
+                  sort.getCluster().getRexBuilder(), sort.offset, sort.fetch);
+        }
       }
     }
 
