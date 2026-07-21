@@ -44,6 +44,11 @@
   - model
   - howto
 
+- title: Security
+  docs:
+  - security_threat_model
+  - security_known_class_loading_sinks
+
 - title: Meta
   docs:
   - history
