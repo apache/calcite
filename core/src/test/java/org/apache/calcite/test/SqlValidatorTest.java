@@ -10758,12 +10758,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testNegativeFetchOffsetLimit() {
     sql("select name from dept limit ^-^1")
         .fails("(?s).*Encountered \"-\".*");
-    sql("select name from dept offset -1").ok();
+    sql("select name from dept offset ^-1^")
+        .fails("OFFSET must not be negative");
     sql("select name from dept fetch next ^-^1 rows only")
         .fails("(?s).*Encountered \"-\".*");
     sql("select name from dept order by name limit ^-^1")
         .fails("(?s).*Encountered \"-\".*");
-    sql("select name from dept order by name offset -1").ok();
+    sql("select name from dept order by name offset ^-1^")
+        .fails("OFFSET must not be negative");
     sql("select name from dept order by name fetch next ^-^1 rows only")
         .fails("(?s).*Encountered \"-\".*");
   }

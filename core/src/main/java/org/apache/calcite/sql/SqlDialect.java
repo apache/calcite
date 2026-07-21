@@ -1081,7 +1081,7 @@ public class SqlDialect {
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);
       writer.keyword("FETCH");
       writer.keyword("NEXT");
-      unparseOffsetFetchExpression(writer, fetch);
+      unparseFetchExpression(writer, fetch);
       writer.keyword("ROWS");
       writer.keyword("ONLY");
       writer.endList(fetchFrame);
@@ -1089,25 +1089,25 @@ public class SqlDialect {
   }
 
   private static void unparseOffsetExpression(SqlWriter writer, SqlNode offset) {
-    if (offset instanceof SqlCall) {
-      writer.getDialect().unparseCall(writer, (SqlCall) offset, 0, 0);
-    } else {
-      offset.unparse(writer, 0, 0);
-    }
+    unparseExpression(writer, offset);
   }
 
-  private static void unparseOffsetFetchExpression(SqlWriter writer, SqlNode node) {
-    if (node instanceof SqlLiteral
-        || node instanceof SqlDynamicParam) {
-      node.unparse(writer, -1, -1);
+  private static void unparseFetchExpression(SqlWriter writer, SqlNode fetch) {
+    if (fetch instanceof SqlLiteral
+        || fetch instanceof SqlDynamicParam) {
+      fetch.unparse(writer, -1, -1);
+      return;
+    }
+    final SqlWriter.Frame expressionFrame = writer.startList("(", ")");
+    unparseExpression(writer, fetch);
+    writer.endList(expressionFrame);
+  }
+
+  private static void unparseExpression(SqlWriter writer, SqlNode node) {
+    if (node instanceof SqlCall) {
+      writer.getDialect().unparseCall(writer, (SqlCall) node, 0, 0);
     } else {
-      final SqlWriter.Frame expressionFrame = writer.startList("(", ")");
-      if (node instanceof SqlCall) {
-        writer.getDialect().unparseCall(writer, (SqlCall) node, 0, 0);
-      } else {
-        node.unparse(writer, 0, 0);
-      }
-      writer.endList(expressionFrame);
+      node.unparse(writer, 0, 0);
     }
   }
 

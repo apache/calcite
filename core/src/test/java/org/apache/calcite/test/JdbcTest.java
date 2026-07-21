@@ -3709,13 +3709,13 @@ public class JdbcTest {
         + "from \"hr\".\"depts\" d,\n"
         + "lateral (select \"name\" from \"hr\".\"emps\"\n"
         + "  where \"deptno\" = d.\"deptno\"\n";
-    for (String fetch : new String[] {"(0 - 1)", "(-1)"}) {
-      for (boolean topDown : new boolean[] {false, true}) {
-        CalciteAssert.hr()
-            .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
-            .query(sqlPrefix + "  fetch next " + fetch + " rows only) e")
-            .throws_("FETCH value -1 is out of range");
-      }
+    for (boolean topDown : new boolean[] {false, true}) {
+      final CalciteAssert.AssertThat with = CalciteAssert.hr()
+          .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown);
+      with.query(sqlPrefix + "  fetch next (0 - 1) rows only) e")
+          .throws_("FETCH value -1 is out of range");
+      with.query(sqlPrefix + "  fetch next (-1) rows only) e")
+          .throws_("FETCH must not be negative");
     }
   }
 

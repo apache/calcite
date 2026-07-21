@@ -70,6 +70,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
@@ -1779,6 +1780,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (SqlUtil.isNullLiteral(node, true)) {
       throw newValidationError(node,
           RESOURCE.offsetFetchExpressionEvaluatedToNull(kind));
+    }
+    if (node instanceof SqlNumericLiteral
+        && requireNonNull(((SqlNumericLiteral) node).bigDecimalValue())
+            .signum() < 0) {
+      throw newValidationError(node,
+          RESOURCE.offsetFetchValueMustNotBeNegative(kind));
     }
     validateNoAggs(aggOrOverFinder, node, kind);
     node.accept(new SqlBasicVisitor<Void>() {

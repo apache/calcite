@@ -175,6 +175,9 @@ public interface CalciteResource {
   @BaseMessage("{0} expression evaluated to NULL")
   ExInst<SqlValidatorException> offsetFetchExpressionEvaluatedToNull(String kind);
 
+  @BaseMessage("{0} must not be negative")
+  ExInst<SqlValidatorException> offsetFetchValueMustNotBeNegative(String kind);
+
   @BaseMessage("Values in expression list must have compatible types")
   ExInst<SqlValidatorException> incompatibleTypesInList();
 
