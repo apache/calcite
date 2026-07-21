@@ -44,6 +44,10 @@
   - model
   - howto
 
+- title: Security
+  docs:
+  - security_threat_model
+
 - title: Meta
   docs:
   - history
