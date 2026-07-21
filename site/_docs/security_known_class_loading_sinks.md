@@ -49,6 +49,10 @@ rule. Add a `Last reviewed` date whenever you touch an entry.
   interface gate; returns the `Class`.
 * `JdbcSchema.create`: the `dataSource` and `sqlDialectFactory`
   operands both reach `instantiatePlugin`.
+* `ModelHandler.addFunctions`: loads a model `functions[].className` with raw
+  `Class.forName(className)` after a `ClassNameFilter` denylist check, so the
+  static initializer runs before any interface gate. The `TableFunctionImpl` /
+  `ScalarFunctionImpl` shape check happens only after the class is initialized.
 
 ## Related controls
 
