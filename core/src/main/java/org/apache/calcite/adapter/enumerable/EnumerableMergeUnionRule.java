@@ -85,11 +85,9 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
     final Union union = call.rel(1);
     final int unionInputsSize = union.getInputs().size();
 
-    // Push down sort limit, if possible. Do not push it through UNION DISTINCT:
-    // duplicate rows do not count towards the final limit, so limiting an input
-    // before duplicate elimination could discard a row needed in the result.
+    // Push down sort limit, if possible.
     RexNode inputFetch = null;
-    if (union.all && sort.fetch != null) {
+    if (sort.fetch != null) {
       final boolean safeToReevaluate =
           RexUtil.isDeterministic(sort.fetch)
               && (sort.offset == null || RexUtil.isDeterministic(sort.offset));

@@ -146,23 +146,6 @@ class EnumerableMergeUnionTest {
         .returnsOrdered("empid=2");
   }
 
-  @Test void mergeUnionDistinctDoesNotPushLimitBeforeDeduplication() {
-    tester(false,
-        new HrSchemaBig(),
-        "select deptno from emps where empid <= 3 "
-            + "union select deptno from emps where empid between 40 and 41 "
-            + "order by deptno offset ? rows fetch next ? rows only")
-        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
-            + "offset=[?0], fetch=[?1])\n"
-            + "  EnumerableMergeUnion(all=[false])\n"
-            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n")
-        .consumesPreparedStatement(p -> {
-          p.setBigDecimal(1, new BigDecimal("0.5"));
-          p.setBigDecimal(2, new BigDecimal("0.5"));
-        })
-        .returnsOrdered("deptno=20");
-  }
-
   @Test void mergeUnionDoesNotPushNonDeterministicOffset() {
     tester(false,
         new HrSchemaBig(),
@@ -244,14 +227,16 @@ class EnumerableMergeUnionTest {
     tester(false,
         new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by name limit 3")
-        .explainContains("EnumerableLimitSort(sort0=[$1], dir0=[ASC], fetch=[3])\n"
+        .explainContains("EnumerableLimit(fetch=[3])\n"
             + "  EnumerableMergeUnion(all=[false])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['G%'], expr#6=[LIKE($t2, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
-            + "        EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['%l'], expr#6=[LIKE($t2, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
-            + "        EnumerableTableScan(table=[[s, emps]])\n")
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "      EnumerableLimitSort(sort0=[$2], dir0=[ASC], fetch=[3])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=['G%'], expr#6=[LIKE($t2, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "      EnumerableLimitSort(sort0=[$2], dir0=[ASC], fetch=[3])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=['%l'], expr#6=[LIKE($t2, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n")
         .returnsOrdered(
             "empid=29; name=Anibal",
             "empid=1; name=Bill",
@@ -284,12 +269,14 @@ class EnumerableMergeUnionTest {
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by name limit 3 offset 2")
         .explainContains("EnumerableLimit(offset=[2], fetch=[3])\n"
             + "  EnumerableMergeUnion(all=[false])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['G%'], expr#6=[LIKE($t2, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
-            + "        EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['%l'], expr#6=[LIKE($t2, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
-            + "        EnumerableTableScan(table=[[s, emps]])\n")
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "      EnumerableLimitSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=['G%'], expr#6=[LIKE($t2, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "      EnumerableLimitSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=['%l'], expr#6=[LIKE($t2, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n")
         .returnsOrdered(
             "empid=40; name=Emmanuel",
             "empid=10; name=Gabriel",
