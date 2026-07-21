@@ -574,7 +574,6 @@ public class RelToSqlConverter extends SqlImplementor
         final Context context = x.qualifiedContext();
         if (selectListRequired(context)) {
           final ImmutableList.Builder<SqlNode> selectList = ImmutableList.builder();
-          // Fieldnames are unique since they are created by SqlValidatorUtil.deriveJoinRowType()
           final List<String> uniqueFieldNames = input.getRowType().getFieldNames();
           for (int i = 0; i < context.fieldCount; i++) {
             final SqlNode field = context.field(i);
@@ -1582,16 +1581,6 @@ public class RelToSqlConverter extends SqlImplementor
       result.add(new SqlIdentifier(fieldName, POS));
     });
     return result;
-  }
-
-  @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
-      RelDataType rowType) {
-    String name = rowType.getFieldNames().get(selectList.size());
-    @Nullable String alias = SqlValidatorUtil.alias(node);
-    if (alias == null || !alias.equals(name)) {
-      node = as(node, name);
-    }
-    selectList.add(node);
   }
 
   private void parseCorrelTable(RelNode relNode, Result x) {

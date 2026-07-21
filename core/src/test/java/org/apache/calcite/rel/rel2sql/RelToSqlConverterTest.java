@@ -9862,6 +9862,102 @@ class RelToSqlConverterTest {
         }
       };
 
+  /** Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7642">[CALCITE-7642]
+   * RelToSqlConverter may generate duplicate aliases for internal derived relations
+   * in case-insensitive dialects</a>. */
+  @Test void testCaseInsensitiveRootAliases() {
+    final SqlDialect mysqlDialect =
+        new MysqlSqlDialect(
+            MysqlSqlDialect.DEFAULT_CONTEXT.withCaseSensitive(false));
+    relFn(b -> b.values(new String[]{"id", "ID"}, 1, 2).build())
+        .dialect(mysqlDialect)
+        .ok("SELECT 1 AS `id`, 2 AS `ID`");
+  }
+
+  @Test void testCaseInsensitiveDerivedValuesAliases() {
+    final SqlDialect postgresqlDialect =
+        new PostgresqlSqlDialect(
+            PostgresqlSqlDialect.DEFAULT_CONTEXT.withCaseSensitive(false));
+    relFn(b -> b.values(new String[]{"id", "ID"}, 1, 2)
+        .filter(b.equals(b.field(1), b.literal(2)))
+        .build())
+        .dialect(postgresqlDialect)
+        .ok("SELECT \"id\", \"ID0\" AS \"ID\"\n"
+            + "FROM (VALUES (1, 2)) AS \"t\" (\"id\", \"ID0\")\n"
+            + "WHERE \"ID0\" = 2");
+  }
+
+  @Test void testCaseInsensitiveJoinAliases() {
+    final SqlDialect mysqlDialect =
+        new MysqlSqlDialect(
+            MysqlSqlDialect.DEFAULT_CONTEXT.withCaseSensitive(false));
+    relFn(b -> {
+      b.values(new String[]{"id"}, 1);
+      b.values(new String[]{"ID"}, 2);
+      final RelNode left = b.join(JoinRelType.INNER)
+          .project(b.fields(), ImmutableList.of(), true)
+          .build();
+      return b.push(left)
+          .values(new String[]{"x"}, 3)
+          .join(JoinRelType.INNER)
+          .project(ImmutableList.of(b.field(0), b.field(1)),
+              ImmutableList.of(), true)
+          .build();
+    }).dialect(mysqlDialect).ok("SELECT `t1`.`id`, `t1`.`ID0` AS `ID`\n"
+        + "FROM (SELECT `t`.`id`, `t0`.`ID` AS `ID0`\n"
+        + "FROM (SELECT 1 AS `id`) AS `t`,\n"
+        + "(SELECT 2 AS `ID`) AS `t0`) AS `t1`,\n"
+        + "(SELECT 3 AS `x`) AS `t2`");
+  }
+
+  @Test void testCaseInsensitiveCorrelateAliases() {
+    final SqlDialect postgresqlDialect =
+        new PostgresqlSqlDialect(
+            PostgresqlSqlDialect.DEFAULT_CONTEXT.withCaseSensitive(false));
+    relFn(b -> {
+      final Holder<RexCorrelVariable> v = Holder.empty();
+      return b.values(new String[]{"id", "ID"}, 1, 2)
+          .variable(v::set)
+          .values(new String[]{"x"}, 2)
+          .filter(
+              b.equals(b.field("x"),
+              b.getRexBuilder().makeFieldAccess(v.get(), 1)))
+          .correlate(JoinRelType.INNER, v.get().id, b.field(2, 0, 1))
+          .build();
+    }).dialect(postgresqlDialect).ok("SELECT *\n"
+        + "FROM (VALUES (1, 2)) AS \"$cor0\" (\"id\", \"ID0\"),\n"
+        + "LATERAL (SELECT *\n"
+        + "FROM (VALUES (2)) AS \"t0\" (\"x\")\n"
+        + "WHERE \"x\" = \"$cor0\".\"ID0\") AS \"t1\"");
+  }
+
+  @Test void testCaseInsensitiveCorrelatedProjectAliases() {
+    final SqlDialect postgresqlDialect =
+        new PostgresqlSqlDialect(
+            PostgresqlSqlDialect.DEFAULT_CONTEXT.withCaseSensitive(false));
+    relFn(b -> {
+      final Holder<RexCorrelVariable> v = Holder.empty();
+      return b.values(new String[]{"id", "ID"}, 1, 2)
+          .variable(v::set)
+          .project(
+              ImmutableList.of(
+                  b.field(0),
+                  b.scalarQuery(unused ->
+                      b.values(new String[]{"x"}, 2)
+                          .filter(
+                              b.equals(b.field("x"),
+                              b.getRexBuilder().makeFieldAccess(v.get(), 1)))
+                          .project(b.field("x"))
+                          .build())),
+              ImmutableList.of(), false, ImmutableList.of(v.get().id))
+          .build();
+    }).dialect(postgresqlDialect).ok("SELECT \"id\", (SELECT *\n"
+        + "FROM (VALUES (2)) AS \"t0\" (\"x\")\n"
+        + "WHERE \"x\" = \"t\".\"ID0\") AS \"$f1\"\n"
+        + "FROM (VALUES (1, 2)) AS \"t\" (\"id\", \"ID0\")");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7483">[CALCITE-7483]
    * RelToSqlConverter generates SELECT * despite supportGenerateSelectStar</a>.
