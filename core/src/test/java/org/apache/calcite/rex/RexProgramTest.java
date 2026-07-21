@@ -3623,6 +3623,9 @@ class RexProgramTest extends RexProgramTestBase {
         containsString("FETCH value -1.5 is out of range"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testValidateOffsetValueAllowsFractionalBigDecimal() {
     assertThat(RexUtil.validateOffsetValue(new BigDecimal("1.5")),
         is(new BigDecimal("1.5")));

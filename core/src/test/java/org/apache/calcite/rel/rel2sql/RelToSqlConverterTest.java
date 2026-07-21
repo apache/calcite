@@ -4931,6 +4931,9 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionWithLimitDialect() {
     final String query = "select \"product_id\"\n"
         + "from \"product\"\n"
@@ -4956,6 +4959,9 @@ class RelToSqlConverterTest {
     sql(query).withSQLite().throws_(error);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testNegativeOffsetExpressionIsRejectedBeforeSqlGeneration() {
     final String query = "select \"product_id\"\n"
         + "from \"product\"\n"
@@ -4979,6 +4985,9 @@ class RelToSqlConverterTest {
             + "be reduced to a literal");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testParameterizedOffsetExpressionWithLimitDialect() {
     final String query = "select \"product_id\"\n"
         + "from \"product\"\n"
@@ -5001,6 +5010,9 @@ class RelToSqlConverterTest {
     sql(query).withSQLite().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testParameterizedOffsetExpressionWithSQLite() {
     final String query = "select \"product_id\"\n"
         + "from \"product\"\n"
@@ -5012,6 +5024,9 @@ class RelToSqlConverterTest {
     sql(query).withSQLite().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testDynamicOffsetExpressionIsNotReduced() {
     final String query = "select \"product_id\"\n"
         + "from \"product\"\n"

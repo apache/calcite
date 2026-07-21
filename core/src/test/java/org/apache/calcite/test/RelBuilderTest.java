@@ -5600,6 +5600,9 @@ public class RelBuilderTest {
             ImmutableList.of()));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionCannotReferenceInputField() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("DEPT");
@@ -5626,6 +5629,9 @@ public class RelBuilderTest {
         ImmutableList.of());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionMustHaveNumericType() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("DEPT");
@@ -5655,6 +5661,9 @@ public class RelBuilderTest {
         + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionAllowsScalarCallAndDynamicParameter() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelDataType intType =
@@ -5701,6 +5710,9 @@ public class RelBuilderTest {
         () -> builder.sortLimit(null, subQuery, ImmutableList.of()));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionCannotContainAggregateWindowOrSubQuery() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelDataType intType =

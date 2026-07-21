@@ -3593,6 +3593,9 @@ public class JdbcTest {
             + "X=3\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpression() {
     final CalciteAssert.AssertThat with = CalciteAssert.that();
     final String values = "select * from (values (1), (2), (3), (4)) as t(x)\n";
@@ -3629,6 +3632,9 @@ public class JdbcTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testBindableOffsetExpression() {
     try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
       CalciteAssert.that()
@@ -3654,6 +3660,9 @@ public class JdbcTest {
             + "X=2\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionFunctionArguments() {
     final CalciteAssert.AssertThat with = CalciteAssert.that();
     final String values = "select * from (values (1), (2), (3)) as t(x)\n";
@@ -3678,6 +3687,9 @@ public class JdbcTest {
         .throws_("FETCH expression evaluated to NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionInvalidValue() {
     final CalciteAssert.AssertThat with = CalciteAssert.that();
     final String values = "select * from (values (1), (2), (3)) as t(x)\n";
@@ -3788,6 +3800,9 @@ public class JdbcTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testCorrelatedPreparedOffsetExpression() throws Exception {
     for (String offset : new String[] {"?", "? + 0"}) {
       final String sql = "select d.\"name\" as dname, e.\"name\" as ename\n"
@@ -3833,6 +3848,9 @@ public class JdbcTest {
         .returns(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionBeyondLong() {
     final CalciteAssert.AssertThat with = CalciteAssert.that();
     final String values = "select * from (values (1), (2), (3), (4)) as t(x)\n";
@@ -6367,6 +6385,9 @@ public class JdbcTest {
         });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testPreparedOffsetExpression() throws Exception {
     CalciteAssert.that()
         .doWithConnection(connection -> {

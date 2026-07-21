@@ -1766,6 +1766,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testSortUnionTransposePushesLiteralOffset() {
     final String sql = "select a.name from dept a\n"
         + "union all\n"
@@ -1777,6 +1780,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testSortUnionTransposePushesParameterizedOffsetExpression() {
     final String sql = "select a.name from dept a\n"
         + "union all\n"
@@ -1788,6 +1794,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testSortUnionTransposeWithNonDeterministicOffset() {
     final String sql = "select a.name from dept a\n"
         + "union all\n"
@@ -12539,6 +12548,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testTopDownGeneralDecorrelateForSubqueryWithOffsetExpression() {
     final String sql = "select empno from emp where "
         + "sal > SOME(select sal from emp_b where emp.deptno = emp_b.deptno "

@@ -489,6 +489,9 @@ class ServerTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionCannotReferenceInputColumn() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {

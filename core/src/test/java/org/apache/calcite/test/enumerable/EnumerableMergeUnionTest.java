@@ -113,6 +113,9 @@ class EnumerableMergeUnionTest {
             "empid=1; name=Bill");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void mergeUnionPushesParameterizedOffsetExpression() {
     tester(false,
         new HrSchemaBig(),
@@ -129,6 +132,9 @@ class EnumerableMergeUnionTest {
             "empid=2; name=Eric");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void mergeUnionRoundsOffsetAndFetchSeparatelyWhenPushingLimit() {
     tester(false,
         new HrSchemaBig(),
@@ -146,6 +152,9 @@ class EnumerableMergeUnionTest {
         .returnsOrdered("empid=2");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void mergeUnionDoesNotPushNonDeterministicOffset() {
     tester(false,
         new HrSchemaBig(),

@@ -10723,6 +10723,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Windowed aggregate expression is illegal in FETCH clause");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testOffsetExpressionType() {
     sql("select name from dept offset ^upper('x')^ rows")
         .fails("OFFSET expression must have a numeric type; "

@@ -1527,6 +1527,9 @@ public class RelMetadataTest {
         .assertThatRowCount(is(2D), is(0D), is(2D));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
   @Test void testMinRowCountOffsetExpression() {
     final String sql = "select * from (values (1), (2)) as t(x)\n"
         + "offset 2 - 2 rows";
