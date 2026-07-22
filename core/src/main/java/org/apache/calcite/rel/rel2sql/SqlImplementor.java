@@ -297,6 +297,18 @@ public abstract class SqlImplementor {
     return SqlStdOperatorTable.AS.createCall(POS, operandList);
   }
 
+  /** Wraps a column reference in an {@code AS} alias when its intrinsic name
+   * differs from {@code name}, so that the column is emitted with
+   * {@code name}. */
+  private SqlNode renameAs(SqlNode fieldNode, String name) {
+    final String currentName = fieldNode instanceof SqlIdentifier
+        ? Util.last(((SqlIdentifier) fieldNode).names)
+        : null;
+    return name.equals(currentName)
+        ? fieldNode
+        : as(fieldNode, name);
+  }
+
   /** Returns whether a list of expressions projects all fields, in order,
    * from the input, with the same names. */
   public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
@@ -2082,9 +2094,17 @@ public abstract class SqlImplementor {
           newContext = aliasContext(aliases, qualified);
         }
         if (!dialect.supportGenerateSelectStar(rel.getInput(0))) {
+          // Rename each expanded column to its (unique) row-type field name.
+          // Otherwise a sub-query that wraps a join with duplicate field names
+          // (e.g. two columns named DEPTNO) would expose two identically named
+          // columns, which is ambiguous when referenced from an outer query.
+          final List<String> fieldNames = rel.getRowType().getFieldNames();
           final List<SqlNode> expandedSelectList = new ArrayList<>();
           for (int i = 0; i < newContext.fieldCount; i++) {
-            expandedSelectList.add(newContext.field(i));
+            final SqlNode field = newContext.field(i);
+            expandedSelectList.add(i < fieldNames.size()
+                ? renameAs(field, fieldNames.get(i))
+                : field);
           }
           select.setSelectList(new SqlNodeList(expandedSelectList, POS));
         }
@@ -2449,9 +2469,17 @@ public abstract class SqlImplementor {
         boolean qualified =
             !dialect.hasImplicitTableAlias() || aliases.size() > 1;
         final Context ctx = aliasContext(aliases, qualified);
+        // Rename each expanded column to its (unique) row-type field name.
+        // Otherwise a sub-query that wraps a join with duplicate field names
+        // (e.g. two columns named DEPTNO) would expose two identically named
+        // columns, which is ambiguous when referenced from an outer query.
+        final List<String> fieldNames = expectedRel.getRowType().getFieldNames();
         final List<SqlNode> expandedList = new ArrayList<>();
         for (int i = 0; i < ctx.fieldCount; i++) {
-          expandedList.add(ctx.field(i));
+          final SqlNode field = ctx.field(i);
+          expandedList.add(i < fieldNames.size()
+              ? renameAs(field, fieldNames.get(i))
+              : field);
         }
         return new SqlSelect(select.getParserPosition(),
             (SqlNodeList) select.getOperandList().get(0),
