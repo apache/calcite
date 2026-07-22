@@ -9669,16 +9669,57 @@ class RelToSqlConverterTest {
             b.equals(b.field(2, 0, "DEPTNO"),
                 b.field(2, 1, "DEPTNO")))
         .build();
+    // The join has two columns named DEPTNO; the second is aliased to its
+    // unique row-type field name (DEPTNO0) so the result never exposes two
+    // identically named columns (CALCITE-7663).
     final String expected = "SELECT"
         + " \"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\","
         + " \"EMP\".\"MGR\", \"EMP\".\"HIREDATE\", \"EMP\".\"SAL\","
         + " \"EMP\".\"COMM\", \"EMP\".\"DEPTNO\","
-        + " \"DEPT\".\"DEPTNO\","
+        + " \"DEPT\".\"DEPTNO\" AS \"DEPTNO0\","
         + " \"DEPT\".\"DNAME\", \"DEPT\".\"LOC\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "INNER JOIN \"scott\".\"DEPT\""
         + " ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
     relFn(relFn).dialect(NO_STAR_DIALECT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7663">[CALCITE-7663]</a>.
+   * A join with duplicate field names (two DEPTNO) wrapped by a FETCH becomes a
+   * sub-query; when it is joined again, the sub-query must not expose two
+   * columns with the same name, otherwise the outer references to them are
+   * ambiguous (e.g. PostgreSQL: {@code column reference "deptno" is ambiguous}).
+   * Each expanded column is aliased to its unique row-type field name. */
+  @Test void testNoSelectStarJoinWithDuplicateNamesAndFetchIsNotAmbiguous() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")))
+        .limit(0, 10)
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            b.equals(b.field(2, 0, "EMPNO"), b.field(2, 1, "DEPTNO")))
+        .limit(0, 5)
+        .build();
+    final String expected = "SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\","
+        + " \"t\".\"JOB\", \"t\".\"MGR\", \"t\".\"HIREDATE\", \"t\".\"SAL\","
+        + " \"t\".\"COMM\", \"t\".\"DEPTNO\", \"t\".\"DEPTNO0\","
+        + " \"t\".\"DNAME\", \"t\".\"LOC\","
+        + " \"DEPT0\".\"DEPTNO\" AS \"DEPTNO1\","
+        + " \"DEPT0\".\"DNAME\" AS \"DNAME0\", \"DEPT0\".\"LOC\" AS \"LOC0\"\n"
+        + "FROM (SELECT \"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\","
+        + " \"EMP\".\"MGR\", \"EMP\".\"HIREDATE\", \"EMP\".\"SAL\","
+        + " \"EMP\".\"COMM\", \"EMP\".\"DEPTNO\","
+        + " \"DEPT\".\"DEPTNO\" AS \"DEPTNO0\", \"DEPT\".\"DNAME\", \"DEPT\".\"LOC\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "INNER JOIN \"scott\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
+        + "FETCH NEXT 10 ROWS ONLY) AS \"t\"\n"
+        + "INNER JOIN \"scott\".\"DEPT\" AS \"DEPT0\""
+        + " ON \"t\".\"EMPNO\" = \"DEPT0\".\"DEPTNO\"\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+    relFn(relFn).withPostgresql().ok(expected);
   }
 
   /** Test case for
