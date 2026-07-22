@@ -5985,6 +5985,32 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7644">[CALCITE-7644]
+   *  Window's ORDER BY expression is unparsed as positional ordinal</a>. */
+  @Test void testWindowOrderByExpression() {
+    // A window ORDER BY expression must not be unparsed as a positional ordinal.
+    final String query = "SELECT \"employee_id\", \"salary\", \"hire_date\", "
+        + "SUM(\"salary\") OVER ("
+        + "PARTITION BY \"employee_id\" "
+        + "ORDER BY CASE WHEN \"salary\" > 1000 THEN 1 ELSE 0 END "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"sum_val\"\n"
+        + "FROM \"employee\"";
+    final String expected = "SELECT \"employee_id\", \"salary\", \"hire_date\", "
+        + "SUM(\"salary\") OVER (PARTITION BY \"employee_id\" "
+        + "ORDER BY CASE WHEN CAST(\"salary\" AS DECIMAL(14, 4)) > 1000.0000 "
+        + "THEN 1 ELSE 0 END "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"sum_val\"\n"
+        + "FROM \"foodmart\".\"employee\"";
+
+    final HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    final HepPlanner hepPlanner = new HepPlanner(builder.build());
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    sql(query).optimize(rules, hepPlanner).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6475">[CALCITE-6475]
    * RelToSql converter fails when the IN-list contains NULL
    * and it is converted to VALUES</a>. */
