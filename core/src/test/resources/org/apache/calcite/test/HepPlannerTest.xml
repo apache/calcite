@@ -147,6 +147,16 @@ LogicalAggregate(group=[{0}])
       <![CDATA[select name from sales.dept]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProgramsOfWithListener">
+    <Resource name="sql">
+      <![CDATA[select 1 from dept where abs(-1) = 20]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProgramsOfWithNullListener">
+    <Resource name="sql">
+      <![CDATA[select 1 from dept where abs(-1) = 20]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testRelDigestLength">
     <Resource name="sql">
       <![CDATA[select * from (select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept union all select name from sales.dept)]]>

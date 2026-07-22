@@ -29,10 +29,14 @@ import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -562,5 +566,53 @@ class HepPlannerTest {
     planner.setRoot(root);
     final RelNode result = planner.findBestExp();
     assertThat(result, is(instanceOf(LogicalValues.class)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7549">[CALCITE-7549]
+   * Add Programs.of overload accepting RelOptListener</a>.
+   *
+   * <p>Verifies that a {@link RelOptListener} passed to
+   * {@link Programs#of(HepProgram, boolean, RelMetadataProvider, RelOptListener)}
+   * receives rule-attempted events during execution. */
+  @Test void testProgramsOfWithListener() {
+    final HepTestListener listener = new HepTestListener(0);
+
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
+        .build();
+
+    final Program p =
+        Programs.of(program, true, DefaultRelMetadataProvider.INSTANCE, listener);
+
+    final String sql = "select 1 from dept where abs(-1) = 20";
+    final RelNode rel = sql(sql).toRel();
+
+    final RelNode result =
+        p.run(rel.getCluster().getPlanner(), rel, rel.getTraitSet(),
+        ImmutableList.of(), ImmutableList.of());
+
+    // The listener must have been notified at least once
+    assertThat(listener.getApplyTimes() > 0, is(true));
+  }
+
+  /** Tests that {@link Programs#of(HepProgram, boolean, RelMetadataProvider, RelOptListener)}
+   * with a null listener behaves identically to the overload without a listener. */
+  @Test void testProgramsOfWithNullListener() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
+        .build();
+
+    final Program p =
+        Programs.of(program, true, DefaultRelMetadataProvider.INSTANCE, null);
+
+    final String sql = "select 1 from dept where abs(-1) = 20";
+    final RelNode rel = sql(sql).toRel();
+
+    // Should not throw; null listener is safely ignored
+    final RelNode result =
+        p.run(rel.getCluster().getPlanner(), rel, rel.getTraitSet(),
+        ImmutableList.of(), ImmutableList.of());
+    assertThat(result, is(notNullValue()));
   }
 }
