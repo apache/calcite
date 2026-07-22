@@ -1737,6 +1737,83 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7661">[CALCITE-7661]
+   * RelDecorrelator loses shared correlation constraint across inner join inputs</a>.
+   */
+  @Test void testDecorrelateInnerJoinWithSharedCorrelation() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT d.deptno FROM dept d WHERE EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM (SELECT * FROM emp e WHERE e.deptno = d.deptno) l\n"
+        + "  JOIN (SELECT * FROM dept d2 WHERE d2.deptno = d.deptno) r\n"
+        + "  ON TRUE)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(i=[true])\n"
+        + "          LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "              LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "            LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "              LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "                LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Without the shared-carrier condition, the inner join becomes
+    // LogicalJoin(condition=[true]) and can join an employee to a different
+    // department.
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(DEPTNO3=[$0], $f1=[true])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(DEPTNO3=[$12])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($8, $12)], joinType=[inner])\n"
+        + "            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO8=[$7])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "            LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO3=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5390">[CALCITE-5390]
    * RelDecorrelator throws NullPointerException</a>. */
   @Test void testCorrelationLexicalScoping() {

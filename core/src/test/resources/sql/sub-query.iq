@@ -9612,6 +9612,36 @@ ON t2.a = foo.a
 
 !ok
 
+# [CALCITE-7661] RelDecorrelator loses shared correlation constraint across inner join inputs
+# Both join inputs reference d.deptno; decorrelation must keep their correlation carriers equal.
+SELECT d.deptno
+FROM dept d
+WHERE EXISTS (
+  SELECT *
+  FROM (
+    SELECT *
+    FROM emp e
+    WHERE e.deptno = d.deptno
+  ) l
+  JOIN (
+    SELECT *
+    FROM dept d2
+    WHERE d2.deptno = d.deptno
+  ) r
+  ON TRUE
+)
+ORDER BY d.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
 # [CALCITE-7320] AggregateProjectMergeRule throws AssertionError when Project maps multiple grouping keys to the same field
 SELECT deptno,
        (SELECT SUM(cnt)

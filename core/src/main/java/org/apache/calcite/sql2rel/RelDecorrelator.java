@@ -2047,12 +2047,18 @@ public class RelDecorrelator implements ReflectiveVisitor {
       joinConditions.add(originalCond);
     }
 
-    if (generatesNullsOnLeft || generatesNullsOnRight) {
-      List<RexNode> conds =
-          buildCorDefJoinConditions(leftCorDefOutputs, rightCorDefOutputs,
-              newLeftFrame.r, newRightFrame.r, relBuilder);
-      joinConditions.addAll(conds);
-    }
+    // Decorrelation propagates references to outer columns as columns in the
+    // rewritten inputs. If both join inputs propagate the same reference, add
+    // a condition to ensure that they still represent the same outer value.
+    // This applies to every join type, regardless of whether it generates nulls;
+    // if the inputs have no references in common, no condition is added.
+    joinConditions.addAll(
+        buildCorDefJoinConditions(
+            newLeftFrame.corDefOutputs,
+            newRightFrame.corDefOutputs,
+            newLeftFrame.r,
+            newRightFrame.r,
+            relBuilder));
 
     RexNode finalCondition = joinConditions.isEmpty()
         ? relBuilder.literal(true)
