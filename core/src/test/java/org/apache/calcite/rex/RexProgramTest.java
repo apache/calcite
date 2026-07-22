@@ -3443,6 +3443,63 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(timestampLTZChar1.equals(timestampLTZChar4), is(true));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7553">[CALCITE-7553]
+   * TIMESTAMP_TZ natural ordering must not collapse distinct values</a>. */
+  @Test void testTimestampWithTimeZoneNaturalOrderingKeepsDistinctValues() {
+    final TimestampWithTimeZoneString pst =
+        new TimestampWithTimeZoneString("1969-07-21 02:56:15 GMT-08:00");
+    final TimestampWithTimeZoneString gmt =
+        new TimestampWithTimeZoneString("1969-07-21 10:56:15 GMT");
+
+    assertNotEquals(pst, gmt);
+
+    final TreeMap<TimestampWithTimeZoneString, String> values = new TreeMap<>();
+    values.put(pst, "pst");
+    values.put(gmt, "gmt");
+
+    assertThat(values.keySet(), hasSize(2));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7553">[CALCITE-7553]
+   * SQL comparison of TIMESTAMP_TZ literals uses instant semantics</a>. */
+  @Test void testTimestampWithTimeZoneSqlComparisonUsesInstant() {
+    final RexLiteral pst =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 02:56:15 GMT-08:00"), 0);
+    final RexLiteral gmt =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 10:56:15 GMT"), 0);
+
+    checkSimplify(eq(pst, gmt), "true");
+    checkSimplify(ne(pst, gmt), "false");
+    checkSimplify(le(pst, gmt), "true");
+    checkSimplify(ge(pst, gmt), "true");
+    checkSimplify(lt(pst, gmt), "false");
+    checkSimplify(gt(pst, gmt), "false");
+
+    assertThat(eval(eq(pst, gmt)), is((Comparable) true));
+    assertThat(eval(ne(pst, gmt)), is((Comparable) false));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7553">[CALCITE-7553]
+   * TIMESTAMP_TZ equivalent constants do not create contradictory filters</a>. */
+  @Test void testTimestampWithTimeZoneEquivalentConstantsDoNotContradict() {
+    final RelDataType timestampTzType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_TZ, 0);
+    final RexNode input = input(timestampTzType, 0);
+    final RexLiteral pst =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 02:56:15 GMT-08:00"), 0);
+    final RexLiteral gmt =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 10:56:15 GMT"), 0);
+    final RexNode condition = and(eq(input, pst), eq(input, gmt));
+    final RexNode simplified =
+        simplify.withParanoid(false).simplifyUnknownAs(condition, RexUnknownAs.FALSE);
+
+    assertThat(simplified.isAlwaysFalse(), is(false));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7526">[CALCITE-7526]
    * Incorrect TIMESTAMP WITH TIME ZONE produces wrong error message</a>. */
   @Test void testMalformedTimezone() {

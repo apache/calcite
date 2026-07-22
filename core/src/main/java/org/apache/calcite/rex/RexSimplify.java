@@ -38,6 +38,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.SqlConstantComparator;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -769,7 +770,7 @@ public class RexSimplify {
             ? rexBuilder.makeLiteral(false)
             : rexBuilder.makeNullLiteral(e.getType());
       }
-      final int comparisonResult = v0.compareTo(v1);
+      final int comparisonResult = SqlConstantComparator.INSTANCE.compare(v0, v1);
       switch (e.getKind()) {
       case EQUALS:
         return rexBuilder.makeLiteral(comparisonResult == 0);
@@ -1888,7 +1889,8 @@ public class RexSimplify {
       if (comparison != null
           && comparison.kind != SqlKind.NOT_EQUALS) { // not supported yet
         final C v0 = comparison.literal.getValueAs(clazz);
-        if (v0 != null) {
+        if (v0 != null
+            && !SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(v0)) {
           final RexNode result =
               processRange(rexBuilder, terms, rangeTerms,
                   predicate, comparison.ref, v0, comparison.kind);
@@ -1985,12 +1987,14 @@ public class RexSimplify {
           if (constant == null) {
             break;
           }
-          final RexNode result =
-              processRange(rexBuilder, terms, rangeTerms,
-                  term, comparison.ref, constant, comparison.kind);
-          if (result != null) {
-            // Not satisfiable
-            return result;
+          if (!SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(constant)) {
+            final RexNode result =
+                processRange(rexBuilder, terms, rangeTerms,
+                    term, comparison.ref, constant, comparison.kind);
+            if (result != null) {
+              // Not satisfiable
+              return result;
+            }
           }
         }
         break;
@@ -2113,6 +2117,9 @@ public class RexSimplify {
 
     final C v0 = comparison.literal.getValueAs(clazz);
     if (v0 == null) {
+      return e;
+    }
+    if (SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(v0)) {
       return e;
     }
     final RangeSet<C> rangeSet = rangeSet(comparison.kind, v0);
@@ -2314,10 +2321,9 @@ public class RexSimplify {
               final Comparable comparable1 = notEqualsComparison.literal.getValue();
               final Comparable comparable2 =
                   castNonNull(Comparison.of(prevNotEquals)).literal.getValue();
-              //noinspection unchecked
               if (comparable1 != null
                   && comparable2 != null
-                  && comparable1.compareTo(comparable2) != 0) {
+                  && SqlConstantComparator.INSTANCE.compare(comparable1, comparable2) != 0) {
                 // X <> A OR X <> B => X IS NOT NULL OR NULL
                 final RexNode isNotNull =
                     rexBuilder.makeCall(RexUtil.getPos(term), SqlStdOperatorTable.IS_NOT_NULL,
@@ -3104,6 +3110,16 @@ public class RexSimplify {
     if (Objects.equals(node1, node2)) {
       return true;
     }
+    if (node1 instanceof RexLiteral && node2 instanceof RexLiteral
+        && SqlTypeUtil.equalSansNullability(node1.getType(), node2.getType())) {
+      final Comparable value1 = ((RexLiteral) node1).getValueAs(Comparable.class);
+      final Comparable value2 = ((RexLiteral) node2).getValueAs(Comparable.class);
+      return value1 != null
+          && value2 != null
+          && SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(value1)
+          && SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(value2)
+          && SqlConstantComparator.INSTANCE.compare(value1, value2) == 0;
+    }
     if (!(node1 instanceof RexCall) || !(node2 instanceof RexCall)) {
       return false;
     }
@@ -3468,6 +3484,9 @@ public class RexSimplify {
       }
       final Comparable value =
           requireNonNull(literal.getValueAs(Comparable.class), "value");
+      if (SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(value)) {
+        return false;
+      }
       switch (kind) {
       case LESS_THAN:
         b.addRange(Range.lessThan(value), literal.getType());

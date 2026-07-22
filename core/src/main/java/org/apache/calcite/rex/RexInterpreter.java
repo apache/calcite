@@ -27,6 +27,7 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.SqlConstantComparator;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -481,8 +482,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     if (v1 instanceof Number) {
       v1 = number(v1);
     }
-    //noinspection unchecked
-    final int c = v0.compareTo(v1);
+    final int c = SqlConstantComparator.INSTANCE.compare(v0, v1);
     return p.test(c);
   }
 
