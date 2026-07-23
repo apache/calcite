@@ -5460,28 +5460,55 @@ SqlNode ArrayConstructor() :
     final String p;
 }
 {
-    <ARRAY> { s = span(); }
     (
+        <ARRAY> { s = span(); }
         (
-            // nullary array function call: "array()" (Apache Spark)
-            LOOKAHEAD(2)
-            <LPAREN> <RPAREN> { args = SqlNodeList.EMPTY; }
-        |
-            args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_ALL)
-        )
-        {
-            if (args.size() == 1 && args.get(0).isA(SqlKind.QUERY)) {
-                // Array query constructor, 'ARRAY (SELECT * FROM t)'
-                return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), args.get(0));
-            } else {
-                // Spark ARRAY function, 'ARRAY(1, 2)',
-                // equivalent to standard 'ARRAY [1, 2]'
-                return SqlLibraryOperators.ARRAY.createCall(s.end(this), args.getList());
+            (
+                // nullary array function call: "array()" (Apache Spark)
+                LOOKAHEAD(2)
+                <LPAREN> <RPAREN> { args = SqlNodeList.EMPTY; }
+            |
+                args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_ALL)
+            )
+            {
+                if (args.size() == 1 && args.get(0).isA(SqlKind.QUERY)) {
+                    // Array query constructor, 'ARRAY (SELECT * FROM t)'
+                    return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), args.get(0));
+                } else {
+                    // Spark ARRAY function, 'ARRAY(1, 2)',
+                    // equivalent to standard 'ARRAY [1, 2]'
+                    return SqlLibraryOperators.ARRAY.createCall(s.end(this), args.getList());
+                }
             }
-        }
+        |
+            // by enumeration "ARRAY[e0, e1, ..., eN]"
+            <LBRACKET> // TODO: do trigraph as well ??( ??)
+            (
+                args = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+            |
+                { args = SqlNodeList.EMPTY; }
+            )
+            <RBRACKET>
+            {
+                return SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(
+                    s.end(this), args.getList());
+            }
+<#if (parser.includeParsingStringLiteralAsArrayLiteral!default.parser.includeParsingStringLiteralAsArrayLiteral) >
+        |
+            p = SimpleStringLiteral() {
+                try {
+                    return SqlParserUtil.parseArrayLiteral(p);
+                } catch (SqlParseException ex) {
+                    throw SqlUtil.newContextException(getPos(),
+                        RESOURCE.illegalArrayExpression(p));
+                }
+            }
+</#if>
+        )
     |
-        // by enumeration "ARRAY[e0, e1, ..., eN]"
-        <LBRACKET> // TODO: do trigraph as well ??( ??)
+        // BigQuery bare bracket array literal "[e0, e1, ..., eN]"
+        LOOKAHEAD({ this.conformance.allowBareBracketArrayLiteral() })
+        <LBRACKET> { s = span(); }
         (
             args = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
         |
@@ -5492,17 +5519,6 @@ SqlNode ArrayConstructor() :
             return SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(
                 s.end(this), args.getList());
         }
-<#if (parser.includeParsingStringLiteralAsArrayLiteral!default.parser.includeParsingStringLiteralAsArrayLiteral) >
-    |
-        p = SimpleStringLiteral() {
-            try {
-                return SqlParserUtil.parseArrayLiteral(p);
-            } catch (SqlParseException ex) {
-                throw SqlUtil.newContextException(getPos(),
-                    RESOURCE.illegalArrayExpression(p));
-            }
-        }
-</#if>
     )
 }
 

@@ -6695,6 +6695,37 @@ public class SqlParserTest {
     expr("array[^select^ 1]").fails("(?s)Encountered \"select\".*");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7566">[CALCITE-7566]
+   * Support BigQuery-style bare bracket array literals</a>. */
+  @Test void testBareBracketArrayLiteral() {
+    final SqlParserFixture bq =
+        fixture().withConformance(SqlConformanceEnum.BIG_QUERY).expression();
+    bq.sql("[1, 2, 3]").ok("(ARRAY[1, 2, 3])");
+    // parser allows empty array; validator will reject it
+    bq.sql("[]").ok("(ARRAY[])");
+    // nested bare bracket literals
+    bq.sql("[[1, 2], [3, 4]]")
+        .ok("(ARRAY[(ARRAY[1, 2]), (ARRAY[3, 4])])");
+    // subscript directly on a bare bracket literal
+    bq.sql("[10, 20, 30][1]").ok("(ARRAY[10, 20, 30])[1]");
+    // SELECT context
+    fixture().withConformance(SqlConformanceEnum.BIG_QUERY)
+        .sql("select [1, 2, 3]")
+        .ok("SELECT (ARRAY[1, 2, 3])");
+
+    // BABEL and LENIENT also accept the bare bracket syntax
+    fixture().withConformance(SqlConformanceEnum.BABEL).expression()
+        .sql("[1, 2, 3]").ok("(ARRAY[1, 2, 3])");
+    fixture().withConformance(SqlConformanceEnum.LENIENT).expression()
+        .sql("[1, 2, 3]").ok("(ARRAY[1, 2, 3])");
+
+    // Strict conformance levels still reject the bare bracket syntax
+    expr("^[^1, 2, 3]").fails("(?s).*Encountered \"\\[\".*");
+    fixture().withConformance(SqlConformanceEnum.STRICT_2003).expression()
+        .sql("^[^1, 2, 3]")
+        .fails("(?s).*Encountered \"\\[\".*");
+  }
+
   @Test void testArrayFunction() {
     expr("array()").ok("ARRAY()");
     expr("array(1)").ok("ARRAY(1)");
