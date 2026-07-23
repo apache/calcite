@@ -339,6 +339,33 @@ class TopDownRuleDriver implements RuleDriver {
       for (RelNode rel : group.set.rels) {
         if (planner.isLogical(rel)) {
           tasks.push(new OptimizeMExpr(rel, group, false));
+        } else if (rel instanceof AbstractConverter) {
+          if (rel.getTraitSet().satisfies(group.getTraitSet())) {
+            RelSubset input = (RelSubset) rel.getInput(0);
+            RelOptCost upperForInput = planner.upperBoundForInputs(rel, upperBound);
+            if (upperForInput.isLe(planner.zeroCost)) {
+              LOGGER.debug(
+                  "Skip O_INPUT because of lower bound. UB4Inputs = {}, UB = {}",
+                  upperForInput, upperBound);
+              continue;
+            }
+            tasks.push(new ApplyRules(rel, group, false));
+            if (input.getWinnerCost() != null) {
+              continue;
+            }
+            tasks.push(new OptimizeGroup(input, upperForInput));
+          } else {
+            VolcanoRuleMatch match =
+                ruleQueue.popMatch(
+                    Pair.of(rel,
+                        m -> m.getRule() instanceof ConverterRule
+                            && ((ConverterRule) m.getRule()).getOutTrait().satisfies(
+                            requireNonNull(group.getTraitSet().getConvention(),
+                                () -> "convention for " + group))));
+            if (match != null) {
+              tasks.add(new ApplyRule(match, group, false));
+            }
+          }
         } else if (rel.isEnforcer()) {
           // Enforcers have lower priority than other physical nodes.
           physicals.add(0, rel);
