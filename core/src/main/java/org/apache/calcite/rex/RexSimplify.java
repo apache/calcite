@@ -416,6 +416,22 @@ public class RexSimplify {
   private RexNode simplifyGenericNode(RexCall e) {
     final List<RexNode> operands = new ArrayList<>(e.operands);
     simplifyList(operands, UNKNOWN);
+
+    // Simplify CARDINALITY(MAP_KEYS(m)) -> CARDINALITY(m)
+    // and CARDINALITY(MAP_VALUES(m)) -> CARDINALITY(m)
+    if (e.getOperator().getName().equals("CARDINALITY")
+        && operands.size() == 1
+        && operands.get(0) instanceof RexCall) {
+      final RexCall innerCall = (RexCall) operands.get(0);
+      final SqlKind innerKind = innerCall.getKind();
+      if (innerKind == SqlKind.MAP_KEYS || innerKind == SqlKind.MAP_VALUES) {
+        // CARDINALITY(MAP_KEYS(m)) -> CARDINALITY(m)
+        // CARDINALITY(MAP_VALUES(m)) -> CARDINALITY(m)
+        final RexNode map = innerCall.getOperands().get(0);
+        return rexBuilder.makeCall(e.getParserPosition(), e.getOperator(), map);
+      }
+    }
+
     if (e.operands.equals(operands)) {
       return e;
     }
