@@ -86,6 +86,13 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Number of records in local file. */
   protected static final int ZIPS_SIZE = 149;
 
+  /** Field of the "datatypes" collection whose name contains a single quote
+   * and characters that would be pipeline syntax if it were not escaped. */
+  private static final String QUOTED_FIELD = "x', injected: {$literal: 1}, y: 'z";
+
+  /** Field of the "datatypes" collection whose name ends with a backslash. */
+  private static final String BACKSLASH_FIELD = "a\\";
+
   @RegisterExtension
   public static final MongoDatabasePolicy POLICY = MongoDatabasePolicy.create();
 
@@ -119,6 +126,8 @@ public class MongoAdapterTest implements SchemaFactory {
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
     doc.put("arr", new BsonArray(Arrays.asList(new BsonString("a"), new BsonString("b"))));
     doc.put("binaryData", new BsonBinary("binaryData".getBytes(StandardCharsets.UTF_8)));
+    doc.put(QUOTED_FIELD, new BsonString("quoted"));
+    doc.put(BACKSLASH_FIELD, new BsonString("backslash"));
     datatypes.insertOne(doc);
 
     schema = new MongoSchema(database);
@@ -741,6 +750,25 @@ public class MongoAdapterTest implements SchemaFactory {
     assertModel(MODEL)
         .query("select cast(_MAP['arr'] as VARCHAR ARRAY) from \"mongo_raw\".\"datatypes\"")
         .returnsUnordered("EXPR$0=[a, b]");
+  }
+
+  /** A field name that contains a single quote or a backslash must not be able
+   * to break out of the quoted token in the generated pipeline and add stage
+   * fields of its own. */
+  @Test void testItemKeyWithEmbeddedQuote() {
+    assertModel(MODEL)
+        .query("select cast(_MAP['x'', injected: {$literal: 1}, y: ''z'] as varchar) as c\n"
+            + "from \"mongo_raw\".\"datatypes\"")
+        .returnsUnordered("C=quoted")
+        .queryContains(
+            mongoChecker("{$project: {C: '$x\\', injected: {$literal: 1}, y: \\'z'}}"));
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['a\\'] as varchar) as c\n"
+            + "from \"mongo_raw\".\"datatypes\"")
+        .returnsUnordered("C=backslash")
+        .queryContains(
+            mongoChecker("{$project: {C: '$a\\\\'}}"));
   }
 
   /** Test case for
