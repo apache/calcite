@@ -1592,6 +1592,69 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. JoinProjectTransposeRule must
+   * not pull a project containing a non-deterministic expression above
+   * the join, because it inlines the expression into the new join
+   * condition via {@code mergedProgram.expandLocalRef}. */
+  @Test void testJoinProjectTransposeShouldIgnoreNonDeterministic() {
+    final String sql = "select * from (select empno, rand() as r from emp) e\n"
+        + "join dept d on e.r = d.deptno";
+    sql(sql).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. The transpose is still allowed when
+   * the join condition only references deterministic projected columns,
+   * even if the project also computes a non-deterministic column (here
+   * {@code r} is RAND() but the join is on DEPTNO). */
+  @Test void testJoinProjectTransposeWithUnrelatedNonDeterministic() {
+    final String sql = "select * from (select rand() as r, deptno from emp) e\n"
+        + "join dept d on e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. SemiJoinProjectTransposeRule
+   * uses the same {@code mergePrograms} + {@code expandLocalRef}
+   * pattern as JoinProjectTransposeRule, and must not pull a project
+   * above the semi-join when the condition references one of its
+   * non-deterministic expressions. */
+  @Test void testSemiJoinProjectTransposeShouldIgnoreNonDeterministic() {
+    final String sql = "select * from (select empno, rand() as r from emp) e\n"
+        + "where e.r in (select sal from emp)";
+    sql(sql)
+        .withDecorrelate(false)
+        .withExpand(true)
+        .withPreRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. The semi-join transpose is still
+   * allowed when the condition only references deterministic projected
+   * columns, even if the project also computes a non-deterministic column
+   * (here {@code r} is RAND() but the semi-join is on DEPTNO). */
+  @Test void testSemiJoinProjectTransposeWithUnrelatedNonDeterministic() {
+    final String sql = "select * from (select rand() as r, deptno from emp) e\n"
+        + "where e.deptno in (select deptno from dept)";
+    sql(sql)
+        .withDecorrelate(false)
+        .withExpand(true)
+        .withPreRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .withRule(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
    * JoinProjectTransposeRule should not pull a literal above the
    * null-generating side of a join</a>. */
@@ -3311,6 +3374,31 @@ class RelOptRulesTest extends RelOptTestBase {
         .withExpand(true)
         .withRule(filterProjectTransposeRule)
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. FilterProjectTransposeRule must
+   * not pull a filter that references a non-deterministic projected
+   * column below the project. */
+  @Test void testFilterProjectTransposeShouldIgnoreNonDeterministic() {
+    final String sql = "select * from (select rand() as a from emp)\n"
+        + "where a > 0 and a < 1";
+    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. The transpose is still allowed when
+   * the filter only references deterministic projected columns, even if
+   * other columns in the project are non-deterministic (here {@code r} is
+   * RAND() but the filter is on {@code b}). */
+  @Test void testFilterProjectTransposeWithUnrelatedNonDeterministic() {
+    final String sql = "select * from (select rand() as r, deptno as b from emp)\n"
+        + "where b > 0";
+    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).check();
   }
 
   private static final String NOT_STRONG_EXPR =
@@ -7027,6 +7115,18 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  from emp)";
     sql(sql).withRule(CoreRules.PROJECT_MERGE).checkUnchanged();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7551">[CALCITE-7551]
+   * Project/Filter/Join transpose and merge rules can duplicate
+   * non-deterministic expressions</a>. ProjectMergeRule must not merge
+   * adjacent projects when doing so would duplicate a non-deterministic
+   * expression. */
+  @Test void testProjectMergeShouldIgnoreNonDeterministic() {
+    final String sql = "select a, a + 1 as b from (select rand() as a from emp)";
+    sql(sql).withRule(CoreRules.PROJECT_MERGE).checkUnchanged();
+  }
+
 
   @Test void testAggregateProjectPullUpConstants() {
     final String sql = "select job, empno, sal, sum(sal) as s\n"

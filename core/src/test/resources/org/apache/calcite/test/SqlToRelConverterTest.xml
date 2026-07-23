@@ -7514,6 +7514,18 @@ LogicalProject(EXPR$0=[= SOME(1970-01-01 01:23:45, CAST(ARRAY('1970-01-01 01:23:
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRandNotDuplicatedInProjectionMerge">
+    <Resource name="sql">
+      <![CDATA[select a, a + 1 as b from (select rand() as a)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(A=[$0], B=[+($0, 1)])
+  LogicalProject(A=[RAND()])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testRecursiveQuery">
     <Resource name="sql">
       <![CDATA[WITH RECURSIVE aux(i) AS (
