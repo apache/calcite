@@ -346,6 +346,9 @@ public interface CalciteResource {
   @BaseMessage("Cannot specify condition (NATURAL keyword, or ON or USING clause) following CROSS JOIN")
   ExInst<SqlValidatorException> crossJoinDisallowsCondition();
 
+  @BaseMessage("UNNEST is only supported with INNER, LEFT, CROSS, or COMMA join, not ''{0}''")
+  ExInst<SqlValidatorException> unnestInvalidJoinType(String a0);
+
   @BaseMessage("Cannot specify NATURAL keyword with ON or USING clause")
   ExInst<SqlValidatorException> naturalDisallowsOnOrUsing();
 

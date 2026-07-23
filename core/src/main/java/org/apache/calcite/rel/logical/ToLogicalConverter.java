@@ -41,8 +41,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.tools.RelBuilder;
 
-import java.util.Collections;
-
 /**
  * Shuttle to convert any rel plan to a plan with all logical nodes.
  */
@@ -191,7 +189,9 @@ public class ToLogicalConverter extends RelShuttleImpl {
       final Uncollect uncollect = (Uncollect) relNode;
       final RelNode input = visit(uncollect.getInput());
       return Uncollect.create(input.getTraitSet(), input,
-          uncollect.withOrdinality, Collections.emptyList());
+          uncollect.withOrdinality, uncollect.getPassthroughFieldIndices(),
+          uncollect.getCollectionFieldIndices(), uncollect.isOuter,
+          uncollect.expandStructFields);
     }
 
     throw new AssertionError("Need to implement logical converter for "

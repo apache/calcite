@@ -8404,6 +8404,42 @@ class RelToSqlConverterTest {
         withHsqldb().ok(expectedHsqldb);
   }
 
+  /** Tests that a {@link org.apache.calcite.rel.core.Uncollect}
+   * converts to SQL via {@code LATERAL UNNEST}. */
+  @Test void testGeneralizedUncollect() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.field("ENAME")))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), false, false, true)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[\"ENAME\"] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\",\n"
+        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f1\")";
+    relFn(relFn).ok(expected);
+  }
+
+  /** As {@link #testGeneralizedUncollect()}, with outer (LEFT JOIN)
+   * semantics. */
+  @Test void testGeneralizedUncollectOuter() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.field("ENAME")))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), false, true, true)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[\"ENAME\"] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f1\") ON TRUE";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testWithinGroup1() {
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
         + "within group (order by \"net_weight\" desc) "

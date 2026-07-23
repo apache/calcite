@@ -2888,7 +2888,8 @@ public class SqlToRelConverter {
         // so Uncollect's row type stays aligned with the validator.
         List<String> itemAliases;
         if (fieldNames != null) {
-          itemAliases = fieldNames;
+          // do not include the ordinality column name
+          itemAliases = fieldNames.subList(0, nodes.size());
         } else {
           itemAliases = new ArrayList<>(nodes.size());
           for (int i = 0; i < nodes.size(); i++) {
@@ -2899,6 +2900,7 @@ public class SqlToRelConverter {
             .push(child)
             .project(exprs)
             .uncollect(itemAliases, operator.withOrdinality)
+            .let(r -> fieldNames == null ? r : r.rename(fieldNames))
             .build();
       } else {
         // REVIEW danny 2020-04-26: should we unify the normal field aliases and
