@@ -2078,7 +2078,7 @@ public class SqlFunctions {
       }
     }
 
-    private static final LoadingCache<Key, Pattern> cache =
+    private static final LoadingCache<Key, Pattern> CACHE =
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
@@ -2086,32 +2086,32 @@ public class SqlFunctions {
     /** SQL {@code LIKE} function. */
     public boolean like(String s, String pattern) {
       final Key key = new Key(pattern, null, 0);
-      return cache.getUnchecked(key).matcher(s).matches();
+      return CACHE.getUnchecked(key).matcher(s).matches();
     }
 
     /** SQL {@code LIKE} function with escape. */
     public boolean like(String s, String pattern, String escape) {
       final Key key = new Key(pattern, escape, 0);
-      return cache.getUnchecked(key).matcher(s).matches();
+      return CACHE.getUnchecked(key).matcher(s).matches();
     }
 
     /** SQL {@code ILIKE} function. */
     public boolean ilike(String s, String pattern) {
       final Key key = new Key(pattern, null, Pattern.CASE_INSENSITIVE);
-      return cache.getUnchecked(key).matcher(s).matches();
+      return CACHE.getUnchecked(key).matcher(s).matches();
     }
 
     /** SQL {@code ILIKE} function with escape. */
     public boolean ilike(String s, String pattern, String escape) {
       final Key key = new Key(pattern, escape, Pattern.CASE_INSENSITIVE);
-      return cache.getUnchecked(key).matcher(s).matches();
+      return CACHE.getUnchecked(key).matcher(s).matches();
     }
   }
 
   /** State for {@code SIMILAR} function. */
   @Deterministic
   public static class SimilarFunction {
-    private static final LoadingCache<String, Pattern> cache =
+    private static final LoadingCache<String, Pattern> CACHE =
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(
@@ -2120,7 +2120,7 @@ public class SqlFunctions {
 
     /** SQL {@code SIMILAR} function. */
     public boolean similar(String s, String pattern) {
-      return cache.getUnchecked(pattern).matcher(s).matches();
+      return CACHE.getUnchecked(pattern).matcher(s).matches();
     }
   }
 
@@ -2137,14 +2137,14 @@ public class SqlFunctions {
       }
     }
 
-    private static final LoadingCache<Key, Pattern> cache =
+    private static final LoadingCache<Key, Pattern> CACHE =
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
 
     /** SQL {@code SIMILAR} function with escape. */
     public boolean similar(String s, String pattern, String escape) {
-      return cache.getUnchecked(new Key(pattern, escape))
+      return CACHE.getUnchecked(new Key(pattern, escape))
           .matcher(s).matches();
     }
   }
