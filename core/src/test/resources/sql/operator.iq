@@ -121,6 +121,21 @@ WHERE comm IS NOT NULL LIMIT 4;
 
 !ok
 
+# [CALCITE-7639] Add support for >> operator in Calcite
+SELECT CAST(comm AS INTEGER) >> 2 AS foo FROM "scott".emp
+WHERE comm IS NOT NULL LIMIT 4;
++-----+
+| FOO |
++-----+
+|  75 |
+|   0 |
+| 125 |
+| 350 |
++-----+
+(4 rows)
+
+!ok
+
 # [CALCITE-5531] COALESCE throws ClassCastException
 SELECT COALESCE(DATE '2021-07-08', DATE '2020-01-01') as d;
 +------------+
@@ -806,6 +821,22 @@ SELECT
 | SHIFT1 | SHIFT2 | SHIFT3 | SHIFT4 | CAST_SHIFT |
 +--------+--------+--------+--------+------------+
 |      1 |      2 |      8 |     32 |         16 |
++--------+--------+--------+--------+------------+
+(1 row)
+
+!ok
+
+-- Bitwise RIGHT SHIFT operator `>>`
+SELECT
+  1 >> 0 AS shift1,
+  2 >> 1 AS shift2,
+  8 >> 2 AS shift3,
+  32 >> 3 AS shift4,
+  CAST(16 AS SMALLINT) >> CAST(3 AS INTEGER) AS cast_shift;
++--------+--------+--------+--------+------------+
+| SHIFT1 | SHIFT2 | SHIFT3 | SHIFT4 | CAST_SHIFT |
++--------+--------+--------+--------+------------+
+|      1 |      1 |      2 |      4 |          2 |
 +--------+--------+--------+--------+------------+
 (1 row)
 

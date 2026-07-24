@@ -279,6 +279,24 @@ public class ${parser.class} extends SqlAbstractParserImpl
             Span.of(table, extendList).pos(), table, extendList);
     }
 
+    /**
+     * Returns the parser position of the given token.
+     *
+     * <p>Declared as a plain method (rather than JAVACODE) so it can be called
+     * from generated lookahead code, which does not declare
+     * {@code throws ParseException}.
+     *
+     * @param token token whose position to return
+     * @return parser position spanning the given token
+     */
+    private static SqlParserPos pos(Token token) {
+        return new SqlParserPos(
+            token.beginLine,
+            token.beginColumn,
+            token.endLine,
+            token.endColumn);
+    }
+
     /** Adds a warning that a token such as "HOURS" was used,
     * whereas the SQL standard only allows "HOUR".
     *
@@ -8470,6 +8488,17 @@ SqlBinaryOperator BinaryRowOperator() :
     // <IN> is handled as a special case
     <EQ> { return SqlStdOperatorTable.EQUALS; }
 |   <LEFTSHIFT> { return SqlStdOperatorTable.BIT_LEFT_SHIFT; }
+    // The right shift operator ">>" is matched as two ">" tokens rather than a
+    // single ">>" token. A greedy ">>" token would be produced by the lexer even
+    // when the two ">" characters close nested angle-bracket types (e.g.
+    // MAP<INT, MAP<INT, INT>>), breaking type parsing. Matching two ">" tokens here
+    // keeps right shift confined to expression context. The semantic lookahead
+    // requires the two ">" to be immediately adjacent (no intervening whitespace),
+    // so "a > > b" is not treated as a right shift; otherwise we fall through to
+    // the single ">" (greater-than) alternative below.
+|   LOOKAHEAD({ getToken(1).kind == GT && getToken(2).kind == GT
+        && pos(getToken(1)).endsImmediatelyBefore(pos(getToken(2))) })
+    <GT> <GT> { return SqlStdOperatorTable.BIT_RIGHT_SHIFT; }
 |   <GT> { return SqlStdOperatorTable.GREATER_THAN; }
 |   <LT> { return SqlStdOperatorTable.LESS_THAN; }
 |   <LE> { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }
