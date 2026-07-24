@@ -1766,6 +1766,48 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testSortUnionTransposePushesLiteralOffset() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name offset 2 rows fetch next 3 rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testSortUnionTransposePushesParameterizedOffsetExpression() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name offset ? + 1 rows fetch next 2 rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testSortUnionTransposeWithNonDeterministicOffset() {
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name offset rand_integer(10) rows fetch next 2 rows only";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+        .withRule(CoreRules.SORT_UNION_TRANSPOSE)
+        .checkUnchanged();
+  }
+
   @Test void testSortRemovalAllKeysConstant() {
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -12495,6 +12537,25 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select empno from emp where "
         + "sal > SOME(select sal from emp_b where emp.deptno = emp_b.deptno "
         + "order by emp_b.sal limit 5)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testTopDownGeneralDecorrelateForSubqueryWithOffsetExpression() {
+    final String sql = "select empno from emp where "
+        + "sal > SOME(select sal from emp_b where emp.deptno = emp_b.deptno "
+        + "order by emp_b.sal offset 1 + 1 rows "
+        + "fetch next (1 + 1) rows only)";
 
     sql(sql)
         .withRule(

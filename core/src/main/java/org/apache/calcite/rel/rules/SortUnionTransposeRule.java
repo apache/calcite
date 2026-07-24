@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -67,12 +68,14 @@ public class SortUnionTransposeRule
   @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Union union = call.rel(1);
-    // Re-evaluating a non-deterministic FETCH in every branch can produce a
-    // different limit from the top Sort.
+    // Re-evaluating a non-deterministic OFFSET or FETCH in every branch can
+    // produce a different limit from the top Sort.
     // There is a flag indicating if this rule should be applied when
     // Sort.fetch is null.
     return union.all
-        && sort.offset == null
+        && (sort.offset == null
+            || sort.fetch != null
+                && RexUtil.isDeterministic(sort.offset))
         && (sort.fetch == null
             || RexUtil.isDeterministic(sort.fetch))
         && (config.matchNullFetch() || sort.fetch != null);
@@ -81,6 +84,17 @@ public class SortUnionTransposeRule
   @Override public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Union union = call.rel(1);
+    // OFFSET cannot be pushed into each input independently. However, only
+    // the first OFFSET + FETCH rows of an input can contribute to the final
+    // result, so use that value as the input FETCH and retain the original
+    // OFFSET and FETCH in the top Sort.
+    final RexNode inputFetch;
+    if (sort.fetch == null || sort.offset == null) {
+      inputFetch = sort.fetch;
+    } else {
+      inputFetch =
+          RexUtil.makeOffsetFetchSum(sort.getCluster().getRexBuilder(), sort.offset, sort.fetch);
+    }
     List<RelNode> inputs = new ArrayList<>();
     // Thus we use 'ret' as a flag to identify if we have finished pushing the
     // sort past a union.
@@ -88,11 +102,11 @@ public class SortUnionTransposeRule
     final RelMetadataQuery mq = call.getMetadataQuery();
     for (RelNode input : union.getInputs()) {
       if (!RelMdUtil.checkInputForCollationAndLimit(mq, input,
-          sort.getCollation(), sort.offset, sort.fetch)) {
+          sort.getCollation(), null, inputFetch)) {
         ret = false;
         Sort branchSort =
             sort.copy(sort.getTraitSet(), input,
-                sort.getCollation(), sort.offset, sort.fetch);
+                sort.getCollation(), null, inputFetch);
         inputs.add(branchSort);
       } else {
         inputs.add(input);

@@ -70,6 +70,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
@@ -1771,31 +1772,40 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private void validateFetchExpression(@Nullable SqlNode fetch) {
-    if (fetch == null || fetch instanceof SqlDynamicParam) {
+  private void validateOffsetFetchExpression(@Nullable SqlNode node,
+      String kind) {
+    if (node == null || node instanceof SqlDynamicParam) {
       return;
     }
-    if (SqlUtil.isNullLiteral(fetch, true)) {
-      throw newValidationError(fetch,
-          RESOURCE.fetchExpressionEvaluatedToNull());
+    if (SqlUtil.isNullLiteral(node, true)) {
+      throw newValidationError(node,
+          RESOURCE.offsetFetchExpressionEvaluatedToNull(kind));
     }
-    validateNoAggs(aggOrOverFinder, fetch, "FETCH");
-    fetch.accept(new SqlBasicVisitor<Void>() {
+    if (node instanceof SqlNumericLiteral
+        && requireNonNull(((SqlNumericLiteral) node).bigDecimalValue())
+            .signum() < 0) {
+      throw newValidationError(node,
+          RESOURCE.offsetFetchValueMustNotBeNegative(kind));
+    }
+    validateNoAggs(aggOrOverFinder, node, kind);
+    node.accept(new SqlBasicVisitor<Void>() {
       @Override public Void visit(SqlIdentifier id) {
         if (makeNullaryCall(id) != null) {
           return null;
         }
         throw newValidationError(id,
-            RESOURCE.fetchExpressionCannotReferenceColumn(id.toString()));
+            RESOURCE.offsetFetchExpressionCannotReferenceColumn(kind,
+                id.toString()));
       }
     });
     final SqlValidatorScope scope = getEmptyScope();
-    inferUnknownTypes(typeFactory.createSqlType(SqlTypeName.DECIMAL), scope, fetch);
-    validateExpr(fetch, scope);
-    final RelDataType type = getValidatedNodeType(fetch);
+    inferUnknownTypes(typeFactory.createSqlType(SqlTypeName.DECIMAL), scope, node);
+    validateExpr(node, scope);
+    final RelDataType type = getValidatedNodeType(node);
     if (!SqlTypeUtil.isNumeric(type)) {
-      throw newValidationError(fetch,
-          RESOURCE.fetchExpressionMustBeNumeric(type.getFullTypeString()));
+      throw newValidationError(node,
+          RESOURCE.offsetFetchExpressionMustBeNumeric(kind,
+              type.getFullTypeString()));
     }
   }
 
@@ -4497,7 +4507,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateWindowClause(select);
     validateQualifyClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
-    validateFetchExpression(select.getFetch());
+    validateOffsetFetchExpression(select.getOffset(), "OFFSET");
+    validateOffsetFetchExpression(select.getFetch(), "FETCH");
 
     // Validate the SELECT clause late, because a select item might
     // depend on the GROUP BY list, or the window function might reference

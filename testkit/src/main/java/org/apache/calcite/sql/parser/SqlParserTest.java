@@ -4085,7 +4085,16 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "OFFSET ? ROWS\n"
             + "FETCH NEXT ? ROWS ONLY");
-    // CALCITE-7592: Arithmetic and scalar expressions are allowed within parentheses.
+    // Arithmetic and scalar expressions are allowed within parentheses.
+    sql("select a from foo offset 1 + abs(-2) rows")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 1 + ABS(-2) ROWS");
+    // Parentheses remain optional in OFFSET.
+    sql("select a from foo offset (1 + abs(-2)) rows")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 1 + ABS(-2) ROWS");
     sql("select a from foo fetch next (1 + abs(-2)) rows only")
         .ok("SELECT `A`\n"
             + "FROM `FOO`\n"
@@ -4101,7 +4110,9 @@ public class SqlParserTest {
     // FETCH before OFFSET is illegal
     sql("select a from foo fetch next 3 rows only ^offset^ 1")
         .fails("(?s).*Encountered \"offset\" at .*");
-    // Subqueries are not allowed in FETCH
+    // Subqueries are not allowed in OFFSET or FETCH
+    sql("select a from foo offset ^(^select 2) rows")
+        .fails("Query expression encountered in illegal context");
     sql("select a from foo fetch next ^select^ 2 rows only")
         .fails("(?s).*Encountered \"select\" at .*");
     sql("select a from foo fetch next (^select^ 2) rows only")
@@ -4118,6 +4129,12 @@ public class SqlParserTest {
    * SQL:2008.
    */
   @Test void testLimit() {
+    sql("select a from foo order by b, c limit 2 offset 1 + abs(-2)")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 + ABS(-2) ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
     sql("select a from foo order by b, c limit 2 offset 1")
         .ok("SELECT `A`\n"
             + "FROM `FOO`\n"

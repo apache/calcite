@@ -671,13 +671,13 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
  *
  * <blockquote><pre>
  *    [ LIMIT { count | ALL } ]
- *    [ OFFSET start ]</pre>
+ *    [ OFFSET { start | expression } ]</pre>
  * </blockquote>
  *
  * <p>Trino syntax for limit:
  *
  * <blockquote><pre>
- *    [ OFFSET start ]
+ *    [ OFFSET { start | expression } ]
  *    [ LIMIT { count | ALL } ]</pre>
  * </blockquote>
  *
@@ -690,7 +690,7 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
  * <p>SQL:2008 syntax for limit:
  *
  * <blockquote><pre>
- *    [ OFFSET start { ROW | ROWS } ]
+ *    [ OFFSET { start | expression } { ROW | ROWS } ]
  *    [ FETCH { FIRST | NEXT } [ count | (expression) ] { ROW | ROWS } ONLY ]</pre>
  * </blockquote>
  */
@@ -765,7 +765,7 @@ void OffsetClause(Span s, SqlNode[] offsetFetch) :
     // ROW or ROWS is required in SQL:2008 but we make it optional
     // because it is not present in Postgres-style syntax.
     <OFFSET> { s.add(this); }
-    offsetFetch[0] = UnsignedNumericLiteralOrParam()
+    offsetFetch[0] = OffsetCount()
     [ <ROW> | <ROWS> ]
 }
 
@@ -780,6 +780,23 @@ void FetchClause(SqlNode[] offsetFetch) :
     // If you specify both LIMIT and FETCH, FETCH wins.
     <FETCH> ( <FIRST> | <NEXT> ) offsetFetch[1] = FetchCount()
     ( <ROW> | <ROWS> ) <ONLY>
+}
+
+/**
+ * Parses the start value or expression of an OFFSET clause.
+ */
+SqlNode OffsetCount() :
+{
+    final SqlNode e;
+}
+{
+    // Unlike FETCH expressions, OFFSET expressions do not require parentheses
+    // and may start with a numeric literal or dynamic parameter. Therefore, a
+    // separate UnsignedNumericLiteralOrParam alternative would consume only
+    // the prefix of expressions such as "OFFSET 1 + 2" or "OFFSET ? + 1".
+    // Expression also covers standalone start values.
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    { return e; }
 }
 
 /**

@@ -1527,6 +1527,37 @@ public class RelMetadataTest {
         .assertThatRowCount(is(2D), is(0D), is(2D));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testMinRowCountOffsetExpression() {
+    final String sql = "select * from (values (1), (2)) as t(x)\n"
+        + "offset 2 - 2 rows";
+    final RelMetadataFixture fixture = sql(sql);
+    fixture.assertThatRowCount(is(2D), is(0D), is(2D));
+
+    fixture
+        .withCluster(cluster -> {
+          final RelOptPlanner planner = new VolcanoPlanner();
+          planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+          return RelOptCluster.create(planner, cluster.getRexBuilder());
+        })
+        .withRelTransform(rel -> {
+          final RelOptPlanner planner = rel.getCluster().getPlanner();
+          planner.setRoot(rel);
+          final RelTraitSet requiredOutputTraits =
+              rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
+          final RelNode root = planner.changeTraits(rel, requiredOutputTraits);
+          planner.setRoot(root);
+          return planner.findBestExp();
+        })
+        .assertThatRel(is(instanceOf(EnumerableLimit.class)))
+        .assertThatRowCount(is(2D), is(0D), is(2D));
+  }
+
   @Test void testRowCountSortLimitOffset() {
     final String sql = "select * from emp order by ename limit 10 offset 5";
     /* 14 - 5 */

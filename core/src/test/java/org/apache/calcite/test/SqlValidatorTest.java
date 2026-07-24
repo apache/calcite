@@ -10739,6 +10739,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Windowed aggregate expression is illegal in FETCH clause");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testOffsetExpressionType() {
+    sql("select name from dept offset ^upper('x')^ rows")
+        .fails("OFFSET expression must have a numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept offset ^'x'^ rows")
+        .fails("OFFSET expression must have a numeric type; "
+            + "actual type is 'CHAR\\(1\\) NOT NULL'");
+    sql("select name from dept offset 1.5 rows").ok();
+    sql("select name from dept offset ^deptno^ rows")
+        .fails("OFFSET expression cannot reference table column 'DEPTNO'");
+    sql("select name from dept offset ^cast(null as integer)^ rows")
+        .fails("OFFSET expression evaluated to NULL");
+    sql("select name from dept offset ^row_number() over ()^ rows")
+        .fails("Windowed aggregate expression is illegal in OFFSET clause");
+  }
+
   @Test void testRewriteWithOffsetWithoutOrderBy() {
     final String sql = "select name from dept offset 2";
     final String expected = "SELECT `NAME`\n"
@@ -10755,14 +10774,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testNegativeFetchOffsetLimit() {
     sql("select name from dept limit ^-^1")
         .fails("(?s).*Encountered \"-\".*");
-    sql("select name from dept offset ^-^1")
-        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept offset ^-1^")
+        .fails("OFFSET must not be negative");
     sql("select name from dept fetch next ^-^1 rows only")
         .fails("(?s).*Encountered \"-\".*");
     sql("select name from dept order by name limit ^-^1")
         .fails("(?s).*Encountered \"-\".*");
-    sql("select name from dept order by name offset ^-^1")
-        .fails("(?s).*Encountered \"-\".*");
+    sql("select name from dept order by name offset ^-1^")
+        .fails("OFFSET must not be negative");
     sql("select name from dept order by name fetch next ^-^1 rows only")
         .fails("(?s).*Encountered \"-\".*");
   }
