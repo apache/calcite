@@ -6714,7 +6714,7 @@ class RelToSqlConverterTest {
         + "from \"sales_fact_1997\"b "
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"product\"\n"
         + "WHERE EXISTS (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
@@ -6727,7 +6727,7 @@ class RelToSqlConverterTest {
         + "from \"sales_fact_1997\"b "
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"product\"\n"
         + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
@@ -6740,7 +6740,7 @@ class RelToSqlConverterTest {
         + "from \"sales_fact_1997\"b "
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"product\"\n"
         + "WHERE \"product_id\" IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
@@ -6762,7 +6762,7 @@ class RelToSqlConverterTest {
         + "from \"sales_fact_1997\"b "
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"product\"\n"
         + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
@@ -6780,7 +6780,7 @@ class RelToSqlConverterTest {
         + "where t2.\"product_id\" = t1.\"product_id\" "
         + "and t1.\"product_id\" = 2 and t2.\"product_id\" = 1)";
     String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"product\"\n"
         + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\" AS \"product0\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\" "
@@ -9165,7 +9165,7 @@ class RelToSqlConverterTest {
         + "GROUP BY \"t1\".\"department_id\"\n"
         + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     final String expectedNoExpand = "SELECT \"department_id\"\n"
-        + "FROM \"foodmart\".\"employee\"\n"
+        + "FROM \"foodmart\".\"employee\" AS \"employee\"\n"
         + "WHERE \"department_id\" = (SELECT MIN(\"employee\".\"department_id\")\n"
         + "FROM \"foodmart\".\"department\"\n"
         + "WHERE 1 = 2)";
@@ -12732,5 +12732,61 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
     sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7505">[CALCITE-7505]
+   * RelToSqlConverter fails to alias outer relation for correlated sub-queries in Filter</a>. */
+  @Test void testExistsSubQueryAliasConflict() {
+    final String sql =
+        "select deptno, sum(sal) as total\n"
+            + "from emp t\n"
+            + "where exists (\n"
+            + "  select * from dept t0\n"
+            + "  where deptno = t.deptno\n"
+            + ")\n"
+            + "group by deptno";
+
+
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(
+            "SELECT \"DEPTNO\", SUM(\"SAL\") AS \"TOTAL\"\n"
+                + "FROM \"SCOTT\".\"EMP\" AS \"EMP\"\n"
+                + "WHERE EXISTS (SELECT *\n"
+                + "FROM \"SCOTT\".\"DEPT\"\n"
+                + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")\n"
+                + "GROUP BY \"DEPTNO\"");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7505">[CALCITE-7505]
+   * RelToSqlConverter fails to alias outer relation for correlated sub-queries in Filter</a>. */
+  @Test void testExistsSubQueryOverUnion() {
+    final String sql =
+        "SELECT *\n"
+            + "FROM (\n"
+            + "  SELECT deptno FROM emp\n"
+            + "  UNION ALL\n"
+            + "  SELECT deptno FROM dept\n"
+            + ") u\n"
+            + "WHERE EXISTS (\n"
+            + "  SELECT 1\n"
+            + "  FROM emp e\n"
+            + "  WHERE e.deptno = u.deptno\n"
+            + ")";
+
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(
+            "SELECT *\n"
+                + "FROM (SELECT \"DEPTNO\"\n"
+                + "FROM \"SCOTT\".\"EMP\"\n"
+                + "UNION ALL\n"
+                + "SELECT \"DEPTNO\"\n"
+                + "FROM \"SCOTT\".\"DEPT\") AS \"t1\"\n"
+                + "WHERE EXISTS (SELECT *\n"
+                + "FROM \"SCOTT\".\"EMP\"\n"
+                + "WHERE \"DEPTNO\" = \"t1\".\"DEPTNO\")");
   }
 }
