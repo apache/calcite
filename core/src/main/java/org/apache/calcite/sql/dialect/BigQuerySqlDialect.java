@@ -124,7 +124,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     // enclosing quote as \'. Otherwise a value containing a backslash (e.g.
     // "x\" or "\'; ...") terminates the literal early and the trailing text is
     // parsed as SQL rather than data.
-    super.quoteStringLiteral(buf, charsetName, val.replace("\\", "\\\\"));
+    super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
   }
 
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
