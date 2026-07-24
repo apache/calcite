@@ -568,4 +568,20 @@ order by all;
 
 !ok
 
+# [CALCITE-7647] Support SELECT * in GROUP BY ALL and ORDER BY ALL.
+# ORDER BY ALL expands SELECT * to every underlying column.
+# Expected output validated against DuckDB (https://shell.duckdb.org).
+select * from (values (2, 'b'), (1, 'a'), (1, 'c')) as t(x, y)
+order by all;
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | c |
+| 2 | b |
++---+---+
+(3 rows)
+
+!ok
+
 # End sort.iq
