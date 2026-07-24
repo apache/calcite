@@ -67,12 +67,6 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
         throw new InvalidRelException(
             "within-distinct aggregation not supported");
       }
-      AggImplementor implementor2 =
-          RexImpTable.INSTANCE.get(aggCall.getAggregation(), false);
-      if (implementor2 == null) {
-        throw new InvalidRelException(
-            "aggregation " + aggCall.getAggregation() + " not supported");
-      }
     }
   }
 
@@ -182,8 +176,10 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
     final int groupCount = getGroupCount();
 
     final List<AggImpState> aggs = new ArrayList<>(aggCalls.size());
+    final RexImplementorTable implementorTable =
+        RexImplementorTables.of(getCluster());
     for (Ord<AggregateCall> call : Ord.zip(aggCalls)) {
-      aggs.add(new AggImpState(call.i, call.e, false));
+      aggs.add(new AggImpState(call.i, call.e, false, implementorTable));
     }
 
     // Function0<Object[]> accumulatorInitializer =

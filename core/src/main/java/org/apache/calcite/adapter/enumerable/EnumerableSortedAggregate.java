@@ -136,8 +136,10 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     final int groupCount = getGroupCount();
 
     final List<AggImpState> aggs = new ArrayList<>(aggCalls.size());
+    final RexImplementorTable implementorTable =
+        RexImplementorTables.of(getCluster());
     for (Ord<AggregateCall> call : Ord.zip(aggCalls)) {
-      aggs.add(new AggImpState(call.i, call.e, false));
+      aggs.add(new AggImpState(call.i, call.e, false, implementorTable));
     }
 
     // Function0<Object[]> accumulatorInitializer =

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
@@ -34,6 +35,15 @@ import java.util.List;
  */
 public abstract class RexImplementorTables {
   private RexImplementorTables() {
+  }
+
+  /** Returns the implementor table registered on the {@code cluster}'s planner
+   * {@link org.apache.calcite.plan.Context}, or the built-in
+   * {@link RexImpTable#instance()} when none is registered. */
+  public static RexImplementorTable of(RelOptCluster cluster) {
+    return cluster.getPlanner().getContext()
+        .maybeUnwrap(RexImplementorTable.class)
+        .orElse(RexImpTable.instance());
   }
 
   /** Creates a table that consults each of the given tables in turn, returning
