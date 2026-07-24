@@ -2045,19 +2045,30 @@ class SqlFunctionsTest {
     return toLong(java.sql.Timestamp.valueOf(str));
   }
   @Test void testLeftShift() {
-    // Test 1-byte array
+    // For every shift amount, cross-check the byte-array shift against the
+    // equivalent shift computed on the value's integer interpretation. The byte
+    // array is treated as a little-endian bit string of width 8 * length (index
+    // 0 is the least-significant byte), and leftShift always shifts left by the
+    // amount normalized modulo that width (so a negative amount wraps into range
+    // rather than reversing direction).
     byte[] data1 = {(byte) 0x0F}; // 00001111
     for (int shift = -10; shift <= 10; shift++) {
       byte[] result = SqlFunctions.leftShift(data1.clone(), shift);
-      // Just verify it doesn't crash and returns correct length
       assertEquals(1, result.length);
+      int norm = Math.floorMod(shift, 8);
+      int expected = ((data1[0] & 0xFF) << norm) & 0xFF;
+      assertEquals((byte) expected, result[0]);
     }
 
-    // Test 2-byte array
     byte[] data2 = {(byte) 0x12, (byte) 0x34};
     for (int shift = -18; shift <= 18; shift++) {
       byte[] result = SqlFunctions.leftShift(data2.clone(), shift);
       assertEquals(2, result.length);
+      int value = (data2[0] & 0xFF) | ((data2[1] & 0xFF) << 8); // little-endian
+      int norm = Math.floorMod(shift, 16);
+      int expected = (value << norm) & 0xFFFF;
+      assertEquals((byte) expected, result[0]);
+      assertEquals((byte) (expected >>> 8), result[1]);
     }
 
     // Verify specific known cases
@@ -2066,6 +2077,14 @@ class SqlFunctionsTest {
 
     assertArrayEquals(new byte[]{(byte) 0x80, (byte) 0x00},
         SqlFunctions.leftShift(new byte[]{(byte) 0x40, (byte) 0x00}, 1));
+  }
+
+  @Test void testRightShift() {
+    // Scalar arithmetic (sign-preserving) right shift. Binary right shift is
+    // intentionally not supported (see [CALCITE-7651]), so there is no
+    // byte-array overload to exercise here.
+    assertEquals(2, SqlFunctions.rightShift(8, 2));
+    assertEquals(-5, SqlFunctions.rightShift(-20, 2));
   }
 
   @Test void testCombineQueryResults() {

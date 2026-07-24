@@ -377,6 +377,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITXOR_OPERATOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_LEFT_SHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_RIGHT_SHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -514,6 +515,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RIGHTSHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW_NUMBER;
@@ -921,6 +923,18 @@ public class RexImpTable implements RexImplementorTable {
       // BIT_LEFT_SHIFT: Operator syntax for bitwise left shift in SQL expressions
       // (e.g., x << y)
       defineMethod(BIT_LEFT_SHIFT, BuiltInMethod.LEFT_SHIFT.method, NullPolicy.STRICT);
+
+      // Right shift operations: shift bits to the right by specified amount.
+      // Supports integer and unsigned integer data types. Binary right shift is
+      // intentionally not supported; see [CALCITE-7651].
+      // Shift amount is normalized using modulo arithmetic based on data type bit width.
+
+      // RIGHTSHIFT: Function call syntax for bitwise right shift operation (e.g., RIGHTSHIFT(x, y))
+      defineMethod(RIGHTSHIFT, BuiltInMethod.RIGHT_SHIFT.method, NullPolicy.STRICT);
+
+      // BIT_RIGHT_SHIFT: Operator syntax for bitwise right shift in SQL expressions
+      // (e.g., x >> y)
+      defineMethod(BIT_RIGHT_SHIFT, BuiltInMethod.RIGHT_SHIFT.method, NullPolicy.STRICT);
 
       define(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));

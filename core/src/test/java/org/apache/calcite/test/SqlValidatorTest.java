@@ -11467,6 +11467,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "> SOME left\n"
         + ">= ALL left\n"
         + ">= SOME left\n"
+        + ">> left\n"
         + "BETWEEN ASYMMETRIC -\n"
         + "BETWEEN SYMMETRIC -\n"
         + "IN left\n"
