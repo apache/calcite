@@ -1417,11 +1417,28 @@ public abstract class OperandTypes {
             SqlCallBinding callBinding,
             boolean throwOnFailure) {
           // The first operand must be an array type
-          ARRAY.checkSingleOperandType(callBinding, callBinding.operand(0), 0, throwOnFailure);
+          if (!ARRAY.checkSingleOperandType(callBinding, callBinding.operand(0), 0,
+              throwOnFailure)) {
+            return false;
+          }
           final RelDataType arrayType =
               SqlTypeUtil.deriveType(callBinding, callBinding.operand(0));
-          final RelDataType componentType =
-              requireNonNull(arrayType.getComponentType(), "componentType");
+          RelDataType componentType = arrayType.getComponentType();
+          if (componentType == null) {
+            // The ARRAY family check above accepts operands of type ANY and
+            // untyped NULL literals, which have no component type.
+            if (arrayType.getSqlTypeName() == SqlTypeName.ANY) {
+              // This is probably a parameter of an enclosing lambda, whose type has
+              // not been inferred yet.  Accept for now; the enclosing function's checker
+              // will re-validated the lambda body with concrete parameter types, which runs
+              // this checker again.
+              return true;
+            }
+            // Untyped NULL literal: an unknown array whose elements are also
+            // NULL; the call returns NULL.
+            componentType =
+                callBinding.getTypeFactory().createSqlType(SqlTypeName.NULL);
+          }
 
           // The second operand is a function(array_element_type)->boolean type
           LambdaRelOperandTypeChecker lambdaChecker =
@@ -1948,6 +1965,40 @@ public abstract class OperandTypes {
   /**
    * Abstract base class for type-checking strategies involving lambda expressions.
    * This class provides common functionality for checking the type of lambda expression.
+   *
+   * <p>Lambda expressions are validated in two passes, and operand checkers of
+   * functions that accept lambda operands (higher-order functions) must be
+   * written with both passes in mind.  For example, consider validating
+   *
+   * <blockquote>{@code
+   * EXISTS(array[array[1, 2]], a -> EXISTS(a, b -> b > 1))
+   * }</blockquote>
+   *
+   * <ol>
+   * <li>Deriving the type of the outer call starts by deriving the types of
+   * its operands.  The type of the outer lambda is derived by validating its
+   * body with parameter {@code a} set to the nullable ANY type, the default
+   * that {@link org.apache.calcite.sql.validate.SqlLambdaScope} assigns while
+   * the parameter types are still unknown.  During this pass the checker of
+   * the <em>inner</em> {@code EXISTS} call runs and sees its array operand
+   * {@code a} typed as ANY.  It cannot check anything meaningful yet, so it
+   * must accept the call provisionally instead of failing; definitive checking
+   * happens in the second pass.
+   *
+   * <li>The checker of the <em>outer</em> {@code EXISTS} then computes the
+   * concrete type of {@code a} from the component type of its array operand
+   * {@code array[array[1, 2]]}, namely {@code INTEGER ARRAY}; stores it in the
+   * lambda's {@code SqlLambdaScope}; discards the types derived during the
+   * first pass (see {@code TypeRemover}); and calls
+   * {@link org.apache.calcite.sql.validate.SqlValidator#validateLambda} to
+   * re-validate the body.  This re-runs the checker of the inner
+   * {@code EXISTS}, which now sees {@code a} as {@code INTEGER ARRAY} and
+   * repeats the same protocol for the inner lambda, typing {@code b} as
+   * {@code INTEGER}.
+   * </ol>
+   *
+   * <p>See {@link OperandTypes#EXISTS} for a checker that follows this
+   * protocol.
    */
   private abstract static class LambdaOperandTypeChecker
       implements SqlSingleOperandTypeChecker {

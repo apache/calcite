@@ -9208,6 +9208,23 @@ public class SqlOperatorTest {
     f.checkNull("\"EXISTS\"(array[null, 3], x -> cast(null as boolean))");
     f.checkNull("\"EXISTS\"(array[null, 3], x -> x = null)");
     f.checkNull("\"EXISTS\"(cast(null as integer array), x -> x > 2)");
+    f.checkNull("\"EXISTS\"(null, x -> x > 2)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7671">[CALCITE-7671]
+   * EXISTS fails typechecking nested lambda
+   * EXIST(a -&gt; EXISTS(a, b -&gt; b &gt; 2))</a>. */
+  @Test void testNestedExistsFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.EXISTS)
+        .withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("\"EXISTS\"(array[array[1, 2], array[3, 4]],"
+            + " a -> \"EXISTS\"(a, b -> b > 3))", true, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[array[1, 2], array[3, 4]],"
+            + " a -> \"EXISTS\"(a, b -> b > 4))", false, "BOOLEAN");
+    f.checkNull("\"EXISTS\"(cast(null as integer array array),"
+        + " a -> \"EXISTS\"(a, b -> b > 3))");
   }
 
   /** Tests {@code MAP_CONCAT} function from Spark. */
