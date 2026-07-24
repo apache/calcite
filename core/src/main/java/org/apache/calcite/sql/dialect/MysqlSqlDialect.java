@@ -126,6 +126,16 @@ public class MysqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    // MySQL treats backslash as an escape character inside string literals,
+    // so a literal backslash must be doubled before the base method escapes the
+    // enclosing quote as \'. Otherwise a value containing a backslash (e.g.
+    // "x\" or "\'; ...") terminates the literal early and the trailing text is
+    // parsed as SQL rather than data.
+    super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
+  }
+
   @Override public boolean requiresAliasForFromItems() {
     return true;
   }

@@ -71,6 +71,15 @@ class CassandraAdapterTest {
            + "    CassandraTableScan(table=[[twissandra, userline]]");
   }
 
+  @Test void testFilterWithSingleQuote() {
+    // A string literal containing a single quote must be escaped so it does not
+    // break out of the CQL string literal in the generated query.
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select * from \"userline\" where \"username\" = 'a''b'")
+        .returnsCount(0);
+  }
+
   @Test void testFilterUUID() {
     CalciteAssert.that()
         .with(TWISSANDRA)

@@ -253,6 +253,17 @@ class GeodeZipsTest extends AbstractGeodeTest {
             GeodeAssertions.query(expectedQuery));
   }
 
+  @Test void testFilterWithSingleQuoteLiteral() {
+    String expectedQuery = "SELECT city AS city FROM /zips "
+        + "WHERE city = 'a''b'";
+    calciteAssert()
+        .query("SELECT city as city "
+            + "FROM view WHERE city = 'a''b'")
+        .returnsCount(0)
+        .queryContains(
+            GeodeAssertions.query(expectedQuery));
+  }
+
   @Test void testSqlSingleStringWhereFilter() {
     String expectedQuery = "SELECT state AS state FROM /zips "
         + "WHERE state = 'NY'";
