@@ -867,6 +867,7 @@ public abstract class SqlImplementor {
       case ALL:
         if (rex instanceof RexSubQuery) {
           subQuery = (RexSubQuery) rex;
+          registerSubQueryCorrelations(subQuery);
           sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
           final List<RexNode> operands = subQuery.operands;
           SqlNode op0;
@@ -894,6 +895,7 @@ public abstract class SqlImplementor {
       case UNIQUE:
       case SCALAR_QUERY:
         subQuery = (RexSubQuery) rex;
+        registerSubQueryCorrelations(subQuery);
         sqlSubQuery =
             implementor().visitRoot(subQuery.rel).asQueryOrValues();
         return subQuery.getOperator().createCall(POS, sqlSubQuery);
@@ -936,6 +938,12 @@ public abstract class SqlImplementor {
         }
 
         return callToSql(program, (RexCall) rex, false);
+      }
+    }
+
+    private void registerSubQueryCorrelations(RexSubQuery subQuery) {
+      for (CorrelationId id : RelOptUtil.getVariablesUsed(subQuery.rel)) {
+        implementor().correlTableMap.putIfAbsent(id, this);
       }
     }
 
