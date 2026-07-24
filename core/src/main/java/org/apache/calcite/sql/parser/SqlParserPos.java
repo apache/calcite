@@ -264,6 +264,20 @@ public class SqlParserPos implements Serializable {
         && columnNumber == pos.columnNumber;
   }
 
+  /**
+   * Returns whether this position ends exactly one column before another
+   * position begins, on the same line, with no characters (such as whitespace)
+   * in between.
+   *
+   * @param pos position that may immediately follow this one
+   * @return whether this position ends exactly one column before {@code pos}
+   * begins, on the same line
+   */
+  public boolean endsImmediatelyBefore(SqlParserPos pos) {
+    return endLineNumber == pos.lineNumber
+        && endColumnNumber + 1 == pos.columnNumber;
+  }
+
   /** Parser position for an identifier segment that is quoted. */
   private static class QuotedParserPos extends SqlParserPos {
     QuotedParserPos(int startLineNumber, int startColumnNumber,

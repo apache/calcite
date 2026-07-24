@@ -1254,6 +1254,25 @@ public class SqlParserTest {
         .ok("((NOT (NOT (`A` = `B`))) OR (NOT (NOT (`C` = `D`))))");
   }
 
+  @Test void testShiftOperators() {
+    expr("1 << 2")
+        .ok("(1 << 2)");
+    // '>>' is recognized as two adjacent '>' tokens.
+    expr("1 >> 2")
+        .ok("(1 >> 2)");
+
+    // '<<' and '>>' have the same precedence and are left-associative.
+    expr("a << b >> c")
+        .ok("((`A` << `B`) >> `C`)");
+    expr("a >> b >> c")
+        .ok("((`A` >> `B`) >> `C`)");
+
+    // The two '>' of a right shift must be adjacent, so "a > > b" (with a space
+    // between the '>' characters) is not parsed as a right shift.
+    expr("a ^>^ > b")
+        .fails("(?s).*Encountered \"> >\" at line 1, column 3\\..*");
+  }
+
   @Test void testIsBooleans() {
     String[] inOuts = {"NULL", "TRUE", "FALSE", "UNKNOWN"};
 

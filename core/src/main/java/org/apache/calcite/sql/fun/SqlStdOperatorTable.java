@@ -64,6 +64,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1368,6 +1369,29 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBitOpAggFunction(SqlKind.BIT_XOR);
 
   /**
+   * Operand type checker shared by the left shift operator ({@code <<}) and its
+   * function form ({@code LEFTSHIFT}). The first operand is the value being
+   * shifted (integer, binary or unsigned numeric) and the second is the integer
+   * shift amount.
+   */
+  private static final SqlOperandTypeChecker SHIFT_OPERAND_TYPE_CHECKER =
+      OperandTypes.INTEGER_INTEGER
+          .or(OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER))
+          .or(OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER));
+
+  /**
+   * Operand type checker for the right shift operator ({@code >>}) and its
+   * function form ({@code RIGHTSHIFT}). Like {@link #SHIFT_OPERAND_TYPE_CHECKER}
+   * but the value being shifted may only be integer or unsigned numeric, not
+   * binary. Binary right shift is intentionally excluded until the endianness of
+   * bitwise shifts on {@code BINARY}/{@code VARBINARY} is settled; see
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7651">[CALCITE-7651]</a>.
+   */
+  private static final SqlOperandTypeChecker NON_BINARY_SHIFT_OPERAND_TYPE_CHECKER =
+      OperandTypes.INTEGER_INTEGER
+          .or(OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER));
+
+  /**
    * <code>{@code <<}</code> (left shift) operator.
    */
   public static final SqlBinaryOperator BIT_LEFT_SHIFT =
@@ -1378,10 +1402,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
           ReturnTypes.ARG0_NULLABLE,
           InferTypes.FIRST_KNOWN,
-          OperandTypes.or(
-              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER)));
+          SHIFT_OPERAND_TYPE_CHECKER);
 
   /**
    * left shift function.
@@ -1391,10 +1412,30 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "LEFTSHIFT",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.or(
-              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER)));
+          SHIFT_OPERAND_TYPE_CHECKER);
+
+  /**
+   * <code>{@code >>}</code> (right shift) operator.
+   */
+  public static final SqlBinaryOperator BIT_RIGHT_SHIFT =
+      new SqlBinaryOperator(
+          ">>",
+          SqlKind.OTHER,
+          32,                                     // Standard shift operator precedence
+          true,
+          ReturnTypes.ARG0_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          NON_BINARY_SHIFT_OPERAND_TYPE_CHECKER);
+
+  /**
+   * right shift function.
+   */
+  public static final SqlFunction RIGHTSHIFT =
+      SqlBasicFunction.create(
+          "RIGHTSHIFT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE,
+          NON_BINARY_SHIFT_OPERAND_TYPE_CHECKER);
 
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions
