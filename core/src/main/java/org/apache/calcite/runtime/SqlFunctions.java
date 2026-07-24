@@ -2078,7 +2078,7 @@ public class SqlFunctions {
       }
     }
 
-    private final LoadingCache<Key, Pattern> cache =
+    private static final LoadingCache<Key, Pattern> cache =
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
@@ -2111,7 +2111,7 @@ public class SqlFunctions {
   /** State for {@code SIMILAR} function. */
   @Deterministic
   public static class SimilarFunction {
-    private final LoadingCache<String, Pattern> cache =
+    private static final LoadingCache<String, Pattern> cache =
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(
@@ -2137,7 +2137,7 @@ public class SqlFunctions {
       }
     }
 
-    private final LoadingCache<Key, Pattern> cache =
+    private static final LoadingCache<Key, Pattern> cache =
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
