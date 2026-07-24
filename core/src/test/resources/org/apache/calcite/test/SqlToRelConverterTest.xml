@@ -6015,7 +6015,7 @@ LogicalProject(EXPR$0=[COMPARE_STRINGS_OR_NUMERIC_VALUES(1, 1)])
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[CASE(true, NOT(OR(=($7, 10), =($7, 20))), false, NOT(false), NOT(OR(=($7, 30), =($7, 40))))])
+  LogicalFilter(condition=[CASE(true, AND(<>($7, 10), <>($7, 20)), false, NOT(false), AND(<>($7, 30), <>($7, 40)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -6027,7 +6027,7 @@ LogicalProject(EMPNO=[$0])
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[CASE(true, NOT(OR(=($7, 10), =($7, 20))), NOT(true))])
+  LogicalFilter(condition=[CASE(true, AND(<>($7, 10), <>($7, 20)), NOT(true))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -6039,7 +6039,7 @@ LogicalProject(EMPNO=[$0])
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[CASE(true, CAST(NOT(OR(=($7, 10), =($7, 20)))):BOOLEAN, null:BOOLEAN)])
+  LogicalFilter(condition=[CASE(true, CAST(AND(<>($7, 10), <>($7, 20))):BOOLEAN, null:BOOLEAN)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -6059,6 +6059,30 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalProject($f0=[true])
           LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotInMultiValue">
+    <Resource name="sql">
+      <![CDATA[select * from emp where deptno not in (10, 20)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(<>($7, 10), <>($7, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotInSingleValue">
+    <Resource name="sql">
+      <![CDATA[select * from emp where deptno not in (10)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[<>($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
