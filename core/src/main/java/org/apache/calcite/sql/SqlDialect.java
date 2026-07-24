@@ -445,6 +445,13 @@ public class SqlDialect {
     buf.append(literalEndQuoteString);
   }
 
+  /** Doubles every backslash in {@code val}, for dialects whose backend
+   * treats {@code \} as an in-string escape character (e.g. MySQL,
+   * MariaDB, BigQuery). */
+  protected static String escapeBackslash(String val) {
+    return val.replace("\\", "\\\\");
+  }
+
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     SqlOperator operator = call.getOperator();

@@ -133,10 +133,11 @@ public class PigFilter extends Filter implements PigRel {
 
   /**
    * Converts a literal to a Pig Latin string literal.
-   *
-   * <p>TODO: do proper literal to string conversion + escaping
    */
   private static String getLiteralAsString(RexLiteral literal) {
-    return '\'' + RexLiteral.stringValue(literal) + '\'';
+    // Pig Latin string literals use `''` to represent a single `'` inside
+    // a `'...'` literal, so double any embedded `'` before wrapping
+    final String raw = RexLiteral.stringValue(literal);
+    return '\'' + raw.replace("'", "''") + '\'';
   }
 }

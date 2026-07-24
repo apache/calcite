@@ -9510,6 +9510,36 @@ class RelToSqlConverterTest {
     });
   }
 
+  /** Test case for the MySQL-family backslash-escape bypass:
+   * dialects whose backend treats {@code \} as an in-string escape
+   * character must double it in
+   * {@link SqlDialect#quoteStringLiteral(StringBuilder, String, String)}. */
+  @Test void testDialectQuoteStringLiteralWithBackslash() {
+    dialects().forEach((dialect, databaseProduct) -> {
+      final boolean escapesBackslash =
+          databaseProduct == DatabaseProduct.BIG_QUERY
+              || databaseProduct == DatabaseProduct.MYSQL
+              || databaseProduct == DatabaseProduct.STARROCKS
+              || databaseProduct == DatabaseProduct.DORIS;
+
+      // Trailing backslash
+      assertThat(dialect.quoteStringLiteral("x\\"),
+          escapesBackslash ? is("'x\\\\'") : is("'x\\'"));
+
+      // Leading backslash
+      assertThat(dialect.quoteStringLiteral("\\x"),
+          escapesBackslash ? is("'\\\\x'") : is("'\\x'"));
+
+      // Backslash followed by content
+      assertThat(dialect.quoteStringLiteral("x\\y"),
+          escapesBackslash ? is("'x\\\\y'") : is("'x\\y'"));
+
+      // Two consecutive backslashes must both be doubled
+      assertThat(dialect.quoteStringLiteral("x\\\\"),
+          escapesBackslash ? is("'x\\\\\\\\'") : is("'x\\\\'"));
+    });
+  }
+
   @Test void testSelectCountStar() {
     final String query = "select count(*) from \"product\"";
     final String expected = "SELECT COUNT(*)\n"
@@ -11166,7 +11196,7 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
-        + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
+        + " '^(\\\\$\\\\@\\\\*A)*|(\\\\$\\\\@\\\\*A)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
     sql(query).withStarRocks().ok(expectedStarRocks)
         .withDoris().ok(expectedStarRocks);
