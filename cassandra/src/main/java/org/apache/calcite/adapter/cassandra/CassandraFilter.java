@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -126,6 +127,11 @@ public class CassandraFilter extends Filter implements CassandraRel {
 
   /** Translates {@link RexNode} expressions into Cassandra expression strings. */
   static class Translator {
+    /** Canonical UUID form: 8-4-4-4-12 hex digits (case-insensitive). */
+    private static final Pattern UUID_PATTERN =
+        Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+            + "-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
     private final RelDataType rowType;
     private final List<String> fieldNames;
     private final Set<String> partitionKeys;
@@ -301,8 +307,20 @@ public class CassandraFilter extends Filter implements CassandraRel {
         RelDataTypeField field =
             requireNonNull(rowType.getField(name, true, false));
         SqlTypeName typeName = field.getType().getSqlTypeName();
-        if (typeName != SqlTypeName.CHAR) {
-          valueString = "'" + valueString + "'";
+        if (typeName == SqlTypeName.CHAR) {
+          // Cassandra UUID and TIMEUUID columns are mapped to
+          // SqlTypeName.CHAR (see CqlToSqlTypeConversionRules),
+          // CQL accepts UUIDs as bare 8-4-4-4-12 hex literals
+          if (!UUID_PATTERN.matcher(valueString).matches()) {
+            throw new IllegalArgumentException(
+                "Cannot push down filter on Cassandra uuid/timeuuid column '"
+                    + name + "': value is not a well-formed UUID");
+          }
+          // valueString is a validated UUID; safe to emit unquoted.
+        } else {
+          // CQL string literals use `''` to represent a single `'` inside a
+          // `'...'` literal, so double any embedded `'` before wrapping
+          valueString = "'" + valueString.replace("'", "''") + "'";
         }
       }
       return name + " " + op + " " + valueString;

@@ -395,7 +395,9 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private static String quoteCharLiteral(RexLiteral literal) {
       String value = literalValue(literal);
       if (literal.getTypeName() == CHAR) {
-        value = "'" + value + "'";
+        // OQL string literals use `''` to represent a single `'` inside
+        // a `'...'` literal, so double any embedded `'` before wrapping
+        value = "'" + value.replace("'", "''") + "'";
       }
       return value;
     }
