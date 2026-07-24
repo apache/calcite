@@ -302,7 +302,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
             requireNonNull(rowType.getField(name, true, false));
         SqlTypeName typeName = field.getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
-          valueString = "'" + valueString + "'";
+          valueString = "'" + valueString.replace("'", "''") + "'";
         }
       }
       return name + " " + op + " " + valueString;
