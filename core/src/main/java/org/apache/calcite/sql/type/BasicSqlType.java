@@ -238,6 +238,72 @@ public class BasicSqlType extends AbstractSqlType {
     }
   }
 
+  // A BasicSqlType with unspecified precision derives getPrecision() from the ATTACHED type system
+  // (typeSystem.getDefaultPrecision(typeName); DECIMAL additionally reads typeSystem.getMaxNumericPrecision()).
+  // That type system is NOT part of the type digest, yet RelDataTypeFactoryImpl interns types in a JVM-wide
+  // static weak cache (DATATYPE_CACHE) keyed via equals()/hashCode(). Two types with the same
+  // (typeName, unspecified precision) built under DIFFERENT type systems therefore collapse into a single
+  // interned instance, making getPrecision()/getMaxNumericPrecision() depend on whichever was interned
+  // first -- a source of order-dependent (parallel-fork flaky) behaviour. Known manifestations:
+  //   * leastRestrictive(BIGINT, INTEGER) picks the wider integer via getPrecision(); a collapsed BIGINT
+  //     whose attached type system reports a small/unspecified default precision flips the result to
+  //     INTEGER, changing integer arithmetic result width.
+  //   * BigQuery NUMERIC vs BIGNUMERIC keys off unspecified DECIMAL getMaxNumericPrecision().
+  // Fold the RESOLVED precision (and, for DECIMAL, the max numeric precision) into equals()/hashCode() so
+  // the interner keeps type-system-distinct instances separate. This deliberately does NOT touch
+  // generateTypeString(): the rendered type digest (used in CAST/Rel output) stays byte-for-byte identical.
+  //
+  // SCOPE: restricted to unspecified-precision DECIMAL and the exact integer types -- the types whose
+  // type-system precision actually drives a downstream decision (leastRestrictive integer width;
+  // NUMERIC vs BIGNUMERIC). All other unspecified-precision types (e.g. VARCHAR, whose default precision
+  // varies wildly by dialect -- Snowflake 16 MB vs unspecified) keep digest-only equality, so their
+  // existing interner collapse is preserved and output that relies on it does not change.
+  private boolean typeSystemAffectsInterning() {
+    if (precision != PRECISION_NOT_SPECIFIED) {
+      return false;
+    }
+    switch (typeName) {
+    case DECIMAL:
+    case TINYINT:
+    case SMALLINT:
+    case INTEGER:
+    case BIGINT:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public int hashCode() {
+    if (!typeSystemAffectsInterning()) {
+      return super.hashCode();
+    }
+    int maxNumeric = typeName == SqlTypeName.DECIMAL ? typeSystem.getMaxNumericPrecision() : 0;
+    return Objects.hash(getFullTypeString(), getPrecision(), maxNumeric);
+  }
+
+  @Override public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof BasicSqlType)) {
+      return false;
+    }
+    BasicSqlType that = (BasicSqlType) obj;
+    if (!getFullTypeString().equals(that.getFullTypeString())) {
+      return false;
+    }
+    // Digest matches here, so this and that share a typeName -> same typeSystemAffectsInterning().
+    if (!typeSystemAffectsInterning()) {
+      return true;
+    }
+    if (getPrecision() != that.getPrecision()) {
+      return false;
+    }
+    return typeName != SqlTypeName.DECIMAL
+        || typeSystem.getMaxNumericPrecision() == that.typeSystem.getMaxNumericPrecision();
+  }
+
   /**
    * Returns a value which is a limit for this type.
    *
