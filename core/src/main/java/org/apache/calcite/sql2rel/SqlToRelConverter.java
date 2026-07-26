@@ -1994,6 +1994,13 @@ public class SqlToRelConverter {
     case ALL:
       return RexUtil.composeConjunction(rexBuilder, comparisons, true);
     case NOT_IN:
+      if (comparisons.stream().allMatch(c -> c.getKind() == SqlKind.EQUALS)) {
+        final List<RexNode> notEqualsComparisons =
+            Util.transform(comparisons,
+                c -> rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS,
+                    ((RexCall) c).getOperands()));
+        return RexUtil.composeConjunction(rexBuilder, notEqualsComparisons, false);
+      }
       return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
           RexUtil.composeDisjunction(rexBuilder, comparisons));
     case IN:
