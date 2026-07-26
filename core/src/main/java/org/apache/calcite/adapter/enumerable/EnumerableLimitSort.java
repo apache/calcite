@@ -105,7 +105,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       fetchVal = Expressions.constant(BigDecimal.valueOf(Integer.MAX_VALUE));
     } else {
       fetchVal =
-          getExpression(this.fetch, "FETCH", implementor, builder, roundingPolicyExp, true);
+          getExpression(this.fetch, "FETCH", implementor, builder, roundingPolicyExp);
     }
 
     final Expression offsetVal;
@@ -113,7 +113,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       offsetVal = Expressions.constant(BigDecimal.ZERO);
     } else {
       offsetVal =
-          getExpression(this.offset, "OFFSET", implementor, builder, roundingPolicyExp, false);
+          getExpression(this.offset, "OFFSET", implementor, builder, roundingPolicyExp);
     }
 
     builder.add(
@@ -125,10 +125,10 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
                         builder.appendIfNotNull("comparator", pair.right))
                     .appendIfNotNull(
                         builder.appendIfNotNull("offset",
-                            Expressions.constant(offsetVal)))
+                            offsetVal))
                     .appendIfNotNull(
                         builder.appendIfNotNull("fetch",
-                            Expressions.constant(fetchVal))))));
+                            fetchVal)))));
     return implementor.result(physType, builder.toBlock());
   }
 }

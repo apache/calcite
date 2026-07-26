@@ -1,0 +1,186 @@
+# offset.iq
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+!use post
+!set outputformat mysql
+
+# OFFSET accepts an arithmetic expression without parentheses.
+select *
+from (values (1), (2), (3), (4)) as t(x)
+offset 1 + abs(-1) rows;
++---+
+| X |
++---+
+| 3 |
+| 4 |
++---+
+(2 rows)
+
+!ok
+
+# OFFSET also accepts a parenthesized scalar expression.
+select *
+from (values (1), (2), (3), (4)) as t(x)
+offset (abs(2)) rows;
++---+
+| X |
++---+
+| 3 |
+| 4 |
++---+
+(2 rows)
+
+!ok
+
+# OFFSET values are not restricted to the BIGINT range.
+select *
+from (values (1), (2), (3), (4)) as t(x)
+offset cast(9223372036854775808 as decimal(20, 0)) + 1 rows;
++---+
+| X |
++---+
++---+
+(0 rows)
+
+!ok
+
+# OFFSET expression cannot be negative.
+select *
+from (values (1), (2), (3)) as t(x)
+offset 0 - 1 rows;
+OFFSET must not be negative
+!error
+
+# OFFSET expression cannot evaluate to NULL.
+select *
+from (values (1), (2), (3)) as t(x)
+offset cast(null as integer) rows;
+OFFSET expression evaluated to NULL
+!error
+
+# OFFSET expression may have a fractional numeric type.
+select *
+from (values (1), (2), (3)) as t(x)
+offset 1.5 rows;
++---+
+| X |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+# OFFSET expression cannot reference input columns.
+select *
+from (values (1), (2), (3)) as t(x)
+offset x rows;
+OFFSET expression cannot reference table column 'X'
+!error
+
+# Parentheses are not required around an OFFSET expression.
+select *
+from (values (1), (2), (3)) as t(x)
+offset 1 + 1 rows;
++---+
+| X |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+# OFFSET expression works with a table source.
+select deptno, dname
+from dept
+order by deptno
+offset 1 + 1 rows;
++--------+-------------+
+| DEPTNO | DNAME       |
++--------+-------------+
+|     30 | Engineering |
+|     40 | Empty       |
++--------+-------------+
+(2 rows)
+
+!ok
+
+# OFFSET expression works together with FETCH on a table source.
+select deptno, dname
+from dept
+order by deptno
+offset 1 + 1 rows
+fetch next (1 + 1) rows only;
++--------+-------------+
+| DEPTNO | DNAME       |
++--------+-------------+
+|     30 | Engineering |
+|     40 | Empty       |
++--------+-------------+
+(2 rows)
+
+!ok
+
+# OFFSET expression may contain a scalar function on a table source.
+select deptno
+from dept
+order by deptno
+offset abs(-2) rows;
++--------+
+| DEPTNO |
++--------+
+|     30 |
+|     40 |
++--------+
+(2 rows)
+
+!ok
+
+# OFFSET expression cannot reference columns of a table source.
+select deptno, dname
+from dept
+order by deptno
+offset deptno rows;
+OFFSET expression cannot reference table column 'DEPTNO'
+!error
+
+# OFFSET expression cannot reference columns even inside a larger expression.
+select deptno, dname
+from dept
+order by deptno
+offset deptno + 1 rows;
+OFFSET expression cannot reference table column 'DEPTNO'
+!error
+
+# OFFSET expression may be zero on a table source.
+select deptno
+from dept
+order by deptno
+offset 2 - 2 rows;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok

@@ -107,14 +107,14 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
           builder.append("offset",
               Expressions.call(BuiltInMethod.SKIP_BIG_DECIMAL.method, v,
                   getExpression(offset, "OFFSET", implementor, builder,
-                      roundingPolicyExp, false)));
+                      roundingPolicyExp)));
     }
     if (fetch != null) {
       v =
           builder.append("fetch",
               Expressions.call(BuiltInMethod.TAKE_BIG_DECIMAL.method, v,
                   getExpression(fetch, "FETCH", implementor, builder,
-                      roundingPolicyExp, true)));
+                      roundingPolicyExp)));
     }
 
     builder.add(Expressions.return_(null, v));
@@ -123,7 +123,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
 
   static Expression getExpression(RexNode rexNode, String kind,
       EnumerableRelImplementor implementor, BlockBuilder builder,
-      Expression roundingPolicy, boolean translateExpression) {
+      Expression roundingPolicy) {
     final Expression value;
     if (rexNode instanceof RexDynamicParam) {
       final RexDynamicParam param = (RexDynamicParam) rexNode;
@@ -134,10 +134,6 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     } else if (rexNode instanceof RexLiteral) {
       value = Expressions.constant(RexLiteral.bigDecimalValue(rexNode));
     } else {
-      if (!translateExpression) {
-        throw new IllegalArgumentException(kind + " must be a literal or dynamic parameter");
-      }
-
       value =
           RexToLixTranslator.forAggregation(implementor.getTypeFactory(),
               builder, null, implementor.getConformance())

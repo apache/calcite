@@ -117,7 +117,8 @@ public class RelMdMinRowCount
     }
 
     final double offset =
-        literalValueApproximatedByDouble(rel.offset, 0D);
+        literalValueApproximatedByDouble(rel.offset,
+            rel.offset == null ? 0D : rowCount);
     rowCount = Math.max(rowCount - offset, 0D);
 
     final double limit =
@@ -133,7 +134,8 @@ public class RelMdMinRowCount
     }
 
     final double offset =
-        literalValueApproximatedByDouble(rel.offset, 0D);
+        literalValueApproximatedByDouble(rel.offset,
+            rel.offset == null ? 0D : rowCount);
     rowCount = Math.max(rowCount - offset, 0D);
 
     final double limit =

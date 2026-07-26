@@ -3801,29 +3801,14 @@ public class RelBuilder {
 
   /** Creates a {@link Sort} by a list of expressions, with limitNode and offsetNode.
    *
-   * @param offsetNode RexLiteral means number of rows to skip is deterministic,
-   *                   RexDynamicParam means number of rows to skip is dynamic.
+   * @param offsetNode Number of rows to skip
    * @param fetchNode  Maximum number of rows to fetch
    * @param nodes      Sort expressions
    */
   public RelBuilder sortLimit(@Nullable RexNode offsetNode, @Nullable RexNode fetchNode,
       Iterable<? extends RexNode> nodes) {
-    if (offsetNode != null) {
-      if (!(offsetNode instanceof RexLiteral || offsetNode instanceof RexDynamicParam)) {
-        throw new IllegalArgumentException("OFFSET node must be RexLiteral or RexDynamicParam");
-      }
-    }
-    if (fetchNode != null && !isValidFetchExpression(fetchNode)) {
-      throw new IllegalArgumentException(
-          "FETCH node must not reference input fields or contain aggregate functions, "
-              + "window functions, or subqueries");
-    }
-    if (fetchNode != null
-        && !SqlTypeUtil.isNumeric(fetchNode.getType())) {
-      throw new IllegalArgumentException(
-          "FETCH node must have a numeric type; actual type is "
-              + fetchNode.getType().getFullTypeString());
-    }
+    validateOffsetFetchExpression(offsetNode, "OFFSET");
+    validateOffsetFetchExpression(fetchNode, "FETCH");
     final Registrar registrar = new Registrar(fields(), ImmutableList.of());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);
@@ -3890,14 +3875,31 @@ public class RelBuilder {
     return this;
   }
 
-  private static boolean isValidFetchExpression(RexNode node) {
-    return Boolean.TRUE.equals(node.accept(new FetchExpressionVisitor()));
+  private static void validateOffsetFetchExpression(@Nullable RexNode node,
+      String kind) {
+    if (node == null) {
+      return;
+    }
+    if (!isValidOffsetFetchExpression(node)) {
+      throw new IllegalArgumentException(
+          kind + " node must not reference input fields or contain aggregate functions, "
+              + "window functions, or subqueries");
+    }
+    if (!SqlTypeUtil.isNumeric(node.getType())) {
+      throw new IllegalArgumentException(
+          kind + " node must have a numeric type; actual type is "
+              + node.getType().getFullTypeString());
+    }
   }
 
-  /** Visitor that validates FETCH expressions. */
-  private static class FetchExpressionVisitor
+  private static boolean isValidOffsetFetchExpression(RexNode node) {
+    return Boolean.TRUE.equals(node.accept(new OffsetFetchExpressionVisitor()));
+  }
+
+  /** Visitor that validates OFFSET and FETCH expressions. */
+  private static class OffsetFetchExpressionVisitor
       extends RexVisitorImpl<@Nullable Boolean> {
-    FetchExpressionVisitor() {
+    OffsetFetchExpressionVisitor() {
       super(false);
     }
 
