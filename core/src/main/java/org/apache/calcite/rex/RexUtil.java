@@ -66,6 +66,7 @@ import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -881,12 +882,49 @@ public class RexUtil {
 
   /** Converts a FETCH expression result to its validated canonical representation. */
   public static BigDecimal validateFetchValue(@Nullable Number value) {
+    return validateOffsetFetchValue(value, "FETCH");
+  }
+
+  /** Creates the FETCH needed when OFFSET and FETCH are pushed into an input.
+   *
+   * <p>Enumerable execution rounds OFFSET and FETCH independently to whole
+   * row counts. Therefore, the input must fetch
+   * {@code CEIL(offset) + CEIL(fetch)} rows rather than
+   * {@code CEIL(offset + fetch)} rows. The latter can be one row smaller when
+   * both values have a fractional part. */
+  public static RexNode makeOffsetFetchSum(RexBuilder rexBuilder,
+      RexNode offset, RexNode fetch) {
+    if (offset instanceof RexLiteral && fetch instanceof RexLiteral) {
+      return rexBuilder.makeExactLiteral(
+          RexLiteral.bigDecimalValue(offset).setScale(0, RoundingMode.CEILING)
+              .add(RexLiteral.bigDecimalValue(fetch)
+                  .setScale(0, RoundingMode.CEILING)));
+    }
+    return rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+        ceil(rexBuilder, offset), ceil(rexBuilder, fetch));
+  }
+
+  private static RexNode ceil(RexBuilder rexBuilder, RexNode node) {
+    if (node instanceof RexLiteral) {
+      return rexBuilder.makeExactLiteral(
+          RexLiteral.bigDecimalValue(node).setScale(0, RoundingMode.CEILING));
+    }
+    return rexBuilder.makeCall(SqlStdOperatorTable.CEIL, node);
+  }
+
+  /** Converts an OFFSET expression result to its validated canonical representation. */
+  public static BigDecimal validateOffsetValue(@Nullable Number value) {
+    return validateOffsetFetchValue(value, "OFFSET");
+  }
+
+  private static BigDecimal validateOffsetFetchValue(@Nullable Number value,
+      String kind) {
     if (value == null) {
-      throw new IllegalArgumentException("FETCH expression evaluated to NULL");
+      throw new IllegalArgumentException(kind + " expression evaluated to NULL");
     }
     final BigDecimal decimal = NumberUtil.toBigDecimal(value);
     if (decimal.signum() < 0) {
-      throw new IllegalArgumentException("FETCH value " + value
+      throw new IllegalArgumentException(kind + " value " + value
           + " is out of range; expected a non-negative value");
     }
     return decimal;
@@ -895,28 +933,39 @@ public class RexUtil {
   /** Reduces a constant FETCH expression to a validated literal. */
   public static @Nullable RexLiteral reduceFetchToLiteral(
       RelOptCluster cluster, RexNode fetch) {
+    return reduceOffsetFetchToLiteral(cluster, fetch, "FETCH");
+  }
+
+  /** Reduces a constant OFFSET expression to a validated literal. */
+  public static @Nullable RexLiteral reduceOffsetToLiteral(
+      RelOptCluster cluster, RexNode offset) {
+    return reduceOffsetFetchToLiteral(cluster, offset, "OFFSET");
+  }
+
+  private static @Nullable RexLiteral reduceOffsetFetchToLiteral(
+      RelOptCluster cluster, RexNode node, String kind) {
     final RexLiteral literal;
-    if (fetch instanceof RexLiteral) {
-      literal = (RexLiteral) fetch;
+    if (node instanceof RexLiteral) {
+      literal = (RexLiteral) node;
     } else {
-      if (!isConstant(fetch)
-          || !isDeterministic(fetch)
-          || containsDynamicFunction(fetch)
-          || containsDynamicParam(fetch)) {
+      if (!isConstant(node)
+          || !isDeterministic(node)
+          || containsDynamicFunction(node)
+          || containsDynamicParam(node)) {
         return null;
       }
       final RexExecutor executor =
           Util.first(cluster.getPlanner().getExecutor(), EXECUTOR);
       final List<RexNode> reducedValues = new ArrayList<>(1);
       executor.reduce(cluster.getRexBuilder(),
-          Collections.singletonList(fetch), reducedValues);
+          Collections.singletonList(node), reducedValues);
       final RexNode reduced = reducedValues.get(0);
       if (!(reduced instanceof RexLiteral)) {
         return null;
       }
       literal = (RexLiteral) reduced;
     }
-    validateFetchValue(literal.getValueAs(Number.class));
+    validateOffsetFetchValue(literal.getValueAs(Number.class), kind);
     return literal;
   }
 

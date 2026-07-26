@@ -27,6 +27,7 @@ import org.apache.calcite.test.schemata.hr.HrSchemaBig;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.function.Consumer;
 
 /**
@@ -105,7 +106,66 @@ class EnumerableMergeUnionTest {
         .explainContains("EnumerableLimit(fetch=[+(?0, 1)])\n"
             + "  EnumerableMergeUnion(all=[true])\n"
             + "    EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
-            + "fetch=[+(?0, 1)])\n");
+            + "fetch=[+(?0, 1)])\n")
+        .consumesPreparedStatement(p -> p.setInt(1, 1))
+        .returnsOrdered(
+            "empid=1; name=Bill",
+            "empid=1; name=Bill");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void mergeUnionPushesParameterizedOffsetExpression() {
+    tester(false,
+        new HrSchemaBig(),
+        "select * from (select empid, name from emps "
+            + "union all select empid, name from emps) "
+            + "order by empid offset ? + 1 rows fetch next 2 rows only")
+        .explainContains("EnumerableLimit(offset=[+(?0, 1)], fetch=[2])\n"
+            + "  EnumerableMergeUnion(all=[true])\n"
+            + "    EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "fetch=[+(CEIL(+(?0, 1)), 2)])\n")
+        .consumesPreparedStatement(p -> p.setInt(1, 1))
+        .returnsOrdered(
+            "empid=2; name=Eric",
+            "empid=2; name=Eric");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void mergeUnionRoundsOffsetAndFetchSeparatelyWhenPushingLimit() {
+    tester(false,
+        new HrSchemaBig(),
+        "select * from (select empid from emps where empid <= 3 "
+            + "union all select empid from emps where empid >= 40) "
+            + "order by empid offset ? rows fetch next ? rows only")
+        .explainContains("EnumerableLimit(offset=[?0], fetch=[?1])\n"
+            + "  EnumerableMergeUnion(all=[true])\n"
+            + "    EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "fetch=[+(CEIL(?0), CEIL(?1))])\n")
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, new BigDecimal("0.5"));
+          p.setBigDecimal(2, new BigDecimal("0.5"));
+        })
+        .returnsOrdered("empid=2");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void mergeUnionDoesNotPushNonDeterministicOffset() {
+    tester(false,
+        new HrSchemaBig(),
+        "select * from (select empid, name from emps "
+            + "union all select empid, name from emps) "
+            + "order by empid offset rand_integer(10) rows "
+            + "fetch next 2 rows only")
+        .explainContains("EnumerableLimitSort(sort0=[$0], dir0=[ASC], "
+            + "offset=[RAND_INTEGER(10)], fetch=[2])\n"
+            + "  EnumerableMergeUnion(all=[true])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n");
   }
 
   @Test void mergeUnionAllOrderByName() {

@@ -90,7 +90,14 @@ public class SqliteSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    unparseFetchUsingLimit(writer, offset, fetch, true);
+    if (offset != null && fetch == null) {
+      // SQLite has no OFFSET-only syntax. LIMIT -1 means no upper bound.
+      final SqlNode unlimited =
+          SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+      unparseFetchUsingLimit(writer, offset, unlimited, true);
+    } else {
+      unparseFetchUsingLimit(writer, offset, fetch, true);
+    }
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,

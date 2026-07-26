@@ -1253,6 +1253,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7662">[CALCITE-7662]
+   * Add expression support for OFFSET</a>. */
+  @Test void testOffsetWithExpression() {
+    final String sql =
+        "select empno from emp offset 1 + abs(-2) rows";
+    sql(sql).ok();
+  }
+
   @Test void testFetch() {
     final String sql = "select empno from emp fetch next 5 rows only";
     sql(sql).ok();

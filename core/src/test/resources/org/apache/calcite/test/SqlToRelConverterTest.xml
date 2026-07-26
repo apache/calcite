@@ -6444,6 +6444,18 @@ LogicalSort(offset=[?0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testOffsetWithExpression">
+    <Resource name="sql">
+      <![CDATA[select empno from emp offset 1 + abs(-2) rows]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(offset=[+(1, ABS(-2))])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOrder">
     <Resource name="sql">
       <![CDATA[select empno from emp order by empno, empno desc]]>

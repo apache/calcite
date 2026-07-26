@@ -1078,7 +1078,7 @@ public class SqlDialect {
       final SqlWriter.Frame offsetFrame =
           writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
       writer.keyword("OFFSET");
-      offset.unparse(writer, -1, -1);
+      unparseOffsetExpression(writer, offset);
       writer.keyword("ROWS");
       writer.endList(offsetFrame);
     }
@@ -1088,21 +1088,33 @@ public class SqlDialect {
           writer.startList(SqlWriter.FrameTypeEnum.FETCH);
       writer.keyword("FETCH");
       writer.keyword("NEXT");
-      if (fetch instanceof SqlLiteral
-          || fetch instanceof SqlDynamicParam) {
-        fetch.unparse(writer, -1, -1);
-      } else {
-        final SqlWriter.Frame expressionFrame = writer.startList("(", ")");
-        if (fetch instanceof SqlCall) {
-          writer.getDialect().unparseCall(writer, (SqlCall) fetch, 0, 0);
-        } else {
-          fetch.unparse(writer, 0, 0);
-        }
-        writer.endList(expressionFrame);
-      }
+      unparseFetchExpression(writer, fetch);
       writer.keyword("ROWS");
       writer.keyword("ONLY");
       writer.endList(fetchFrame);
+    }
+  }
+
+  private static void unparseOffsetExpression(SqlWriter writer, SqlNode offset) {
+    unparseExpression(writer, offset);
+  }
+
+  private static void unparseFetchExpression(SqlWriter writer, SqlNode fetch) {
+    if (fetch instanceof SqlLiteral
+        || fetch instanceof SqlDynamicParam) {
+      fetch.unparse(writer, -1, -1);
+      return;
+    }
+    final SqlWriter.Frame expressionFrame = writer.startList("(", ")");
+    unparseExpression(writer, fetch);
+    writer.endList(expressionFrame);
+  }
+
+  private static void unparseExpression(SqlWriter writer, SqlNode node) {
+    if (node instanceof SqlCall) {
+      writer.getDialect().unparseCall(writer, (SqlCall) node, 0, 0);
+    } else {
+      node.unparse(writer, 0, 0);
     }
   }
 
@@ -1113,12 +1125,12 @@ public class SqlDialect {
   }
 
   /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax,
-   * optionally allowing a scalar expression as fetch. */
+   * optionally allowing scalar expressions as fetch and offset. */
   protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch, boolean allowExpression) {
     checkArgument(fetch != null || offset != null);
     unparseLimit(writer, fetch, allowExpression);
-    unparseOffset(writer, offset);
+    unparseOffset(writer, offset, allowExpression);
   }
 
   protected static void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch) {
@@ -1145,7 +1157,19 @@ public class SqlDialect {
   }
 
   protected static void unparseOffset(SqlWriter writer, @Nullable SqlNode offset) {
+    unparseOffset(writer, offset, false);
+  }
+
+  private static void unparseOffset(SqlWriter writer, @Nullable SqlNode offset,
+      boolean allowExpression) {
     if (offset != null) {
+      if (!allowExpression
+          && !(offset instanceof SqlLiteral)
+          && !(offset instanceof SqlDynamicParam)) {
+        throw new IllegalArgumentException(
+            "LIMIT dialect does not support OFFSET expressions that cannot "
+                + "be reduced to a literal");
+      }
       writer.newlineAndIndent();
       final SqlWriter.Frame offsetFrame =
           writer.startList(SqlWriter.FrameTypeEnum.OFFSET);

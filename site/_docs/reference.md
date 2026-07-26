@@ -193,8 +193,8 @@ query:
       }
       [ ORDER BY { ALL [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ] | orderItem [, orderItem]* } ]
       [ LIMIT [ start, ] { count | ALL } ]
-      [ OFFSET start { ROW | ROWS } ]
-      [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
+      [ OFFSET { start | expression } { ROW | ROWS } ]
+      [ FETCH { FIRST | NEXT } [ count | '(' expression ')' ] { ROW | ROWS } ONLY ]
 
 withItem:
       name
@@ -215,7 +215,7 @@ select:
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
       [ QUALIFY booleanExpression ]
       [ ORDER BY orderItem [, orderItem ]* ]
-      [ LIMIT expression [ OFFSET expression ] ]
+      [ LIMIT expression [ OFFSET { start | expression } ] ]
 
 The optional, non-standard `BY` clause groups and orders the query by
 the specified expressions, and automatically adds them to the SELECT list
@@ -429,11 +429,13 @@ An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys
 
 In *query*, *start* may be either an unsigned numeric literal or a dynamic
 parameter whose value is numeric. The *count* in a LIMIT clause may be either
-an unsigned numeric literal or a dynamic parameter whose value is numeric. The
-*count* in a FETCH clause may be an unsigned numeric literal, a dynamic
-parameter whose value is numeric, or a scalar expression enclosed in
-parentheses. A FETCH *count* expression cannot reference columns from the query
-input, and cannot contain aggregate functions, window functions, or sub-queries.
+an unsigned numeric literal or a dynamic parameter whose value is numeric. An
+OFFSET clause may contain an unsigned numeric literal, a dynamic parameter whose
+value is numeric, or a scalar expression with optional parentheses. The *count*
+in a FETCH clause may also be a scalar expression, but it must be enclosed in
+parentheses. An OFFSET expression or FETCH *count* expression cannot reference
+columns from the query input, and cannot contain aggregate functions, window
+functions, or sub-queries.
 Support for decimal or non-integer values is adapter-dependent.
 
 An aggregate query is a query that contains a GROUP BY or a HAVING
