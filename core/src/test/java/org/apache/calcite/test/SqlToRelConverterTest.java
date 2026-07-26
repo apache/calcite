@@ -945,6 +945,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testNotInSingleValue() {
+    final String sql = "select * from emp where deptno not in (10)";
+    sql(sql).ok();
+  }
+
+  @Test void testNotInMultiValue() {
+    final String sql = "select * from emp where deptno not in (10, 20)";
+    sql(sql).ok();
+  }
+
   @Test void testAggFilterWithInSubQuery() {
     final String sql = "select\n"
         + "  count(*) filter (where empno in (select deptno from empnullables))\n"
