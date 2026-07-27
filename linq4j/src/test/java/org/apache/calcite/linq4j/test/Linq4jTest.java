@@ -2238,4 +2238,20 @@ public class Linq4jTest {
       new Department("HR", 20, ImmutableList.of()),
       new Department("Marketing", 30, ImmutableList.of(emps[1])),
   };
+
+  @Test void testTakeListEnumerableNegativeSize() {
+    final List<Integer> values = Arrays.asList(1, 2, 3);
+
+    assertThat(EnumerableDefaults.take(Linq4j.asEnumerable(values), -1).toList(),
+        is(empty()));
+    assertThat(Linq4j.asEnumerable(values).take(-1).toList(), is(empty()));
+  }
+
+  @Test void testSkipListEnumerableNegativeSize() {
+    final List<Integer> values = Arrays.asList(1, 2, 3);
+
+    assertThat(EnumerableDefaults.skip(Linq4j.asEnumerable(values), -1).toList(),
+        is(values));
+    assertThat(Linq4j.asEnumerable(values).skip(-1).toList(), is(values));
+  }
 }

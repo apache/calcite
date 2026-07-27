@@ -587,10 +587,14 @@ public abstract class Linq4j {
 
     @Override public Enumerable<T> skip(int count) {
       final List<T> list = toList();
-      if (count >= list.size()) {
+      // Clamp to zero, as the BigDecimal overload does, so that a negative
+      // count skips nothing and matches EnumerableDefaults.skip rather than
+      // throwing from List.subList.
+      final int rows = Math.max(count, 0);
+      if (rows >= list.size()) {
         return Linq4j.emptyEnumerable();
       }
-      return new ListEnumerable<>(list.subList(count, list.size()));
+      return new ListEnumerable<>(list.subList(rows, list.size()));
     }
 
     @Override public Enumerable<T> skip(BigDecimal count) {
@@ -605,10 +609,14 @@ public abstract class Linq4j {
 
     @Override public Enumerable<T> take(int count) {
       final List<T> list = toList();
-      if (count >= list.size()) {
+      // Clamp to zero, as the BigDecimal overload does, so that a negative
+      // count yields an empty enumerable and matches EnumerableDefaults.take
+      // rather than throwing from List.subList.
+      final int rows = Math.max(count, 0);
+      if (rows >= list.size()) {
         return this;
       }
-      return new ListEnumerable<>(list.subList(0, count));
+      return new ListEnumerable<>(list.subList(0, rows));
     }
 
     @Override public Enumerable<T> take(BigDecimal count) {
