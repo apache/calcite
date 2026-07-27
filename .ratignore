@@ -14,6 +14,7 @@
 **/data2.txt
 .idea/vcs.xml
 SECURITY.md
+AGENTS.md
 example/csv/src/test/resources/smoke_test.sql
 
 # TODO: remove when pom.xml files are removed
