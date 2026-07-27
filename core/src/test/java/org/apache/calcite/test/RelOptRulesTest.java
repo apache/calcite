@@ -5321,6 +5321,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7672">[CALCITE-7672]
+   * PruneEmptyRules should support pruning empty Calc</a>.
+   */
+  @Test void testEmptyCalc() {
+    final String sql = "select z + x from (\n"
+        + "  select x + y as z, x from (\n"
+        + "    select * from (values (10, 1), (30, 3)) as t (x, y)\n"
+        + "    where x + y > 50))";
+    sql(sql)
+        .withRule(CoreRules.FILTER_VALUES_MERGE,
+            CoreRules.PROJECT_TO_CALC,
+            PruneEmptyRules.CALC_INSTANCE)
+        .check();
+  }
+
   @Test void testEmptyIntersect() {
     final String sql = "select * from (values (30, 3))"
         + "intersect\n"
