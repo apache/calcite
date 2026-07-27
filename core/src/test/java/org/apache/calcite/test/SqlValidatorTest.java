@@ -7367,6 +7367,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withValidatorIdentifierExpansion(true)
         .withConformance(SqlConformanceEnum.BABEL)
         .ok();
+
+    // A constant literal is a no-op sort key and is excluded: only SAL is a
+    // sort key, so the rewrite does not emit an ambiguous "ORDER BY 42".
+    sql("select sal, 42 from emp order by all")
+        .rewritesTo("SELECT `SAL`, 42\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `SAL`");
   }
 
   @Test void testOrder() {
@@ -7829,6 +7836,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno as d, count(*) from emp group by all")
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok();
+
+    // A constant literal is a no-op grouping key and is excluded: only DEPTNO
+    // becomes a key, so the rewrite does not emit an ambiguous "GROUP BY 42".
+    sql("select deptno, 42 from emp group by all")
+        .rewritesTo("SELECT `DEPTNO`, 42\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `EMP`.`DEPTNO`");
   }
 
   /** Test case for
