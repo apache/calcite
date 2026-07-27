@@ -123,6 +123,9 @@ public class CTERelToSqlUtil {
     } else if (sqlNode instanceof SqlUnpivot) {
       SqlUnpivot unpivot = (SqlUnpivot) sqlNode;
       fetchSqlWithItems(unpivot.query, sqlNodes);
+    } else if (sqlNode instanceof SqlPivot) {
+      SqlPivot pivot = (SqlPivot) sqlNode;
+      fetchSqlWithItems(pivot.query, sqlNodes);
     }
   }
 
@@ -293,6 +296,18 @@ public class CTERelToSqlUtil {
                 unpivot.measureList, unpivot.axisList, unpivot.inList);
 
         ((SqlSelect) sqlNode).setFrom(unpivotNode);
+      }
+    } else if (fromNode instanceof SqlPivot) {
+      // Replace inline CTE body in the UNPIVOT's query with just the CTE identifier
+      // (or AS(identifier, alias) when the CTE reference carries a table alias).
+      SqlNode resolvedQuery = resolveUnpivotCteQuery(((SqlPivot) fromNode).query);
+      if (resolvedQuery != null) {
+        SqlPivot pivot = (SqlPivot) fromNode;
+        SqlPivot pivotNode =
+            new SqlPivot(pivot.getParserPosition(), resolvedQuery, pivot.aggList,
+                pivot.axisList, pivot.inList);
+
+        ((SqlSelect) sqlNode).setFrom(pivotNode);
       }
     }
   }
