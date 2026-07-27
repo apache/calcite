@@ -1211,4 +1211,168 @@ public class MongoAdapterTest implements SchemaFactory {
             "CITY_SUBSTRING=RA",
             "CITY_SUBSTRING=UT");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7673">[CALCITE-7673]
+   * MongoDB Adapter can not support LIKE operator</a>. */
+  @Test void testLikePrefix() {
+    // Test LIKE on state field - matches states starting with 'A'
+    assertModel(MODEL)
+        .query("select state, city from zips where state like 'A%' order by state")
+        .returnsUnordered(
+            "STATE=AK; CITY=ANCHORAGE",
+            "STATE=AK; CITY=FAIRBANKS",
+            "STATE=AK; CITY=JUNEAU",
+            "STATE=AL; CITY=CENTER POINT",
+            "STATE=AL; CITY=TUSCALOOSA",
+            "STATE=AL; CITY=SOUTHSIDE",
+            "STATE=AR; CITY=CONWAY",
+            "STATE=AR; CITY=GRAVEL RIDGE",
+            "STATE=AR; CITY=JONESBORO",
+            "STATE=AZ; CITY=MESA",
+            "STATE=AZ; CITY=PHOENIX",
+            "STATE=AZ; CITY=YUMA");
+  }
+
+  /** Test case for LIKE operator with suffix pattern (ends with). */
+  @Test void testLikeSuffix() {
+    assertModel(MODEL)
+        .query("select state, city from zips where city like '%TON' order by state, city")
+        .limit(5)
+        .returnsOrdered(
+            "STATE=DC; CITY=WASHINGTON",
+            "STATE=KY; CITY=HATTON",
+            "STATE=MA; CITY=BROCKTON",
+            "STATE=ME; CITY=LEWISTON",
+            "STATE=MN; CITY=NEW BRIGHTON");
+  }
+
+  /** Test case for LIKE operator with contains pattern. */
+  @Test void testLikeContains() {
+    assertModel(MODEL)
+        .query("select state, city from zips where city like '%ING%' order by state")
+        .limit(5)
+        .returnsOrdered(
+            "STATE=DC; CITY=WASHINGTON",
+            "STATE=MA; CITY=FRAMINGHAM",
+            "STATE=MO; CITY=JENNINGS",
+            "STATE=MT; CITY=BILLINGS",
+            "STATE=NC; CITY=LEXINGTON");
+  }
+
+  /** Test case for LIKE operator with single character wildcard. */
+  @Test void testLikeSingleChar() {
+    // Pattern 'NEW ______' matches cities starting with 'NEW ' followed by exactly 6 characters
+    // NEW IBERIA: "NEW " + "IBERIA" (6 chars) = matches
+    // NEW ORLEANS: "NEW " + "ORLEANS" (7 chars) = does not match
+    // NEW YORK: "NEW " + "YORK" (4 chars) = does not match
+    assertModel(MODEL)
+        .query("select city, state from zips where city like 'NEW ______' order by city")
+        .returnsOrdered(
+            "CITY=NEW IBERIA; STATE=LA");
+  }
+
+  /** Test case for LIKE operator combined with other filters. */
+  @Test void testLikeCombinedWithOtherFilters() {
+    assertModel(MODEL)
+        .query("select city, state from zips where city like 'L%' and state = 'CA' order by city")
+        .returnsOrdered(
+            "CITY=LOS ANGELES; STATE=CA");
+  }
+
+  /** Test case for LIKE operator verifying the generated MongoDB regex. */
+  @Test void testLikeGeneratedRegex() {
+    assertModel(MODEL)
+        .query("select state from zips where city like 'A%'")
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$regex: '^A.*$'}}}",
+                "{$project: {STATE: '$state'}}"))
+        .returnsUnordered(
+            "STATE=AK",
+            "STATE=IA",
+            "STATE=SC",
+            "STATE=SD",
+            "STATE=TX");
+  }
+
+  /** Test case for LIKE operator with escape character on underscore. */
+  @Test void testLikeEscapeUnderscore() {
+    // Without escape, '_' matches a single character.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'BROOKLY_'")
+        .returnsUnordered("CITY=BROOKLYN");
+    // With escape, '_' is a literal character and does not match BROOKLYN.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'BROOKLY\\_' ESCAPE '\\'")
+        .returnsUnordered();
+  }
+
+  /** Test case for LIKE operator with escape character on percent. */
+  @Test void testLikeEscapePercent() {
+    // Without escape, '%' matches zero or more characters.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'BROOKLYN%'")
+        .returnsUnordered("CITY=BROOKLYN");
+    // With escape, '%' is a literal character and does not match BROOKLYN.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'BROOKLYN\\%' ESCAPE '\\'")
+        .returnsUnordered();
+  }
+
+  /** Test case for LIKE operator without a default escape character. */
+  @Test void testLikeNoDefaultEscape() {
+    // Without ESCAPE, '\' is an ordinary character; 'A\%' matches cities
+    // starting with 'A%' and should return nothing.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'A\\%'")
+        .returnsUnordered();
+  }
+
+  /** Test case for LIKE operator escaping regex special characters. */
+  @Test void testLikeRegexSpecialChar() {
+    // '.' is an ordinary SQL LIKE character and must be escaped in the
+    // generated MongoDB regex; otherwise it would match arbitrary characters.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'A.B%'")
+        .returnsUnordered();
+  }
+
+  /** Test case for LIKE operator with a custom escape character. */
+  @Test void testLikeCustomEscapeChar() {
+    // Use '!' as the escape character. Here '%' is a wildcard.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'BROOKLYN%' ESCAPE '!'")
+        .returnsUnordered("CITY=BROOKLYN");
+    // '!%' makes '%' a literal character, so it does not match BROOKLYN.
+    assertModel(MODEL)
+        .query("select city from zips where city like 'BROOKLYN!%' ESCAPE '!'")
+        .returnsUnordered();
+  }
+
+  /** Test case for LIKE operator verifying the generated regex with escapes. */
+  @Test void testLikeGeneratedRegexWithEscape() {
+    assertModel(MODEL)
+        .query("select state from zips where city like 'A\\_B\\%C%' ESCAPE '\\'")
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$regex: '^A_B%C.*$'}}}",
+                "{$project: {STATE: '$state'}}"))
+        .returnsUnordered();
+  }
+
+  /** Test case for NOT LIKE operator. */
+  @Test void testNotLike() {
+    assertModel(MODEL)
+        .query("select city from zips where city not like 'A%'")
+        .returnsCount(144);
+  }
+
+  /** Test case for LIKE operator on ITEM (_MAP) access. */
+  @Test void testLikeItem() {
+    assertModel(MODEL)
+        .query("select cast(_MAP['city'] as varchar) from \"mongo_raw\".\"zips\" "
+            + "where _MAP['city'] like 'A%'")
+        .returnsCount(5);
+  }
 }
