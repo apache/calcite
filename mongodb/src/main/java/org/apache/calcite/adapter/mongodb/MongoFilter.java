@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
@@ -222,6 +223,10 @@ public class MongoFilter extends Filter implements MongoRel {
         return translateUnary("$ne", (RexCall) node, multimap, eqMap);
       case IS_NULL:
         return translateUnary("$eq", (RexCall) node, multimap, eqMap);
+      case LIKE:
+        return translateLike((RexCall) node, multimap);
+      case NOT:
+        return translateNot((RexCall) node, orMapList);
       default:
         throw new AssertionError("cannot translate " + node);
       }
@@ -301,6 +306,183 @@ public class MongoFilter extends Filter implements MongoRel {
       final RexNode right = rexBuilder.makeNullLiteral(nullType);
       translateBinary2(op, left, right, multimap, eqMap);
       return null;
+    }
+
+    /** Translates LIKE to {$regex: ...}. */
+    private Void translateLike(RexCall call,
+        Multimap<String, Pair<String, RexLiteral>> multimap) {
+      final RexNode left = stripCast(call.operands.get(0));
+      final RexNode right = call.operands.get(1);
+
+      // LIKE must have a literal on the right side
+      if (right.getKind() != SqlKind.LITERAL) {
+        throw new AssertionError("cannot translate LIKE with non-literal pattern: " + call);
+      }
+      final RexLiteral patternLiteral = (RexLiteral) right;
+      final String sqlPattern = patternLiteral.getValue2().toString();
+
+      final @Nullable Character escapeChar = escapeChar(call);
+      final String finalRegex = sqlLikeToMongoRegex(sqlPattern, escapeChar);
+
+      switch (left.getKind()) {
+      case INPUT_REF:
+        final RexInputRef left1 = (RexInputRef) left;
+        String name = fieldNames.get(left1.getIndex());
+        multimap.put(name, Pair.of("$regex", rexBuilder.makeLiteral(finalRegex)));
+        return null;
+      case ITEM:
+        String itemName = MongoRules.isItem((RexCall) left);
+        if (itemName != null) {
+          multimap.put(itemName, Pair.of("$regex", rexBuilder.makeLiteral(finalRegex)));
+          return null;
+        }
+        // fall through
+      default:
+        throw new AssertionError("cannot translate LIKE " + call);
+      }
+    }
+
+    /** Translates NOT to a MongoDB $nor expression. */
+    private Void translateNot(RexCall call, List<Map<String, Object>> orMapList) {
+      final RexNode operand = call.operands.get(0);
+      switch (operand.getKind()) {
+      case LIKE:
+        return translateNotLike((RexCall) operand, orMapList);
+      default:
+        throw new AssertionError("cannot translate NOT " + call);
+      }
+    }
+
+    /** Translates NOT LIKE to {$nor: [{field: {$regex: ...}}]}. */
+    private Void translateNotLike(RexCall call, List<Map<String, Object>> orMapList) {
+      final RexNode left = stripCast(call.operands.get(0));
+      final RexNode right = call.operands.get(1);
+
+      if (right.getKind() != SqlKind.LITERAL) {
+        throw new AssertionError("cannot translate NOT LIKE with non-literal pattern: " + call);
+      }
+      final RexLiteral patternLiteral = (RexLiteral) right;
+      final String sqlPattern = patternLiteral.getValue2().toString();
+
+      final @Nullable Character escapeChar = escapeChar(call);
+      final String finalRegex = sqlLikeToMongoRegex(sqlPattern, escapeChar);
+
+      final String name;
+      switch (left.getKind()) {
+      case INPUT_REF:
+        final RexInputRef left1 = (RexInputRef) left;
+        name = fieldNames.get(left1.getIndex());
+        break;
+      case ITEM:
+        String itemName = MongoRules.isItem((RexCall) left);
+        if (itemName != null) {
+          name = itemName;
+          break;
+        }
+        // fall through
+      default:
+        throw new AssertionError("cannot translate NOT LIKE " + call);
+      }
+
+      Map<String, Object> regexMap = builder.map();
+      Map<String, Object> regexOp = builder.map();
+      regexOp.put("$regex", finalRegex);
+      regexMap.put(name, regexOp);
+      List<Object> norList = builder.list();
+      norList.add(regexMap);
+      Map<String, Object> norMap = builder.map();
+      norMap.put("$nor", norList);
+      orMapList.add(norMap);
+      return null;
+    }
+
+    /** Strips a leading CAST, if any. MongoDB is implicitly typed. */
+    private static RexNode stripCast(RexNode node) {
+      if (node.getKind() == SqlKind.CAST) {
+        return ((RexCall) node).operands.get(0);
+      }
+      return node;
+    }
+
+    /** Returns the escape character declared in a LIKE expression, or null. */
+    private static @Nullable Character escapeChar(RexCall call) {
+      if (call.operands.size() != 3) {
+        return null;
+      }
+      final RexNode escapeNode = call.operands.get(2);
+      if (escapeNode.getKind() != SqlKind.LITERAL) {
+        throw new AssertionError("cannot translate LIKE with non-literal escape: " + call);
+      }
+      final String escape = ((RexLiteral) escapeNode).getValue2().toString();
+      if (escape.length() != 1) {
+        throw new AssertionError("cannot translate LIKE with multi-character escape: " + call);
+      }
+      return escape.charAt(0);
+    }
+
+    /**
+     * Converts SQL LIKE pattern to MongoDB regex pattern.
+     *
+     * <p>SQL: {@code %} matches zero or more characters, {@code _} matches a single
+     * character. MongoDB: {@code .*} matches zero or more characters, {@code .}
+     * matches a single character.
+     *
+     * <p>We add {@code ^} and {@code $} anchors so that the entire string matches
+     * the pattern, just as SQL LIKE does.
+     */
+    private static String sqlLikeToMongoRegex(String sqlPattern, @Nullable Character escapeChar) {
+      final StringBuilder regex = new StringBuilder(sqlPattern.length() * 2);
+      regex.append("^");
+      for (int i = 0; i < sqlPattern.length(); i++) {
+        char c = sqlPattern.charAt(i);
+        if (escapeChar != null && c == escapeChar) {
+          if (i == sqlPattern.length() - 1) {
+            throw new AssertionError("Invalid escape sequence at end of LIKE pattern: "
+                + sqlPattern);
+          }
+          final char nextChar = sqlPattern.charAt(i + 1);
+          if (nextChar == '%' || nextChar == '_' || nextChar == escapeChar) {
+            regex.append(escapeRegexChar(nextChar));
+            i++;
+          } else {
+            throw new AssertionError("Invalid escape sequence in LIKE pattern: " + sqlPattern);
+          }
+        } else if (c == '%') {
+          regex.append(".*");
+        } else if (c == '_') {
+          regex.append('.');
+        } else {
+          regex.append(escapeRegexChar(c));
+        }
+      }
+      regex.append("$");
+      return regex.toString();
+    }
+
+    /**
+     * Escapes a character for use in a MongoDB regex if it's a special regex character.
+     */
+    private static String escapeRegexChar(char c) {
+      // MongoDB regex special characters that need escaping
+      switch (c) {
+      case '\\':
+      case '^':
+      case '$':
+      case '.':
+      case '|':
+      case '?':
+      case '*':
+      case '+':
+      case '(':
+      case ')':
+      case '[':
+      case ']':
+      case '{':
+      case '}':
+        return "\\" + c;
+      default:
+        return String.valueOf(c);
+      }
     }
   }
 }
