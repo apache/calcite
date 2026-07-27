@@ -101,6 +101,7 @@ public class RelOptRules {
           PruneEmptyRules.MINUS_INSTANCE,
           PruneEmptyRules.PROJECT_INSTANCE,
           PruneEmptyRules.FILTER_INSTANCE,
+          PruneEmptyRules.CALC_INSTANCE,
           PruneEmptyRules.SORT_INSTANCE,
           PruneEmptyRules.AGGREGATE_INSTANCE,
           PruneEmptyRules.WINDOW_INSTANCE,

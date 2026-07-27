@@ -4215,6 +4215,26 @@ LogicalValues(tuples=[[{ 0, null }]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptyCalc">
+    <Resource name="sql">
+      <![CDATA[select z + x from (
+  select x + y as z, x from (
+    select * from (values (10, 1), (30, 3)) as t (x, y)
+    where x + y > 50))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[+(+($0, $1), $0)])
+  LogicalFilter(condition=[>(+($0, $1), 50)])
+    LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEmptyFilterProjectUnion">
     <Resource name="sql">
       <![CDATA[select * from (

@@ -26,6 +26,7 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -190,6 +191,19 @@ public abstract class PruneEmptyRules {
    */
   public static final RelOptRule FILTER_INSTANCE =
       RemoveEmptySingleRule.RemoveEmptySingleRuleConfig.FILTER.toRule();
+
+  /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.Calc}
+   * to empty if its child is empty.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Calc(Empty) becomes Empty
+   * </ul>
+   */
+  public static final RelOptRule CALC_INSTANCE =
+      RemoveEmptySingleRule.RemoveEmptySingleRuleConfig.CALC.toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
@@ -373,6 +387,9 @@ public abstract class PruneEmptyRules {
       RemoveEmptySingleRuleConfig FILTER = ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyFilter")
           .withOperandFor(Filter.class, singleRel -> true);
+      RemoveEmptySingleRuleConfig CALC = ImmutableRemoveEmptySingleRuleConfig.of()
+          .withDescription("PruneEmptyCalc")
+          .withOperandFor(Calc.class, singleRel -> true);
       RemoveEmptySingleRuleConfig SORT = ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptySort")
           .withOperandFor(Sort.class, singleRel -> true);
