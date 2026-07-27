@@ -639,7 +639,7 @@ public class RelToSqlConverter extends SqlImplementor
     //as per ANSI standard, we either can use LATERAL with subquery or UNNEST with array/multiset
     //But both are not allowed at the same time.
 
-    if (!(rightNode.getKind() == SqlKind.UNNEST)) {
+    if (!(containsOnlyUnnestItems(rightNode))) {
       final SqlNode rightLateral =
           SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.node);
       rightLateralAs =
@@ -658,6 +658,12 @@ public class RelToSqlConverter extends SqlImplementor
             JoinConditionType.NONE.symbol(POS),
             null);
     return result(join, leftResult, rightResult);
+  }
+
+  private boolean containsOnlyUnnestItems(SqlNode node) {
+    return node.getKind() == SqlKind.UNNEST || (node.getKind() == SqlKind.JOIN
+        && containsOnlyUnnestItems(((SqlJoin) node).getLeft())
+        && containsOnlyUnnestItems(((SqlJoin) node).getRight()));
   }
 
   /**

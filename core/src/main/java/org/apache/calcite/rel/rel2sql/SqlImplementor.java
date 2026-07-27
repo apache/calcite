@@ -2617,6 +2617,12 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      if (rel instanceof Project
+          && rel.getInput(0) instanceof Project
+          && rel.getInput(0).getTraitSet().isEnabled(SubQueryAliasTraitDef.instance)) {
+        return true;
+      }
+
       if (rel instanceof Aggregate /*hasNested(agg, SqlImplementor::isAggregate);*/
           && !dialect.supportsNestedAggregations()
           && hasNested((Aggregate) rel, SqlImplementor::isAggregate)) {
