@@ -116,13 +116,10 @@ public class RelMdMinRowCount
       rowCount = 0D;
     }
 
-    final double offset =
-        literalValueApproximatedByDouble(rel.offset, 0D);
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        literalValueApproximatedByDouble(rel.fetch,
-            rel.fetch == null ? rowCount : 0D);
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -132,13 +129,10 @@ public class RelMdMinRowCount
       rowCount = 0D;
     }
 
-    final double offset =
-        literalValueApproximatedByDouble(rel.offset, 0D);
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        literalValueApproximatedByDouble(rel.fetch,
-            rel.fetch == null ? rowCount : 0D);
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -180,8 +174,7 @@ public class RelMdMinRowCount
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
         if (sort.fetch instanceof RexLiteral) {
-          return literalValueApproximatedByDouble(sort.fetch,
-              Double.POSITIVE_INFINITY);
+          return literalValueApproximatedByDouble(sort.fetch, Double.POSITIVE_INFINITY);
         }
       }
     }

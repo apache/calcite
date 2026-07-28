@@ -104,16 +104,14 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     if (this.fetch == null) {
       fetchVal = Expressions.constant(BigDecimal.valueOf(Integer.MAX_VALUE));
     } else {
-      fetchVal =
-          getExpression(this.fetch, "FETCH", implementor, builder, roundingPolicyExp, true);
+      fetchVal = getExpression(this.fetch, "FETCH", roundingPolicyExp);
     }
 
     final Expression offsetVal;
     if (this.offset == null) {
       offsetVal = Expressions.constant(BigDecimal.ZERO);
     } else {
-      offsetVal =
-          getExpression(this.offset, "OFFSET", implementor, builder, roundingPolicyExp, false);
+      offsetVal = getExpression(this.offset, "OFFSET", roundingPolicyExp);
     }
 
     builder.add(

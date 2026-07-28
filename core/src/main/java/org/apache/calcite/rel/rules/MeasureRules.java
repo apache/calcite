@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
@@ -507,7 +508,8 @@ public abstract class MeasureRules {
 
       relBuilder.push(sort.getInput())
           .projectPlus(map.keySet())
-          .sortLimit(sort.offset, sort.fetch,
+          .sortLimit(sort.offset == null ? 0 : RexLiteral.numberValue(sort.offset),
+              sort.fetch == null ? -1 : RexLiteral.numberValue(sort.fetch),
               sort.getSortExps())
           .project(newProjects);
       call.transformTo(relBuilder.build());
