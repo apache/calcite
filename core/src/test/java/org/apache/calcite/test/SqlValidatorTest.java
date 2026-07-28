@@ -7374,6 +7374,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo("SELECT `SAL`, 42\n"
             + "FROM `EMP`\n"
             + "ORDER BY `SAL`");
+
+    // Under a conformance that sorts by ordinal, an emitted "ORDER BY 42" would
+    // be read as ordinal position 42 rather than as the constant; excluding the
+    // literal keeps the expansion valid in every conformance.
+    sql("select sal, 42 from emp order by all")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
   }
 
   @Test void testOrder() {
@@ -7843,6 +7850,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo("SELECT `DEPTNO`, 42\n"
             + "FROM `EMP`\n"
             + "GROUP BY `EMP`.`DEPTNO`");
+
+    // Under a conformance that groups by ordinal, an emitted "GROUP BY 42" would
+    // be read as ordinal position 42 and rejected as out of range; excluding the
+    // literal keeps the expansion valid in every conformance.
+    sql("select deptno, 42, count(*) from emp group by all")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
   }
 
   /** Test case for
