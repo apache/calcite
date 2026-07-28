@@ -2261,8 +2261,41 @@ public abstract class SqlImplementor {
         if (groupKeysContainOver(agg)) {
           return true;
         }
+
+        if (!dialect.supportsGroupByLiteral()
+            && hasGroupByLiteral(agg)) {
+          return true;
+        }
       }
 
+      return false;
+    }
+
+    /**
+     * Returns whether any grouping key of {@code aggregate} is represented by
+     * a literal expression in this result's {@code SELECT} list.
+     */
+    private boolean hasGroupByLiteral(
+        @UnknownInitialization Result this, Aggregate aggregate) {
+      if (!(node instanceof SqlSelect)) {
+        return false;
+      }
+
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      if (selectList.equals(SqlNodeList.SINGLETON_STAR)) {
+        return false;
+      }
+
+      for (int groupKey : aggregate.getGroupSet()) {
+        if (groupKey >= selectList.size()) {
+          return false;
+        }
+        final SqlNode expression = SqlUtil.stripAs(selectList.get(groupKey));
+        // A literal wrapped in a CAST is also considered a literal.
+        if (SqlUtil.isLiteral(expression, true)) {
+          return true;
+        }
+      }
       return false;
     }
 
