@@ -370,6 +370,56 @@ class RelToSqlConverterTest {
         .withInformix().ok(expectedInformix);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7679">[CALCITE-7679]
+   * RelToSqlConverter generates GROUP BY literals for dialects that do not
+   * support them when the constant is hidden by nested Projects</a>. */
+  @Test void testGroupByLiteralWithNestedProjects() {
+    final String query = "SELECT \"id\"\n"
+        + "FROM (\n"
+        + "  SELECT \"id\"\n"
+        + "  FROM (\n"
+        + "    SELECT NULL AS \"id\"\n"
+        + "    FROM \"employee\"\n"
+        + "  ) AS \"t1\"\n"
+        + ") AS \"t2\"\n"
+        + "GROUP BY \"id\"";
+    final String expectedPostgresql = "SELECT \"id\"\n"
+        + "FROM (SELECT NULL AS \"id\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t0\"\n"
+        + "GROUP BY \"id\"";
+    sql(query)
+        // Disable RelBuilder's eager Project merging to retain the nested
+        // Projects that reproduce the constant GROUP BY conversion issue.
+        .withConfig(c -> c.withRelBuilderConfigTransform(b -> b.withBloat(-1)))
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7679">[CALCITE-7679]
+   * RelToSqlConverter generates GROUP BY literals for dialects that do not
+   * support them when the constant is hidden by nested Projects</a>. */
+  @Test void testGroupByLiteralWithReorderedNestedProjects() {
+    final String query = "SELECT \"id\", \"employee_id\"\n"
+        + "FROM (\n"
+        + "  SELECT \"id\", \"employee_id\"\n"
+        + "  FROM (\n"
+        + "    SELECT \"employee_id\", NULL AS \"id\"\n"
+        + "    FROM \"employee\"\n"
+        + "  ) AS \"t1\"\n"
+        + ") AS \"t2\"\n"
+        + "GROUP BY \"id\", \"employee_id\"";
+    final String expectedPostgresql = "SELECT \"id\", \"employee_id\"\n"
+        + "FROM (SELECT NULL AS \"id\", \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t0\"\n"
+        + "GROUP BY \"id\", \"employee_id\"";
+    sql(query)
+        // Disable RelBuilder's eager Project merging to retain the nested
+        // Projects that reproduce the constant GROUP BY conversion issue.
+        .withConfig(c -> c.withRelBuilderConfigTransform(b -> b.withBloat(-1)))
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6910">[CALCITE-6910]
    * RelToSql does not handle ASOF joins</a>. */
   @Test void testAsofJoin() {
