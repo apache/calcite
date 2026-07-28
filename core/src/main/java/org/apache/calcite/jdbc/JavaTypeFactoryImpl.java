@@ -365,7 +365,33 @@ public class JavaTypeFactoryImpl
     final SyntheticRecordType syntheticType =
         new SyntheticRecordType(type, name);
     for (final RelDataTypeField recordField : type.getFieldList()) {
-      final Type javaClass = getJavaClass(recordField.getType());
+      final Type fieldClass = getJavaClass(recordField.getType());
+      // A field whose type has no real Java class is stored as Object[] at
+      // runtime, like all rows in enumerable convention. For example, the
+      // element type of ARRAY[ROW(ROW(1, 'a'), 10), NULL] becomes a "synthetic" type
+      // named Record2_0
+      //   public static class Record2_0 implements java.io.Serializable {
+      //     public Object[] EXPR$0;  // the nested row, e.g. {1, 'a'}
+      //     public Integer EXPR$1;
+      //     ...equals, hashCode, compareTo, toString...
+      //   }
+      // If EXPR$0 would also have a synthetic type,
+      // this would generate nested synthetic classes, which
+      // EnumerableRelImplementor#classDecl cannot emit.
+      //
+      // A field whose type maps to a real Java class (e.g. a bean from a
+      // ReflectiveSchema) uses its own Java class.
+      //
+      // 'instanceof Class' distinguishes the two cases: getJavaClass
+      // returns a java.lang.reflect.Type, which is a loaded
+      // java.lang.Class for most SQL types.  For a record type with no
+      // Java class (here the nested row's type, which maps to its own
+      // Record2_N), it is a SyntheticRecordType: a description of a class
+      // that is only generated and compiled together with the query, so no
+      // Class object exists for it.
+      final Type javaClass = fieldClass instanceof Class
+          ? fieldClass
+          : Object[].class;
       syntheticType.fields.add(
           new RecordFieldImpl(
               syntheticType,
