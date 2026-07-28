@@ -35,9 +35,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
@@ -134,7 +132,6 @@ class ProjectExpansionUtil {
       List<String> fieldNames = result.neededType.getFieldNames();
       List<String> columnsUsed =
           getColumnsUsedInOnConditionWithSubQueryAlias(sqlCondition, result.neededAlias);
-      final Set<String> requiredByCondition = new HashSet<>(columnsUsed);
 
       for (String columnName : parentReferencedColumns) {
         if (fieldNames.contains(columnName) && !columnsUsed.contains(columnName)
@@ -142,11 +139,6 @@ class ProjectExpansionUtil {
           columnsUsed.add(columnName);
         }
       }
-
-      final Set<String> parentRefSet = new HashSet<>(parentReferencedColumns);
-      columnsUsed.removeIf(columnName ->
-          !requiredByCondition.contains(columnName) && !parentRefSet.contains(columnName)
-              && isAmbiguousColumnInJoin(result, columnName));
 
       List<SqlNode> sqlIdentifierList = new ArrayList<>();
       for (String columnName : columnsUsed) {
@@ -330,30 +322,10 @@ class ProjectExpansionUtil {
     }
   }
 
-  private static List<String> getQualifiedTableName(SqlImplementor.Result result,
-      String columnName) {
-    List<TableInfo> tableInfoList = new ArrayList<>();
-    populateTableInfo(result.expectedRel, tableInfoList);
-    return getFirstTableNameWithColumn(tableInfoList, columnName);
-  }
-
-  private static List<String> getFirstTableNameWithColumn(List<TableInfo> tableInfoList,
-      String columnName) {
-    for (TableInfo tableInfo : tableInfoList) {
-      if (tableInfo.columnExists(columnName)) {
-        return tableInfo.tableName;
-      }
-    }
-    return new ArrayList<>();
-  }
-
   private SqlBasicCall getLeftMostOperand(SqlSelect sqlSelect) {
     return (SqlBasicCall) ((SqlJoin) sqlSelect.getFrom()).getLeft();
   }
 
-  private SqlJoin getLeftMostSqlJoin(SqlSelect sqlSelect) {
-    return (SqlJoin) ((SqlJoin) sqlSelect.getFrom()).getLeft();
-  }
   private SqlNode createAsSqlIdentifierForColumn(
       SqlImplementor.Result leftResult, String columnName) {
     SqlBasicCall sqlBasicCall = extractSqlBasicCallFromResult(leftResult);
