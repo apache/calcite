@@ -165,12 +165,10 @@ public class RelMdRowCount
       return null;
     }
 
-    final double offset =
-        literalValueApproximatedByDouble(rel.offset, 0D);
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        literalValueApproximatedByDouble(rel.fetch, rowCount);
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -180,12 +178,10 @@ public class RelMdRowCount
       return null;
     }
 
-    final double offset =
-        literalValueApproximatedByDouble(rel.offset, 0D);
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        literalValueApproximatedByDouble(rel.fetch, rowCount);
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 

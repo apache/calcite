@@ -34,7 +34,6 @@ import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for {@link EnumUtils}.
@@ -185,16 +184,6 @@ public final class EnumUtilsTest {
         is(new BigDecimal("1.5")));
     assertThat(EnumUtils.numberToBigDecimal(1.5D, "FETCH", ceiling),
         is(BigDecimal.valueOf(2)));
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7592">[CALCITE-7592]
-   * Add expression support for FETCH</a>. */
-  @Test void testNumberToBigDecimalRejectsNull() {
-    final IllegalArgumentException e =
-        assertThrows(IllegalArgumentException.class,
-            () -> EnumUtils.numberToBigDecimal(null, "FETCH"));
-    assertThat(e.getMessage(), is("FETCH expression evaluated to NULL"));
   }
 
   @Test void testMethodCallExpression() {

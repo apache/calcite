@@ -59,7 +59,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsofJoin;
@@ -1228,7 +1227,7 @@ public class RelToSqlConverter extends SqlImplementor
           sqlSelect.setOffset(offset);
         }
         if (e.fetch != null) {
-          SqlNode fetch = toSqlFetch(e, builder.context);
+          SqlNode fetch = builder.context.toSql(null, e.fetch);
           sqlSelect.setFetch(fetch);
         }
         return result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
@@ -1286,18 +1285,11 @@ public class RelToSqlConverter extends SqlImplementor
    * The builder must have been created with OFFSET and FETCH clauses. */
   void offsetFetch(Sort e, Builder builder) {
     if (e.fetch != null) {
-      builder.setFetch(toSqlFetch(e, builder.context));
+      builder.setFetch(builder.context.toSql(null, e.fetch));
     }
     if (e.offset != null) {
       builder.setOffset(builder.context.toSql(null, e.offset));
     }
-  }
-
-  private static SqlNode toSqlFetch(Sort sort, Context context) {
-    final RexNode fetch = requireNonNull(sort.fetch, "fetch");
-    final @Nullable RexLiteral reduced =
-        RexUtil.reduceFetchToLiteral(sort.getCluster(), fetch);
-    return context.toSql(null, reduced == null ? fetch : reduced);
   }
 
   public boolean hasTrickyRollup(Sort e, Aggregate aggregate) {
