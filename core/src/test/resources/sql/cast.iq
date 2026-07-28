@@ -2031,4 +2031,52 @@ values (cast(multiset[null] as integer multiset));
 
 !ok
 
+# Tests for [CALCITE-7677] CAST between ROW types fails at runtime
+# https://issues.apache.org/jira/browse/CALCITE-7677
+!use scott
+
+SELECT ARRAY[ROW(1, 'Alice'), ROW(NULL, 'Dan')] AS people
+FROM (VALUES (0)) AS t(zero);
++---------------------------+
+| PEOPLE                    |
++---------------------------+
+| [{1, Alice}, {null, Dan}] |
++---------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(ROW(ROW(2, 'b'), 20) AS ROW(a ROW(x INTEGER, y CHAR(1)), b INTEGER)) AS r
+FROM (VALUES (0)) AS t(zero);
++--------------+
+| R            |
++--------------+
+| {{2, b}, 20} |
++--------------+
+(1 row)
+
+!ok
+
+SELECT CAST(ROW(NULL, 30) AS ROW(a ROW(x INTEGER, y CHAR(1)), b INTEGER)) AS r
+FROM (VALUES (0)) AS t(zero);
++------------+
+| R          |
++------------+
+| {null, 30} |
++------------+
+(1 row)
+
+!ok
+
+SELECT ARRAY[ROW(ROW(1, 'a'), 10), NULL] AS xs
+FROM (VALUES (0)) AS t(zero);
++----------------------+
+| XS                   |
++----------------------+
+| [{{1, a}, 10}, null] |
++----------------------+
+(1 row)
+
+!ok
+
 # End cast.iq
