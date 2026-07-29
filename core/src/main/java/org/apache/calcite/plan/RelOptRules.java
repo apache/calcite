@@ -108,6 +108,7 @@ public class RelOptRules {
           PruneEmptyRules.JOIN_LEFT_INSTANCE,
           PruneEmptyRules.JOIN_RIGHT_INSTANCE,
           PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE,
+          PruneEmptyRules.SORT_OFFSET_INSTANCE,
           PruneEmptyRules.EMPTY_TABLE_INSTANCE,
           SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE,
           SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE,

@@ -5841,6 +5841,17 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE).check();
   }
 
+  /** Tests that a Sort whose OFFSET skips at least as many rows as its input
+   * can produce is pruned to empty by
+   * {@link PruneEmptyRules#SORT_OFFSET_INSTANCE}. */
+  @Test void testEmptySortOffsetGreaterThanMaxRows() {
+    // The input VALUES has at most 2 rows, so 'OFFSET 5' skips them all.
+    final String sql = "select * from (values (1, 2), (3, 4)) as t (a, b)\n"
+        + "order by a\n"
+        + "offset 5 rows";
+    sql(sql).withRule(PruneEmptyRules.SORT_OFFSET_INSTANCE).check();
+  }
+
   @Test void testEmptyAggregate() {
     final String sql = "select sum(empno) from emp where false group by deptno";
     sql(sql)

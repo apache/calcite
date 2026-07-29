@@ -233,6 +233,24 @@ public abstract class PruneEmptyRules {
       SortFetchZeroRuleConfig.DEFAULT.toRule();
 
   /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
+   * to empty if its {@code OFFSET} is greater than or equal to the maximum
+   * number of rows its input can produce, so that all rows are skipped.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Sort[offset=5](input with at most 2 rows) becomes Empty
+   * </ul>
+   *
+   * <p>It relies on {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount}
+   * to derive the input row count. If the stats are not available then the rule
+   * is a noop.
+   */
+  public static final RelOptRule SORT_OFFSET_INSTANCE =
+      SortOffsetGreaterThanMaxRowsRuleConfig.DEFAULT.toRule();
+
+  /**
    * Rule that converts an {@link org.apache.calcite.rel.core.Aggregate}
    * to empty if its child is empty.
    *
@@ -539,6 +557,30 @@ public abstract class PruneEmptyRules {
           return sort.fetch != null
               && !(sort.fetch instanceof RexDynamicParam)
               && RexLiteral.bigDecimalValue(sort.fetch).equals(BigDecimal.ZERO);
+        }
+      };
+    }
+  }
+
+  /** Configuration for a rule that prunes a Sort if its {@code OFFSET} skips at
+   * least as many rows as its input can ever produce. */
+  @Value.Immutable
+  public interface SortOffsetGreaterThanMaxRowsRuleConfig extends PruneEmptyRule.Config {
+    SortOffsetGreaterThanMaxRowsRuleConfig DEFAULT =
+        ImmutableSortOffsetGreaterThanMaxRowsRuleConfig.of()
+            .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
+            .withDescription("PruneSortOffsetGreaterThanMaxRows");
+
+    @Override default PruneEmptyRule toRule() {
+      return new RemoveEmptySingleRule(this) {
+        @Override public boolean matches(final RelOptRuleCall call) {
+          final Sort sort = call.rel(0);
+          // Only consider a static (non-dynamic) OFFSET. If the offset skips at
+          // least as many rows as the input can ever produce, the Sort returns
+          // no rows. RelMdMaxRowCount#getMaxRowCount(Sort) already subtracts the
+          // offset from the input row count, so the Sort is definitely empty.
+          return sort.offset instanceof RexLiteral
+              && RelMdUtil.isRelDefinitelyEmpty(call.getMetadataQuery(), sort);
         }
       };
     }

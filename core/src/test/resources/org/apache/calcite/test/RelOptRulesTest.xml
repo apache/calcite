@@ -4454,6 +4454,25 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptySortOffsetGreaterThanMaxRows">
+    <Resource name="sql">
+      <![CDATA[select * from (values (1, 2), (3, 4)) as t (a, b)
+order by a
+offset 5 rows]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[5])
+  LogicalProject(A=[$0], B=[$1])
+    LogicalValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEmptyTable">
     <Resource name="sql">
       <![CDATA[select * from EMPTY_PRODUCTS
