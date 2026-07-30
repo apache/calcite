@@ -8068,7 +8068,7 @@ class RelToSqlConverterTest {
         + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
         + "limit 0";
     final RuleSet rules =
-        RuleSets.ofList(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
+        RuleSets.ofList(PruneEmptyRules.SORT_EMPTY_INSTANCE);
     final String expectedMysql = "SELECT *\n"
         + "FROM (SELECT NULL AS `X`, NULL AS `Y`) AS `t`\n"
         + "WHERE 1 = 0";
@@ -8136,7 +8136,7 @@ class RelToSqlConverterTest {
         + "limit 0";
     final String sql = "SELECT SUBSTRING(y, 1, 1) FROM (" + sql0 + ") t";
     final RuleSet rules =
-        RuleSets.ofList(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
+        RuleSets.ofList(PruneEmptyRules.SORT_EMPTY_INSTANCE);
     final String expected = "SELECT SUBSTRING(`Y`, 1, 1)\n"
         + "FROM (SELECT NULL AS `X`, NULL AS `Y`) AS `t`\n"
         + "WHERE 1 = 0";

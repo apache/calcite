@@ -42,7 +42,6 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -221,30 +220,34 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
-   * to empty if it has {@code LIMIT 0}.
+   * to empty if it is definitely empty, for example because its child is empty,
+   * it has {@code LIMIT 0}, or its {@code OFFSET} is greater than or equal to
+   * the maximum number of rows its input can produce.
    *
    * <p>Examples:
    *
    * <ul>
-   * <li>Sort[fetch=0] becomes Empty
+   * <li>Sort(Empty) becomes Empty</li>
+   * <li>Sort[fetch=0] becomes Empty</li>
+   * <li>Sort[offset=5](input with at most 2 rows) becomes Empty</li>
    * </ul>
+   *
+   * <p>It relies on {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount}
+   * to derive whether the Sort is definitely empty.
    */
-  public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
-      SortFetchZeroRuleConfig.DEFAULT.toRule();
+  public static final RelOptRule SORT_EMPTY_INSTANCE =
+      SortEmptyRuleConfig.DEFAULT.toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
-   * to empty if its {@code OFFSET} is greater than or equal to the maximum
-   * number of rows its input can produce, so that all rows are skipped.
+   * to empty if it has {@code LIMIT 0}.
    *
-   * <p>Examples:
-   *
-   * <ul>
-   * <li>Sort[offset=5](input with at most 2 rows) becomes Empty
-   * </ul>
+   * @deprecated Use {@link #SORT_EMPTY_INSTANCE}, which covers this case and
+   * also Sort nodes that are empty for other reasons (e.g. a large OFFSET).
    */
-  public static final RelOptRule SORT_OFFSET_INSTANCE =
-      SortOffsetGreaterThanMaxRowsRuleConfig.DEFAULT.toRule();
+  @Deprecated // to be removed before 2.0
+  public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
+      SortEmptyRuleConfig.DEFAULT.toRule();
 
   /**
    * Rule that converts an {@link org.apache.calcite.rel.core.Aggregate}
@@ -539,44 +542,20 @@ public abstract class PruneEmptyRules {
     }
   }
 
-  /** Configuration for a rule that prunes a Sort if it has limit 0. */
+  /** Configuration for a rule that prunes a Sort if it is definitely empty,
+   * for example because its input is empty, it has {@code LIMIT 0}, or its
+   * {@code OFFSET} skips more rows than the input can produce. */
   @Value.Immutable
-  public interface SortFetchZeroRuleConfig extends PruneEmptyRule.Config {
-    SortFetchZeroRuleConfig DEFAULT = ImmutableSortFetchZeroRuleConfig.of()
+  public interface SortEmptyRuleConfig extends PruneEmptyRule.Config {
+    SortEmptyRuleConfig DEFAULT = ImmutableSortEmptyRuleConfig.of()
         .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-        .withDescription("PruneSortLimit0");
-
-    @Override default PruneEmptyRule toRule() {
-      return new RemoveEmptySingleRule(this) {
-        @Override public boolean matches(final RelOptRuleCall call) {
-          Sort sort = call.rel(0);
-          return sort.fetch != null
-              && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.bigDecimalValue(sort.fetch).equals(BigDecimal.ZERO);
-        }
-      };
-    }
-  }
-
-  /** Configuration for a rule that prunes a Sort if its {@code OFFSET} skips at
-   * least as many rows as its input can ever produce. */
-  @Value.Immutable
-  public interface SortOffsetGreaterThanMaxRowsRuleConfig extends PruneEmptyRule.Config {
-    SortOffsetGreaterThanMaxRowsRuleConfig DEFAULT =
-        ImmutableSortOffsetGreaterThanMaxRowsRuleConfig.of()
-            .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-            .withDescription("PruneSortOffsetGreaterThanMaxRows");
+        .withDescription("PruneSortIfEmpty");
 
     @Override default PruneEmptyRule toRule() {
       return new RemoveEmptySingleRule(this) {
         @Override public boolean matches(final RelOptRuleCall call) {
           final Sort sort = call.rel(0);
-          // Only consider a static (non-dynamic) OFFSET. If the offset skips at
-          // least as many rows as the input can ever produce, the Sort returns
-          // no rows. RelMdMaxRowCount#getMaxRowCount(Sort) already subtracts the
-          // offset from the input row count, so the Sort is definitely empty.
-          return sort.offset instanceof RexLiteral
-              && RelMdUtil.isRelDefinitelyEmpty(call.getMetadataQuery(), sort);
+          return RelMdUtil.isRelDefinitelyEmpty(call.getMetadataQuery(), sort);
         }
       };
     }

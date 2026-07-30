@@ -113,7 +113,7 @@ public class SortRemoveRedundantRule
     // If sort is 'order by x' or 'order by x limit n', target threshold is 1.
     // If sort is pure limit, the target threshold is the limit's fetch.
     // If the limit's fetch is 0, we could use
-    // CoreRules.SORT_FETCH_ZERO_INSTANCE to deal with it, so we don't need to
+    // PruneEmptyRules.SORT_EMPTY_INSTANCE to deal with it, so we don't need to
     // deal with it in this rule.
     final Optional<BigDecimal> rowCountThreshold = getRowCountThreshold(sort);
 
