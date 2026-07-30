@@ -242,10 +242,6 @@ public abstract class PruneEmptyRules {
    * <ul>
    * <li>Sort[offset=5](input with at most 2 rows) becomes Empty
    * </ul>
-   *
-   * <p>It relies on {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount}
-   * to derive the input row count. If the stats are not available then the rule
-   * is a noop.
    */
   public static final RelOptRule SORT_OFFSET_INSTANCE =
       SortOffsetGreaterThanMaxRowsRuleConfig.DEFAULT.toRule();
