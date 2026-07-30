@@ -561,6 +561,20 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle);
   }
 
+  @Test void testDatetimeSubtractionWithCompoundInterval() {
+    final String query = "select CURRENT_DATE"
+        + " - (INTERVAL '3' YEAR + INTERVAL '3' YEAR) as d";
+    final String expected = "SELECT (CURRENT_DATE"
+        + " - (INTERVAL '3' YEAR + INTERVAL '3' YEAR)) AS \"D\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedSpark = "SELECT (CURRENT_DATE"
+        + " - (INTERVAL '3' YEAR + INTERVAL '3' YEAR)) `D`\n"
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query)
+        .ok(expected)
+        .withSpark().ok(expectedSpark);
+  }
+
   @Test void testPivotToSqlFromProductTable() {
     String query = "select * from (\n"
         + "  select \"shelf_width\", \"net_weight\", \"product_id\"\n"
