@@ -49,7 +49,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
