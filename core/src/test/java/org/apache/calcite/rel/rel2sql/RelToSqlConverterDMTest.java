@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.AdditionalProjectionTrait;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CommentTrait;
@@ -30,6 +31,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.SourceJoinFormTrait;
 import org.apache.calcite.plan.SourceJoinKind;
+import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.TableAliasTrait;
 import org.apache.calcite.plan.ViewChildProjectRelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -204,7 +206,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15167,5 +15171,93 @@ class RelToSqlConverterDMTest {
 
     final String expectedQuery = "SELECT CEIL(10 / 3, 5) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test void testSubQueryAliasBackfillsParentSelectAndWhereColumns() {
+    final RelBuilder builder = foodmartRelBuilder();
+
+    RelNode innerJoin = builder
+        .scan("employee")
+        .scan("department")
+        .join(JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, 0, "department_id"),
+                builder.field(2, 1, "department_id")))
+        .build();
+
+    final CorrelationId correlationId = builder.getCluster().createCorrel();
+    final RexNode correlVariable =
+        builder.getRexBuilder().makeCorrel(innerJoin.getRowType(), correlationId);
+    final int employeeIdIndex =
+        innerJoin.getRowType().getField("employee_id", false, false).getIndex();
+
+    RelNode existsSubquery = builder
+        .scan("reserve_employee")
+        .filter(
+            builder.equals(
+            builder.field("employee_id"),
+            builder.getRexBuilder().makeFieldAccess(correlVariable, employeeIdIndex)))
+        .project(builder.literal(1))
+        .build();
+
+    RelNode filteredInner = builder
+        .push(innerJoin)
+        .filter(ImmutableSet.of(correlationId),
+            builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(existsSubquery)))
+        .build();
+
+    filteredInner =
+        filteredInner.copy(filteredInner.getTraitSet()
+            .plus(new SubQueryAliasTrait("t1"))
+            .plus(new AdditionalProjectionTrait()),
+        filteredInner.getInputs());
+
+    final int empIdIdx =
+        filteredInner.getRowType().getField("employee_id", false, false).getIndex();
+    RelNode outerJoin = builder
+        .push(filteredInner)
+        .scan("store")
+        .join(JoinRelType.LEFT,
+            builder.equals(
+                builder.field(2, 0, empIdIdx),
+                builder.field(2, 1, "store_id")))
+        .build();
+
+    final int hireDateIdx =
+        outerJoin.getRowType().getField("hire_date", false, false).getIndex();
+    final int firstNameIdx =
+        outerJoin.getRowType().getField("first_name", false, false).getIndex();
+    final int deptDescIdx =
+        outerJoin.getRowType().getField("department_description", false, false).getIndex();
+
+    RexNode hireDateLiteral =
+        builder.getRexBuilder().makeDateLiteral(new DateString("2020-01-01"));
+
+    RelNode filtered = builder
+        .push(outerJoin)
+        .filter(builder.notEquals(builder.field(hireDateIdx), hireDateLiteral))
+        .build();
+
+    RelNode root = builder
+        .push(filtered)
+        .project(
+            builder.field(firstNameIdx),
+            builder.field(hireDateIdx),
+            builder.field(deptDescIdx),
+            builder.call(SqlStdOperatorTable.CURRENT_DATE))
+        .build();
+
+    root =
+        root.copy(root.getTraitSet().plus(new AdditionalProjectionTrait()),
+        root.getInputs());
+
+    final String actual = toSql(root, DatabaseProduct.BIG_QUERY.getDialect());
+    assertThat(actual, containsString("hire_date"));
+    assertThat(actual, containsString("first_name"));
+    assertThat(actual, containsString("department_description"));
+    assertThat(
+        actual, not(
+            containsString("FROM (SELECT employee.employee_id AS employee_id0\n"
+        + "  FROM foodmart.employee")));
   }
 }
