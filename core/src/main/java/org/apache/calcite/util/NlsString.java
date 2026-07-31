@@ -38,6 +38,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -185,10 +186,34 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   }
 
   @Override public int compareTo(NlsString other) {
+    int cmp;
     if (collation != null && collation.getCollator() != null) {
-      return collation.getCollator().compare(getValue(), other.getValue());
+      cmp = collation.getCollator().compare(getValue(), other.getValue());
+    } else {
+      cmp = getValue().compareTo(other.getValue());
     }
-    return getValue().compareTo(other.getValue());
+    if (cmp != 0) {
+      return cmp;
+    }
+    cmp =
+        Objects.compare(
+            charsetName, other.charsetName,
+            Comparator.nullsFirst(String::compareTo));
+    if (cmp != 0) {
+      return cmp;
+    }
+    cmp =
+        Objects.compare(
+            collation, other.collation,
+            Comparator.nullsFirst(
+                Comparator.comparing(Object::toString)));
+    if (cmp != 0) {
+      return cmp;
+    }
+    // Ensures compareTo==0 <-> equals==true
+    return Objects.compare(
+        bytesValue, other.bytesValue,
+        Comparator.nullsFirst(Comparator.naturalOrder()));
   }
 
   @Pure
