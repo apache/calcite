@@ -5113,14 +5113,20 @@ public class RexImpTable implements RexImplementorTable {
   private static class SessionImplementor implements TableFunctionCallImplementor {
     @Override public Expression implement(RexToLixTranslator translator,
         Expression inputEnumerable, RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
-      RexCall timestampDescriptor = (RexCall) call.getOperands().get(0);
-      RexCall keyDescriptor = (RexCall) call.getOperands().get(1);
-      Expression gapInterval = translator.translate(call.getOperands().get(2));
+      final List<RexNode> operands = call.getOperands();
+      RexCall timestampDescriptor = (RexCall) operands.get(0);
+      // The gap is always the last operand; the key descriptor between them is
+      // optional.  Without a key every row belongs to a single session
+      // timeline, which a key column index of -1 denotes.
+      Expression gapInterval = translator.translate(Util.last(operands));
+      final int keyColIndex =
+          operands.size() > 2 && operands.get(1).getKind() == SqlKind.DESCRIPTOR
+              ? ((RexInputRef) ((RexCall) operands.get(1)).getOperands().get(0)).getIndex()
+              : -1;
 
       Expression wmColIndexExpr =
           Expressions.constant(((RexInputRef) timestampDescriptor.getOperands().get(0)).getIndex());
-      Expression keyColIndexExpr =
-          Expressions.constant(((RexInputRef) keyDescriptor.getOperands().get(0)).getIndex());
+      Expression keyColIndexExpr = Expressions.constant(keyColIndex);
 
       return Expressions.call(BuiltInMethod.SESSIONIZATION.method,
           Expressions.list(

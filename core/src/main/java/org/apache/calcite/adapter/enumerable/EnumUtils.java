@@ -1100,6 +1100,9 @@ public class EnumUtils {
    * Creates enumerable implementation that applies sessionization to elements from the input
    * enumerator based on a specified key. Elements are windowed into sessions separated by
    * periods with no input for at least the duration specified by gap parameter.
+   *
+   * <p>The key is optional: pass -1 for {@code indexOfKeyColumn} to place every
+   * element on a single session timeline.
    */
   public static Enumerable<@Nullable Object[]> sessionize(
       Enumerator<@Nullable Object[]> inputEnumerator,
@@ -1144,7 +1147,9 @@ public class EnumUtils {
      *
      * @param inputEnumerator the enumerator to provide an array of objects as input
      * @param indexOfWatermarkedColumn the index of timestamp column upon which a watermark is built
-     * @param indexOfKeyColumn the index of column that acts as grouping key
+     * @param indexOfKeyColumn the index of column that acts as grouping key,
+     *                         or -1 if there is no key and all rows belong to
+     *                         a single session timeline
      * @param gap gap parameter
      */
     SessionizationEnumerator(Enumerator<@Nullable Object[]> inputEnumerator,
@@ -1194,8 +1199,11 @@ public class EnumUtils {
       Map<@Nullable Object, SortedMultiMap<Pair<Long, Long>, @Nullable Object[]>> sessionKeyMap =
           new HashMap<>();
       for (@Nullable Object[] element : elements) {
+        // A key column index of -1 means that there is no key; every element
+        // then maps to the same (null) key, forming one session timeline.
+        Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
         SortedMultiMap<Pair<Long, Long>, @Nullable Object[]> session =
-            sessionKeyMap.computeIfAbsent(element[indexOfKeyColumn], k -> new SortedMultiMap<>());
+            sessionKeyMap.computeIfAbsent(key, k -> new SortedMultiMap<>());
         Object watermark =
             requireNonNull(element[indexOfWatermarkedColumn],
                 "element[indexOfWatermarkedColumn]");
