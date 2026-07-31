@@ -28,6 +28,10 @@ import java.util.List;
  * Map that allows you to partition values into lists according to a common
  * key, and then convert those lists into an iterator of sorted arrays.
  *
+ * <p>Only the values are sorted, by {@link #arrays(Comparator)}; the keys are
+ * not, because this map extends {@link HashMap}. Use a {@link java.util.TreeMap}
+ * if you need to visit the keys in order.
+ *
  * @param <K> Key type
  * @param <V> Value type
  */
