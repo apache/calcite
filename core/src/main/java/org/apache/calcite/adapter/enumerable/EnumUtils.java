@@ -1036,7 +1036,7 @@ public class EnumUtils {
   static Expression tumblingWindowSelector(
       PhysType inputPhysType,
       PhysType outputPhysType,
-      Expression wmColExpr,
+      int wmColIndex,
       Expression windowSizeExpr,
       Expression offsetExpr) {
     // Generate all fields.
@@ -1053,6 +1053,9 @@ public class EnumUtils {
               outputPhysType.getJavaFieldType(expressions.size()));
       expressions.add(expression);
     }
+    final Expression wmColExpr =
+        inputPhysType.fieldReference(parameter, wmColIndex,
+            outputPhysType.getJavaFieldType(fieldCount));
     final Expression wmColExprToLong = EnumUtils.convert(wmColExpr, long.class);
 
     // Find the fixed window for a timestamp given a window size and an offset, and return the
@@ -1074,8 +1077,20 @@ public class EnumUtils {
 
     expressions.add(windowEndExpr);
 
-    return Expressions.lambda(Function1.class,
-        outputPhysType.record(expressions), parameter);
+    Expression body = outputPhysType.record(expressions);
+    if (inputPhysType.getRowType().getFieldList().get(wmColIndex).getType()
+        .isNullable()) {
+      // A row whose timestamp is NULL belongs to no window, since window_start
+      // and window_end are declared NOT NULL.  Return null for such a row
+      body =
+          Expressions.condition(
+              Expressions.equal(
+                  inputPhysType.fieldReference(parameter, wmColIndex),
+                  Expressions.constant(null)),
+              Expressions.constant(null, body.getType()),
+              body);
+    }
+    return Expressions.lambda(Function1.class, body, parameter);
   }
 
   /**
@@ -1307,13 +1322,22 @@ public class EnumUtils {
     }
 
     @Override public @Nullable Object[] current() {
-      if (!list.isEmpty()) {
-        return takeOne();
-      } else {
+      return takeOne();
+    }
+
+    @Override public boolean moveNext() {
+      // Expand input rows until one of them yields a window.  A row whose
+      // timestamp is NULL belongs to no window, and window_start and
+      // window_end are declared NOT NULL, so such a row is discarded.
+      while (list.isEmpty()) {
+        if (!inputEnumerator.moveNext()) {
+          return false;
+        }
         @Nullable Object[] current = inputEnumerator.current();
-        Object watermark =
-            requireNonNull(current[indexOfWatermarkedColumn],
-                "element[indexOfWatermarkedColumn]");
+        Object watermark = current[indexOfWatermarkedColumn];
+        if (watermark == null) {
+          continue;
+        }
         PairList<Long, Long> windows =
             hopWindows(SqlFunctions.toLong(watermark), emitFrequency,
                 windowSize, offset);
@@ -1324,12 +1348,8 @@ public class EnumUtils {
           curWithWindow[current.length + 1] = right;
           list.offer(curWithWindow);
         });
-        return takeOne();
       }
-    }
-
-    @Override public boolean moveNext() {
-      return !list.isEmpty() || inputEnumerator.moveNext();
+      return true;
     }
 
     @Override public void reset() {
@@ -1367,17 +1387,29 @@ public class EnumUtils {
       Function1<TSource, TResult> outSelector) {
     return new AbstractEnumerable<TResult>() {
       // Applies tumbling on each element from the input enumerator and produces
-      // exactly one element for each input element.
+      // at most one element for each input element.
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           final Enumerator<TSource> inputs = inputEnumerable.enumerator();
+          @Nullable TResult current;
 
           @Override public TResult current() {
-            return outSelector.apply(inputs.current());
+            return requireNonNull(current, "current");
           }
 
           @Override public boolean moveNext() {
-            return inputs.moveNext();
+            // The selector returns null for a row whose timestamp is NULL:
+            // such a row belongs to no window, and window_start and window_end
+            // are declared NOT NULL, so the row is discarded.
+            while (inputs.moveNext()) {
+              TResult result = outSelector.apply(inputs.current());
+              if (result != null) {
+                current = result;
+                return true;
+              }
+            }
+            current = null;
+            return false;
           }
 
           @Override public void reset() {

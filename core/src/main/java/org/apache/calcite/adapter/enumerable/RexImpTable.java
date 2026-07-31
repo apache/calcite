@@ -4970,14 +4970,8 @@ public class RexImpTable implements RexImplementorTable {
       // represents the input, see StandardConvertletTable#convertWindowFunction.
       Expression intervalExpression = translator.translate(call.getOperands().get(1));
       RexCall descriptor = (RexCall) call.getOperands().get(0);
-      final ParameterExpression parameter =
-          Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()),
-              "_input");
-      Expression wmColExpr =
-          inputPhysType.fieldReference(parameter,
-              ((RexInputRef) descriptor.getOperands().get(0)).getIndex(),
-              outputPhysType.getJavaFieldType(
-                  inputPhysType.getRowType().getFieldCount()));
+      final int wmColIndex =
+          ((RexInputRef) descriptor.getOperands().get(0)).getIndex();
 
       // handle the optional offset parameter. Use 0 for the default value when offset
       // parameter is not set.
@@ -4991,7 +4985,7 @@ public class RexImpTable implements RexImplementorTable {
           EnumUtils.tumblingWindowSelector(
               inputPhysType,
               outputPhysType,
-              wmColExpr,
+              wmColIndex,
               intervalExpression,
               offsetExpr));
     }
