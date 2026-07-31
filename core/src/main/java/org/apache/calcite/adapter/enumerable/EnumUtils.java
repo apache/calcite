@@ -55,7 +55,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.runtime.PairList;
-import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCollation;
@@ -87,7 +86,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 import static org.apache.calcite.config.CalciteSystemProperty.JOIN_SELECTOR_COMPACT_CODE_THRESHOLD;
@@ -1163,15 +1164,22 @@ public class EnumUtils {
     }
 
     @Override public @Nullable Object[] current() {
-      if (!initialized) {
-        initialize();
-        initialized = true;
-      }
       return list.removeFirst();
     }
 
     @Override public boolean moveNext() {
-      return initialized ? !list.isEmpty() : inputEnumerator.moveNext();
+      // Sessionization needs to see all the input, so the first call consumes
+      // it entirely.  Initializing here rather than in current() lets this
+      // method report that there is nothing to return, which happens when
+      // every row was discarded for having a NULL timestamp.
+      if (!initialized) {
+        initialized = true;
+        if (!inputEnumerator.moveNext()) {
+          return false;
+        }
+        initialize();
+      }
+      return !list.isEmpty();
     }
 
     @Override public void reset() {
@@ -1196,24 +1204,26 @@ public class EnumUtils {
         elements.add(inputEnumerator.current());
       }
 
-      Map<@Nullable Object, SortedMultiMap<Pair<Long, Long>, @Nullable Object[]>> sessionKeyMap =
-          new HashMap<>();
+      // The windows of each key are kept sorted by start time; the merge
+      // below only compares a window with the one that precedes it.
+      Map<@Nullable Object, NavigableMap<Pair<Long, Long>, List<@Nullable Object[]>>>
+          sessionKeyMap = new HashMap<>();
       for (@Nullable Object[] element : elements) {
         // A key column index of -1 means that there is no key; every element
         // then maps to the same (null) key, forming one session timeline.
         Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
-        SortedMultiMap<Pair<Long, Long>, @Nullable Object[]> session =
-            sessionKeyMap.computeIfAbsent(key, k -> new SortedMultiMap<>());
         Object watermark =
             requireNonNull(element[indexOfWatermarkedColumn],
                 "element[indexOfWatermarkedColumn]");
+        NavigableMap<Pair<Long, Long>, List<@Nullable Object[]>> session =
+            sessionKeyMap.computeIfAbsent(key, k -> new TreeMap<>());
         Pair<Long, Long> initWindow =
             computeInitWindow(SqlFunctions.toLong(watermark), gap);
-        session.putMulti(initWindow, element);
+        session.computeIfAbsent(initWindow, k -> new ArrayList<>()).add(element);
       }
 
       // merge per key session windows if there is any overlap between windows.
-      for (Map.Entry<@Nullable Object, SortedMultiMap<Pair<Long, Long>, @Nullable Object[]>>
+      for (Map.Entry<@Nullable Object, NavigableMap<Pair<Long, Long>, List<@Nullable Object[]>>>
           perKeyEntry : sessionKeyMap.entrySet()) {
         Map<Pair<Long, Long>, List<@Nullable Object[]>> finalWindowElementsMap = new HashMap<>();
         Pair<Long, Long> currentWindow = null;

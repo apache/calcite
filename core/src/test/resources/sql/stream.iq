@@ -327,3 +327,50 @@ SELECT * FROM TABLE(
 (5 rows)
 
 !ok
+
+# Test case for [CALCITE-7683] SessionizationEnumerator produces wrong results
+# for SESSION table function.
+# Here 10:05 and 10:30 are 25 minutes apart and 10:40 and 11:30 are 50 minutes
+# apart, both more than the 15 minute gap, so the rows form three sessions.
+SELECT * FROM TABLE(
+  SESSION(
+    (SELECT * FROM (VALUES
+      (TIMESTAMP '2020-01-01 10:00:00', 'a'),
+      (TIMESTAMP '2020-01-01 10:05:00', 'a'),
+      (TIMESTAMP '2020-01-01 10:30:00', 'a'),
+      (TIMESTAMP '2020-01-01 10:40:00', 'a'),
+      (TIMESTAMP '2020-01-01 11:30:00', 'a')) AS T(TS, UID)),
+    DESCRIPTOR(TS), DESCRIPTOR(UID), INTERVAL '15' MINUTE))
+ORDER BY TS;
++---------------------+-----+---------------------+---------------------+
+| TS                  | UID | window_start        | window_end          |
++---------------------+-----+---------------------+---------------------+
+| 2020-01-01 10:00:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 10:20:00 |
+| 2020-01-01 10:05:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 10:20:00 |
+| 2020-01-01 10:30:00 | a   | 2020-01-01 10:30:00 | 2020-01-01 10:55:00 |
+| 2020-01-01 10:40:00 | a   | 2020-01-01 10:30:00 | 2020-01-01 10:55:00 |
+| 2020-01-01 11:30:00 | a   | 2020-01-01 11:30:00 | 2020-01-01 11:45:00 |
++---------------------+-----+---------------------+---------------------+
+(5 rows)
+
+!ok
+
+# Test case for [CALCITE-7683] SessionizationEnumerator produces wrong results
+# for SESSION table function.
+SELECT * FROM TABLE(
+  SESSION(
+    (SELECT * FROM (VALUES
+      (TIMESTAMP '2020-01-01 10:00:00', 'a'),
+      (TIMESTAMP '2020-01-01 10:05:00', 'a'),
+      (TIMESTAMP '2020-01-01 10:30:00', 'a')) AS T(TS, UID)),
+    DESCRIPTOR(TS), DESCRIPTOR(UID), INTERVAL '15' MINUTE));
++---------------------+-----+---------------------+---------------------+
+| TS                  | UID | window_start        | window_end          |
++---------------------+-----+---------------------+---------------------+
+| 2020-01-01 10:00:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 10:20:00 |
+| 2020-01-01 10:05:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 10:20:00 |
+| 2020-01-01 10:30:00 | a   | 2020-01-01 10:30:00 | 2020-01-01 10:45:00 |
++---------------------+-----+---------------------+---------------------+
+(3 rows)
+
+!ok
