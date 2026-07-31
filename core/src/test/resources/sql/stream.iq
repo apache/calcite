@@ -95,6 +95,40 @@ SELECT * FROM TABLE(TUMBLE((SELECT * FROM ORDERS), DESCRIPTOR(ROWTIME), INTERVAL
 
 !ok
 
+# Test case for [CALCITE-7684] HOPPING and TUMBLING window queries crash at
+# runtime for NULL timestamps.
+# A row whose timestamp is NULL belongs to no window; window_start and
+# window_end are declared NOT NULL, so such a row is discarded.
+SELECT * FROM TABLE(
+  TUMBLE(
+    (SELECT * FROM (VALUES
+      (TIMESTAMP '2020-01-01 10:00:00', 'a'),
+      (CAST(NULL AS TIMESTAMP), 'b')) AS T(TS, UID)),
+    DESCRIPTOR(TS), INTERVAL '1' HOUR));
++---------------------+-----+---------------------+---------------------+
+| TS                  | UID | window_start        | window_end          |
++---------------------+-----+---------------------+---------------------+
+| 2020-01-01 10:00:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 11:00:00 |
++---------------------+-----+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# As above, but every row is discarded, so the result is empty.
+SELECT * FROM TABLE(
+  TUMBLE(
+    (SELECT * FROM (VALUES
+      (CAST(NULL AS TIMESTAMP), 'a'),
+      (CAST(NULL AS TIMESTAMP), 'b')) AS T(TS, UID)),
+    DESCRIPTOR(TS), INTERVAL '1' HOUR));
++----+-----+--------------+------------+
+| TS | UID | window_start | window_end |
++----+-----+--------------+------------+
++----+-----+--------------+------------+
+(0 rows)
+
+!ok
+
 SELECT * FROM TABLE(HOP(TABLE ORDERS, DESCRIPTOR(ROWTIME), INTERVAL '5' MINUTE, INTERVAL '10' MINUTE));
 +---------------------+----+---------+-------+---------------------+---------------------+
 | ROWTIME             | ID | PRODUCT | UNITS | window_start        | window_end          |
@@ -173,6 +207,41 @@ SELECT * FROM TABLE(HOP((SELECT * FROM ORDERS), DESCRIPTOR(ROWTIME), INTERVAL '5
 | 2015-02-15 11:10:00 |  5 | paint   |     3 | 2015-02-15 11:10:00 | 2015-02-15 11:20:00 |
 +---------------------+----+---------+-------+---------------------+---------------------+
 (10 rows)
+
+!ok
+
+# Test case for [CALCITE-7684] HOPPING and TUMBLING window queries crash at
+# runtime for NULL timestamps.
+# A row whose timestamp is NULL belongs to no window, not even to the first
+# of the windows that HOP would otherwise produce for it.
+SELECT * FROM TABLE(
+  HOP(
+    (SELECT * FROM (VALUES
+      (TIMESTAMP '2020-01-01 10:00:00', 'a'),
+      (CAST(NULL AS TIMESTAMP), 'b')) AS T(TS, UID)),
+    DESCRIPTOR(TS), INTERVAL '30' MINUTE, INTERVAL '1' HOUR));
++---------------------+-----+---------------------+---------------------+
+| TS                  | UID | window_start        | window_end          |
++---------------------+-----+---------------------+---------------------+
+| 2020-01-01 10:00:00 | a   | 2020-01-01 09:30:00 | 2020-01-01 10:30:00 |
+| 2020-01-01 10:00:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 11:00:00 |
++---------------------+-----+---------------------+---------------------+
+(2 rows)
+
+!ok
+
+# As above, but every row is discarded, so the result is empty.
+SELECT * FROM TABLE(
+  HOP(
+    (SELECT * FROM (VALUES
+      (CAST(NULL AS TIMESTAMP), 'a'),
+      (CAST(NULL AS TIMESTAMP), 'b')) AS T(TS, UID)),
+    DESCRIPTOR(TS), INTERVAL '30' MINUTE, INTERVAL '1' HOUR));
++----+-----+--------------+------------+
+| TS | UID | window_start | window_end |
++----+-----+--------------+------------+
++----+-----+--------------+------------+
+(0 rows)
 
 !ok
 
