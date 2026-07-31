@@ -35,15 +35,26 @@ jobs:
         with:
           fetch-depth: 0
           ref: site
-      - name: Cherry pick the commit to site
+      - name: Cherry pick all commits in push to site
+        env:
+          COMMITS: ${{ toJson(github.event.commits) }}
         run: |
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git config user.name ${{ github.actor }}
-          git cherry-pick --strategy=recursive -X theirs $GITHUB_SHA
-          if [ $? -neq 0 ]; then
-            git status | sed -n 's/deleted by us://p' | xargs git add
-            git cherry-pick --continue --no-edit
-          fi
+
+          # Extract each commit SHA from the push payload and iterate chronologically
+          echo "$COMMITS" | jq -r '.[].id' | while read -r commit_sha; do
+            echo "----------------------------------------"
+            echo "Cherry-picking commit: $commit_sha"
+            echo "----------------------------------------"
+
+            if ! git cherry-pick --strategy=recursive -X theirs "$commit_sha"; then
+              echo "Handling cherry-pick conflict..."
+              git status | sed -n 's/deleted by us://p' | xargs -r git add
+              git cherry-pick --continue --no-edit
+            fi
+          done
+
           git push origin site
 
   publish-website:
