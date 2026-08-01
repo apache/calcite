@@ -5852,6 +5852,23 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(PruneEmptyRules.EMPTY_TABLE_INSTANCE).check();
   }
 
+  /** Tests that {@link PruneEmptyRules#EMPTY_TABLE_INSTANCE} prunes a Filter
+   * whose condition is always false, even when its input is not an empty
+   * Values. */
+  @Test void testEmptyFilterAlwaysFalse() {
+    final String sql = "select * from emp where false";
+    sql(sql).withRule(PruneEmptyRules.EMPTY_TABLE_INSTANCE).check();
+  }
+
+  /** Tests that {@link PruneEmptyRules#EMPTY_TABLE_INSTANCE} does not prune a
+   * {@code TableModify}, because it may have side effects even when no rows are
+   * modified. The input Filter is still pruned to empty Values. */
+  @Test void testEmptyTableModifyNotPruned() {
+    final String sql = "insert into sales.dept(deptno, name)\n"
+        + "select empno, ename from emp where false";
+    sql(sql).withRule(PruneEmptyRules.EMPTY_TABLE_INSTANCE).check();
+  }
+
   @Test void testEmptyAggregate() {
     final String sql = "select sum(empno) from emp where false group by deptno";
     sql(sql)
