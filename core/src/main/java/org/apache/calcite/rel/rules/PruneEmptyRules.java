@@ -35,14 +35,13 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -50,7 +49,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -223,14 +221,13 @@ public abstract class PruneEmptyRules {
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
    * to empty if it has {@code LIMIT 0}.
    *
-   * <p>Examples:
-   *
-   * <ul>
-   * <li>Sort[fetch=0] becomes Empty
-   * </ul>
+   * @deprecated Use {@link #EMPTY_TABLE_INSTANCE}, which uses
+   * {@link RelMdUtil#isRelDefinitelyEmpty} to prune any relational expression
+   * that is definitely empty.
    */
+  @Deprecated // to be removed before 2.0
   public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
-      SortFetchZeroRuleConfig.DEFAULT.toRule();
+      ZeroMaxRowsRuleConfig.DEFAULT.toRule();
 
   /**
    * Rule that converts an {@link org.apache.calcite.rel.core.Aggregate}
@@ -525,25 +522,6 @@ public abstract class PruneEmptyRules {
     }
   }
 
-  /** Configuration for a rule that prunes a Sort if it has limit 0. */
-  @Value.Immutable
-  public interface SortFetchZeroRuleConfig extends PruneEmptyRule.Config {
-    SortFetchZeroRuleConfig DEFAULT = ImmutableSortFetchZeroRuleConfig.of()
-        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-        .withDescription("PruneSortLimit0");
-
-    @Override default PruneEmptyRule toRule() {
-      return new RemoveEmptySingleRule(this) {
-        @Override public boolean matches(final RelOptRuleCall call) {
-          Sort sort = call.rel(0);
-          return sort.fetch != null
-              && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.bigDecimalValue(sort.fetch).equals(BigDecimal.ZERO);
-        }
-      };
-    }
-  }
-
   /** Configuration for rule that prunes a join it its left input is
    * empty. */
   @Value.Immutable
@@ -684,23 +662,37 @@ public abstract class PruneEmptyRules {
     }
   }
 
-  /** Configuration for rule that transforms an empty relational expression into
-   * an empty values.
+  /** Configuration for rule that transforms a relational expression into an
+   * empty values if it is definitely empty.
    *
    * <p>It relies on {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount} to
    * derive if the relation is empty or not. If the stats are not available then
-   * the rule is a noop. */
+   * the rule is a noop.
+   *
+   * <p>{@link Values} is excluded because it is already a values and does not
+   * need to be replaced. {@link TableModify} is excluded because it may have
+   * side effects even when no rows are modified. */
   @Value.Immutable
   public interface ZeroMaxRowsRuleConfig extends PruneEmptyRule.Config {
+    Predicate<RelNode> CAN_BE_REPLACED_BY_EMPTY_VALUES = rel ->
+        !(rel instanceof Values) && !(rel instanceof TableModify);
+
     ZeroMaxRowsRuleConfig DEFAULT = ImmutableZeroMaxRowsRuleConfig.of()
-        .withOperandSupplier(b0 -> b0.operand(TableScan.class).noInputs())
-        .withDescription("PruneZeroRowsTable");
+        .withOperandSupplier(b0 -> b0.operand(RelNode.class)
+            .predicate(CAN_BE_REPLACED_BY_EMPTY_VALUES)
+            .anyInputs())
+        .withDescription("PruneZeroRows");
 
     @Override default PruneEmptyRule toRule() {
-      return new RemoveEmptySingleRule(this) {
-        @Override public boolean matches(RelOptRuleCall call) {
+      return new PruneEmptyRule(this) {
+        @Override public boolean matches(final RelOptRuleCall call) {
           RelNode node = call.rel(0);
           return RelMdUtil.isRelDefinitelyEmpty(call.getMetadataQuery(), node);
+        }
+
+        @Override public void onMatch(final RelOptRuleCall call) {
+          RelNode node = call.rel(0);
+          call.transformTo(call.builder().push(node).empty().build());
         }
       };
     }

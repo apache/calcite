@@ -4195,6 +4195,23 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptyFilterAlwaysFalse">
+    <Resource name="sql">
+      <![CDATA[select * from emp where false]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEmptyFilterProjectUnion">
     <Resource name="sql">
       <![CDATA[select * from (
@@ -4454,6 +4471,25 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptySortOffsetGreaterThanMaxRows">
+    <Resource name="sql">
+      <![CDATA[select * from (values (1, 2), (3, 4)) as t (a, b)
+order by a
+offset 5 rows]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[5])
+  LogicalProject(A=[$0], B=[$1])
+    LogicalValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEmptyTable">
     <Resource name="sql">
       <![CDATA[select * from EMPTY_PRODUCTS
@@ -4468,6 +4504,26 @@ LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEmptyTableModifyNotPruned">
+    <Resource name="sql">
+      <![CDATA[insert into sales.dept(deptno, name)
+select empno, ename from emp where false]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
+  LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalFilter(condition=[false])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
+  LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
