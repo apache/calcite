@@ -108,9 +108,13 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
             builder.add(field.getName(), fieldType);
           }
         } else {
-          RelDataType colType = padNullable
-              ? typeFactory.enforceTypeWithNullability(componentType, true)
+          RelDataType elementType = componentType.isStruct()
+              ? typeFactory.builder().kind(componentType.getStructKind())
+                  .addAll(componentType.getFieldList()).build()
               : componentType;
+          RelDataType colType = padNullable
+              ? typeFactory.enforceTypeWithNullability(elementType, true)
+              : elementType;
           builder.add(SqlUtil.deriveAliasFromOrdinal(operand), colType);
         }
       }

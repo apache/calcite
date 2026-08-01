@@ -28,8 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.util.BuiltInMethod;
-
-import com.google.common.primitives.Ints;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,6 +55,19 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     assert getConvention() == child.getConvention();
   }
 
+  /** Creates an EnumerableUncollect with explicit control over which input
+   * fields are passed through unchanged and which are unnested.
+   *
+   * <p>Use {@link #create} unless you know what you're doing. */
+  public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode child, boolean withOrdinality, ImmutableBitSet passthroughFieldIndices,
+      ImmutableBitSet collectionFieldIndices, boolean outer, boolean expandStructFields) {
+    super(cluster, traitSet, child, withOrdinality, Collections.emptyList(),
+        passthroughFieldIndices, collectionFieldIndices, outer, expandStructFields);
+    assert getConvention() instanceof EnumerableConvention;
+    assert getConvention() == child.getConvention();
+  }
+
   /**
    * Creates an EnumerableUncollect.
    *
@@ -72,70 +84,98 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     return new EnumerableUncollect(cluster, traitSet, input, withOrdinality);
   }
 
-  @Override public EnumerableUncollect copy(RelTraitSet traitSet,
-      RelNode newInput) {
-    return new EnumerableUncollect(getCluster(), traitSet, newInput,
-        withOrdinality);
+  /**
+   * Creates an EnumerableUncollect that unnests the collection-typed fields at
+   * {@code collectionFieldIndices}, passing through the fields at
+   * {@code passthroughFieldIndices} unchanged and dropping all others.
+   *
+   * @param traitSet                Trait set
+   * @param input                   Input relational expression
+   * @param withOrdinality          Whether output should contain an ORDINALITY column
+   * @param passthroughFieldIndices Fields from the input copied unchanged to the output
+   * @param collectionFieldIndices  Fields from the input which are unnested
+   * @param outer                   if true, preserves input rows with null/empty collections
+   *                                (LEFT JOIN); if false, drops them (INNER)
+   */
+  public static EnumerableUncollect create(RelTraitSet traitSet, RelNode input,
+      boolean withOrdinality, ImmutableBitSet passthroughFieldIndices,
+      ImmutableBitSet collectionFieldIndices, boolean outer, boolean expandStructFields) {
+    final RelOptCluster cluster = input.getCluster();
+    return new EnumerableUncollect(cluster, traitSet, input, withOrdinality,
+        passthroughFieldIndices, collectionFieldIndices, outer, expandStructFields);
   }
 
+  @Override public EnumerableUncollect copy(RelTraitSet traitSet,
+      RelNode newInput) {
+    return new EnumerableUncollect(getCluster(), traitSet, newInput, withOrdinality,
+        getPassthroughFieldIndices(), getCollectionFieldIndices(), isOuter,
+        expandStructFields);
+  }
+
+  /** Implements Uncollect: a subset of input fields (possibly all of them)
+   * are unnested, the rest are either passed through unchanged or dropped,
+   * and (if {@link #isOuter}) rows with null/empty collections are preserved
+   * with NULL-padded element columns. */
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    final ImmutableBitSet passthroughIndices = getPassthroughFieldIndices();
+    final ImmutableBitSet collIndices = getCollectionFieldIndices();
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
-    final Result result = implementor.visitChild(this, 0, child, pref);
+    final Result childResult = implementor.visitChild(this, 0, child, pref);
     final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(),
-            getRowType(),
-            JavaRowFormat.LIST);
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), JavaRowFormat.LIST);
 
-    // final Enumerable<List<Employee>> child = <<child adapter>>;
-    // return child.selectMany(FLAT_ZIP);
-    final Expression child_ =
-        builder.append(
-            "child", result.block);
-
+    // Compute element width and kind for each collection field.
+    final List<RelDataTypeField> inputFields =
+        getInput().getRowType().getFieldList();
     final List<Integer> fieldCounts = new ArrayList<>();
     final List<FlatProductInputType> inputTypes = new ArrayList<>();
-
-    Expression lambdaForStructWithSingleItem = null;
-    for (RelDataTypeField field : child.getRowType().getFieldList()) {
-      final RelDataType type = field.getType();
-      if (type instanceof MapSqlType) {
+    for (int idx : collIndices) {
+      final RelDataType ft = inputFields.get(idx).getType();
+      if (ft instanceof MapSqlType) {
         fieldCounts.add(2);
         inputTypes.add(FlatProductInputType.MAP);
       } else {
-        final RelDataType elementType = getComponentTypeOrThrow(type);
-        if (elementType.isStruct()) {
-          if (elementType.getFieldCount() == 1 && child.getRowType().getFieldList().size() == 1
-              && !withOrdinality) {
-            // Solves CALCITE-4063: if we are processing a single field, which is a struct with a
-            // single item inside, and no ordinality; the result must be a scalar, hence use a
-            // special lambda that does not return lists, but the (single) items within those lists
-            lambdaForStructWithSingleItem = Expressions.call(BuiltInMethod.FLAT_LIST.method);
-          } else {
-            fieldCounts.add(elementType.getFieldCount());
-            inputTypes.add(FlatProductInputType.LIST);
-          }
+        final RelDataType ct = getComponentTypeOrThrow(ft);
+        if (ct.isStruct() && expandStructFields) {
+          fieldCounts.add(ct.getFieldCount());
+          inputTypes.add(FlatProductInputType.LIST);
+        } else if (ct.isStruct()) {
+          // A struct element kept whole occupies a single output column,
+          // like a scalar element, but its row value must be converted from
+          // the collection's internal list representation to Object[].
+          fieldCounts.add(-1);
+          inputTypes.add(FlatProductInputType.STRUCT);
         } else {
+          // Scalar elements occupy a single output column, unconverted.
           fieldCounts.add(-1);
           inputTypes.add(FlatProductInputType.SCALAR);
         }
       }
     }
 
-    final Expression lambda = lambdaForStructWithSingleItem != null
-        ? lambdaForStructWithSingleItem
-        : Expressions.call(BuiltInMethod.FLAT_ZIP.method,
-            Expressions.constant(Ints.toArray(fieldCounts)),
-            Expressions.constant(withOrdinality),
+    final Expression childExpression = builder.append("child", childResult.block);
+
+    // SqlFunctions.flatUncollect(passthroughIndices, collectionIndices,
+    //     fieldCounts, inputTypes, withOrdinality, inputFieldCount, outer)
+    final Expression flatUncollectFn =
+        Expressions.call(BuiltInMethod.FLAT_UNCOLLECT.method,
+            Expressions.constant(passthroughIndices.toArray()),
+            Expressions.constant(collIndices.toArray()),
+            // Following converts from a List<Integer> to int[] (not Integer[]).
+            Expressions.constant(fieldCounts.stream().mapToInt(i -> i).toArray()),
             Expressions.constant(
-                inputTypes.toArray(new FlatProductInputType[0])));
+                inputTypes.toArray(new FlatProductInputType[0])),
+            Expressions.constant(withOrdinality),
+            Expressions.constant(inputFields.size()),
+            Expressions.constant(isOuter));
+
     builder.add(
         Expressions.return_(null,
-            Expressions.call(child_,
+            Expressions.call(childExpression,
                 BuiltInMethod.SELECT_MANY.method,
-                lambda)));
+                flatUncollectFn)));
+
     return implementor.result(physType, builder.toBlock());
   }
-
 }
