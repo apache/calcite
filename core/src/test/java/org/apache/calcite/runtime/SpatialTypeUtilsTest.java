@@ -23,6 +23,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests {@link org.apache.calcite.runtime.SpatialTypeUtilsTest}.
@@ -52,5 +53,36 @@ class SpatialTypeUtilsTest {
     Geometry g1 = gf.createPoint(new Coordinate(1, 2));
     g1.setSRID(1234);
     assertThat(SpatialTypeUtils.asEwkt(g1), is("srid:1234;POINT (1 2)"));
+  }
+
+  @Test void testFromGml() {
+    GeometryFactory gf = new GeometryFactory();
+    Geometry point = gf.createPoint(new Coordinate(1, 2));
+    String gml = SpatialTypeUtils.asGml(point);
+    Geometry parsed = SpatialTypeUtils.fromGml(gml);
+    assertThat(parsed.getCoordinate().getX(), is(1D));
+    assertThat(parsed.getCoordinate().getY(), is(2D));
+  }
+
+  @Test void testFromGmlRejectsDoctype() {
+    String gmlWithDoctype = "<!DOCTYPE foo><gml:Point>"
+        + "<gml:coordinates>1,2</gml:coordinates></gml:Point>";
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () -> SpatialTypeUtils.fromGml(gmlWithDoctype));
+    assertThat(e.getMessage(), is("Unable to parse GML"));
+  }
+
+  @Test void testFromGmlRejectsXxeExternalEntity() {
+    String maliciousGml = "<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "
+        + "\"file:///etc/passwd\"> ]>"
+        + "<gml:Point><gml:coordinates>&xxe;,0</gml:coordinates></gml:Point>";
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () -> SpatialTypeUtils.fromGml(maliciousGml));
+    assertThat(e.getMessage(), is("Unable to parse GML"));
+  }
+
+  @Test void testFromGmlRejectsNullOrEmpty() {
+    assertThrows(RuntimeException.class, () -> SpatialTypeUtils.fromGml(null));
+    assertThrows(RuntimeException.class, () -> SpatialTypeUtils.fromGml(""));
   }
 }

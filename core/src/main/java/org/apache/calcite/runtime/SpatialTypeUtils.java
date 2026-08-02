@@ -31,14 +31,19 @@ import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.jts.io.gml2.GMLReader;
+import org.locationtech.jts.io.gml2.GMLHandler;
 import org.locationtech.jts.io.gml2.GMLWriter;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import static java.lang.Integer.parseInt;
 
@@ -130,13 +135,35 @@ public class SpatialTypeUtils {
   /**
    * Constructs a geometry from a GML representation.
    *
+   * <p>The XML parser is configured to reject DOCTYPE declarations and
+   * disable external entity expansion to prevent XXE attacks.
+   *
    * @param gml a GML
    * @return a geometry
    */
   public static Geometry fromGml(String gml) {
+    if (gml == null || gml.isEmpty()) {
+      throw new RuntimeException("Unable to parse GML");
+    }
     try {
-      GMLReader reader = new GMLReader();
-      return reader.read(gml, GEOMETRY_FACTORY);
+      SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
+      saxParserFactory.setValidating(false);
+      saxParserFactory.setNamespaceAware(false);
+      // Harden against XXE: disallow DOCTYPE declarations and disable
+      // external entity expansion.
+      saxParserFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      saxParserFactory.setFeature(
+          "http://apache.org/xml/features/disallow-doctype-decl", true);
+      saxParserFactory.setFeature(
+          "http://xml.org/sax/features/external-general-entities", false);
+      saxParserFactory.setFeature(
+          "http://xml.org/sax/features/external-parameter-entities", false);
+      saxParserFactory.setFeature(
+          "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+      SAXParser saxParser = saxParserFactory.newSAXParser();
+      GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, null);
+      saxParser.parse(new InputSource(new StringReader(gml)), handler);
+      return handler.getGeometry();
     } catch (SAXException | IOException | ParserConfigurationException e) {
       throw new RuntimeException("Unable to parse GML");
     }
