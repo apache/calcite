@@ -185,6 +185,13 @@ public class CoreQuidemTest extends QuidemTest {
               .with(CalciteAssert.SchemaSpec.STEELWHEELS)
               .with(Lex.BIG_QUERY))
               .connect();
+        case "hr-presto":
+          // Same as "hr", but uses PRESTO conformance, under which
+          // UNNEST(array) AS alias does not expand struct elements.
+          return customize(CalciteAssert.hr()
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.PRESTO))
+              .connect();
         default:
           return super.connect(name, reference);
         }

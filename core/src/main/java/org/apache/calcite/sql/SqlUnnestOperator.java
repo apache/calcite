@@ -99,6 +99,9 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       } else {
         RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
         boolean isNullable = componentType.isNullable() || padNullable;
+        // Whether a struct element expands into one column per field depends
+        // on the SQL conformance; allowAliasUnnestItems describes how
+        // collections of ROW values are expanded.
         if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
           for (RelDataTypeField field : componentType.getFieldList()) {
             RelDataType fieldType = field.getType();
@@ -108,9 +111,15 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
             builder.add(field.getName(), fieldType);
           }
         } else {
-          RelDataType colType = padNullable
-              ? typeFactory.enforceTypeWithNullability(componentType, true)
+          RelDataType elementType = componentType.isStruct()
+              ? typeFactory.builder().kind(componentType.getStructKind())
+                  .addAll(componentType.getFieldList()).build()
               : componentType;
+          // A NULL collection element becomes a NULL value in this column, so
+          // the column is nullable whenever the element type is.
+          RelDataType colType = isNullable
+              ? typeFactory.enforceTypeWithNullability(elementType, true)
+              : elementType;
           builder.add(SqlUtil.deriveAliasFromOrdinal(operand), colType);
         }
       }
