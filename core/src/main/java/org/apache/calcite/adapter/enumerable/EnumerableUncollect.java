@@ -51,7 +51,16 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
    * <p>Use {@link #create} unless you know what you're doing. */
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, boolean withOrdinality) {
-    super(cluster, traitSet, child, withOrdinality, Collections.emptyList());
+    this(cluster, traitSet, child, withOrdinality, true);
+  }
+
+  /** Creates an EnumerableUncollect.
+   *
+   * <p>Use {@link #create} unless you know what you're doing. */
+  public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode child, boolean withOrdinality, boolean expandStructFields) {
+    super(cluster, traitSet, child, withOrdinality, Collections.emptyList(),
+        expandStructFields);
     assert getConvention() instanceof EnumerableConvention;
     assert getConvention() == child.getConvention();
   }
@@ -72,10 +81,27 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     return new EnumerableUncollect(cluster, traitSet, input, withOrdinality);
   }
 
+  /**
+   * Creates an EnumerableUncollect.
+   *
+   * @param traitSet           Trait set
+   * @param input              Input relational expression
+   * @param withOrdinality     Whether output should contain an ORDINALITY column
+   * @param expandStructFields If true, a collection whose element type is a struct
+   *                           produces one output column per struct field; if false,
+   *                           a single column typed as the whole element
+   */
+  public static EnumerableUncollect create(RelTraitSet traitSet, RelNode input,
+      boolean withOrdinality, boolean expandStructFields) {
+    final RelOptCluster cluster = input.getCluster();
+    return new EnumerableUncollect(cluster, traitSet, input, withOrdinality,
+        expandStructFields);
+  }
+
   @Override public EnumerableUncollect copy(RelTraitSet traitSet,
       RelNode newInput) {
     return new EnumerableUncollect(getCluster(), traitSet, newInput,
-        withOrdinality);
+        withOrdinality, expandStructFields);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -105,7 +131,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
         inputTypes.add(FlatProductInputType.MAP);
       } else {
         final RelDataType elementType = getComponentTypeOrThrow(type);
-        if (elementType.isStruct()) {
+        if (elementType.isStruct() && expandStructFields) {
           if (elementType.getFieldCount() == 1 && child.getRowType().getFieldList().size() == 1
               && !withOrdinality) {
             // Solves CALCITE-4063: if we are processing a single field, which is a struct with a
@@ -116,6 +142,12 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
             fieldCounts.add(elementType.getFieldCount());
             inputTypes.add(FlatProductInputType.LIST);
           }
+        } else if (elementType.isStruct()) {
+          // A struct element kept whole occupies a single output column,
+          // like a scalar element, but its row value must be converted from
+          // the collection's internal list representation to Object[].
+          fieldCounts.add(-1);
+          inputTypes.add(FlatProductInputType.STRUCT);
         } else {
           fieldCounts.add(-1);
           inputTypes.add(FlatProductInputType.SCALAR);

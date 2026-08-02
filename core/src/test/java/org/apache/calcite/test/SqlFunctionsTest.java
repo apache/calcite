@@ -46,6 +46,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.FlatProductInputType.LIST;
 import static org.apache.calcite.runtime.SqlFunctions.FlatProductInputType.SCALAR;
+import static org.apache.calcite.runtime.SqlFunctions.FlatProductInputType.STRUCT;
 import static org.apache.calcite.runtime.SqlFunctions.arraysOverlap;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
@@ -2237,5 +2238,86 @@ class SqlFunctionsTest {
     assertThat(rows, hasSize(2));
     assertThat(rows.get(0), is(list(1, 2, 10, 20)));
     assertThat(rows.get(1), is(Arrays.asList(3, 4, null, null)));
+  }
+
+  /** The runtime representation of {@code ARRAY[ROW(1, 'x'), ROW(2, 'y')]}:
+   * a list whose elements are the field lists of each ROW. */
+  private static List<List<Comparable>> rowArray() {
+    return Arrays.asList(FlatLists.of(1, "x"), FlatLists.of(2, "y"));
+  }
+
+  @Test void testZipPaddedWholeStructElements() {
+    // Models the Trino semantics of
+    //   UNNEST(ARRAY[ROW(1, 'x'), ROW(2, 'y')], ARRAY[10, 20]) AS t(s, i):
+    // the STRUCT collection keeps each ROW element whole, so column s holds
+    // the element as an Object[]; the scalar column i zips alongside.
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatZip(
+            new int[]{-1, -1}, // one output column per collection
+            false,             // no ordinality
+            new SqlFunctions.FlatProductInputType[]{STRUCT, SCALAR});
+
+    final List<List<Object>> rows = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row
+        : fn.apply(new Object[]{rowArray(), Arrays.asList(10, 20)})) {
+      rows.add(new ArrayList<>(row));
+    }
+
+    // Expected rows: ({1, 'x'}, 10) and ({2, 'y'}, 20).
+    assertThat(rows, hasSize(2));
+    assertArrayEquals(new Object[]{1, "x"}, (Object[]) rows.get(0).get(0));
+    assertThat(rows.get(0).get(1), is(10));
+    assertArrayEquals(new Object[]{2, "y"}, (Object[]) rows.get(1).get(0));
+    assertThat(rows.get(1).get(1), is(20));
+  }
+
+  @Test void testZipPaddedNullStructElement() {
+    // A null element of an expanded ROW ARRAY is a null List, which
+    // must be expanded to one null per ROW field rather than dereferencing the list.
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatZip(
+            new int[]{2, -1}, // two columns from the struct, one scalar column
+            false,            // no ordinality
+            new SqlFunctions.FlatProductInputType[]{LIST, SCALAR});
+
+    final List<List<Object>> rows = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row
+        : fn.apply(new Object[]{
+            Arrays.asList(FlatLists.of(1, "x"), null),
+            Arrays.asList(10, 20)})) {
+      rows.add(new ArrayList<>(row));
+    }
+
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(Arrays.asList(1, "x", 10)));
+    assertThat(rows.get(1), is(Arrays.asList(null, null, 20)));
+  }
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  @Test void testFlatZipSingleWholeStructCollection() {
+    // Models the Trino semantics of
+    //   UNNEST(ARRAY[ROW(1, 'x'), ROW(2, 'y')]) AS t(s):
+    // the output has the single ROW-typed column s, which PhysTypeImpl stores
+    // in SCALAR row format, so each output row is the bare Object[] struct
+    // value rather than a singleton list.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatZip(
+            new int[]{-1}, false,
+            new SqlFunctions.FlatProductInputType[]{STRUCT});
+
+    final List<Object> rows = new ArrayList<>();
+    for (Object row : (Enumerable) fn.apply(rowArray())) {
+      rows.add(row);
+    }
+
+    // Expected rows: {1, 'x'} and {2, 'y'}.
+    assertThat(rows, hasSize(2));
+    assertArrayEquals(new Object[]{1, "x"}, (Object[]) rows.get(0));
+    assertArrayEquals(new Object[]{2, "y"}, (Object[]) rows.get(1));
+
+    // UNNEST of a null array yields no rows.
+    assertThat(((Enumerable) fn.apply(null)).any(), is(false));
   }
 }

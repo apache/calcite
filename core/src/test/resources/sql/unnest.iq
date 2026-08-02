@@ -626,4 +626,193 @@ WHERE (
 
 !ok
 
+!use scott
+
+# Standard UNNEST semantics: struct elements expand into one column per field, so a
+# NULL element yields a row of NULLs.
+SELECT * FROM UNNEST(ARRAY[
+    ROW(1, 'x'),
+    CAST(NULL AS ROW(a INTEGER, b CHAR(1)))]) AS t(a, b);
++---+---+
+| A | B |
++---+---+
+| 1 | x |
+|   |   |
++---+---+
+(2 rows)
+
+!ok
+
+# Same as previous WITH ORDINALITY
+SELECT * FROM UNNEST(ARRAY[
+    ROW(1, 'x'),
+    CAST(NULL AS ROW(a INTEGER, b CHAR(1)))]) WITH ORDINALITY AS t(a, b, o);
++---+---+---+
+| A | B | O |
++---+---+---+
+| 1 | x | 1 |
+|   |   | 2 |
++---+---+---+
+(2 rows)
+
+!ok
+
+# A result column is nullable whenever the ROW is nullable or the field is.
+# Here no element is NULL, so the ROW is NOT NULL and each column keeps its
+# own field nullability.
+SELECT * FROM UNNEST(ARRAY[ROW(1, CAST(NULL AS INTEGER))]) AS t(a, b);
++---+---+
+| A | B |
++---+---+
+| 1 |   |
++---+---+
+(1 row)
+
+!ok
+A INTEGER(10) NOT NULL
+B INTEGER(10)
+!type
+
+# Same fields, but a NULL element makes the ROW nullable, so column A is also nullable
+SELECT * FROM UNNEST(ARRAY[
+    ROW(1, CAST(NULL AS INTEGER)),
+    CAST(NULL AS ROW(a INTEGER, b INTEGER))]) AS t(a, b);
++---+---+
+| A | B |
++---+---+
+| 1 |   |
+|   |   |
++---+---+
+(2 rows)
+
+!ok
+A INTEGER(10)
+B INTEGER(10)
+!type
+
+# Tests for [CALCITE-7669] Uncollect should support the Trino semantics of UNNEST
+# PRESTO conformance: UNNEST(array) AS t(col) does not expand a struct
+# element into its fields; col holds the whole struct, accessed by dot
+# notation.
+!use hr-presto
+
+# INNER comma-join: Marketing (0 employees) is dropped.
+select d."name" as dept, e.emp."name" as ename, e.emp."empid" as empid
+from "hr"."depts" as d,
+UNNEST(d."employees") as e(emp);
++-------+-----------+-------+
+| DEPT  | ENAME     | EMPID |
++-------+-----------+-------+
+| HR    | Eric      |   200 |
+| Sales | Bill      |   100 |
+| Sales | Sebastian |   150 |
++-------+-----------+-------+
+(3 rows)
+
+!ok
+
+# WITH ORDINALITY: the struct column stays whole; ordinality still expands.
+select e.emp."name" as ename, e.rn
+from "hr"."depts" as d,
+UNNEST(d."employees") WITH ORDINALITY as e(emp, rn);
++-----------+----+
+| ENAME     | RN |
++-----------+----+
+| Eric      |  1 |
+| Bill      |  1 |
+| Sebastian |  2 |
++-----------+----+
+(3 rows)
+
+!ok
+
+# Output a whole struct column
+select d."name" as dept, e.emp as emp
+from "hr"."depts" as d,
+UNNEST(d."employees") as e(emp);
++-------+------------------------------------+
+| DEPT  | EMP                                |
++-------+------------------------------------+
+| HR    | {200, 20, Eric, 8000.0, 500}       |
+| Sales | {100, 10, Bill, 10000.0, 1000}     |
+| Sales | {150, 10, Sebastian, 7000.0, null} |
++-------+------------------------------------+
+(3 rows)
+
+!ok
+
+WITH data AS (
+    SELECT ARRAY[
+        ROW(1, 'Alice'),
+        ROW(2, 'Bob'),
+        ROW(3, 'Carol'),
+        ROW(NULL, 'Dan'),
+        NULL
+    ] AS people
+)
+SELECT p.*
+FROM data, UNNEST(people) AS p(p);
++-------------+
+| P           |
++-------------+
+| {1, Alice}  |
+| {2, Bob}    |
+| {3, Carol}  |
+| {null, Dan} |
+|             |
++-------------+
+(5 rows)
+
+!ok
+
+# Nested records: a NULL nested-record field, and a bare NULL array element.
+SELECT * FROM UNNEST(ARRAY[
+    ROW(ROW(1, 'a'), 10),
+    ROW(ROW(NULL, 'b'), 20),
+    ROW(NULL, 30),
+    NULL]) AS p(p);
++-----------------+
+| P               |
++-----------------+
+| {null, 30}      |
+| {{1, a}, 10}    |
+| {{null, b}, 20} |
+|                 |
++-----------------+
+(4 rows)
+
+!ok
+
+# Only one value is emitted per element, so a NULL element is a single NULL
+# rather than a row of NULLs.
+SELECT * FROM UNNEST(ARRAY[
+    ROW(1, 'x'),
+    CAST(NULL AS ROW(a INTEGER, b CHAR(1)))]) AS t(r);
++--------+
+| R      |
++--------+
+| {1, x} |
+|        |
++--------+
+(2 rows)
+
+!ok
+# The column is nullable: a NULL element yields NULL here.
+R STRUCT
+!type
+
+# Same, WITH ORDINALITY: exercises z2 rather than the single-collection path.
+SELECT * FROM UNNEST(ARRAY[
+    ROW(1, 'x'),
+    CAST(NULL AS ROW(a INTEGER, b CHAR(1)))]) WITH ORDINALITY AS t(r, o);
++--------+---+
+| R      | O |
++--------+---+
+| {1, x} | 1 |
+|        | 2 |
++--------+---+
+(2 rows)
+
+!ok
+
 # End unnest.iq

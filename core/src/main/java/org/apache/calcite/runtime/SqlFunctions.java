@@ -209,6 +209,23 @@ public class SqlFunctions {
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
 
+  /** Like {@link #LIST_AS_ENUMERABLE}, for a collection whose struct elements
+   * are kept whole: each element is converted to an Object[] struct value. */
+  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
+      STRUCT_LIST_AS_ENUMERABLE =
+          a0 -> a0 == null ? Linq4j.emptyEnumerable()
+              : Linq4j.asEnumerable(a0).<@Nullable Object>select(SqlFunctions::structValue);
+
+  /** Converts one element of a collection of structs to its Object[] struct
+   * value. Elements arrive as List or as Object[]; null elements stay null. */
+  @SuppressWarnings("rawtypes")
+  private static @Nullable Object structValue(@Nullable Object element) {
+    if (element == null || element instanceof Object[]) {
+      return element;
+    }
+    return ((List) element).toArray();
+  }
+
   @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
       SqlFunctions::arrayCartesianProduct;
@@ -7590,8 +7607,15 @@ public class SqlFunctions {
         // Simple unnest without ordinality
         //noinspection unchecked
         return (Function1) LIST_AS_ENUMERABLE;
+      } else if (!withOrdinality && inputTypes[0] == FlatProductInputType.STRUCT) {
+        // A single collection of structs kept whole, without ordinality: the
+        // output row type has a single (ROW-typed) column, so PhysTypeImpl
+        // optimizes the row format down to SCALAR, under which rows are bare
+        // struct values rather than singleton lists.
+        //noinspection unchecked
+        return (Function1) STRUCT_LIST_AS_ENUMERABLE;
       } else {
-        // unnest with ordinality for a single scalar column
+        // unnest with ordinality for a single column
         return row -> z2(new Object[] { row }, fieldCounts, withOrdinality, inputTypes);
       }
     }
@@ -7604,9 +7628,10 @@ public class SqlFunctions {
    * padding shorter collections with {@code NULL}.
    *
    * @param lists        one element per collection (scalar list, struct list, or map)
-   * @param fieldCounts  output column count for each collection (-1 for a collection of scalars)
+   * @param fieldCounts  output column count for each collection (-1 for a collection
+   *                     of scalars or of structs kept whole)
    * @param withOrdinality whether to append a 1-based ordinality column
-   * @param inputTypes   type of elements in each collection (SCALAR, LIST, or MAP)
+   * @param inputTypes   type of elements in each collection (SCALAR, LIST, STRUCT, or MAP)
    */
   @SuppressWarnings("rawtypes")
   private static Enumerable<FlatLists.ComparableList<Comparable>> z2(
@@ -7624,6 +7649,17 @@ public class SqlFunctions {
         @SuppressWarnings("unchecked") List<Comparable> list =
             (List<Comparable>) inputObject;
         enumerators.add(Linq4j.transform(Linq4j.enumerator(list), FlatLists::of));
+        widths[i] = 1;
+        break;
+      case STRUCT:
+        // A struct element kept whole occupies a single output column, like a
+        // scalar element, but its value must be converted to Object[].
+        @SuppressWarnings("unchecked") List<Object> structList =
+            (List<Object>) inputObject;
+        @SuppressWarnings("unchecked") Enumerator<List<Comparable>> structEnumerator =
+            (Enumerator) Linq4j.transform(Linq4j.enumerator(structList),
+                (Object e) -> FlatLists.ofSingle(structValue(e)));
+        enumerators.add(structEnumerator);
         widths[i] = 1;
         break;
       case LIST:
@@ -7766,7 +7802,10 @@ public class SqlFunctions {
         int width = widths[i];
         if (!endOfCollection[i]) {
           final Object elemRow = enumerators.get(i).current();
-          if (elemRow instanceof Object[]) {
+          if (elemRow == null) {
+            // A NULL struct element expands to a row of NULLs, one per field.
+            Arrays.fill(flatElements, column, column + width, null);
+          } else if (elemRow instanceof Object[]) {
             final Object[] arr = (Object[]) elemRow;
             for (int p = 0; p < width; p++) {
               flatElements[column + p] = p < arr.length ? arr[p] : null;
@@ -7900,7 +7939,7 @@ public class SqlFunctions {
 
   /** Type of argument passed into {@link #flatZip}. */
   public enum FlatProductInputType {
-    SCALAR, LIST, MAP
+    SCALAR, LIST, MAP, STRUCT
   }
 
   /** Type of part to extract passed into {@link ParseUrlFunction#parseUrl}. */

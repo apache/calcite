@@ -336,7 +336,7 @@ from UNNEST(ARRAY[1, 2, 3]) as t]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(T=[$0])
-  Uncollect
+  Uncollect(expandStructFields=[false])
     LogicalProject(EXPR$0=[ARRAY(1, 2, 3)])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -348,7 +348,7 @@ LogicalProject(T=[$0])
 LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2, 3}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect
+    Uncollect(expandStructFields=[false])
       LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -365,7 +365,7 @@ from dept_nested_expanded as d CROSS JOIN
 LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2, 3}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect
+    Uncollect(expandStructFields=[false])
       LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -382,7 +382,7 @@ from dept_nested_expanded as d CROSS JOIN
 LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect
+    Uncollect(expandStructFields=[false])
       LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -399,7 +399,7 @@ from dept_nested_expanded as d,
 LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect
+    Uncollect(expandStructFields=[false])
       LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -421,7 +421,7 @@ from dept_nested_expanded as d,
 LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect
+    Uncollect(expandStructFields=[false])
       LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -438,7 +438,7 @@ from dept_nested_expanded as d,
 LogicalProject(DEPTNO=[$0], A=[$5])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect
+    Uncollect(expandStructFields=[false])
       LogicalProject(ADMINS=[$cor0.ADMINS])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
