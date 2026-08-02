@@ -1483,6 +1483,32 @@ comp:
   |   <=>
 {% endhighlight %}
 
+Note:
+
+* Comparing two `ROW` values with `=` or `<>` compares their fields pairwise,
+  using three-valued logic: the result is FALSE if some pair of fields is
+  unequal, UNKNOWN if some pair involves a null and no pair is unequal, and
+  TRUE otherwise. For example, `ROW(1, NULL) = ROW(1, NULL)` is UNKNOWN, but
+  `ROW(1, NULL) = ROW(2, NULL)` is FALSE.
+* `IS DISTINCT FROM` and `IS NOT DISTINCT FROM` treat nulls as equal, so on
+  `ROW` values they always return TRUE or FALSE. Two rows are distinct if some
+  pair of their fields is distinct.
+* `JOIN ON ROW(a, b) = ROW(c, d)` uses this definition of row equality.  This is
+  equivalent to expanding equality for rows to their corresponding fields recursively:
+  `JOIN a = c AND b = d`.
+* `IN` and `NOT IN` are defined in terms of `=`, and over `ROW` values they
+  inherit the same three-valued result.
+  `ROW(1, NULL) IN (ROW(1, NULL))` and the corresponding `NOT IN` expression
+  evaluate to UNKNOWN. The quantified comparisons
+  `SOME`, `ANY` and `ALL` currently do not accept `ROW` operands.
+* Comparing two collection values (`ARRAY`, `MULTISET`, `MAP`) treats NULL
+  elements as equal, so the result is never UNKNOWN. A `ROW` nested in a
+  collection is therefore compared the way `IS NOT DISTINCT FROM` compares it,
+  and a NULL inside a collection does *not* make a comparison of the enclosing
+  `ROW` value UNKNOWN.
+* `GROUP BY`, `DISTINCT` and the set operators (`UNION`, `INTERSECT`, `EXCEPT`)
+  compare values as `IS NOT DISTINCT FROM` does.
+
 ### Logical operators
 
 | Operator syntax        | Description

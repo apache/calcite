@@ -321,6 +321,7 @@ public enum BuiltInMethod {
   NULLS_COMPARATOR2(Functions.class, "nullsComparator", boolean.class,
       boolean.class, Comparator.class),
   ARRAY_COMPARER(Functions.class, "arrayComparer"),
+  DEEP_COMPARER(Functions.class, "deepComparer"),
   FUNCTION0_APPLY(Function0.class, "apply"),
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
