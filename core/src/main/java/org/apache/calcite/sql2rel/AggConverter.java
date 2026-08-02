@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -457,7 +458,18 @@ class AggConverter implements SqlVisitor<Void> {
     try {
       // switch out of agg mode
       bb.agg = null;
-      for (SqlNode operand : call.getOperandList()) {
+      // Permute named arguments ("name => value") into formal parameter order
+      // and strip the ARGUMENT_ASSIGNMENT wrappers, so that the parameter name
+      // identifiers are not converted as column references.
+      final boolean hasNamedArgument =
+          call.getOperandList().stream()
+              .anyMatch(node -> node.getKind() == SqlKind.ARGUMENT_ASSIGNMENT);
+      final List<SqlNode> aggOperands =
+          hasNamedArgument
+              ? new SqlCallBinding(bb.getValidator(), bb.scope, call)
+                  .permutedCall().getOperandList()
+              : call.getOperandList();
+      for (SqlNode operand : aggOperands) {
 
         // special case for COUNT(*):  delete the *
         if (operand instanceof SqlIdentifier) {

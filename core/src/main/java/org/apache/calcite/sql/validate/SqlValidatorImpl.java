@@ -4701,9 +4701,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         checkRollUp(grandParent, parent, stripDot, scope, contextClause);
       } else if (stripDot.getKind() == SqlKind.CONVERT
           || stripDot.getKind() == SqlKind.TRANSLATE
-          || stripDot.getKind() == SqlKind.CONVERT_ORACLE) {
+          || stripDot.getKind() == SqlKind.CONVERT_ORACLE
+          || stripDot.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
         // only need to check operand[0] for
-        // CONVERT, TRANSLATE or CONVERT_ORACLE
+        // 1. CONVERT, TRANSLATE or CONVERT_ORACLE
+        // 2. for a named argument "value => name"; operand[1] is the parameter name, not a column
         SqlNode child = ((SqlCall) stripDot).getOperandList().get(0);
         checkRollUp(parent, current, child, scope, contextClause);
       } else if (stripDot.getKind() == SqlKind.LAMBDA) {

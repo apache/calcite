@@ -531,6 +531,26 @@ class UdfTest {
         .returns("EXPR$0=0\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7686">[CALCITE-7686]
+   * Named argument should not be resolved as a column</a>.
+   *
+   * <p>The parameter name of a {@code name => value} argument must not be
+   * resolved as a column reference by the roll-up check. */
+  @Test void testUdfArgumentNameInSelectFromTable() {
+    final CalciteAssert.AssertThat with = withUdf();
+    // Named-arg call as a SELECT item over a table scope (unlike VALUES, this
+    // routes through checkRollUpInSelectList). The parameter names "s" and "n"
+    // must not be resolved as columns of the FROM source.
+    with.query("select \"adhoc\".my_left(\"s\" => 'hello', \"n\" => 3) as c\n"
+            + "from \"adhoc\".\"EMPLOYEES\"")
+        .returnsCount(4);
+    // reverse order
+    with.query("select \"adhoc\".my_left(\"n\" => 3, \"s\" => 'hello') as c\n"
+            + "from \"adhoc\".\"EMPLOYEES\"")
+        .returnsCount(4);
+  }
+
   /** Tests calling a user-defined function some of whose parameters are
    * optional. */
   @Test void testUdfArgumentOptional() {
@@ -738,6 +758,49 @@ class UdfTest {
     with.query("select \"adhoc\".my_sum2(\"empid\",0.0) as p\n"
         + "from \"adhoc\".EMPLOYEES\n")
         .returns("P=560\n");
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7686">[CALCITE-7686]
+   * Named argument should not be resolved as a column</a>.
+   *
+   * <p>Tests calling a user-defined aggregate function by named arguments over a
+   * table scope. The parameter names must not be resolved as columns during
+   * sql-to-rel conversion. */
+  @Test void testUserDefinedAggregateFunctionWithNamedArguments() {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String namedSum = Smalls.MyNamedSumFunction.class.getName();
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_NAMED_SUM',\n"
+        + "           className: '" + namedSum + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .withDefaultSchema("adhoc");
+    // named arguments in physical order
+    with.query("select \"adhoc\".my_named_sum(\"v1\" => \"commission\", \"v2\" => 250) as p\n"
+            + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=1500\n");
+    // named arguments in reverse order
+    with.query("select \"adhoc\".my_named_sum(\"v2\" => 250, \"v1\" => \"commission\") as p\n"
+            + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=1500\n");
   }
 
   /** Test for

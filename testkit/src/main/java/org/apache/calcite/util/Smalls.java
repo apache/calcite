@@ -974,6 +974,31 @@ public class Smalls {
     }
   }
 
+  /** Example of a UDAF with two named parameters (via {@code @Parameter}),
+   * so it can be called using named-argument notation. It sums {@code v1}
+   * for rows where {@code v1 > v2}. */
+  public static class MyNamedSumFunction {
+    public MyNamedSumFunction() {
+    }
+    public int init() {
+      return 0;
+    }
+    public int add(int accumulator,
+        @Parameter(name = "v1") int v1,
+        @Parameter(name = "v2") int v2) {
+      if (v1 > v2) {
+        return accumulator + v1;
+      }
+      return accumulator;
+    }
+    public int merge(int accumulator0, int accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public int result(int accumulator) {
+      return accumulator;
+    }
+  }
+
   /** Example of a user-defined aggregate function (UDAF) with two parameters.
    * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
