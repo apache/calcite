@@ -673,7 +673,10 @@ public class RexSimplify {
     // Simplify "x <op> x"
     final RexNode o0 = operands.get(0);
     final RexNode o1 = operands.get(1);
-    if (o0.equals(o1) && RexUtil.isDeterministic(o0)) {
+    // "x = x" does not hold for a ROW with a nullable field, which evaluates to UNKNOWN
+    final boolean nullableStruct =
+        o0.getType().isStruct() && SqlTypeUtil.containsNullable(o0.getType());
+    if (o0.equals(o1) && RexUtil.isDeterministic(o0) && !nullableStruct) {
       RexNode newExpr;
       switch (e.getKind()) {
       case EQUALS:

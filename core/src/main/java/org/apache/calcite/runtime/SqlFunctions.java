@@ -2229,6 +2229,66 @@ public class SqlFunctions {
     return b0.equals(b1);
   }
 
+  /** SQL <code>=</code> operator applied to ROW values, with the standard's
+   * three-valued row comparison: FALSE as soon as one field pair is unequal,
+   * UNKNOWN (null) when a field pair involves a NULL and no pair is unequal,
+   * TRUE otherwise.
+   *
+   * <p>A nested ROW, represented as {@code Object[]}, follows the same rule.
+   * A collection-valued field is compared as a whole, because e.g., ARRAY equality
+   * uses IS NOT DISTINCT FROM semantics and never yields UNKNOWN. */
+  public static @Nullable Boolean rowEq(@Nullable Object b0, @Nullable Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+    final List<?> l0 = rowAsList(b0);
+    final List<?> l1 = rowAsList(b1);
+    if (l0 == null || l1 == null) {
+      // Not a representation we can take apart; fall back to total equality.
+      return Functions.compareListItems(b0, b1) == 0;
+    }
+    if (l0.size() != l1.size()) {
+      return false;
+    }
+    boolean sawNull = false;
+    for (int i = 0; i < l0.size(); i++) {
+      final Object f0 = l0.get(i);
+      final Object f1 = l1.get(i);
+      if (f0 == null || f1 == null) {
+        sawNull = true;
+      } else if (f0 instanceof Object[] && f1 instanceof Object[]) {
+        final Boolean nested = rowEq(f0, f1);
+        if (nested == null) {
+          sawNull = true;
+        } else if (!nested) {
+          return false;
+        }
+      } else if (Functions.compareListItems(f0, f1) != 0) {
+        return false;
+      }
+    }
+    return sawNull ? null : true;
+  }
+
+  /** SQL <code>&lt;&gt;</code> operator applied to ROW values; the
+   * three-valued negation of {@link #rowEq}. */
+  public static @Nullable Boolean rowNe(@Nullable Object b0, @Nullable Object b1) {
+    final Boolean eq = rowEq(b0, b1);
+    return eq == null ? null : !eq;
+  }
+
+  /** Views a ROW value as the list of its fields; returns null if the value is
+   * not one of the representations a ROW may have. */
+  private static @Nullable List<?> rowAsList(Object o) {
+    if (o instanceof Object[]) {
+      return Arrays.asList((Object[]) o);
+    }
+    if (o instanceof List) {
+      return (List<?>) o;
+    }
+    return null;
+  }
+
   /** SQL <code>=</code> operator applied to List values. */
   public static boolean eq(List<?> b0, List<?> b1) {
     return eqNullable(b0, b1);

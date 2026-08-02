@@ -2377,7 +2377,7 @@ public abstract class RelOptUtil {
    * Returns a translation of the <code>IS DISTINCT FROM</code> (or <code>IS
    * NOT DISTINCT FROM</code>) sql operator.
    *
-   * @param neg if false, returns a translation of IS NOT DISTINCT FROM
+   * @param neg if true, returns a translation of IS NOT DISTINCT FROM
    */
   public static RexNode isDistinctFrom(
       RexBuilder rexBuilder,
@@ -2402,14 +2402,21 @@ public abstract class RelOptUtil {
             rexBuilder.makeFieldAccess(
                 y,
                 yField.getIndex());
+        // Recurse into a struct field rather than comparing it whole: a
+        // nested "=" is three-valued, and IS [NOT] DISTINCT FROM must reduce
+        // to two-valued logic over scalar leaves.
         RexNode newCall =
-            isDistinctFromInternal(rexBuilder, newX, newY, neg);
+            newX.getType().isStruct()
+                ? isDistinctFrom(rexBuilder, newX, newY, neg)
+                : isDistinctFromInternal(rexBuilder, newX, newY, neg);
         if (ret == null) {
           ret = newCall;
         } else {
+          // Two rows are not distinct only when every field pair is not
+          // distinct, but they are distinct as soon as one pair is.
           ret =
               rexBuilder.makeCall(
-                  SqlStdOperatorTable.AND,
+                  neg ? SqlStdOperatorTable.AND : SqlStdOperatorTable.OR,
                   ret,
                   newCall);
         }

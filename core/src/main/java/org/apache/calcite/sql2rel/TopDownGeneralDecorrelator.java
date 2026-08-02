@@ -892,7 +892,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
         if (pair != null) {
           // equi-condition will filter NULL values, so need to add IS NOT NULL for input ref
           if (condition.isA(SqlKind.EQUALS)) {
-            newConditions.add(builder.isNotNull(pair.right));
+            newConditions.add(isNotNullDeep(pair.right));
           }
           corDefToInputIndex.put(pair.left, pair.right.getIndex());
           continue;
@@ -907,6 +907,20 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     Set<CorDef> replacedCorDef = corDefToInputIndex.keySet();
     // ensure all free variables can be replaced
     return replacedCorDef.size() == corDefs.size() && corDefs.containsAll(replacedCorDef);
+  }
+
+  /** Returns a condition that holds when an expression {@code ref} that may have a ROW type
+   * contains no 'NULL' field at any depth. */
+  private RexNode isNotNullDeep(RexNode ref) {
+    if (!ref.getType().isStruct()) {
+      return builder.isNotNull(ref);
+    }
+    final List<RexNode> conditions = new ArrayList<>();
+    conditions.add(builder.isNotNull(ref));
+    for (int i = 0; i < ref.getType().getFieldCount(); i++) {
+      conditions.add(isNotNullDeep(builder.getRexBuilder().makeFieldAccess(ref, i)));
+    }
+    return RexUtil.composeConjunction(builder.getRexBuilder(), conditions);
   }
 
   private @Nullable Pair<CorDef, RexInputRef> getPairOfFreeVarAndInputRefInEqui(RexNode condition) {

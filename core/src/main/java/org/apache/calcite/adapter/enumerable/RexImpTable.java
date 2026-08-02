@@ -3404,6 +3404,17 @@ public class RexImpTable implements RexImplementorTable {
       final Type type1 = argValueList.get(1).getType();
       final SqlBinaryOperator op = (SqlBinaryOperator) call.getOperator();
       final RelDataType relDataType0 = call.getOperands().get(0).getType();
+
+      // Comparing whole ROW values needs three-valued logic: a NULL field
+      // makes the result UNKNOWN, which a boolean-valued comparison of the
+      // row representation cannot express. The call type is nullable
+      // whenever any field is (see SqlTypeUtil.containsNullable).
+      if (EQUALS_OPERATORS.contains(op) && relDataType0.isStruct()) {
+        return Expressions.call(SqlFunctions.class,
+            op.getKind() == SqlKind.EQUALS ? "rowEq" : "rowNe",
+            argValueList);
+      }
+
       final Expression fieldComparator =
           generateCollatorExpression(relDataType0.getCollation());
       if (fieldComparator != null) {

@@ -585,7 +585,42 @@ public class PhysTypeImpl implements PhysType {
   }
 
   @Override public @Nullable Expression comparer() {
-    return format.comparer();
+    final Expression comparer = format.comparer();
+    if (comparer != null) {
+      return comparer;
+    }
+    if (anyFieldContainsStruct(rowType)) {
+      // A row or key containing struct (ROW) values needs deep equality;
+      // the default equality of the runtime representations of struct values (Object[], List)
+      // compares nested Object[] values by reference. Here we implement the "not
+      // distinct" semantics used by GROUP BY, DISTINCT and set operations.
+      return Expressions.call(BuiltInMethod.DEEP_COMPARER.method);
+    }
+    return null;
+  }
+
+  /** Returns whether any field of {@code rowType} contains a struct value:
+   * the field is itself a struct, or a collection or map whose elements
+   * contain one. */
+  private static boolean anyFieldContainsStruct(RelDataType rowType) {
+    return rowType.getFieldList().stream()
+        .anyMatch(f -> containsStruct(f.getType()));
+  }
+
+  private static boolean containsStruct(RelDataType type) {
+    if (type.isStruct()) {
+      return true;
+    }
+    final RelDataType componentType = type.getComponentType();
+    if (componentType != null && containsStruct(componentType)) {
+      return true;
+    }
+    final RelDataType keyType = type.getKeyType();
+    if (keyType != null && containsStruct(keyType)) {
+      return true;
+    }
+    final RelDataType valueType = type.getValueType();
+    return valueType != null && containsStruct(valueType);
   }
 
   private List<Expression> fieldReferences(
@@ -764,14 +799,49 @@ public class PhysTypeImpl implements PhysType {
     Expression exp = getListExpressionAllowSingleElement(list);
     for (int i = list.size() - 1; i >= 0; i--) {
       if (nullExclusionFlags.get(i)) {
+        final RelDataType fieldType =
+            rowType.getFieldList().get(fields.get(i)).getType();
+        // Under the SQL = operator, a NULL never compares TRUE. A
+        // ROW containing a NULL field (at any nesting depth) cannot
+        // compare TRUE either: the pairwise comparison of its fields yields
+        // UNKNOWN or FALSE. In both these cases the result is null.
+        final Expression isNull = fieldType.isStruct()
+            ? structIsNullOrContainsNullExpression(list.get(i), fieldType)
+            : Expressions.equal(list.get(i), Expressions.constant(null));
         exp =
-            Expressions.condition(
-                Expressions.equal(list.get(i), Expressions.constant(null)),
+            Expressions.condition(isNull,
                 Expressions.constant(null),
                 exp);
       }
     }
     return Expressions.lambda(Function1.class, exp, v1);
+  }
+
+  /** Returns an expression that evaluates whether {@code e}, a value of
+   * ROW type {@code type}, is null or has a null field, descending into
+   * struct-typed fields (but not into collection-typed fields). */
+  private static Expression structIsNullOrContainsNullExpression(Expression e,
+      RelDataType type) {
+    Expression result = Expressions.equal(e, Expressions.constant(null));
+    for (Ord<RelDataTypeField> field : Ord.zip(type.getFieldList())) {
+      final RelDataType fieldType = field.e.getType();
+      if (!fieldType.isStruct() && !fieldType.isNullable()) {
+        continue;
+      }
+      // structAccess handles both runtime representations of a struct value
+      // (Object[] and List); it is only evaluated when e is not null,
+      // thanks to the short-circuit OR.
+      final Expression access =
+          Expressions.call(BuiltInMethod.STRUCT_ACCESS.method, e,
+              Expressions.constant(field.i),
+              Expressions.constant(field.e.getName()));
+      result =
+          Expressions.orElse(result,
+              fieldType.isStruct()
+                  ? structIsNullOrContainsNullExpression(access, fieldType)
+                  : Expressions.equal(access, Expressions.constant(null)));
+    }
+    return result;
   }
 
   @Override public Expression fieldReference(
