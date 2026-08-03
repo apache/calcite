@@ -7353,9 +7353,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno, sal from emp order by all").ok();
     // direction applies to every expanded key
     sql("select deptno, sal from emp order by all desc").ok();
-    // SELECT * can't be expanded here
-    sql("select ^*^ from emp order by all")
-        .fails("(?s).*ORDER BY ALL requires an explicit SELECT list.*");
+    // SELECT * validates with ORDER BY ALL; what the star expands to as sort
+    // keys is asserted explicitly by rewritesTo below.
+    sql("select * from emp order by all").ok();
+    sql("select * from emp order by all desc").ok();
+    // Multiple qualified stars validate together (no cross-expansion error).
+    sql("select emp.*, dept.* from emp, dept order by all desc").ok();
+    // Show the expanded sort keys.
+    sql("select * from dept order by all")
+        .rewritesTo("SELECT *\n"
+            + "FROM `DEPT`\n"
+            + "ORDER BY `DEPT`.`DEPTNO`, `DEPT`.`NAME`");
     // Aliases that shadow other column names must not confuse expansion
     sql("select empno as deptno, deptno as empno from emp order by all").ok();
     // verify "x" still resolves and the two features coexist
@@ -7809,9 +7817,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // only aggregates -> global aggregation (one group), still valid
     sql("select count(*) from emp group by all").ok();
 
-    // SELECT * cannot be expanded at group-validation time -> clear error
-    sql("select ^*^ from emp group by all")
-        .fails("(?s).*GROUP BY ALL requires an explicit SELECT list.*");
+    // SELECT * validates with GROUP BY ALL; what the star expands to as
+    // grouping keys is asserted explicitly by rewritesTo below.
+    sql("select * from emp group by all").ok();
+    sql("select *, count(*) from emp group by all").ok();
+    sql("select * from emp natural join dept group by all").ok();
+    // Show the expanded grouping keys: GROUP BY ALL is replaced by the
+    // star's underlying columns (behavior validated against DuckDB).
+    sql("select * from dept group by all")
+        .rewritesTo("SELECT *\n"
+            + "FROM `DEPT`\n"
+            + "GROUP BY `DEPT`.`DEPTNO`, `DEPT`.`NAME`");
 
     // contains-an-aggregate
     sql("select deptno, substring(job, 1), count(*) + 1 as c, 'x' as x\n"
