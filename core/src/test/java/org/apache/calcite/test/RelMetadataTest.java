@@ -101,6 +101,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -111,6 +113,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ArrowSet;
@@ -1829,6 +1832,154 @@ public class RelMetadataTest {
         + "group by deptno having count(*) = 0")
         .assertThatSelectivity(
             isAlmost(DEFAULT_COMP_SELECTIVITY * DEFAULT_EQUAL_SELECTIVITY));
+  }
+
+  /** Null fraction of each column of the table used by the
+   * {@code testSelectivityAggregate} and
+   * {@code testDistinctRowCountAggregate} tests; distinct per column, so a
+   * selectivity identifies the column that the predicate resolved to. */
+  private static final double[] NULL_FRACTION = {0.13, 0.42, 0.77}; // a, b, c
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7687">[CALCITE-7687]
+   * RelMdSelectivity and RelMdDistinctRowCount for Aggregate can propagate a
+   * predicate with wrong references</a>.
+   *
+   * <p>An {@link Aggregate}'s output field {@code i} is input field
+   * {@code groupSet.nth(i)}, so a predicate on a group key must be converted
+   * before it is pushed to the input. */
+  @Test void testSelectivityAggregateConvertsPredicateToInputFields() {
+    final SelectivityByColumnTable table = new SelectivityByColumnTable();
+    final RelNode agg = aggregateGroupingOnFields1And2(table);
+    final RelMetadataQuery mq = agg.getCluster().getMetadataQuery();
+
+    // Aggregate output $1 is column "c", input $2.
+    assertThat(mq.getSelectivity(agg, isNullOn(agg, 1)), isAlmost(NULL_FRACTION[2]));
+    assertThat(table.received, hasToString("IS NULL($2)"));
+
+    // Aggregate output $0 is column "b", input $1.
+    assertThat(mq.getSelectivity(agg, isNullOn(agg, 0)), isAlmost(NULL_FRACTION[1]));
+    assertThat(table.received, hasToString("IS NULL($1)"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7687">[CALCITE-7687]
+   * RelMdSelectivity and RelMdDistinctRowCount for Aggregate can propagate a
+   * predicate with wrong references</a>.
+   *
+   * <p>A predicate on an aggregate call must not be pushed to the
+   * {@link Aggregate}'s input, because an aggregate call has no equivalent
+   * expression there. */
+  @Test void testSelectivityAggregateDoesNotPushAggregateCallPredicate() {
+    final SelectivityByColumnTable table = new SelectivityByColumnTable();
+    final RelNode agg = aggregateGroupingOnFields1And2(table);
+    final RelMetadataQuery mq = agg.getCluster().getMetadataQuery();
+
+    // Aggregate output $2 is COUNT($0), not a group key.
+    assertThat(mq.getSelectivity(agg, isNullOn(agg, 2)), isAlmost(DEFAULT_SELECTIVITY));
+    assertThat(table.received, nullValue());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7687">[CALCITE-7687]
+   * RelMdSelectivity and RelMdDistinctRowCount for Aggregate can propagate a
+   * predicate with wrong references</a>.
+   *
+   * <p>As {@link #testSelectivityAggregateConvertsPredicateToInputFields()},
+   * but for {@code getDistinctRowCount}: the group key was already converted by
+   * {@link RelMdUtil#setAggChildKeys}, the predicate beside it was not. */
+  @Test void testDistinctRowCountAggregateConvertsPredicateToInputFields() {
+    final DistinctRowCountByColumnTable table = new DistinctRowCountByColumnTable();
+    final RelNode agg = aggregateGroupingOnFields1And2(table);
+    final RelMetadataQuery mq = agg.getCluster().getMetadataQuery();
+
+    // Group key is output $0 ("b", input $1); predicate is on output $1 ("c", input $2).
+    mq.getDistinctRowCount(agg, ImmutableBitSet.of(0), isNullOn(agg, 1));
+    assertThat(table.receivedGroupKey, hasToString("{1}"));
+    assertThat(table.receivedPredicate, hasToString("IS NULL($2)"));
+  }
+
+  /** Returns {@code Aggregate(group={1, 2}, COUNT($0))} over a scan of
+   * {@code table}, whose row type is {@code (a, b, c)}; the group set is
+   * deliberately not an identity prefix. */
+  private static RelNode aggregateGroupingOnFields1And2(AbstractTable table) {
+    final SchemaPlus root = Frameworks.createRootSchema(true);
+    root.add("T", table);
+    final FrameworkConfig config =
+        Frameworks.newConfigBuilder().defaultSchema(root).build();
+    final RelBuilder b = RelBuilder.create(config);
+    return b.scan("T")
+        .aggregate(b.groupKey(1, 2), b.count(false, "cnt", b.field(0)))
+        .build();
+  }
+
+  private static RexNode isNullOn(RelNode rel, int i) {
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+        rexBuilder.makeInputRef(rel.getRowType().getFieldList().get(i).getType(), i));
+  }
+
+  private static RelDataType abcRowType(RelDataTypeFactory typeFactory) {
+    final RelDataType varchar =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+    return typeFactory.builder()
+        .add("a", varchar).add("b", varchar).add("c", varchar).build();
+  }
+
+  /** Returns the selectivity implied by the null fraction of the column that
+   * {@code predicate} names, or Calcite's generic guess if it names none. */
+  private static @Nullable Double selectivityOf(@Nullable RexNode predicate) {
+    if (predicate instanceof RexCall
+        && (predicate.getKind() == SqlKind.IS_NULL
+            || predicate.getKind() == SqlKind.IS_NOT_NULL)
+        && ((RexCall) predicate).getOperands().get(0) instanceof RexInputRef) {
+      final RexInputRef ref =
+          (RexInputRef) ((RexCall) predicate).getOperands().get(0);
+      final double nullFraction = NULL_FRACTION[ref.getIndex()];
+      return predicate.getKind() == SqlKind.IS_NULL
+          ? nullFraction
+          : 1.0 - nullFraction;
+    }
+    return RelMdUtil.guessSelectivity(predicate);
+  }
+
+  /** Table that derives selectivity from per-column null fractions, and records
+   * the predicate it was given. Reached via
+   * {@link org.apache.calcite.plan.RelOptTable#unwrap}. */
+  private static class SelectivityByColumnTable extends AbstractTable
+      implements BuiltInMetadata.Selectivity.Handler {
+    @Nullable RexNode received;
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return abcRowType(typeFactory);
+    }
+
+    @Override public @Nullable Double getSelectivity(RelNode r,
+        RelMetadataQuery mq, @Nullable RexNode predicate) {
+      received = predicate;
+      return selectivityOf(predicate);
+    }
+  }
+
+  /** Table that records the group key and predicate that
+   * {@code getDistinctRowCount} passes down. */
+  private static class DistinctRowCountByColumnTable extends AbstractTable
+      implements BuiltInMetadata.DistinctRowCount.Handler {
+    @Nullable RexNode receivedPredicate;
+    @Nullable ImmutableBitSet receivedGroupKey;
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return abcRowType(typeFactory);
+    }
+
+    @Override public @Nullable Double getDistinctRowCount(RelNode r,
+        RelMetadataQuery mq, ImmutableBitSet groupKey,
+        @Nullable RexNode predicate) {
+      receivedGroupKey = groupKey;
+      receivedPredicate = predicate;
+      return 1000.0;
+    }
   }
 
   /** Test case for

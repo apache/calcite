@@ -179,14 +179,20 @@ public class RelMdSelectivity
       @Nullable RexNode predicate) {
     final List<RexNode> notPushable = new ArrayList<>();
     final List<RexNode> pushable = new ArrayList<>();
+    // The predicate is expressed over the Aggregate's output, so only references
+    // to group keys (output fields below getGroupCount) can be pushed; and they
+    // must be converted to the input's field numbering before recursing.
     RelOptUtil.splitFilters(
-        rel.getGroupSet(),
+        ImmutableBitSet.range(rel.getGroupCount()),
         predicate,
         pushable,
         notPushable);
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     RexNode childPred =
         RexUtil.composeConjunction(rexBuilder, pushable, true);
+    if (childPred != null) {
+      childPred = RelOptUtil.pushPastAggregate(childPred, rel);
+    }
 
     Double selectivity = mq.getSelectivity(rel.getInput(), childPred);
     if (selectivity == null) {

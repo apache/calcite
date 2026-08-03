@@ -190,6 +190,10 @@ public class RelMdDistinctRowCount
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     RexNode childPreds =
         RexUtil.composeConjunction(rexBuilder, pushable, true);
+    // convert the predicate as it corresponds to the child input
+    if (childPreds != null) {
+      childPreds = RelOptUtil.pushPastAggregate(childPreds, rel);
+    }
 
     // set the bits as they correspond to the child input
     ImmutableBitSet.Builder childKey = ImmutableBitSet.builder();

@@ -3403,6 +3403,44 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Converts an expression that is based on the output fields of an
+   * {@link Aggregate} to an equivalent expression on the Aggregate's input
+   * fields.
+   *
+   * <p>An Aggregate's row type is {@code (group keys..., aggregate calls...)},
+   * so output field {@code i} is input field {@code groupSet.nth(i)} for
+   * {@code i} less than {@link Aggregate#getGroupCount()}. Aggregate calls have
+   * no equivalent expression on the input, so {@code node} must reference only
+   * group keys; callers typically ensure this by classifying with
+   * {@link #splitFilters} against
+   * {@code ImmutableBitSet.range(aggregate.getGroupCount())}.
+   *
+   * @param node The expression to be converted
+   * @param aggregate Aggregate underneath the expression
+   * @return converted expression
+   */
+  public static RexNode pushPastAggregate(RexNode node, Aggregate aggregate) {
+    return node.accept(pushShuttle(aggregate));
+  }
+
+  private static RexShuttle pushShuttle(final Aggregate aggregate) {
+    final List<Integer> groupList = aggregate.getGroupSet().asList();
+    final List<RelDataTypeField> inputFields =
+        aggregate.getInput().getRowType().getFieldList();
+    return new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef ref) {
+        return RexInputRef.of(groupList.get(ref.getIndex()), inputFields);
+      }
+
+      @Override public RexNode visitLambda(RexLambda lambda) {
+        // Lambda body references are at a different scope level.
+        // Do not remap indices inside lambda body against this aggregate.
+        return lambda;
+      }
+    };
+  }
+
+  /**
    * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
    * projection references from a
    * {@link Project} that is on top of the
