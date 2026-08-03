@@ -4688,4 +4688,35 @@ FROM emp;
 
 !use scott
 
+# [CALCITE-7647] Support SELECT * in GROUP BY ALL and ORDER BY ALL.
+# GROUP BY ALL expands SELECT * to every underlying column;
+# the star columns become grouping keys and the aggregate is excluded.
+select *, count(*) as c from (values (1, 'a'), (1, 'a'), (2, 'b')) as t(x, y)
+group by all
+order by x;
++---+---+---+
+| X | Y | C |
++---+---+---+
+| 1 | a | 2 |
+| 2 | b | 1 |
++---+---+---+
+(2 rows)
+
+!ok
+
+# [CALCITE-7647] GROUP BY ALL deduplicates a column that SELECT * and an
+# explicit reference both contribute to the grouping keys.
+select *, x from (values (1, 'a'), (1, 'a'), (2, 'b')) as t(x, y)
+group by all
+order by y;
++---+---+---+
+| X | Y | X |
++---+---+---+
+| 1 | a | 1 |
+| 2 | b | 2 |
++---+---+---+
+(2 rows)
+
+!ok
+
 # End agg.iq
