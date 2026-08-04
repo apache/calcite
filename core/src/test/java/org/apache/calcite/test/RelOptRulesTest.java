@@ -9459,6 +9459,35 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5716">[CALCITE-5716]
+   * Two level nested correlated subquery translates to incorrect ON
+   * condition</a>.
+   *
+   * <p>A middle-level EXISTS holds two sibling inner EXISTS sub-queries that
+   * correlate to different levels: {@code ea.empno = e.empno} references the
+   * outer {@code emp} ($cor0), while {@code e2.deptno = d.deptno} references
+   * the middle {@code dept} ($cor2). The rewrite must keep those correlation
+   * variables at their originating levels rather than collapsing the inner
+   * Correlate onto the outer variable. */
+  @Test void testExpandFilterNestedExistsWithTwoSiblingInnerExists() {
+    final String sql = "SELECT deptno\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM dept d\n"
+        + "  WHERE d.deptno = e.deptno\n"
+        + "    AND EXISTS (\n"
+        + "      SELECT *\n"
+        + "      FROM emp_address ea\n"
+        + "      WHERE ea.empno = e.empno)\n"
+        + "    AND EXISTS (\n"
+        + "      SELECT *\n"
+        + "      FROM emp e2\n"
+        + "      WHERE e2.deptno = d.deptno))";
+    sql(sql).withSubQueryRules().check();
+  }
+
   @Test void testDecorrelateExists() {
     final String sql = "select * from sales.emp\n"
         + "where EXISTS (\n"
