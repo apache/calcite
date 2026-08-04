@@ -4904,6 +4904,43 @@ FROM dept;
 
 !ok
 
+# [CALCITE-5716] Two level nested correlated subquery translates to incorrect ON condition.
+# A middle-level EXISTS holds two sibling inner EXISTS that correlate to
+# different levels: ea.mgr = e.mgr references the outer emp, while
+# e2.deptno = d.deptno references the middle dept. Each correlation must stay
+# at its originating level.
+SELECT e.empno
+FROM emp e
+WHERE EXISTS (
+  SELECT 1
+  FROM dept d
+  WHERE d.deptno = e.deptno
+    AND EXISTS (
+      SELECT 1 FROM emp ea WHERE ea.mgr = e.mgr)
+    AND EXISTS (
+      SELECT 1 FROM emp e2 WHERE e2.deptno = d.deptno))
+ORDER BY e.empno;
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(13 rows)
+
+!ok
+
 # [CALCITE-7034] IllegalArgumentException when correlate subQuery in on clause and use rightside columns
 SELECT e1.*
 FROM emp e1
