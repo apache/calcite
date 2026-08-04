@@ -190,7 +190,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
       final RelNode input = visit(uncollect.getInput());
       return Uncollect.create(input.getTraitSet(), input,
           uncollect.withOrdinality, uncollect.getItemAliases(),
-          uncollect.expandStructFields);
+          uncollect.expandStructFields, uncollect.isOuter);
     }
 
     throw new AssertionError("Need to implement logical converter for "

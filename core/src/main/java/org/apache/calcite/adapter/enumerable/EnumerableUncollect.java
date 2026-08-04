@@ -51,16 +51,20 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
    * <p>Use {@link #create} unless you know what you're doing. */
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, boolean withOrdinality) {
-    this(cluster, traitSet, child, withOrdinality, true);
+    this(cluster, traitSet, child, withOrdinality, true, false);
   }
 
   /** Creates an EnumerableUncollect.
    *
-   * <p>Use {@link #create} unless you know what you're doing. */
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
+   * @param isOuter If true, an empty or NULL collection yields one row of
+   *                NULLs (LEFT JOIN); if false, it yields no rows (INNER) */
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, boolean withOrdinality, boolean expandStructFields) {
+      RelNode child, boolean withOrdinality, boolean expandStructFields,
+      boolean isOuter) {
     super(cluster, traitSet, child, withOrdinality, Collections.emptyList(),
-        expandStructFields);
+        expandStructFields, isOuter);
     assert getConvention() instanceof EnumerableConvention;
     assert getConvention() == child.getConvention();
   }
@@ -90,18 +94,20 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
    * @param expandStructFields If true, a collection whose element type is a struct
    *                           produces one output column per struct field; if false,
    *                           a single column typed as the whole element
+   * @param isOuter            If true, an empty or NULL collection yields one row of
+   *                           NULLs (LEFT JOIN); if false, it yields no rows (INNER)
    */
   public static EnumerableUncollect create(RelTraitSet traitSet, RelNode input,
-      boolean withOrdinality, boolean expandStructFields) {
+      boolean withOrdinality, boolean expandStructFields, boolean isOuter) {
     final RelOptCluster cluster = input.getCluster();
     return new EnumerableUncollect(cluster, traitSet, input, withOrdinality,
-        expandStructFields);
+        expandStructFields, isOuter);
   }
 
   @Override public EnumerableUncollect copy(RelTraitSet traitSet,
       RelNode newInput) {
     return new EnumerableUncollect(getCluster(), traitSet, newInput,
-        withOrdinality, expandStructFields);
+        withOrdinality, expandStructFields, isOuter);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -136,8 +142,11 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
               && !withOrdinality) {
             // Solves CALCITE-4063: if we are processing a single field, which is a struct with a
             // single item inside, and no ordinality; the result must be a scalar, hence use a
-            // special lambda that does not return lists, but the (single) items within those lists
-            lambdaForStructWithSingleItem = Expressions.call(BuiltInMethod.FLAT_LIST.method);
+            // special lambda that does not return lists, but the (single) items within those
+            // lists. The outer variant returns one NULL scalar for an empty or NULL collection.
+            lambdaForStructWithSingleItem =
+                Expressions.call(isOuter ? BuiltInMethod.FLAT_LIST_OUTER.method
+                    : BuiltInMethod.FLAT_LIST.method);
           } else {
             fieldCounts.add(elementType.getFieldCount());
             inputTypes.add(FlatProductInputType.LIST);
@@ -161,7 +170,8 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
             Expressions.constant(Ints.toArray(fieldCounts)),
             Expressions.constant(withOrdinality),
             Expressions.constant(
-                inputTypes.toArray(new FlatProductInputType[0])));
+                inputTypes.toArray(new FlatProductInputType[0])),
+            Expressions.constant(isOuter));
     builder.add(
         Expressions.return_(null,
             Expressions.call(child_,
