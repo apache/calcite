@@ -597,7 +597,7 @@ class RelFieldTrimmerTest {
         .project(
             builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             builder.field(v.get(), "DEPTNO"), builder.field(v.get(), "DEPTNO")))
-        .uncollect(Collections.emptyList(), false)
+        .uncollect(Collections.emptyList(), false, true, false)
         .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
         .aggregate(builder.groupKey("ENAME"), builder.max(builder.field("EMPNO")))
         .build();

@@ -2383,8 +2383,34 @@ public class RelBuilder {
    * @param itemAliases   Operand item aliases, never null
    * @param withOrdinality If {@code withOrdinality}, the output contains an extra
    * {@code ORDINALITY} column
+   *
+   * @deprecated Use
+   * {@link #uncollect(List, boolean, boolean, boolean)}, which controls every
+   * flag explicitly. This overload derives {@code expandStructFields} from the
+   * item aliases, which cannot express a collection of structs that is kept
+   * whole without aliases, and it cannot create an outer {@code Uncollect}.
    */
+  @Deprecated // to be removed before 2.0
   public RelBuilder uncollect(List<String> itemAliases, boolean withOrdinality) {
+    return uncollect(itemAliases, withOrdinality,
+        requireNonNull(itemAliases, "itemAliases").isEmpty(), false);
+  }
+
+  /**
+   * Creates an {@link Uncollect} with given item aliases, with explicit control
+   * over every flag.
+   *
+   * @param itemAliases   Operand item aliases, never null
+   * @param withOrdinality If {@code withOrdinality}, the output contains an extra
+   * {@code ORDINALITY} column
+   * @param expandStructFields If true, a collection whose element type is a struct
+   * produces one output column per struct field; if false, a single column typed
+   * as the whole element
+   * @param isOuter If {@code isOuter}, an empty or NULL collection yields one row
+   * of NULLs (LEFT JOIN); otherwise it yields no rows (INNER)
+   */
+  public RelBuilder uncollect(List<String> itemAliases, boolean withOrdinality,
+      boolean expandStructFields, boolean isOuter) {
     Frame frame = stack.pop();
     stack.push(
         new Frame(
@@ -2393,7 +2419,9 @@ public class RelBuilder {
               cluster.traitSetOf(Convention.NONE),
               frame.rel,
               withOrdinality,
-              requireNonNull(itemAliases, "itemAliases"))));
+              requireNonNull(itemAliases, "itemAliases"),
+              expandStructFields,
+              isOuter)));
     return this;
   }
 

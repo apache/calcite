@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -61,6 +62,8 @@ import static java.util.Objects.requireNonNull;
  *     Uncollect
  *       LogicalProject
  *         LeftSubquery
+ *
+ * <p>@see CorrelateUncollectOuterRule
  */
 @Value.Enclosing
 public class UnnestDecorrelateRule extends RelRule<UnnestDecorrelateRule.Config>
@@ -97,6 +100,11 @@ public class UnnestDecorrelateRule extends RelRule<UnnestDecorrelateRule.Config>
   @Override public void onMatch(RelOptRuleCall call) {
     Project outerProject = call.rel(0);
     Correlate cor = call.rel(1);
+    if (cor.getJoinType() != JoinRelType.INNER) {
+      // Removing the correlate is only sound for INNER.
+      // A LEFT correlate must first be converted by CorrelateUncollectOuterRule.
+      return;
+    }
     CorrelationId corId = cor.getCorrelationId();
 
     RelNode left = call.rel(2);
@@ -116,6 +124,11 @@ public class UnnestDecorrelateRule extends RelRule<UnnestDecorrelateRule.Config>
 
     Uncollect uncollect = call.rel(uncollectIndex);
     Project project = call.rel(uncollectIndex + 1);
+    // Expect "LogicalValues { 0 }"
+    LogicalValues values = call.rel(uncollectIndex + 2);
+    if (values.getTuples().size() != 1) {
+      return;
+    }
 
     List<RexNode> projects = project.getProjects();
     if (projects.size() != 1) {
@@ -143,7 +156,8 @@ public class UnnestDecorrelateRule extends RelRule<UnnestDecorrelateRule.Config>
       }
     }
     builder.project(requireNonNull(field, "field"))
-        .uncollect(uncollect.getItemAliases(), uncollect.withOrdinality);
+        .uncollect(uncollect.getItemAliases(), uncollect.withOrdinality,
+            uncollect.expandStructFields, uncollect.isOuter);
     if (innerProject != null) {
       builder.project(innerProject.getProjects());
     }

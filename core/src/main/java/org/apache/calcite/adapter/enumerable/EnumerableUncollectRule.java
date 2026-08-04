@@ -49,6 +49,7 @@ class EnumerableUncollectRule extends ConverterRule {
         convert(input,
             input.getTraitSet().replace(EnumerableConvention.INSTANCE));
     return EnumerableUncollect.create(traitSet, newInput,
-        uncollect.withOrdinality, uncollect.expandStructFields);
+        uncollect.withOrdinality, uncollect.expandStructFields,
+        uncollect.isOuter);
   }
 }
