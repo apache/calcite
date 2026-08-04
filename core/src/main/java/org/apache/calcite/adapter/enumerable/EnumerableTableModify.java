@@ -312,12 +312,7 @@ public class EnumerableTableModify extends TableModify
 
     // Build sink key extractor by reading table fields from each sink row.
     final ParameterExpression sinkRow = Expressions.parameter(Object.class, "sinkRow");
-    // Box the target type. For a single-column table the physical row format is
-    // SCALAR, so the Java row type is a primitive, and "(int) sinkRow" is a cast
-    // from Object to a primitive. Java allows that (JLS 5.5: narrowing reference
-    // conversion followed by unboxing) but Janino does not implement it, so the
-    // generated code fails to compile. Primitive.box leaves Object[] unchanged,
-    // which is the multi-column case.
+    // Box, because Janino cannot cast Object to a primitive.
     final Expression typedSinkRow =
         Expressions.convert_(sinkRow,
             Primitive.box(tablePhysType.getJavaRowType()));
