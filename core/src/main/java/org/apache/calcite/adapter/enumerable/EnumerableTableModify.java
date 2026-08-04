@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -311,8 +312,15 @@ public class EnumerableTableModify extends TableModify
 
     // Build sink key extractor by reading table fields from each sink row.
     final ParameterExpression sinkRow = Expressions.parameter(Object.class, "sinkRow");
+    // Box the target type. For a single-column table the physical row format is
+    // SCALAR, so the Java row type is a primitive, and "(int) sinkRow" is a cast
+    // from Object to a primitive. Java allows that (JLS 5.5: narrowing reference
+    // conversion followed by unboxing) but Janino does not implement it, so the
+    // generated code fails to compile. Primitive.box leaves Object[] unchanged,
+    // which is the multi-column case.
     final Expression typedSinkRow =
-        Expressions.convert_(sinkRow, tablePhysType.getJavaRowType());
+        Expressions.convert_(sinkRow,
+            Primitive.box(tablePhysType.getJavaRowType()));
     final List<Expression> sinkValues = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
       sinkValues.add(tablePhysType.fieldReference(typedSinkRow, i, Object.class));
