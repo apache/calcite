@@ -1,0 +1,256 @@
+# map-equality.iq - Tests for comparison of MAP values
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott
+!set outputformat mysql
+
+# [CALCITE-7689] MAP equality compares maps by insertion order
+# Two maps are equal exactly when they contain the same keys and map them to equal values.
+
+SELECT MAP[1, 2, 3, 4] = MAP[1, 2, 3, 4] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# Same contents in a different insertion order: equal
+SELECT MAP[1, 2, 3, 4] = MAP[3, 4, 1, 2] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+SELECT MAP['a', 1, 'b', 2] = MAP['b', 2, 'a', 1] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+SELECT MAP[1, 2, 3, 4] <> MAP[3, 4, 1, 2] AS ne;
++-------+
+| NE    |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# Different value for key 3: not equal
+SELECT MAP[1, 2, 3, 4] = MAP[1, 2, 3, 5] AS eq;
++-------+
+| EQ    |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# Different keys: not equal
+SELECT MAP[1, 2, 3, 4] = MAP[1, 2, 4, 4] AS eq;
++-------+
+| EQ    |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# Different sizes: not equal
+SELECT MAP[1, 2, 3, 4] = MAP[1, 2] AS eq;
++-------+
+| EQ    |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# IS NOT DISTINCT FROM agrees with =
+SELECT MAP[1, 2, 3, 4] IS NOT DISTINCT FROM MAP[3, 4, 1, 2] AS x;
++------+
+| X    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+SELECT MAP[1, 2, 3, 4] IS DISTINCT FROM MAP[3, 4, 1, 2] AS x;
++-------+
+| X     |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# IN is defined in terms of =
+SELECT MAP[3, 4, 1, 2] IN (MAP[1, 2, 3, 4], MAP[5, 6, 7, 8]) AS x;
++------+
+| X    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# NULL values inside a map follow IS NOT DISTINCT FROM semantics, as for
+# arrays: two NULL values are considered equal
+SELECT MAP[1, NULL, 3, 4] = MAP[3, 4, 1, NULL] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+SELECT MAP[1, NULL, 3, 4] = MAP[3, 4, 1, 2] AS eq;
++-------+
+| EQ    |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# A map nested inside an array is also compared by contents
+SELECT ARRAY[MAP[1, 2, 3, 4]] = ARRAY[MAP[3, 4, 1, 2]] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# Maps whose values are arrays
+SELECT MAP[1, ARRAY[1, 2], 3, ARRAY[3]] = MAP[3, ARRAY[3], 1, ARRAY[1, 2]] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# Maps whose values are maps
+SELECT MAP[1, MAP[1, 2, 3, 4], 2, MAP[5, 6]] = MAP[2, MAP[5, 6], 1, MAP[3, 4, 1, 2]] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# Maps whose values are rows
+SELECT MAP['a', ROW(1, 2), 'b', ROW(3, 4)] = MAP['b', ROW(3, 4), 'a', ROW(1, 2)] AS eq;
++------+
+| EQ   |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# = in a WHERE clause
+SELECT COUNT(*) AS c FROM (VALUES 1) WHERE MAP[1, 2, 3, 4] = MAP[3, 4, 1, 2];
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# = in a CASE condition
+SELECT CASE WHEN MAP[1, 2, 3, 4] = MAP[3, 4, 1, 2] THEN 'same' ELSE 'different' END AS x;
++-----------+
+| X         |
++-----------+
+| same      |
++-----------+
+(1 row)
+
+!ok
+
+# DISTINCT reaches the same verdict as =: one map, not two
+SELECT COUNT(*) AS c
+FROM (SELECT DISTINCT m FROM (VALUES MAP[1, 2, 3, 4], MAP[3, 4, 1, 2]) AS t(m));
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# GROUP BY reaches the same verdict as =: one group of two rows
+SELECT COUNT(*) AS c
+FROM (VALUES MAP[1, 2, 3, 4], MAP[3, 4, 1, 2]) AS t(m)
+GROUP BY m;
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# Joining on a map key matches reordered maps
+SELECT COUNT(*) AS c
+FROM (VALUES MAP[1, 2, 3, 4]) AS l(m)
+JOIN (VALUES MAP[3, 4, 1, 2]) AS r(m) ON l.m = r.m;
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# End map-equality.iq

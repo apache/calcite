@@ -1506,6 +1506,12 @@ Note:
   collection is therefore compared the way `IS NOT DISTINCT FROM` compares it,
   and a NULL inside a collection does *not* make a comparison of the enclosing
   `ROW` value UNKNOWN.
+* A `MAP` value is an unordered mapping of keys to values: two maps are equal
+  exactly when they contain the same keys and map each key to equal values,
+  regardless of the order in which the entries were written. Keys and values
+  are compared using `<=>`, so a NULL value equals a NULL value, and the
+  result is never UNKNOWN. For example, `MAP[1, 2, 3, 4] = MAP[3, 4, 1, 2]`
+  is TRUE, and so is `MAP[1, NULL] = MAP[1, NULL]`.
 * `GROUP BY`, `DISTINCT` and the set operators (`UNION`, `INTERSECT`, `EXCEPT`)
   compare values as `IS NOT DISTINCT FROM` does.
 

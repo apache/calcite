@@ -735,17 +735,14 @@ public abstract class Functions {
   /**
    * Compares two maps.
    *
-   * <p>Since maps in Calcite are implemented using {@link java.util.LinkedHashMap},
-   * which guarantees insertion order, this method follows DuckDB's behavior by
-   * comparing entries in order. For each entry, it first compares the key and
-   * then the value.
+   * <p>Entries are compared in a canonical order, sorted by key and then by value.
    */
   public static int compareMaps(Map<?, ?> b0, Map<?, ?> b1) {
     if (b0 == b1) {
       return 0;
     }
-    final Iterator<? extends Map.Entry<?, ?>> i0 = b0.entrySet().iterator();
-    final Iterator<? extends Map.Entry<?, ?>> i1 = b1.entrySet().iterator();
+    final Iterator<? extends Map.Entry<?, ?>> i0 = sortedEntries(b0).iterator();
+    final Iterator<? extends Map.Entry<?, ?>> i1 = sortedEntries(b1).iterator();
     while (i0.hasNext() && i1.hasNext()) {
       Map.Entry<?, ?> e0 = i0.next();
       Map.Entry<?, ?> e1 = i1.next();
@@ -765,6 +762,17 @@ public abstract class Functions {
       return -1;
     }
     return 0;
+  }
+
+  /** Returns the entries of a map in a canonical order that does not depend
+   * on the map's iteration order: sorted by key, ties broken by value. */
+  private static List<Map.Entry<?, ?>> sortedEntries(Map<?, ?> map) {
+    final List<Map.Entry<?, ?>> entries = new ArrayList<>(map.entrySet());
+    entries.sort((e0, e1) -> {
+      final int c = compareListItems(e0.getKey(), e1.getKey());
+      return c != 0 ? c : compareListItems(e0.getValue(), e1.getValue());
+    });
+    return entries;
   }
 
   private static BigDecimal toBigDecimal(Number number) {
