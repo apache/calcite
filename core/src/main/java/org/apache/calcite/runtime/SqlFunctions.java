@@ -1122,7 +1122,7 @@ public class SqlFunctions {
     return nullFlag ? null : false;
   }
 
-  /** SQL <code>CONTAINS_SUBSTR(jsonString, substr, json_scope&#61;&#62;jsonScope)</code>
+  /** SQL <code>CONTAINS_SUBSTR(jsonString, substr, json_scope =&gt; jsonScope)</code>
   * operator. */
   public static boolean containsSubstr(String jsonString, String substr,
       String jsonScope) {

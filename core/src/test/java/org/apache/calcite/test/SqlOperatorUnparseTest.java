@@ -114,10 +114,4 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
   void testSafeOffsetOperator() {
     super.testSafeOffsetOperator();
   }
-
-  @Override @Disabled("https://issues.apache.org/jira/browse/CALCITE-6002 "
-      + "CONTAINS_SUBSTR does not unparse correctly")
-  void testContainsSubstrFunc() {
-    super.testContainsSubstrFunc();
-  }
 }
