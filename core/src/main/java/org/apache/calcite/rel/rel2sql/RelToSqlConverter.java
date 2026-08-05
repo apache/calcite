@@ -895,12 +895,17 @@ public class RelToSqlConverter extends SqlImplementor
         + aggregate.getGroupSet() + ", just possibly a different order";
 
     final List<SqlNode> groupKeys = new ArrayList<>();
+    final SqlJoin fromJoin =
+        builder.select.getFrom() instanceof SqlJoin ? (SqlJoin) builder.select.getFrom() : null;
     for (int key : groupList) {
-      final SqlNode field = builder.context.field(key);
+      SqlNode field = builder.context.field(key);
+      field = maybeQualifyJoinKey(field, key, fromJoin, aggregate.getInput());
       groupKeys.add(field);
     }
     for (int key : sortedGroupList) {
-      final SqlNode field = builder.context.field(key);
+      SqlNode field =
+          maybeQualifyJoinKey(builder.context.field(key), key, fromJoin,
+              aggregate.getInput());
       addSelect(selectList, field, aggregate.getRowType());
     }
     switch (aggregate.getGroupType()) {
@@ -940,6 +945,105 @@ public class RelToSqlConverter extends SqlImplementor
                       groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
                   .collect(Collectors.toList())));
     }
+  }
+
+  /** Qualifies a group key when its aggregate input renders as a SQL join
+   * whose columns would otherwise be ambiguous. */
+  private SqlNode maybeQualifyJoinKey(SqlNode field, int key,
+      @Nullable SqlJoin fromJoin, RelNode input) {
+    if (fromJoin == null) {
+      return field;
+    }
+    final @Nullable SqlNode qualified = joinField(input, key, fromJoin);
+    return qualified != null ? qualified : field;
+  }
+
+  /** Resolves a field through row-preserving nodes and nested joins to the SQL
+   * relation that supplies it. Set operations are handled as aliased derived
+   * tables. */
+  private static @Nullable SqlNode joinField(RelNode input, int field,
+      SqlNode from) {
+    final @Nullable String alias = SqlValidatorUtil.alias(from);
+    if (alias != null) {
+      return new SqlIdentifier(
+          ImmutableList.of(alias,
+              input.getRowType().getFieldList().get(field).getName()), POS);
+    }
+    if (input instanceof Project) {
+      final Project project = (Project) input;
+      return joinExpression(project.getInput(), project.getProjects().get(field),
+          from);
+    }
+    if (input instanceof Filter) {
+      return joinField(((Filter) input).getInput(), field, from);
+    }
+    final RelNode left;
+    final RelNode right;
+    final JoinRelType joinType;
+    final boolean correlateInput;
+    if (input instanceof Join) {
+      final Join join = (Join) input;
+      left = join.getLeft();
+      right = join.getRight();
+      joinType = join.getJoinType();
+      correlateInput = false;
+    } else if (input instanceof Correlate) {
+      final Correlate correlateRel = (Correlate) input;
+      left = correlateRel.getLeft();
+      right = correlateRel.getRight();
+      joinType = correlateRel.getJoinType();
+      correlateInput = true;
+    } else {
+      return null;
+    }
+    if (!joinType.projectsRight()) {
+      if (correlateInput) {
+        return from instanceof SqlJoin
+            ? joinField(left, field, ((SqlJoin) from).getLeft())
+            : null;
+      }
+      return joinField(left, field, from);
+    }
+    if (!(from instanceof SqlJoin)) {
+      return null;
+    }
+    final SqlJoin fromJoin = (SqlJoin) from;
+    final int leftFieldCount = left.getRowType().getFieldCount();
+    final RelNode side;
+    final SqlNode sqlSide;
+    final int sideField;
+    if (field < leftFieldCount) {
+      side = left;
+      sqlSide = fromJoin.getLeft();
+      sideField = field;
+    } else {
+      side = right;
+      sqlSide = fromJoin.getRight();
+      sideField = field - leftFieldCount;
+    }
+    return joinField(side, sideField, sqlSide);
+  }
+
+  /** Converts field references and merged join keys in a project expression
+   * to qualified SQL expressions. */
+  private static @Nullable SqlNode joinExpression(RelNode input,
+      RexNode expression, SqlNode from) {
+    if (expression instanceof RexInputRef) {
+      return joinField(input, ((RexInputRef) expression).getIndex(), from);
+    }
+    if (expression.getKind() == SqlKind.COALESCE) {
+      final List<SqlNode> operands = new ArrayList<>();
+      for (RexNode operand : ((RexCall) expression).getOperands()) {
+        final @Nullable SqlNode sqlOperand =
+            joinExpression(input, operand, from);
+        if (sqlOperand == null) {
+          return null;
+        }
+        operands.add(sqlOperand);
+      }
+      return SqlStdOperatorTable.COALESCE.createCall(POS, operands);
+    }
+    return null;
   }
 
   private static SqlNode groupItem(List<SqlNode> groupKeys,
