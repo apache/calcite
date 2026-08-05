@@ -2479,40 +2479,6 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.check("select * from (values(1))", SqlTests.INTEGER_TYPE_CHECKER, 1);
 
-    // Check return type on scalar sub-query in select list.  Note return
-    // type is always nullable even if sub-query select value is NOT NULL.
-    // Bug FRG-189 causes this test to fail only in SqlOperatorTest; not
-    // in subtypes.
-    if (Bug.FRG189_FIXED) {
-      f.checkType("SELECT *,\n"
-              + "  (SELECT * FROM (VALUES(1)))\n"
-              + "FROM (VALUES(2))",
-          "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL");
-      f.checkType("SELECT *,\n"
-              + "  (SELECT * FROM (VALUES(CAST(10 as BIGINT))))\n"
-              + "FROM (VALUES(CAST(10 as bigint)))",
-          "RecordType(BIGINT NOT NULL EXPR$0, BIGINT EXPR$1) NOT NULL");
-      f.checkType("SELECT *,\n"
-              + "  (SELECT * FROM (VALUES(10.5)))\n"
-              + "FROM (VALUES(10.5))",
-          "RecordType(DECIMAL(3, 1) NOT NULL EXPR$0, DECIMAL(3, 1) EXPR$1) NOT NULL");
-      f.checkType("SELECT *,\n"
-              + "  (SELECT * FROM (VALUES('this is a char')))\n"
-              + "FROM (VALUES('this is a char too'))",
-          "RecordType(CHAR(18) NOT NULL EXPR$0, CHAR(14) EXPR$1) NOT NULL");
-      f.checkType("SELECT *,\n"
-              + "  (SELECT * FROM (VALUES(true)))\n"
-              + "FROM (values(false))",
-          "RecordType(BOOLEAN NOT NULL EXPR$0, BOOLEAN EXPR$1) NOT NULL");
-      f.checkType(" SELECT *,\n"
-              + "  (SELECT * FROM (VALUES(cast('abcd' as varchar(10)))))\n"
-              + "FROM (VALUES(CAST('abcd' as varchar(10))))",
-          "RecordType(VARCHAR(10) NOT NULL EXPR$0, VARCHAR(10) EXPR$1) NOT NULL");
-      f.checkType("SELECT *,\n"
-              + "  (SELECT * FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05')))\n"
-              + "FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))",
-          "RecordType(TIMESTAMP(0) NOT NULL EXPR$0, TIMESTAMP(0) EXPR$1) NOT NULL");
-    }
   }
 
   @Test void testLiteralChain() {
@@ -3653,12 +3619,10 @@ public class SqlOperatorTest {
             + "  time '01:23:44') hour to second / 2",
         "08:25:52", "TIME(0) NOT NULL");
 
-    if (Bug.DT1684_FIXED) {
-      f.checkBoolean("(date '1969-04-29' +"
-              + " (CURRENT_DATE - "
-              + "  date '1969-04-29') day / 2) is not null",
-          true);
-    }
+    f.checkBoolean("(date '1969-04-29' +"
+            + " (CURRENT_DATE - "
+            + "  date '1969-04-29') day / 2) is not null",
+        true);
     f.checkScalar("(date '2023-12-01' - date '2022-12-01') year",
         "+1", "INTERVAL YEAR NOT NULL");
     f.checkScalar("(date '2022-12-01' - date '2023-12-01') year",

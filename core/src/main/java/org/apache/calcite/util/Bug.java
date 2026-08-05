@@ -54,8 +54,6 @@ public abstract class Bug {
 
   public static final boolean DT239_FIXED = false;
 
-  public static final boolean DT785_FIXED = false;
-
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-377">issue
    * FRG-377: Regular character set identifiers defined in SQL:2008 spec like
@@ -65,28 +63,11 @@ public abstract class Bug {
   public static final boolean FRG377_FIXED = false;
 
   /**
-   * Whether dtbug1684 "CURRENT_DATE not implemented in fennel calc" is fixed.
-   */
-  public static final boolean DT1684_FIXED = false;
-
-  /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-73">issue FRG-73:
-   * miscellaneous bugs with nested comments</a> is fixed.
-   */
-  public static final boolean FRG73_FIXED = false;
-
-  /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-78">issue FRG-78:
    * collation clause should be on expression instead of identifier</a> is
    * fixed.
    */
   public static final boolean FRG78_FIXED = false;
-
-  /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-189">issue
-   * FRG-189: FarragoAutoVmOperatorTest.testSelect fails</a> is fixed.
-   */
-  public static final boolean FRG189_FIXED = false;
 
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-254">issue

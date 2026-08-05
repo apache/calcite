@@ -4388,10 +4388,8 @@ public class SqlParserTest {
         .ok("VALUES (ROW(2))");
 
     // end of multiline comment without start
-    if (Bug.FRG73_FIXED) {
-      sql("values (1 */ 2)")
-          .fails("xx");
-    }
+    sql("values (1 ^*/^ 2)")
+        .fails("(?s)Encountered \"\\*/\" at .*");
 
     // SQL:2003, 5.2, syntax rule #10 "Within a <bracket comment context>,
     // any <solidus> immediately followed by an <asterisk> without any
@@ -4399,34 +4397,27 @@ public class SqlParserTest {
     // comment introducer> for a <separator> that is a <bracketed
     // comment>".
 
-    // comment inside a comment
-    // Spec is unclear what should happen, but currently it crashes the
-    // parser, and that's bad
-    if (Bug.FRG73_FIXED) {
-      sql("values (1 + /* comment /* inner comment */ */ 2)").ok("xx");
-    }
+    // Calcite does not nest bracketed comments (SQL:2003, 5.2, syntax rule
+    // #10 requires nesting); the first "*/" ends the comment, so the
+    // second "*/" is a stray token.
+    sql("values (1 ^+^ /* comment /* inner comment */ */ 2)")
+        .fails("(?s)Encountered \"\\+ \\*/\" at .*");
 
-    // single-line comment inside multiline comment is illegal
-    //
-    // SQL-2003, 5.2: "Note 63 - Conforming programs should not place
-    // <simple comment> within a <bracketed comment> because if such a
-    // <simple comment> contains the sequence of characters "*/" without
-    // a preceding "/*" in the same <simple comment>, it will prematurely
-    // terminate the containing <bracketed comment>.
-    if (Bug.FRG73_FIXED) {
-      final String sql = "values /* multiline contains -- singline */\n"
-          + " (1)";
-      sql(sql).fails("xxx");
-    }
+    // A single-line comment within a multiline comment is treated as
+    // comment text, per SQL-2003, 5.2: "Note 63 - Conforming programs
+    // should not place <simple comment> within a <bracketed comment>
+    // because if such a <simple comment> contains the sequence of
+    // characters "*/" without a preceding "/*" in the same <simple
+    // comment>, it will prematurely terminate the containing
+    // <bracketed comment>.
+    sql("values /* multiline contains -- singline */\n"
+        + " (1)")
+        .ok("VALUES (ROW(1))");
 
     // non-terminated multi-line comment inside single-line comment
-    if (Bug.FRG73_FIXED) {
-      // Test should fail, and it does, but it should give "*/" as the
-      // erroneous token.
-      final String sql = "values ( -- rest of line /* a comment\n"
-          + " 1, ^*/^ 2)";
-      sql(sql).fails("Encountered \"/\\*\" at");
-    }
+    sql("values ( -- rest of line /* a comment\n"
+        + " 1, ^*/^ 2)")
+        .fails("(?s)Encountered \"\\*/\" at .*");
 
     sql("values (1 + /* comment -- rest of line\n"
         + " rest of comment */ 2)")

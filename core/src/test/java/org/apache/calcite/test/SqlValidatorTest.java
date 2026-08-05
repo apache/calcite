@@ -10506,6 +10506,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "on orders.productid = products_temporal.productid").ok();
   }
 
+  /** Test cases for [FRG-189]. */
+  @Test void testScalarSubQueryTypeInSelectList() {
+    sql("SELECT *, (SELECT * FROM (VALUES(1))) FROM (VALUES(2))")
+        .type("RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL");
+    sql("SELECT *, (SELECT * FROM (VALUES(CAST(10 as BIGINT))))\n"
+        + "FROM (VALUES(CAST(10 as bigint)))")
+        .type("RecordType(BIGINT NOT NULL EXPR$0, BIGINT EXPR$1) NOT NULL");
+    sql("SELECT *, (SELECT * FROM (VALUES(10.5))) FROM (VALUES(10.5))")
+        .type("RecordType(DECIMAL(3, 1) NOT NULL EXPR$0,"
+            + " DECIMAL(3, 1) EXPR$1) NOT NULL");
+    sql("SELECT *, (SELECT * FROM (VALUES('this is a char')))\n"
+        + "FROM (VALUES('this is a char too'))")
+        .type("RecordType(CHAR(18) NOT NULL EXPR$0, CHAR(14) EXPR$1) NOT NULL");
+    sql("SELECT *, (SELECT * FROM (VALUES(true))) FROM (values(false))")
+        .type("RecordType(BOOLEAN NOT NULL EXPR$0, BOOLEAN EXPR$1) NOT NULL");
+    sql("SELECT *, (SELECT * FROM (VALUES(cast('abcd' as varchar(10)))))\n"
+        + "FROM (VALUES(CAST('abcd' as varchar(10))))")
+        .type("RecordType(VARCHAR(10) NOT NULL EXPR$0,"
+            + " VARCHAR(10) EXPR$1) NOT NULL");
+    sql("SELECT *, (SELECT * FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05')))\n"
+        + "FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0,"
+            + " TIMESTAMP(0) EXPR$1) NOT NULL");
+  }
+
   @Test void testScalarSubQuery() {
     sql("SELECT  ename,(select name from dept where deptno=1) FROM emp").ok();
     sql("SELECT ename,^(select losal, hisal from salgrade where grade=1)^ FROM emp")
