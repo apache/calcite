@@ -830,36 +830,44 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   protected RexNode convertFloorCeil(SqlRexContext cx, SqlCall call) {
     final boolean floor = call.getKind() == SqlKind.FLOOR;
     final SqlParserPos pos = call.getParserPosition();
-    // Rewrite floor, ceil of interval
-    if (call.operandCount() == 1
-        && call.operand(0) instanceof SqlIntervalLiteral) {
-      final SqlIntervalLiteral literal = call.operand(0);
-      SqlIntervalLiteral.IntervalValue interval =
-          literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
-      BigDecimal val =
-          interval.getIntervalQualifier().getStartUnit().multiplier;
-      RexNode rexInterval = cx.convertExpression(literal);
-
+    // Rewrite floor, ceil of an interval as arithmetic that rounds to a
+    // multiple of the interval's leading unit.
+    if (call.operandCount() == 1) {
       final RexBuilder rexBuilder = cx.getRexBuilder();
-      RexNode zero = rexBuilder.makeExactLiteral(BigDecimal.valueOf(0));
-      RexNode cond = ge(pos, rexBuilder, rexInterval, zero);
+      final RexNode rexInterval = cx.convertExpression(call.operand(0));
+      final SqlIntervalQualifier qualifier =
+          rexInterval.getType().getIntervalQualifier();
+      if (qualifier != null) {
+        if (qualifier.timeFrameName != null) {
+          throw new UnsupportedOperationException((floor ? "FLOOR" : "CEIL")
+              + " of an interval with custom time frame '"
+              + qualifier.timeFrameName + "' is not supported");
+        }
+        if (!RexUtil.isDeterministic(rexInterval)) {
+          throw new UnsupportedOperationException((floor ? "FLOOR" : "CEIL")
+              + " of a non-deterministic interval expression is not"
+              + " supported");
+        }
+        BigDecimal val = qualifier.getStartUnit().multiplier;
+        RexNode zero = rexBuilder.makeExactLiteral(BigDecimal.valueOf(0));
+        RexNode cond = ge(pos, rexBuilder, rexInterval, zero);
 
-      RexNode pad =
-          rexBuilder.makeExactLiteral(val.subtract(BigDecimal.ONE));
-      RexNode cast =
-          rexBuilder.makeReinterpretCast(pos, rexInterval.getType(), pad,
-              rexBuilder.makeLiteral(false));
-      RexNode sum =
-          floor ? minus(pos, rexBuilder, rexInterval, cast)
-              : plus(pos, rexBuilder, rexInterval, cast);
+        RexNode pad =
+            rexBuilder.makeIntervalLiteral(val.subtract(BigDecimal.ONE),
+                qualifier);
+        RexNode sum =
+            floor ? minus(pos, rexBuilder, rexInterval, pad)
+                : plus(pos, rexBuilder, rexInterval, pad);
 
-      RexNode kase = floor
-          ? case_(rexBuilder, rexInterval, cond, sum)
-          : case_(rexBuilder, sum, cond, rexInterval);
+        // CASE operands are (when, then, else)
+        RexNode kase = floor
+            ? case_(rexBuilder, cond, rexInterval, sum)
+            : case_(rexBuilder, cond, sum, rexInterval);
 
-      RexNode factor = rexBuilder.makeExactLiteral(val);
-      RexNode div = divideInt(pos, rexBuilder, kase, factor);
-      return multiply(pos, rexBuilder, div, factor);
+        RexNode factor = rexBuilder.makeExactLiteral(val);
+        RexNode div = divideInt(pos, rexBuilder, kase, factor);
+        return multiply(pos, rexBuilder, div, factor);
+      }
     }
 
     // normal floor, ceil function

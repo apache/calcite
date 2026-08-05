@@ -1608,6 +1608,8 @@ Not implemented:
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
 | FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*
 | CEIL(datetime TO timeUnit) | Rounds *datetime* up to *timeUnit*
+| FLOOR(interval) | Rounds *interval* down to a multiple of its leading time unit; for example, `FLOOR(INTERVAL '3:04:05' HOUR TO SECOND)` returns `INTERVAL '3:00:00' HOUR TO SECOND`
+| CEIL(interval) | Rounds *interval* up to a multiple of its leading time unit
 | YEAR(date)                | Equivalent to `EXTRACT(YEAR FROM date)`. Returns an integer.
 | QUARTER(date)             | Equivalent to `EXTRACT(QUARTER FROM date)`. Returns an integer between 1 and 4.
 | MONTH(date)               | Equivalent to `EXTRACT(MONTH FROM date)`. Returns an integer between 1 and 12.
@@ -1628,12 +1630,6 @@ standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in c
 
 Not implemented:
 
-* CEIL(interval)
-* FLOOR(interval)
-* \+ interval
-* \- interval
-* interval + interval
-* interval - interval
 * interval / interval
 
 ### System functions

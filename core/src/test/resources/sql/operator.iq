@@ -842,4 +842,45 @@ SELECT
 
 !ok
 
+# [CALCITE-7692] FLOOR/CEIL of INTERVAL produces wrong results
+# FLOOR and CEIL of an interval round to the interval's leading unit,
+# whether or not the operand is a literal.
+select floor(x) = interval '3' hour as f,
+  ceil(x) = interval '4' hour as c
+from (values (interval '3:4:5' hour to second)) as t(x);
++------+------+
+| F    | C    |
++------+------+
+| true | true |
++------+------+
+(1 row)
+
+!ok
+
+select floor(interval '-6.3' second) = interval '-7' second as fneg,
+  ceil(interval '-6.3' second) = interval '-6' second as cneg,
+  floor(interval '5-1' year to month) = interval '5' year as fym,
+  ceil(interval '-5-1' year to month) = interval '-5' year as cym;
++------+------+------+------+
+| FNEG | CNEG | FYM  | CYM  |
++------+------+------+------+
+| true | true | true | true |
++------+------+------+------+
+(1 row)
+
+!ok
+
+# The operand's interval type may be computed rather than declared; here
+# HOUR + MINUTE yields INTERVAL HOUR TO MINUTE, whose leading unit is HOUR.
+select floor(interval '2' hour + interval '90' minute) = interval '3' hour as fa,
+  ceil(interval '2' hour + interval '90' minute) = interval '4' hour as ca;
++------+------+
+| FA   | CA   |
++------+------+
+| true | true |
++------+------+
+(1 row)
+
+!ok
+
 # End operator.iq

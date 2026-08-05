@@ -81,6 +81,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -6302,6 +6303,36 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     // should be simplified to floor(x TO WEEK).
     assertThat(plan, not(containsString("FLOOR(FLOOR")));
     assertThat(plan, containsString("FLOOR($4, FLAG(WEEK))"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7692">[CALCITE-7692]
+   * FLOOR/CEIL of INTERVAL produces wrong results</a>.
+   *
+   * <p>FLOOR and CEIL of an interval expression, literal or not, are rewritten
+   * as arithmetic that rounds to a multiple of the interval's leading unit. */
+  @Test void testFloorCeilOfInterval() {
+    final String sql = "select floor(x) as f, ceil(x) as c\n"
+        + "from (values (interval '3:4:5' hour to second)) as t(x)";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7692">[CALCITE-7692]
+   * FLOOR/CEIL of INTERVAL produces wrong results</a>.
+   *
+   * <p>The rewrite evaluates its operand more than once, which is unsound
+   * for a non-deterministic operand; conversion must fail rather than
+   * produce incorrect results. */
+  @Test void testFloorOfNonDeterministicInterval() {
+    final String sql = "select floor(x * rand()) as f\n"
+        + "from (values (interval '3:4:5' hour to second)) as t(x)";
+    final UnsupportedOperationException e =
+        assertThrows(UnsupportedOperationException.class,
+            () -> sql(sql).toRel());
+    assertThat(e.getMessage(),
+        is("FLOOR of a non-deterministic interval expression is not"
+            + " supported"));
   }
 
   /** Test case of

@@ -2627,6 +2627,18 @@ LogicalProject(EXPR$0=[ROW(ITEM($3, 1).EMPNO, ITEM($3, 1).ENAME, ROW(ITEM($3, 1)
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFloorCeilOfInterval">
+    <Resource name="sql">
+      <![CDATA[select floor(x) as f, ceil(x) as c
+from (values (interval '3:4:5' hour to second)) as t(x)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(F=[*(/INT(CASE(>=($0, 0), $0, -($0, 3599999)), 3600000), 3600000)], C=[*(/INT(CASE(>=($0, 0), +($0, 3599999), $0), 3600000), 3600000)])
+  LogicalValues(tuples=[[{ 11045000 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFunctionExprInOver">
     <Resource name="sql">
       <![CDATA[select ename, row_number() over(partition by char_length(ename)
