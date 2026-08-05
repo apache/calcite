@@ -14121,11 +14121,11 @@ public class SqlOperatorTest {
     f.checkNull("ceiling(cast(null as double))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7692">[CALCITE-7692]
+   * FLOOR/CEIL of INTERVAL produces wrong results</a>. */
   @Test void testCeilFuncInterval() {
     final SqlOperatorFixture f = fixture();
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     f.checkScalar("ceil(interval '3:4:5' hour to second)",
         "+4:00:00.000000", "INTERVAL HOUR TO SECOND NOT NULL");
     f.checkScalar("ceil(interval '-6.3' second)",
@@ -14354,11 +14354,11 @@ public class SqlOperatorTest {
             "-4", "INTEGER NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7692">[CALCITE-7692]
+   * FLOOR/CEIL of INTERVAL produces wrong results</a>. */
   @Test void testFloorFuncInterval() {
     final SqlOperatorFixture f = fixture();
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     f.checkScalar("floor(interval '3:4:5' hour to second)",
         "+3:00:00.000000",
         "INTERVAL HOUR TO SECOND NOT NULL");
@@ -14368,6 +14368,12 @@ public class SqlOperatorTest {
         "+5-00", "INTERVAL YEAR TO MONTH NOT NULL");
     f.checkScalar("floor(interval '-5-1' year to month)",
         "-6-00", "INTERVAL YEAR TO MONTH NOT NULL");
+    f.checkNull("floor(cast(null as interval year))");
+    if (!f.brokenTestsEnabled()) {
+      return;
+    }
+    // FLOOR(interval TO time unit) is not implemented; the validator accepts
+    // only DATE, TIME and TIMESTAMP before TO.
     f.checkScalar("floor(interval '-6.3' second to second)",
         "-7.000000", "INTERVAL SECOND NOT NULL");
     f.checkScalar("floor(interval '6-3' minute to second to minute)",
@@ -14384,7 +14390,6 @@ public class SqlOperatorTest {
         "201", "INTERVAL YEAR TO MONTH NOT NULL");
     f.checkScalar("floor(interval '1004-1' year to month to millennium)",
         "2001-00", "INTERVAL YEAR TO MONTH NOT NULL");
-    f.checkNull("floor(cast(null as interval year))");
   }
 
   @Test void testTimestampAdd() {
