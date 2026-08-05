@@ -511,6 +511,189 @@ class DeterministicTest {
             + "}\n"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6753">[CALCITE-6753]
+   * DeterministicCodeOptimizer may lift method calls out of try-catch
+   * blocks</a>. A deterministic method call must stay inside the try
+   * statement; a static field initializer would run outside the reach of
+   * the catch handler. */
+  @Test void testMethodCallWithinTryCatchNotFactored() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.emptyList(),
+                    Expressions.block(
+                        Expressions.tryCatch(
+                            Expressions.return_(null,
+                                Expressions.call(
+                                    getMethod(Integer.class, "valueOf",
+                                        int.class),
+                                    Expressions.constant(0))),
+                            Expressions.catch_(
+                                Expressions.parameter(Exception.class, "e"),
+                                Expressions.return_(null,
+                                    Expressions.constant(-1)))))))),
+        equalTo("{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        try {\n"
+            + "          return Integer.valueOf(0);\n"
+            + "        } catch (Exception e) {\n"
+            + "          return -1;\n"
+            + "        }\n"
+            + "      }\n"
+            + "\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  /** Expressions in a catch block are not factored out either, and factoring
+   * resumes for statements that follow the try statement. */
+  @Test void testFactoringResumesAfterTryCatch() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.emptyList(),
+                    Expressions.block(
+                        Expressions.tryCatch(
+                            Expressions.statement(
+                                Expressions.call(
+                                    getMethod(Integer.class, "valueOf",
+                                        int.class),
+                                    Expressions.constant(0))),
+                            Expressions.catch_(
+                                Expressions.parameter(Exception.class, "e"),
+                                Expressions.statement(
+                                    Expressions.call(
+                                        getMethod(Integer.class, "valueOf",
+                                            int.class),
+                                        Expressions.constant(1))))),
+                        Expressions.return_(null,
+                            Expressions.add(ONE, TWO)))))),
+        equalTo("{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        try {\n"
+            + "          Integer.valueOf(0);\n"
+            + "        } catch (Exception e) {\n"
+            + "          Integer.valueOf(1);\n"
+            + "        }\n"
+            + "        return $L4J$C$1_2;\n"
+            + "      }\n"
+            + "\n"
+            + "      static final int $L4J$C$1_2 = 1 + 2;\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  /** A try statement with only a finally block is not optimized either;
+   * moving an expression to a static field initializer would bypass the
+   * finally handler. */
+  @Test void testExpressionWithinTryFinallyNotFactored() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.emptyList(),
+                    Expressions.block(
+                        Expressions.tryFinally(
+                            Expressions.return_(null,
+                                Expressions.call(
+                                    getMethod(Integer.class, "valueOf",
+                                        int.class),
+                                    Expressions.constant(0))),
+                            Expressions.statement(
+                                Expressions.add(ONE, TWO))))))),
+        equalTo("{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        try {\n"
+            + "          return Integer.valueOf(0);\n"
+            + "        } finally {\n"
+            + "          1 + 2;\n"
+            + "        }\n"
+            + "      }\n"
+            + "\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
+  /** The optimizer must not add static fields to a class declared within a
+   * try statement.
+   *
+   * <p>Factoring {@code 1 + 2} out to a static field of the {@code Callable}
+   * would move the evaluation into that field's initializer. The initializer
+   * still runs inside the try, when {@code new} first instantiates the
+   * class, but the JVM wraps anything a static initializer throws in an
+   * {@code ExceptionInInitializerError} (an {@code Error}, per JLS 12.4.2),
+   * which {@code catch (Exception e)} does not match. */
+  @Test void testNestedClassWithinTryCatchNotFactored() {
+    assertThat(
+        optimize(
+            Expressions.new_(
+                Runnable.class,
+                Collections.emptyList(),
+                Expressions.methodDecl(
+                    0,
+                    int.class,
+                    "test",
+                    Collections.emptyList(),
+                    Expressions.block(
+                        Expressions.tryCatch(
+                            Expressions.return_(null,
+                                Expressions.call(
+                                    Expressions.new_(
+                                        Callable.class,
+                                        Collections.emptyList(),
+                                        Expressions.methodDecl(
+                                            0,
+                                            Object.class,
+                                            "call",
+                                            Collections.emptyList(),
+                                            Blocks.toFunctionBlock(
+                                                Expressions.add(ONE, TWO)))),
+                                    "call",
+                                    Collections.emptyList())),
+                            Expressions.catch_(
+                                Expressions.parameter(Exception.class, "e"),
+                                Expressions.return_(null,
+                                    Expressions.constant(-1)))))))),
+        equalTo("{\n"
+            + "  return new Runnable(){\n"
+            + "      int test() {\n"
+            + "        try {\n"
+            + "          return new java.util.concurrent.Callable(){\n"
+            + "              Object call() {\n"
+            + "                return 1 + 2;\n"
+            + "              }\n"
+            + "\n"
+            + "            }.call();\n"
+            + "        } catch (Exception e) {\n"
+            + "          return -1;\n"
+            + "        }\n"
+            + "      }\n"
+            + "\n"
+            + "    };\n"
+            + "}\n"));
+  }
+
   @Test void testDeterministicClassNonDeterministicMethod() {
     assertThat(
         optimize(

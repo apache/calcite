@@ -34,6 +34,10 @@ import java.util.List;
 public class ClassDeclarationFinder extends Shuttle {
   protected final @Nullable ClassDeclarationFinder parent;
 
+  /** Visits a subtree without changing it. Used for the subtrees
+   * which must not be optimized. */
+  private static final Shuttle PASS_THROUGH = new Shuttle();
+
   /**
    * The list of new final static fields to be added to the current class.
    */
@@ -151,6 +155,28 @@ public class ClassDeclarationFinder extends Shuttle {
     ClassDeclarationFinder visitor = goDeeper();
     visitor.learnFinalStaticDeclarations(classDeclaration.memberDeclarations);
     return visitor;
+  }
+
+  /**
+   * Skips optimization of the entire {@code try} statement.
+   *
+   * <p>An expression must not be factored out of a {@code try} statement:
+   * the initializer of the resulting static field runs during class
+   * initialization, outside the reach of the {@code catch} and
+   * {@code finally} handlers. For example, factoring a method call out of
+   * {@code try { return f(x); } catch (Exception e) { return null; }}
+   * (the shape generated for a safe cast) would make the exception escape
+   * as an {@code ExceptionInInitializerError} instead of yielding
+   * {@code null}. See
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6753">[CALCITE-6753]
+   * DeterministicCodeOptimizer may lift method calls out of try-catch
+   * blocks</a>.
+   *
+   * @param tryStatement statement to leave unchanged
+   * @return pass-through visitor
+   */
+  @Override public Shuttle preVisit(TryStatement tryStatement) {
+    return PASS_THROUGH;
   }
 
   @Override public Expression visit(NewExpression newExpression,
