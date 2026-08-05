@@ -1069,14 +1069,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE, OperandTypes.DATE,
           SqlFunctionCategory.TIMEDATE);
 
-  /** "CONTAINS_SUBSTR(expression, string[, json_scope &#61;&#62; json_scope_value ])"
+  /** "CONTAINS_SUBSTR(expression, string[, json_scope =&gt; json_scope_value ])"
    * function; returns whether string exists as substring in expression, with optional
    * json_scope argument. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CONTAINS_SUBSTR =
-      SqlBasicFunction.create("CONTAINS_SUBSTR",
-          ReturnTypes.BOOLEAN_NULLABLE, OperandTypes.ANY_STRING_OPTIONAL_STRING,
-          SqlFunctionCategory.STRING);
+      new SqlContainsSubstrFunction();
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */

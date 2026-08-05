@@ -7657,6 +7657,16 @@ public class SqlParserTest {
         .ok("CAST(`X` AS VARBINARY)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6002">[CALCITE-6002]
+   * CONTAINS_SUBSTR does not unparse correctly</a>. */
+  @Test void testContainsSubstr() {
+    expr("CONTAINS_SUBSTR(x, 'a')")
+        .ok("CONTAINS_SUBSTR(`X`, 'a')");
+    expr("CONTAINS_SUBSTR(x, 'a', json_scope=>'JSON_KEYS')")
+        .ok("CONTAINS_SUBSTR(`X`, 'a', JSON_SCOPE => 'JSON_KEYS')");
+  }
+
   @Test void testTimestampAdd() {
     final String sql = "select * from t\n"
         + "where timestampadd(month, 5, hiredate) < curdate";

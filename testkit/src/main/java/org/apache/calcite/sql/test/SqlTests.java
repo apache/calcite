@@ -395,7 +395,7 @@ public abstract class SqlTests {
       if (sap.pos == null) {
         throw new AssertionError("Actual error had a position, but expected "
             + "error did not. Add error position carets to sql:\n"
-            + sqlWithCarets);
+            + sqlWithCarets, actualException);
       }
     }
 
