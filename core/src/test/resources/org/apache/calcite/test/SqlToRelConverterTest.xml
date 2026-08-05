@@ -4007,9 +4007,7 @@ LogicalProject(EXPR$0=[1])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  ProjectRel(EXPR$0=[3600000])
-    OneRowRel
+LogicalValues(tuples=[[{ 3600000 }]])
 ]]>
     </Resource>
   </TestCase>

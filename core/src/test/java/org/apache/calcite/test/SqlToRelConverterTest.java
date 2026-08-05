@@ -55,7 +55,6 @@ import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -3123,10 +3122,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testInterval() {
-    // temporarily disabled per DTbug 1212
-    if (!Bug.DT785_FIXED) {
-      return;
-    }
     final String sql =
         "values(cast(interval '1' hour as interval hour to second))";
     sql(sql).ok();
