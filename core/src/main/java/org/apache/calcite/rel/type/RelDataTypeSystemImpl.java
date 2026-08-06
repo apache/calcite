@@ -20,12 +20,16 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.RoundingMode;
 
 import static org.apache.calcite.sql.type.SqlTypeName.DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
 import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_START_PRECISION;
+
+import static java.util.Objects.requireNonNull;
 
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
@@ -369,7 +373,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
       RelDataType arg0Type, RelDataType arg1Type) {
-    return arg0Type;
+    RelDataType type =
+        typeFactory.leastRestrictive(ImmutableList.of(arg0Type, arg1Type));
+    return requireNonNull(type, () ->
+        "no least restrictive type for " + arg0Type + " and " + arg1Type);
   }
 
   @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {

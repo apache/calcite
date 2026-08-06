@@ -802,7 +802,9 @@ public class AggregateReduceFunctionsRule
             aggCallMapping, rexBuilder, yIndex, argXAndYNotNullFilterOrdinal);
 
     final RexNode sumXSumY =
-        rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, sumX, sumY);
+        widenNumerator(pos, rexBuilder,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, sumX, sumY),
+            oldCallType);
 
     final RexNode countArg =
         getRegrCountRexNode(oldAggRel, oldCall, newCalls, aggCallMapping,
@@ -874,7 +876,9 @@ public class AggregateReduceFunctionsRule
             aggCallMapping, rexBuilder, argYOrdinal,
             argXAndYNotNullFilterOrdinal);
     final RexNode sumXSumY =
-        rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, sumX, sumY);
+        widenNumerator(pos, rexBuilder,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, sumX, sumY),
+            oldCallType);
     final RexNode countArg =
         getRegrCountRexNode(oldAggRel, oldCall, newCalls,
             aggCallMapping, ImmutableIntList.of(argXOrdinal, argYOrdinal),
@@ -886,6 +890,21 @@ public class AggregateReduceFunctionsRule
     final RexNode result =
         divide(pos, biased, rexBuilder, diff, countArg);
     return rexBuilder.makeCast(pos, oldCall.getType(), result);
+  }
+
+  /** Widens {@code numerator} for a division whose result has
+   * {@code callType}. For REGR_SYY(int, double) both sums are over the int
+   * argument, and dividing them unwidened is an integer division that
+   * truncates. Never narrows: the numerator may exceed the call type's range
+   * before the division scales it down. */
+  private static RexNode widenNumerator(SqlParserPos pos, RexBuilder rexBuilder,
+      RexNode numerator, RelDataType callType) {
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    final RelDataType divideType =
+        requireNonNull(
+            typeFactory.leastRestrictive(
+                ImmutableList.of(numerator.getType(), callType)));
+    return rexBuilder.ensureType(pos, divideType, numerator, true);
   }
 
   private static RexNode divide(SqlParserPos pos, boolean biased, RexBuilder rexBuilder,
