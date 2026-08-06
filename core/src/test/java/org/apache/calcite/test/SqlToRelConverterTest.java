@@ -377,6 +377,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4792">[CALCITE-4792]
+   * SqlToRel should populate corralateId for join with corralated query in ON condition</a>.
+   */
+  @Test void testJoinOnCorrelatedSubQuery() {
+    final String sql = "select * from emp inner join dept\n"
+        + "on emp.deptno = dept.deptno\n"
+        + "and exists (select 1 from emp e2 where e2.deptno = dept.deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testJoinUsing() {
     sql("SELECT * FROM emp JOIN dept USING (deptno)").ok();
   }
