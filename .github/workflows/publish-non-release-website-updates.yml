@@ -42,13 +42,6 @@ jobs:
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git config user.name ${{ github.actor }}
 
-          # github.event.commits is capped at 20 entries. Warn loudly if we hit
-          # the cap so a silently-truncated push shows up in the step summary
-          # rather than as "site branch is quietly missing commits."
-          if [ "$(echo "$COMMITS" | jq 'length')" -ge 20 ]; then
-            echo "::warning::Push contains 20+ commits — github.event.commits may be truncated; some commits may not be cherry-picked."
-          fi
-
           # Extract each commit SHA from the push payload and iterate chronologically
           echo "$COMMITS" | jq -r '.[].id' | while read -r commit_sha; do
             echo "----------------------------------------"
