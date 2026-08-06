@@ -2987,6 +2987,29 @@ from "scott".emp;
 
 !ok
 
+# [CALCITE-7696] COVAR result type is derived only from first argument type
+# The result type is the least restrictive of the two argument types;
+# COVAR_POP(INT, DOUBLE) computes on DOUBLE, not INT
+select
+  covar_pop(x, y) as cp,
+  covar_samp(x, y) as cs,
+  regr_sxx(x, y) as sxx,
+  regr_syy(x, y) as syy
+from (values (1, 0.5e0), (2, 1.0e0)) as t(x, y);
+CP DOUBLE(15)
+CS DOUBLE(15)
+SXX DOUBLE(15)
+SYY DOUBLE(15)
+!type
++-------+------+-------+-----+
+| CP    | CS   | SXX   | SYY |
++-------+------+-------+-----+
+| 0.125 | 0.25 | 0.125 | 0.5 |
++-------+------+-------+-----+
+(1 row)
+
+!ok
+
 # [CALCITE-1776, CALCITE-2402] REGR_COUNT with group by
 SELECT SAL, regr_count(COMM, SAL) as "REGR_COUNT(COMM, SAL)",
    regr_count(EMPNO, SAL) as "REGR_COUNT(EMPNO, SAL)"

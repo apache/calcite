@@ -16159,6 +16159,16 @@ public class SqlOperatorTest {
     f.checkType("covar_pop(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
         "INTEGER");
     f.checkAggType("covar_pop(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+    // [CALCITE-7696] Result type is the least restrictive of the two
+    // argument types, not the type of the first argument
+    f.checkAggType("covar_pop(1, cast(2 as double))", "DOUBLE NOT NULL");
+    f.checkAggType("covar_pop(1.5, cast(2 as double))", "DOUBLE NOT NULL");
+    f.checkAggType("covar_pop(1.5, 2)", "DECIMAL(11, 1) NOT NULL");
+    // A nullable argument makes the result nullable
+    f.checkAggType("covar_pop(1.5, cast(null as double))", "DOUBLE");
+    f.checkAggType("covar_pop(cast(null as integer), 2.5)", "DECIMAL(11, 1)");
+    f.checkAggType("covar_pop(cast(null as integer), cast(null as double))",
+        "DOUBLE");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -16183,6 +16193,7 @@ public class SqlOperatorTest {
     f.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
         "INTEGER");
     f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(2, 1)");
+    f.checkAggType("covar_samp(1, cast(2 as double))", "DOUBLE");
     // with zero values
     f.checkAgg("covar_samp(x, x)", new String[]{}, isNullValue());
   }
@@ -16204,6 +16215,7 @@ public class SqlOperatorTest {
     f.checkType("regr_sxx(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
         "INTEGER");
     f.checkAggType("regr_sxx(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("regr_sxx(1, cast(2 as double))", "DOUBLE NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -16228,6 +16240,7 @@ public class SqlOperatorTest {
     f.checkType("regr_syy(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
         "INTEGER");
     f.checkAggType("regr_syy(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("regr_syy(1, cast(2 as double))", "DOUBLE NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
