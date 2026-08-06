@@ -805,6 +805,21 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCastIntervalToNumericNoReinterpret">
+    <Resource name="sql">
+      <![CDATA[select cast(x as integer) as i,
+ cast(x as decimal(6, 1)) as d,
+ timestampdiff(minute, ts, ts) as m
+from (values (interval '90' minute,
+  timestamp '2020-01-01 00:00:00')) as t(x, ts)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(I=[CAST($0):INTEGER NOT NULL], D=[CAST($0):DECIMAL(6, 1) NOT NULL], M=[CAST(-($1, $1)):INTEGER NOT NULL])
+  LogicalValues(tuples=[[{ 5400000, 2020-01-01 00:00:00 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCastNames">
     <Resource name="sql">
       <![CDATA[SELECT * FROM (SELECT empno, 'x' AS X FROM emp) UNION ALL (SELECT empno, 'xx' AS X from emp)]]>
@@ -2636,6 +2651,19 @@ from (values (interval '3:4:5' hour to second)) as t(x)]]>
       <![CDATA[
 LogicalProject(F=[*(/INT(CASE(>=($0, 0), $0, -($0, 3599999)), 3600000), 3600000)], C=[*(/INT(CASE(>=($0, 0), +($0, 3599999), $0), 3600000), 3600000)])
   LogicalValues(tuples=[[{ 11045000 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFloorCeilOfIntervalLiteral">
+    <Resource name="sql">
+      <![CDATA[select floor(interval '3:4:5' hour to second) as f,
+ ceil(interval '3:4:5' hour to second) as c
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(F=[*(/INT(CASE(>=(11045000:INTERVAL HOUR TO SECOND, 0), 11045000:INTERVAL HOUR TO SECOND, -(11045000:INTERVAL HOUR TO SECOND, 3599999:INTERVAL HOUR TO SECOND)), 3600000), 3600000)], C=[*(/INT(CASE(>=(11045000:INTERVAL HOUR TO SECOND, 0), +(11045000:INTERVAL HOUR TO SECOND, 3599999:INTERVAL HOUR TO SECOND), 11045000:INTERVAL HOUR TO SECOND), 3600000), 3600000)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

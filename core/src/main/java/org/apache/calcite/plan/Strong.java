@@ -358,7 +358,7 @@ public class Strong {
 
     map.put(SqlKind.DIVIDE, Policy.ANY);
     map.put(SqlKind.CAST, Policy.ANY);
-    map.put(SqlKind.REINTERPRET, Policy.ANY);
+    map.put(SqlKind.REINTERPRET, Policy.ANY);  // deprecated, kept until removed
     map.put(SqlKind.TRIM, Policy.ANY);
     map.put(SqlKind.LTRIM, Policy.ANY);
     map.put(SqlKind.RTRIM, Policy.ANY);

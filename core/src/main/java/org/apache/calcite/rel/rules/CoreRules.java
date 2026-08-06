@@ -221,7 +221,10 @@ public class CoreRules {
 
   /** Rule that reduces operations on the DECIMAL type, such as casts or
    * arithmetic, into operations involving more primitive types such as BIGINT
-   * and DOUBLE. */
+   * and DOUBLE.
+   *
+   * @deprecated See {@link ReduceDecimalsRule}. */
+  @Deprecated // to be removed before 2.0
   public static final ReduceDecimalsRule CALC_REDUCE_DECIMALS =
       ReduceDecimalsRule.Config.DEFAULT.toRule();
 

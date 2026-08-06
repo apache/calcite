@@ -73,8 +73,19 @@ import static java.util.Objects.requireNonNull;
  * would like to push down decimal operations to an external database.
  *
  * @see CoreRules#CALC_REDUCE_DECIMALS
+ *
+ * @deprecated The rule rewrites decimal values as their unscaled BIGINT
+ * representation, connected by REINTERPRET operators. This assumes a physical
+ * representation of DECIMAL values that only an adapter or calling convention
+ * knows, so the rewritten plan is no longer a logical plan. This rule is opt-in
+ * for engines that represent DECIMAL values as scaled integers. The
+ * REINTERPRET operator is deprecated.
  */
+@Deprecated // to be removed before 2.0
 @Value.Enclosing
+// Immutables copies this suppression into the generated class, which
+// references this deprecated class
+@SuppressWarnings("deprecation")
 public class ReduceDecimalsRule
     extends RelRule<ReduceDecimalsRule.Config>
     implements TransformationRule {

@@ -720,6 +720,20 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case INTEGER:
     case TINYINT:
     case SMALLINT: {
+      if (sourceType.getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME
+          || sourceType.getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH) {
+        // An interval is represented by its count of base units (milliseconds
+        // or months); the cast yields the count of the interval's end unit,
+        // truncated towards zero.
+        final BigDecimal multiplier =
+            sourceType.getSqlTypeName().getEndUnit().multiplier;
+        final Expression ticks = EnumUtils.convert(operand, long.class);
+        final Expression scaled = multiplier.equals(BigDecimal.ONE)
+            ? ticks
+            : Expressions.divide(ticks,
+                Expressions.constant(multiplier.longValueExact()));
+        return EnumUtils.convert(scaled, typeFactory.getJavaClass(targetType));
+      }
       if (SqlTypeName.NUMERIC_TYPES.contains(sourceType.getSqlTypeName())) {
         Type javaClass = typeFactory.getJavaClass(targetType);
         Primitive primitive = Primitive.of(javaClass);
@@ -1393,6 +1407,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         // multiplyDivide cannot handle DECIMALs, but for DECIMAL
         // target types the result is already scaled.
         && targetType.getSqlTypeName() != SqlTypeName.DECIMAL
+        // Integer targets divide before narrowing, in getConvertExpression;
+        // dividing here, after the narrowing, would overflow for tick counts
+        // wider than the target type.
+        && !SqlTypeName.INT_TYPES.contains(targetType.getSqlTypeName())
         && (sourceFamily == SqlTypeFamily.INTERVAL_YEAR_MONTH
             || sourceFamily == SqlTypeFamily.INTERVAL_DAY_TIME)) {
       // Scale to the given field.
