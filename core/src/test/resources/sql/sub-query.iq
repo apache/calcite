@@ -1206,6 +1206,24 @@ EnumerableCalc(expr#0..3=[{inputs}], ENAME=[$t1], DEEP2SAL=[$t3])
 !plan
 !}
 
+# [CALCITE-5420] SqlToRel should populate the correlate id of a Project for queries with aggregates
+SELECT deptno,
+       SUM((SELECT char_length(dname) FROM "scott".dept
+            WHERE dept.deptno = emp.deptno)) AS s
+FROM   "scott".emp
+GROUP BY deptno
+ORDER BY deptno;
++--------+----+
+| DEPTNO | S  |
++--------+----+
+|     10 | 30 |
+|     20 | 40 |
+|     30 | 30 |
++--------+----+
+(3 rows)
+
+!ok
+
 # [CALCITE-1494] Inefficient plan for correlated sub-queries
 # Plan must have only one scan each of emp and dept.
 select sal
