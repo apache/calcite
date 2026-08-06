@@ -10111,4 +10111,26 @@ WHERE E1.SAL > (SELECT B1.COMM FROM BONUS B1 WHERE E1.ENAME = B1.ENAME LIMIT 2);
 (0 rows)
 
 !ok
+
+# [CALCITE-4792] SqlToRel should populate corralateId for join with corralated query in ON condition.
+SELECT emp.ename, dept.dname
+FROM emp INNER JOIN dept
+ON emp.deptno = dept.deptno
+AND EXISTS (SELECT 1 FROM emp e2 WHERE e2.deptno = dept.deptno AND e2.sal > 2900)
+ORDER BY emp.ename;
++--------+------------+
+| ENAME  | DNAME      |
++--------+------------+
+| ADAMS  | RESEARCH   |
+| CLARK  | ACCOUNTING |
+| FORD   | RESEARCH   |
+| JONES  | RESEARCH   |
+| KING   | ACCOUNTING |
+| MILLER | ACCOUNTING |
+| SCOTT  | RESEARCH   |
+| SMITH  | RESEARCH   |
++--------+------------+
+(8 rows)
+
+!ok
 # End sub-query.iq

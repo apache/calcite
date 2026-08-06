@@ -4348,6 +4348,24 @@ LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }, {
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinOnCorrelatedSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from emp inner join dept
+on emp.deptno = dept.deptno
+and exists (select 1 from emp e2 where e2.deptno = dept.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), EXISTS({
+LogicalFilter(condition=[=($7, $cor0.DEPTNO0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], joinType=[inner], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinOnExists">
     <Resource name="sql">
       <![CDATA[select * from emp left join dept
