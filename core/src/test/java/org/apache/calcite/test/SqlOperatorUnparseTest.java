@@ -24,8 +24,6 @@ import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
 import org.apache.calcite.sql.test.SqlTestFactory;
 
-import org.junit.jupiter.api.Disabled;
-
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
@@ -104,14 +102,5 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  // Every test that is Disabled below corresponds to a bug.
-  // These tests should just be deleted when the corresponding bugs are fixed.
-
-  @Override @Disabled("https://issues.apache.org/jira/browse/CALCITE-5998 "
-      + "The SAFE_OFFSET operator can cause an index out of bounds exception")
-  void testSafeOffsetOperator() {
-    super.testSafeOffsetOperator();
   }
 }
