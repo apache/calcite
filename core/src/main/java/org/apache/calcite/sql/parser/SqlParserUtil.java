@@ -983,8 +983,14 @@ public final class SqlParserUtil {
         SqlNode firstItem = list.get(0);
         if (item.op == SqlStdOperatorTable.UNARY_MINUS
             && firstItem instanceof SqlNumericLiteral) {
-          return SqlLiteral.createNegative((SqlNumericLiteral) firstItem,
-              item.pos.plusAll(list));
+          final SqlNumericLiteral num = (SqlNumericLiteral) firstItem;
+          // Do not fold "-0.0E0" into a literal: BigDecimal, which backs
+          // SqlNumericLiteral, cannot represent IEEE 754 negative zero.
+          // Keeping the unary minus call preserves the sign at runtime.
+          if (num.isExact()
+              || ((BigDecimal) requireNonNull(num.getValue())).signum() != 0) {
+            return SqlLiteral.createNegative(num, item.pos.plusAll(list));
+          }
         }
         if (item.op == SqlStdOperatorTable.UNARY_PLUS
             && firstItem instanceof SqlNumericLiteral) {
