@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.Like;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.JsonBuilder;
@@ -321,8 +322,8 @@ public class MongoFilter extends Filter implements MongoRel {
       final RexLiteral patternLiteral = (RexLiteral) right;
       final String sqlPattern = patternLiteral.getValue2().toString();
 
-      final @Nullable Character escapeChar = escapeChar(call);
-      final String finalRegex = sqlLikeToMongoRegex(sqlPattern, escapeChar);
+      final @Nullable String escapeChar = escapeChar(call);
+      final String finalRegex = Like.sqlToRegexMongo(sqlPattern, escapeChar);
 
       switch (left.getKind()) {
       case INPUT_REF:
@@ -364,8 +365,8 @@ public class MongoFilter extends Filter implements MongoRel {
       final RexLiteral patternLiteral = (RexLiteral) right;
       final String sqlPattern = patternLiteral.getValue2().toString();
 
-      final @Nullable Character escapeChar = escapeChar(call);
-      final String finalRegex = sqlLikeToMongoRegex(sqlPattern, escapeChar);
+      final @Nullable String escapeChar = escapeChar(call);
+      final String finalRegex = Like.sqlToRegexMongo(sqlPattern, escapeChar);
 
       final String name;
       switch (left.getKind()) {
@@ -404,8 +405,8 @@ public class MongoFilter extends Filter implements MongoRel {
       return node;
     }
 
-    /** Returns the escape character declared in a LIKE expression, or null. */
-    private static @Nullable Character escapeChar(RexCall call) {
+    /** Returns the escape string declared in a LIKE expression, or null. */
+    private static @Nullable String escapeChar(RexCall call) {
       if (call.operands.size() != 3) {
         return null;
       }
@@ -417,72 +418,7 @@ public class MongoFilter extends Filter implements MongoRel {
       if (escape.length() != 1) {
         throw new AssertionError("cannot translate LIKE with multi-character escape: " + call);
       }
-      return escape.charAt(0);
-    }
-
-    /**
-     * Converts SQL LIKE pattern to MongoDB regex pattern.
-     *
-     * <p>SQL: {@code %} matches zero or more characters, {@code _} matches a single
-     * character. MongoDB: {@code .*} matches zero or more characters, {@code .}
-     * matches a single character.
-     *
-     * <p>We add {@code ^} and {@code $} anchors so that the entire string matches
-     * the pattern, just as SQL LIKE does.
-     */
-    private static String sqlLikeToMongoRegex(String sqlPattern, @Nullable Character escapeChar) {
-      final StringBuilder regex = new StringBuilder(sqlPattern.length() * 2);
-      regex.append("^");
-      for (int i = 0; i < sqlPattern.length(); i++) {
-        char c = sqlPattern.charAt(i);
-        if (escapeChar != null && c == escapeChar) {
-          if (i == sqlPattern.length() - 1) {
-            throw new AssertionError("Invalid escape sequence at end of LIKE pattern: "
-                + sqlPattern);
-          }
-          final char nextChar = sqlPattern.charAt(i + 1);
-          if (nextChar == '%' || nextChar == '_' || nextChar == escapeChar) {
-            regex.append(escapeRegexChar(nextChar));
-            i++;
-          } else {
-            throw new AssertionError("Invalid escape sequence in LIKE pattern: " + sqlPattern);
-          }
-        } else if (c == '%') {
-          regex.append(".*");
-        } else if (c == '_') {
-          regex.append('.');
-        } else {
-          regex.append(escapeRegexChar(c));
-        }
-      }
-      regex.append("$");
-      return regex.toString();
-    }
-
-    /**
-     * Escapes a character for use in a MongoDB regex if it's a special regex character.
-     */
-    private static String escapeRegexChar(char c) {
-      // MongoDB regex special characters that need escaping
-      switch (c) {
-      case '\\':
-      case '^':
-      case '$':
-      case '.':
-      case '|':
-      case '?':
-      case '*':
-      case '+':
-      case '(':
-      case ')':
-      case '[':
-      case ']':
-      case '{':
-      case '}':
-        return "\\" + c;
-      default:
-        return String.valueOf(c);
-      }
+      return escape;
     }
   }
 }
