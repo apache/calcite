@@ -152,6 +152,7 @@ class SqlFunctionsTest {
 
   @Test void testToString() {
     assertThat(SqlFunctions.toString(0f), is("0E0"));
+    assertThat(SqlFunctions.toString(-0f), is("-0E0"));
     assertThat(SqlFunctions.toString(1f), is("1.0"));
     assertThat(SqlFunctions.toString(1.5f), is("1.5"));
     assertThat(SqlFunctions.toString(-1.5f), is("-1.5"));
@@ -159,8 +160,12 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.toString(-0.0625f), is("-0.0625"));
     assertThat(SqlFunctions.toString(0.0625f), is("0.0625"));
     assertThat(SqlFunctions.toString(-5e-12f), is("-5.0E-12"));
+    assertThat(SqlFunctions.toString(Float.NaN), is("NaN"));
+    assertThat(SqlFunctions.toString(Float.POSITIVE_INFINITY), is("Infinity"));
+    assertThat(SqlFunctions.toString(Float.NEGATIVE_INFINITY), is("-Infinity"));
 
     assertThat(SqlFunctions.toString(0d), is("0E0"));
+    assertThat(SqlFunctions.toString(-0d), is("-0E0"));
     assertThat(SqlFunctions.toString(1d), is("1.0"));
     assertThat(SqlFunctions.toString(1.5d), is("1.5"));
     assertThat(SqlFunctions.toString(-1.5d), is("-1.5"));
@@ -168,6 +173,9 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.toString(-0.0625d), is("-0.0625"));
     assertThat(SqlFunctions.toString(0.0625d), is("0.0625"));
     assertThat(SqlFunctions.toString(-5e-12d), is("-5.0E-12"));
+    assertThat(SqlFunctions.toString(Double.NaN), is("NaN"));
+    assertThat(SqlFunctions.toString(Double.POSITIVE_INFINITY), is("Infinity"));
+    assertThat(SqlFunctions.toString(Double.NEGATIVE_INFINITY), is("-Infinity"));
 
     assertThat(SqlFunctions.toString(new BigDecimal("0")), is("0"));
     assertThat(SqlFunctions.toString(new BigDecimal("1")), is("1"));

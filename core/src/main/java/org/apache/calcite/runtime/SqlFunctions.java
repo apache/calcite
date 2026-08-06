@@ -5101,7 +5101,9 @@ public class SqlFunctions {
   /** CAST(FLOAT AS VARCHAR). */
   public static String toString(float x) {
     if (x == 0) {
-      return "0E0";
+      // The comparison 'x == 0' does not distinguish -0.0 from 0.0,
+      // but the bit pattern does
+      return Float.floatToRawIntBits(x) != 0 ? "-0E0" : "0E0";
     }
     return Float.toString(x);
   }
@@ -5109,7 +5111,9 @@ public class SqlFunctions {
   /** CAST(DOUBLE AS VARCHAR). */
   public static String toString(double x) {
     if (x == 0) {
-      return "0E0";
+      // The comparison 'x == 0' does not distinguish -0.0 from 0.0,
+      // but the bit pattern does
+      return Double.doubleToRawLongBits(x) != 0L ? "-0E0" : "0E0";
     }
     return Double.toString(x);
   }
@@ -5159,12 +5163,12 @@ public class SqlFunctions {
       return decimal.compareTo(BigDecimal.ZERO) != 0;
     }
     if (number instanceof Double) {
-      Double d = (Double) number;
-      return !d.equals(Double.valueOf(0));
+      // Compare primitives: IEEE 754 treats -0.0 as equal to 0.0,
+      // whereas Double.equals does not
+      return ((Double) number).doubleValue() != 0d;
     }
     if (number instanceof Float) {
-      Float f = (Float) number;
-      return !f.equals(Float.valueOf(0));
+      return ((Float) number).floatValue() != 0f;
     }
     return !number.equals(0);
   }

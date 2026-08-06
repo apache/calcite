@@ -405,6 +405,84 @@ public class SqlOperatorTest {
     }
   }
 
+  @Test void testFPSpecialValues() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalarApprox("CAST('Infinity' AS REAL)",
+        "REAL NOT NULL", "Infinity");
+    f.checkScalarApprox("CAST('Infinity' AS DOUBLE)",
+        "DOUBLE NOT NULL", "Infinity");
+    f.checkScalarApprox("CAST('Infinity' AS FLOAT)",
+        "FLOAT NOT NULL", "Infinity");
+    f.checkScalarApprox("CAST('-Infinity' AS REAL)",
+        "REAL NOT NULL", "-Infinity");
+    f.checkScalarApprox("CAST('-Infinity' AS DOUBLE)",
+        "DOUBLE NOT NULL", "-Infinity");
+    f.checkScalarApprox("CAST('-Infinity' AS FLOAT)",
+        "FLOAT NOT NULL", "-Infinity");
+    // Note: IEEE 754 specifies that there are several types of NaN: quiet and signaling.
+    // There is however only one way to write them.
+    // But when compared for equality they may not match.
+    f.checkScalarApprox("CAST('NaN' AS REAL)",
+        "REAL NOT NULL", "NaN");
+    f.checkScalarApprox("CAST('NaN' AS DOUBLE)",
+        "DOUBLE NOT NULL", "NaN");
+    f.checkScalarApprox("CAST('NaN' AS FLOAT)",
+        "FLOAT NOT NULL", "NaN");
+    // [CALCITE-6059] Optimizer does not correctly handle
+    // special floating point value -0.0E0
+    // The matcher is(-0.0d) checks the value bit-exactly:
+    // Double.equals distinguishes -0.0 from 0.0.
+    f.checkScalarApprox("CAST('-0E0' AS REAL)",
+        "REAL NOT NULL", is(-0.0d));
+    f.checkScalarApprox("CAST('-0E0' AS DOUBLE)",
+        "DOUBLE NOT NULL", is(-0.0d));
+    f.checkScalarApprox("CAST('-0E0' AS FLOAT)",
+        "FLOAT NOT NULL", is(-0.0d));
+    f.checkScalarApprox("CAST('0E0' AS REAL)",
+        "REAL NOT NULL", is(0.0d));
+    f.checkScalarApprox("CAST('0E0' AS DOUBLE)",
+        "DOUBLE NOT NULL", is(0.0d));
+    f.checkScalarApprox("CAST('0E0' AS FLOAT)",
+        "FLOAT NOT NULL", is(0.0d));
+    // Casting an approximate numeric to VARCHAR uses E notation,
+    // and must preserve the sign of a negative zero
+    f.checkString("CAST(CAST('-0E0' AS REAL) AS VARCHAR)",
+        "-0E0", "VARCHAR NOT NULL");
+    f.checkString("CAST(CAST('-0E0' AS DOUBLE) AS VARCHAR)",
+        "-0E0", "VARCHAR NOT NULL");
+    f.checkString("CAST(CAST('0E0' AS REAL) AS VARCHAR)",
+        "0E0", "VARCHAR NOT NULL");
+    f.checkString("CAST(CAST('0E0' AS DOUBLE) AS VARCHAR)",
+        "0E0", "VARCHAR NOT NULL");
+    // A nullable value is boxed at runtime; formatting must not depend
+    // on nullability. RAND() prevents constant folding, so the CAST
+    // executes at runtime on the boxed value.
+    f.checkString("CAST(CASE WHEN RAND() >= 0 THEN 0.0E0 ELSE NULL END"
+            + " AS VARCHAR)",
+        "0E0", "VARCHAR");
+    // An array element is a boxed Double in the generated code
+    f.checkString("CAST(ARRAY[-0.0E0][1] AS VARCHAR)",
+        "-0E0", "VARCHAR");
+    // 1/-0.0 = -Infinity: proves that the sign of the zero
+    // survives arithmetic at runtime.
+    f.checkScalarApprox("1E0 / CAST('-0E0' AS REAL)",
+        "DOUBLE NOT NULL", "-Infinity");
+    f.checkScalarApprox("1E0 / CAST('-0E0' AS DOUBLE)",
+        "DOUBLE NOT NULL", "-Infinity");
+    f.checkScalarApprox("1E0 / CAST('0E0' AS DOUBLE)",
+        "DOUBLE NOT NULL", "Infinity");
+    // A negative zero written as a literal, rather than computed by a CAST
+    f.checkScalarApprox("1E0 / -0.0E0",
+        "DOUBLE NOT NULL", "-Infinity");
+    f.checkString("CAST(-0.0E0 AS VARCHAR)",
+        "-0E0", "VARCHAR NOT NULL");
+    // In comparisons -0.0 is equal to 0.0, so casting either to
+    // BOOLEAN yields FALSE
+    f.checkBoolean("CAST(CAST('-0E0' AS DOUBLE) AS BOOLEAN)", false);
+    f.checkBoolean("CAST(CAST('-0E0' AS REAL) AS BOOLEAN)", false);
+    f.checkBoolean("CAST(-0.0E0 AS BOOLEAN)", false);
+  }
+
   @Test void testBetween() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BETWEEN, VmName.EXPAND);

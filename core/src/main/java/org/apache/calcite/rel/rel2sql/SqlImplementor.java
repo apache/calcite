@@ -1653,8 +1653,10 @@ public abstract class SqlImplementor {
     case EXACT_NUMERIC: {
       if (SqlTypeName.APPROX_TYPES.contains(typeName)) {
         final Double d = castNonNull(literal.getValueAs(Double.class));
-        // BigDecimal cannot represent IEEE 754 special values (NaN, ±Infinity).
-        if (!Double.isFinite(d)) {
+        // BigDecimal cannot represent IEEE 754 special values
+        // (NaN, ±Infinity) or negative zero.
+        if (!Double.isFinite(d)
+            || (d == 0 && Double.doubleToRawLongBits(d) != 0L)) {
           final SqlNode strLiteral =
               SqlLiteral.createCharString(d.toString(), POS);
           final SqlDataTypeSpec typeSpec =

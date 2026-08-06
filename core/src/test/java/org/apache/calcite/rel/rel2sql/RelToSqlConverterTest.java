@@ -13070,10 +13070,11 @@ class RelToSqlConverterTest {
         .ok("SELECT *\n"
             + "FROM (VALUES (CAST('-Infinity' AS DOUBLE))) AS \"t\" (\"EXPR$0\")");
 
-    // Test Negative Zero
+    // Test Negative Zero: must round-trip through a CAST, because a
+    // SqlNumericLiteral cannot represent it
     sql("select cast('-0.0' as DOUBLE)")
         .ok("SELECT *\n"
-            + "FROM (VALUES (0E0)) AS \"t\" (\"EXPR$0\")");
+            + "FROM (VALUES (CAST('-0.0' AS DOUBLE))) AS \"t\" (\"EXPR$0\")");
 
     // Test Subnormal values
     sql("select cast('1e-310' as DOUBLE)")
