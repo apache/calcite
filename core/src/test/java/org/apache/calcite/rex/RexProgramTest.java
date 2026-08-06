@@ -1175,7 +1175,8 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(lt(rand(literal(1)), literal(1.0)), "true");
 
     // exact BigDecimal arithmetic: RAND() * 0.1 < 0.3  ->  RAND() < 3  ->  true
-    checkSimplify(lt(mul(rand(), literal(new BigDecimal("0.1"))),
+    checkSimplify(
+        lt(mul(rand(), literal(new BigDecimal("0.1"))),
         literal(new BigDecimal("0.3"))), "true");
     // bound 5/3 is not exactly representable, but the endpoint comparison is done
     // by multiplication (no division), so 3*RAND() < 5  ->  RAND() < 5/3  ->  true
