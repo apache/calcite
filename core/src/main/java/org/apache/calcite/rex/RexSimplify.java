@@ -3763,35 +3763,11 @@ public class RexSimplify {
     }
   }
 
-  /** Flips a comparison operator. e.g., GREATER_THAN → LESS_THAN. */
-  private static SqlKind flipComparison(SqlKind kind) {
-    switch (kind) {
-    case GREATER_THAN:
-      return SqlKind.LESS_THAN;
-    case GREATER_THAN_OR_EQUAL:
-      return SqlKind.LESS_THAN_OR_EQUAL;
-    case LESS_THAN:
-      return SqlKind.GREATER_THAN;
-    case LESS_THAN_OR_EQUAL:
-      return SqlKind.GREATER_THAN_OR_EQUAL;
-    case EQUALS:
-      return SqlKind.EQUALS;
-    case NOT_EQUALS:
-      return SqlKind.NOT_EQUALS;
-    default:
-      return kind;
-    }
-  }
-
   /** Checks if a RexNode is a numeric literal (possibly wrapped in CAST). */
   private static boolean isNumericLiteral(RexNode node) {
     RexNode stripped = RexUtil.removeCast(node);
-    if (!stripped.isA(SqlKind.LITERAL)) {
-      return false;
-    }
-    SqlTypeName typeName = stripped.getType().getSqlTypeName();
-    return typeName.getFamily() == SqlTypeFamily.NUMERIC
-        || typeName.getFamily() == SqlTypeFamily.APPROXIMATE_NUMERIC;
+    return stripped.isA(SqlKind.LITERAL)
+        && SqlTypeUtil.isNumeric(stripped.getType());
   }
 
   /** Extracts an exact {@link BigDecimal} value from a numeric literal. */
@@ -3826,7 +3802,7 @@ public class RexSimplify {
       return result;
     }
     // Try: literal <op> randExpr → flip comparison and normalize
-    return tryNormalizeRandExpr(o1, o0, flipComparison(e.getKind()));
+    return tryNormalizeRandExpr(o1, o0, e.getKind().reverse());
   }
 
   /**
@@ -3969,7 +3945,7 @@ public class RexSimplify {
     final BigDecimal d = getLiteralBigDecimal(literal);
     final BigDecimal num = d.subtract(offset);
     final int coefSign = coef.signum();
-    final SqlKind newKind = coefSign > 0 ? kind : flipComparison(kind);
+    final SqlKind newKind = coefSign > 0 ? kind : kind.reverse();
     final int cmp0 = num.signum() * coefSign;                    // bound vs 0
     final int cmp1 = num.subtract(coef).signum() * coefSign;     // bound vs 1
     final Boolean result = evalRandComparison(newKind, cmp0, cmp1);
@@ -4029,7 +4005,7 @@ public class RexSimplify {
       return null;
     }
     // Compare the bound d against the range endpoints 0 and 1.
-    final SqlKind op = randIsLeft ? kind : flipComparison(kind);
+    final SqlKind op = randIsLeft ? kind : kind.reverse();
     final Boolean result = evalRandComparison(op, d.signum(), d.compareTo(BigDecimal.ONE));
     return result == null ? null : rexBuilder.makeLiteral(result);
   }
