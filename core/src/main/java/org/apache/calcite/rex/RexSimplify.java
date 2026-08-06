@@ -3805,7 +3805,7 @@ public class RexSimplify {
     if (value instanceof Double) {
       return BigDecimal.valueOf((Double) value);
     }
-    throw new AssertionError("Unexpected literal type: " + value.getClass());
+    throw new AssertionError("Unexpected literal value: " + value);
   }
 
   /**
