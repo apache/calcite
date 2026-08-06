@@ -5223,6 +5223,50 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExpandFilterNestedExistsCorrelatingTwoLevels">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno
+FROM emp e
+WHERE EXISTS (
+  SELECT *
+  FROM dept d
+  WHERE EXISTS(
+      SELECT *
+      FROM emp_address ea
+      WHERE d.deptno = e.deptno
+        AND ea.empno = e.empno))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($cor0.DEPTNO, $cor1.DEPTNO), =($0, $cor1.EMPNO))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+})], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor1]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0, 7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(i=[true])
+          LogicalProject(DEPTNO=[$0], NAME=[$1])
+            LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(i=[true])
+                  LogicalFilter(condition=[AND(=($cor0.DEPTNO, $cor1.DEPTNO), =($0, $cor1.EMPNO))])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExpandFilterNestedExistsWithTwoSiblingInnerExists">
     <Resource name="sql">
       <![CDATA[SELECT deptno

@@ -9488,6 +9488,24 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5413">[CALCITE-5413]
+   * Nested Subqueries with correlated variables are not decorrelated correctly</a>.
+   */
+  @Test void testExpandFilterNestedExistsCorrelatingTwoLevels() {
+    final String sql = "SELECT deptno\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM dept d\n"
+        + "  WHERE EXISTS(\n"
+        + "      SELECT *\n"
+        + "      FROM emp_address ea\n"
+        + "      WHERE d.deptno = e.deptno\n"
+        + "        AND ea.empno = e.empno))";
+    sql(sql).withSubQueryRules().check();
+  }
+
   @Test void testDecorrelateExists() {
     final String sql = "select * from sales.emp\n"
         + "where EXISTS (\n"
