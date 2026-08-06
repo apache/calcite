@@ -13851,6 +13851,17 @@ public class SqlOperatorTest {
     f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(-1)]", isNullValue(), "INTEGER");
     f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(5)]", isNullValue(), "INTEGER");
     f.checkNull("ARRAY[2,4,6][SAFE_OFFSET(null)]");
+    // Test case for [CALCITE-5998] The SAFE_OFFSET operator can cause
+    // an index out of bounds exception; the index is not constant
+    f.check("select ARRAY[p3,p2,p1][SAFE_OFFSET(p0)]\n"
+            + "from (values (-1, 6, 4, 2)) as t(p0, p1, p2, p3)",
+        "INTEGER", isNullValue());
+    f.check("select ARRAY[p3,p2,p1][SAFE_OFFSET(p1)]\n"
+            + "from (values (-1, 6, 4, 2)) as t(p0, p1, p2, p3)",
+        "INTEGER", isNullValue());
+    f.check("select ARRAY[p3,p2,p1][SAFE_OFFSET(p3)]\n"
+            + "from (values (-1, 6, 4, 2)) as t(p0, p1, p2, p3)",
+        "INTEGER", 6);
     f.checkFails("^map['foo', 3, 'bar', 7][safe_offset('bar')]^",
         "Cannot apply 'SAFE_OFFSET' to arguments of type 'SAFE_OFFSET\\(<MAP<CHAR\\(3\\)"
             + ", INTEGER>>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
@@ -13869,6 +13880,17 @@ public class SqlOperatorTest {
     f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(-1)]", isNullValue(), "INTEGER");
     f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(5)]", isNullValue(), "INTEGER");
     f.checkNull("ARRAY[2,4,6][SAFE_ORDINAL(null)]");
+    // Test case for [CALCITE-5998] The SAFE_OFFSET operator can cause
+    // an index out of bounds exception; the index is not constant
+    f.check("select ARRAY[p3,p2,p1][SAFE_ORDINAL(p0)]\n"
+            + "from (values (-1, 6, 4, 2)) as t(p0, p1, p2, p3)",
+        "INTEGER", isNullValue());
+    f.check("select ARRAY[p3,p2,p1][SAFE_ORDINAL(p1)]\n"
+            + "from (values (-1, 6, 4, 2)) as t(p0, p1, p2, p3)",
+        "INTEGER", isNullValue());
+    f.check("select ARRAY[p3,p2,p1][SAFE_ORDINAL(p3)]\n"
+            + "from (values (-1, 6, 4, 2)) as t(p0, p1, p2, p3)",
+        "INTEGER", 4);
     f.checkFails("^map['foo', 3, 'bar', 7][safe_ordinal('bar')]^",
         "Cannot apply 'SAFE_ORDINAL' to arguments of type 'SAFE_ORDINAL\\(<MAP<CHAR\\(3\\)"
             + ", INTEGER>>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
