@@ -6572,23 +6572,12 @@ public class SqlToRelConverter {
       if (histogramOp != null) {
         final RelDataType histogramType = computeHistogramType(type);
 
-        // For DECIMAL, since it's already represented as a bigint we
-        // want to do a reinterpretCast instead of a cast to avoid
-        // losing any precision.
-        boolean reinterpretCast =
-            type.getSqlTypeName() == SqlTypeName.DECIMAL;
-
         // Replace original expression with CAST of not one
         // of the supported types
         if (histogramType != type) {
           exprs = new ArrayList<>(exprs);
-          exprs.set(
-              0,
-              reinterpretCast
-              ? rexBuilder.makeReinterpretCast(
-                  call.getParserPosition(), histogramType, exprs.get(0),
-                  rexBuilder.makeLiteral(false))
-              : rexBuilder.makeCast(call.getParserPosition(), histogramType, exprs.get(0)));
+          exprs.set(0,
+              rexBuilder.makeCast(call.getParserPosition(), histogramType, exprs.get(0)));
         }
 
         RexNode over =
@@ -6615,16 +6604,8 @@ public class SqlToRelConverter {
         // If needed, post Cast result back to original
         // type.
         if (histogramType != type) {
-          if (reinterpretCast) {
-            histogramCall =
-                rexBuilder.makeReinterpretCast(call.getParserPosition(),
-                    type,
-                    histogramCall,
-                    rexBuilder.makeLiteral(false));
-          } else {
-            histogramCall =
-                rexBuilder.makeCast(call.getParserPosition(), type, histogramCall);
-          }
+          histogramCall =
+              rexBuilder.makeCast(call.getParserPosition(), type, histogramCall);
         }
 
         return histogramCall;

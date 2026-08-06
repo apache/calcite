@@ -6335,6 +6335,40 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
             + " supported"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7451">[CALCITE-7451]
+   * REINTERPRET should not be used in logical plans</a>.
+   *
+   * <p>Casting an interval to an exact numeric type, which the TIMESTAMPDIFF
+   * family of functions relies on, remains a CAST call in the logical plan;
+   * it used to be rewritten in terms of the deprecated REINTERPRET
+   * operator. */
+  @Test void testCastIntervalToNumericNoReinterpret() {
+    final String sql = "select cast(x as integer) as i,\n"
+        + " cast(x as decimal(6, 1)) as d,\n"
+        + " timestampdiff(minute, ts, ts) as m\n"
+        + "from (values (interval '90' minute,\n"
+        + "  timestamp '2020-01-01 00:00:00')) as t(x, ts)";
+    final String plan = RelOptUtil.toString(sql(sql).toRel());
+    assertThat(plan, not(containsString("Reinterpret")));
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7451">[CALCITE-7451]
+   * REINTERPRET should not be used in logical plans</a>.
+   *
+   * <p>The deprecated REINTERPRET operator must not appear in a logical plan;
+   * FLOOR and CEIL of an interval literal used to produce one. */
+  @Test void testFloorCeilOfIntervalLiteral() {
+    final String sql = "select floor(interval '3:4:5' hour to second) as f,\n"
+        + " ceil(interval '3:4:5' hour to second) as c\n"
+        + "from emp";
+    final String plan = RelOptUtil.toString(sql(sql).toRel());
+    assertThat(plan, not(containsString("Reinterpret")));
+    sql(sql).ok();
+  }
+
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5406">[CALCITE-5406]
    * Support the SELECT DISTINCT ON statement for PostgreSQL dialect</a>. */

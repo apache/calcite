@@ -1018,7 +1018,12 @@ public class RexUtil {
    * @param expr    expression possibly in need of expansion
    * @param recurse whether to check nested calls
    * @return whether the expression requires expansion
+   *
+   * @deprecated Used only by
+   * {@link org.apache.calcite.rel.rules.ReduceDecimalsRule}, which is
+   * deprecated
    */
+  @Deprecated // to be removed before 2.0
   public static boolean requiresDecimalExpansion(
       RexNode expr,
       boolean recurse) {
@@ -1069,7 +1074,12 @@ public class RexUtil {
 
   /**
    * Determines whether any operand of a set requires decimal expansion.
+   *
+   * @deprecated Used only by
+   * {@link org.apache.calcite.rel.rules.ReduceDecimalsRule}, which is
+   * deprecated
    */
+  @Deprecated // to be removed before 2.0
   public static boolean requiresDecimalExpansion(
       List<RexNode> operands,
       boolean recurse) {
@@ -1087,7 +1097,12 @@ public class RexUtil {
   /**
    * Returns whether a {@link RexProgram} contains expressions which require
    * decimal expansion.
+   *
+   * @deprecated Used only by
+   * {@link org.apache.calcite.rel.rules.ReduceDecimalsRule}, which is
+   * deprecated
    */
+  @Deprecated // to be removed before 2.0
   public static boolean requiresDecimalExpansion(
       RexProgram program,
       boolean recurse) {
@@ -1100,6 +1115,11 @@ public class RexUtil {
     return false;
   }
 
+  /** Returns whether a REINTERPRET call performs an overflow check.
+   *
+   * @deprecated The REINTERPRET operator is deprecated
+   */
+  @Deprecated // to be removed before 2.0
   public static boolean canReinterpretOverflow(RexCall call) {
     assert call.isA(SqlKind.REINTERPRET) : "call is not a reinterpret";
     return call.operands.size() > 1;

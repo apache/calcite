@@ -513,7 +513,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RIGHTSHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
@@ -1170,7 +1169,6 @@ public class RexImpTable implements RexImplementorTable {
       define(SAFE_CAST, new CastImplementor());
       define(TRY_CAST, new CastImplementor());
 
-      define(REINTERPRET, new ReinterpretImplementor());
       define(CONVERT, new ConvertImplementor());
       define(TRANSLATE, new TranslateImplementor());
 
@@ -3793,19 +3791,6 @@ public class RexImpTable implements RexImplementorTable {
         }
       }
       return typeFactory.createTypeWithNullability(type, nullable);
-    }
-  }
-
-  /** Implementor for the {@code REINTERPRET} internal SQL operator. */
-  private static class ReinterpretImplementor extends AbstractRexCallImplementor {
-    ReinterpretImplementor() {
-      super("reinterpret", NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(final RexToLixTranslator translator,
-        final RexCall call, final List<Expression> argValueList) {
-      assert call.getOperands().size() == 1;
-      return argValueList.get(0);
     }
   }
 

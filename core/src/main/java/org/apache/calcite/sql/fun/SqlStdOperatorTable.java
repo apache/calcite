@@ -1786,7 +1786,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * it accepts one operand and stores the target type as the return type. It
    * performs an overflow check if it has <i>any</i> second operand, whether
    * true or not.
+   *
+   * @deprecated The semantics of REINTERPRET depend on the physical
+   * representation of values, which only an adapter or calling convention
+   * knows; a logical plan must not contain this operator.
+   * The enumerable convention does not implement it.
+   * Use {@link #CAST} instead.
    */
+  @Deprecated // to be removed before 2.0
   public static final SqlSpecialOperator REINTERPRET =
       new SqlSpecialOperator("Reinterpret", SqlKind.REINTERPRET) {
         @Override public SqlOperandCountRange getOperandCountRange() {
