@@ -110,6 +110,72 @@ public class Like {
     return javaPattern.toString();
   }
 
+  /**
+   * Translates a SQL LIKE pattern to an anchored regular expression, with an
+   * optional escape string.
+   *
+   * <p>Similar to {@link #sqlToRegexLike}, except that the result is anchored
+   * with {@code ^} and {@code $} so that the entire value must match, as SQL
+   * LIKE requires. The translation is not specific to any dialect; it is used,
+   * for example, by the MongoDB adapter.
+   */
+  public static String sqlToRegexAnchored(
+      String sqlPattern,
+      @Nullable CharSequence escapeStr) {
+    final char escapeChar;
+    if (escapeStr != null) {
+      if (escapeStr.length() != 1) {
+        throw invalidEscapeCharacter(escapeStr.toString());
+      }
+      escapeChar = escapeStr.charAt(0);
+    } else {
+      escapeChar = 0;
+    }
+    return sqlToRegexAnchored(sqlPattern, escapeChar);
+  }
+
+  /**
+   * Translates a SQL LIKE pattern to an anchored regular expression.
+   */
+  public static String sqlToRegexAnchored(
+      String sqlPattern,
+      char escapeChar) {
+    final int len = sqlPattern.length();
+    final StringBuilder javaPattern = new StringBuilder(len + len);
+    javaPattern.append('^');
+    for (int i = 0; i < len; i++) {
+      char c = sqlPattern.charAt(i);
+      if (c == escapeChar) {
+        if (i == (sqlPattern.length() - 1)) {
+          throw invalidEscapeSequence(sqlPattern, i);
+        }
+        char nextChar = sqlPattern.charAt(i + 1);
+        if ((nextChar == '_')
+            || (nextChar == '%')
+            || (nextChar == escapeChar)) {
+          if (JAVA_REGEX_SPECIALS.indexOf(nextChar) >= 0) {
+            javaPattern.append('\\');
+          }
+          javaPattern.append(nextChar);
+          i++;
+        } else {
+          throw invalidEscapeSequence(sqlPattern, i);
+        }
+      } else if (c == '_') {
+        javaPattern.append('.');
+      } else if (c == '%') {
+        javaPattern.append(".*");
+      } else {
+        if (JAVA_REGEX_SPECIALS.indexOf(c) >= 0) {
+          javaPattern.append('\\');
+        }
+        javaPattern.append(c);
+      }
+    }
+    javaPattern.append('$');
+    return javaPattern.toString();
+  }
+
   private static RuntimeException invalidEscapeCharacter(String s) {
     return new RuntimeException(
         "Invalid escape character '" + s + "'");
