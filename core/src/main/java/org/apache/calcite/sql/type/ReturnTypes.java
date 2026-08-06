@@ -1596,12 +1596,16 @@ public abstract class ReturnTypes {
     final RelDataType relDataType =
         typeFactory.getTypeSystem().deriveCovarType(typeFactory,
             opBinding.getOperandType(0), opBinding.getOperandType(1));
+    // These functions ignore rows where either argument is NULL, so a
+    // non-empty group can still aggregate zero rows and return NULL;
+    // COVAR_SAMP also returns NULL for a group with a single row.
     if (opBinding.hasEmptyGroup() || opBinding.hasFilter()
+        || opBinding.getOperandType(0).isNullable()
+        || opBinding.getOperandType(1).isNullable()
         || opBinding.getOperator().kind == SqlKind.COVAR_SAMP) {
       return typeFactory.createTypeWithNullability(relDataType, true);
-    } else {
-      return relDataType;
     }
+    return relDataType;
   };
 
   public static final SqlReturnTypeInference PERCENTILE_DISC_CONT =

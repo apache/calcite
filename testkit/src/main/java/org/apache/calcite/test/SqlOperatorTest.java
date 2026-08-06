@@ -16169,11 +16169,13 @@ public class SqlOperatorTest {
     f.checkAggType("covar_pop(cast(null as integer), 2.5)", "DECIMAL(11, 1)");
     f.checkAggType("covar_pop(cast(null as integer), cast(null as double))",
         "DOUBLE");
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
-    // with zero values
-    f.checkAgg("covar_pop(x)", new String[]{}, isNullValue());
+    // [CALCITE-7695] COVAR and REGR aggregate results should be nullable if
+    // either argument is nullable
+    f.checkAggType("covar_pop(1.5, cast(null as double))", "DOUBLE");
+    // Nullable without GROUP BY even for non-nullable arguments, since the
+    // input may be empty
+    f.checkColumnType("select covar_pop(1.5, 2.5) from (values (1))",
+        "DECIMAL(2, 1)");
   }
 
   @Test void testCovarSampFunc() {
@@ -16216,11 +16218,9 @@ public class SqlOperatorTest {
         "INTEGER");
     f.checkAggType("regr_sxx(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
     f.checkAggType("regr_sxx(1, cast(2 as double))", "DOUBLE NOT NULL");
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
-    // with zero values
-    f.checkAgg("regr_sxx(x)", new String[]{}, isNullValue());
+    f.checkAggType("regr_sxx(1.5, cast(null as double))", "DOUBLE");
+    f.checkColumnType("select regr_sxx(1.5, 2.5) from (values (1))",
+        "DECIMAL(2, 1)");
   }
 
   @Test void testRegrSyyFunc() {
@@ -16241,11 +16241,11 @@ public class SqlOperatorTest {
         "INTEGER");
     f.checkAggType("regr_syy(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
     f.checkAggType("regr_syy(1, cast(2 as double))", "DOUBLE NOT NULL");
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
-    // with zero values
-    f.checkAgg("regr_syy(x)", new String[]{}, isNullValue());
+    // [CALCITE-7695] COVAR and REGR aggregate results should be nullable if
+    // either argument is nullable
+    f.checkAggType("regr_syy(1.5, cast(null as double))", "DOUBLE");
+    f.checkColumnType("select regr_syy(1.5, 2.5) from (values (1))",
+        "DECIMAL(2, 1)");
   }
 
   @Test void testStddevPopFunc() {
