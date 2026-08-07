@@ -2822,4 +2822,56 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.TIMESTAMP),
               OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
           SqlFunctionCategory.TIMEDATE);
+
+  /** The {@code UUIDV4()} function, which generates a random (version 4) UUID.
+   * This is a Calcite extension; not yet in any SQL standard.
+   * Dialect-specific targets: {@code NEWID()} on SQL Server,
+   * {@code uuidv4()} on PostgreSQL 17+, {@code UUID()} on Oracle 23ai+. */
+  @LibraryOperator(libraries = {CALCITE})
+  public static final SqlBasicFunction UUIDV4 =
+      SqlBasicFunction.create("UUIDV4",
+          ReturnTypes.explicit(SqlTypeName.UUID),
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM)
+          .withDeterministic(false)
+          .withDynamic(true);
+
+  /** The {@code UUIDV7()} function, which generates a time-ordered (version 7) UUID.
+   * This is a Calcite extension; not yet in any SQL standard.
+   * Dialect-specific targets: {@code uuidv7()} on PostgreSQL 17+.
+   * SQL Server and Oracle have no native equivalent. */
+  @LibraryOperator(libraries = {CALCITE})
+  public static final SqlBasicFunction UUIDV7 =
+      SqlBasicFunction.create("UUIDV7",
+          ReturnTypes.explicit(SqlTypeName.UUID),
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM)
+          .withDeterministic(false)
+          .withDynamic(true);
+
+  /** The {@code NEWID()} function for SQL Server.
+   * Generates a random RFC 4122 version 4 UUID, and may be used anywhere an
+   * expression is allowed. This is the SQL Server target when translating
+   * {@code UUIDV4()}. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlBasicFunction NEWID =
+      SqlBasicFunction.create("NEWID",
+          ReturnTypes.explicit(SqlTypeName.UUID),
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM)
+          .withDeterministic(false)
+          .withDynamic(true);
+
+  /** The {@code UUID()} function for Oracle 23ai+.
+   * Generates an RFC 4122 version 4 (random) UUID.
+   * Returns {@code RAW(16)}; use {@code RAWTOHEX()} or cast to format as a string.
+   * This is the Oracle 23ai target when translating {@code UUIDV4()}. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlBasicFunction ORACLE_UUID =
+      SqlBasicFunction.create("UUID",
+          ReturnTypes.explicit(SqlTypeName.UUID),
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM)
+          .withDeterministic(false)
+          .withDynamic(true);
 }

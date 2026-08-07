@@ -105,6 +105,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.runtime.UrlFunctions;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.runtime.UuidFunction;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 import org.apache.calcite.runtime.variant.VariantNull;
@@ -619,6 +620,8 @@ public enum BuiltInMethod {
   RAND_INTEGER(RandomFunction.class, "randInteger", int.class),
   RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
       int.class),
+  UUIDV4(UuidFunction.class, "uuidv4"),
+  UUIDV7(UuidFunction.class, "uuidv7"),
   SAFE_ADD(SqlFunctions.class, "safeAdd", double.class, double.class),
   SAFE_DIVIDE(SqlFunctions.class, "safeDivide", double.class, double.class),
   SAFE_MULTIPLY(SqlFunctions.class, "safeMultiply", double.class, double.class),
