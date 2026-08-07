@@ -5361,6 +5361,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(expr,
             RESOURCE.orderByAllRequiresExplicitSelectList());
       }
+      // A constant literal is a no-op sort key (nothing to reorder); excluding it also
+      // avoids materializing an ambiguous "ORDER BY <integer literal>" on unparse, which
+      // would be re-parsed as an ordinal position.
+      if (expr instanceof SqlLiteral) {
+        continue;
+      }
       keys.add(applyOrderByAllDirection(expr, desc, nulls, pos));
     }
     select.setOrderBy(new SqlNodeList(keys, pos));
@@ -5562,7 +5568,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(expr,
             RESOURCE.groupByAllRequiresExplicitSelectList());
       }
-      if (aggOrOverFinder.findAgg(expr) == null) {
+      // A constant literal is a no-op grouping key (one group either way); excluding it
+      // also avoids materializing an ambiguous "GROUP BY <integer literal>" on unparse,
+      // which would be re-parsed as an ordinal position.
+      if (aggOrOverFinder.findAgg(expr) == null && !(expr instanceof SqlLiteral)) {
         keys.add(expr);
       }
     }
