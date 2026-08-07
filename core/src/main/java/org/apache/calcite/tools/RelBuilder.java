@@ -5114,11 +5114,72 @@ public class RelBuilder {
             }
           };
       final RelDataType type = op.inferReturnType(bind);
+      final ImmutableList<RexNode> newPartitionKeys =
+          simplifyPartitionKeys(partitionKeys);
+      final ImmutableList<RexFieldCollation> newSortKeys =
+          simplifySortKeys(newPartitionKeys, sortKeys);
       final RexNode over = getRexBuilder()
-          .makeOver(pos, type, op, operands, partitionKeys, sortKeys,
+          .makeOver(pos, type, op, operands, newPartitionKeys, newSortKeys,
               lowerBound, upperBound, exclude, rows, allowPartial, nullWhenCountZero,
               distinct, ignoreNulls);
       return aliasMaybe(over, alias);
+    }
+
+    /** Removes constant keys from a window's {@code PARTITION BY}. A constant
+     * partition key places every row in the same partition, so it does not
+     * partition the data and can be dropped. */
+    private ImmutableList<RexNode> simplifyPartitionKeys(
+        List<RexNode> partitionKeys) {
+      final ImmutableList.Builder<RexNode> newKeys = ImmutableList.builder();
+      for (RexNode key : partitionKeys) {
+        if (!RexUtil.isConstant(key)) {
+          newKeys.add(key);
+        }
+      }
+      return newKeys.build();
+    }
+
+    /** Removes redundant keys from a window's {@code ORDER BY}. A sort key is
+     * redundant if it is constant, or if it is functionally determined by the
+     * partition keys and earlier sort keys (those columns are fixed within a
+     * partition, so the key cannot affect the ordering). For example, with
+     * {@code PARTITION BY x, y ORDER BY x + y, z} the key {@code x + y} only
+     * references fixed columns and is dropped, leaving {@code ORDER BY z}. */
+    private ImmutableList<RexFieldCollation> simplifySortKeys(
+        List<RexNode> partitionKeys, List<RexFieldCollation> sortKeys) {
+      // A RANGE frame with a value offset (e.g. RANGE BETWEEN 5 PRECEDING)
+      // derives its bounds from the sort key values, so its keys must be kept.
+      if (!rows
+          && (lowerBound.getOffset() != null || upperBound.getOffset() != null)) {
+        return ImmutableList.copyOf(sortKeys);
+      }
+      // Columns whose value is fixed within a partition: partition keys plus
+      // columns pinned by an earlier single-column sort keys.
+      ImmutableBitSet fixedColumns = ImmutableBitSet.of();
+      for (RexNode key : partitionKeys) {
+        if (key instanceof RexInputRef) {
+          fixedColumns = fixedColumns.set(((RexInputRef) key).getIndex());
+        }
+      }
+      final ImmutableList.Builder<RexFieldCollation> newSortKeys =
+          ImmutableList.builder();
+      for (RexFieldCollation collation : sortKeys) {
+        final RexNode key = collation.left;
+        if (RexUtil.isConstant(key)) {
+          continue;
+        }
+        final ImmutableBitSet keyColumns = RelOptUtil.InputFinder.bits(key);
+        if (!keyColumns.isEmpty()
+            && RexUtil.isDeterministic(key)
+            && fixedColumns.contains(keyColumns)) {
+          continue;
+        }
+        newSortKeys.add(collation);
+        if (key instanceof RexInputRef) {
+          fixedColumns = fixedColumns.set(((RexInputRef) key).getIndex());
+        }
+      }
+      return newSortKeys.build();
     }
   }
 
