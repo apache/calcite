@@ -496,9 +496,9 @@ public class SqlDialect {
   public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("(", ")");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, leftPrec, call.getOperator().getLeftPrec());
     writer.sep((SqlKind.PLUS == sqlKind) ? "+" : "-");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, call.getOperator().getRightPrec(), rightPrec);
     writer.endList(frame);
     // Only two parameters are present normally.
     // Checking parameter count to prevent errors.
