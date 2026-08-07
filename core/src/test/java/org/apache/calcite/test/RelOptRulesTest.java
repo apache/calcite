@@ -1559,6 +1559,56 @@ class RelOptRulesTest extends RelOptTestBase {
     checkJoinProjectTransposeDoesNotMatch(JoinRelType.LEFT_MARK);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7487">[CALCITE-7487]
+   * ProjectJoinTransposeRule throws ArrayIndexOutOfBoundsException in
+   * PushProjector when a Join input has a zero-column row type</a>. */
+  @Test void testProjectJoinTransposeWithZeroColumnRightInput() {
+    relFn(b -> zeroColumnJoinInputRelFn(b, false))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7487">[CALCITE-7487]
+   * ProjectJoinTransposeRule throws ArrayIndexOutOfBoundsException in
+   * PushProjector when a Join input has a zero-column row type</a>. */
+  @Test void testProjectJoinTransposeWithZeroColumnLeftInput() {
+    relFn(b -> zeroColumnJoinInputRelFn(b, true))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** Builds {@code Project(CAST(col1))} over a cross join in which one input is
+   * DEE -- a {@link org.apache.calcite.rel.core.Values} with an empty row type,
+   * the identity for cross join. The project must be non-identity, otherwise
+   * {@link RelBuilder} collapses it away and the rule never fires. */
+  private static RelNode zeroColumnJoinInputRelFn(RelBuilder b,
+      boolean deeOnLeft) {
+    final RelDataTypeFactory typeFactory = b.getTypeFactory();
+    final RelDataType bigintType =
+        typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelNode nonEmpty = b
+        .values(
+            ImmutableList.of(
+                ImmutableList.of(
+                    (RexLiteral) b.getRexBuilder().makeZeroLiteral(bigintType))),
+            typeFactory.builder().add("col1", bigintType).build())
+        .build();
+    final RelNode dee = b
+        .values(ImmutableList.of(ImmutableList.of()),
+            typeFactory.builder().build())
+        .build();
+    final RelDataType varcharType =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    return b
+        .push(deeOnLeft ? dee : nonEmpty)
+        .push(deeOnLeft ? nonEmpty : dee)
+        .join(JoinRelType.INNER, b.literal(true))
+        // DEE contributes no fields, so the sole column is at index 0
+        // whichever side it is on.
+        .project(b.getRexBuilder().makeCast(varcharType, b.field(0)))
+        .build();
+  }
+
   /** A SEMI, ANTI or LEFT_MARK join does not project its right input, so
    * {@link JoinProjectTransposeRule} must not pull projects above it. */
   private void checkJoinProjectTransposeDoesNotMatch(JoinRelType type) {

@@ -12439,6 +12439,44 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectJoinTransposeWithZeroColumnLeftInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(col1=[CAST($0):VARCHAR NOT NULL])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{  }]])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalProject
+    LogicalValues(tuples=[[{  }]])
+  LogicalProject(col1=[CAST($0):VARCHAR NOT NULL])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinTransposeWithZeroColumnRightInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(col1=[CAST($0):VARCHAR NOT NULL])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    LogicalValues(tuples=[[{  }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalProject(col1=[CAST($0):VARCHAR NOT NULL])
+    LogicalValues(tuples=[[{ 0 }]])
+  LogicalProject
+    LogicalValues(tuples=[[{  }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectMergeRuleWithCorrelation">
     <Resource name="sql">
       <![CDATA[SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)
