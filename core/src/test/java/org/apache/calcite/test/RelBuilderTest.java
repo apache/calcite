@@ -1186,6 +1186,108 @@ public class RelBuilderTest {
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
+  /** Tests that RelBuilder removes a constant key from a window's
+   * {@code PARTITION BY}, since a constant partition key places every row in
+   * the same partition. */
+  @Test void testProjectOverConstantPartitionKey() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy(b.literal(1))
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  /** Tests that RelBuilder keeps non-constant partition keys and drops only the
+   * constant one. */
+  @Test void testProjectOverPartialConstantPartitionKey() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.aggregateCall(SqlStdOperatorTable.SUM, b.field("SAL"))
+                .over()
+                .partitionBy(b.field("DEPTNO"), b.literal(1))
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], "
+        + "x=[SUM($5) OVER (PARTITION BY $7 ORDER BY $0 RANGE BETWEEN "
+        + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  /** Tests that RelBuilder removes a constant key from a window's
+   * {@code ORDER BY}. */
+  @Test void testProjectOverConstantSortKey() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.literal(1), b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  /** Tests that RelBuilder removes a sort key that is functionally determined
+   * by the partition keys: with {@code PARTITION BY DEPTNO, SAL ORDER BY
+   * DEPTNO + SAL, EMPNO} the key {@code DEPTNO + SAL} references only fixed
+   * columns and is dropped, leaving {@code ORDER BY EMPNO}. */
+  @Test void testProjectOverFunctionallyDependentSortKey() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy(b.field("DEPTNO"), b.field("SAL"))
+                .orderBy(
+                    b.call(SqlStdOperatorTable.PLUS, b.field("DEPTNO"),
+                        b.field("SAL")),
+                    b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], "
+        + "x=[ROW_NUMBER() OVER (PARTITION BY $7, $5 ORDER BY $0)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  /** Tests that RelBuilder keeps a sort key that would otherwise be dropped
+   * (here {@code DEPTNO}, which equals the partition key) when the frame is a
+   * RANGE with a value offset, because such a frame derives its bounds from the
+   * sort key values. */
+  @Test void testProjectOverRangeOffsetKeepsSortKey() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.aggregateCall(SqlStdOperatorTable.SUM, b.field("SAL"))
+                .over()
+                .partitionBy(b.field("DEPTNO"))
+                .orderBy(b.field("DEPTNO"))
+                .rangeBetween(b.preceding(b.literal(5)), b.currentRow())
+                .as("x"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], "
+        + "x=[SUM($5) OVER (PARTITION BY $7 ORDER BY $7 RANGE 5 PRECEDING)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   @Test void testRename() {
     final RelBuilder builder = RelBuilder.create(config().build());
 

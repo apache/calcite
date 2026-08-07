@@ -2858,8 +2858,9 @@ class RelToSqlConverterTest {
   @Test void testNoNeedRewriteOrderByConstantsForOver() {
     final String query = "select row_number() over "
         + "(order by 1 nulls last) from \"employee\"";
-    // Default dialect keep numeric constant keys in the over of order-by.
-    sql(query).ok("SELECT ROW_NUMBER() OVER (ORDER BY 1)\n"
+    // A constant ORDER BY key places every row in the same peer group, so it
+    // is removed when the window is built, leaving an empty OVER clause.
+    sql(query).ok("SELECT ROW_NUMBER() OVER ()\n"
         + "FROM \"foodmart\".\"employee\"");
   }
 
