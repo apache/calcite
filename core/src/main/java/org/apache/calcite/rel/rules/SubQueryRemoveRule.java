@@ -28,6 +28,8 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
@@ -77,6 +79,7 @@ import static java.util.Objects.requireNonNull;
  * @see CoreRules#FILTER_SUB_QUERY_TO_CORRELATE
  * @see CoreRules#PROJECT_SUB_QUERY_TO_CORRELATE
  * @see CoreRules#JOIN_SUB_QUERY_TO_CORRELATE
+ * @see CoreRules#TABLE_FUNCTION_SCAN_SCALAR_QUERY_TO_CORRELATE
  */
 @Value.Enclosing
 public class SubQueryRemoveRule
@@ -1017,6 +1020,78 @@ public class SubQueryRemoveRule
     call.transformTo(builder.build());
   }
 
+  /**
+   * Rewrites one scalar sub-query in a table-function call into a
+   * {@link Correlate}.
+   *
+   * <p>For example, converts:
+   *
+   * <pre>{@code
+   * LogicalTableFunctionScan(invocation=[F(SCALAR_QUERY(SUB_QUERY_REL), 20)])
+   * }</pre>
+   *
+   * <p>into:
+   *
+   * <pre>{@code
+   * LogicalProject(TABLE_FUNCTION_FIELDS)
+   *   LogicalCorrelate(correlation=[$cor0], joinType=[inner],
+   *       requiredColumns=[{0}])
+   *     LogicalAggregate(group=[{}], scalarValue=[SINGLE_VALUE($0)])
+   *       SUB_QUERY_REL
+   *     LogicalTableFunctionScan(invocation=[F($cor0.scalarValue, 20)])
+   * }</pre>
+   *
+   * <p>The aggregate implements scalar-query cardinality: zero rows produce
+   * {@code null}, and more than one row raises an error. The correlate makes
+   * the resulting value available to the table-function invocation, and the
+   * project removes the helper scalar field from the output. The rule rewrites
+   * one scalar sub-query per invocation; subsequent invocations rewrite any
+   * remaining scalar sub-queries.
+   */
+  private static void matchTableFunctionScan(SubQueryRemoveRule rule,
+      RelOptRuleCall call) {
+    final TableFunctionScan scan = call.rel(0);
+    final RexSubQuery e =
+        requireNonNull(
+            RexUtil.SubQueryFinder.find(scan.getCall(), SqlKind.SCALAR_QUERY));
+
+    final RelBuilder builder = call.builder();
+    builder.push(e.rel);
+    builder.aggregate(builder.groupKey(),
+        builder.aggregateCall(SqlStdOperatorTable.SINGLE_VALUE,
+            builder.field(0)));
+    final RelNode scalarValue = builder.build();
+
+    final CorrelationId correlationId =
+        scan.getCluster().createCorrel();
+    final RexCorrelVariable correlationVariable =
+        (RexCorrelVariable) scan.getCluster().getRexBuilder()
+            .makeCorrel(scalarValue.getRowType(), correlationId);
+    final RexNode target =
+        scan.getCluster().getRexBuilder()
+            .makeFieldAccess(correlationVariable, 0);
+    final RexNode newCall =
+        scan.getCall().accept(new ReplaceSubQueryShuttle(e, target));
+    final TableFunctionScan newScan =
+        (TableFunctionScan) scan.copy(scan.getTraitSet(), scan.getInputs(),
+            newCall, scan.getElementType(), scan.getRowType(),
+            scan.getColumnMappings())
+            .withHints(scan.getHints());
+
+    final RelNode correlate =
+        LogicalCorrelate.create(scalarValue, newScan, ImmutableList.of(),
+            correlationId, ImmutableBitSet.of(0), JoinRelType.INNER);
+    builder.push(correlate);
+    final int scalarFieldCount =
+        scalarValue.getRowType().getFieldCount();
+    builder.project(
+        IntStream.range(0, scan.getRowType().getFieldCount())
+            .mapToObj(i -> builder.field(scalarFieldCount + i))
+            .collect(Collectors.toList()),
+        scan.getRowType().getFieldNames());
+    call.transformTo(builder.build());
+  }
+
   private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
     final Join join = call.rel(0);
     final RelBuilder builder = call.builder();
@@ -1371,6 +1446,18 @@ public class SubQueryRemoveRule
                 .predicate(RexUtil.SubQueryFinder::containsSubQuery)
                 .anyInputs())
         .withDescription("SubQueryRemoveRule:Join");
+
+    Config TABLE_FUNCTION_SCAN_SCALAR_QUERY =
+        ImmutableSubQueryRemoveRule.Config.builder()
+            .withMatchHandler(SubQueryRemoveRule::matchTableFunctionScan)
+            .build()
+            .withOperandSupplier(b ->
+                b.operand(TableFunctionScan.class)
+                    .predicate(scan ->
+                        RexUtil.SubQueryFinder.find(scan.getCall(),
+                            SqlKind.SCALAR_QUERY) != null)
+                    .anyInputs())
+            .withDescription("SubQueryRemoveRule:TableFunctionScanScalarQuery");
 
     Config PROJECT_ENABLE_MARK_JOIN = ImmutableSubQueryRemoveRule.Config.builder()
         .withMatchHandler(SubQueryRemoveRule::matchProjectEnableMarkJoin)

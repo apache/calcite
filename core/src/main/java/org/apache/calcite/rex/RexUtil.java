@@ -3316,6 +3316,7 @@ public class RexUtil {
    * applied to an expression that contains a {@link RexSubQuery}. */
   public static class SubQueryFinder extends RexVisitorImpl<Void> {
     public static final SubQueryFinder INSTANCE = new SubQueryFinder();
+    private final @Nullable SqlKind kind;
 
     @SuppressWarnings("Guava")
     @Deprecated // to be removed before 2.0
@@ -3333,7 +3334,12 @@ public class RexUtil {
         SubQueryFinder::containsSubQuery;
 
     private SubQueryFinder() {
+      this(null);
+    }
+
+    private SubQueryFinder(@Nullable SqlKind kind) {
       super(true);
+      this.kind = kind;
     }
 
     /** Returns whether a {@link Project} contains a sub-query. */
@@ -3369,7 +3375,10 @@ public class RexUtil {
     }
 
     @Override public Void visitSubQuery(RexSubQuery subQuery) {
-      throw new Util.FoundOne(subQuery);
+      if (kind == null || subQuery.getKind() == kind) {
+        throw new Util.FoundOne(subQuery);
+      }
+      return super.visitSubQuery(subQuery);
     }
 
     public static @Nullable RexSubQuery find(Iterable<RexNode> nodes) {
@@ -3386,6 +3395,16 @@ public class RexUtil {
     public static @Nullable RexSubQuery find(RexNode node) {
       try {
         node.accept(INSTANCE);
+        return null;
+      } catch (Util.FoundOne e) {
+        return (RexSubQuery) e.getNode();
+      }
+    }
+
+    /** Returns the first sub-query of the given kind, or {@code null}. */
+    public static @Nullable RexSubQuery find(RexNode node, SqlKind kind) {
+      try {
+        node.accept(new SubQueryFinder(kind));
         return null;
       } catch (Util.FoundOne e) {
         return (RexSubQuery) e.getNode();
