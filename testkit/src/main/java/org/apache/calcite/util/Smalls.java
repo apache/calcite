@@ -111,6 +111,12 @@ public class Smalls {
   public static final Method MULTIPLICATION_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "multiplicationTable", int.class,
         int.class, Integer.class);
+  public static final Method SCALAR_QUERY_ARGUMENTS_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "scalarQueryArgumentsTable",
+          Object.class, Integer.class, Integer.class);
+  public static final Method SCALAR_QUERY_ARGUMENTS_TABLE_WITHOUT_COLUMN_METHOD =
+      Types.lookupMethod(Smalls.class,
+          "scalarQueryArgumentsTableWithoutColumn", Object.class, int.class);
   public static final Method FIBONACCI_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "fibonacciTable");
   public static final Method FIBONACCI_LIMIT_100_TABLE_METHOD =
@@ -281,6 +287,65 @@ public class Smalls {
         return Linq4j.asEnumerable(table).asQueryable();
       }
     };
+  }
+
+  /** A one-row table containing the arguments passed to the function. */
+  public static QueryableTable scalarQueryArgumentsTable(
+      final @Nullable Object scalarValue,
+      final @Nullable Integer literalValue,
+      final @Nullable Integer columnValue) {
+    final @Nullable Integer normalizedScalarValue;
+    final @Nullable Integer rowValue0;
+    final @Nullable Integer rowValue1;
+    if (scalarValue == null) {
+      normalizedScalarValue = null;
+      rowValue0 = null;
+      rowValue1 = null;
+    } else if (scalarValue instanceof Number) {
+      normalizedScalarValue = ((Number) scalarValue).intValue();
+      rowValue0 = null;
+      rowValue1 = null;
+    } else if (scalarValue instanceof Object[]) {
+      final Object[] row = (Object[]) scalarValue;
+      if (row.length != 2
+          || !(row[0] instanceof Number)
+          || !(row[1] instanceof Number)) {
+        throw new IllegalArgumentException("expected ROW with two numbers");
+      }
+      normalizedScalarValue = null;
+      rowValue0 = ((Number) row[0]).intValue();
+      rowValue1 = ((Number) row[1]).intValue();
+    } else {
+      throw new IllegalArgumentException("expected a number or ROW");
+    }
+    return new AbstractQueryableTable(Object[].class) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("scalar_value", typeFactory.createJavaType(Integer.class))
+            .add("row_value_0", typeFactory.createJavaType(Integer.class))
+            .add("row_value_1", typeFactory.createJavaType(Integer.class))
+            .add("literal_value", typeFactory.createJavaType(Integer.class))
+            .add("column_value", typeFactory.createJavaType(Integer.class))
+            .build();
+      }
+
+      @Override public Queryable<Object[]> asQueryable(
+          QueryProvider queryProvider, SchemaPlus schema, String tableName) {
+        return Linq4j.asEnumerable(
+            Collections.singletonList(
+                new Object[] {
+                    normalizedScalarValue, rowValue0, rowValue1,
+                    literalValue, columnValue
+                }))
+            .asQueryable();
+      }
+    };
+  }
+
+  /** A two-argument version of {@link #scalarQueryArgumentsTable}. */
+  public static QueryableTable scalarQueryArgumentsTableWithoutColumn(
+      final @Nullable Object scalarValue, final int literalValue) {
+    return scalarQueryArgumentsTable(scalarValue, literalValue, null);
   }
 
   /** A function that generates the Fibonacci sequence.

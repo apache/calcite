@@ -518,6 +518,16 @@ public class CoreRules {
   public static final SubQueryRemoveRule JOIN_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.JOIN.toRule();
 
+  /** Rule that converts scalar sub-queries from table function arguments into
+   * {@link Correlate} instances.
+   *
+   * @see #PROJECT_SUB_QUERY_TO_CORRELATE
+   * @see #FILTER_SUB_QUERY_TO_CORRELATE
+   * @see #JOIN_SUB_QUERY_TO_CORRELATE */
+  public static final SubQueryRemoveRule
+      TABLE_FUNCTION_SCAN_SCALAR_QUERY_TO_CORRELATE =
+      SubQueryRemoveRule.Config.TABLE_FUNCTION_SCAN_SCALAR_QUERY.toRule();
+
   /** Rule that converts sub-queries from filter expressions into
    * {@link Correlate} instances. It will rewrite SOME/EXISTS/IN to a LEFT MARK type Correlate. */
   public static final SubQueryRemoveRule FILTER_SUB_QUERY_TO_MARK_CORRELATE =
