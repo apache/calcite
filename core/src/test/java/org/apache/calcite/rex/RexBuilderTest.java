@@ -964,6 +964,48 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7553">[CALCITE-7553]
+   * TIMESTAMP_TZ IN-list construction should not use Sarg ordering</a>. */
+  @Test void testMakeInTimestampWithTimeZoneDoesNotCreateSarg() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType timestampTzType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_TZ, 0);
+    final RexNode input = rexBuilder.makeInputRef(timestampTzType, 0);
+    final RexLiteral pst =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 02:56:15 GMT-08:00"), 0);
+    final RexLiteral gmt =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 10:56:15 GMT"), 0);
+
+    final RexNode inCall = rexBuilder.makeIn(input, ImmutableList.of(pst, gmt));
+
+    assertThat(inCall.getKind(), is(SqlKind.OR));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7553">[CALCITE-7553]
+   * TIMESTAMP_TZ BETWEEN construction should not use Sarg ordering</a>. */
+  @Test void testMakeBetweenTimestampWithTimeZoneDoesNotCreateSarg() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType timestampTzType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_TZ, 0);
+    final RexNode input = rexBuilder.makeInputRef(timestampTzType, 0);
+    final RexLiteral gmt =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 10:56:15 GMT"), 0);
+    final RexLiteral pst =
+        rexBuilder.makeTimestampTzLiteral(
+            new TimestampWithTimeZoneString("1969-07-21 02:56:15 GMT-08:00"), 0);
+
+    final RexNode betweenCall = rexBuilder.makeBetween(input, gmt, pst);
+
+    assertThat(betweenCall.getKind(), is(SqlKind.AND));
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6989">[CALCITE-6989]
