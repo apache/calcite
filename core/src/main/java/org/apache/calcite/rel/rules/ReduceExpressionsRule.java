@@ -506,9 +506,11 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
               list.get(index).getIndex(),
               program.getOutputRowType().getFieldNames().get(k++));
         }
-        call.transformTo(
-            calc.copy(calc.getTraitSet(), calc.getInput(), builder.getProgram()));
-
+        Calc newCalc = calc.copy(calc.getTraitSet(), calc.getInput(), builder.getProgram());
+        if (newCalc.deepEquals(calc)) {
+          return;
+        }
+        call.transformTo(newCalc);
         // New plan is absolutely better than old plan.
         call.getPlanner().prune(calc);
       }
