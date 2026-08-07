@@ -3800,6 +3800,31 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
   }
 
+  /** Tests that a RAND() predicate which is always false collapses the
+   * relation to empty via FILTER_REDUCE_EXPRESSIONS. Detailed simplification
+   * cases live in {@code RexProgramTest.simplifyRand}. */
+  @Test void testRandComparisonSimplificationAlwaysFalse() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
+    // RAND() > 1.0 is always false (RAND() in [0, 1))
+    final String sql = "SELECT * FROM emp WHERE RAND() > 1.0";
+    sql(sql).withPlanner(hepPlanner).check();
+  }
+
+  /** Tests that arithmetic on RAND() is normalized before the range check, so
+   * an always-true predicate removes the filter. */
+  @Test void testRandComparisonSimplificationAlwaysTrue() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
+    // RAND() * 3 < 3 → RAND() < 1.0 → always true
+    final String sql = "SELECT * FROM emp WHERE RAND() * 3 < 3";
+    sql(sql).withPlanner(hepPlanner).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6481">[CALCITE-6481]
    * Optimize 'VALUES...UNION...VALUES' to a single 'VALUES' the IN-list contains CAST

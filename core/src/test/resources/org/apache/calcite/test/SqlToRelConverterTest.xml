@@ -8689,8 +8689,7 @@ LogicalProject(EXPR$0=[AND(=(1, CAST('y'):INTEGER NOT NULL), =(CAST('x'):INTEGER
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[AND(=(CAST(CAST('x'):INTEGER NOT NULL):DOUBLE NOT NULL, RAND()), =(1.0E0, RAND()))])
-  LogicalValues(tuples=[[{ 0 }]])
+LogicalValues(tuples=[[{ false }]])
 ]]>
     </Resource>
   </TestCase>
