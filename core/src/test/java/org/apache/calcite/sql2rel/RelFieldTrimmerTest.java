@@ -25,12 +25,14 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexNode;
@@ -57,6 +59,8 @@ import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Test for {@link RelFieldTrimmer}. */
@@ -824,6 +828,30 @@ class RelFieldTrimmerTest {
         + "    LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(trimmed, hasTree(expected));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7354">[CALCITE-7354]
+   * Project's variablesSet should be less than or equal to 1.</a>.
+   */
+  @Test void testTrimProjectRejectsMultipleCorrelationVariables() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode scan = builder.scan("EMP").build();
+    final RexNode empno =
+        scan.getCluster().getRexBuilder().makeInputRef(scan, 0);
+    final LogicalProject project =
+        LogicalProject.create(
+            scan,
+            ImmutableList.of(),
+            ImmutableList.of(empno),
+            ImmutableList.of("EMPNO"),
+            ImmutableSet.of(new CorrelationId(0), new CorrelationId(1)));
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () -> fieldTrimmer.trim(project));
+    assertThat(ex.getMessage(), containsString("variablesSet"));
   }
 
 }
