@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -461,6 +462,10 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               .createCall(SqlParserPos.ZERO, requireNonNull(thisOperands, "thisOperands"));
     }
     return lookupCall;
+  }
+
+  @Override public void updateOperandsIfNeed(List<@Nullable SqlNode> operandList) {
+    thisOperands = operandList.toArray(SqlNode.EMPTY_ARRAY);
   }
 
   @Override public String getAllowedSignatures(String name) {
