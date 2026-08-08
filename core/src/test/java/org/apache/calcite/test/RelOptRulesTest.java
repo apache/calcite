@@ -10794,6 +10794,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3319">[CALCITE-3319]
    * AssertionError for ReduceDecimalsRule</a>. */
+  @SuppressWarnings("deprecation") // tests the deprecated ReduceDecimalsRule
   @Test void testReduceDecimal() {
     final String sql = "select ename from emp where sal > cast (100.0 as decimal(4, 1))";
     sql(sql)

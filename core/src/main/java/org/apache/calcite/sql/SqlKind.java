@@ -1005,6 +1005,11 @@ public enum SqlKind {
   /**
    * The internal REINTERPRET operator (meaning a reinterpret cast).
    * An internal operator that does not appear in SQL syntax.
+   *
+   * <p>Do not use. The
+   * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#REINTERPRET}
+   * operator is deprecated and will be removed, together with this value;
+   * use {@link #CAST} instead.
    */
   REINTERPRET,
 

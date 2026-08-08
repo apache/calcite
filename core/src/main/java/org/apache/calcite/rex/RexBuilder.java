@@ -874,9 +874,6 @@ public class RexBuilder {
         }
         return literal2;
       }
-    } else if (SqlTypeUtil.isExactNumeric(type)
-        && SqlTypeUtil.isInterval(exp.getType())) {
-      return makeCastIntervalToExact(pos, type, exp);
     } else if (sqlType == SqlTypeName.BOOLEAN
         && SqlTypeUtil.isExactNumeric(exp.getType())) {
       return makeCastExactToBoolean(type, exp);
@@ -1125,16 +1122,6 @@ public class RexBuilder {
             casted, makeNullLiteral(toType)));
   }
 
-  private RexNode makeCastIntervalToExact(SqlParserPos pos, RelDataType toType, RexNode exp) {
-    final TimeUnit endUnit = exp.getType().getSqlTypeName().getEndUnit();
-    final TimeUnit baseUnit = baseUnit(exp.getType().getSqlTypeName());
-    final BigDecimal multiplier = baseUnit.multiplier;
-    final BigDecimal divider = endUnit.multiplier;
-    RexNode value =
-        multiplyDivide(pos, decodeIntervalOrDecimal(pos, exp), multiplier, divider);
-    return ensureType(pos, toType, value, false);
-  }
-
   public RexNode multiplyDivide(RexNode e, BigDecimal multiplier,
       BigDecimal divider) {
     return multiplyDivide(SqlParserPos.ZERO, e, multiplier, divider);
@@ -1177,7 +1164,10 @@ public class RexBuilder {
    *                      arithmetic, but is often required for rounding and
    *                      explicit casts.
    * @return the integer reinterpreted as an opaque decimal type
+   *
+   * @deprecated The REINTERPRET operator is deprecated
    */
+  @Deprecated // to be removed before 2.0
   public RexNode encodeIntervalOrDecimal(
       RexNode value,
       RelDataType type,
@@ -1185,6 +1175,11 @@ public class RexBuilder {
     return encodeIntervalOrDecimal(SqlParserPos.ZERO, value, type, checkOverflow);
   }
 
+  /** Encodes an interval or decimal, with an explicit parser position.
+   *
+   * @deprecated The REINTERPRET operator is deprecated
+   */
+  @Deprecated // to be removed before 2.0
   public RexNode encodeIntervalOrDecimal(
       SqlParserPos pos,
       RexNode value,
@@ -1201,11 +1196,19 @@ public class RexBuilder {
    *
    * @param node the interval or decimal value as an opaque type
    * @return an integer representation of the decimal value
+   *
+   * @deprecated The REINTERPRET operator is deprecated
    */
+  @Deprecated // to be removed before 2.0
   public RexNode decodeIntervalOrDecimal(RexNode node) {
     return decodeIntervalOrDecimal(SqlParserPos.ZERO, node);
   }
 
+  /** Decodes an interval or decimal, with an explicit parser position.
+   *
+   * @deprecated The REINTERPRET operator is deprecated
+   */
+  @Deprecated // to be removed before 2.0
   public RexNode decodeIntervalOrDecimal(SqlParserPos pos, RexNode node) {
     assert SqlTypeUtil.isDecimal(node.getType())
         || SqlTypeUtil.isInterval(node.getType());
@@ -1289,7 +1292,13 @@ public class RexBuilder {
    * @param exp           expression to be casted
    * @param checkOverflow whether an overflow check is required
    * @return a RexCall with two operands and a special return type
+   *
+   * @deprecated The REINTERPRET operator is deprecated; its semantics depend
+   * on the physical representation of values, which only an adapter or
+   * calling convention knows. Use {@link #makeCast(RelDataType, RexNode)}
+   * instead
    */
+  @Deprecated // to be removed before 2.0
   public RexNode makeReinterpretCast(
       RelDataType type,
       RexNode exp,
@@ -1305,7 +1314,13 @@ public class RexBuilder {
    * @param exp           expression to be cast
    * @param checkOverflow whether an overflow check is required
    * @return a RexCall with two operands and a special return type
+   *
+   * @deprecated The REINTERPRET operator is deprecated; its semantics depend
+   * on the physical representation of values, which only an adapter or
+   * calling convention knows. Use
+   * {@link #makeCast(SqlParserPos, RelDataType, RexNode)} instead
    */
+  @Deprecated // to be removed before 2.0
   public RexNode makeReinterpretCast(
       SqlParserPos pos,
       RelDataType type,

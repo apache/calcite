@@ -883,4 +883,18 @@ select floor(interval '2' hour + interval '90' minute) = interval '3' hour as fa
 
 !ok
 
+# [CALCITE-7451] REINTERPRET should not be used in logical plans
+# CAST of a non-literal interval to an exact numeric type. A DECIMAL target
+# preserves the fractional part; an integer target truncates towards zero.
+select cast(x as decimal(2,1)) as d, cast(x as integer) as i
+from (values (interval '1.29' second(1,2))) as t(x);
++-----+---+
+| D   | I |
++-----+---+
+| 1.2 | 1 |
++-----+---+
+(1 row)
+
+!ok
+
 # End operator.iq
