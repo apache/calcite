@@ -1213,6 +1213,116 @@ class TpchTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7324">[CALCITE-7324]
+   * NullPointerException from RelDecorrelator with multiple subqueries
+   * where one has a complex correlated condition</a>. */
+  @Test public void test7324()
+      throws SqlParseException, ValidationException, RelConversionException {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    TpchSchema tpchSchema = new TpchSchema(1.0, 0, 1, false);
+    rootSchema.add("TPCH", tpchSchema);
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelOptCluster cluster = builder.getCluster();
+
+    Planner planner = Frameworks.getPlanner(config);
+
+    String sql = ""
+        + "select\n"
+        + "    (select count(*) from tpch.PART where p_partkey = PARTSUPP.ps_partkey),\n"
+        + "    (select count(*) from tpch.SUPPLIER\n"
+        + "where s_suppkey = case when s_acctbal > 0 then PARTSUPP.ps_partkey + 1 else 1234 end)\n"
+        + "from tpch.PARTSUPP";
+
+    SqlNode parsed = planner.parse(sql);
+    SqlNode validated = planner.validate(parsed);
+    RelRoot root = planner.rel(validated);
+    final RelNode originalRel = root.rel;
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(EXPR$0=[$5], EXPR$1=[$6])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "        LogicalFilter(condition=[=($0, $cor0.PS_PARTKEY)])\n"
+        + "          LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "    LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "      LogicalFilter(condition=[=(CAST($0):BIGINT, CASE(>(CAST($5):DOUBLE, CAST(0):DOUBLE NOT NULL), +($cor0.PS_PARTKEY, 1), 1234:BIGINT))])\n"
+        + "        LogicalTableScan(table=[[TPCH, SUPPLIER]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder,
+            RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(EXPR$0=[$5], EXPR$1=[$8])\n"
+        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($6, $7)], joinType=[left])\n"
+        + "    LogicalProject(PS_PARTKEY=[$0], PS_SUPPKEY=[$1], PS_AVAILQTY=[$2], PS_SUPPLYCOST=[$3], PS_COMMENT=[$4], EXPR$0=[$6], $f6=[+($0, 1)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
+        + "        LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "        LogicalProject(P_PARTKEY=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalAggregate(group=[{0}])\n"
+        + "              LogicalProject(PS_PARTKEY=[$0])\n"
+        + "                LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "            LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "              LogicalProject(P_PARTKEY=[$0])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                  LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "    LogicalProject($f6=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject($f6=[+($0, 1)])\n"
+        + "            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
+        + "              LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "              LogicalProject(P_PARTKEY=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "                LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "                  LogicalAggregate(group=[{0}])\n"
+        + "                    LogicalProject(PS_PARTKEY=[$0])\n"
+        + "                      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                  LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "                    LogicalProject(P_PARTKEY=[$0])\n"
+        + "                      LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                        LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "        LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "          LogicalProject($f6=[$7])\n"
+        + "            LogicalJoin(condition=[=(CAST($0):BIGINT, CASE(>(CAST($5):DOUBLE, 0.0E0), $7, 1234:BIGINT))], joinType=[inner])\n"
+        + "              LogicalTableScan(table=[[TPCH, SUPPLIER]])\n"
+        + "              LogicalAggregate(group=[{0}])\n"
+        + "                LogicalProject($f6=[+($0, 1)])\n"
+        + "                  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
+        + "                    LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                    LogicalProject(P_PARTKEY=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "                      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "                        LogicalAggregate(group=[{0}])\n"
+        + "                          LogicalProject(PS_PARTKEY=[$0])\n"
+        + "                            LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                        LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "                          LogicalProject(P_PARTKEY=[$0])\n"
+        + "                            LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                              LogicalTableScan(table=[[TPCH, PART]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   private void checkQuery(int i) {
     query(i).runs();
   }
