@@ -1737,6 +1737,63 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7698">[CALCITE-7698]</a>;
+    * RelDecorrelator throws AssertionError when decorrelating
+   * a correlated sub-query with outer join. */
+  @Test void testExistsWithCorrelatedOnWhereLeftJoin() {
+    final String sql = "WITH l(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (3, 3, 3)),\n"
+        + "  r(d, e, f) AS (VALUES (1, 1, 1), (2, 2, 2), (3, 3, 3)),\n"
+        + "  t(i, j, k) AS (VALUES (1, 1, 1), (2, 2, 2), (3, 3, 3))\n"
+        + "SELECT * FROM l WHERE EXISTS (\n"
+        + "  SELECT * FROM (SELECT f FROM r WHERE r.d = l.a AND r.e > 10) r1\n"
+        + "  LEFT JOIN (SELECT i, k FROM t WHERE t.j = l.b AND i < 50) t1 ON r1.f = t1.k)";
+    final String planAfter = ""
+        + "LogicalProject(A=[$0], B=[$1], C=[$2])\n"
+        + "  LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])\n"
+        + "    LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 }]])\n"
+        + "    LogicalProject(EXPR$0=[$1], EXPR$1=[$2], $f2=[true])\n"
+        + "      LogicalJoin(condition=[AND(=($0, $4), IS NOT DISTINCT FROM($2, $5))], joinType=[left])\n"
+        + "        LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "          LogicalProject(F=[$2], EXPR$0=[$0])\n"
+        + "            LogicalFilter(condition=[>($1, 10)])\n"
+        + "              LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 }]])\n"
+        + "          LogicalProject(EXPR$1=[$1])\n"
+        + "            LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 }]])\n"
+        + "        LogicalProject(I=[$0], K=[$2], EXPR$1=[$1])\n"
+        + "          LogicalFilter(condition=[<($0, 50)])\n"
+        + "            LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 }]])\n";
+    assertThat(decorrelateSql(sql), hasTree(planAfter));
+  }
+
+  private RelNode decorrelateSql(String sql) {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true, requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    return RelDecorrelator.decorrelateQuery(before, builder,
+        RuleSets.ofList(Collections.emptyList()), RuleSets.ofList(Collections.emptyList()));
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7661">[CALCITE-7661]
    * RelDecorrelator loses shared correlation constraint across inner join inputs</a>.

@@ -4153,6 +4153,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
     }
 
+    corDefOutputs.putAll(frame.corDefOutputs);
     return createFrameWithValueGenerator(oldInput, frame, miss, corDefOutputs);
   }
 
