@@ -201,6 +201,15 @@ public interface TypeCoercion {
       List<SqlTypeFamily> expectedFamilies);
 
   /**
+   * Coerces operands of collection-related functions and constructors
+   * ({@code ARRAY_APPEND}, {@code ARRAY_PREPEND}, {@code ARRAY_INSERT},
+   * {@code MAP} constructor) to the least restrictive common type.
+   */
+  default boolean collectionFunctionCoercion(SqlCallBinding binding) {
+    return false;
+  }
+
+  /**
    * Non built-in functions (UDFs) type coercion, compare the types of arguments
    * with rules:
    *
