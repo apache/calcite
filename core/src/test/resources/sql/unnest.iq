@@ -815,4 +815,320 @@ SELECT * FROM UNNEST(ARRAY[
 
 !ok
 
+# Tests for [CALCITE-7670] Uncollect should support LEFT JOIN UNNEST
+!use scott
+
+# LEFT JOIN UNNEST
+# Validated on PostgreSQL 14: same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10, 20] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 2, ARRAY(SELECT 1 FROM (VALUES (0)) AS z(k) WHERE FALSE)
+    FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS INTEGER ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x
+FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+ORDER BY t.id, u.x;
++----+----+
+| ID | X  |
++----+----+
+|  1 | 10 |
+|  1 | 20 |
+|  2 |    |
+|  3 |    |
++----+----+
+(4 rows)
+
+!ok
+
+# An inner UNNEST still drops the rows.
+# Validated on PostgreSQL 14: same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10, 20] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS INTEGER ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x
+FROM t, UNNEST(t.arr) AS u(x)
+ORDER BY t.id, u.x;
++----+----+
+| ID | X  |
++----+----+
+|  1 | 10 |
+|  1 | 20 |
++----+----+
+(2 rows)
+
+!ok
+
+# WITH ORDINALITY: the NULL row from OUTER JOIN has no ordinal.
+# Validated on PostgreSQL 14: same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10, 20] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS INTEGER ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x, u.o
+FROM t LEFT JOIN UNNEST(t.arr) WITH ORDINALITY AS u(x, o) ON TRUE
+ORDER BY t.id, u.x;
++----+----+---+
+| ID | X  | O |
++----+----+---+
+|  1 | 10 | 1 |
+|  1 | 20 | 2 |
+|  3 |    |   |
++----+----+---+
+(3 rows)
+
+!ok
+
+# A filtering ON condition: the left row survives even when the condition
+# rejects every element of a non-empty collection. The padding must come
+# from the join, not from the collection being empty.
+# Validated on PostgreSQL 14: same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 2, ARRAY[20, 30] FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x
+FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON u.x > 15
+ORDER BY t.id, u.x;
++----+----+
+| ID | X  |
++----+----+
+|  1 |    |
+|  2 | 20 |
+|  2 | 30 |
++----+----+
+(3 rows)
+
+!ok
+
+# A NATURAL LEFT JOIN's derived condition compares common columns, so it can
+# reject rows. Here t.x = 1 matches no element, and the left row survives.
+# The condition becomes a Filter between the Correlate and the Uncollect,
+# which is what stops CorrelateUncollectOuterRule from matching this shape.
+# Validated on PostgreSQL 14: same result.
+SELECT *
+FROM (VALUES (1)) AS t(x)
+NATURAL LEFT JOIN UNNEST(ARRAY[2, 3]) AS u(x);
++---+
+| X |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# Multi-collection UNNEST and LEFT JOIN
+# Validated on PostgreSQL 14: same result.
+WITH t(id, a, b) AS (
+  SELECT 1, ARRAY[10, 20], ARRAY['p'] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS INTEGER ARRAY), CAST(NULL AS VARCHAR ARRAY)
+    FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x, u.y
+FROM t LEFT JOIN UNNEST(t.a, t.b) AS u(x, y) ON TRUE
+ORDER BY t.id, u.x;
++----+----+---+
+| ID | X  | Y |
++----+----+---+
+|  1 | 10 | p |
+|  1 | 20 |   |
+|  3 |    |   |
++----+----+---+
+(3 rows)
+
+!ok
+
+# MAP collection and LEFT JOIN
+# Postgres does not support MAP values, so this is not validated on Postgres.
+WITH t(id, m) AS (
+  SELECT 1, MAP['a', 10, 'b', 20] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS MAP<VARCHAR, INTEGER>) FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.k, u.v
+FROM t LEFT JOIN UNNEST(t.m) AS u(k, v) ON TRUE
+ORDER BY t.id, u.k;
++----+---+----+
+| ID | K | V  |
++----+---+----+
+|  1 | a | 10 |
+|  1 | b | 20 |
+|  3 |   |    |
++----+---+----+
+(3 rows)
+
+!ok
+
+# An array of single-field ROW values expands to a single scalar column.
+# Validated on PostgreSQL 14 using a named composite type (Postgres cannot
+# type an anonymous ROW array): same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[ROW(10), ROW(20)] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS ROW(a INTEGER) ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x
+FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+ORDER BY t.id, u.x;
++----+----+
+| ID | X  |
++----+----+
+|  1 | 10 |
+|  1 | 20 |
+|  3 |    |
++----+----+
+(3 rows)
+
+!ok
+
+# With LEFT JOIN every element column and the ordinality column must be nullable
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10, 20] FROM (VALUES (0)) AS z(k))
+SELECT t.id, u.x, u.o
+FROM t LEFT JOIN UNNEST(t.arr) WITH ORDINALITY AS u(x, o) ON TRUE;
+ID INTEGER(10) NOT NULL
+X INTEGER(10)
+O INTEGER(10)
+!type
+
+!use hr
+
+# Struct elements, expanded into one column per field (standard semantics):
+# dept 30 has no employees.
+# validated on PostgreSQL 14 with an equivalent composite type.
+SELECT d."deptno", e."empid", e."name"
+FROM "hr"."depts" AS d
+LEFT JOIN UNNEST(d."employees") AS e ON TRUE
+ORDER BY d."deptno", e."empid";
++--------+-------+-----------+
+| deptno | empid | name      |
++--------+-------+-----------+
+|     10 |   100 | Bill      |
+|     10 |   150 | Sebastian |
+|     30 |       |           |
+|     40 |   200 | Eric      |
++--------+-------+-----------+
+(4 rows)
+
+!ok
+
+!use hr-presto
+
+# Struct elements kept whole (Trino semantics, PRESTO conformance).
+SELECT d."deptno", e."emp"
+FROM "hr"."depts" AS d
+LEFT JOIN UNNEST(d."employees") AS e("emp") ON TRUE
+ORDER BY d."deptno";
++--------+------------------------------------+
+| deptno | emp                                |
++--------+------------------------------------+
+|     10 | {100, 10, Bill, 10000.0, 1000}     |
+|     10 | {150, 10, Sebastian, 7000.0, null} |
+|     30 |                                    |
+|     40 | {200, 20, Eric, 8000.0, 500}       |
++--------+------------------------------------+
+(4 rows)
+
+!ok
+
+# The same query with CorrelateUncollectOuterRule
+!set hep-rules "
++CoreRules.CORRELATE_UNCOLLECT_OUTER"
+SELECT d."deptno", e."emp"
+FROM "hr"."depts" AS d
+LEFT JOIN UNNEST(d."employees") AS e("emp") ON TRUE
+ORDER BY d."deptno";
++--------+------------------------------------+
+| deptno | emp                                |
++--------+------------------------------------+
+|     10 | {100, 10, Bill, 10000.0, 1000}     |
+|     10 | {150, 10, Sebastian, 7000.0, null} |
+|     30 |                                    |
+|     40 | {200, 20, Eric, 8000.0, 500}       |
++--------+------------------------------------+
+(4 rows)
+
+!ok
+
+!use scott
+
+# CorrelateUncollectOuterRule converts the LEFT correlate over an Uncollect
+# into an INNER correlate over an outer Uncollect; UnnestDecorrelateRule
+# then eliminates the correlate entirely, padding included.
+!set hep-rules "
++CoreRules.CORRELATE_UNCOLLECT_OUTER
++CoreRules.UNNEST_DECORRELATE"
+
+# Validated on PostgreSQL 14: same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10, 20] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS INTEGER ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT u.x
+FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+ORDER BY u.x;
++----+
+| X  |
++----+
+| 10 |
+| 20 |
+|    |
++----+
+(3 rows)
+
+!ok
+
+# The correlate is gone
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableUncollect(isOuter=[true])
+    EnumerableUnion(all=[true])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=[20], expr#3=[ARRAY($t1, $t2)], EXPR$1=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1])
+        EnumerableValues(tuples=[[{ 3, null }]])
+!plan
+
+# The same elimination for an array of single-field ROW values.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[ROW(10), ROW(20)] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS ROW(a INTEGER) ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT u.x
+FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+ORDER BY u.x;
++----+
+| X  |
++----+
+| 10 |
+| 20 |
+|    |
++----+
+(3 rows)
+
+!ok
+
+# UnnestDecorrelateRule alone must not fire on a LEFT correlate
+!set hep-rules "
++CoreRules.UNNEST_DECORRELATE"
+
+# Validated on PostgreSQL 14: same result.
+WITH t(id, arr) AS (
+  SELECT 1, ARRAY[10, 20] FROM (VALUES (0)) AS z(k)
+  UNION ALL
+  SELECT 3, CAST(NULL AS INTEGER ARRAY) FROM (VALUES (0)) AS z(k))
+SELECT u.x
+FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+ORDER BY u.x;
++----+
+| X  |
++----+
+| 10 |
+| 20 |
+|    |
++----+
+(3 rows)
+
+!ok
+
 # End unnest.iq

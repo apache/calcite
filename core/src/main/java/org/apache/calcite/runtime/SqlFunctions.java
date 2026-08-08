@@ -216,6 +216,24 @@ public class SqlFunctions {
           a0 -> a0 == null ? Linq4j.emptyEnumerable()
               : Linq4j.asEnumerable(a0).<@Nullable Object>select(SqlFunctions::structValue);
 
+  /** Single NULL element, the outer-mode result for an empty or NULL
+   * collection. */
+  private static final List<@Nullable Object> SINGLE_NULL =
+      Collections.singletonList(null);
+
+  /** Like {@link #LIST_AS_ENUMERABLE}, but for outer join mode: an empty or NULL
+   * collection yields one NULL element rather than no elements. */
+  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
+      OUTER_LIST_AS_ENUMERABLE =
+          a0 -> a0 == null || a0.isEmpty() ? Linq4j.asEnumerable(SINGLE_NULL)
+              : Linq4j.asEnumerable(a0);
+
+  /** Like {@link #STRUCT_LIST_AS_ENUMERABLE}, but for outer join mode. */
+  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
+      OUTER_STRUCT_LIST_AS_ENUMERABLE =
+          a0 -> a0 == null || a0.isEmpty() ? Linq4j.asEnumerable(SINGLE_NULL)
+              : Linq4j.asEnumerable(a0).<@Nullable Object>select(SqlFunctions::structValue);
+
   /** Converts one element of a collection of structs to its Object[] struct
    * value. Elements arrive as List or as Object[]; null elements stay null. */
   @SuppressWarnings("rawtypes")
@@ -7642,8 +7660,22 @@ public class SqlFunctions {
    * Function that, given a certain List containing single-item structs (i.e. arrays / lists with
    * a single item), builds an Enumerable that returns those single items inside the structs.
    */
-  public static Function1<List<Object>, Enumerable<Object>> flatList() {
-    return inputList -> Linq4j.asEnumerable(inputList).select(v -> structAccess(v, 0, null));
+  public static Function1<List<Object>, Enumerable<@Nullable Object>> flatList() {
+    // A NULL collection unnests to no rows, like an empty one.
+    return inputList -> inputList == null ? Linq4j.emptyEnumerable()
+        : Linq4j.asEnumerable(inputList)
+            .<@Nullable Object>select(v -> structAccess(v, 0, null));
+  }
+
+  /**
+   * Variant of {@link #flatList} for outer mode: an empty or {@code NULL}
+   * collection yields one {@code NULL} element rather than no elements.
+   */
+  public static Function1<List<Object>, Enumerable<@Nullable Object>> flatListOuter() {
+    return inputList -> inputList == null || inputList.isEmpty()
+        ? Linq4j.asEnumerable(SINGLE_NULL)
+        : Linq4j.asEnumerable(inputList)
+            .<@Nullable Object>select(v -> structAccess(v, 0, null));
   }
 
   /**
@@ -7654,28 +7686,34 @@ public class SqlFunctions {
    * <p>This is the standard semantics for SQL {@code UNNEST(a, b, ...)}: the
    * i-th output row pairs element {@code a[i]} with element {@code b[i]}.
    * Shorter collections are padded with {@code NULL}.
+   *
+   * <p>When {@code outer}, a row whose collections are all empty or
+   * {@code NULL} still produces one output row, with every element column set
+   * to {@code NULL}. This is the LEFT JOIN semantics of {@code Uncollect}.
    */
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatZip(
       final int[] fieldCounts, final boolean withOrdinality,
-      final FlatProductInputType[] inputTypes) {
+      final FlatProductInputType[] inputTypes, final boolean outer) {
     if (fieldCounts.length == 1) {
       if (!withOrdinality && inputTypes[0] == FlatProductInputType.SCALAR) {
         // Simple unnest without ordinality
         //noinspection unchecked
-        return (Function1) LIST_AS_ENUMERABLE;
+        return outer ? (Function1) OUTER_LIST_AS_ENUMERABLE
+            : (Function1) LIST_AS_ENUMERABLE;
       } else if (!withOrdinality && inputTypes[0] == FlatProductInputType.STRUCT) {
         // A single collection of structs kept whole, without ordinality: the
         // output row type has a single (ROW-typed) column, so PhysTypeImpl
         // optimizes the row format down to SCALAR, under which rows are bare
         // struct values rather than singleton lists.
         //noinspection unchecked
-        return (Function1) STRUCT_LIST_AS_ENUMERABLE;
+        return (Function1) (outer ? OUTER_STRUCT_LIST_AS_ENUMERABLE
+            : STRUCT_LIST_AS_ENUMERABLE);
       } else {
         // unnest with ordinality for a single column
-        return row -> z2(new Object[] { row }, fieldCounts, withOrdinality, inputTypes);
+        return row -> z2(new Object[] { row }, fieldCounts, withOrdinality, inputTypes, outer);
       }
     }
-    return lists -> z2((Object[]) lists, fieldCounts, withOrdinality, inputTypes);
+    return lists -> z2((Object[]) lists, fieldCounts, withOrdinality, inputTypes, outer);
   }
 
   /**
@@ -7688,11 +7726,13 @@ public class SqlFunctions {
    *                     of scalars or of structs kept whole)
    * @param withOrdinality whether to append a 1-based ordinality column
    * @param inputTypes   type of elements in each collection (SCALAR, LIST, STRUCT, or MAP)
+   * @param outer        whether to emit one all-NULL row when every collection is
+   *                     empty or NULL, rather than no rows
    */
   @SuppressWarnings("rawtypes")
   private static Enumerable<FlatLists.ComparableList<Comparable>> z2(
       Object[] lists, int[] fieldCounts, boolean withOrdinality,
-      FlatProductInputType[] inputTypes) {
+      FlatProductInputType[] inputTypes, boolean outer) {
     final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
     final int[] widths = new int[lists.length];
     int totalFieldCount = 0;
@@ -7700,6 +7740,15 @@ public class SqlFunctions {
       final int fieldCount = fieldCounts[i];
       final FlatProductInputType inputType = inputTypes[i];
       final Object inputObject = lists[i];
+      if (inputObject == null) {
+        // A NULL collection contributes no elements, like an empty one. Under
+        // outer mode the wrapper below turns "no elements at all" into the
+        // single NULL-padded row.
+        enumerators.add(Linq4j.emptyEnumerator());
+        widths[i] = fieldCount < 0 ? 1 : fieldCount;
+        totalFieldCount += widths[i];
+        continue;
+      }
       switch (inputType) {
       case SCALAR:
         @SuppressWarnings("unchecked") List<Comparable> list =
@@ -7741,11 +7790,75 @@ public class SqlFunctions {
       ++totalFieldCount;
     }
     final int fieldCount = totalFieldCount;
+    if (!outer) {
+      return new AbstractEnumerable<FlatLists.ComparableList<Comparable>>() {
+        @Override public Enumerator<FlatLists.ComparableList<Comparable>> enumerator() {
+          return new ZipPaddedEnumerator(enumerators, widths, fieldCount, withOrdinality);
+        }
+      };
+    }
+    @SuppressWarnings("unchecked") final FlatLists.ComparableList<Comparable> nullRow =
+        (FlatLists.ComparableList) FlatLists.of(Collections.nCopies(fieldCount, null));
     return new AbstractEnumerable<FlatLists.ComparableList<Comparable>>() {
       @Override public Enumerator<FlatLists.ComparableList<Comparable>> enumerator() {
-        return new ZipPaddedEnumerator(enumerators, widths, fieldCount, withOrdinality);
+        return new DefaultIfEmptyEnumerator(
+            new ZipPaddedEnumerator(enumerators, widths, fieldCount, withOrdinality),
+            nullRow);
       }
     };
+  }
+
+  /** Enumerator that yields the rows of another enumerator, or a single
+   * default row if that enumerator yields none.
+   *
+   * <p>This is the {@code defaultIfEmpty} operation of LINQ. It implements
+   * the outer (LEFT JOIN) semantics of {@code Uncollect}, where the default
+   * row is all NULL. */
+  @SuppressWarnings("rawtypes")
+  private static class DefaultIfEmptyEnumerator
+      implements Enumerator<FlatLists.ComparableList<Comparable>> {
+    private final Enumerator<FlatLists.ComparableList<Comparable>> inner;
+    private final FlatLists.ComparableList<Comparable> defaultRow;
+    /** Whether {@link #inner} has yielded at least one row. */
+    private boolean innerMoved;
+    /** Whether {@link #defaultRow} is the row currently being returned. */
+    private boolean onDefaultRow;
+
+    DefaultIfEmptyEnumerator(
+        Enumerator<FlatLists.ComparableList<Comparable>> inner,
+        FlatLists.ComparableList<Comparable> defaultRow) {
+      this.inner = inner;
+      this.defaultRow = defaultRow;
+    }
+
+    @Override public boolean moveNext() {
+      if (onDefaultRow) {
+        return false;
+      }
+      if (inner.moveNext()) {
+        innerMoved = true;
+        return true;
+      }
+      if (innerMoved) {
+        return false;
+      }
+      onDefaultRow = true;
+      return true;
+    }
+
+    @Override public FlatLists.ComparableList<Comparable> current() {
+      return onDefaultRow ? defaultRow : inner.current();
+    }
+
+    @Override public void reset() {
+      inner.reset();
+      innerMoved = false;
+      onDefaultRow = false;
+    }
+
+    @Override public void close() {
+      inner.close();
+    }
   }
 
   public static Object[] array(Object... args) {

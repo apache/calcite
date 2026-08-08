@@ -56,9 +56,19 @@ import static java.util.Objects.requireNonNull;
  * output column per struct field; if {@code false} it produces a single
  * column typed as the whole element (Trino semantics). Maps always expand
  * into a key and a value column, regardless of this flag.
+ *
+ * <p>{@code isOuter} controls what happens to an empty or {@code NULL}
+ * collection: if {@code true} (LEFT JOIN semantics) one row is emitted with
+ * every element column set to {@code NULL}; if {@code false} (INNER
+ * semantics) no row is emitted. Every element column is therefore nullable
+ * when {@code isOuter}.
  */
 public class Uncollect extends SingleRel {
   public final boolean withOrdinality;
+
+  /** If true, an empty or NULL collection yields a single row whose element
+   * columns are all NULL, rather than no rows at all. */
+  public final boolean isOuter;
 
   /** If true, a collection whose element type is a struct expands into one
    * output column per struct field; if false, it produces a single column
@@ -90,7 +100,8 @@ public class Uncollect extends SingleRel {
     // Non-empty item aliases historically implied that struct elements are not
     // expanded (Presto dialect), so this constructor derives
     // {@code expandStructFields} from their absence.
-    this(cluster, traitSet, input, withOrdinality, itemAliases, itemAliases.isEmpty());
+    this(cluster, traitSet, input, withOrdinality, itemAliases, itemAliases.isEmpty(),
+        false);
   }
 
   /** Creates an Uncollect.
@@ -101,14 +112,18 @@ public class Uncollect extends SingleRel {
    * @param expandStructFields If true, a collection whose element type is a struct
    *                           produces one output column per struct field; if false,
    *                           a single column typed as the whole element
+   * @param isOuter            If true, an empty or NULL collection yields one row of
+   *                           NULLs (LEFT JOIN); if false, it yields no rows (INNER)
    */
   @SuppressWarnings("method.invocation.invalid")
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-      boolean withOrdinality, List<String> itemAliases, boolean expandStructFields) {
+      boolean withOrdinality, List<String> itemAliases, boolean expandStructFields,
+      boolean isOuter) {
     super(cluster, traitSet, input);
     this.withOrdinality = withOrdinality;
     this.itemAliases = ImmutableList.copyOf(itemAliases);
     this.expandStructFields = expandStructFields;
+    this.isOuter = isOuter;
     requireNonNull(deriveRowType(), "invalid child rowType");
   }
 
@@ -118,7 +133,8 @@ public class Uncollect extends SingleRel {
   public Uncollect(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getBoolean("withOrdinality", false), Collections.emptyList(),
-        input.getBoolean("expandStructFields", true));
+        input.getBoolean("expandStructFields", true),
+        input.getBoolean("isOuter", false));
   }
 
   /**
@@ -151,16 +167,19 @@ public class Uncollect extends SingleRel {
    * @param expandStructFields If true, a collection whose element type is a struct
    *                           produces one output column per struct field; if false,
    *                           a single column typed as the whole element
+   * @param isOuter            If true, an empty or NULL collection yields one row of
+   *                           NULLs (LEFT JOIN); if false, it yields no rows (INNER)
    */
   public static Uncollect create(
       RelTraitSet traitSet,
       RelNode input,
       boolean withOrdinality,
       List<String> itemAliases,
-      boolean expandStructFields) {
+      boolean expandStructFields,
+      boolean isOuter) {
     final RelOptCluster cluster = input.getCluster();
     return new Uncollect(cluster, traitSet, input, withOrdinality, itemAliases,
-        expandStructFields);
+        expandStructFields, isOuter);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -172,7 +191,8 @@ public class Uncollect extends SingleRel {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .itemIf("withOrdinality", withOrdinality, withOrdinality)
-        .itemIf("expandStructFields", expandStructFields, !expandStructFields);
+        .itemIf("expandStructFields", expandStructFields, !expandStructFields)
+        .itemIf("isOuter", isOuter, isOuter);
   }
 
   @Override public final RelNode copy(RelTraitSet traitSet,
@@ -183,7 +203,7 @@ public class Uncollect extends SingleRel {
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new Uncollect(getCluster(), traitSet, input, withOrdinality, itemAliases,
-        expandStructFields);
+        expandStructFields, isOuter);
   }
 
   /**
@@ -287,7 +307,18 @@ public class Uncollect extends SingleRel {
       builder.add(SqlUnnestOperator.ORDINALITY_COLUMN_NAME,
           SqlTypeName.INTEGER);
     }
-    return builder.build();
+    final RelDataType rowType = builder.build();
+    if (!isOuter) {
+      return rowType;
+    }
+    // Under isOuter an empty or NULL collection yields a row of NULLs, so
+    // every output column is nullable, including the ordinality column.
+    final RelDataTypeFactory.Builder outerBuilder = typeFactory.builder();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      outerBuilder.add(field.getName(),
+          typeFactory.createTypeWithNullability(field.getType(), true));
+    }
+    return outerBuilder.build();
   }
 
   /** Gets the aliases for the unnest items. */

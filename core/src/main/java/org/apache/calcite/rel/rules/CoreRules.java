@@ -1005,6 +1005,12 @@ public class CoreRules {
   public static final AggregateRemoveLiteralAggRule AGGREGATE_REMOVE_LITERAL_AGG =
       AggregateRemoveLiteralAggRule.Config.DEFAULT.toRule();
 
+  /** Rule that moves the outer join semantics of a {@link Correlate} over an
+   * {@link Uncollect} onto the {@code Uncollect}, leaving an inner
+   * {@code Correlate} that {@link #UNNEST_DECORRELATE} may then remove. */
+  public static final CorrelateUncollectOuterRule CORRELATE_UNCOLLECT_OUTER =
+      CorrelateUncollectOuterRule.Config.DEFAULT.toRule();
+
   /** Rule that converts a {@link Correlate} after an {@link Uncollect} into a simple
    * Uncollect, if possible. */
   public static final RelOptRule UNNEST_DECORRELATE =

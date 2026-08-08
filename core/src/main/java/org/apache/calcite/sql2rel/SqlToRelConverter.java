@@ -2899,7 +2899,7 @@ public class SqlToRelConverter {
         uncollect = relBuilder
             .push(child)
             .project(exprs)
-            .uncollect(itemAliases, operator.withOrdinality)
+            .uncollect(itemAliases, operator.withOrdinality, itemAliases.isEmpty(), false)
             .let(r -> fieldNames == null ? r : r.rename(fieldNames))
             .build();
       } else {
@@ -2908,7 +2908,7 @@ public class SqlToRelConverter {
         uncollect = relBuilder
             .push(child)
             .project(exprs)
-            .uncollect(Collections.emptyList(), operator.withOrdinality)
+            .uncollect(Collections.emptyList(), operator.withOrdinality, true, false)
             .let(r -> fieldNames == null ? r : r.rename(fieldNames))
             .build();
       }
