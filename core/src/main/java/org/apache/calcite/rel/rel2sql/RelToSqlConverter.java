@@ -104,6 +104,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
@@ -618,7 +619,7 @@ public class RelToSqlConverter extends SqlImplementor
    * Visits a Correlate; called by {@link #dispatch} via reflection.
    */
   public Result visit(Correlate e) {
-    Result leftResult = visitInput(e, 0);
+    Result leftResult = visitInput(e, 0).resetAlias();
     parseCorrelTable(e, leftResult);
     final Result rightResult = visitInput(e, 1);
     SqlNode rightLateralAs = rightResult.asFrom();
@@ -2161,7 +2162,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode callNode = context.toSql(null, e.getCall());
 
     SqlNode tableFunctionCall;
-    if (dialect instanceof SparkSqlDialect) {
+    if (dialect instanceof SparkSqlDialect || dialect instanceof PostgresqlSqlDialect) {
       tableFunctionCall = callNode;
     } else {
       // Convert to table function call, "TABLE($function_name(xxx))"
