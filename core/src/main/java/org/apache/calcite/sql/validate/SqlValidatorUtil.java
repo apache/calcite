@@ -1439,6 +1439,7 @@ public class SqlValidatorUtil {
       RelDataType targetType, SqlOperatorBinding opBinding, int... indexes) {
     if (opBinding instanceof SqlCallBinding) {
       requireNonNull(targetType, "array function target type");
+      final SqlValidator validator = ((SqlCallBinding) opBinding).getValidator();
       SqlCall call = ((SqlCallBinding) opBinding).getCall();
       List<SqlNode> operands = call.getOperandList();
       for (int idx : indexes) {
@@ -1448,9 +1449,19 @@ public class SqlValidatorUtil {
             // such as spark array, the SqlKind is other function.
             // however, the name is same for those different array forms.
             && "ARRAY".equals(((SqlBasicCall) operand).getOperator().getName())) {
-          call.setOperand(idx, castArrayElementTo(operand, targetType));
+          call.setOperand(idx, castArrayElementTo(validator, operand, targetType));
+          // The rewrite changes the element types of the array constructor,
+          // so the type the validator has recorded for it must change too
+          RelDataType priorType = validator.getValidatedNodeTypeIfKnown(operand);
+          if (priorType != null) {
+            validator.setValidatedNodeType(operand,
+                SqlTypeUtil.createArrayType(opBinding.getTypeFactory(),
+                    targetType, priorType.isNullable()));
+          }
         } else {
-          call.setOperand(idx, castTo(operand, targetType));
+          SqlNode cast = castTo(operand, targetType);
+          call.setOperand(idx, cast);
+          validator.setValidatedNodeType(cast, targetType);
         }
       }
     }
@@ -1536,11 +1547,13 @@ public class SqlValidatorUtil {
    * Each element of original 'node' is cast to the desired 'type', preserving the
    * nullability of the 'type'.
    *
+   * @param validator Validator used, to record the new types
    * @param node the {@link SqlNode} the sqlnode representing an array
    * @param type the target {@link RelDataType} the target type
    * @return a new {@link SqlNode} representing the CAST operation
    */
-  private static SqlNode castArrayElementTo(SqlNode node, RelDataType type) {
+  private static SqlNode castArrayElementTo(SqlValidator validator,
+      SqlNode node, RelDataType type) {
     int i = 0;
     for (SqlNode operand : ((SqlBasicCall) node).getOperandList()) {
       SqlNode castedOperand =
@@ -1548,6 +1561,7 @@ public class SqlValidatorUtil {
               operand,
               SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
       ((SqlBasicCall) node).setOperand(i++, castedOperand);
+      validator.setValidatedNodeType(castedOperand, type);
     }
     return node;
   }
