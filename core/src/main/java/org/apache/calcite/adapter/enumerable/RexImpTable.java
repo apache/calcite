@@ -35,6 +35,7 @@ import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -2489,11 +2490,110 @@ public class RexImpTable implements RexImplementorTable {
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
 
+      final boolean ignoreNulls =
+          info instanceof WinAggContext && ((WinAggContext) info).ignoreNulls();
+      if (ignoreNulls) {
+        return implementResultIgnoreNulls(info, winResult);
+      }
+
       return Expressions.condition(winResult.hasRows(),
           winResult.rowTranslator(
               winResult.computeIndex(Expressions.constant(0), seekType))
               .translate(winResult.rexArguments().get(0), info.returnType()),
           getDefaultValue(info.returnType()));
+    }
+
+    /**
+     * Implements FIRST_VALUE / LAST_VALUE with IGNORE NULLS by scanning the
+     * frame (forward for FIRST_VALUE, backward for LAST_VALUE) and returning
+     * the first non-null argument value, or null if all rows in the frame are
+     * null (or the frame is empty).
+     *
+     * <p>Generated code (for FIRST_VALUE; LAST_VALUE scans backward):
+     * <pre>{@code
+     *   BoxType res = null;
+     *   if (hasRows) {
+     *     for (int seekIdx = startIndex; seekIdx <= endIndex; seekIdx++) {
+     *       BoxType seekValue = rowTranslator.translate(arg, boxType);
+     *       if (seekValue != null) {
+     *         res = seekValue;
+     *         break;
+     *       }
+     *     }
+     *   }
+     *   return res;
+     * }</pre>
+     */
+    private Expression implementResultIgnoreNulls(AggContext info,
+        WinAggResultContext winResult) {
+      final Type returnType = info.returnType();
+      final RexNode arg = winResult.rexArguments().get(0);
+
+      // Use a boxed type internally so that a NULL comparison is always valid,
+      // even when the (frame-guaranteed non-empty) return type is a primitive.
+      // The surrounding window implementation converts the result back to the
+      // declared return type.
+      final Type boxType = Types.box(returnType);
+
+      final ParameterExpression res =
+          Expressions.parameter(0, boxType,
+              winResult.currentBlock().newName(
+                  seekType == SeekType.START ? "first_value" : "last_value"));
+      // res = null
+      winResult.currentBlock().add(Expressions.declare(0, res, NULL_EXPR));
+
+      final ParameterExpression idx =
+          Expressions.parameter(int.class,
+              winResult.currentBlock().newName("seekIdx"));
+
+      // startIndex() and endIndex() are the concrete row indices of the frame
+      // bounds for the current row, already resolved by EnumerableWindow. For
+      // unbounded windows they span the whole partition; for RANGE windows they
+      // span the peer group(s) included in the frame.
+      // Scan direction: FIRST_VALUE walks from start to end, LAST_VALUE walks
+      // from end back to start.
+      final boolean forward = seekType == SeekType.START;
+      final Expression from =
+          forward ? winResult.startIndex() : winResult.endIndex();
+      final Expression to =
+          forward ? winResult.endIndex() : winResult.startIndex();
+      final Expression condition =
+          forward
+              ? Expressions.lessThanOrEqual(idx, to)
+              : Expressions.greaterThanOrEqual(idx, to);
+      final Expression post =
+          forward
+              ? Expressions.postIncrementAssign(idx)
+              : Expressions.postDecrementAssign(idx);
+
+      // Build the loop body:
+      //   BoxType seekValue = rowTranslator.translate(arg, boxType);
+      //   if (seekValue != null) {
+      //     res = seekValue;
+      //     break;
+      //   }
+      final BlockBuilder loopBody = winResult.nestBlock();
+      final Expression value =
+          winResult.rowTranslator(idx).translate(arg, boxType);
+      final ParameterExpression valueVar =
+          Expressions.parameter(0, boxType, loopBody.newName("seekValue"));
+      loopBody.add(Expressions.declare(0, valueVar, value));
+      loopBody.add(
+          Expressions.ifThen(
+              Expressions.notEqual(valueVar, NULL_EXPR),
+              Expressions.block(
+                  Expressions.statement(Expressions.assign(res, valueVar)),
+                  Expressions.break_(null))));
+      winResult.exitBlock();
+      final BlockStatement loopBodyBlock = loopBody.toBlock();
+
+      // Wrap the scan in: if (hasRows) { for (...) { ... } }
+      winResult.currentBlock().add(
+          Expressions.ifThen(winResult.hasRows(),
+              Expressions.for_(
+                  Expressions.declare(0, idx, from),
+                  condition, post, loopBodyBlock)));
+      return res;
     }
   }
 
