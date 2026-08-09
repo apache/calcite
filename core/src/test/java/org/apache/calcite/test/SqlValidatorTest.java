@@ -73,6 +73,7 @@ import org.apache.calcite.test.catalog.MustFilterMockCatalogReader;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -107,6 +108,7 @@ import static org.apache.calcite.test.Matchers.isCharset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
@@ -14420,6 +14422,68 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     assertThat(neg instanceof SqlCall, is(true));
     SqlNode cast = ((SqlCall) neg).getOperandList().get(0);
     assertThat(cast.getParserPosition().getLineNum(), is(1));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6743">
+   * [CALCITE-6743] Type inference for ARRAY_INSERT function produces an
+   * inconsistent result</a>. */
+  @Test void testArrayFunctionAdjustedOperandTypes() throws SqlParseException {
+    // The array constructor is rewritten to ARRAY(CAST(1 AS DOUBLE), ...);
+    // its registered type must be DOUBLE ARRAY, not INTEGER ARRAY
+    final SqlCall call =
+        checkArrayOperandType("select array_insert(array(1, 2, 3), 3, cast(4 as double))",
+            "DOUBLE ARRAY NOT NULL", "DOUBLE", "DOUBLE NOT NULL");
+    // The inserted element already has the target type; it must keep the
+    // user's cast, without a redundant second cast around it
+    assertThat(Util.last(call.getOperandList()),
+        hasToString("CAST(4 AS DOUBLE)"));
+    checkArrayOperandType(
+        "select array_append(array(1, 2, 3), cast(4 as double))",
+        "DOUBLE NOT NULL ARRAY NOT NULL", "DOUBLE NOT NULL",
+        "DOUBLE NOT NULL");
+    checkArrayOperandType(
+        "select array_prepend(array(1, 2, 3), cast(4 as double))",
+        "DOUBLE NOT NULL ARRAY NOT NULL", "DOUBLE NOT NULL",
+        "DOUBLE NOT NULL");
+    // Only the inserted element is cast (to the array component type);
+    // the array constructor keeps its original type
+    checkArrayOperandType(
+        "select array_append(array(1, 2, 3), cast(4 as tinyint))",
+        "INTEGER NOT NULL ARRAY NOT NULL", "INTEGER NOT NULL",
+        "INTEGER NOT NULL");
+  }
+
+  /** Validates a query whose select list is a single call to an array
+   * function with an array constructor as its first argument; checks the
+   * validated types of the array argument, of the elements of the
+   * constructor, and of the inserted element after the function's type
+   * inference has adjusted them. Returns the validated call. */
+  private SqlCall checkArrayOperandType(String sql, String expectedArrayType,
+      String expectedElementType, String expectedInsertedType)
+      throws SqlParseException {
+    final SqlParser parser = SqlParser.create(sql, SqlParser.config());
+    final SqlNode node = parser.parseQuery();
+    final SqlValidator validator = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .factory.createValidator();
+    final SqlSelect select = (SqlSelect) validator.validate(node);
+    final SqlCall call = (SqlCall) select.getSelectList().get(0);
+    final SqlNode array = call.getOperandList().get(0);
+    final RelDataType arrayType = validator.getValidatedNodeType(array);
+    assertThat(arrayType.getFullTypeString(), is(expectedArrayType));
+    final RelDataType componentType = arrayType.getComponentType();
+    assertThat(componentType, notNullValue());
+    for (SqlNode element : ((SqlCall) array).getOperandList()) {
+      final RelDataType elementType = validator.getValidatedNodeType(element);
+      assertThat(elementType.getFullTypeString(), is(expectedElementType));
+      assertThat(elementType, is(componentType));
+    }
+    // The last operand is the inserted element; its type may differ from
+    // the array component type only in nullability
+    final SqlNode inserted = Util.last(call.getOperandList());
+    assertThat(validator.getValidatedNodeType(inserted).getFullTypeString(),
+        is(expectedInsertedType));
+    return call;
   }
 
   @Test void testValidateParameterizedExpression() throws SqlParseException {

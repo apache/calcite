@@ -1590,12 +1590,13 @@ public abstract class SqlLibraryOperators {
     // The spec says that "ARRAY_INSERT may pad the array with NULL values if the
     // position is large", it implies that in the result the element type is always nullable.
     type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
-    // make explicit CAST for array elements and inserted element to the biggest type
-    // if array component type is not equal to the inserted element type
-    if (!componentType.equalsSansFieldNamesAndNullability(elementType2)) {
-      // For array_insert, 0 is the array arg and 2 is the inserted element
+    // make explicit CAST for array elements and inserted element to the biggest type.
+    // For array_insert, 0 is the array arg and 2 is the inserted element
+    if (!elementType2.equalsSansFieldNamesAndNullability(type)) {
       SqlValidatorUtil.
           adjustTypeForArrayFunctions(type, opBinding, 2);
+    }
+    if (!componentType.equalsSansFieldNamesAndNullability(type)) {
       SqlValidatorUtil.
           adjustTypeForArrayFunctions(type, opBinding, 0);
     }
