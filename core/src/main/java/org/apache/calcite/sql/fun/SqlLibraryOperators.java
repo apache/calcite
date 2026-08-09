@@ -1215,13 +1215,16 @@ public abstract class SqlLibraryOperators {
    * "CONCAT(null, null, null)" returns "".
    *
    * <p>It differs from {@link #CONCAT_FUNCTION} when processing
-   * null values. */
+   * null values.
+   *
+   * <p>Requires character operands because MSSQL and PostgreSQL convert
+   * every argument to a character string. */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction CONCAT_FUNCTION_WITH_NULL =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NOT_NULLABLE,
           OperandTypes.repeat(SqlOperandCountRanges.from(1),
-              OperandTypes.STRING),
+              OperandTypes.CHARACTER),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WITH_NULL);

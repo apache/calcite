@@ -1300,16 +1300,37 @@ public abstract class ReturnTypes {
    *
    * <p>concat(cast('a' as varchar(65535)), cast('b' as varchar(2)), cast('c' as varchar(2)))
    * returns varchar.
+   *
+   * <p>The result is VARBINARY if all operands are of the BINARY family,
+   * and VARCHAR otherwise; operands of NULL or ANY type do not influence
+   * this choice. Mixing operands of the CHARACTER and BINARY families is
+   * an error.
+   *
+   * <p>concat(x'0a', x'0b') returns varbinary(2).
    */
   public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION =
       opBinding -> {
         boolean hasPrecisionNotSpecifiedOperand = false;
         boolean precisionOverflow = false;
+        boolean hasBinaryOperand = false;
+        boolean hasCharacterOperand = false;
         int typePrecision;
         long amount = 0;
         List<RelDataType> operandTypes = opBinding.collectOperandTypes();
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+        for (RelDataType operandType : operandTypes) {
+          if (operandType.getFamily() == SqlTypeFamily.BINARY) {
+            hasBinaryOperand = true;
+          } else if (SqlTypeUtil.inCharFamily(operandType)) {
+            hasCharacterOperand = true;
+          }
+        }
+        if (hasBinaryOperand && hasCharacterOperand) {
+          throw opBinding.newError(RESOURCE.needSameTypeParameter());
+        }
+        final SqlTypeName typeName =
+            hasBinaryOperand ? SqlTypeName.VARBINARY : SqlTypeName.VARCHAR;
         for (RelDataType operandType : operandTypes) {
           int operandPrecision = operandType.getPrecision();
           amount = (long) operandPrecision + amount;
@@ -1317,7 +1338,7 @@ public abstract class ReturnTypes {
             hasPrecisionNotSpecifiedOperand = true;
             break;
           }
-          if (amount > typeSystem.getMaxPrecision(SqlTypeName.VARCHAR)) {
+          if (amount > typeSystem.getMaxPrecision(typeName)) {
             precisionOverflow = true;
             break;
           }
@@ -1329,7 +1350,7 @@ public abstract class ReturnTypes {
         }
 
         return opBinding.getTypeFactory()
-            .createSqlType(SqlTypeName.VARCHAR, typePrecision);
+            .createSqlType(typeName, typePrecision);
       };
 
   /**
