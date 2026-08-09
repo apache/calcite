@@ -229,7 +229,14 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
         if (call.ignoreNulls()) {
-          throw new UnsupportedOperationException("IGNORE NULLS not supported");
+          switch (call.getAggregation().getKind()) {
+          case FIRST_VALUE:
+          case LAST_VALUE:
+            // IGNORE NULLS is implemented for these functions below.
+            break;
+          default:
+            throw new UnsupportedOperationException("IGNORE NULLS not supported");
+          }
         }
         aggs.add(new AggImpState(aggIdx, call, true, implementorTable));
       }
@@ -820,6 +827,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
             @Override public RexWindowExclusion getExclude() {
               return exclusion;
+            }
+
+            @Override public boolean ignoreNulls() {
+              return agg.call.ignoreNulls();
             }
           };
       String aggName = "a" + agg.aggIdx;
