@@ -3250,6 +3250,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6648">[CALCITE-6648]
+   * IGNORE NULLS / RESPECT NULLS window function option can result in a type
+   * validation error in SqlToRelConverter</a>.
+   */
+  @Test void testOverNullTreatmentWithOffsetRowsFrame() {
+    final String sql = "select\n"
+        + "first_value(deptno) ignore nulls over "
+        + "(order by empno rows 1 preceding),\n"
+        + "last_value(deptno) respect nulls over "
+        + "(order by empno rows 1 preceding),\n"
+        + "nth_value(deptno, 2) ignore nulls over "
+        + "(order by empno rows 1 preceding)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   /**
    * Tests that a window with a FOLLOWING bound becomes BETWEEN CURRENT ROW
    * AND FOLLOWING.

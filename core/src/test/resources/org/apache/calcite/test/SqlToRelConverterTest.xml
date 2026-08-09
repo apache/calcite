@@ -7072,6 +7072,21 @@ LogicalProject(EXPR$0=[LEAD($7, 1) OVER (ORDER BY $0)], EXPR$1=[LEAD($7, 2) IGNO
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testOverNullTreatmentWithOffsetRowsFrame">
+    <Resource name="sql">
+      <![CDATA[select
+first_value(deptno) ignore nulls over (order by empno rows 1 preceding),
+last_value(deptno) respect nulls over (order by empno rows 1 preceding),
+nth_value(deptno, 2) ignore nulls over (order by empno rows 1 preceding)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[FIRST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0 ROWS 1 PRECEDING)], EXPR$1=[LAST_VALUE($7) OVER (ORDER BY $0 ROWS 1 PRECEDING)], EXPR$2=[NTH_VALUE($7, 2) IGNORE NULLS OVER (ORDER BY $0 ROWS 1 PRECEDING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOverOrderFollowingWindow">
     <Resource name="sql">
       <![CDATA[select
