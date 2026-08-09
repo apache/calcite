@@ -2685,6 +2685,14 @@ public class SqlOperatorTest {
     f.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
     f.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
     f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
+    // Test case for [CALCITE-7063]
+    // Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments
+    f.checkString("concat(x'0a', x'0b', x'0c')", "0a0b0c", "VARBINARY(3) NOT NULL");
+    f.checkString("concat(cast(x'0a' as varbinary), x'0b')", "0a0b",
+        "VARBINARY NOT NULL");
+    f.checkNull("concat(x'0a', cast(null as varbinary))");
+    f.checkFails("^concat('a', x'0a')^", "Parameters must be of the same type",
+        false);
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6518">
@@ -2711,6 +2719,14 @@ public class SqlOperatorTest {
     f.checkString("concat(null, null, null)", "", "VARCHAR NOT NULL");
     f.checkString("concat('', null, '')", "", "VARCHAR NOT NULL");
     f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
+    // Test case for [CALCITE-7063]
+    // Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments
+    // MSSQL and PostgreSQL CONCAT convert every argument to a character
+    // string, so binary arguments are implicitly cast to character
+    f.checkString("concat(x'0a', x'0b', x'0c')", "0a0b0c", "VARCHAR NOT NULL");
+    f.checkString("concat(x'0a', cast(null as varbinary), x'0c')", "0a0c",
+        "VARCHAR NOT NULL");
+    f.checkString("concat('a', x'0a')", "a0a", "VARCHAR NOT NULL");
   }
 
   private static void checkConcat2Func(SqlOperatorFixture f) {
@@ -2732,6 +2748,17 @@ public class SqlOperatorTest {
     f.checkNull("concat(null, null)");
     f.checkFails("^concat('a', 'b', 'c')^", INVALID_ARGUMENTS_NUMBER, false);
     f.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
+    // Test case for [CALCITE-7063]
+    // Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments
+    f.checkString("concat(x'0a', x'0b')", "0a0b", "VARBINARY(2) NOT NULL");
+    f.checkString("concat(x'0a', cast(null as varbinary))", "0a",
+        "VARBINARY NOT NULL");
+    f.checkNull("concat(cast(null as varbinary), cast(null as varbinary))");
+    f.checkFails("^concat('a', x'0a')^",
+        "Cannot apply 'CONCAT' to arguments of type "
+            + "'CONCAT\\(<CHAR\\(1\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+            + "form\\(s\\): 'CONCAT\\(<STRING>, <STRING>\\)'",
+        false);
   }
 
   /** Test case for

@@ -883,6 +883,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withExpr("concat('a', 'b')").ok();
     s.withExpr("concat(x'12', x'34')").ok();
     s.withExpr("concat(_UTF16'a', _UTF16'b', _UTF16'c')").ok();
+    // Test case for [CALCITE-7063]
+    // Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments
+    // The PostgreSQL variant produces a character result; binary arguments
+    // are implicitly cast to character strings
+    s.withExpr("concat(x'12', x'34')").columnType("VARCHAR NOT NULL");
+    s.withExpr("concat('a', x'12')").columnType("VARCHAR NOT NULL");
+    s.withExpr("concat(x'12', x'34')")
+        .withWhole(true)
+        .withTypeCoercion(false)
+        .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
+            + "'CONCAT\\(<BINARY\\(1\\)>, <BINARY\\(1\\)>\\)'\\. .*");
     s.withExpr("concat('aabbcc', 'ab', '+-')")
         .columnType("VARCHAR(10) NOT NULL");
     s.withExpr("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')")

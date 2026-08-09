@@ -762,10 +762,14 @@ public class RexImpTable implements RexImplementorTable {
       defineMethod(BITNOT, BuiltInMethod.BIT_NOT.method,
           NullPolicy.STRICT);
       define(CONCAT, new ConcatImplementor());
-      defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
-          NullPolicy.STRICT);
-      defineMethod(CONCAT_FUNCTION_WITH_NULL,
-          BuiltInMethod.MULTI_STRING_CONCAT_WITH_NULL.method, NullPolicy.NONE);
+      define(CONCAT_FUNCTION,
+          new ConcatFunctionImplementor(BuiltInMethod.MULTI_STRING_CONCAT.method,
+              BuiltInMethod.MULTI_BYTE_STRING_CONCAT.method, NullPolicy.STRICT));
+      define(CONCAT_FUNCTION_WITH_NULL,
+          new ConcatFunctionImplementor(
+              BuiltInMethod.MULTI_STRING_CONCAT_WITH_NULL.method,
+              BuiltInMethod.MULTI_BYTE_STRING_CONCAT_WITH_NULL.method,
+              NullPolicy.NONE));
       defineMethod(CONCAT2, BuiltInMethod.STRING_CONCAT_WITH_NULL.method,
           NullPolicy.ALL);
       defineMethod(CONCAT_WS,
@@ -3907,6 +3911,33 @@ public class RexImpTable implements RexImplementorTable {
         return arrayConcatImplementor.implementSafe(translator, call, argValueList);
       }
       return stringConcatImplementor.implementSafe(translator, call, argValueList);
+    }
+  }
+
+  /** Implementor for the multivalent CONCAT functions.
+   * Dispatches to the binary-string runtime method when the result type is
+   * binary; the character and binary methods cannot share a signature because
+   * varargs calls require the exact array component type. */
+  private static class ConcatFunctionImplementor
+      extends AbstractRexCallImplementor {
+    private final MethodImplementor stringImplementor;
+    private final MethodImplementor byteStringImplementor;
+
+    ConcatFunctionImplementor(Method stringMethod, Method byteStringMethod,
+        NullPolicy nullPolicy) {
+      super("concat", nullPolicy, false);
+      stringImplementor = new MethodImplementor(stringMethod, nullPolicy, false);
+      byteStringImplementor =
+          new MethodImplementor(byteStringMethod, nullPolicy, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+      final MethodImplementor implementor =
+          SqlTypeName.BINARY_TYPES.contains(call.type.getSqlTypeName())
+              ? byteStringImplementor
+              : stringImplementor;
+      return implementor.implementSafe(translator, call, argValueList);
     }
   }
 

@@ -1763,9 +1763,33 @@ public class SqlFunctions {
     return s0.concat(s1);
   }
 
+  /** Concatenates two binary strings.
+   * Returns null only when both b0 and b1 are null,
+   * otherwise null is treated as empty binary string. */
+  public static @Nullable ByteString concatWithNull(@Nullable ByteString b0,
+      @Nullable ByteString b1) {
+    if (b0 == null) {
+      return b1;
+    } else if (b1 == null) {
+      return b0;
+    } else {
+      return b0.concat(b1);
+    }
+  }
+
   /** SQL {@code CONCAT(arg0, arg1, arg2, ...)} function. */
   public static String concatMulti(String... args) {
     return String.join("", args);
+  }
+
+  /** SQL {@code CONCAT(arg0, arg1, arg2, ...)} function,
+   * applied to binary strings. */
+  public static ByteString concatMulti(ByteString... args) {
+    ByteString result = ByteString.EMPTY;
+    for (ByteString arg : args) {
+      result = result.concat(arg);
+    }
+    return result;
   }
 
   /** SQL {@code CONCAT(arg0, ...)} function which can accept null
@@ -1776,6 +1800,19 @@ public class SqlFunctions {
       sb.append(arg == null ? "" : arg);
     }
     return sb.toString();
+  }
+
+  /** SQL {@code CONCAT(arg0, ...)} function applied to binary strings.
+   * Accepts null arguments, treating each as an empty binary string,
+   * and never returns null. */
+  public static ByteString concatMultiWithNull(ByteString... args) {
+    ByteString result = ByteString.EMPTY;
+    for (ByteString arg : args) {
+      if (arg != null) {
+        result = result.concat(arg);
+      }
+    }
+    return result;
   }
 
   /** SQL {@code CONCAT_WS(sep, arg1, arg2, ...)} function;

@@ -258,8 +258,13 @@ class SqlFunctionsTest {
     // it is treated like empty string, if both values are null, returns null.
     // As the following tests show.
     assertThat(concatWithNull("a", null), is("a"));
-    assertThat(concatWithNull(null, null), is(nullValue()));
+    assertThat(concatWithNull((String) null, null), is(nullValue()));
     assertThat(concatWithNull(null, "b"), is("b"));
+    // Binary strings
+    assertThat(concatWithNull(b("0a"), b("0b")), is(b("0a0b")));
+    assertThat(concatWithNull(b("0a"), null), is(b("0a")));
+    assertThat(concatWithNull(null, b("0b")), is(b("0b")));
+    assertThat(concatWithNull((ByteString) null, null), is(nullValue()));
   }
 
   @Test void testConcatMulti() {
@@ -270,6 +275,9 @@ class SqlFunctionsTest {
     assertThat(concatMulti((String) null), is("null"));
     assertThat(concatMulti((String) null, null), is("nullnull"));
     assertThat(concatMulti("a", null, "b"), is("anullb"));
+    // Binary strings
+    assertThat(concatMulti(b("0a"), b("0b"), b("0c")), is(b("0a0b0c")));
+    assertThat(concatMulti(new ByteString[0]), is(ByteString.EMPTY));
   }
 
   @Test void testConcatMultiWithNull() {
@@ -279,6 +287,14 @@ class SqlFunctionsTest {
     assertThat(concatMultiWithNull((String) null, ""), is(""));
     assertThat(concatMultiWithNull((String) null, null, null), is(""));
     assertThat(concatMultiWithNull("a", null, "b"), is("ab"));
+    // Binary strings; null is treated as an empty binary string
+    assertThat(concatMultiWithNull(b("0a"), null, b("0c")), is(b("0a0c")));
+    assertThat(concatMultiWithNull((ByteString) null, null), is(ByteString.EMPTY));
+  }
+
+  /** Creates a {@link ByteString} from a hex string. */
+  private static ByteString b(String hex) {
+    return ByteString.of(hex, 16);
   }
 
   @Test void testConcatMultiWithSeparator() {
