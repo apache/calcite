@@ -4082,6 +4082,39 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6648">[CALCITE-6648]
+   * IGNORE NULLS / RESPECT NULLS window function option can result in a type
+   * validation error in SqlToRelConverter</a>.
+   *
+   * <p>When the input is a non-nullable type, the null treatment option is
+   * specified, and the window frame is ROWS with an offset-based bound (e.g.
+   * {@code n PRECEDING}), the window may be out of bounds, so the derived type
+   * must be nullable. Previously the null treatment wrapper caused the
+   * validation phase to derive a non-nullable type, which then diverged from
+   * the nullable type derived during conversion. */
+  @Test void testWindowNullTreatmentNullableWithOffsetRowsFrame() {
+    // EMPNO is non-nullable; with an offset-based ROWS frame the result may be
+    // null, so IGNORE NULLS / RESPECT NULLS must not force a non-nullable type.
+    winSql("select first_value(empno) ignore nulls over "
+        + "(order by empno rows 1 preceding)\n"
+        + "from emp")
+        .type("RecordType(INTEGER EXPR$0) NOT NULL");
+
+    winSql("select last_value(empno) respect nulls over "
+        + "(order by empno rows 1 preceding)\n"
+        + "from emp")
+        .type("RecordType(INTEGER EXPR$0) NOT NULL");
+
+    // A full-partition frame is always non-empty, so the result stays
+    // non-nullable even with null treatment.
+    winSql("select first_value(empno) ignore nulls over "
+        + "(order by empno rows between unbounded preceding "
+        + "and unbounded following)\n"
+        + "from emp")
+        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1954">[CALCITE-1954]
    * Column from outer join should be null, whether or not it is aliased</a>. */
   @Test void testLeftOuterJoinWithAlias() {
