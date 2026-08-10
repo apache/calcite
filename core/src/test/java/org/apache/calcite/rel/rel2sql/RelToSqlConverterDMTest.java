@@ -15260,4 +15260,13 @@ class RelToSqlConverterDMTest {
             containsString("FROM (SELECT employee.employee_id AS employee_id0\n"
         + "  FROM foodmart.employee")));
   }
+
+  @Test public void testUUIDStringFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode uuidStringNode = builder.call(SqlLibraryOperators.UUID_STRING);
+    final RelNode root = builder.project(uuidStringNode).build();
+
+    final String expectedQuery = "SELECT UUID_STRING() AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedQuery));
+  }
 }

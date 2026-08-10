@@ -4989,4 +4989,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0, null,
           OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction UUID_STRING =
+      new SqlFunction("UUID_STRING",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING_STRING),
+          SqlFunctionCategory.STRING);
 }
