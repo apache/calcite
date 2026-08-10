@@ -8358,6 +8358,10 @@ public class SqlOperatorTest {
             + "array[cast(3 as double)])",
         "[[1.0, 2.0], [3.0]]",
         "DOUBLE NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    // Test case for [CALCITE-7704]
+    // ARRAY_INSERT crashes in code generation with array-of-arrays argument
+    f.checkScalar("array_append(array[array[cast(1 as double)]], array[2])",
+        "[[1.0], [2.0]]", "DOUBLE NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
 
     // element cast to the biggest type
     f.checkScalar("array_append(array(cast(1 as tinyint)), 2)", "[1, 2]",
@@ -8707,6 +8711,10 @@ public class SqlOperatorTest {
     f.checkScalar("array_prepend(array_distinct(array[1, 2, 3]), "
             + "cast(4 as double))",
         "[4.0, 1.0, 2.0, 3.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+    // Test case for [CALCITE-7704]
+    // ARRAY_INSERT crashes in code generation with array-of-arrays argument
+    f.checkScalar("array_prepend(array[array[cast(1 as double)]], array[2])",
+        "[[2.0], [1.0]]", "DOUBLE NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
 
     // element cast to the biggest type
     f.checkScalar("array_prepend(array(1), cast(3 as float))", "[3.0, 1.0]",
@@ -9064,6 +9072,12 @@ public class SqlOperatorTest {
             + "cast(array[array[1, 2]] as integer array array), 1, "
             + "array[cast(3 as double)])",
         "[[3.0], [1.0, 2.0]]", "DOUBLE NOT NULL ARRAY ARRAY NOT NULL");
+    // Test case for [CALCITE-7704]
+    // ARRAY_INSERT crashes in code generation with array-of-arrays argument
+    f1.checkScalar("array_insert(array[array[cast(1 as double)]], 1, array[2])",
+        "[[2.0], [1.0]]", "DOUBLE NOT NULL ARRAY ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[array[1]], 1, array[2.5])",
+        "[[2.5], [1.0]]", "DECIMAL(11, 1) NOT NULL ARRAY ARRAY NOT NULL");
 
     f1.checkScalar("array_insert(array[1, 2, 3], 3, 4)",
         "[1, 2, 4, 3]", "INTEGER ARRAY NOT NULL");
