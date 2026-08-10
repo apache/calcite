@@ -55,7 +55,7 @@ public class UserDefinedTableFunctionOperator extends SqlFunction implements Sql
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.explicit(rowType),
         null,
-        OperandTypes.SAME_VARIADIC,
+        OperandTypes.VARIADIC,
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     this.rowType = rowType;
   }
