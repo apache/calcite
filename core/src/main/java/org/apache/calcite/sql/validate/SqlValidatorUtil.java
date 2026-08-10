@@ -1428,6 +1428,9 @@ public class SqlValidatorUtil {
    * if targetType is double, this method would ensure that the elements of the
    * first array and the second operand are cast to double.
    *
+   * <p>Use {@link #adjustArrayTypeForArrayFunctions} for an operand that is
+   * itself an array whose element type must become {@code targetType}.
+   *
    * @param targetType The target {@link RelDataType} to which the operands should be cast.
    * @param opBinding  The {@link SqlOperatorBinding} context, which provides access to the
    *                   {@link SqlCall} and its operands.
@@ -1437,6 +1440,30 @@ public class SqlValidatorUtil {
    */
   public static void adjustTypeForArrayFunctions(
       RelDataType targetType, SqlOperatorBinding opBinding, int... indexes) {
+    adjustTypeForArrayFunctions(targetType, opBinding, false, indexes);
+  }
+
+  /**
+   * Same as {@link #adjustTypeForArrayFunctions}, for operands that are
+   * arrays whose element type must become {@code targetType}.
+   *
+   * <p>The two methods differ for an operand that is not a call to the ARRAY
+   * constructor (e.g., a CAST expression): this method casts such an operand to an array of
+   * {@code targetType} rather than to {@code targetType} itself.
+   *
+   * @param targetType The array element type to which the operands' elements
+   *                   should be cast.
+   * @param arrayOperands The indexes of the array operands within the {@link SqlCall}
+   *                   that need to be adjusted to the target type.
+   */
+  public static void adjustArrayTypeForArrayFunctions(
+      RelDataType targetType, SqlOperatorBinding opBinding, int... arrayOperands) {
+    adjustTypeForArrayFunctions(targetType, opBinding, true, arrayOperands);
+  }
+
+  private static void adjustTypeForArrayFunctions(
+      RelDataType targetType, SqlOperatorBinding opBinding, boolean arrayOperands,
+      int... indexes) {
     if (opBinding instanceof SqlCallBinding) {
       requireNonNull(targetType, "array function target type");
       final SqlValidator validator = ((SqlCallBinding) opBinding).getValidator();
@@ -1459,9 +1486,17 @@ public class SqlValidatorUtil {
                     targetType, priorType.isNullable()));
           }
         } else {
-          SqlNode cast = castTo(operand, targetType);
+          RelDataType castType = targetType;
+          if (arrayOperands) {
+            // An array operand that is not an ARRAY constructor call must be
+            // cast to an array of the target type, not to the target type
+            castType =
+                SqlTypeUtil.createArrayType(opBinding.getTypeFactory(),
+                    targetType, opBinding.getOperandType(idx).isNullable());
+          }
+          SqlNode cast = castTo(operand, castType);
           call.setOperand(idx, cast);
-          validator.setValidatedNodeType(cast, targetType);
+          validator.setValidatedNodeType(cast, castType);
         }
       }
     }
