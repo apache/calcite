@@ -12935,6 +12935,14 @@ public class SqlOperatorTest {
         false);
     f.checkAggType("listagg('test')", "CHAR(4) NOT NULL");
     f.checkAggType("listagg('test', ', ')", "CHAR(4) NOT NULL");
+    // Test case for [CALCITE-7705]
+    // LISTAGG result type is never nullable
+    // Nullable without GROUP BY even for a non-nullable argument, since the
+    // input may be empty
+    f.checkColumnType("select listagg('test') from (values (1))", "CHAR(4)");
+    // A FILTER clause may exclude all rows, so the result is nullable
+    f.checkColumnType("select listagg('test') filter (where x > 1) "
+        + "from (values (1)) as t(x) group by x", "CHAR(4)");
     final String[] values1 = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
     f.checkAgg("listagg(x)", values1, isSingle("hello,world,!    "));
     final String[] values2 = {"0", "1", "2", "3"};
@@ -12950,6 +12958,10 @@ public class SqlOperatorTest {
 
   private static void checkStringAggFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
+    // Test case for [CALCITE-7705]
+    // LISTAGG result type is never nullable
+    f.checkColumnType("select string_agg('x', ',') from (values (1))",
+        "CHAR(1)");
     f.checkAgg("string_agg(x)", values, isSingle("x ,yz"));
     f.checkAgg("string_agg(x,':')", values, isSingle("x :yz"));
     f.checkAgg("string_agg(x,':' order by x)", values, isSingle("x :yz"));
@@ -13008,6 +13020,9 @@ public class SqlOperatorTest {
 
   private static void checkGroupConcatFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
+    // Test case for [CALCITE-7705]
+    // LISTAGG result type is never nullable
+    f.checkColumnType("select group_concat('x') from (values (1))", "CHAR(1)");
     f.checkAgg("group_concat(x)", values, isSingle("x ,yz"));
     f.checkAgg("group_concat(x,':')", values, isSingle("x :yz"));
     f.checkAgg("group_concat(x,':' order by x)", values, isSingle("x :yz"));

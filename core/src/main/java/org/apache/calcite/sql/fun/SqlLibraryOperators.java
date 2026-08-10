@@ -846,7 +846,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlAggFunction STRING_AGG =
       SqlBasicAggFunction
-          .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE,
+          .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
               OperandTypes.STRING.or(OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
@@ -862,7 +862,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicAggFunction
           .create(SqlKind.GROUP_CONCAT,
               ReturnTypes.andThen(ReturnTypes::stripOrderBy,
-                  ReturnTypes.ARG0_NULLABLE),
+                  ReturnTypes.ARG0_NULLABLE_IF_EMPTY),
               OperandTypes.STRING.or(OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withAllowsNullTreatment(false)
