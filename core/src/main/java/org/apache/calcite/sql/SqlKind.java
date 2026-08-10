@@ -962,6 +962,13 @@ public enum SqlKind {
   UNNEST,
 
   /**
+   * Represents a call to a user-defined table function (UDTF), i.e. a
+   * function that returns a table (multiple rows) rather than a scalar
+   * value.
+   */
+  UDTF,
+
+  /**
    * The "LATERAL" qualifier to relations in the FROM clause.
    */
   LATERAL,

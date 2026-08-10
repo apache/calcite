@@ -52,7 +52,7 @@ public class UserDefinedTableFunctionOperator extends SqlFunction implements Sql
 
   public UserDefinedTableFunctionOperator(String name, RelDataType rowType) {
     super(name,
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.UDTF,
         ReturnTypes.explicit(rowType),
         null,
         OperandTypes.VARIADIC,
