@@ -75,6 +75,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -355,8 +356,10 @@ public class RelToSqlConverter extends SqlImplementor
               rightContext);
 
       ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
-      projectExpansionUtil.handleResultAliasIfNeeded(rightResult, sqlCondition);
-      projectExpansionUtil.handleResultAliasIfNeeded(leftResult, sqlCondition);
+      projectExpansionUtil.handleResultAliasIfNeeded(rightResult, sqlCondition,
+          getParentReferencedColumnNames(e, 1));
+      projectExpansionUtil.handleResultAliasIfNeeded(leftResult, sqlCondition,
+          getParentReferencedColumnNames(e, 0));
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -543,6 +546,62 @@ public class RelToSqlConverter extends SqlImplementor
     return true;
   }
 
+  /**
+   * Column names from ancestor {@link Project} / {@link Filter} nodes that reference
+   * the given join input. Used when rel2sql wraps a join subtree as a derived table
+   * so parent SELECT/WHERE refs via the subquery alias can be backfilled.
+   */
+  private List<String> getParentReferencedColumnNames(Join join, int inputOrdinal) {
+    final int fieldCount = join.getInput(inputOrdinal).getRowType().getFieldCount();
+    final List<String> fieldNames = join.getInput(inputOrdinal).getRowType().getFieldNames();
+    final int indexOffset =
+        inputOrdinal == 0 ? 0 : join.getInput(0).getRowType().getFieldCount();
+    final int indexEnd = indexOffset + fieldCount;
+    final Set<Integer> indices = new LinkedHashSet<>();
+    boolean passedJoin = false;
+    for (Frame frame : stack) {
+      if (!passedJoin) {
+        if (frame.r == join) {
+          passedJoin = true;
+        }
+        continue;
+      }
+      final RelNode rel = frame.r;
+      if (rel instanceof Project) {
+        for (RexNode proj : ((Project) rel).getProjects()) {
+          collectInputRefIndices(proj, indexOffset, indexEnd, indices);
+        }
+      } else if (rel instanceof Filter) {
+        collectInputRefIndices(((Filter) rel).getCondition(), indexOffset, indexEnd,
+            indices);
+      } else if (rel instanceof Sort) {
+        for (RexNode sortKey : ((Sort) rel).getSortExps()) {
+          collectInputRefIndices(sortKey, indexOffset, indexEnd, indices);
+        }
+      }
+    }
+    final List<String> columnNames = new ArrayList<>();
+    for (int index : indices) {
+      final String name = fieldNames.get(index - indexOffset);
+      if (!columnNames.contains(name)) {
+        columnNames.add(name);
+      }
+    }
+    return columnNames;
+  }
+
+  private static void collectInputRefIndices(RexNode node, int indexOffset, int indexEnd,
+      Set<Integer> indices) {
+    node.accept(new RexVisitorImpl<Void>(true) {
+      @Override public Void visitInputRef(RexInputRef inputRef) {
+        final int idx = inputRef.getIndex();
+        if (idx >= indexOffset && idx < indexEnd) {
+          indices.add(idx);
+        }
+        return null;
+      }
+    });
+  }
 
   private static boolean isCrossJoin(final Join e) {
     SourceJoinFormTrait joinForm =
