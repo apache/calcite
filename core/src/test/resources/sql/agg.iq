@@ -3380,6 +3380,30 @@ select listagg(ename) as combined_name from emp;
 
 !ok
 
+# [CALCITE-7705] LISTAGG result type is never nullable
+# Empty input yields NULL even though the argument is NOT NULL.
+select listagg(v, ',') as r from (values ('a')) as t(v) where false;
++---+
+| R |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# The IS NULL test must not be simplified away based on the result type.
+select r is null as n from (
+  select listagg(v, ',') as r from (values ('a')) as t(v) where false);
++------+
+| N    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
 select listagg(ename) within group(order by gender, ename) as combined_name from emp;
 +-------------------------------------------------------+
 | COMBINED_NAME                                         |
