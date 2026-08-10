@@ -1476,14 +1476,18 @@ public class SqlValidatorUtil {
             // such as spark array, the SqlKind is other function.
             // however, the name is same for those different array forms.
             && "ARRAY".equals(((SqlBasicCall) operand).getOperator().getName())) {
-          call.setOperand(idx, castArrayElementTo(validator, operand, targetType));
+          RelDataType elementType =
+              arrayOperands ? targetType
+                  : requireNonNull(targetType.getComponentType(),
+                      () -> "componentType of " + targetType);
+          call.setOperand(idx, castArrayElementTo(validator, operand, elementType));
           // The rewrite changes the element types of the array constructor,
           // so the type the validator has recorded for it must change too
           RelDataType priorType = validator.getValidatedNodeTypeIfKnown(operand);
           if (priorType != null) {
             validator.setValidatedNodeType(operand,
                 SqlTypeUtil.createArrayType(opBinding.getTypeFactory(),
-                    targetType, priorType.isNullable()));
+                    elementType, priorType.isNullable()));
           }
         } else {
           RelDataType castType = targetType;
