@@ -3866,6 +3866,36 @@ group by deptno;
 
 !ok
 
+# [CALCITE-7706] ARG_MIN ignores nullability of second argument
+# Rows whose comparator is NULL are skipped, so a group where every
+# comparator value is NULL yields NULL even though the value argument
+# is NOT NULL. ARG_MAX behaves the same.
+select g, arg_min(v, c) as mi, arg_max(v, c) as ma
+from (values (1, 10, cast(null as integer))) as t(g, v, c)
+group by g;
++---+----+----+
+| G | MI | MA |
++---+----+----+
+| 1 |    |    |
++---+----+----+
+(1 row)
+
+!ok
+
+# The IS NULL test must not be simplified away based on the result type.
+select mi is null as n1, ma is null as n2 from (
+  select g, arg_min(v, c) as mi, arg_max(v, c) as ma
+  from (values (1, 10, cast(null as integer))) as t(g, v, c)
+  group by g);
++------+------+
+| N1   | N2   |
++------+------+
+| true | true |
++------+------+
+(1 row)
+
+!ok
+
 # ARG_MIN, ARG_MAX applied to an integer.
 select arg_min(deptno, empno) as mi,
   arg_max(deptno, empno) as ma,

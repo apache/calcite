@@ -68,6 +68,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -1125,7 +1126,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlBasicAggFunction ARG_MAX =
       SqlBasicAggFunction.create("ARG_MAX", SqlKind.ARG_MAX,
-          ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
+          ReturnTypes.ARG0_NULLABLE_IF_EMPTY
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.ANY_COMPARABLE)
           .withGroupOrder(Optionality.FORBIDDEN)
           .withFunctionType(SqlFunctionCategory.SYSTEM);
 
@@ -1134,7 +1137,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlBasicAggFunction ARG_MIN =
       SqlBasicAggFunction.create("ARG_MIN", SqlKind.ARG_MIN,
-              ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
+          ReturnTypes.ARG0_NULLABLE_IF_EMPTY
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.ANY_COMPARABLE)
           .withGroupOrder(Optionality.FORBIDDEN)
           .withFunctionType(SqlFunctionCategory.SYSTEM);
 
