@@ -1471,7 +1471,7 @@ public abstract class SqlLibraryOperators {
             adjustTypeForArrayFunctions(type, opBinding, 1);
       } else {
         SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 0);
+            adjustArrayTypeForArrayFunctions(type, opBinding, 0);
       }
     }
 
@@ -1601,7 +1601,7 @@ public abstract class SqlLibraryOperators {
     }
     if (!componentType.equalsSansFieldNamesAndNullability(type)) {
       SqlValidatorUtil.
-          adjustTypeForArrayFunctions(type, opBinding, 0);
+          adjustArrayTypeForArrayFunctions(type, opBinding, 0);
     }
     boolean nullable = arrayType.isNullable() || elementType1.isNullable();
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, nullable);

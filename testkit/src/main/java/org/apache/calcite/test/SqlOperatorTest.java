@@ -8343,6 +8343,22 @@ public class SqlOperatorTest {
     f.checkFails("^array_append(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
 
+    // Test cases for [CALCITE-7699]
+    // ARRAY_INSERT fails in validation when first argument is not an array
+    // constructor
+    f.checkScalar("array_append(cast(array[1, 2, 3] as integer array), "
+            + "cast(4 as double))",
+        "[1.0, 2.0, 3.0, 4.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array_distinct(array[1, 2, 3]), "
+            + "cast(4 as double))",
+        "[1.0, 2.0, 3.0, 4.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+    // Array of arrays as a non-constructor operand
+    f.checkScalar("array_append("
+            + "cast(array[array[1, 2]] as integer array array), "
+            + "array[cast(3 as double)])",
+        "[[1.0, 2.0], [3.0]]",
+        "DOUBLE NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+
     // element cast to the biggest type
     f.checkScalar("array_append(array(cast(1 as tinyint)), 2)", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
@@ -8682,6 +8698,16 @@ public class SqlOperatorTest {
     f.checkFails("^array_prepend(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
 
+    // Test case for [CALCITE-7699]
+    // ARRAY_INSERT fails in validation when first argument is not an array
+    // constructor
+    f.checkScalar("array_prepend(cast(array[1, 2, 3] as integer array), "
+            + "cast(4 as double))",
+        "[4.0, 1.0, 2.0, 3.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array_distinct(array[1, 2, 3]), "
+            + "cast(4 as double))",
+        "[4.0, 1.0, 2.0, 3.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+
     // element cast to the biggest type
     f.checkScalar("array_prepend(array(1), cast(3 as float))", "[3.0, 1.0]",
         "FLOAT NOT NULL ARRAY NOT NULL");
@@ -9014,6 +9040,30 @@ public class SqlOperatorTest {
         "The index 0 is invalid. "
             + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
             + "and not exceeds the allowed limit.", true);
+
+    // Test case for [CALCITE-7699]
+    // ARRAY_INSERT fails in validation when first argument is not an array
+    // constructor
+    f1.checkScalar("array_insert(cast(array[1, 2, 3] as integer array), 3, "
+            + "cast(4 as double))",
+        "[1.0, 2.0, 4.0, 3.0]", "DOUBLE ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array_distinct(array[1, 2, 3]), 3, "
+            + "cast(4 as double))",
+        "[1.0, 2.0, 4.0, 3.0]", "DOUBLE ARRAY NOT NULL");
+    f1.checkScalar("array_insert(cast(array[1, 2] as integer array), 2, 2.5)",
+        "[1.0, 2.5, 2.0]", "DECIMAL(11, 1) ARRAY NOT NULL");
+    f1.checkNull("array_insert(cast(null as integer array), 3, "
+        + "cast(4 as double))");
+    f1.checkType("array_insert(cast(null as integer array), 3, "
+        + "cast(4 as double))", "DOUBLE ARRAY");
+    // Array of arrays as a non-constructor operand
+    f1.checkScalar("array_insert("
+            + "cast(array[array[1, 2]] as integer array array), 1, array[3])",
+        "[[3], [1, 2]]", "INTEGER NOT NULL ARRAY ARRAY NOT NULL");
+    f1.checkScalar("array_insert("
+            + "cast(array[array[1, 2]] as integer array array), 1, "
+            + "array[cast(3 as double)])",
+        "[[3.0], [1.0, 2.0]]", "DOUBLE NOT NULL ARRAY ARRAY NOT NULL");
 
     f1.checkScalar("array_insert(array[1, 2, 3], 3, 4)",
         "[1, 2, 4, 3]", "INTEGER ARRAY NOT NULL");
