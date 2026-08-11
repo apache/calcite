@@ -161,6 +161,39 @@ class JoinAggregateTransposeRuleTest {
     sql(sql).withRule(CoreRules.JOIN_AGGREGATE_TRANSPOSE).checkUnchanged();
   }
 
+  /**
+   * Tests that the rule does not pull an aggregate with an empty group set when
+   * its input is empty.
+   */
+  @Test void testNoPullAggregateWithEmptyGroupSetOnEmptyInput() {
+    final String sql = "select g.emp_count, d.deptno\n"
+        + "from (select count(*) as emp_count from emp where false) g\n"
+        + "join (select deptno from dept where deptno = 10) d on true";
+    sql(sql).withRule(CoreRules.JOIN_AGGREGATE_TRANSPOSE).checkUnchanged();
+  }
+
+  /**
+   * Tests that the rule does not pull an aggregate with an empty group set when
+   * its input may be empty.
+   */
+  @Test void testNoPullAggregateWithEmptyGroupSetOnPotentiallyEmptyInput() {
+    final String sql = "select g.emp_count, d.deptno\n"
+        + "from (select count(*) as emp_count from emp) g\n"
+        + "join (select deptno from dept where deptno = 10) d on true";
+    sql(sql).withRule(CoreRules.JOIN_AGGREGATE_TRANSPOSE).checkUnchanged();
+  }
+
+  /**
+   * Tests that the rule pulls an aggregate with an empty group set when its
+   * input is known to be non-empty.
+   */
+  @Test void testPullAggregateWithEmptyGroupSetOnNonEmptyInput() {
+    final String sql = "select g.emp_count, d.deptno\n"
+        + "from (select count(*) as emp_count\n"
+        + "      from (values (1)) as v(n)) g\n"
+        + "join (select deptno from dept where deptno = 10) d on true";
+    sql(sql).withRule(CoreRules.JOIN_AGGREGATE_TRANSPOSE).check();
+  }
 
   @AfterAll static void checkActualAndReferenceFiles() {
     fixture().diffRepos.checkActualAndReferenceFiles();
