@@ -457,13 +457,22 @@ public class PushProjector {
         || (childRel instanceof SetOp)) {
       // if nothing is projected from the children, arbitrarily project
       // the first columns; this is necessary since Fennel doesn't
-      // handle 0-column projections
-      if (nProject == 0 && childPreserveExprs.isEmpty()) {
+      // handle 0-column projections.
+      //
+      // An input may legitimately have a zero-column row type: for
+      // example, a Values with an empty row type and a single empty
+      // tuple, which returns one row with zero columns and is the
+      // identity for cross join. There is no first column to fall back
+      // on in that case, so skip the workaround rather than set a bit
+      // that points past the input's fields; createProjectRefsAndExprs
+      // would use it to index into an empty field list.
+      if (nProject == 0 && childPreserveExprs.isEmpty() && nFields > 0) {
         projRefs.set(0);
         nProject = 1;
       }
       if (childRel instanceof Join) {
-        if (nRightProject == 0 && rightPreserveExprs.isEmpty()) {
+        if (nRightProject == 0 && rightPreserveExprs.isEmpty()
+            && nFieldsRight > 0) {
           projRefs.set(nFields);
           nRightProject = 1;
         }
