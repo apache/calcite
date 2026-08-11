@@ -8598,6 +8598,42 @@ class RelToSqlConverterTest {
         withHsqldb().ok(expectedHsqldb);
   }
 
+  /** Tests that a generalized {@link org.apache.calcite.rel.core.Uncollect}
+   * (pass-through fields) converts to SQL via {@code LATERAL UNNEST}. */
+  @Test void testGeneralizedUncollect() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.field("ENAME")))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), false, true, false)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[\"ENAME\"] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\",\n"
+        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f1\")";
+    relFn(relFn).ok(expected);
+  }
+
+  /** As {@link #testGeneralizedUncollect()}, with outer (LEFT JOIN)
+   * semantics. */
+  @Test void testGeneralizedUncollectOuter() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.field("ENAME")))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), false, true, true)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[\"ENAME\"] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f1\") ON TRUE";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testWithinGroup1() {
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
         + "within group (order by \"net_weight\" desc) "
@@ -12901,10 +12937,10 @@ class RelToSqlConverterTest {
     assertThat(
         generated, isLinux("SELECT \"product1\".\"product_id\"\n"
         + "FROM (SELECT \"$cor0\".\"product_id\", \"t1\".\"EXPR$0\" AS \"mx\"\n"
-        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
-        + "LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\") AS \"t2\"\n"
+        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\" ON TRUE) AS \"t2\"\n"
         + "RIGHT JOIN \"foodmart\".\"product\" AS \"product1\""
         + " ON \"t2\".\"product_id\" = \"product1\".\"product_id\"\n"
         + "WHERE EXISTS (SELECT 1\n"
@@ -12922,10 +12958,10 @@ class RelToSqlConverterTest {
         isLinux("SELECT COALESCE(\"t2\".\"product_id\","
             + " \"product1\".\"product_id\") AS \"product_id\"\n"
             + "FROM (SELECT \"$cor0\".\"product_id\", \"t1\".\"EXPR$0\" AS \"mx\"\n"
-            + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
-            + "LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
+            + "FROM \"foodmart\".\"product\" AS \"$cor0\"\n"
+            + "LEFT JOIN LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
             + "FROM \"foodmart\".\"product\"\n"
-            + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\") AS \"t2\"\n"
+            + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\" ON TRUE) AS \"t2\"\n"
             + "FULL JOIN \"foodmart\".\"product\" AS \"product1\""
             + " ON \"t2\".\"product_id\" = \"product1\".\"product_id\"\n"
             + "WHERE EXISTS (SELECT 1\n"
@@ -12944,10 +12980,10 @@ class RelToSqlConverterTest {
     assertThat(
         generated, isLinux("SELECT \"t2\".\"product_id\"\n"
         + "FROM (SELECT \"$cor0\".\"product_id\", \"t1\".\"EXPR$0\" AS \"mx\"\n"
-        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
-        + "LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\") AS \"t2\"\n"
+        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\" ON TRUE) AS \"t2\"\n"
         + "FULL JOIN \"foodmart\".\"product\" AS \"product1\""
         + " ON \"t2\".\"product_id\" = \"product1\".\"product_id\"\n"
         + "WHERE EXISTS (SELECT 1\n"

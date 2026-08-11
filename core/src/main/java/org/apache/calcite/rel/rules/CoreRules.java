@@ -1011,8 +1011,19 @@ public class CoreRules {
   /** Rule that moves the outer join semantics of a {@link Correlate} over an
    * {@link Uncollect} onto the {@code Uncollect}, leaving an inner
    * {@code Correlate} that {@link #UNNEST_DECORRELATE} may then remove. */
-  public static final CorrelateUncollectOuterRule CORRELATE_UNCOLLECT_OUTER =
-      CorrelateUncollectOuterRule.Config.DEFAULT.toRule();
+  public static final CorrelateUncollectMergeRule CORRELATE_UNCOLLECT_OUTER =
+      CorrelateUncollectMergeRule.Config.OUTER.toRule();
+
+  /** Rule that converts a {@link Correlate} over an {@link Uncollect} into a
+   * single, generalized {@link Uncollect} that preserves the correlate's full
+   * output via passthrough fields. */
+  public static final CorrelateUncollectMergeRule CORRELATE_UNCOLLECT_MERGE =
+      CorrelateUncollectMergeRule.Config.DEFAULT.toRule();
+
+  /** Rule that narrows an {@link Uncollect} to the columns referenced by the
+   * {@link Project} above it. */
+  public static final ProjectUncollectMergeRule PROJECT_UNCOLLECT_MERGE =
+      ProjectUncollectMergeRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a {@link Correlate} after an {@link Uncollect} into a simple
    * Uncollect, if possible. */
