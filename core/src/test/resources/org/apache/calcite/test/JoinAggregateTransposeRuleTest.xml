@@ -16,6 +16,45 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testNoPullAggregateWithEmptyGroupSetOnEmptyInput">
+    <Resource name="sql">
+      <![CDATA[select g.emp_count, d.deptno
+from (select count(*) as emp_count from emp where false) g
+join (select deptno from dept where deptno = 10) d on true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMP_COUNT=[$0], DEPTNO=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalAggregate(group=[{}], EMP_COUNT=[COUNT()])
+      LogicalProject($f0=[0])
+        LogicalFilter(condition=[false])
+          LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalFilter(condition=[=(CAST($0):INTEGER NOT NULL, 10)])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNoPullAggregateWithEmptyGroupSetOnPotentiallyEmptyInput">
+    <Resource name="sql">
+      <![CDATA[select g.emp_count, d.deptno
+from (select count(*) as emp_count from emp) g
+join (select deptno from dept where deptno = 10) d on true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMP_COUNT=[$0], DEPTNO=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalAggregate(group=[{}], EMP_COUNT=[COUNT()])
+      LogicalProject($f0=[0])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalFilter(condition=[=(CAST($0):INTEGER NOT NULL, 10)])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNoPullGroupByAboveNonEquiJoin">
     <Resource name="sql">
       <![CDATA[select g.deptno
@@ -48,6 +87,37 @@ LogicalProject(JOB=[$0], CNT=[$1])
       LogicalProject(JOB=[$2])
         LogicalTableScan(table=[[scott, EMP]])
     LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullAggregateWithEmptyGroupSetOnNonEmptyInput">
+    <Resource name="sql">
+      <![CDATA[select g.emp_count, d.deptno
+from (select count(*) as emp_count
+      from (values (1)) as v(n)) g
+join (select deptno from dept where deptno = 10) d on true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMP_COUNT=[$0], DEPTNO=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalAggregate(group=[{}], EMP_COUNT=[COUNT()])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalFilter(condition=[=(CAST($0):INTEGER NOT NULL, 10)])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMP_COUNT=[$0], DEPTNO=[$1])
+  LogicalProject(EMP_COUNT=[$1], DEPTNO=[$0])
+    LogicalAggregate(group=[{1}], EMP_COUNT=[COUNT()])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalValues(tuples=[[{ 0 }]])
+        LogicalProject(DEPTNO=[$0])
+          LogicalFilter(condition=[=(CAST($0):INTEGER NOT NULL, 10)])
+            LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
   </TestCase>

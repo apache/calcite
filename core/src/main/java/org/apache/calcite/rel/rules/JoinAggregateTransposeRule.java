@@ -106,6 +106,11 @@ public class JoinAggregateTransposeRule
         // in case we decide to extend this rule for lazy aggregation.
         && isAggregateSupported(left, true)
         && groupOutput.contains(info.leftSet())
+        // An aggregate returns one row on empty input if its group set is empty.
+        // Pull-up adds group keys and may lose that row. Require the input to be
+        // known non-empty.
+        && (!left.getGroupSet().isEmpty()
+            || Boolean.FALSE.equals(mq.isEmpty(left.getInput())))
         // The right side must be unique on its join keys (no row duplication)
         && Boolean.TRUE.equals(mq.areColumnsUnique(right, info.rightSet()));
   }

@@ -75,4 +75,18 @@ EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t0], TOTAL_SAL=[$t3], DNAME=[$t2])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+# Tests that the rule preserves a row from an aggregate with an empty group set
+
+select g.emp_count, d.deptno
+from (select count(*) as emp_count from emp where false) g
+join (select deptno from dept where deptno = 10) d on true;
++-----------+--------+
+| EMP_COUNT | DEPTNO |
++-----------+--------+
+|         0 |     10 |
++-----------+--------+
+(1 row)
+
+!ok
+
 # End join-agg-transpose.iq
