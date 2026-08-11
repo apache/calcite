@@ -534,7 +534,34 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(Uncollect rel) {
-    rewriteGeneric(rel);
+    // Remap passthrough and collection field indices through the flattened
+    // input: a struct passthrough field expands to the range of its flattened
+    // columns; collection fields keep width 1 (flattening never expands
+    // collection types) but their positions may shift.
+    final List<RelDataTypeField> oldFields = rel.getInput().getRowType().getFieldList();
+    final ImmutableBitSet.Builder passthrough = ImmutableBitSet.builder();
+    for (int pos : rel.getPassthroughFieldIndices()) {
+      final int newPos = getNewForOldInput(pos);
+      final int size = postFlattenSize(oldFields.get(pos).getType());
+      for (int i = 0; i < size; i++) {
+        passthrough.set(newPos + i);
+      }
+    }
+    final ImmutableBitSet.Builder collections = ImmutableBitSet.builder();
+    for (int pos : rel.getCollectionFieldIndices()) {
+      collections.set(getNewForOldInput(pos));
+    }
+    final Uncollect newRel =
+        new Uncollect(rel.getCluster(), rel.getTraitSet(),
+            getNewForOldRel(rel.getInput()), rel.withOrdinality,
+            rel.getItemAliases(), passthrough.build(), collections.build(),
+            rel.expandStructFields, rel.isOuter);
+    // Flattening does not change collection element types, so the elements
+    // can produce struct columns; flatten them too
+    final RelNode flatRel = SqlTypeUtil.isFlat(newRel.getRowType())
+        ? newRel
+        : coverNewRelByFlatteningProjection(newRel, newRel);
+    setNewForOldRel(rel, flatRel);
   }
 
   public void rewriteRel(LogicalIntersect rel) {
@@ -771,6 +798,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           flattenResultTypeOfRexCall(newExp, fieldName, flattenedExps);
         }
       } else {
+        // TODO: nested ROW types are not flattened correctly; e.g., a field
+        // access that returns a ROW, such as "t.r.f" where "f" is a ROW
         throw Util.needToImplement(exp);
       }
     } else {
