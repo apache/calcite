@@ -10151,6 +10151,41 @@ ORDER BY emp.ename;
 (8 rows)
 
 !ok
+
+!use scott
+
+# Test case for [CALCITE-7334] Compiling the generated Java code throws an exception when
+# a scalar sub-query is used in the SELECT list.
+# Result validated against PostgreSQL 14.
+select
+        (SELECT
+          COUNT(*)
+        FROM
+           "scott".emp
+        WHERE
+           v.empno >= 2), 3
+from "scott".emp as v;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
+|     14 |      3 |
++--------+--------+
+(14 rows)
+
+!ok
 # End sub-query.iq
 
 # [CALCITE-7719] Field access on an element of a ROW array built by a

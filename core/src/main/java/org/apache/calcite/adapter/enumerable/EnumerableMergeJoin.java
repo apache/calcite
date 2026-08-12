@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -530,9 +531,12 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                 Expressions.list(
                     leftExpression,
                     rightExpression,
-                    Expressions.lambda(
+                    // Force Function1: a single BOOLEAN key would otherwise
+                    // deduce Predicate1, which does not match the signature of
+                    // EnumerableDefaults.mergeJoin
+                    Expressions.lambda(Function1.class,
                         leftKeyPhysType.record(leftExpressions), left_),
-                    Expressions.lambda(
+                    Expressions.lambda(Function1.class,
                         rightKeyPhysType.record(rightExpressions), right_),
                     predicate,
                     EnumUtils.joinSelector(joinType,
