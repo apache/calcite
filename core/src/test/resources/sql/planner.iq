@@ -685,4 +685,47 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[>($t2, $t4)], expr#6=[>
 !ok
 !set planner-rules original
 
+# [CALCITE-7711] Add a rule to convert LEFT or RIGHT OUTER JOIN with IS NULL to ANTI JOIN
+!set planner-rules "
++CoreRules.OUTER_JOIN_TO_ANTI_JOIN"
+select l.id as left_id, r.id as right_id
+from (values (1), (2), (3)) as l(id)
+left join (values (1), (3)) as r(id) on l.id = r.id
+where r.id is null
+order by l.id;
++---------+----------+
+| LEFT_ID | RIGHT_ID |
++---------+----------+
+|       2 |          |
++---------+----------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], proj#0..1=[{exprs}])
+  EnumerableMergeJoin(condition=[=($0, $1)], joinType=[anti])
+    EnumerableValues(tuples=[[{ 1 }, { 2 }, { 3 }]])
+    EnumerableValues(tuples=[[{ 1 }, { 3 }]])
+!plan
+
+# RIGHT JOIN keeps the non-commutative join condition after swapping inputs.
+select l.id as left_id, r.id as right_id
+from (values (1), (3), (5)) as l(id)
+right join (values (0), (4), (6)) as r(id) on l.id > r.id
+where l.id is null
+order by r.id;
++---------+----------+
+| LEFT_ID | RIGHT_ID |
++---------+----------+
+|         |        6 |
++---------+----------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], ID=[$t1], ID0=[$t0])
+  EnumerableNestedLoopJoin(condition=[>($1, $0)], joinType=[anti])
+    EnumerableValues(tuples=[[{ 0 }, { 4 }, { 6 }]])
+    EnumerableValues(tuples=[[{ 1 }, { 3 }, { 5 }]])
+!plan
+!set planner-rules original
+
 # End planner.iq
