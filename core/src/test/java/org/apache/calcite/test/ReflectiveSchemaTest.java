@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
@@ -44,6 +45,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -61,6 +63,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.calcite.test.Matchers.isListOf;
@@ -72,6 +75,7 @@ import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -1101,5 +1105,59 @@ public class ReflectiveSchemaTest {
     Statistic statistic = table.getStatistic();
     assertNotNull(statistic);
     assertThat(statistic.getRowCount(), is(2D));
+  }
+
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7712">[CALCITE-7712]
+   * Enforce Input annotation on ReflectiveSchema.Factory operands</a>. */
+  @Test void testFactoryCreateWithAnnotatedClassOperand() {
+    ReflectiveSchema.Factory factory = new ReflectiveSchema.Factory();
+    SchemaPlus root = CalciteSchema.createRootSchema(false).plus();
+    Map<String, Object> operand =
+        ImmutableMap.of("class", "org.apache.calcite.test.ReflectiveSchemaTest$ValidClassOp");
+    assertNotNull(factory.create(root, "ignore", operand));
+  }
+
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7712">[CALCITE-7712]
+   * Enforce Input annotation on ReflectiveSchema.Factory operands</a>. The test ensures
+   * invalid classes are rejected with an informative exception.*/
+  @Test void testFactoryCreateWithInvalidClassOperandThrows() {
+    ReflectiveSchema.Factory factory = new ReflectiveSchema.Factory();
+    SchemaPlus root = CalciteSchema.createRootSchema(false).plus();
+    Map<String, Object> operand =
+        ImmutableMap.of("class", "org.apache.calcite.test.ReflectiveSchemaTest$InvalidClassOp");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> factory.create(root, "ignore", operand));
+    assertThat(e.getMessage(),
+        is("class org.apache.calcite.test.ReflectiveSchemaTest$InvalidClassOp is not annotated "
+            + "with @Input"));
+  }
+
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7712">[CALCITE-7712]
+   * Enforce Input annotation on ReflectiveSchema.Factory operands</a>. The test ensures
+   * invalid classes are not initialized.*/
+  @Test void testFactoryCreateWithInvalidClassOperandDoesNotTriggerInitializers() {
+    ReflectiveSchema.Factory factory = new ReflectiveSchema.Factory();
+    SchemaPlus root = CalciteSchema.createRootSchema(false).plus();
+    Map<String, Object> operand =
+        ImmutableMap.of("class", "org.apache.calcite.InvalidStaticInitializer");
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> factory.create(root, "ignore", operand));
+    assertThat(e.getMessage(),
+        is("class org.apache.calcite.InvalidStaticInitializer is not annotated with @Input"));
+  }
+
+  /**
+   * A valid class operand for {@link ReflectiveSchema.Factory} with proper annotation.
+   */
+  @ReflectiveSchema.Input
+  public static class ValidClassOp {
+    public ValidClassOp() {}
+  }
+
+  /**
+   * An invalid class operand for {@link ReflectiveSchema.Factory} due to missing annotation.
+   */
+  public static class InvalidClassOp {
+    public InvalidClassOp() {}
   }
 }
