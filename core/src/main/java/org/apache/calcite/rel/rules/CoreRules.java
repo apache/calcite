@@ -753,6 +753,11 @@ public class CoreRules {
   public static final SemiJoinRule.JoinToSemiJoinRule JOIN_TO_SEMI_JOIN =
       SemiJoinRule.JoinToSemiJoinRule.JoinToSemiJoinRuleConfig.DEFAULT.toRule();
 
+  /** Rule that converts an outer join followed by {@code IS NULL} on its
+   * null-generating side to an anti join. */
+  public static final OuterJoinToAntiJoinRule OUTER_JOIN_TO_ANTI_JOIN =
+      OuterJoinToAntiJoinRule.Config.DEFAULT.toRule();
+
   /** Rule that pushes a {@link Join}
    * past a non-distinct {@link Union} as its left input. */
   public static final JoinUnionTransposeRule JOIN_LEFT_UNION_TRANSPOSE =
