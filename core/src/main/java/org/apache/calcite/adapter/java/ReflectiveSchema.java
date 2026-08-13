@@ -56,6 +56,10 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -293,6 +297,15 @@ public class ReflectiveSchema
     }
   }
 
+  /**
+   * Designates a type that can be used as input in the {@link Factory}.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.TYPE)
+  public @interface Input {
+
+  }
+
   /** Factory that creates a schema by instantiating an object and looking at
    * its public fields.
    *
@@ -321,21 +334,27 @@ public class ReflectiveSchema
    *   Employee[] EMPS;
    *   Department[] DEPTS;
    * }</pre></blockquote>
+   *
+   * <p>The class operand must be annotated as {@link Input} otherwise it cannot
+   * be used in this factory.
    */
   public static class Factory implements SchemaFactory {
     @Override public Schema create(SchemaPlus parentSchema, String name,
         Map<String, Object> operand) {
       Class<?> clazz;
       Object target;
-      final Object className = operand.get("class");
+      final String className = (String) operand.get("class");
       if (className != null) {
         try {
-          clazz = Class.forName((String) className);
+          clazz = Class.forName(className, false, Factory.class.getClassLoader());
         } catch (ClassNotFoundException e) {
           throw new RuntimeException("Error loading class " + className, e);
         }
       } else {
         throw new RuntimeException("Operand 'class' is required");
+      }
+      if (!clazz.isAnnotationPresent(Input.class)) {
+        throw new IllegalArgumentException(clazz + " is not annotated with @Input");
       }
       final Object methodName = operand.get("staticMethod");
       if (methodName != null) {

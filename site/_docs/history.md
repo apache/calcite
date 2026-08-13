@@ -49,6 +49,21 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-43-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7580">CALCITE-7580</a>]
+  Remove Gandiva dependency from Arrow adapter. Arrow adapter projection and
+  filter evaluation now run in Java, and the `arrow-gandiva` dependency is no
+  longer included in the Arrow module or BOM.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7712">CALCITE-7712</a>]
+`ReflectiveSchema.Factory` requires the class operand to explicitly use the new
+`ReflectiveSchema.Input` annotation. If the annotation is not present the
+creation will fail with `IllegalArgumentException: class X is not annotated @Input`.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7713">CALCITE-7713</a>]
+Class loading from model files has been disabled by default. Any attempt to load
+classes from model files will lead to `SecurityException` unless an appropriate
+pattern is set in `calcite.model.classes.allowed` system property.
+
 #### New features
 {: #new-features-1-43-0}
 
