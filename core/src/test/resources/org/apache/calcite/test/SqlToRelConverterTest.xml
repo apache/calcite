@@ -5154,6 +5154,30 @@ LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2, 3, 4), (N) -> OR(=(N, 1), =(N, 3)))])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLambdaExpressionWithStructCaptureMerge">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(1, 2), x -> x = t.r."EXPR$0")
+from (select ROW(1, 2) as r) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2), (X) -> =(X, ROW(1, 2).EXPR$0))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionWithStructCaptureMergeOverScan">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(1, 2), x -> x = t.r."EXPR$0")
+from (select ROW(deptno, sal) as r from emp) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2), (X) -> =(X, ROW($7, $5).EXPR$0))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLateral">
     <Resource name="plan">
       <![CDATA[

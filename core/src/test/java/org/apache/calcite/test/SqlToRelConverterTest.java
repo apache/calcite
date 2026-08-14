@@ -159,6 +159,34 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7718">[CALCITE-7718]
+   * Lambda capturing ROW field crashes at compilation with assertion
+   * failure</a>. */
+  @Test void testLambdaExpressionWithStructCaptureMerge() {
+    final String sql = "select \"EXISTS\"(array(1, 2), x -> x = t.r.\"EXPR$0\")\n"
+        + "from (select ROW(1, 2) as r) as t";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withSql(sql)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7718">[CALCITE-7718]
+   * Lambda capturing ROW field crashes at compilation with assertion
+   * failure</a>. */
+  @Test void testLambdaExpressionWithStructCaptureMergeOverScan() {
+    final String sql = "select \"EXISTS\"(array(1, 2), x -> x = t.r.\"EXPR$0\")\n"
+        + "from (select ROW(deptno, sal) as r from emp) as t";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withSql(sql)
+        .ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
    * Allow lambda expressions in SQL queries</a>. */
   @Test void testLambdaExpression3() {
