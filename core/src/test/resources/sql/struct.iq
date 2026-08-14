@@ -420,4 +420,39 @@ from (values (1)) as t2(x), (select ARRAY[ROW(ROW(1, 2), 3)] as arr) as t;
 
 !ok
 
+# [CALCITE-7721] CAST of a ROW ARRAY element raises NullPointerException.
+select cast(t.arr[1] as row(x integer, y integer)) as v
+from (select ARRAY[ROW(1, 2)] as arr) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# The previous test using COALESCE, which casts both of its arguments to the
+# least restrictive type
+select coalesce(t.arr[1], ROW(9, 9)) as v from (select ARRAY[ROW(1, 2)] as arr) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# COALESCE over a ROW
+select coalesce(t.r, ROW(9, 9)) as v from (select ROW(1, 2) as r) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
 # End struct.iq
