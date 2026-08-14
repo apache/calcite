@@ -361,6 +361,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return Expressions.constant(null);
     }
     assert sourceType.getSqlTypeName() == SqlTypeName.ROW;
+    if (Types.getComponentType(operand.getType()) == null) {
+      // A ROW value is represented as an Object[] at runtime, but the
+      // expression that produces it may have type Object, for example an
+      // element of an array; the field access below requires an array.
+      operand = Expressions.convert_(operand, Object[].class);
+    }
     List<RelDataTypeField> targetTypes = targetType.getFieldList();
     List<RelDataTypeField> sourceTypes = sourceType.getFieldList();
     assert targetTypes.size() == sourceTypes.size();
