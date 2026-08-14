@@ -7981,6 +7981,53 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "FROM (VALUES ROW(1)) AS PI)");
   }
 
+  /** Tests that the expansion of {@code GROUP BY ALL} can be re-parsed with
+   * the same meaning under a conformance that reads an integer in GROUP BY as
+   * a select-list ordinal.
+   *
+   * <p>The expanded form is what is stored as a view or materialized-table
+   * definition, so it is read back by a validator that cannot know which keys
+   * the user wrote and which the expansion synthesized. Before
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7675">[CALCITE-7675]</a>
+   * a constant SELECT item became a grouping key and the definition contained
+   * a bare integer literal, which the re-parse resolved as an ordinal: out of
+   * range it failed to validate, and in range it silently designated a
+   * different SELECT item. */
+  @Test void testGroupByAllExpansionSurvivesReparseAsOrdinal() {
+    // Sergey Nuyanzin's query from the FLIP-606 discussion. This expanded to
+    // "GROUP BY 42", which is not a valid definition: 42 exceeds the size of
+    // the select list.
+    sql("select count(*) as cnt, sum(sal) as sm, 42 as just_a_constant\n"
+        + "from emp group by all")
+        .rewritesTo("SELECT COUNT(*) AS `CNT`, SUM(`SAL`) AS `SM`, 42 AS `JUST_A_CONSTANT`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY ()");
+
+    // The expansion above, fed back in where GROUP BY ordinals are enabled.
+    sql("select count(*) as cnt, sum(sal) as sm, 42 as just_a_constant\n"
+        + "from emp group by ()")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+
+    // The quieter case: an in-range value. This expanded to
+    // "GROUP BY `EMP`.`DEPTNO`, 2", whose re-parse read 2 as the second
+    // SELECT item -- an aggregate, and so not a legal grouping key.
+    sql("select deptno, count(*) as c, 2 as k from emp group by all")
+        .rewritesTo("SELECT `DEPTNO`, COUNT(*) AS `C`, 2 AS `K`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `EMP`.`DEPTNO`");
+
+    sql("select deptno, count(*) as c, 2 as k from emp\n"
+        + "group by emp.deptno")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+
+    // A grouping key the user writes as an ordinal is still resolved as one.
+    sql("select deptno, count(*) from emp group by 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5507">[CALCITE-5507]
    * HAVING alias failed when aggregate function in condition</a>. */
