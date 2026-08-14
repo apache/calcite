@@ -1080,12 +1080,11 @@ public class RelToSqlConverter extends SqlImplementor
     if (firstOperand instanceof SqlBasicCall && firstOperand.getKind() == SqlKind.IS_TRUE) {
       firstOperand = ((SqlBasicCall) firstOperand).operand(0);
     }
-    if (firstOperand instanceof SqlIdentifier || firstOperand instanceof SqlCharStringLiteral) {
+    if (firstOperand instanceof SqlIdentifier || firstOperand instanceof SqlCharStringLiteral
+        || firstOperand instanceof SqlCase) {
       return true;
     }
-    if (firstOperand instanceof SqlCase) {
-      return true;
-    }
+
     SqlBasicCall firstBasicCall = (SqlBasicCall) firstOperand;
     boolean isAsCall = firstBasicCall.getOperandList().size() > 1;
     if (!isAsCall) {
