@@ -145,3 +145,29 @@ select "EXISTS"(array(1, 2, 3), x -> "EXISTS"(array(1, 2, 3), y -> x + y = 4)) a
 (1 row)
 
 !ok
+
+# [CALCITE-7718] Lambda capturing ROW field crashes at compilation with
+# assertion failure.
+# Lambda captures a field of a struct value from the enclosing query.
+select "EXISTS"(array(1, 2), x -> x = t.r."EXPR$0") from (select ROW(1, 2) as r) as t;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# Same, but the captured struct is built from table columns
+# Jane is in dept 10
+select "EXISTS"(array(5, 10), x -> x = t.r."EXPR$0")
+from (select ROW(deptno, 1) as r from emp where ename = 'Jane') as t;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
