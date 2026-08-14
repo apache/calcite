@@ -31,13 +31,20 @@ import java.util.Set;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Visitor pattern for traversing a tree of {@link RexNode} objects.
+ * Visitor that, given the {@link Logic} in force at the root of an
+ * expression, computes the Logic in force at every occurrence of a sought
+ * sub-expression {@code seek}.  Results are collected in {@code logicCollection}.
+ *
+ * <p>This value is meaningful only for expressions that evaluate to Boolean values.
  */
 public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
   private final RexNode seek;
   private final Collection<Logic> logicCollection;
 
-  /** Creates a LogicVisitor. */
+  /** Creates a LogicVisitor.
+   *
+   * @param seek Expression whose occurrences to find
+   * @param logicCollection Receives the Logic in force for each occurrence of {@code seek} */
   private LogicVisitor(RexNode seek, Collection<Logic> logicCollection) {
     super(true);
     this.seek = seek;
@@ -51,6 +58,14 @@ public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
    * answer) with the fewest possibilities (that is, we prefer one that
    * returns [true as true, false as false, unknown as false] over one that
    * distinguishes false from unknown).
+   *
+   * <p>If {@code seek} occurs multiple times, the result is
+   * a single Logic that is safe for every one of them. If the occurrences
+   * are evaluated under different Logic values, the result is
+   * {@link Logic#TRUE_FALSE_UNKNOWN}, which is safe for any occurrence.
+   *
+   * @throws IllegalArgumentException if {@code seek} does not occur in
+   *   {@code nodes}
    */
   public static Logic find(Logic logic, List<RexNode> nodes,
       RexNode seek) {
@@ -74,6 +89,9 @@ public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
     }
   }
 
+  /** Appends to {@code logicList}, for each occurrence of {@code seek}
+   * within {@code node} in depth-first order, the Logic in force at that
+   * occurrence. */
   public static void collect(RexNode node, RexNode seek, Logic logic,
       List<Logic> logicList) {
     node.accept(new LogicVisitor(seek, logicList), logic);
@@ -137,6 +155,12 @@ public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
 
   @Override public @Nullable Logic visitFieldAccess(RexFieldAccess fieldAccess,
       @Nullable Logic arg) {
+    // Not a Boolean value
+    Logic logic = requireNonNull(arg, "arg");
+    if (logic == Logic.TRUE) {
+      logic = Logic.TRUE_FALSE_UNKNOWN;
+    }
+    super.visitFieldAccess(fieldAccess, logic);
     return end(fieldAccess, arg);
   }
 
