@@ -337,4 +337,87 @@ select row(emp.*, dept.*).deptno0 from emp join dept on emp.deptno = dept.deptno
 
 !ok
 
+# [CALCITE-7720] Scalar subquery with ROW ARRAY fails in code generation.
+
+# A scalar sub-query that returns an element of an array of ROW.
+select (select t.arr[1] from (values (0))) as v
+from (select ARRAY[ROW(1, 2)] as arr) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# The same element access, without a sub-query
+select t.arr[1] as v from (select ARRAY[ROW(1, 2)] as arr) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# A CASE whose result is a ROW
+select case when x = 1 then ROW(1, 2) else ROW(3, 4) end as v
+from (values (1)) as t(x);
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# A CASE whose result is an element of an array of ROW
+select case when x = 1 then arr[1] else arr[2] end as v
+from (values (1)) as t(x), (select ARRAY[ROW(1, 2), ROW(3, 4)] as arr) as u;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# A field access that returns a ROW
+select t.arr[1]."EXPR$0" as v from (select ARRAY[ROW(ROW(1, 2), 3)] as arr) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# A field access on a ROW column that returns a ROW
+select t.r."EXPR$0" as v from (select ROW(ROW(1, 2), 3) as r) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# A CASE that returns a ROW obtained by a field access
+select case when x = 1 then t.arr[1]."EXPR$0" else ROW(9, 9) end as v
+from (values (1)) as t2(x), (select ARRAY[ROW(ROW(1, 2), 3)] as arr) as t;
++--------+
+| V      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
 # End struct.iq
