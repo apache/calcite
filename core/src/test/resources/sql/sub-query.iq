@@ -10152,3 +10152,16 @@ ORDER BY emp.ename;
 
 !ok
 # End sub-query.iq
+
+# [CALCITE-7719] Field access on an element of a ROW array built by a
+# sub-query raises IllegalArgumentException.
+select t.a[1]."EXPR$0"."EXPR$1" as v
+from (select array(select ROW(ROW(1, 2), 3) from (values (0))) as a) as t;
++---+
+| V |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
