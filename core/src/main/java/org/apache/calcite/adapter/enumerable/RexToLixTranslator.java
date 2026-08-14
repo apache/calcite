@@ -1552,13 +1552,24 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return result;
   }
 
+  /** Returns the Java type of a local variable that holds a value of a given type.
+   *
+   * <p>For the reasoning behind this implementation
+   *
+   * @see org.apache.calcite.jdbc.JavaTypeFactoryImpl.SyntheticRecordType
+   * @see JavaTypeFactory#getJavaClass(RelDataType) */
+  private Type javaVariableType(RelDataType type) {
+    final Type javaType = typeFactory.getJavaClass(type);
+    return javaType instanceof Class ? javaType : Object.class;
+  }
+
   /**
    * Returns an {@code Expression} for null literal without losing its type
    * information.
    */
   private ConstantExpression getTypedNullLiteral(RexLiteral literal) {
     assert literal.isNull();
-    Type javaClass = typeFactory.getJavaClass(literal.getType());
+    Type javaClass = javaVariableType(literal.getType());
     switch (literal.getType().getSqlTypeName()) {
     case DATE:
     case TIME:
@@ -1674,7 +1685,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * }
    */
   private Result implementCaseWhen(RexCall call) {
-    final Type returnType = typeFactory.getJavaClass(call.getType());
+    final Type returnType = javaVariableType(call.getType());
     final ParameterExpression valueVariable =
         Expressions.parameter(returnType,
             list.newName("case_when_value"));
