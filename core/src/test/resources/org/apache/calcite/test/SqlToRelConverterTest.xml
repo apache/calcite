@@ -637,6 +637,21 @@ LogicalProject(EXPR$0=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArraySubqueryOfNestedRow">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT ROW(ROW(1, 2), 3) FROM (VALUES (0)))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EXPR$0=[ROW(ROW($0, $1), $2)])
+        LogicalValues(tuples=[[{ 1, 2, 3 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArraySubqueryOrderByNonProjectedField">
     <Resource name="sql">
       <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY ename)]]>
@@ -5342,6 +5357,21 @@ LogicalProject(DEPTNO=[$7], NAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMapSubqueryOfNestedRow">
+    <Resource name="sql">
+      <![CDATA[SELECT MAP(SELECT ROW(1, 2), 'x' FROM (VALUES (0)))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EXPR$0=[ROW($0, $1)], EXPR$1=[$2])
+        LogicalValues(tuples=[[{ 1, 2, 'x' }]])
 ]]>
     </Resource>
   </TestCase>

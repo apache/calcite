@@ -4635,6 +4635,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7723">[CALCITE-7723]
+   * Queries using Collect with ROW results throw AssertionFailure</a>. */
+  @Test void testArraySubqueryOfNestedRow() {
+    final String sql = "SELECT ARRAY(SELECT ROW(ROW(1, 2), 3) FROM (VALUES (0)))";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7723">[CALCITE-7723]
+   * Queries using Collect with ROW results throw AssertionFailure</a>. */
+  @Test void testMapSubqueryOfNestedRow() {
+    final String sql = "SELECT MAP(SELECT ROW(1, 2), 'x' FROM (VALUES (0)))";
+    sql(sql).ok();
+  }
+
   @Test void testArraySubqueryOrderByProjectedField() {
     final String sql = "SELECT ARRAY(SELECT empno FROM emp ORDER BY empno)";
     sql(sql).ok();
