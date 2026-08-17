@@ -103,6 +103,106 @@ select "EXISTS"(array[array[1, 2], array[3, 4]], x -> x[1] = 1);
 
 !ok
 
+# [CALCITE-7269] SqlValidator throws exception if lambda parameter is struct
+select "EXISTS"(array(ROW(true, false)), x -> x."EXPR$1");
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+select "EXISTS"(array(ROW(1, 2)), x -> x."EXPR$1" > 1);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# Nested access path within the lambda
+select "EXISTS"(array(ROW(ROW(1, 2), 3)), x -> x."EXPR$0"."EXPR$1" > 1);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+
+# Deeply nested element accessed through a correlated array
+select (select "EXISTS"(t.arr, x -> x."EXPR$0"."EXPR$0"."EXPR$1" = 2) from (values (0)))
+from (select array(ROW(ROW(ROW(1, 2), 3), 4)) as arr) as t;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# Same access without correlation
+select "EXISTS"(array(ROW(ROW(ROW(1, 2), 3), 4)), x -> x."EXPR$0"."EXPR$0"."EXPR$1" = 2);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# Lambda over an ARRAY(subquery) whose element is a nested struct; the
+# flattener splits the subquery columns and restructures them back under
+# the Collect, so the element type and the lambda are unchanged
+select "EXISTS"(array(select ROW(ROW(1, 2), 3) from (values (0))),
+    x -> x."EXPR$0"."EXPR$1" = 2);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# The same nested ROW value used inside a lambda (capture) and outside of
+# it (field extraction); both uses must see the same shape
+select "EXISTS"(array(1, 2), x -> x = t.r."EXPR$0"."EXPR$1") as e,
+    t.r."EXPR$0"."EXPR$0" as v
+from (select ROW(ROW(1, 2), 3) as r) as t;
++------+---+
+| E    | V |
++------+---+
+| true | 1 |
++------+---+
+(1 row)
+
+!ok
+
+# The same array used inside a lambda and outside of it; both uses must
+# see the same element shape
+select "EXISTS"(a.arr, x -> x."EXPR$0"."EXPR$1" = 2) as e,
+    cardinality(a.arr) as c,
+    a.arr[1]."EXPR$0"."EXPR$1" as v
+from (select array(ROW(ROW(1, 2), 3)) as arr) as a;
++------+---+---+
+| E    | C | V |
++------+---+---+
+| true | 1 | 2 |
++------+---+---+
+(1 row)
+
+!ok
+
+
 # [CALCITE-6242] Enhance lambda closure parsing
 select *
  from (select array(1, 2, 3) as arr) as t1 inner join

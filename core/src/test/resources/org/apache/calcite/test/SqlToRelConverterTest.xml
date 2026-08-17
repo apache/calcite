@@ -5158,6 +5158,24 @@ LogicalProject(EXPR$0=[HIGHER_ORDER_FUNCTION($7, (X, DEPTNO) -> +(DEPTNO, 1))])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLambdaExpressionCaptureInNestedLambda">
+    <Resource name="sql">
+      <![CDATA[select (select "EXISTS"(d.employees, e -> "EXISTS"(t.employees, f -> f.empno = e.empno and cardinality(e.detail.skills) > 0))
+from dept_nested t)
+from dept_nested as d]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalProject(EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalProject(EXPR$0=[EXISTS($cor0.EMPLOYEES, (E) -> EXISTS($3, (F) -> AND(=(F.EMPNO, E.EMPNO), >(CARDINALITY(E.DETAIL.SKILLS), 0))))])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLambdaExpressionContainsIn">
     <Resource name="sql">
       <![CDATA[select "EXISTS"(ARRAY[1,2,3,4], (n) -> n IN (1,3))]]>
@@ -5166,6 +5184,126 @@ LogicalProject(EXPR$0=[HIGHER_ORDER_FUNCTION($7, (X, DEPTNO) -> +(DEPTNO, 1))])
       <![CDATA[
 LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2, 3, 4), (N) -> OR(=(N, 1), =(N, 3)))])
   LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionNestedAccessOverStructArrayColumn">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(employees, e -> cardinality(e.detail.skills) > 0)
+from dept_nested]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS($3, (E) -> >(CARDINALITY(E.DETAIL.SKILLS), 0))])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionOverArrayQuery">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(select ROW(ROW(1, 2), 3) from (values (0))), x -> x."EXPR$0"."EXPR$1" = 2)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS($1, (X) -> =(X.EXPR$0.EXPR$1, 2))])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EXPR$0=[ROW(ROW($0, $1), $2)])
+        LogicalValues(tuples=[[{ 1, 2, 3 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionOverCorrelatedDeeplyNestedArray">
+    <Resource name="sql">
+      <![CDATA[select (select "EXISTS"(t.arr, x -> x."EXPR$0"."EXPR$0"."EXPR$1" = 2) from (values (0)))
+from (select array(ROW(ROW(ROW(1, 2), 3), 4)) as arr) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(ROW(ROW(ROW(1, 2), 3), 4))])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalProject(EXPR$0=[EXISTS($cor0.ARR, (X) -> =(X.EXPR$0.EXPR$0.EXPR$1, 2))])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionOverCorrelatedStructArrayColumn">
+    <Resource name="sql">
+      <![CDATA[select (select "EXISTS"(d.employees, e -> cardinality(e.detail.skills) > 0) from (values (0)))
+from dept_nested as d]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalProject(EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalProject(EXPR$0=[EXISTS($cor0.EMPLOYEES, (E) -> >(CARDINALITY(E.DETAIL.SKILLS), 0))])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionOverStructArrayColumn">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(employees, e -> e.empno = 1)
+from dept_nested]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS($3, (E) -> =(E.EMPNO, 1))])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionStructUsedInsideAndOutside">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(1, 2), x -> x = t.r."EXPR$0"."EXPR$1") as e,
+ t.r."EXPR$0"."EXPR$0" as v
+from (select ROW(ROW(1, 2), 3) as r) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(E=[EXISTS(ARRAY(1, 2), (X) -> =(X, ROW(ROW(1, 2), 3).EXPR$0.EXPR$1))], V=[ROW(ROW(1, 2), 3).EXPR$0.EXPR$0])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionWithNestedRowParameter">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(ROW(ROW(1, 2), 3)), x -> x."EXPR$0"."EXPR$1" > 1)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(ROW(ROW(1, 2), 3)), (X) -> >(X.EXPR$0.EXPR$1, 1))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionWithRowParameter">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(ROW(true, false)), x -> x."EXPR$1")]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(ROW(true, false)), (X) -> X.EXPR$1)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLambdaExpressionWithStructCapture">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array[f0.c0, f1.c0], x -> x = f1.c2)
+from struct.t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY($4, $5), (X) -> =(X, $7))])
+  LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
     </Resource>
   </TestCase>
