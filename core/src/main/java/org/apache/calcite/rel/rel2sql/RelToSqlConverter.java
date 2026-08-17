@@ -106,6 +106,7 @@ import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1079,7 +1080,8 @@ public class RelToSqlConverter extends SqlImplementor
     if (firstOperand instanceof SqlBasicCall && firstOperand.getKind() == SqlKind.IS_TRUE) {
       firstOperand = ((SqlBasicCall) firstOperand).operand(0);
     }
-    if (firstOperand instanceof SqlIdentifier || firstOperand instanceof SqlCharStringLiteral) {
+    if (firstOperand instanceof SqlIdentifier || firstOperand instanceof SqlCharStringLiteral
+        || firstOperand instanceof SqlCase) {
       return true;
     }
 
