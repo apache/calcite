@@ -519,9 +519,16 @@ public abstract class SqlUtil {
 
   private static Iterator<SqlOperator> filterOperatorRoutinesByKind(
       Iterator<SqlOperator> routines, final SqlKind sqlKind) {
+    // Map both sides through getFunctionKind() so a candidate can still match a call
+    // that is already bound to that very candidate (or an operator with the same
+    // requested kind) even when getFunctionKind() maps that kind to something else,
+    // e.g. SqlKind.POSITION/CHAR_LENGTH both map to OTHER_FUNCTION. Comparing the
+    // candidate's mapped kind against the call's raw, unmapped kind is asymmetric and
+    // can spuriously reject every candidate, including the operator being called.
+    final SqlKind sqlFunctionKind = sqlKind.getFunctionKind();
     return Iterators.filter(routines,
         operator -> requireNonNull(operator, "operator")
-            .getKind().getFunctionKind() == sqlKind);
+            .getKind().getFunctionKind() == sqlFunctionKind);
   }
 
   /**

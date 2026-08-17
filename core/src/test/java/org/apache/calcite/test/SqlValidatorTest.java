@@ -1025,6 +1025,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Parameters must be of the same type");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7724">
+   * [CALCITE-7724] SqlUtil#lookupSubjectRoutines rejects a valid operator when two
+   * operator-table entries resolve to the same operator and that operator's
+   * {@link SqlKind} is remapped by {@link SqlKind#getFunctionKind()}</a>.
+   *
+   * <p>{@link SqlUtil#lookupSubjectRoutines} only reaches its "fourth pass"
+   * ({@code filterOperatorRoutinesByKind}) once at least two candidate operators survive
+   * the earlier passes - which happens whenever an operator table (or a chain of them)
+   * contains more than one entry for the same operator name, arity and category, e.g.
+   * because it is registered in two different operator tables that get chained together.
+   * That pass compares {@code candidate.getKind().getFunctionKind()} (mapped) against the
+   * call's already-bound, unmapped {@code SqlKind} - for any {@link SqlKind} that
+   * {@code getFunctionKind()} maps to something else (such as {@link SqlKind#POSITION} or
+   * the now-dedicated {@link SqlKind#CHAR_LENGTH}, both mapped to
+   * {@link SqlKind#OTHER_FUNCTION}), this comparison fails even when the candidate is the
+   * operator the call is already bound to - eliminating every candidate and causing a
+   * spurious "No match found for function signature" validation error for an otherwise
+   * perfectly valid call. */
+  @Test void testFunctionKindMismatchWithDuplicateOperatorTableEntry() {
+    // Chaining the standard operator table with itself is a minimal way to force two
+    // candidates for the same operator to reach the fourth pass; in practice this also
+    // happens with any two chained operator tables that both contribute an entry for the
+    // same builtin operator (which is how this was found - via a composite operator table
+    // with more than one contributor).
+    final SqlOperatorTable duplicated =
+        SqlOperatorTables.chain(SqlStdOperatorTable.instance(), SqlStdOperatorTable.instance());
+    expr("position('mouse' in 'house')")
+        .withOperatorTable(duplicated)
+        .ok();
+    expr("char_length('string')")
+        .withOperatorTable(duplicated)
+        .ok();
+    expr("character_length('string')")
+        .withOperatorTable(duplicated)
+        .ok();
+  }
+
   @Test void testTrim() {
     expr("trim('mustache' FROM 'beard')").ok();
     expr("trim(both 'mustache' FROM 'beard')").ok();
