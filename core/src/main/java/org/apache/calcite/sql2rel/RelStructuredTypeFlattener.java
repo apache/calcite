@@ -61,6 +61,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -113,32 +114,44 @@ import static java.util.Objects.requireNonNull;
  * normal optimizer rules. This approach has the benefit that real optimizer and
  * codegen rules never have to deal with structured types.
  *
- * <p>As an example, suppose we have a structured type <code>ST(A1 smallint, A2
- * bigint)</code>, a table <code>T(c1 ST, c2 double)</code>, and a query <code>
- * select t.c2, t.c1.a2 from t</code>. After SqlToRelConverter executes, the
- * unflattened tree looks like:
+ * <p>As an example, take the query
  *
  * <blockquote><pre><code>
- * LogicalProject(C2=[$1], A2=[$0.A2])
- *   LogicalTableScan(table=[T])
+ * select t.s from
+ *   (select ROW(1, 2) as r, 'a' as s from (values (0))) as t
+ * where t.r."EXPR$0" = 1
+ * </code></pre></blockquote>
+ *
+ * <p>After SqlToRelConverter executes, the unflattened tree looks like:
+ *
+ * <blockquote><pre><code>
+ * LogicalProject(S=[$1])
+ *   LogicalFilter(condition=[=($0.EXPR$0, 1)])
+ *     LogicalProject(R=[ROW(1, 2)], S=['a'])
+ *       LogicalValues(tuples=[[{ 0 }]])
  * </code></pre></blockquote>
  *
  * <p>After flattening, the resulting tree looks like
  *
  * <blockquote><pre><code>
- * LogicalProject(C2=[$3], A2=[$2])
- *   FtrsIndexScanRel(table=[T], index=[clustered])
+ * LogicalProject(S=[$2])
+ *   LogicalFilter(condition=[=($0, 1)])
+ *     LogicalValues(tuples=[[{ 1, 2, 'a' }]])
  * </code></pre></blockquote>
  *
- * <p>The index scan produces a flattened row type <code>(boolean, smallint,
- * bigint, double)</code> (the boolean is a null indicator for c1), and the
- * projection picks out the desired attributes (omitting <code>$0</code> and
- * <code>$1</code> altogether). After optimization, the projection might be
- * pushed down into the index scan, resulting in a final tree like
+ * <p>The column <code>R</code> of type <code>ROW(INTEGER, INTEGER)</code> has
+ * become two columns of type <code>INTEGER</code>, the field access
+ * <code>$0.EXPR$0</code> has become the reference <code>$0</code>, and the
+ * references of the outer projection have been renumbered.
  *
- * <blockquote><pre><code>
- * FtrsIndexScanRel(table=[T], index=[clustered], projection=[3, 2])
- * </code></pre></blockquote>
+ * <p>WARNING: this rewrite does not modify collection element types.
+ *
+ * <p>This rewrite does not alter the signature of a user-defined function
+ * or lambda expressions.  Currently all SQL functions that take lambda
+ * expressions as arguments (e.g., <code>EXIST(a, e -&gt; e &gt; 1)</code>) apply these lambda
+ * expressions to collection elements, whose types are not rewritten.
+ * But this rewrite may not be correct in the future if other kinds of
+ * higher-order functions are introduced.
  */
 public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
@@ -229,6 +242,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           .projectNamed(structuringExps, resultFieldNames, true)
           .build();
       restructured = RelOptUtil.copyRelHints(flattened, restructured);
+      // REVIEW jvs 23-Mar-2005:  How do we make sure that this
+      // implementation stays in Java?  Fennel can't handle
+      // structured types.
       return restructured;
     } else {
       return flattened;
@@ -967,6 +983,18 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           // a struct type.
           RexCall call = (RexCall) refExp;
           RexNode newRefExp = visitCall(call);
+          for (Integer ord : accessOrdinals) {
+            newRefExp = rexBuilder.makeFieldAccess(newRefExp, ord);
+          }
+          return newRefExp;
+        } else if (refExp instanceof RexLambdaRef) {
+          // refExp references a parameter of an enclosing RexLambda, e.g.
+          // X in "(X) -> X.EXPR$1". Such a parameter is typed from the
+          // element type of a collection operand of the call, which
+          // flattening leaves as it is, so the access path is kept. A
+          // parameter typed from something that flattening does rewrite
+          // would need the access path to be re-addressed.
+          RexNode newRefExp = refExp;
           for (Integer ord : accessOrdinals) {
             newRefExp = rexBuilder.makeFieldAccess(newRefExp, ord);
           }

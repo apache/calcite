@@ -1304,34 +1304,10 @@ public abstract class SqlTypeUtil {
             field.getType(),
             list,
             null);
-      } else if (field.getType().getComponentType() != null) {
-        nested = true;
-
-        // TODO jvs 14-Feb-2005:  generalize to any kind of
-        // collection type
-        RelDataType flattenedCollectionType =
-            typeFactory.createMultisetType(
-                flattenRecordType(
-                    typeFactory,
-                    getComponentTypeOrThrow(field.getType()),
-                    null),
-                -1);
-        if (field.getType() instanceof ArraySqlType) {
-          flattenedCollectionType =
-              typeFactory.createArrayType(
-                  flattenRecordType(
-                      typeFactory,
-                      getComponentTypeOrThrow(field.getType()),
-                      null),
-                  -1);
-        }
-        field =
-            new RelDataTypeFieldImpl(
-                field.getName(),
-                field.getIndex(),
-                flattenedCollectionType);
-        list.add(field);
       } else {
+        // Collection fields are kept as they are, including their element
+        // types: flattening never rewrites the collection values, so a
+        // flattened element type would not describe them.
         list.add(field);
       }
     }
