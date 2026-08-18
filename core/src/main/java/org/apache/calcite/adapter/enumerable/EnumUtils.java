@@ -539,6 +539,15 @@ public class EnumUtils {
         }
       }
     }
+    if (toType == Number.class
+        && (fromType == Object.class || fromType == String.class)) {
+      // E.g. from "Object" to "Number".
+      // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)".
+      return Expressions.condition(
+          Expressions.equal(operand, RexImpTable.NULL_EXPR),
+          RexImpTable.NULL_EXPR,
+          Expressions.call(SqlFunctions.class, "toBigDecimal", operand));
+    }
     if (toPrimitive != null) {
       if (fromPrimitive != null) {
         // E.g. from "float" to "double"
