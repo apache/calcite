@@ -59,6 +59,10 @@ other software versions as specified in gradle.properties.
 `ReflectiveSchema.Input` annotation. If the annotation is not present the
 creation will fail with `IllegalArgumentException: class X is not annotated @Input`.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7770">CALCITE-7770</a>]
+`KafkaTableFactory` row converter operand now requires the presence of a `public`
+constructor for instantiating the class.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7713">CALCITE-7713</a>]
 Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate

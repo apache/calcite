@@ -28,7 +28,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  * Implementation of {@link KafkaRowConverter} for testing. Both key and value
  * are saved as {@code byte[]}.
  */
-class KafkaRowConverterTest implements KafkaRowConverter<String, String> {
+public class KafkaRowConverterTest implements KafkaRowConverter<String, String> {
   /**
    * Generates a row schema for a given Kafka topic.
    *
