@@ -1026,29 +1026,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7724">
-   * [CALCITE-7724] SqlUtil#lookupSubjectRoutines rejects a valid operator when two
-   * operator-table entries resolve to the same operator and that operator's
-   * {@link SqlKind} is remapped by {@link SqlKind#getFunctionKind()}</a>.
+   * [CALCITE-7724] SqlUtil#lookupSubjectRoutines rejects a valid operator when its
+   * SqlKind is remapped by SqlKind#getFunctionKind() and two operator-table entries
+   * resolve to it</a>.
    *
-   * <p>{@link SqlUtil#lookupSubjectRoutines} only reaches its "fourth pass"
-   * ({@code filterOperatorRoutinesByKind}) once at least two candidate operators survive
-   * the earlier passes - which happens whenever an operator table (or a chain of them)
-   * contains more than one entry for the same operator name, arity and category, e.g.
-   * because it is registered in two different operator tables that get chained together.
-   * That pass compares {@code candidate.getKind().getFunctionKind()} (mapped) against the
-   * call's already-bound, unmapped {@code SqlKind} - for any {@link SqlKind} that
-   * {@code getFunctionKind()} maps to something else (such as {@link SqlKind#POSITION} or
-   * the now-dedicated {@link SqlKind#CHAR_LENGTH}, both mapped to
-   * {@link SqlKind#OTHER_FUNCTION}), this comparison fails even when the candidate is the
-   * operator the call is already bound to - eliminating every candidate and causing a
-   * spurious "No match found for function signature" validation error for an otherwise
-   * perfectly valid call. */
+   * <p>The kind-based fourth pass in {@code filterOperatorRoutinesByKind} maps only
+   * the candidate's kind through {@code getFunctionKind()}, not the call's own kind -
+   * so an operator whose kind is remapped (e.g. {@link SqlKind#POSITION}) can fail to
+   * match itself once a second candidate for the same name exists. */
   @Test void testFunctionKindMismatchWithDuplicateOperatorTableEntry() {
-    // Chaining the standard operator table with itself is a minimal way to force two
-    // candidates for the same operator to reach the fourth pass; in practice this also
-    // happens with any two chained operator tables that both contribute an entry for the
-    // same builtin operator (which is how this was found - via a composite operator table
-    // with more than one contributor).
+    // Chaining the operator table with itself ensures that each appears twice.
     final SqlOperatorTable duplicated =
         SqlOperatorTables.chain(SqlStdOperatorTable.instance(), SqlStdOperatorTable.instance());
     expr("position('mouse' in 'house')")
