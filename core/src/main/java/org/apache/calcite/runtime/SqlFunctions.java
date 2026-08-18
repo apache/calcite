@@ -5522,7 +5522,18 @@ public class SqlFunctions {
   }
 
   public static BigDecimal toBigDecimal(String s) {
-    return new BigDecimal(s.trim());
+    if (s == null) {
+      throw new NumberFormatException(
+          "Cannot convert null string to BigDecimal");
+    }
+    try {
+      return new BigDecimal(s.trim());
+    } catch (NumberFormatException e) {
+      NumberFormatException ex =
+          new NumberFormatException("Invalid value for BigDecimal: \"" + s + "\"");
+      ex.initCause(e);
+      throw ex;
+    }
   }
 
   public static BigDecimal toBigDecimal(Number number) {
@@ -5535,6 +5546,9 @@ public class SqlFunctions {
   }
 
   public static BigDecimal toBigDecimal(Object o) {
+    if (o == null) {
+      throw new NumberFormatException("Cannot convert null to BigDecimal");
+    }
     return o instanceof Number ? toBigDecimal((Number) o)
         : toBigDecimal(o.toString());
   }

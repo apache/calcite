@@ -41,6 +41,29 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 public final class EnumUtilsTest {
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6284">[CALCITE-6284]
+   * Invalid conversion triggers ClassCastException</a>. */
+  @Test void testObjectToNumberConvert() {
+    // Object x;
+    final ParameterExpression objectVariable =
+        Expressions.parameter(0, Object.class, "x");
+    final Expression objectToNumber =
+        EnumUtils.convert(objectVariable, Number.class);
+    assertThat(Expressions.toString(objectToNumber),
+        is("x == null ? (java.math.BigDecimal) null"
+            + " : org.apache.calcite.runtime.SqlFunctions.toBigDecimal(x)"));
+
+    // String s;
+    final ParameterExpression stringVariable =
+        Expressions.parameter(0, String.class, "s");
+    final Expression stringToNumber =
+        EnumUtils.convert(stringVariable, Number.class);
+    assertThat(Expressions.toString(stringToNumber),
+        is("s == null ? (java.math.BigDecimal) null"
+            + " : org.apache.calcite.runtime.SqlFunctions.toBigDecimal(s)"));
+  }
+
   @Test void testDateTypeToInnerTypeConvert() {
     // java.sql.Date x;
     final ParameterExpression date =

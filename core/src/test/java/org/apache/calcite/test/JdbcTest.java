@@ -9695,6 +9695,49 @@ public class JdbcTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6284">[CALCITE-6284]
+   * Invalid conversion triggers ClassCastException</a>. */
+  @Test void bindStringParameter() {
+    for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
+      final String sql =
+          "with cte as (select cast(100 as " + tpe.getName() + ") as empid)"
+              + "select * from cte where empid = ?";
+
+      CalciteAssert.hr()
+          .query(sql)
+          .consumesPreparedStatement(p -> {
+            p.setString(1, "100");
+          })
+          .returnsUnordered("EMPID=100");
+    }
+  }
+
+  @Test void bindInvalidStringParameter() {
+    for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
+      final String sql =
+          "with cte as (select cast(100 as " + tpe.getName() + ") as empid)"
+              + "select * from cte where empid = ?";
+
+      final SQLException e =
+          assertThrows(SQLException.class,
+              () -> CalciteAssert.hr()
+                  .query(sql)
+                  .consumesPreparedStatement(p -> {
+                    p.setString(1, "abc");
+                  })
+                  .returnsUnordered(""));
+      // Should produce a meaningful error, not ClassCastException
+      final Throwable cause = e.getCause();
+      assertThat("Expected NumberFormatException for tpe=" + tpe,
+          cause, instanceOf(NumberFormatException.class));
+      assertThat("Error message should contain the invalid value",
+          cause.getMessage(), containsString("abc"));
+      assertThat("Original NumberFormatException should be preserved as cause",
+          cause.getCause(), instanceOf(NumberFormatException.class));
+    }
+  }
+
   @Test void bindShortParameter() {
     for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
       final String sql =
