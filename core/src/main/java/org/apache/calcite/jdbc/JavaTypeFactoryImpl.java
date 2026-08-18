@@ -367,7 +367,8 @@ public class JavaTypeFactoryImpl
         "Record" + type.getFieldCount() + "_" + syntheticTypes.size();
     final SyntheticRecordType syntheticType =
         new SyntheticRecordType(type, name);
-    for (final RelDataTypeField recordField : type.getFieldList()) {
+    for (final Ord<RelDataTypeField> ord : Ord.zip(type.getFieldList())) {
+      final RelDataTypeField recordField = ord.e;
       final Type fieldClass = getJavaClass(recordField.getType());
       // A field whose type has no real Java class is stored as Object[] at
       // runtime, like all rows in enumerable convention. For example, the
@@ -395,10 +396,17 @@ public class JavaTypeFactoryImpl
       final Type javaClass = fieldClass instanceof Class
           ? fieldClass
           : Object[].class;
+      // Prefer the SQL field name to allow downstream reflection-based lookups
+      // (e.g. Avatica's Meta.CursorFactory.record(), which reads results
+      // out of the synthetic class by SQL column name); fall back to a
+      // positional name if the SQL name is not a legal Java identifier
+      final String rawName = recordField.getName();
+      final String fieldName =
+          Types.isValidJavaIdentifier(rawName) ? rawName : "f" + ord.i;
       syntheticType.fields.add(
           new RecordFieldImpl(
               syntheticType,
-              recordField.getName(),
+              fieldName,
               javaClass,
               recordField.getType().isNullable()
                   && !Primitive.is(javaClass),
