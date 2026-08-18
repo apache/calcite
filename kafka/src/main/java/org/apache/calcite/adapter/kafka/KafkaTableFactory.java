@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.kafka;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
@@ -51,20 +52,7 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
     final KafkaRowConverter rowConverter;
     if (operand.containsKey(KafkaTableConstants.SCHEMA_ROW_CONVERTER)) {
       String rowConverterClass = (String) operand.get(KafkaTableConstants.SCHEMA_ROW_CONVERTER);
-      try {
-        final Class<?> klass = Class.forName(rowConverterClass);
-        rowConverter = (KafkaRowConverter) klass.getDeclaredConstructor().newInstance();
-      } catch (InstantiationException | InvocationTargetException
-          | IllegalAccessException | ClassNotFoundException
-          | NoSuchMethodException e) {
-        final String details =
-            String.format(Locale.ROOT,
-                "Failed to create table '%s' with configuration:\n"
-                    + "'%s'\n"
-                    + "KafkaRowConverter '%s' is invalid",
-                name, operand, rowConverterClass);
-        throw new RuntimeException(details, e);
-      }
+      rowConverter = AvaticaUtils.instantiatePlugin(KafkaRowConverter.class, rowConverterClass);
     } else {
       rowConverter = new KafkaRowConverterImpl();
     }
@@ -77,12 +65,13 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
     if (operand.containsKey(KafkaTableConstants.SCHEMA_CUST_CONSUMER)) {
       String custConsumerClass = (String) operand.get(KafkaTableConstants.SCHEMA_CUST_CONSUMER);
       try {
+        Class<? extends Consumer> klass =
+            Class.forName(custConsumerClass, false, KafkaTableFactory.class.getClassLoader())
+                .asSubclass(Consumer.class);
         tableOptionBuilder.setConsumer(
-            (Consumer) Class.forName(custConsumerClass)
-                .getConstructor(OffsetResetStrategy.class)
-                .newInstance(OffsetResetStrategy.NONE));
+            klass.getConstructor(OffsetResetStrategy.class).newInstance(OffsetResetStrategy.NONE));
       } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
-          | InstantiationException | InvocationTargetException e) {
+          | InstantiationException | InvocationTargetException | ClassCastException e) {
         final String details =
             String.format(Locale.ROOT,
                 "Fail to create table '%s' with configuration:\n"
