@@ -22,6 +22,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -39,6 +41,9 @@ public class MemberExpression extends Expression {
     super(ExpressionType.MemberAccess, field.getType());
     this.expression = expression;
     this.field = requireNonNull(field, "field");
+    checkArgument(Types.isValidJavaIdentifier(field.getName()),
+        "field name should be a valid java identifier: %s",
+        field.getName());
     if (!Modifier.isStatic(field.getModifiers())) {
       requireNonNull(expression,
           "must specify expression if field is not static");

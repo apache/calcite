@@ -48,6 +48,21 @@ public abstract class Types {
   private Types() {}
 
   /**
+   * Returns whether {@code name} is a syntactically valid Java identifier.
+   */
+  public static boolean isValidJavaIdentifier(String name) {
+    if (name.isEmpty() || !Character.isJavaIdentifierStart(name.charAt(0))) {
+      return false;
+    }
+    for (int i = 1; i < name.length(); i++) {
+      if (!Character.isJavaIdentifierPart(name.charAt(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Creates a type with generic parameters.
    */
   public static Type of(Type type, Type... typeArguments) {

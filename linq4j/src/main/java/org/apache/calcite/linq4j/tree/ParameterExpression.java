@@ -41,12 +41,11 @@ public class ParameterExpression extends Expression {
 
   public ParameterExpression(int modifier, Type type, String name) {
     super(ExpressionType.Parameter, type);
-    checkArgument(Character.isJavaIdentifierStart(name.charAt(0)),
-        "parameter name should be valid java identifier: %s. "
-            + "The first character is invalid.",
+    checkArgument(Types.isValidJavaIdentifier(requireNonNull(name, "name")),
+        "parameter name should be a valid java identifier: %s",
         name);
     this.modifier = modifier;
-    this.name = requireNonNull(name, "name");
+    this.name = name;
   }
 
   @Override public Expression accept(Shuttle shuttle) {

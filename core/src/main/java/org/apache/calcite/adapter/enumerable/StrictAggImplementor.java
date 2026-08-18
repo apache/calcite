@@ -163,9 +163,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
       return EnumUtils.convert(
           implementNotNullResult(info, result), info.returnType());
     }
-    String tmpName = result.accumulator().isEmpty()
-        ? "ar"
-        : (result.accumulator().get(0) + "$Res");
+    String tmpName = result.accumulator().isEmpty() ? "ar" : "acc$Res";
     ParameterExpression res =
         Expressions.parameter(0, info.returnType(),
             result.currentBlock().newName(tmpName));
