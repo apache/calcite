@@ -53,6 +53,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -99,7 +100,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -641,7 +641,7 @@ class RelWriterTest {
           .build();
       return b.values(rowType, 0).project(
           b.getRexBuilder().makeUuidLiteral(
-              UUID.fromString("123e4567-e89b-12d3-a456-426655440000")))
+              SqlFunctions.stringToUuid("123e4567-e89b-12d3-a456-426655440000")))
           .build();
     };
     relFn(relFn)
