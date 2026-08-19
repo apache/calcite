@@ -78,6 +78,7 @@ import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.UuidValue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -101,7 +102,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -510,7 +510,7 @@ public class RelJson {
       return toJson((Range) value);
     } else if (value instanceof ByteString) {
       return toJson(((ByteString) value).toString(16));
-    } else if (value instanceof UUID) {
+    } else if (value instanceof UuidValue) {
       return toJson(value.toString());
     } else {
       throw new UnsupportedOperationException("type not serializable as JSON: "
