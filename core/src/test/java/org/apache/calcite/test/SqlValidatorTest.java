@@ -6625,12 +6625,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from (emp join bonus using (job))\n"
         + "join dept using (deptno)").ok();
 
-    // Cannot alias a JOIN (until
-    // [CALCITE-5168] Allow AS after parenthesized JOIN
-    // is fixed).
-    sql("select * from (emp ^join^ bonus using (job)) as x\n"
-        + "join dept using (deptno)")
-        .fails("Join expression encountered in illegal context");
+    // [CALCITE-5168] Allow AS after parenthesized JOIN.
+    sql("select x.empno from (emp cross join dept) as x").ok();
+    sql("select x.empno from (emp join bonus using (job)) as x").ok();
+    sql("select x.a from ((select empno from emp) cross join "
+        + "(select deptno from dept)) as x (a, c)")
+        .ok();
+    // Inner aliases are obscured by the new alias.
+    sql("select ^emp^.empno from (emp cross join dept) as x")
+        .fails("Table 'EMP' not found");
+    sql("select ^bonus^.job from (emp join bonus using (job)) as x")
+        .fails("Table 'BONUS' not found");
     sql("select * from (emp join bonus using (job))\n"
         + "join dept using (^dname^)")
         .fails("Column 'DNAME' not found in any table");
