@@ -2864,11 +2864,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       expr = call.operand(0);
       final boolean needAliasNamespace = call.operandCount() > 2
           || expr.getKind() == SqlKind.VALUES || expr.getKind() == SqlKind.UNNEST
-          || expr.getKind() == SqlKind.COLLECTION_TABLE;
+          || expr.getKind() == SqlKind.COLLECTION_TABLE
+          || expr.getKind() == SqlKind.JOIN;
+      // For an aliased join, the join's children must not be visible outside
+      // the alias. Prevent JoinScope.addChild from propagating children to
+      // the using scope by using parentScope.
+      final SqlValidatorScope exprUsingScope =
+          expr.getKind() == SqlKind.JOIN ? parentScope : usingScope;
       newExpr =
           registerFrom(
               parentScope,
-              usingScope,
+              exprUsingScope,
               !needAliasNamespace,
               expr,
               enclosingNode,

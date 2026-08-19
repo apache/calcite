@@ -302,6 +302,23 @@ cross join (bonus as b
 
 !ok
 
+# [CALCITE-5168] Allow AS after parenthesized JOIN
+select d.dname, j.empno, j.ename
+from dept as d
+cross join (emp as e cross join (values (1)) as b(dummy)) as j
+where j.empno = 7369;
++------------+-------+-------+
+| DNAME      | EMPNO | ENAME |
++------------+-------+-------+
+| ACCOUNTING |  7369 | SMITH |
+| RESEARCH   |  7369 | SMITH |
+| SALES      |  7369 | SMITH |
+| OPERATIONS |  7369 | SMITH |
++------------+-------+-------+
+(4 rows)
+
+!ok
+
 # Join plus TABLE
 select e.ename, d.dname
 from emp as e

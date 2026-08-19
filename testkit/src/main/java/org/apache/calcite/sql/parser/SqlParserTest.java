@@ -7860,9 +7860,9 @@ public class SqlParserTest {
     // is syntactically and semantically valid; but
     //   "select t.i from (t cross join u) as x"
     // is semantically invalid.
-    // TODO: Support this in Calcite.
-    sql("select * from (t cross ^join^ u) as x")
-        .fails("Join expression encountered in illegal context");
+    sql("select * from (t cross join u) as x")
+        .ok("SELECT *\n"
+            + "FROM (`T` CROSS JOIN `U`) AS `X`");
     sql("select *\n"
         + "from (t cross ^join^ u)\n"
         + "  tablesample substitute('medium')")
@@ -8026,21 +8026,24 @@ public class SqlParserTest {
         + "CROSS JOIN (TABLE `T2`)";
     sql(sql3).ok(expected3);
 
-    // Adding an alias to the previous query makes it invalid
-    // (The error message and location could be improved)
+    final String expected4 = "SELECT *\n"
+        + "FROM ((SELECT *\n"
+        + "FROM `T`) CROSS JOIN (TABLE `T2`)) AS `X`";
     final String sql4 = "SELECT *\n"
         + "FROM ((((((((((((SELECT * FROM t)))\n"
-        + "  cross ^join^ ((table t2))))))))))) X";
+        + "  cross join ((table t2))))))))))) X";
     final String sql5 = "SELECT *\n"
         + "FROM ((((((((((((SELECT * FROM t)))\n"
-        + "  cross ^join^ ((table t2))))))))))) as X";
+        + "  cross join ((table t2))))))))))) as X";
     final String sql6 = "SELECT *\n"
         + "FROM ((((((((((((SELECT * FROM t)))\n"
-        + "  cross ^join^ ((table t2))))))))))) as X (a, b, c)";
-    final String message = "Join expression encountered in illegal context";
-    sql(sql4).fails(message);
-    sql(sql5).fails(message);
-    sql(sql6).fails(message);
+        + "  cross join ((table t2))))))))))) as X (a, b, c)";
+    sql(sql4).ok(expected4);
+    sql(sql5).ok(expected4);
+    final String expected6 = "SELECT *\n"
+        + "FROM ((SELECT *\n"
+        + "FROM `T`) CROSS JOIN (TABLE `T2`)) AS `X` (`A`, `B`, `C`)";
+    sql(sql6).ok(expected6);
   }
 
   @Test void testProcedureCall() {
