@@ -36,6 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.UuidValue;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
@@ -53,7 +54,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.ReflectUtil.isStatic;
@@ -225,10 +225,10 @@ public class JavaTypeFactoryImpl
       case BINARY:
       case VARBINARY:
         return ByteString.class;
+      case UUID:
+        return UuidValue.class;
       case GEOMETRY:
         return Geometry.class;
-      case UUID:
-        return UUID.class;
       case SYMBOL:
         return Enum.class;
       case ANY:
