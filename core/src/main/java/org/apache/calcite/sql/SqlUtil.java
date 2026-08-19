@@ -558,9 +558,12 @@ public abstract class SqlUtil {
 
   private static Iterator<SqlOperator> filterOperatorRoutinesByKind(
       Iterator<SqlOperator> routines, final SqlKind sqlKind) {
+    // Mirror getFunctionKind() on both sides, or an operator whose kind maps to
+    // something else (e.g. POSITION -> OTHER_FUNCTION) can fail to match itself.
+    final SqlKind sqlFunctionKind = sqlKind.getFunctionKind();
     return Iterators.filter(routines,
         operator -> requireNonNull(operator, "operator")
-            .getKind().getFunctionKind() == sqlKind);
+            .getKind().getFunctionKind() == sqlFunctionKind);
   }
 
   /**

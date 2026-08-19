@@ -1043,6 +1043,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Parameters must be of the same type");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7724">
+   * [CALCITE-7724] SqlUtil#lookupSubjectRoutines rejects a valid operator when its
+   * SqlKind is remapped by SqlKind#getFunctionKind() and two operator-table entries
+   * resolve to it</a>.
+   *
+   * <p>The kind-based fourth pass in {@code filterOperatorRoutinesByKind} maps only
+   * the candidate's kind through {@code getFunctionKind()}, not the call's own kind -
+   * so an operator whose kind is remapped (e.g. {@link SqlKind#POSITION}) can fail to
+   * match itself once a second candidate for the same name exists. */
+  @Test void testFunctionKindMismatchWithDuplicateOperatorTableEntry() {
+    // Chaining the operator table with itself ensures that each appears twice.
+    final SqlOperatorTable duplicated =
+        SqlOperatorTables.chain(SqlStdOperatorTable.instance(), SqlStdOperatorTable.instance());
+    expr("position('mouse' in 'house')")
+        .withOperatorTable(duplicated)
+        .ok();
+    expr("char_length('string')")
+        .withOperatorTable(duplicated)
+        .ok();
+    expr("character_length('string')")
+        .withOperatorTable(duplicated)
+        .ok();
+  }
+
   @Test void testTrim() {
     expr("trim('mustache' FROM 'beard')").ok();
     expr("trim(both 'mustache' FROM 'beard')").ok();
