@@ -4542,6 +4542,17 @@ public abstract class SqlLibraryOperators {
           .withOperandHandler(
               OperandHandlers.of(SqlLibraryOperators::transformConvert));
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction TRY_CONVERT =
+      SqlBasicFunction.create(SqlKind.MSSQL_TRY_CONVERT,
+              ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
+                  SqlCastFunction.returnTypeInference(false)),
+              OperandTypes.repeat(SqlOperandCountRanges.between(2, 3),
+                  OperandTypes.ANY))
+          .withName("TRY_CONVERT")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN);
+
   @LibraryOperator(libraries = {REDSHIFT})
   public static final SqlFunction REDSHIFT_CONVERT =
       SqlBasicFunction.create(SqlKind.REDSHIFT_CONVERT,

@@ -761,6 +761,11 @@ public enum SqlKind {
   MSSQL_CONVERT,
 
   /**
+   * The "TRY_CONVERT(type, expr [,style])" function (Microsoft SQL Server).
+   */
+  MSSQL_TRY_CONVERT,
+
+  /**
    * The "NEXT VALUE OF sequence" operator.
    */
   NEXT_VALUE,
