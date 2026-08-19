@@ -395,6 +395,26 @@ class TypeCoercionTest {
     f.comparisonCommonType(f.charType, f.varcharType, f.varcharType);
     f.comparisonCommonType(f.intType, f.charType, f.intType);
     f.comparisonCommonType(f.doubleType, f.charType, f.doubleType);
+    // Test cases for [CALCITE-7727] Comparing UUID <> '' always returns FALSE.
+    final RelDataType char0Type = f.typeFactory.createSqlType(SqlTypeName.CHAR, 0);
+    final RelDataType char36Type = f.typeFactory.createSqlType(SqlTypeName.CHAR, 36);
+    final RelDataType char40Type = f.typeFactory.createSqlType(SqlTypeName.CHAR, 40);
+    final RelDataType binary16Type =
+        f.typeFactory.createSqlType(SqlTypeName.BINARY, 16);
+    final RelDataType binary20Type =
+        f.typeFactory.createSqlType(SqlTypeName.BINARY, 20);
+    f.comparisonCommonType(f.uuidType, char0Type, f.uuidType);
+    f.comparisonCommonType(f.uuidType, f.charType, f.uuidType);
+    f.comparisonCommonType(f.uuidType, char36Type, f.uuidType);
+    f.comparisonCommonType(f.uuidType, char40Type, f.uuidType);
+    f.comparisonCommonType(f.uuidType, f.varchar20Type, f.uuidType);
+    f.comparisonCommonType(f.uuidType, f.varcharType, f.uuidType);
+    f.comparisonCommonType(f.uuidType, f.binaryType, f.uuidType);
+    f.comparisonCommonType(f.uuidType, binary16Type, f.uuidType);
+    f.comparisonCommonType(f.uuidType, binary20Type, f.uuidType);
+    f.comparisonCommonType(f.uuidType, f.varbinaryType, f.uuidType);
+    f.comparisonCommonType(f.uuidType, f.uuidType, f.uuidType);
+
     // TIMESTAMP
     f.comparisonCommonType(f.timestampType, f.timestampType, f.timestampType);
     f.comparisonCommonType(f.dateType, f.timestampType, f.timestampType);
@@ -796,6 +816,7 @@ class TypeCoercionTest {
     final RelDataType nullableVarchar20Type;
     final RelDataType geometryType;
     final RelDataType nullableGeometryType;
+    final RelDataType uuidType;
 
     /** Creates a Fixture. */
     public static Fixture create(SqlTestFactory testFactory) {
@@ -846,6 +867,7 @@ class TypeCoercionTest {
       nullableVarchar20Type = this.typeFactory.createTypeWithNullability(varchar20Type, true);
       geometryType = this.typeFactory.createSqlType(SqlTypeName.GEOMETRY);
       nullableGeometryType = this.typeFactory.createTypeWithNullability(geometryType, true);
+      uuidType = this.typeFactory.createSqlType(SqlTypeName.UUID);
 
       // Initialize category types
 

@@ -87,8 +87,48 @@ SELECT CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID);
 
 !ok
 
+# Hyphens are optional separators, so this denotes the same UUID. PostgreSQL
+# accepts the same set of spellings.
 SELECT CAST('123e4567e89b12d3a456426655440000' AS UUID);
-java.lang.IllegalArgumentException: Invalid UUID string: 123e4567e89b12d3a456426655440000
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST('{123e4567-e89b-12d3-a456-426655440000}' AS UUID);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST('123e-4567-e89b-12d3-a456-4266-5544-0000' AS UUID);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST('1-2-3-4-5' AS UUID);
+java.lang.IllegalArgumentException: Invalid UUID string: 1-2-3-4-5
+!error
+
+SELECT CAST('123e456-7e89b-12d3-a456-426655440000' AS UUID);
+java.lang.IllegalArgumentException: Invalid UUID string: 123e456-7e89b-12d3-a456-426655440000
+!error
+
+SELECT CAST('123e4567--e89b-12d3-a456-426655440000' AS UUID);
+java.lang.IllegalArgumentException: Invalid UUID string: 123e4567--e89b-12d3-a456-426655440000
 !error
 
 SELECT CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS VARCHAR);
@@ -122,7 +162,7 @@ SELECT CAST(x'123e4567e89b12d3a456426655440000' AS UUID);
 !ok
 
 SELECT CAST(x'00' AS UUID);
-java.lang.IllegalArgumentException: Need at least 16 bytes for UUID
+java.lang.IllegalArgumentException: Need exactly 16 bytes for UUID
 !error
 
 SELECT UUID '123e4567-e89b-12d3-a456-426655440000' = '123e4567-e89b-12d3-a456-426655440000';
@@ -131,6 +171,214 @@ SELECT UUID '123e4567-e89b-12d3-a456-426655440000' = '123e4567-e89b-12d3-a456-42
 +--------+
 | true   |
 +--------+
+(1 row)
+
+!ok
+
+# [CALCITE-7727] Comparing UUID <> '' always returns FALSE.
+# Matches PostgreSQL
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000' <> '' AS C;
+java.lang.IllegalArgumentException: Invalid UUID string:
+!error
+
+# Matches PostgreSQL
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000' = '123e4567' AS C;
+java.lang.IllegalArgumentException: Invalid UUID string: 123e4567
+!error
+
+# A trailing blank does not denote a UUID either
+# Matches PostgreSQL
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     = '123e4567-e89b-12d3-a456-426655440000 ' AS C;
+java.lang.IllegalArgumentException: Invalid UUID string: 123e4567-e89b-12d3-a456-426655440000
+!error
+
+# Matches PostgreSQL
+SELECT CAST('' AS UUID) AS C;
+java.lang.IllegalArgumentException: Invalid UUID string:
+!error
+
+# Matches PostgreSQL
+SELECT CAST('   ' AS UUID) AS C;
+java.lang.IllegalArgumentException: Invalid UUID string:
+!error
+
+# Blanks are not trimmed
+# Matches PostgreSQL
+SELECT CAST(' 123e4567-e89b-12d3-a456-426655440000' AS UUID) AS C;
+java.lang.IllegalArgumentException: Invalid UUID string:  123e4567-e89b-12d3-a456-426655440000
+!error
+
+# The CHAR(40) string has extra spaces, so casting it to UUID fails
+# Matches PostgreSQL, which rejects char(40) the same way
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     = CAST('123e4567-e89b-12d3-a456-426655440000' AS CHAR(40)) AS C;
+java.lang.IllegalArgumentException: Invalid UUID string: 123e4567-e89b-12d3-a456-426655440000
+!error
+
+# CHAR(36) is exactly the width of the UUID, so there is no padding
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     = CAST('123e4567-e89b-12d3-a456-426655440000' AS CHAR(36)) AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# Matches PostgreSQL
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     = '123E4567-E89B-12D3-A456-426655440000' AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# IN uses the comparison common type
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     IN ('123e4567-e89b-12d3-a456-426655440000',
+         '123E4567-E89B-12D3-A456-426655440001') AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# explain
+SELECT u <> '' FROM (VALUES (CAST(NULL AS UUID))) AS t(u);
+SELECT "T"."U" <> CAST('' AS UUID)
+FROM (VALUES ROW(CAST(NULL AS UUID))) AS "T" ("U")
+!explain-validated-on Calcite
+
+SELECT u = f AS EQ_FULL, u = g AS EQ_UPPER, u = b AS EQ_BINARY
+FROM (VALUES (CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID),
+              '123e4567-e89b-12d3-a456-426655440000',
+              '123E4567-E89B-12D3-A456-426655440000',
+              x'123e4567e89b12d3a456426655440000'),
+             (CAST(NULL AS UUID),
+              '123e4567-e89b-12d3-a456-426655440000',
+              '123E4567-E89B-12D3-A456-426655440000',
+              x'123e4567e89b12d3a456426655440000'))
+  AS t(u, f, g, b);
++---------+----------+-----------+
+| EQ_FULL | EQ_UPPER | EQ_BINARY |
++---------+----------+-----------+
+| true    | true     | true      |
+|         |          |           |
++---------+----------+-----------+
+(2 rows)
+
+!ok
+
+SELECT CAST(u AS VARCHAR) AS C
+FROM (VALUES (CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID)),
+             (CAST(NULL AS UUID))) AS t(u);
++--------------------------------------+
+| C                                    |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
+|                                      |
++--------------------------------------+
+(2 rows)
+
+!ok
+
+WITH t(u) AS (VALUES (CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID)),
+                     (CAST(NULL AS UUID)))
+SELECT CAST(u AS VARBINARY) AS B, u = u AS SELF FROM t;
++----------------------------------+------+
+| B                                | SELF |
++----------------------------------+------+
+| 123e4567e89b12d3a456426655440000 | true |
+|                                  |      |
++----------------------------------+------+
+(2 rows)
+
+!ok
+
+# UUID columns as grouping and sorting keys
+WITH t(u) AS (VALUES (CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID)),
+                     (CAST('123e4567-e89b-12d3-a456-426655440001' AS UUID)),
+                     (CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID)),
+                     (CAST(NULL AS UUID)))
+SELECT u, COUNT(*) AS C FROM t GROUP BY u ORDER BY u;
++--------------------------------------+---+
+| U                                    | C |
++--------------------------------------+---+
+| 123e4567-e89b-12d3-a456-426655440000 | 2 |
+| 123e4567-e89b-12d3-a456-426655440001 | 1 |
+|                                      | 1 |
++--------------------------------------+---+
+(3 rows)
+
+!ok
+
+# UUID columns as join keys
+WITH t(u) AS (VALUES (CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID)),
+                     (CAST('123e4567-e89b-12d3-a456-426655440001' AS UUID)))
+SELECT t1.u FROM t AS t1 JOIN t AS t2 ON t1.u = t2.u ORDER BY 1;
++--------------------------------------+
+| U                                    |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
+| 123e4567-e89b-12d3-a456-426655440001 |
++--------------------------------------+
+(2 rows)
+
+!ok
+
+# Binary compared to UUID
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000' = x'123e4567e89b12d3a456426655440000' AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+SELECT x'123e4567e89b12d3a456426655440000' = UUID '123e4567-e89b-12d3-a456-426655440000' AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000' = x'00' AS C;
+java.lang.IllegalArgumentException: Need exactly 16 bytes for UUID
+!error
+
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     = x'123e4567e89b12d3a456426655440000ff' AS C;
+java.lang.IllegalArgumentException: Need exactly 16 bytes for UUID
+!error
+
+SELECT CAST(x'123e4567e89b12d3a456426655440000ff' AS UUID) AS C;
+java.lang.IllegalArgumentException: Need exactly 16 bytes for UUID
+!error
+
+# Hyphens are optional, so this string denotes the same UUID.
+# Matches PostgreSQL
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000'
+     = '123e4567e89b12d3a456426655440000' AS C;
++------+
+| C    |
++------+
+| true |
++------+
 (1 row)
 
 !ok

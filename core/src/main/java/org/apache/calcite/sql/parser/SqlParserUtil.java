@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateLiteral;
@@ -399,7 +400,7 @@ public final class SqlParserUtil {
   }
 
   public static SqlUuidLiteral parseUuidLiteral(String s, SqlParserPos pos) {
-    UUID uuid = UUID.fromString(s);
+    UUID uuid = SqlFunctions.stringToUuid(s);
     return SqlLiteral.createUuid(uuid, pos);
   }
 

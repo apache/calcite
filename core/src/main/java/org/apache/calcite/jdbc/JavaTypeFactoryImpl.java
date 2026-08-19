@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.ReflectUtil.isStatic;
@@ -226,6 +227,8 @@ public class JavaTypeFactoryImpl
         return ByteString.class;
       case GEOMETRY:
         return Geometry.class;
+      case UUID:
+        return UUID.class;
       case SYMBOL:
         return Enum.class;
       case ANY:
