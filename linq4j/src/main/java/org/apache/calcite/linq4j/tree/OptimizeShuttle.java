@@ -104,7 +104,8 @@ public class OptimizeShuttle extends Shuttle {
             ? expression1
             : expression2;
       }
-      if (expression1.equals(expression2)) {
+      if (expression1.equals(expression2)
+          && !Expressions.mayThrow(expression0)) {
         // a ? b : b   ===   b
         return expression1;
       }
@@ -190,7 +191,10 @@ public class OptimizeShuttle extends Shuttle {
     case Equal:
     case NotEqual:
       if (eq(expression0, expression1)) {
-        return binary.getNodeType() == Equal ? TRUE_EXPR : FALSE_EXPR;
+        // "a == a" discards the evaluation of "a", so it must not throw
+        if (!Expressions.mayThrow(expression0)) {
+          return binary.getNodeType() == Equal ? TRUE_EXPR : FALSE_EXPR;
+        }
       } else if (expression0 instanceof ConstantExpression && expression1
           instanceof ConstantExpression) {
         ConstantExpression c0 = (ConstantExpression) expression0;
@@ -225,11 +229,11 @@ public class OptimizeShuttle extends Shuttle {
       // fall through
     case AndAlso:
     case OrElse:
-      result = visit0(binary, expression0, expression1);
+      result = visit0(binary, expression0, expression1, false);
       if (result != null) {
         return result;
       }
-      result = visit0(binary, expression1, expression0);
+      result = visit0(binary, expression1, expression0, true);
       if (result != null) {
         return result;
       }
@@ -240,18 +244,30 @@ public class OptimizeShuttle extends Shuttle {
     return super.visit(binary, expression0, expression1);
   }
 
+  /** Simplifies a binary expression whose {@code expression0} operand may be a
+   * constant.
+   *
+   * <p>{@code evaluated} says whether Java evaluates {@code expression1} before
+   * the operator produces its result. It is false when {@code expression1} is
+   * the right operand of {@code &&} or {@code ||}, which short-circuits;
+   * discarding a short-circuited operand cannot lose a runtime error. */
   private @Nullable Expression visit0(
       BinaryExpression binary,
       Expression expression0,
-      Expression expression1) {
+      Expression expression1,
+      boolean evaluated) {
     Boolean always;
     switch (binary.getNodeType()) {
     case AndAlso:
       always = always(expression0);
       if (always != null) {
-        return always
-            ? expression1
-            : FALSE_EXPR;
+        if (always) {
+          return expression1;
+        }
+        // "x && false" still evaluates x
+        if (!evaluated || !Expressions.mayThrow(expression1)) {
+          return FALSE_EXPR;
+        }
       }
       break;
     case OrElse:
@@ -259,12 +275,19 @@ public class OptimizeShuttle extends Shuttle {
       if (always != null) {
         // true or x  --> true
         // false or x --> x
-        return always
-            ? TRUE_EXPR
-            : expression1;
+        if (!always) {
+          return expression1;
+        }
+        // "x || true" still evaluates x
+        if (!evaluated || !Expressions.mayThrow(expression1)) {
+          return TRUE_EXPR;
+        }
       }
       break;
     case Equal:
+      // Not guarded by mayThrow: "x == null" for a primitive x does not
+      // compile, so this simplification is not optional. Evaluation of x is
+      // preserved by its declaration, which BlockBuilder keeps.
       if (isConstantNull(expression1)
           && isKnownNotNull(expression0)) {
         return FALSE_EXPR;
@@ -277,6 +300,7 @@ public class OptimizeShuttle extends Shuttle {
       }
       break;
     case NotEqual:
+      // See the comment on Equal above
       if (isConstantNull(expression1)
           && isKnownNotNull(expression0)) {
         return TRUE_EXPR;

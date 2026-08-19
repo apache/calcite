@@ -1717,6 +1717,94 @@ public class ExpressionTest {
             + ".add(\"1\").build()"));
   }
 
+  /** Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   *
+   * <p>Checks {@link Expressions#mayThrow} for all possible expressions */
+  @Test void testMayThrow() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final ParameterExpression j = Expressions.parameter(int.class, "j");
+    final ParameterExpression o = Expressions.parameter(Object.class, "o");
+    final ParameterExpression str = Expressions.parameter(String.class, "str");
+    final ParameterExpression box = Expressions.parameter(Integer.class, "box");
+    final ParameterExpression a = Expressions.parameter(int[].class, "a");
+    final ParameterExpression all = Expressions.parameter(AllType.class, "all");
+
+    // Reading a variable or a constant
+    assertMayThrow(i, false);
+    assertMayThrow(ONE, false);
+
+    // Java arithmetic wraps around; comparison, bit manipulation
+    assertMayThrow(Expressions.add(i, j), false);
+    assertMayThrow(Expressions.multiply(i, j), false);
+    assertMayThrow(Expressions.negate(i), false);
+    assertMayThrow(Expressions.lessThan(i, j), false);
+    assertMayThrow(Expressions.leftShift(i, j), false);
+    assertMayThrow(
+        Expressions.andAlso(Expressions.lessThan(i, j),
+        Expressions.equal(i, j)), false);
+    assertMayThrow(Expressions.typeIs(o, String.class), false);
+    assertMayThrow(Expressions.add(str, str), false);
+    assertMayThrow(Expressions.equal(str, o), false);
+
+    // An operator unboxes its operands, and a null box raises
+    // NullPointerException
+    assertMayThrow(Expressions.add(box, i), true);
+    assertMayThrow(Expressions.negate(box), true);
+    assertMayThrow(Expressions.lessThan(box, i), true);
+    assertMayThrow(Expressions.equal(box, i), true);
+
+    // Division may divide by zero; checked arithmetic may overflow
+    assertMayThrow(Expressions.divide(i, j), true);
+    assertMayThrow(Expressions.modulo(i, j), true);
+    assertMayThrow(Expressions.addChecked(i, j), true);
+    assertMayThrow(Expressions.negateChecked(i), true);
+
+    // An operand that may throw infects the whole expression
+    assertMayThrow(Expressions.add(ONE, Expressions.divide(ONE, i)), true);
+    assertMayThrow(
+        Expressions.condition(Expressions.lessThan(i, j),
+        Expressions.divide(ONE, i), ONE), true);
+
+    // Reading an array element, and the length of an array
+    assertMayThrow(Expressions.arrayIndex(a, i), true);
+    assertMayThrow(Expressions.field(a, "length"), true);
+
+    // Reading an instance field; a static field has no target to be null
+    assertMayThrow(Expressions.field(all, "i"), true);
+    assertMayThrow(Expressions.field(null, Integer.class, "MAX_VALUE"), false);
+
+    // Calling a method or a constructor, and creating an array
+    assertMayThrow(Expressions.call(o, "toString"), true);
+    assertMayThrow(Expressions.new_(Object.class), true);
+    assertMayThrow(Expressions.newArrayBounds(int.class, 1, i), true);
+    assertMayThrow(Expressions.newArrayInit(int.class, ONE, TWO), true);
+
+    // A cast that cannot fail: a primitive conversion, boxing, or a widening
+    // reference conversion
+    assertMayThrow(Expressions.convert_(i, long.class), false);
+    assertMayThrow(Expressions.convert_(i, Integer.class), false);
+    assertMayThrow(Expressions.convert_(str, Object.class), false);
+
+    // Some casts may raise ClassCastException, and unboxing may throw NPE
+    assertMayThrow(Expressions.convert_(o, String.class), true);
+    assertMayThrow(Expressions.convert_(box, int.class), true);
+    assertMayThrow(Expressions.unbox(box, int.class), true);
+
+    // Throwing, and a block that contains a throw
+    assertMayThrow(Expressions.throw_(Expressions.new_(RuntimeException.class)),
+        true);
+    assertMayThrow(
+        Expressions.block(
+            Expressions.throw_(Expressions.new_(RuntimeException.class))),
+        true);
+  }
+
+  private static void assertMayThrow(Node node, boolean mayThrow) {
+    assertThat(node.toString(), Expressions.mayThrow(node), is(mayThrow));
+  }
+
   /** An enum. */
   enum MyEnum {
     X,

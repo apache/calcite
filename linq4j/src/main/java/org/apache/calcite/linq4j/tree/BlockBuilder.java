@@ -258,6 +258,8 @@ public class BlockBuilder {
     if (expr instanceof UnaryExpression) {
       UnaryExpression una = (UnaryExpression) expr;
       return una.getNodeType() == ExpressionType.Convert
+          // A cast may raise ClassCastException, or unbox a null
+          && !Expressions.mayThrow(una)
           && isSimpleExpression(una.expression);
     }
     return false;
@@ -407,6 +409,14 @@ public class BlockBuilder {
           // confused referencing variables from deeply nested
           // anonymous classes.
           count = Integer.MAX_VALUE;
+        }
+        if (count == 0
+            && statement.initializer != null
+            && Expressions.mayThrow(statement.initializer)) {
+          // Never read, but computing the value may raise a runtime error that
+          // the program is expected to raise. Keep the declaration, and treat
+          // it like any other statement that cannot be inlined.
+          count = 100;
         }
         Expression normalized = normalizeDeclaration(statement);
         expressionForReuse.remove(normalized);

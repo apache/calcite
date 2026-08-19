@@ -66,6 +66,76 @@ class BlockBuilderTest {
             + "}\n"));
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   *
+   * <p>A local variable that is never read is removed, unless computing its
+   * value may raise a runtime error that the program is expected to raise. */
+  @Test void testUnusedDeclarationThatMayThrow() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    b.append("x", Expressions.divide(ONE, i));
+    b.add(Expressions.return_(null, TWO));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = 1 / i;\n"
+            + "  return 2;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   *
+   * <p>Indexing an array may raise {@link ArrayIndexOutOfBoundsException} or
+   * {@link NullPointerException}. */
+  @Test void testUnusedDeclarationThatIndexesArray() {
+    final ParameterExpression a = Expressions.parameter(int[].class, "a");
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    b.append("x", Expressions.arrayIndex(a, i));
+    b.add(Expressions.return_(null, TWO));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = a[i];\n"
+            + "  return 2;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   */
+  @Test void testUnusedDeclarationThatCasts() {
+    final ParameterExpression o = Expressions.parameter(Object.class, "o");
+    b.append("x", Expressions.convert_(o, String.class));
+    b.add(Expressions.return_(null, TWO));
+    // Cast may throw, cannot be removed
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final String x = (String) o;\n"
+            + "  return 2;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   */
+  @Test void testUnusedDeclarationThatWidens() {
+    final ParameterExpression str = Expressions.parameter(String.class, "str");
+    b.append("x", Expressions.convert_(str, Object.class));
+    // Cast to Object cannot throw, it can be removed
+    b.add(Expressions.return_(null, TWO));
+    assertThat(b.toBlock(), hasToString("{\n  return 2;\n}\n"));
+  }
+
+  @Test void testUnusedDeclarationThatCannotThrow() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    b.append("x", Expressions.add(ONE, i));
+    b.add(Expressions.return_(null, TWO));
+    assertThat(b.toBlock(), hasToString("{\n  return 2;\n}\n"));
+  }
+
   @Test void testTestCustomOptimizer() {
     BlockBuilder b = new BlockBuilder() {
       @Override protected Shuttle createOptimizeShuttle() {
