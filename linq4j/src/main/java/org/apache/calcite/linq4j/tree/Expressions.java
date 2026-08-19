@@ -32,6 +32,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -513,6 +514,20 @@ public abstract class Expressions {
   public static boolean isConstantNull(Expression e) {
     return e instanceof ConstantExpression
            && ((ConstantExpression) e).value == null;
+  }
+
+  /** Returns whether evaluating a node may cause a runtime error, for example
+   * a division by zero or an arithmetic overflow.
+   *
+   * <p>An optimization must not discard a node that may throw, even when its
+   * value is unused: the error is part of the meaning of the program. It is
+   * still free to discard a node that Java would not have evaluated anyway,
+   * such as the untaken branch of {@code true ? x : y}.
+   */
+  public static boolean mayThrow(Node node) {
+    final MayThrowVisitor visitor = new MayThrowVisitor();
+    node.accept(visitor);
+    return visitor.mayThrow;
   }
 
   /**
@@ -3288,6 +3303,235 @@ public abstract class Expressions {
     FluentList<T> appendAll(Iterable<T> ts);
 
     FluentList<T> appendAll(T... ts);
+  }
+
+  /** Visitor that detects whether a node may cause a runtime error.
+   *
+   * <p>The analysis is conservative: a false positive is a missed
+   * simplification, but a false negative is a lost runtime error.
+   *
+   * <p>These nodes may throw:
+   *
+   * <ul>
+   * <li>calling anything - a method, a constructor, or a function value - as
+   * the callee decides whether to throw, and calling on a null target raises
+   * {@link NullPointerException};
+   * <li>reading an array element may raise
+   * {@link ArrayIndexOutOfBoundsException} or {@link NullPointerException};
+   * <li>reading an instance field if the target is null;
+   * <li>creating an array may raise {@link NegativeArraySizeException};
+   * <li>a cast that is not statically known to succeed may raise
+   * {@link ClassCastException};
+   * <li>unboxing raises {@link NullPointerException} on a null box;
+   * may implied by an operator, e.g. {@code integer + 1};
+   * <li>division and remainder (divide by zero), and checked
+   * arithmetic, which may overflow;
+   * <li>a {@code throw}, and a {@code try} whose body may throw.
+   * </ul>
+   *
+   * <p>Everything else - reading a variable or a static field, comparing two
+   * references, {@code instanceof}, string concatenation, and Java arithmetic
+   * that wraps around - is assumed not to throw. An unrecognized node is unsafe.
+   *
+   * @see #mayThrow(Node) */
+  private static class MayThrowVisitor extends VisitorImpl<@Nullable Void> {
+    boolean mayThrow = false;
+
+    @Override public @Nullable Void visit(MethodCallExpression call) {
+      mayThrow = true;
+      return super.visit(call);
+    }
+
+    @Override public @Nullable Void visit(InvocationExpression invocation) {
+      mayThrow = true;
+      return super.visit(invocation);
+    }
+
+    @Override public @Nullable Void visit(DynamicExpression dynamic) {
+      mayThrow = true;
+      return super.visit(dynamic);
+    }
+
+    @Override public @Nullable Void visit(NewExpression newExpression) {
+      mayThrow = true;
+      return super.visit(newExpression);
+    }
+
+    @Override public @Nullable Void visit(NewArrayExpression newArray) {
+      mayThrow = true;
+      return super.visit(newArray);
+    }
+
+    @Override public @Nullable Void visit(ListInitExpression listInit) {
+      mayThrow = true;
+      return super.visit(listInit);
+    }
+
+    @Override public @Nullable Void visit(MemberInitExpression memberInit) {
+      mayThrow = true;
+      return super.visit(memberInit);
+    }
+
+    @Override public @Nullable Void visit(IndexExpression indexExpression) {
+      mayThrow = true;
+      return super.visit(indexExpression);
+    }
+
+    @Override public @Nullable Void visit(MemberExpression member) {
+      if (!Modifier.isStatic(member.field.getModifiers())) {
+        mayThrow = true;
+      }
+      return super.visit(member);
+    }
+
+    @Override public @Nullable Void visit(ThrowStatement throwStatement) {
+      mayThrow = true;
+      return super.visit(throwStatement);
+    }
+
+    @Override public @Nullable Void visit(TryStatement tryStatement) {
+      mayThrow = true;
+      return super.visit(tryStatement);
+    }
+
+    @Override public @Nullable Void visit(BinaryExpression binary) {
+      final Type left = binary.expression0.getType();
+      final Type right = binary.expression1.getType();
+      switch (binary.getNodeType()) {
+      case Assign:
+      case Coalesce:
+        break;
+      case Equal:
+      case NotEqual:
+        // Comparing a primitive with a reference unboxes the reference;
+        // comparing two references compares them by identity.
+        if (Primitive.is(left) != Primitive.is(right)) {
+          mayThrow = true;
+        }
+        break;
+      case Add:
+        // "+" is concatenation, not addition, if either operand is a String
+        if (left == String.class || right == String.class) {
+          break;
+        }
+        // fall through
+      case AddAssign:
+      case And:
+      case AndAlso:
+      case AndAssign:
+      case ExclusiveOr:
+      case ExclusiveOrAssign:
+      case GreaterThan:
+      case GreaterThanOrEqual:
+      case LeftShift:
+      case LeftShiftAssign:
+      case LessThan:
+      case LessThanOrEqual:
+      case Multiply:
+      case MultiplyAssign:
+      case Or:
+      case OrAssign:
+      case OrElse:
+      case Power:
+      case PowerAssign:
+      case RightShift:
+      case RightShiftAssign:
+      case Subtract:
+      case SubtractAssign:
+        // The operator itself cannot fail, but it may unbox an operand
+        if (!Primitive.is(left) || !Primitive.is(right)) {
+          mayThrow = true;
+        }
+        break;
+      case Divide:
+      case DivideAssign:
+      case DivideChecked:
+      case Mod:
+      case Modulo:
+      case ModuloAssign:
+        // May divide by zero
+        mayThrow = true;
+        break;
+      case AddAssignChecked:
+      case AddChecked:
+      case MultiplyAssignChecked:
+      case MultiplyChecked:
+      case SubtractAssignChecked:
+      case SubtractChecked:
+        // May overflow
+        mayThrow = true;
+        break;
+      default:
+        // A node type that no one has classified yet
+        mayThrow = true;
+        break;
+      }
+      return super.visit(binary);
+    }
+
+    @Override public @Nullable Void visit(UnaryExpression unary) {
+      final Type operand = unary.expression.getType();
+      switch (unary.getNodeType()) {
+      case Quote:
+      case TypeAs:
+        break;
+      case Decrement:
+      case Increment:
+      case IsFalse:
+      case IsTrue:
+      case Negate:
+      case Not:
+      case OnesComplement:
+      case PostDecrementAssign:
+      case PostIncrementAssign:
+      case PreDecrementAssign:
+      case PreIncrementAssign:
+      case UnaryPlus:
+        // The operator itself cannot fail, but it unboxes its operand.
+        if (!Primitive.is(operand)) {
+          mayThrow = true;
+        }
+        break;
+      case Convert:
+        if (!castAlwaysSucceeds(operand, unary.getType())) {
+          mayThrow = true;
+        }
+        break;
+      case ConvertChecked:
+      case NegateChecked:
+        // May overflow
+        mayThrow = true;
+        break;
+      case Unbox:
+        // Unboxing a null raises NullPointerException
+        mayThrow = true;
+        break;
+      case ArrayLength:
+        // Reads a field of an array, which may be null
+        mayThrow = true;
+        break;
+      default:
+        // A node type that no one has classified yet
+        mayThrow = true;
+        break;
+      }
+      return super.visit(unary);
+    }
+
+    /** Returns whether a cast from {@code from} to {@code to} is known to
+     * succeed. A cast whose source is a primitive cannot fail;
+     * neither can a widening reference conversion, such
+     * as {@code (Object) s}. Any other cast may raise
+     * {@link ClassCastException} or, when unboxing,
+     * {@link NullPointerException}. */
+    private static boolean castAlwaysSucceeds(Type from, Type to) {
+      if (Primitive.is(from)) {
+        return true;
+      }
+      return from instanceof Class
+          && to instanceof Class
+          && ((Class<?>) to).isAssignableFrom((Class<?>) from);
+    }
   }
 
   /** Fluent array list.

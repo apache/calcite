@@ -5100,14 +5100,18 @@ public class RexImpTable implements RexImplementorTable {
       final RexCall binaryImplementorRexCall =
           (RexCall) translator.builder.makeCall(call.getParserPosition(), binaryOperator, leftRex,
               translator.builder.makeDynamicParam(rightComponentType, 0));
+      // The comparison is evaluated inside the lambda, and it reads the lambda
+      // parameter, so its statements must go into the lambda's block
+      final RexToLixTranslator lambdaTranslator = translator.setBlock(lambdaBuilder);
       final List<RexToLixTranslator.Result> binaryImplementorArgs =
           ImmutableList.of(
               new RexToLixTranslator.Result(
-                  genIsNullStatement(translator, leftExpr), leftExpr),
+                  genIsNullStatement(lambdaTranslator, leftExpr), leftExpr),
               new RexToLixTranslator.Result(
-                  genIsNullStatement(translator, lambdaArg), lambdaArg));
+                  genIsNullStatement(lambdaTranslator, lambdaArg), lambdaArg));
       final RexToLixTranslator.Result condition =
-          binaryImplementor.implement(translator, binaryImplementorRexCall, binaryImplementorArgs);
+          binaryImplementor.implement(lambdaTranslator, binaryImplementorRexCall,
+              binaryImplementorArgs);
       lambdaBuilder.add(Expressions.return_(null, condition.valueVariable));
       final FunctionExpression<?> predicate =
           Expressions.lambda(lambdaBuilder.toBlock(), lambdaArg);

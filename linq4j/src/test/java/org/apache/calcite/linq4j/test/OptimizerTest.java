@@ -902,4 +902,84 @@ class OptimizerTest {
             + "  }\n"
             + "}\n"));
   }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   *
+   * <p>An expression that may throw, such as "1 / i", must survive a
+   * simplification that would otherwise discard it. It may be discarded when
+   * Java would not have evaluated it anyway. */
+  @Test void testDoNotDiscardExpressionThatMayThrow() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final Expression divide = Expressions.equal(Expressions.divide(ONE, i), ONE);
+    final Expression safe = Expressions.equal(i, ONE);
+
+    // "x && false" evaluates x
+    assertThat(optimize(Expressions.andAlso(divide, FALSE)),
+        is("{\n  return 1 / i == 1 && false;\n}\n"));
+    assertThat(optimize(Expressions.andAlso(safe, FALSE)),
+        is("{\n  return false;\n}\n"));
+
+    // "false && x" does not evaluate x
+    assertThat(optimize(Expressions.andAlso(FALSE, divide)),
+        is("{\n  return false;\n}\n"));
+
+    // "x || true" evaluates x
+    assertThat(optimize(Expressions.orElse(divide, TRUE)),
+        is("{\n  return 1 / i == 1 || true;\n}\n"));
+    assertThat(optimize(Expressions.orElse(safe, TRUE)),
+        is("{\n  return true;\n}\n"));
+
+    // "a ? b : b" evaluates a
+    assertThat(optimize(Expressions.condition(divide, ONE, ONE)),
+        is("{\n  return 1 / i == 1 ? 1 : 1;\n}\n"));
+    assertThat(optimize(Expressions.condition(safe, ONE, ONE)),
+        is("{\n  return 1;\n}\n"));
+
+    // "a == a" evaluates a
+    assertThat(
+        optimize(
+            Expressions.equal(Expressions.divide(ONE, i),
+                Expressions.divide(ONE, i))),
+        is("{\n  return 1 / i == 1 / i;\n}\n"));
+    assertThat(optimize(Expressions.equal(i, i)),
+        is("{\n  return true;\n}\n"));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
+   * Linq4j can simplify expressions without regards for 'safety'</a>.
+   *
+   * <p>Indexing an array may raise {@link ArrayIndexOutOfBoundsException} or
+   * {@link NullPointerException}. */
+  @Test void testDoNotDiscardArrayIndex() {
+    final ParameterExpression a = Expressions.parameter(int[].class, "a");
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final Expression index =
+        Expressions.equal(Expressions.arrayIndex(a, i), ONE);
+
+    // "a[i] == 1 && false" evaluates "a[i] == 1"
+    assertThat(optimize(Expressions.andAlso(index, FALSE)),
+        is("{\n  return a[i] == 1 && false;\n}\n"));
+
+    // "false && a[i] == 1" does not evaluate "a[i] == 1"
+    assertThat(optimize(Expressions.andAlso(FALSE, index)),
+        is("{\n  return false;\n}\n"));
+
+    // "a[i] == 1 || true" evaluates "a[i] == 1"
+    assertThat(optimize(Expressions.orElse(index, TRUE)),
+        is("{\n  return a[i] == 1 || true;\n}\n"));
+
+    // "a[i] == 1 ? 1 : 1" evaluates "a[i] == 1"
+    assertThat(optimize(Expressions.condition(index, ONE, ONE)),
+        is("{\n  return a[i] == 1 ? 1 : 1;\n}\n"));
+
+    // "a[i] == a[i]" evaluates "a[i]"
+    assertThat(
+        optimize(
+            Expressions.equal(Expressions.arrayIndex(a, i),
+                Expressions.arrayIndex(a, i))),
+        is("{\n  return a[i] == a[i];\n}\n"));
+  }
 }
