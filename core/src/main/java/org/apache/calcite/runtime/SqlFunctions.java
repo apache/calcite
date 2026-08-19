@@ -50,6 +50,7 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.UuidValue;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
@@ -348,7 +349,7 @@ public class SqlFunctions {
     return condition;
   }
 
-  public static String uuidToString(UUID uuid) {
+  public static String uuidToString(UuidValue uuid) {
     return uuid.toString();
   }
 
@@ -413,17 +414,17 @@ public class SqlFunctions {
         Long.parseUnsignedLong(digits.substring(16), 16));
   }
 
-  public static UUID binaryToUuid(ByteString bytes) {
+  public static UuidValue binaryToUuid(ByteString bytes) {
     if (bytes.length() != 16) {
       throw new IllegalArgumentException("Need exactly 16 bytes for UUID");
     }
     ByteBuffer byteBuffer = ByteBuffer.wrap(bytes.getBytes());
     long mostSignificantBits = byteBuffer.getLong();
     long leastSignificantBits = byteBuffer.getLong();
-    return new UUID(mostSignificantBits, leastSignificantBits);
+    return new UuidValue(new UUID(mostSignificantBits, leastSignificantBits));
   }
 
-  public static ByteString uuidToBinary(UUID uuid) {
+  public static ByteString uuidToBinary(UuidValue uuid) {
     byte[] dest = new byte[16];
     ByteBuffer byteBuffer = ByteBuffer.wrap(dest);
     byteBuffer.putLong(uuid.getMostSignificantBits());
@@ -2553,6 +2554,11 @@ public class SqlFunctions {
     return b0.compareTo(b1) < 0;
   }
 
+  /** SQL <code>&lt;</code> operator applied to UUID values. */
+  public static boolean lt(UuidValue b0, UuidValue b1) {
+    return b0.compareTo(b1) < 0;
+  }
+
   /** SQL <code>&lt;</code> operator applied to BigDecimal values. */
   public static boolean lt(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) < 0;
@@ -2631,6 +2637,11 @@ public class SqlFunctions {
     return b0.compareTo(b1) <= 0;
   }
 
+  /** SQL <code>&le;</code> operator applied to UUID values. */
+  public static boolean le(UuidValue b0, UuidValue b1) {
+    return b0.compareTo(b1) <= 0;
+  }
+
   /** SQL <code>&le;</code> operator applied to BigDecimal values. */
   public static boolean le(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) <= 0;
@@ -2676,6 +2687,11 @@ public class SqlFunctions {
 
   /** SQL <code>&gt;</code> operator applied to ByteString values. */
   public static boolean gt(ByteString b0, ByteString b1) {
+    return b0.compareTo(b1) > 0;
+  }
+
+  /** SQL <code>&gt;</code> operator applied to UUID values. */
+  public static boolean gt(UuidValue b0, UuidValue b1) {
     return b0.compareTo(b1) > 0;
   }
 
@@ -2755,6 +2771,11 @@ public class SqlFunctions {
 
   /** SQL <code>&ge;</code> operator applied to ByteString values. */
   public static boolean ge(ByteString b0, ByteString b1) {
+    return b0.compareTo(b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to UUID values. */
+  public static boolean ge(UuidValue b0, UuidValue b1) {
     return b0.compareTo(b1) >= 0;
   }
 
