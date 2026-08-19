@@ -681,6 +681,14 @@ class SqlHintsConverterTest {
         + RelOptUtil.toString(newRel));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4581">[CALCITE-4581]
+   * The digest of TableScan should consider table hints</a>. */
+  @Test void testTableScanHint() {
+    final String sql = "select * from emp /*+ index(idx1) */";
+    sql(sql).ok();
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   private static boolean equalsStringList(List<String> l, List<String> r) {
