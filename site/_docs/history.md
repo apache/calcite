@@ -64,6 +64,24 @@ Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate
 pattern is set in `calcite.model.classes.allowed` system property.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7727">CALCITE-7727</a>]
+Comparing a `UUID` with a character or binary value now converts that value to a
+`UUID`, the same direction as comparing a string with a number or a datetime.
+Previously the `UUID` was converted to the other operand's type. A value that does not
+denote a `UUID` is now an error rather than a comparison that silently fails.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7727">CALCITE-7727</a>]
+Converting a string to a `UUID` now follows PostgreSQL: 32 hexadecimal digits of
+either case, optionally enclosed in braces, optionally separated by a hyphen
+after any complete group of four digits. Forms such as
+`123e4567e89b12d3a456426655440000` and `{123e4567-e89b-12d3-a456-426655440000}`
+are now accepted. Malformed strings are now rejected instead of being converted
+to a different `UUID`; `java.util.UUID.fromString`, used previously, does not
+check the width of each group, and turned `1-2-3-4-5` into
+`00000001-0002-0003-0004-000000000005`. Converting a binary to a `UUID` now
+requires exactly 16 bytes; a longer value used to be truncated. Blanks are not
+trimmed.
+
 #### New features
 {: #new-features-1-43-0}
 

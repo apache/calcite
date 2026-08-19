@@ -1299,7 +1299,7 @@ name will have been converted to upper case also.
 | TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
 | TIMESTAMP WITH LOCAL TIME ZONE | Date and time with local time zone | Example: TIMESTAMP WITH LOCAL TIME ZONE '1969-07-20 20:17:40'
 | TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP WITH TIME ZONE '1969-07-20 20:17:40 America/Los Angeles'
-| UUID        | An 128-bit UUID           | Example: UUID '123e4567-e89b-12d3-a456-426655440000'
+| UUID        | An 128-bit UUID           | Example: UUID '123e4567-e89b-12d3-a456-426655440000'. A string converts to a `UUID` if it holds 32 hexadecimal digits of either case, optionally enclosed in braces, optionally separated by a hyphen after any complete group of four digits; a binary converts if it is exactly 16 bytes. Anything else is an error. Blanks are not trimmed.
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1-5' YEAR TO MONTH, INTERVAL '45' DAY, INTERVAL '1 2:34:56.789' DAY TO SECOND
 | GEOMETRY | Geometry | Examples: ST_GeomFromText('POINT (30 10)')
 
@@ -1825,7 +1825,8 @@ i: implicit cast / e: explicit cast / x: not allowed
 * Binary comparison (`=`, `<`, `<=`, `<>`, `>`, `>=`):
   if operands are `STRING` and `TIMESTAMP`, promote to `TIMESTAMP`;
   make `1 = true` and `0 = false` always evaluate to `TRUE`;
-  if there is numeric type operand, find common type for both operands.
+  if there is numeric type operand, find common type for both operands;
+  if operands are `UUID` and `CHARACTER` or `BINARY`, promote to `UUID`.
 * `IN` sub-query: compare type of LHS and RHS, and find the common type;
   if it is struct type, find wider type for every field;
 * `IN` expression list: compare every expression to find the common type;

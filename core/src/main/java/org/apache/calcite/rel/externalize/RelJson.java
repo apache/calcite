@@ -53,6 +53,7 @@ import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.rex.RexWindowExclusion;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -874,7 +875,7 @@ public class RelJson {
         } else if (sqlTypeName == SqlTypeName.BINARY || sqlTypeName == SqlTypeName.VARBINARY) {
           literal = ByteString.of((String) literal, 16);
         } else if (sqlTypeName == SqlTypeName.UUID) {
-          literal = UUID.fromString((String) literal);
+          literal = SqlFunctions.stringToUuid((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type);
       }
