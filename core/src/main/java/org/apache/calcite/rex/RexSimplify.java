@@ -1034,8 +1034,11 @@ public class RexSimplify {
 
   private RexNode simplifyUnaryMinus(RexCall call, RexUnknownAs unknownAs) {
     final RexNode a = call.getOperands().get(0);
-    if (a.getKind() == SqlKind.MINUS_PREFIX) {
-      // -(-(x)) ==> x
+    if (call.getKind() == SqlKind.MINUS_PREFIX
+        && a.getKind() == SqlKind.MINUS_PREFIX) {
+      // -(-(x)) ==> x.
+      // Not valid for checked arithmetic, where negation of the minimum value
+      // of the type throws.
       return simplify(((RexCall) a).getOperands().get(0), unknownAs);
     }
     return simplifyGenericNode(call);
@@ -1548,13 +1551,9 @@ public class RexSimplify {
       safeOps.add(SqlKind.ARRAY_VALUE_CONSTRUCTOR);
       safeOps.add(SqlKind.PLUS_PREFIX);
       safeOps.add(SqlKind.MINUS_PREFIX);
-      safeOps.add(SqlKind.CHECKED_MINUS_PREFIX);
       safeOps.add(SqlKind.PLUS);
       safeOps.add(SqlKind.MINUS);
       safeOps.add(SqlKind.TIMES);
-      safeOps.add(SqlKind.CHECKED_PLUS);
-      safeOps.add(SqlKind.CHECKED_MINUS);
-      safeOps.add(SqlKind.CHECKED_TIMES);
       safeOps.add(SqlKind.IS_FALSE);
       safeOps.add(SqlKind.IS_NOT_FALSE);
       safeOps.add(SqlKind.IS_TRUE);
@@ -1598,6 +1597,13 @@ public class RexSimplify {
     @Override public Boolean visitCall(RexCall call) {
       SqlKind sqlKind = call.getKind();
       SqlOperator sqlOperator = call.getOperator();
+
+      if (SqlKind.CHECKED_ARITHMETIC.contains(sqlKind)) {
+        // Checked arithmetic throws on overflow, so it is only safe when the
+        // arithmetic is never performed, i.e. when an operand is NULL.
+        return RexVisitorImpl.visitArrayAnd(this, call.operands)
+            && call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
+      }
 
       switch (sqlKind) {
       case DIVIDE:
@@ -1683,6 +1689,8 @@ public class RexSimplify {
   *
   * <p>Division is an unsafe operator; consider the following:
   * <pre>case when a &gt; 0 then 1 / a else null end</pre>
+  *
+  * <p>Checked arithmetic is unsafe too, because it throws on overflow
   */
   static boolean isSafeExpression(RexNode r) {
     return r.accept(SafeRexVisitor.INSTANCE);

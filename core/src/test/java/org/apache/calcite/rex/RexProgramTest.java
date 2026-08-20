@@ -4788,6 +4788,30 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7725">[CALCITE-7725]
+   * Review safety of checked arithmetic operators</a>. */
+  @Test void testSimplifyCheckedArithmetic() {
+    final RexNode a = vIntNotNull(1);
+    final RexNode b = vIntNotNull(2);
+    final RexNode checkedMul =
+        rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_MULTIPLY, a, b);
+
+    // Unchecked arithmetic wraps around, so it never throws
+    checkSimplify(isNotNull(mul(a, b)), "true");
+    checkSimplify(add(mul(a, b), nullInt), "null:INTEGER");
+
+    // Checked arithmetic throws on overflow
+    checkSimplifyUnchanged(isNotNull(checkedMul));
+    checkSimplifyUnchanged(
+        rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_PLUS, checkedMul, nullInt));
+
+    // A checked operation with a NULL operand is never performed, hence safe
+    checkSimplify(
+        rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_PLUS, a, nullInt),
+        "null:INTEGER");
+  }
+
   @Test void testSimplifyCastWithConstantReduction() {
     RexNode dateStr = literal("2020-10-30");
     RelDataType nullableDateType =
