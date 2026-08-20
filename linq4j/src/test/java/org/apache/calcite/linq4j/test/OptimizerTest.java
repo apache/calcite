@@ -868,8 +868,9 @@ class OptimizerTest {
                         x_)))),
         equalTo("{\n"
             + "  long x = 0L;\n"
+            + "  final long y = System.currentTimeMillis();\n"
             + "  if (System.nanoTime() > 0L) {\n"
-            + "    x = System.currentTimeMillis();\n"
+            + "    x = y;\n"
             + "  }\n"
             + "  System.out.println(x);\n"
             + "}\n"));
@@ -897,8 +898,9 @@ class OptimizerTest {
                     Expressions.statement(Expressions.assign(x_, y_))))),
         equalTo("{\n"
             + "  long x = 0L;\n"
+            + "  final long y = System.currentTimeMillis();\n"
             + "  if (System.currentTimeMillis() > 0L) {\n"
-            + "    x = System.currentTimeMillis();\n"
+            + "    x = y;\n"
             + "  }\n"
             + "}\n"));
   }

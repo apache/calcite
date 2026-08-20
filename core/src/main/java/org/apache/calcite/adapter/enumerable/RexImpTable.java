@@ -2498,11 +2498,33 @@ public class RexImpTable implements RexImplementorTable {
         return implementResultIgnoreNulls(info, winResult);
       }
 
-      return Expressions.condition(winResult.hasRows(),
+      // Generates:
+      //   T first_last_value;
+      //   if (<hasRows>) {
+      //     <statements that read the row>
+      //     first_last_value = <value of the argument in that row>;
+      //   } else {
+      //     first_last_value = <default value>;
+      //   }
+      //
+      // Reading a row is only valid when the frame has rows: on an empty frame
+      // computeIndex returns -1.
+      final ParameterExpression res =
+          Expressions.parameter(0, info.returnType(),
+              result.currentBlock().newName("first_last_value"));
+      final BlockBuilder thenBlock = result.nestBlock();
+      final Expression value =
           winResult.rowTranslator(
               winResult.computeIndex(Expressions.constant(0), seekType))
-              .translate(winResult.rexArguments().get(0), info.returnType()),
-          getDefaultValue(info.returnType()));
+              .translate(winResult.rexArguments().get(0), info.returnType());
+      thenBlock.add(Expressions.statement(Expressions.assign(res, value)));
+      result.exitBlock();
+      result.currentBlock().add(Expressions.declare(0, res, null));
+      result.currentBlock().add(
+          Expressions.ifThenElse(winResult.hasRows(), thenBlock.toBlock(),
+              Expressions.statement(
+                  Expressions.assign(res, getDefaultValue(info.returnType())))));
+      return res;
     }
 
     /**

@@ -84,6 +84,122 @@ class BlockBuilderTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7729">[CALCITE-7729]
+   * Linq4j BlockBuilder.optimize can optimize away expressions that
+   * throw</a>. */
+  @Test void testDeclarationUsedOnlyInBranchThatFoldsAway() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final Expression x = b.append("x", Expressions.divide(ONE, i));
+    b.add(
+        Expressions.return_(null,
+            Expressions.condition(Expressions.constant(true), TWO, x)));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = 1 / i;\n"
+            + "  return 2;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7729">[CALCITE-7729]
+   * Linq4j BlockBuilder.optimize can optimize away expressions that
+   * throw</a>. */
+  @Test void testDeclarationUsedInBranchThatSurvives() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final ParameterExpression c = Expressions.parameter(boolean.class, "c");
+    final Expression x = b.append("x", Expressions.divide(ONE, i));
+    b.add(Expressions.return_(null, Expressions.condition(c, TWO, x)));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = 1 / i;\n"
+            + "  return c ? 2 : x;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7729">[CALCITE-7729]
+   * Linq4j BlockBuilder.optimize can optimize away expressions that
+   * throw</a>.
+   *
+   * <p>Nested conditionals: "x" is read in a branch of an inner conditional,
+   * which is itself in a branch. */
+  @Test void testNestedConditionalBranch() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final ParameterExpression c = Expressions.parameter(boolean.class, "c");
+    final ParameterExpression d = Expressions.parameter(boolean.class, "d");
+    final Expression x = b.append("x", Expressions.divide(ONE, i));
+    b.add(
+        Expressions.return_(null,
+            Expressions.condition(c,
+                Expressions.condition(d, TWO, x), ONE)));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = 1 / i;\n"
+            + "  return c ? (d ? 2 : x) : 1;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7729">[CALCITE-7729]
+   * Linq4j BlockBuilder.optimize can optimize away expressions that
+   * throw</a>.
+   *
+   * <p>Nested conditionals: "x" is read in the condition of an inner
+   * conditional, so it is evaluated only if the outer condition holds. */
+  @Test void testNestedConditionalCondition() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final ParameterExpression c = Expressions.parameter(boolean.class, "c");
+    final Expression x = b.append("x", Expressions.divide(ONE, i));
+    b.add(
+        Expressions.return_(null,
+            Expressions.condition(c,
+                Expressions.condition(
+                    Expressions.greaterThan(x, ONE), TWO, ONE),
+                ONE)));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = 1 / i;\n"
+            + "  return c ? (x > 1 ? 2 : 1) : 1;\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7729">[CALCITE-7729]
+   * Linq4j BlockBuilder.optimize can optimize away expressions that
+   * throw</a>. */
+  @Test void testDeclarationUsedOnlyInWhileBody() {
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final ParameterExpression c = Expressions.parameter(boolean.class, "c");
+    final ParameterExpression y = Expressions.parameter(int.class, "y");
+    final Expression x = b.append("x", Expressions.divide(ONE, i));
+    b.add(Expressions.declare(0, y, ONE));
+    b.add(
+        Expressions.while_(c,
+            Expressions.statement(Expressions.assign(y, x))));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  final int x = 1 / i;\n"
+            + "  int y = 1;\n"
+            + "  while (c) {\n"
+            + "    y = x;\n"
+            + "  }\n"
+            + "}\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7729">[CALCITE-7729]
+   * Linq4j BlockBuilder.optimize can optimize away expressions that
+   * throw</a>. */
+  @Test void testPureDeclarationIsInlinedIntoBranch() {
+    // Test with expression that does not throw
+    final ParameterExpression i = Expressions.parameter(int.class, "i");
+    final ParameterExpression c = Expressions.parameter(boolean.class, "c");
+    final Expression x = b.append("x", Expressions.add(ONE, i));
+    b.add(Expressions.return_(null, Expressions.condition(c, TWO, x)));
+    assertThat(b.toBlock(), hasToString("{\n  return c ? 2 : 1 + i;\n}\n"));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7728">[CALCITE-7728]
    * Linq4j can simplify expressions without regards for 'safety'</a>.
    *
