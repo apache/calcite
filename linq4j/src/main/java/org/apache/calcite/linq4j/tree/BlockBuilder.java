@@ -360,7 +360,7 @@ public class BlockBuilder {
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement && performInline) {
         DeclarationStatement decl = (DeclarationStatement) statement;
-        useCounter.map.put(decl.parameter, new Slot());
+        useCounter.map.put(decl.parameter, new ParameterUse());
       }
       // We are added only counters up to current statement.
       // It is fine to count usages as the latter declarations cannot be used
@@ -378,7 +378,7 @@ public class BlockBuilder {
     for (Statement oldStatement : oldStatements) {
       if (oldStatement instanceof DeclarationStatement) {
         DeclarationStatement statement = (DeclarationStatement) oldStatement;
-        final Slot slot = useCounter.map.get(statement.parameter);
+        final ParameterUse slot = useCounter.map.get(statement.parameter);
         int count = slot == null ? Integer.MAX_VALUE - 10 : slot.count;
         if (count > 1 && isSimpleExpression(statement.initializer)) {
           // Inline simple final constants
@@ -410,13 +410,15 @@ public class BlockBuilder {
           // anonymous classes.
           count = Integer.MAX_VALUE;
         }
-        if (count == 0
-            && statement.initializer != null
-            && Expressions.mayThrow(statement.initializer)) {
-          // Never read, but computing the value may raise a runtime error that
-          // the program is expected to raise. Keep the declaration, and treat
-          // it like any other statement that cannot be inlined.
-          count = 100;
+        if (statement.initializer != null
+            && (count == 0 || slot != null && slot.conditional)) {
+          // The value is either never read, or read only conditionally.
+          // If it may raise a runtime error, keep the declaration where it is.
+          final Expression initializer =
+              subMap.isEmpty() ? statement.initializer : statement.initializer.accept(visitor);
+          if (Expressions.mayThrow(initializer)) {
+            count = 100;
+          }
         }
         Expression normalized = normalizeDeclaration(statement);
         expressionForReuse.remove(normalized);
@@ -603,15 +605,92 @@ public class BlockBuilder {
 
   /** Use counter. */
   private static class UseCounter extends VisitorImpl<Void> {
-    private final IdentityHashMap<ParameterExpression, Slot> map = new IdentityHashMap<>();
+    /** Map each parameter to information about how it is used. */
+    private final IdentityHashMap<ParameterExpression, ParameterUse> map = new IdentityHashMap<>();
+    /** Whether the node being visited is evaluated only if some other
+     * expression permits it, as "a" in the expression "c ? a : b". */
+    private boolean inConditional = false;
+
+    /** Visits a node that is evaluated only under a condition. */
+    private void acceptConditionally(Node node) {
+      final boolean prev = inConditional;
+      inConditional = true;
+      node.accept(this);
+      inConditional = prev;
+    }
+
+    @Override public Void visit(TernaryExpression ternary) {
+      if (ternary.getNodeType() != ExpressionType.Conditional) {
+        return super.visit(ternary);
+      }
+      ternary.expression0.accept(this);
+      acceptConditionally(ternary.expression1);
+      acceptConditionally(ternary.expression2);
+      return null;
+    }
+
+    @Override public Void visit(BinaryExpression binary) {
+      switch (binary.getNodeType()) {
+      case AndAlso:
+      case OrElse:
+        // The right operand is evaluated only if the left one has not already decided the result
+        binary.expression0.accept(this);
+        acceptConditionally(binary.expression1);
+        return null;
+      default:
+        return super.visit(binary);
+      }
+    }
+
+    @Override public Void visit(WhileStatement whileStatement) {
+      // The body may never run
+      whileStatement.condition.accept(this);
+      acceptConditionally(whileStatement.body);
+      return null;
+    }
+
+    @Override public Void visit(ForStatement forStatement) {
+      // The body and the "post" expression may not run
+      Expressions.acceptNodes(forStatement.declarations, this);
+      if (forStatement.condition != null) {
+        forStatement.condition.accept(this);
+      }
+      if (forStatement.post != null) {
+        acceptConditionally(forStatement.post);
+      }
+      acceptConditionally(forStatement.body);
+      return null;
+    }
+
+    @Override public Void visit(ForEachStatement forEachStatement) {
+      // The body may not run
+      forEachStatement.parameter.accept(this);
+      forEachStatement.iterable.accept(this);
+      acceptConditionally(forEachStatement.body);
+      return null;
+    }
+
+    @Override public Void visit(ConditionalStatement conditionalStatement) {
+      // In "if (c0) s0 else if (c1) s1 ... else s", only "c0" is unconditional
+      final List<Node> list = conditionalStatement.expressionList;
+      for (int i = 0; i < list.size(); i++) {
+        if (i == 0) {
+          list.get(i).accept(this);
+        } else {
+          acceptConditionally(list.get(i));
+        }
+      }
+      return null;
+    }
 
     @Override public Void visit(ParameterExpression parameter) {
-      final Slot slot = map.get(parameter);
+      final ParameterUse slot = map.get(parameter);
       if (slot != null) {
         // Count use of parameter, if it's registered. It's OK if
         // parameter is not registered. It might be beyond the control
         // of this block.
         slot.count++;
+        slot.conditional |= inConditional;
       }
       return super.visit(parameter);
     }
@@ -626,9 +705,12 @@ public class BlockBuilder {
   }
 
   /**
-   * Holds the number of times a declaration was used.
+   * Holds information about the uses of one ParameterExpression within an expression.
    */
-  private static class Slot {
+  private static class ParameterUse {
+    /** How many times the declaration is read. */
     private int count;
+    /** Whether at least one read is evaluated only under a condition. */
+    private boolean conditional;
   }
 }

@@ -764,7 +764,9 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long input_value = current.wrapperLong;")
         .planContains(
-            "return input_value == null ? null : Long.valueOf(input_value.longValue() / current.primitiveLong);")
+            "final long input_value0 = current.primitiveLong;")
+        .planContains(
+            "return input_value == null ? null : Long.valueOf(input_value.longValue() / input_value0);")
         .returns("C=null\n");
   }
 

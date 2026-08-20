@@ -1496,8 +1496,8 @@ public class ExpressionTest {
     assertThat(Expressions.toString(builder.toBlock()),
         is("{\n"
             + "  final Short v = (Short) ((Object[]) p)[4];\n"
-            + "  return (Number) v == null ? null : ("
-            + "(Number) v).intValue() == 1997;\n"
+            + "  final int v5 = ((Number) v).intValue();\n"
+            + "  return (Number) v == null ? null : v5 == 1997;\n"
             + "}\n"));
   }
 
