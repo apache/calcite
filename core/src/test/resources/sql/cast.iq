@@ -65,6 +65,31 @@ select 2147483647 * 2147483647;
 Caused by: java.lang.ArithmeticException
 !error
 
+# Test cases for [CALCITE-7725] Review safety of checked arithmetic operators
+# https://issues.apache.org/jira/browse/CALCITE-7725
+
+# A checked operation with a NULL operand is never performed, so the whole
+# expression can still be simplified to NULL
+select cast(null as integer) + empno as c from emp where empno = 7369;
++---+
+| C |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# "empno * 100000000" overflows, so "IS NOT NULL" must not become TRUE
+select empno from emp where empno = 7369 and empno * 100000000 is not null;
+integer overflow
+!error
+
+# and "x + NULL" must not become NULL without computing x
+select empno * 100000000 + cast(null as integer) as c from emp where empno = 7369;
+integer overflow
+!error
+
 !use scott
 
 # Cast a character literal to a timestamp; note: the plan does not contain CAST

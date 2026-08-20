@@ -291,6 +291,9 @@ public class SqlToRelConverter {
   private int explainParamCount;
   public final SqlToRelConverter.Config config;
   private final RelBuilder relBuilder;
+  /** Rewrites arithmetic into checked arithmetic; null if the conformance
+   * does not require checked arithmetic. */
+  private final @Nullable RexShuttle checkedConverter;
 
   /**
    * Fields used in name resolution for correlated sub-queries.
@@ -377,6 +380,13 @@ public class SqlToRelConverter {
             config.getRelBuilderFactory().create(cluster,
              validator != null ? validator.getCatalogReader().unwrap(RelOptSchema.class) : null)
         .transform(config.getRelBuilderConfigTransform());
+    // Simplification assumes that arithmetic never throws, which is wrong for
+    // checked arithmetic; so every expression is converted to checked
+    // arithmetic as soon as it is built, before anything can simplify it
+    this.checkedConverter =
+        validator != null && validator.config().conformance().checkedArithmetic()
+            ? new ConvertToChecked(rexBuilder, true).converter
+            : null;
     this.hintStrategies = config.getHintStrategyTable();
 
     cluster.setHintStrategies(this.hintStrategies);
@@ -5938,6 +5948,12 @@ public class SqlToRelConverter {
     }
 
     @Override public RexNode convertExpression(SqlNode expr) {
+      final RexNode rex = convertExpression0(expr);
+      // Convert arithmetic to checked arithmetic if needed
+      return checkedConverter == null ? rex : rex.accept(checkedConverter);
+    }
+
+    private RexNode convertExpression0(SqlNode expr) {
       // If we're in aggregation mode and this is an expression in the
       // GROUP BY clause, return a reference to the field.
       AggConverter agg = this.agg;

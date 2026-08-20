@@ -222,12 +222,15 @@ public class RexCall extends RexNode {
     // Only boolean-valued calls can be always-true; e.g. CAST(TRUE AS INTEGER)
     // evaluates to 1 (INTEGER), not a boolean, even though its operand is
     // always true.
+    // An expression that may throw is never always-true: "1 / 0 IS NOT NULL"
+    // raises an error rather than returning TRUE.
     if (getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
       return false;
     }
     switch (getKind()) {
     case IS_NOT_NULL:
-      return !operands.get(0).getType().isNullable();
+      return !operands.get(0).getType().isNullable()
+          && RexSimplify.isSafeExpression(operands.get(0));
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
@@ -240,7 +243,8 @@ public class RexCall extends RexNode {
       final Sarg<?> sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isAll()
           && (sarg.nullAs == RexUnknownAs.TRUE
-              || !operands.get(0).getType().isNullable());
+              || !operands.get(0).getType().isNullable())
+          && RexSimplify.isSafeExpression(operands.get(0));
     default:
       return false;
     }
@@ -253,7 +257,8 @@ public class RexCall extends RexNode {
     }
     switch (getKind()) {
     case IS_NULL:
-      return !operands.get(0).getType().isNullable();
+      return !operands.get(0).getType().isNullable()
+          && RexSimplify.isSafeExpression(operands.get(0));
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
@@ -266,7 +271,8 @@ public class RexCall extends RexNode {
       final Sarg<?> sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isNone()
           && (sarg.nullAs == RexUnknownAs.FALSE
-              || !operands.get(0).getType().isNullable());
+              || !operands.get(0).getType().isNullable())
+          && RexSimplify.isSafeExpression(operands.get(0));
     default:
       return false;
     }
