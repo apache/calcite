@@ -450,6 +450,16 @@ TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPat
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableScanHint">
+    <Resource name="sql">
+      <![CDATA[select * from emp /*+ index(idx1) */]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+TableScan:[[INDEX inheritPath:[] options:[IDX1]]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testThreeLevelNestedQueryHint">
     <Resource name="sql">
       <![CDATA[select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */

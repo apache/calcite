@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.schema.Table;
@@ -92,6 +93,10 @@ public final class LogicalTableScan extends TableScan {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
     return this;
+  }
+
+  @Override public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw).itemIf("hints", getHints(), !getHints().isEmpty());
   }
 
   /** Creates a LogicalTableScan.
