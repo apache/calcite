@@ -64,6 +64,23 @@ Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate
 pattern is set in `calcite.model.classes.allowed` system property.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7716">CALCITE-7716</a>]
+`UUID` values are now ordered as unsigned 128-bit values, as SQL requires.
+Previously ordering used `java.util.UUID.compareTo`, which compares each 64-bit
+half as a signed value, so `ffffffff-ffff-ffff-ffff-ffffffffffff` sorted below
+`00000000-0000-0000-0000-000000000000`. `ORDER BY`, `BETWEEN`, `<`, `<=`, `>`,
+`>=`, `MIN` and `MAX` on a `UUID` may therefore give different results. Set
+`calcite.uuid.unsigned.comparison` to `false` to restore the previous ordering.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7716">CALCITE-7716</a>]
+The runtime and `RexLiteral` representation of a `UUID` is now
+`org.apache.calcite.util.UuidValue` rather than `java.util.UUID`.
+`JavaTypeFactoryImpl` maps `SqlTypeName.UUID` to `UuidValue`, so generated code
+and adapters see a `UuidValue`, and `RexLiteral.getValue` returns one, although
+`getValueAs(UUID.class)` still returns a `java.util.UUID`. The `SqlFunctions`
+methods `uuidToString` and `uuidToBinary` now take a `UuidValue`, and
+`binaryToUuid` returns one.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7727">CALCITE-7727</a>]
 Comparing a `UUID` with a character or binary value now converts that value to a
 `UUID`, the same direction as comparing a string with a number or a datetime.
