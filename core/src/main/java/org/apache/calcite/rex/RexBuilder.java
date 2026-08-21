@@ -1549,6 +1549,10 @@ public class RexBuilder {
       } else if (type.getScale() != RelDataType.SCALE_NOT_SPECIFIED) {
         o = ((BigDecimal) o).setScale(type.getScale(), typeFactory.getTypeSystem().roundingMode());
         if (type.getScale() < 0) {
+          if (!SqlUtil.isBoundedDecimal((BigDecimal) o)) {
+            throw new IllegalArgumentException("Cannot convert " + o + " to " + type
+                + ": plain-notation expansion exceeds the configured bound");
+          }
           o = new BigDecimal(((BigDecimal) o).toPlainString());
         }
       }
