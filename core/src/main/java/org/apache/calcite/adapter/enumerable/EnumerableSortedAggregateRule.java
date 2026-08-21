@@ -47,7 +47,7 @@ class EnumerableSortedAggregateRule extends ConverterRule {
 
   @Override public @Nullable RelNode convert(RelNode rel) {
     final Aggregate agg = (Aggregate) rel;
-    if (!Aggregate.isSimple(agg)) {
+    if (!Aggregate.isSimple(agg) || agg.getGroupSet().isEmpty()) {
       return null;
     }
     final RelTraitSet inputTraits = rel.getCluster()
