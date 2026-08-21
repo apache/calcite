@@ -1617,8 +1617,13 @@ public class RexSimplify {
       if (SqlKind.CHECKED_ARITHMETIC.contains(sqlKind)) {
         // Checked arithmetic throws on overflow, so it is only safe when the
         // arithmetic is never performed, i.e. when an operand is NULL.
-        return RexVisitorImpl.visitArrayAnd(this, call.operands)
-            && call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
+        if (deep) {
+          boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+          if (!areOperandsSafe) {
+            return false;
+          }
+        }
+        return call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
       }
 
       switch (sqlKind) {
