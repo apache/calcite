@@ -3080,23 +3080,16 @@ class RexProgramTest extends RexProgramTestBase {
             plus(plus(cast(vVarchar(), tInt(true)), literal(1)), literal(2))),
         "IS NOT NULL(CAST(?0.varchar0):INTEGER)");
 
-    // Operators with checked arithmetic
-    // WARNING: these simplifications are a bit "controversial" since checked operators
-    // can throw at runtime (in case of overflow); however, at the moment they are considered
-    // "safe" by RexSimplify#SafeRexVisitor, so these simplifications are applied; if this
-    // gets reviewed in the future (see CALCITE-7725) these tests might need to get adjusted
-    checkSimplify(
-        isNotNull(checkedPlus(cast(vVarchar(), tInt(true)), literal(1))),
-        "IS NOT NULL(CAST(?0.varchar0):INTEGER)");
-    checkSimplify(
-        isNull(checkedPlus(cast(vVarchar(), tInt(true)), literal(1))),
-        "IS NULL(CAST(?0.varchar0):INTEGER)");
-    checkSimplify(
-        isNotNull(checkedMul(cast(vVarchar(), tInt(true)), literal(2))),
-        "IS NOT NULL(CAST(?0.varchar0):INTEGER)");
-    checkSimplify(
-        isNull(checkedMul(cast(vVarchar(), tInt(true)), literal(2))),
-        "IS NULL(CAST(?0.varchar0):INTEGER)");
+    // Operators with checked arithmetic: they cannot be peeled because they are not "safe"
+    // (they will throw at runtime in case of overflow)
+    checkSimplifyUnchanged(
+        isNotNull(checkedPlus(cast(vVarchar(), tInt(true)), literal(1))));
+    checkSimplifyUnchanged(
+        isNull(checkedPlus(cast(vVarchar(), tInt(true)), literal(1))));
+    checkSimplifyUnchanged(
+        isNotNull(checkedMul(cast(vVarchar(), tInt(true)), literal(2))));
+    checkSimplifyUnchanged(
+        isNull(checkedMul(cast(vVarchar(), tInt(true)), literal(2))));
 
     // Arithmetic on DATE and INTERVAL
     checkSimplify(
