@@ -57,20 +57,32 @@ class PigFilterLiteralEscapeTest {
     assertThat(call(charLiteral("alice")), is("'alice'"));
   }
 
+  @Test void valueWithBackslash() throws Throwable {
+    assertThat(call(charLiteral("a\\b")), is("'a\\\\b'"));
+  }
+
+  @Test void valueWithBackslashBeforeApostrophe() throws Throwable {
+    assertThat(call(charLiteral("a\\'b")), is("'a\\\\\\'b'"));
+  }
+
+  @Test void valueWithTrailingBackslash() throws Throwable {
+    assertThat(call(charLiteral("a\\")), is("'a\\\\'"));
+  }
+
   @Test void valueWithApostrophe() throws Throwable {
-    assertThat(call(charLiteral("O'Brien")), is("'O''Brien'"));
+    assertThat(call(charLiteral("O'Brien")), is("'O\\'Brien'"));
   }
 
   @Test void valueWithApostropheAtTheEnd() throws Throwable {
-    assertThat(call(charLiteral("a'")), is("'a'''"));
+    assertThat(call(charLiteral("a'")), is("'a\\''"));
   }
 
   @Test void valueWithApostropheAtTheStart() throws Throwable {
-    assertThat(call(charLiteral("'a")), is("'''a'"));
+    assertThat(call(charLiteral("'a")), is("'\\'a'"));
   }
 
   @Test void valueWithMultipleApostrophes() throws Throwable {
-    assertThat(call(charLiteral("a''b")), is("'a''''b'"));
+    assertThat(call(charLiteral("a''b")), is("'a\\'\\'b'"));
   }
 
   @Test void emptyValue() throws Throwable {
