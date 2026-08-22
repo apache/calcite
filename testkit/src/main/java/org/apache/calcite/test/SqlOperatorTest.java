@@ -9368,6 +9368,11 @@ public class SqlOperatorTest {
     f.checkScalar("\"EXISTS\"(array[array[1, 2], array[3, 4]], x -> x[1] = 1)", true, "BOOLEAN");
     f.checkScalar("\"EXISTS\"(array[array[1, 2], array[3, 4]], x -> x[1] = 5)", false, "BOOLEAN");
 
+    // array of structs; test case for
+    // [CALCITE-7269] SqlValidator throws exception if lambda parameter is struct
+    f.checkScalar("\"EXISTS\"(array(ROW(1, 2)), x -> x.\"EXPR$1\" > 1)", true, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array(ROW(1, 2)), x -> x.\"EXPR$1\" > 2)", false, "BOOLEAN");
+
     // test for null
     f.checkScalar("\"EXISTS\"(array[null, 3], x -> x > 2 or x < 4)", true, "BOOLEAN");
     f.checkScalar("\"EXISTS\"(array[null, 3], x -> x is null)", true, "BOOLEAN");
