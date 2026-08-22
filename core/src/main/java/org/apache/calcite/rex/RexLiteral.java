@@ -60,11 +60,6 @@ import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -1189,17 +1184,7 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP_TZ:
       if (clazz == Long.class) {
         TimestampWithTimeZoneString tstz = (TimestampWithTimeZoneString) value;
-        long ms = tstz
-            .getLocalTimestampString()
-            .getMillisSinceEpoch();
-        // Interpret the timestamp part as a UTC timestamp
-        LocalDateTime local = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDateTime();
-        // Adjust for the time zone
-        ZoneId id = tstz.getTimeZone().toZoneId();
-        ZonedDateTime zoned = local.atZone(id);
-        ZonedDateTime utc = zoned.withZoneSameInstant(ZoneOffset.UTC);
-        ms = utc.toInstant().toEpochMilli();
-        return clazz.cast(ms);
+        return clazz.cast(tstz.getMillisSinceEpoch());
       } else if (clazz == Calendar.class) {
         TimestampWithTimeZoneString ts = (TimestampWithTimeZoneString) value;
         return clazz.cast(ts.getLocalTimestampString().toCalendar(ts.getTimeZone()));

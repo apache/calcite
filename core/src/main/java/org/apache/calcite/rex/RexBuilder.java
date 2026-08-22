@@ -55,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.SqlConstantComparator;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
@@ -2011,6 +2012,8 @@ public class RexBuilder {
     final Comparable upperValue = toComparable(Comparable.class, upper);
     if (lowerValue != null
         && upperValue != null
+        && !SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(lowerValue)
+        && !SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(upperValue)
         && areAssignable(arg, Arrays.asList(lower, upper))) {
       final Sarg sarg =
           Sarg.of(RexUnknownAs.UNKNOWN,
@@ -2041,6 +2044,9 @@ public class RexBuilder {
     for (RexNode range : ranges) {
       final C value = toComparable(clazz, range);
       if (value == null) {
+        return null;
+      }
+      if (SqlConstantComparator.INSTANCE.hasCustomSqlConstantComparison(value)) {
         return null;
       }
       rangeSet.add(Range.singleton(value));
