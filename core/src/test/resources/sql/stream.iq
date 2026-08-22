@@ -374,3 +374,23 @@ SELECT * FROM TABLE(
 (3 rows)
 
 !ok
+
+# Test case for [CALCITE-7691] SESSION table function should drop rows
+# with a NULL timestamp rather than throwing.
+SELECT * FROM TABLE(
+  SESSION(
+    (SELECT * FROM (VALUES
+      (TIMESTAMP '2020-01-01 10:00:00', 'a'),
+      (CAST(NULL AS TIMESTAMP), 'a'),
+      (TIMESTAMP '2020-01-01 10:05:00', 'a')) AS T(TS, UID)),
+    DESCRIPTOR(TS), DESCRIPTOR(UID), INTERVAL '15' MINUTE))
+ORDER BY TS;
++---------------------+-----+---------------------+---------------------+
+| TS                  | UID | window_start        | window_end          |
++---------------------+-----+---------------------+---------------------+
+| 2020-01-01 10:00:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 10:20:00 |
+| 2020-01-01 10:05:00 | a   | 2020-01-01 10:00:00 | 2020-01-01 10:20:00 |
++---------------------+-----+---------------------+---------------------+
+(2 rows)
+
+!ok
