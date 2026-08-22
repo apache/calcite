@@ -12439,6 +12439,86 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectJoinTransposeNarrowingCastInCompoundExpr">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($9), CAST($9):VARCHAR(14) NOT NULL, CAST($10):VARCHAR(13) NOT NULL)])
+  LogicalJoin(condition=[=($7, $8)], joinType=[left])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($2), CAST($2):VARCHAR(14) NOT NULL, CAST($3):VARCHAR(13) NOT NULL)])
+  LogicalJoin(condition=[=($0, $1)], joinType=[left])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinTransposeNarrowingCastInCompoundExprFullJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($9), CAST($9):VARCHAR(14) NOT NULL, CAST($10):VARCHAR(13) NOT NULL)])
+  LogicalJoin(condition=[=($7, $8)], joinType=[full])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($2), CAST($2):VARCHAR(14) NOT NULL, CAST($3):VARCHAR(13) NOT NULL)])
+  LogicalJoin(condition=[=($0, $1)], joinType=[full])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinTransposeNarrowingCastInCompoundExprRightJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($1), CAST($1):VARCHAR(14) NOT NULL, CAST($2):VARCHAR(13) NOT NULL)])
+  LogicalJoin(condition=[=($0, $10)], joinType=[right])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($1), CAST($1):VARCHAR(14) NOT NULL, CAST($2):VARCHAR(13) NOT NULL)])
+  LogicalJoin(condition=[=($0, $3)], joinType=[right])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinTransposeNullableCompoundExpr">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject($f0=[CASE(IS NOT NULL($9), $9, $10)])
+  LogicalJoin(condition=[=($7, $8)], joinType=[left])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[$2])
+  LogicalJoin(condition=[=($0, $1)], joinType=[left])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$0], $f0=[CASE(IS NOT NULL($1), $1, $2)])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectJoinTransposeRuleOnAggWithNoFieldsWithTrimmer">
     <Resource name="planBeforeTrimming">
       <![CDATA[
