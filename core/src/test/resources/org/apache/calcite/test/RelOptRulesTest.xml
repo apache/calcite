@@ -16582,6 +16582,42 @@ LogicalProject(EXPR$0=[1], A=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRandComparisonSimplificationAlwaysFalse">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM emp WHERE RAND() > 1.0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[>(RAND(), CAST(1.0:DECIMAL(2, 1)):DOUBLE NOT NULL)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testRandComparisonSimplificationAlwaysTrue">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM emp WHERE RAND() * 3 < 3]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[<(*(RAND(), 3), CAST(3):DOUBLE NOT NULL)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceAggregateFunctionsByGroup">
     <Resource name="sql">
       <![CDATA[select sal, max(sal) as sal_max, min(sal) as sal_min,
