@@ -2330,8 +2330,6 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf(0));
   }
 
-// TODO: Enable when CALCITE-6126 fixed
-/*
   @Test void testOverByNonKey() {
     sql("select sal,\n"
         + "max(deptno) over (partition BY sal rows between 2 preceding and 0 following) maxDept,\n"
@@ -2342,16 +2340,12 @@ public class RelMetadataTest {
         .assertThatAreColumnsUnique(bitSetOf(2), is(false))
         .assertThatUniqueKeysAre();
   }
-*/
 
-// TODO: Enable when CALCITE-6126 fixed
-/*
   @Test void testOverNoPartitioning() {
     sql("select max(empno) over (rows between 2 preceding and 0 following) maxEmp from emp")
         .assertThatAreColumnsUnique(bitSetOf(0), is(false))
         .assertThatUniqueKeysAre();
   }
-*/
 
   @Test void testNoGroupBy() {
     sql("select max(sal), count(*) from emp")
