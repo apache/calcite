@@ -8296,6 +8296,44 @@ public class SqlOperatorTest {
     f.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
+  @Test void testUuidv4Func() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.UUIDV4, VmName.EXPAND);
+    // UUIDV4 is non-deterministic; we just check the return type.
+    final Consumer<SqlOperatorFixture> consumer =
+        fixture -> {
+          fixture.checkFails("^uuidv4^", "Column 'UUIDV4' not found in any table", false);
+          fixture.checkType("uuidv4()", "UUID NOT NULL");
+        };
+    f.forEachLibrary(list(SqlLibrary.CALCITE), consumer);
+  }
+
+  @Test void testUuidv7Func() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.UUIDV7, VmName.EXPAND);
+    // UUIDV7 is non-deterministic; we just check the return type.
+    final Consumer<SqlOperatorFixture> consumer =
+        fixture -> {
+          fixture.checkFails("^uuidv7^", "Column 'UUIDV7' not found in any table", false);
+          fixture.checkType("uuidv7()", "UUID NOT NULL");
+        };
+    f.forEachLibrary(list(SqlLibrary.CALCITE), consumer);
+  }
+
+  /** Tests the {@code NEWID()} function (SQL Server dialect function, used as
+   * the target when translating {@code UUIDV4()}). */
+  @Test void testNewIdFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.NEWID, VmName.EXPAND);
+    final Consumer<SqlOperatorFixture> consumer =
+        fixture -> fixture.checkType("newid()", "UUID NOT NULL");
+    f.forEachLibrary(list(SqlLibrary.MSSQL), consumer);
+  }
+
+  // Note: Oracle 23ai's UUID() function is a reserved keyword in Calcite's parser
+  // and cannot be invoked directly in Calcite SQL. It is only used as a translation
+  // target when UUIDV4() is unparsed for Oracle dialect. See RelToSqlConverterTest.
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6283">
    * [CALCITE-6283] Function array_append with a NULL array argument crashes with
    * NullPointerException</a>. */
