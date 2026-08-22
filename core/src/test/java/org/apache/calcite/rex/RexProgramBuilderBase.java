@@ -19,14 +19,17 @@ package org.apache.calcite.rex;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
@@ -65,6 +68,7 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullReal;
   protected RexLiteral nullDouble;
   protected RexLiteral nullVarbinary;
+  protected RexLiteral nullDate;
 
   private RelDataType nullableBool;
   private RelDataType nonNullableBool;
@@ -89,6 +93,9 @@ public abstract class RexProgramBuilderBase {
 
   private RelDataType nullableVarbinary;
   private RelDataType nonNullableVarbinary;
+
+  private RelDataType nullableDate;
+  private RelDataType nonNullableDate;
 
   // Note: JUnit 4 creates new instance for each test method,
   // so we initialize these structures on demand
@@ -142,6 +149,10 @@ public abstract class RexProgramBuilderBase {
     nonNullableVarbinary = typeFactory.createSqlType(SqlTypeName.VARBINARY);
     nullableVarbinary = typeFactory.createTypeWithNullability(nonNullableVarbinary, true);
     nullVarbinary = rexBuilder.makeNullLiteral(nullableVarbinary);
+
+    nonNullableDate = typeFactory.createSqlType(SqlTypeName.DATE);
+    nullableDate = typeFactory.createTypeWithNullability(nonNullableDate, true);
+    nullDate = rexBuilder.makeNullLiteral(nullableDate);
   }
 
   private RexDynamicParam getDynamicParam(RelDataType type, String fieldNamePrefix) {
@@ -324,6 +335,14 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, n1, n2);
   }
 
+  protected RexNode checkedPlus(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_PLUS, n1, n2);
+  }
+
+  protected RexNode checkedMul(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_MULTIPLY, n1, n2);
+  }
+
   protected RexNode coalesce(RexNode... nodes) {
     return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, nodes);
   }
@@ -484,6 +503,14 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableVarbinary : nonNullableVarbinary;
   }
 
+  protected RelDataType tDate() {
+    return nonNullableDate;
+  }
+
+  protected RelDataType tDate(boolean nullable) {
+    return nullable ? nullableDate : nonNullableDate;
+  }
+
 
   protected RelDataType tArray(RelDataType elemType) {
     return typeFactory.createArrayType(elemType, -1);
@@ -549,6 +576,13 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral literal(double value) {
     return rexBuilder.makeApproxLiteral(value, nonNullableDouble);
   }
+
+  protected RexLiteral interval(int value, TimeUnit timeUnit) {
+    return rexBuilder.makeIntervalLiteral(
+        BigDecimal.valueOf(value),
+        new SqlIntervalQualifier(timeUnit, null, SqlParserPos.ZERO));
+  }
+
   // Variables
 
   /**
@@ -790,6 +824,50 @@ public abstract class RexProgramBuilderBase {
    */
   protected RexNode vDecimalNotNull(int arg) {
     return vParamNotNull("decimal", arg, nonNullableDecimal);
+  }
+
+  /**
+   * Creates {@code nullable date variable} with index of 0.
+   * If you need several distinct variables, use {@link #vDate(int)}.
+   * The resulting node would look like {@code ?0.date0}
+   *
+   * @return nullable date with index of 0
+   */
+  protected RexNode vDate() {
+    return vDate(0);
+  }
+
+  /**
+   * Creates {@code nullable date variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.date3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return nullable date variable with given index (0-based)
+   */
+  protected RexNode vDate(int arg) {
+    return vParam("date", arg, nullableDate);
+  }
+
+  /**
+   * Creates {@code non-nullable date variable} with index of 0.
+   * If you need several distinct variables, use {@link #vDateNotNull(int)}.
+   * The resulting node would look like {@code ?0.notNullDate0}
+   *
+   * @return non-nullable date variable with index of 0
+   */
+  protected RexNode vDateNotNull() {
+    return vDateNotNull(0);
+  }
+
+  /**
+   * Creates {@code non-nullable date variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.notNullDate3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return non-nullable date variable with given index (0-based)
+   */
+  protected RexNode vDateNotNull(int arg) {
+    return vParamNotNull("date", arg, nonNullableDate);
   }
 
   /**

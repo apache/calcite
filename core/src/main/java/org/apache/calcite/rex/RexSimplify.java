@@ -1200,15 +1200,21 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(a.getKind())) {
       return simplifiedResult;
     }
-    if (!isSafe) {
-      return simplifiedResult;
-    }
     switch (Strong.policy(a)) {
     case NOT_NULL:
+      // Drops the subtree; require full-tree safety so we don't hide runtime errors
+      if (!isSafe) {
+        return simplifiedResult;
+      }
       return rexBuilder.makeLiteral(true);
     case ANY:
       // "f" is a strong operator, so "f(operand0, operand1) IS NOT NULL"
-      // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL"
+      // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL";
+      // this branch PRESERVES the operand subtrees, so it only
+      // needs SHALLOW safety of the outer operator
+      if (!SafeRexVisitor.INSTANCE.isShallowSafe(a)) {
+        return simplifiedResult;
+      }
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNotNull(operand);
@@ -1223,6 +1229,9 @@ public class RexSimplify {
       }
       return RexUtil.composeConjunction(rexBuilder, operands);
     case CUSTOM:
+      if (!isSafe) {
+        return simplifiedResult;
+      }
       switch (a.getKind()) {
       case LITERAL:
         return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
@@ -1261,15 +1270,18 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(a.getKind())) {
       return simplifiedResult;
     }
-    if (!isSafe) {
-      return simplifiedResult;
-    }
     switch (Strong.policy(a)) {
     case NOT_NULL:
+      // Drops the subtree; require full-tree safety so we don't hide runtime errors
+      if (!isSafe) {
+        return simplifiedResult;
+      }
       return rexBuilder.makeLiteral(false);
     case ANY:
-      // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
-      // to "operand0 IS NULL OR operand1 IS NULL"
+      // See symmetric comment in simplifyIsNotNull
+      if (!SafeRexVisitor.INSTANCE.isShallowSafe(a)) {
+        return simplifiedResult;
+      }
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNull(operand);
@@ -1595,23 +1607,34 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitCall(RexCall call) {
+      return isSafe(call, true);
+    }
+
+    private boolean isSafe(RexCall call, boolean deep) {
       SqlKind sqlKind = call.getKind();
       SqlOperator sqlOperator = call.getOperator();
 
       if (SqlKind.CHECKED_ARITHMETIC.contains(sqlKind)) {
         // Checked arithmetic throws on overflow, so it is only safe when the
         // arithmetic is never performed, i.e. when an operand is NULL.
-        return RexVisitorImpl.visitArrayAnd(this, call.operands)
-            && call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
+        if (deep) {
+          boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+          if (!areOperandsSafe) {
+            return false;
+          }
+        }
+        return call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
       }
 
       switch (sqlKind) {
       case DIVIDE:
       case MOD:
         List<RexNode> operands = call.getOperands();
-        boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
-        if (!areOperandsSafe) {
-          return false;
+        if (deep) {
+          boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+          if (!areOperandsSafe) {
+            return false;
+          }
         }
         boolean hasNullOperand = RexUtil.isNullLiteral(operands.get(0), true)
             || RexUtil.isNullLiteral(operands.get(1), true);
@@ -1621,7 +1644,7 @@ public class RexSimplify {
         if (operands.get(1) instanceof RexLiteral) {
           return !checkLiteralValue(operands.get(1), BigDecimal.ZERO);
         }
-        // the safety of division could not be deduced, so assume it is unsafe
+        // the safety of MOD / DIVIDE could not be deduced, so assume it is unsafe
         return false;
       default:
         break;
@@ -1631,10 +1654,29 @@ public class RexSimplify {
           || RexUtil.isLosslessCast(call)
           || safeOps.contains(sqlKind)
           || safeOperators.contains(sqlOperator)) {
-        return RexVisitorImpl.visitArrayAnd(this, call.operands);
+        return !deep || RexVisitorImpl.visitArrayAnd(this, call.operands);
       }
 
       return false;
+    }
+
+    /**
+     * Shallow variant of the visitor: reports whether the OUTER node's
+     * operator can be evaluated on non-null operands without throwing at
+     * runtime. Unlike {@link #visitCall(RexCall)}, it does not recurse into
+     * the operands. Callers that only need to know whether the outer
+     * operator itself is safe (e.g. RexSimplify's {@code Strong.ANY}
+     * distribution branches, which preserve subtree evaluation) can use
+     * this in place of the full-tree {@link RexSimplify#isSafeExpression}.
+     *
+     * <p>Non-{@link RexCall} nodes are always shallow-safe (they cannot
+     * throw at their own level).
+     */
+    boolean isShallowSafe(RexNode node) {
+      if (!(node instanceof RexCall)) {
+        return true;
+      }
+      return isSafe((RexCall) node, false);
     }
 
     @Override public Boolean visitOver(RexOver over) {
