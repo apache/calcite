@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
@@ -58,6 +59,7 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -960,6 +962,18 @@ public abstract class SqlUtil {
     }
 
     return ret.toString();
+  }
+
+  /**
+   * Returns whether {@code value}'s plain-notation expansion fits within
+   * the configured bound
+   * ({@link CalciteSystemProperty#MAX_DECIMAL_LITERAL_PLAIN_DIGITS}).
+   * Callers that are about to feed {@code value} to {@code toPlainString}
+   * (or the equivalent) must gate on this method first.
+   */
+  public static boolean isBoundedDecimal(BigDecimal value) {
+    final long limit = CalciteSystemProperty.MAX_DECIMAL_LITERAL_PLAIN_DIGITS.value();
+    return (long) value.precision() + Math.abs((long) value.scale()) <= limit;
   }
 
   /**

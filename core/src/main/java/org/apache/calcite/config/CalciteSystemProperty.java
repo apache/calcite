@@ -492,6 +492,22 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<String> MODEL_CLASSES_DENIED =
       stringProperty("calcite.model.classes.denied", "");
 
+  /**
+   * Maximum number of decimal digits that the plain-notation expansion of a {@code DECIMAL}
+   * literal may contain.
+   *
+   * <p>{@link java.math.BigDecimal} accepts any {@code int} exponent, so without a bound
+   * a ~15-character literal such as {@code DECIMAL '1E2147483647'} would ask
+   * {@link java.math.BigDecimal#toPlainString()} to materialize one character per digit,
+   * i.e. a multi-gigabyte allocation that would end in {@link OutOfMemoryError} inside the parser.
+   *
+   * <p>Default {@code 10000} is well beyond any dialect's realistic maximum {@code DECIMAL}
+   * precision while still bounding worst-case allocation to ~20 KB. Raise if a dialect
+   * legitimately needs more.
+   */
+  public static final CalciteSystemProperty<Integer> MAX_DECIMAL_LITERAL_PLAIN_DIGITS =
+      intProperty("calcite.parser.maxDecimalLiteralPlainDigits", 10_000, v -> v > 0);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
