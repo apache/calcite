@@ -4749,4 +4749,43 @@ order by y;
 
 !ok
 
+# [CALCITE-7675] GROUP BY ALL should infer grouping keys only from expressions
+# that depend on the input. The constant 42 is the same in every row, so it is
+# not a grouping key and the rows are grouped by X alone. Verified against
+# BigQuery, which infers keys only from expressions that reference a name in
+# the FROM clause.
+select x, 42 as c, count(*) as n
+from (values (1, 'a'), (1, 'a'), (2, 'b')) as t(x, y)
+group by all
+order by x;
++---+----+---+
+| X | C  | N |
++---+----+---+
+| 1 | 42 | 2 |
+| 2 | 42 | 1 |
++---+----+---+
+(2 rows)
+
+!ok
+
+# [CALCITE-7675] GROUP BY ALL should infer grouping keys only from expressions
+# that depend on the input. When none does, no grouping key remains and the
+# query is a single-group aggregation, GROUP BY (). It
+# therefore returns one row even though the input is empty. BigQuery
+# specifies the same: "if the set of inferred grouping keys is empty after
+# exclusions are applied, all input rows are considered a single group for
+# aggregation".
+select 42 as c, count(*) as n
+from (values (1, 'a')) as t(x, y)
+where x < 0
+group by all;
++----+---+
+| C  | N |
++----+---+
+| 42 | 0 |
++----+---+
+(1 row)
+
+!ok
+
 # End agg.iq

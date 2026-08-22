@@ -426,6 +426,11 @@ in the order that they appear in the list; for example:
 "SELECT x, y FROM t ORDER BY ALL" is equivalent to
 "SELECT x, y FROM t ORDER BY x, y"
 An optional trailing ASC / DESC and NULLS FIRST / NULLS LAST applies to all keys.
+An expression that references no column, and all of whose operators are
+deterministic, has the same value in every row, and cannot reorder rows; it is
+not a sort key. For example, "SELECT sal, 42 FROM emp ORDER BY ALL" sorts by
+`sal` alone. A call to a non-deterministic operator such as RAND() is a sort
+key. If no sort key remains, no ORDER BY clause is generated.
 A `*` in the SELECT clause is expanded to its underlying columns, each of which
 becomes a sort key; for example, "SELECT * FROM t ORDER BY ALL" sorts by every
 column of `t`.
@@ -468,9 +473,17 @@ GROUP BY DISTINCT removes duplicate grouping sets (for example,
 GROUP BY ALL followed by grouping items is equivalent to GROUP BY
 (ALL is the default set quantifier).
 GROUP BY ALL on its own groups by every expression in the SELECT clause
-that is not an aggregate function; for example,
+that is not an aggregate function and that depends on the input row;
+for example,
 "SELECT deptno, SUM(sal) FROM emp GROUP BY ALL" is equivalent to
 "SELECT deptno, SUM(sal) FROM emp GROUP BY deptno".
+An expression that references no column, and all of whose operators are
+deterministic, has the same value in every row, and is not a grouping key;
+for example, "SELECT deptno, 42, COUNT(*) FROM emp GROUP BY ALL" groups by
+`deptno` alone. A call to a non-deterministic operator such as RAND() does
+vary from row to row, and is a grouping key. If no grouping key remains, the
+query is a single-group aggregation, equivalent to GROUP BY (), and returns
+one row even if the input is empty.
 A `*` in the SELECT clause is expanded to its underlying columns, each of which
 becomes a grouping key; for example,
 "SELECT *, COUNT(*) FROM emp GROUP BY ALL" groups by every column of `emp`.

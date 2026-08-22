@@ -1297,15 +1297,23 @@ public class JdbcTest {
             + "c0=1998\n");
   }
 
-  /** Test case for [CALCITE-7594] GROUP BY ALL: grouping only by a constant
-   * over empty input returns 0 rows. */
+  /** Test case for [CALCITE-7675] GROUP BY ALL over a select list whose only
+   * non-aggregate item is a constant.
+   *
+   * <p>The constant is not a grouping key, so no grouping key remains and the
+   * query is a single-group aggregation. It therefore returns one row even
+   * though the input is empty. Before [CALCITE-7675] the constant was a
+   * grouping key, empty input yielded no groups, and the query returned no
+   * rows. BigQuery documents the behavior asserted here: "If the set of
+   * inferred grouping keys is empty after exclusions are applied, all input
+   * rows are considered a single group for aggregation." */
   @Test void testGroupByAllOverEmptyInput() {
     CalciteAssert.hr()
         .query("select 'x', count(*)\n"
                 + "from \"hr\".\"emps\"\n"
                 + "where false\n"
                 + "group by all")
-        .returnsCount(0);
+        .returns("EXPR$0=x; EXPR$1=0\n");
   }
 
   /** Test case for
