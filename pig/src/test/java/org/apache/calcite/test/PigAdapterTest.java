@@ -58,9 +58,9 @@ class PigAdapterTest extends AbstractPigTest {
   }
 
   @Test void testFilterWithSingleQuote() {
-    // A string literal containing a single quote must be doubled per Pig Latin
+    // A string literal containing a single quote must be escaped per Pig Latin
     // string-literal rules so it does not break out of the '...' literal in
-    // the generated FILTER statement.
+    // the generated FILTER statement. Verified against pig.
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" where \"tc0\" = 'a''b'")
@@ -69,7 +69,7 @@ class PigAdapterTest extends AbstractPigTest {
             pigScriptChecker("t = LOAD '"
                 + getFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
-                + "t = FILTER t BY (tc0 == 'a''b');"));
+                + "t = FILTER t BY (tc0 == 'a\\'b');"));
   }
 
   @Test void testImplWithMultipleFilters() {
