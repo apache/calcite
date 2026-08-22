@@ -50,6 +50,21 @@ public class EnumerableSortedAggregateTest {
             "deptno=20; max_salary=8000.0; num_employee=1");
   }
 
+  @Test void sortedAggRuleOnEmptyInput() {
+    tester(false, new HrSchema())
+        .query("select max(deptno) as m, count(*) as c "
+            + "from emps where deptno > 100")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .explainContains(
+            "EnumerableAggregate(group=[{}], m=[MAX($1)], c=[COUNT()])\n"
+                + "  EnumerableCalc")
+        .returnsOrdered("m=null; c=0");
+  }
+
   @Test void sortedAggTwoGroupKeys() {
     tester(false, new HrSchema())
         .query(
