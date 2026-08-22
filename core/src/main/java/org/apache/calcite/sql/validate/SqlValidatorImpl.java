@@ -5658,6 +5658,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   protected void validateGroupClause(SqlSelect select) {
     rewriteGroupByAll(select);
+    rewriteGroupingStar(select);
     SqlNodeList groupList = select.getGroup();
     if (groupList == null) {
       return;
@@ -5757,6 +5758,124 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     select.setGroupBy(new SqlNodeList(keys, groupList.getParserPosition()));
+  }
+
+  /** If the conformance allows {@code *} as a grouping element, rewrites it
+   * into a {@code ROW} of every input column. A grouping set containing all
+   * input columns does not merge any rows (except identical duplicates),
+   * yielding the non-aggregated "detail" rows.
+   *
+   * <p>A star may appear only in the well-defined positions of this syntax:
+   * as a complete grouping set ({@code GROUPING SETS (*)}), as an element of
+   * a grouping set ({@code GROUPING SETS ((deptno), (*))}), or as an argument
+   * of ROLLUP or CUBE ({@code ROLLUP (deptno, *)}), including grouping
+   * constructs nested within GROUPING SETS. It may not appear at the top
+   * level of GROUP BY, nor inside other expressions.
+   *
+   * @see SqlConformance#isGroupingSetsStarAllowed() */
+  private void rewriteGroupingStar(SqlSelect select) {
+    if (!config.conformance().isGroupingSetsStarAllowed()) {
+      return;
+    }
+    final SqlNodeList groupList = select.getGroup();
+    if (groupList == null) {
+      return;
+    }
+    boolean changed = false;
+    final List<SqlNode> newItems = new ArrayList<>();
+    for (SqlNode groupItem : groupList) {
+      final SqlNode newItem = rewriteGroupingStarNode(groupItem, select);
+      if (newItem != groupItem) {
+        changed = true;
+      }
+      newItems.add(newItem);
+    }
+    if (changed) {
+      select.setGroupBy(new SqlNodeList(newItems, groupList.getParserPosition()));
+    }
+  }
+
+  /** Recursively rewrites bare {@code *} grouping elements into a ROW of all
+   * input columns. Descends only into the constructs in which the grouping
+   * star syntax is defined: the operands of GROUPING SETS, ROLLUP and CUBE
+   * calls, the elements of the ROW tuples that make up a grouping set, and
+   * the grouping elements wrapped by GROUP BY DISTINCT. A star nested inside
+   * any other expression, say {@code GROUPING SETS (ABS(*))}, is not
+   * expanded; validation of that expression fails because {@code *} is not
+   * a known column. */
+  private SqlNode rewriteGroupingStarNode(SqlNode node, SqlSelect select) {
+    if (node instanceof SqlIdentifier) {
+      final SqlIdentifier id = (SqlIdentifier) node;
+      if (id.isStar() && id.names.size() == 1) {
+        return starToRow(select, id.getParserPosition());
+      }
+      return node;
+    }
+    if (node instanceof SqlNodeList) {
+      final SqlNodeList list = (SqlNodeList) node;
+      List<@Nullable SqlNode> newItems = null;
+      int i = 0;
+      for (SqlNode item : list) {
+        final SqlNode newItem = rewriteGroupingStarNode(item, select);
+        if (newItem != item) {
+          if (newItems == null) {
+            newItems = new ArrayList<@Nullable SqlNode>(list.getList());
+          }
+          newItems.set(i, newItem);
+        }
+        i++;
+      }
+      return newItems == null ? node
+          : new SqlNodeList(newItems, list.getParserPosition());
+    }
+    if (node instanceof SqlCall && isGroupingStarContainer((SqlCall) node)) {
+      final SqlCall call = (SqlCall) node;
+      final List<SqlNode> operands = call.getOperandList();
+      List<SqlNode> newOperands = null;
+      for (int i = 0; i < operands.size(); i++) {
+        final SqlNode operand = operands.get(i);
+        final SqlNode newOperand = rewriteGroupingStarNode(operand, select);
+        if (newOperand != operand) {
+          if (newOperands == null) {
+            newOperands = new ArrayList<>(operands);
+          }
+          newOperands.set(i, newOperand);
+        }
+      }
+      if (newOperands != null) {
+        return call.getOperator().createCall(
+            call.getParserPosition(), newOperands);
+      }
+    }
+    return node;
+  }
+
+  /** Returns whether a call may directly contain a bare {@code *} grouping
+   * element: a GROUPING SETS, ROLLUP or CUBE sub-clause, a ROW tuple within
+   * one of those clauses, or the wrapper that GROUP BY DISTINCT places
+   * around its grouping elements. */
+  private static boolean isGroupingStarContainer(SqlCall call) {
+    switch (call.getKind()) {
+    case GROUPING_SETS:
+    case ROLLUP:
+    case CUBE:
+    case ROW:
+    case GROUP_BY_DISTINCT:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  /** Builds a {@code ROW} of every input column of the FROM clause, expanding
+   * a bare grouping {@code *}. */
+  private SqlNode starToRow(SqlSelect select, SqlParserPos pos) {
+    final SqlIdentifier star = SqlIdentifier.star(pos);
+    final List<SqlNode> columns = expandStarForAllRewrite(select, star);
+    if (columns.isEmpty()) {
+      throw newValidationError(star, RESOURCE.selectStarRequiresFrom());
+    }
+    return SqlStdOperatorTable.ROW.createCall(pos, columns);
   }
 
   private void validateGroupItem(SqlValidatorScope groupScope,

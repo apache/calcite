@@ -188,6 +188,34 @@ public class ${parser.class} extends SqlAbstractParserImpl
     }
 
     /**
+     * Whether {@code *} is currently allowed as a bare grouping element in
+     * GROUPING SETS / ROLLUP / CUBE. Set while parsing a grouping element
+     * when the {@code isGroupingSetsStarAllowed} conformance is on.
+     *
+     * <p>Note that the validator expands such a star only in the
+     * well-defined positions of the syntax: a complete grouping set, an
+     * element of a grouping set, or an argument of ROLLUP or CUBE (including
+     * grouping constructs nested within GROUPING SETS). A star nested inside
+     * other expressions, say {@code ABS(*)}, parses too, but the validator
+     * does not expand it, and validation fails because {@code *} is not a
+     * known column.
+     */
+    private int groupingStarCount;
+
+    private void pushGroupingStar() {
+        groupingStarCount++;
+    }
+
+    private void popGroupingStar() {
+        assert groupingStarCount > 0;
+        groupingStarCount--;
+    }
+
+    private boolean allowGroupingStar() {
+        return groupingStarCount > 0;
+    }
+
+    /**
      * {@link SqlParserImplFactory} implementation for creating parser.
      */
     public static final SqlParserImplFactory FACTORY = new SqlParserImplFactory() {
@@ -2901,11 +2929,23 @@ SqlNodeList GroupBy() :
 List<SqlNode> GroupingElementList() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
+    final boolean starAllowed =
+        this.conformance.isGroupingSetsStarAllowed();
 }
 {
+    {
+        if (starAllowed) {
+            pushGroupingStar();
+        }
+    }
     AddGroupingElement(list)
     ( LOOKAHEAD(2) <COMMA> AddGroupingElement(list) )*
-    { return list; }
+    {
+        if (starAllowed) {
+            popGroupingStar();
+        }
+        return list;
+    }
 }
 
 void AddGroupingElement(List<SqlNode> list) :
@@ -2913,6 +2953,8 @@ void AddGroupingElement(List<SqlNode> list) :
     final List<SqlNode> subList;
     final SqlNodeList nodes;
     final Span s;
+    final boolean starAllowed =
+        this.conformance.isGroupingSetsStarAllowed();
 }
 {
     LOOKAHEAD(2)
@@ -2922,20 +2964,40 @@ void AddGroupingElement(List<SqlNode> list) :
             SqlStdOperatorTable.GROUPING_SETS.createCall(s.end(this), subList));
     }
 |   <ROLLUP> { s = span(); }
-    <LPAREN> nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+    <LPAREN> {
+        if (starAllowed) {
+            pushGroupingStar();
+        }
+    }
+    nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
     <RPAREN> {
+        if (starAllowed) {
+            popGroupingStar();
+        }
         list.add(
             SqlStdOperatorTable.ROLLUP.createCall(s.end(this), nodes.getList()));
     }
 |   <CUBE> { s = span(); }
-    <LPAREN> nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+    <LPAREN> {
+        if (starAllowed) {
+            pushGroupingStar();
+        }
+    }
+    nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
     <RPAREN> {
+        if (starAllowed) {
+            popGroupingStar();
+        }
         list.add(
             SqlStdOperatorTable.CUBE.createCall(s.end(this), nodes.getList()));
     }
 |   LOOKAHEAD(3)
     <LPAREN> { s = span(); } <RPAREN> {
         list.add(new SqlNodeList(s.end(this)));
+    }
+|   LOOKAHEAD({ allowGroupingStar() && getToken(1).kind == STAR })
+    <STAR> {
+        list.add(SqlIdentifier.star(getPos()));
     }
 |   AddExpression(list, ExprContext.ACCEPT_SUB_QUERY)
 }
@@ -4824,6 +4886,15 @@ SqlNode AtomicRowExpression() :
         |
             { return starId; }
         )
+    |
+        // Parses a bare "*" grouping element appearing inside a tuple or
+        // argument list of GROUPING SETS / ROLLUP / CUBE. (A star nested
+        // inside other expressions, say ABS(*), parses too, but the
+        // validator does not expand it and validation fails.)
+        LOOKAHEAD({ allowGroupingStar() && getToken(1).kind == STAR })
+        <STAR> {
+            return SqlIdentifier.star(getPos());
+        }
     |
         e = NewSpecification()
     |
