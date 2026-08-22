@@ -13389,4 +13389,24 @@ class RelToSqlConverterTest {
                 + "FROM \"SCOTT\".\"EMP\"\n"
                 + "WHERE \"DEPTNO\" = \"t1\".\"DEPTNO\")");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6578">[CALCITE-6578]
+   * RelToSql throws exception when unparse TIMESTAMPDIFF function</a>. */
+  @Test public void testTimestampDiff() {
+    String query = "SELECT {fn TIMESTAMPDIFF(SQL_TSI_YEAR,"
+        + "TIMESTAMP '2016-01-01 00:00:00', TIMESTAMP '2017-01-01 00:00:00')}";
+    String expected = "SELECT CAST((TIMESTAMP '2017-01-01 00:00:00' -"
+        + " TIMESTAMP '2016-01-01 00:00:00') AS INTEGER)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for TIMESTAMPDIFF with DATE arguments. */
+  @Test void testTimestampdiff() {
+    String query = "select TIMESTAMPDIFF(day,date '2029-05-06',date '2029-05-07')";
+    String expected = "SELECT CAST((DATE '2029-05-07' - DATE '2029-05-06') AS INTEGER)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+  }
 }
