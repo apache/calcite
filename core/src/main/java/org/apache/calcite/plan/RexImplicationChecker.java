@@ -523,7 +523,7 @@ public class RexImplicationChecker {
    *
    * @param <T1> left type
    * @param <T2> right type */
-  private static class InputRefUsage<T1, T2> {
+  private static class InputRefUsage<T1 extends @Nullable Object, T2 extends @Nullable Object> {
     private final PairList<T1, T2> usageList = PairList.of();
     private int usageCount = 0;
   }

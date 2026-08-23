@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Provides functionality to evaluate queries against a specific data source
  * wherein the type of the data is known.
@@ -24,6 +26,6 @@ package org.apache.calcite.linq4j;
  *
  * @param <T> Element type
  */
-public interface Queryable<T>
+public interface Queryable<T extends @Nullable Object>
     extends RawQueryable<T>, ExtendedQueryable<T> {
 }

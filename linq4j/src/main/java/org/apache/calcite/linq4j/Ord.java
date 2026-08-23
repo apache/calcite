@@ -33,7 +33,7 @@ import java.util.function.ObjIntConsumer;
  *
  * @param <E> Element type
  */
-public class Ord<E> implements Map.Entry<Integer, E> {
+public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
   public final int i;
   public final E e;
 

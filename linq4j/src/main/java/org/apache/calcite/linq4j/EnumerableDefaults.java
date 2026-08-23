@@ -4802,7 +4802,7 @@ public abstract class EnumerableDefaults {
    * @param <F> source element type
    * @param <T> element type
    */
-  static class CastingEnumerator<F, T>
+  static class CastingEnumerator<F extends @Nullable Object, T extends @Nullable Object>
       implements Enumerator<T> {
     private final Enumerator<F> enumerator;
     private final Class<T> clazz;

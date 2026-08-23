@@ -321,7 +321,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat1List<T>
+  protected static class Flat1List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -433,7 +433,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat2List<T>
+  protected static class Flat2List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -566,7 +566,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat3List<T>
+  protected static class Flat3List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -716,7 +716,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat4List<T>
+  protected static class Flat4List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -886,7 +886,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat5List<T>
+  protected static class Flat5List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -1075,7 +1075,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat6List<T>
+  protected static class Flat6List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;

@@ -55,7 +55,7 @@ public class RexLambda extends RexNode {
     return SqlKind.LAMBDA;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitLambda(this);
   }
 

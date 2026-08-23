@@ -33,7 +33,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * @param <E> Element type
  */
-public class ConsList<E> extends AbstractImmutableList<E> {
+public class ConsList<E extends @Nullable Object> extends AbstractImmutableList<E> {
   private final E first;
   private final List<E> rest;
 

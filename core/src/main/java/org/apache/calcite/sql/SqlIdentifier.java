@@ -319,7 +319,7 @@ public class SqlIdentifier extends SqlNode {
     return litmus.succeed();
   }
 
-  @Override public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 

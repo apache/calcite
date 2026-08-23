@@ -39,7 +39,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNullList;
  * @param <T> First type
  * @param <U> Second type
  */
-public interface PairList<T, U>
+public interface PairList<T extends @Nullable Object, U extends @Nullable Object>
     extends List<Map.Entry<T, U>> {
   /** Creates an empty PairList. */
   static <T, U> PairList<T, U> of() {

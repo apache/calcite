@@ -207,7 +207,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    *
    * @param <E> element type
    */
-  public static final class Builder<E> {
+  public static final class Builder<E extends @Nullable Object> {
     private final List<E> contents = new ArrayList<>();
 
     /**

@@ -798,7 +798,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
   }
 
-  private static <E> List<E> permuteList(
+  private static <E extends @Nullable Object> List<E> permuteList(
       final List<E> list, final int @Nullable [] sources) {
     if (sources == null) {
       return list;

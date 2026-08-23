@@ -71,7 +71,7 @@ public class RexRangeRef extends RexNode {
     return offset;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitRangeRef(this);
   }
 

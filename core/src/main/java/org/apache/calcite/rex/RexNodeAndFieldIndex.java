@@ -74,7 +74,7 @@ public class RexNodeAndFieldIndex extends RexVariable {
     return fieldIndex;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitNodeAndFieldIndex(this);
   }
 

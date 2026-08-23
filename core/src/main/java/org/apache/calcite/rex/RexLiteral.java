@@ -1337,7 +1337,7 @@ public class RexLiteral extends RexNode {
         && (((RexLiteral) node).value == null);
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitLiteral(this);
   }
 
