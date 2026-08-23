@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.annotations.Contract;
+
 import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
@@ -92,6 +94,7 @@ public class NumberUtil {
 
   /** Sets the scale of a BigDecimal {@code bd} if it is not null;
    * always returns {@code bd}. */
+  @Contract("!null, _ -> !null")
   public static @Nullable BigDecimal rescaleBigDecimal(@Nullable BigDecimal bd,
       int scale) {
     if (bd != null) {
@@ -107,6 +110,7 @@ public class NumberUtil {
 
   /** Converts a number to a BigDecimal with the same value;
    * returns null if and only if the number is null. */
+  @Contract("!null -> !null")
   public static @Nullable BigDecimal toBigDecimal(@Nullable Number number) {
     if (number == null) {
       return castNonNull(null);
@@ -145,6 +149,7 @@ public class NumberUtil {
   }
 
   /** Returns the sum of two numbers, or null if either is null. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Double add(@Nullable Double a, @Nullable Double b) {
     if (a == null || b == null) {
       return null;
@@ -155,6 +160,7 @@ public class NumberUtil {
 
   /** Returns the difference of two numbers,
    * or null if either is null. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Double subtract(@Nullable Double a, @Nullable Double b) {
     if (a == null || b == null) {
       return castNonNull(null);
@@ -175,6 +181,7 @@ public class NumberUtil {
 
   /** Returns the product of two numbers,
    * or null if either is null. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Double multiply(@Nullable Double a, @Nullable Double b) {
     if (a == null || b == null) {
       return castNonNull(null);
@@ -187,6 +194,7 @@ public class NumberUtil {
    * returns the lesser of two numbers,
    * ignoring numbers that are null,
    * or null if both are null. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Double min(@Nullable Double a, @Nullable Double b) {
     if (a == null) {
       return b;
@@ -200,6 +208,7 @@ public class NumberUtil {
   /** Like {@link Math#max} but null safe;
    * returns the greater of two numbers,
    * or null if either is null. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Double max(@Nullable Double a, @Nullable Double b) {
     if (a == null || b == null) {
       return castNonNull(null);

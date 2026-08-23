@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -682,6 +683,7 @@ public class Util {
    * characters found in {@code search} are replaced by the character in the same position in
    * {@code replacement}; if {@code replacement} is shorter, remaining matches are removed.
    */
+  @Contract("!null, _, _ -> !null")
   public static @Nullable String replaceChars(@Nullable String s, @Nullable String search,
       @Nullable String replacement) {
     if (s == null || s.isEmpty() || search == null || search.isEmpty()) {

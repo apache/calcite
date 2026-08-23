@@ -19,6 +19,7 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfig;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
@@ -61,8 +62,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of {@link CalciteConnectionProperty#FUN},
    * or a default operator table if not set. If {@code defaultOperatorTable}
    * is not null, the result is never null. */
-  <T> @Nullable T fun(Class<T> operatorTableClass,
-      @Nullable T defaultOperatorTable);
+  <T extends @Nullable Object> T fun(Class<@NonNull T> operatorTableClass,
+      T defaultOperatorTable);
   /** Returns the value of {@link CalciteConnectionProperty#MODEL}. */
   @Nullable String model();
   /** Returns the value of {@link CalciteConnectionProperty#LEX}. */
@@ -78,13 +79,13 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of {@link CalciteConnectionProperty#PARSER_FACTORY},
    * or a default parser if not set. If {@code defaultParserFactory}
    * is not null, the result is never null. */
-  <T> @Nullable T parserFactory(Class<T> parserFactoryClass,
-      @Nullable T defaultParserFactory);
+  <T extends @Nullable Object> T parserFactory(Class<@NonNull T> parserFactoryClass,
+      T defaultParserFactory);
   /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_FACTORY},
    * or a default schema factory if not set. If {@code defaultSchemaFactory}
    * is not null, the result is never null. */
-  <T> @Nullable T schemaFactory(Class<T> schemaFactoryClass,
-      @Nullable T defaultSchemaFactory);
+  <T extends @Nullable Object> T schemaFactory(Class<@NonNull T> schemaFactoryClass,
+      T defaultSchemaFactory);
   /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_TYPE}. */
   JsonSchema.Type schemaType();
   /** Returns the value of {@link CalciteConnectionProperty#SPARK}. */
@@ -95,8 +96,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of {@link CalciteConnectionProperty#TYPE_SYSTEM},
    * or a default type system if not set. If {@code defaultTypeSystem}
    * is not null, the result is never null. */
-  <T> @Nullable T typeSystem(Class<T> typeSystemClass,
-      @Nullable T defaultTypeSystem);
+  <T extends @Nullable Object> T typeSystem(Class<@NonNull T> typeSystemClass,
+      T defaultTypeSystem);
   /** Returns the value of {@link CalciteConnectionProperty#CONFORMANCE}. */
   SqlConformance conformance();
   /** Returns the value of {@link CalciteConnectionProperty#TIME_ZONE}. */
@@ -117,12 +118,12 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of {@link CalciteConnectionProperty#META_TABLE_FACTORY},
    * or a default meta table factory if not set. If
    * {@code defaultMetaTableFactory} is not null, the result is never null. */
-  <T> @Nullable T metaTableFactory(Class<T> metaTableFactoryClass,
-      @Nullable T defaultMetaTableFactory);
+  <T extends @Nullable Object> T metaTableFactory(Class<@NonNull T> metaTableFactoryClass,
+      T defaultMetaTableFactory);
 
   /** Returns the value of {@link CalciteConnectionProperty#META_COLUMN_FACTORY},
    * or a default meta column factory if not set. If
    * {@code defaultMetaColumnFactory} is not null, the result is never null. */
-  <T> @Nullable T metaColumnFactory(Class<T> metaColumnFactoryClass,
-      @Nullable T defaultMetaColumnFactory);
+  <T extends @Nullable Object> T metaColumnFactory(Class<@NonNull T> metaColumnFactoryClass,
+      T defaultMetaColumnFactory);
 }
