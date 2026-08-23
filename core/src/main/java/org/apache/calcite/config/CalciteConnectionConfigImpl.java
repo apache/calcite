@@ -19,6 +19,7 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -105,6 +106,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getEnum(NullCollation.class, NullCollation.HIGH);
   }
 
+  @Contract("_, !null -> !null")
   @Override public <T> @Nullable T fun(Class<T> operatorTableClass,
       @Nullable T defaultOperatorTable) {
     final String fun =
@@ -152,12 +154,14 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
+  @Contract("_, !null -> !null")
   @Override public <T> @Nullable T parserFactory(Class<T> parserFactoryClass,
       @Nullable T defaultParserFactory) {
     return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
         .getPlugin(parserFactoryClass, defaultParserFactory);
   }
 
+  @Contract("_, !null -> !null")
   @Override public <T> @Nullable T schemaFactory(Class<T> schemaFactoryClass,
       @Nullable T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
@@ -178,6 +182,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Contract("_, !null -> !null")
   @Override public <T> @Nullable T typeSystem(Class<T> typeSystemClass,
       @Nullable T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
@@ -219,6 +224,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Contract("_, !null -> !null")
   @Override public <T> @Nullable T metaTableFactory(
       Class<T> metaTableFactoryClass,
       @Nullable T defaultMetaTableFactory) {
@@ -226,6 +232,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getPlugin(metaTableFactoryClass, defaultMetaTableFactory);
   }
 
+  @Contract("_, !null -> !null")
   @Override public <T> @Nullable T metaColumnFactory(
       Class<T> metaColumnFactoryClass,
       @Nullable T defaultMetaColumnFactory) {

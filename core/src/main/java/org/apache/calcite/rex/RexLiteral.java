@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
@@ -820,6 +821,7 @@ public class RexLiteral extends RexNode {
    *                 by the Jdbc call to return a column as a string
    * @return a typed RexLiteral, or null
    */
+  @Contract("_, _, !null -> !null")
   public static @Nullable RexLiteral fromJdbcString(
       RelDataType type,
       SqlTypeName typeName,

@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -2395,6 +2396,7 @@ public class RexBuilder {
    * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
    *
    * <p>Returns null if and only if {@code o} is null. */
+  @Contract("!null, _ -> !null")
   private @Nullable Object clean(@Nullable Object o, RelDataType type) {
     if (o == null) {
       return o;

@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
@@ -2793,22 +2794,26 @@ public class SqlFunctions {
 
   /** SQL <code>+</code> operator applied to int values; left side may be
    * null. */
+  @Contract("!null, _ -> !null")
   public static @Nullable Integer plus(@Nullable Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 + b1);
   }
 
   /** SQL <code>+</code> operator applied to int values; right side may be
    * null. */
+  @Contract("_, !null -> !null")
   public static @Nullable Integer plus(int b0, @Nullable Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 + b1);
   }
 
   /** SQL <code>+</code> operator applied to nullable int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Integer plus(@Nullable Integer b0, @Nullable Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 + b1);
   }
 
   /** SQL <code>+</code> operator applied to nullable long and int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long plus(@Nullable Long b0, @Nullable Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -2816,6 +2821,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>+</code> operator applied to nullable int and long values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long plus(@Nullable Integer b0, @Nullable Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -2823,6 +2829,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>+</code> operator applied to BigDecimal values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable BigDecimal plus(@Nullable BigDecimal b0,
       @Nullable BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.add(b1);
@@ -2830,6 +2837,7 @@ public class SqlFunctions {
 
   /** SQL <code>+</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
+  @Contract("!null, !null -> !null")
   public static @Nullable Object plusAny(@Nullable Object b0,
       @Nullable Object b1) {
     if (b0 == null || b1 == null) {
@@ -2843,24 +2851,28 @@ public class SqlFunctions {
     throw notArithmetic("+", b0, b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UByte plus(@Nullable UByte b0, @Nullable UByte b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : b0.add(b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UShort plus(@Nullable UShort b0, @Nullable UShort b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : b0.add(b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UInteger plus(@Nullable UInteger b0, @Nullable UInteger b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : b0.add(b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable ULong plus(@Nullable ULong b0, @Nullable ULong b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -2926,22 +2938,26 @@ public class SqlFunctions {
 
   /** SQL <code>-</code> operator applied to int values; left side may be
    * null. */
+  @Contract("!null, _ -> !null")
   public static @Nullable Integer minus(@Nullable Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 - b1);
   }
 
   /** SQL <code>-</code> operator applied to int values; right side may be
    * null. */
+  @Contract("_, !null -> !null")
   public static @Nullable Integer minus(int b0, @Nullable Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 - b1);
   }
 
   /** SQL <code>-</code> operator applied to nullable int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Integer minus(@Nullable Integer b0, @Nullable Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 - b1);
   }
 
   /** SQL <code>-</code> operator applied to nullable long and int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long minus(@Nullable Long b0, @Nullable Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -2949,6 +2965,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>-</code> operator applied to nullable int and long values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long minus(@Nullable Integer b0, @Nullable Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -2956,6 +2973,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>-</code> operator applied to nullable long and long values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long minus(@Nullable Long b0, @Nullable Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -2963,6 +2981,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>-</code> operator applied to nullable BigDecimal values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable BigDecimal minus(@Nullable BigDecimal b0,
       @Nullable BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
@@ -2970,6 +2989,7 @@ public class SqlFunctions {
 
   /** SQL <code>-</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
+  @Contract("!null, !null -> !null")
   public static @Nullable Object minusAny(@Nullable Object b0, @Nullable Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
@@ -2982,19 +3002,23 @@ public class SqlFunctions {
     throw notArithmetic("-", b0, b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UByte minus(@Nullable UByte b0, @Nullable UByte b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UShort minus(@Nullable UShort b0, @Nullable UShort b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UInteger minus(@Nullable UInteger b0, @Nullable UInteger b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
   }
 
   /** SQL <code>-</code> operator applied to nullable unsigned long and long values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable ULong minus(@Nullable ULong b0, @Nullable ULong b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -3076,23 +3100,27 @@ public class SqlFunctions {
 
   /** SQL <code>/</code> operator applied to int values; left side may be
    * null. */
+  @Contract("!null, _ -> !null")
   public static @Nullable Integer divide(@Nullable Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 / b1);
   }
 
   /** SQL <code>/</code> operator applied to int values; right side may be
    * null. */
+  @Contract("_, !null -> !null")
   public static @Nullable Integer divide(int b0, @Nullable Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 / b1);
   }
 
   /** SQL <code>/</code> operator applied to nullable int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Integer divide(@Nullable Integer b0,
       @Nullable Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 / b1);
   }
 
   /** SQL <code>/</code> operator applied to nullable long and int values. */
+  @Contract("_, !null -> !null")
   public static @Nullable Long divide(Long b0, @Nullable Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -3100,6 +3128,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>/</code> operator applied to nullable int and long values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long divide(@Nullable Integer b0, @Nullable Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -3107,6 +3136,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>/</code> operator applied to BigDecimal values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable BigDecimal divide(@Nullable BigDecimal b0,
       @Nullable BigDecimal b1) {
     return (b0 == null || b1 == null)
@@ -3116,6 +3146,7 @@ public class SqlFunctions {
 
   /** SQL <code>/</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
+  @Contract("!null, !null -> !null")
   public static @Nullable Object divideAny(@Nullable Object b0,
       @Nullable Object b1) {
     if (b0 == null || b1 == null) {
@@ -3139,24 +3170,28 @@ public class SqlFunctions {
         .divide(b1, RoundingMode.HALF_DOWN).longValue();
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UByte divide(@Nullable UByte b0,
       @Nullable UByte b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
         : UByte.valueOf(b0.intValue() / b1.intValue());
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UShort divide(@Nullable UShort b0,
       @Nullable UShort b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
         : UShort.valueOf(b0.intValue() / b1.intValue());
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UInteger divide(@Nullable UInteger b0,
       @Nullable UInteger b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
         : UInteger.valueOf(b0.longValue() / b1.longValue());
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable ULong divide(@Nullable ULong b0,
       @Nullable ULong b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
@@ -3230,40 +3265,47 @@ public class SqlFunctions {
 
   /** SQL <code>*</code> operator applied to int values; left side may be
    * null. */
+  @Contract("!null, _ -> !null")
   public static @Nullable Integer multiply(@Nullable Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 * b1);
   }
 
   /** SQL <code>*</code> operator applied to int values; right side may be
    * null. */
+  @Contract("_, !null -> !null")
   public static @Nullable Integer multiply(int b0, @Nullable Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 * b1);
   }
 
   /** SQL <code>*</code> operator applied to nullable int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Integer multiply(@Nullable Integer b0,
       @Nullable Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 * b1);
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UByte multiply(@Nullable UByte b0,
       @Nullable UByte b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
         : UByte.valueOf(b0.longValue() * b1.longValue());
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UShort multiply(@Nullable UShort b0,
       @Nullable UShort b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
         : UShort.valueOf(b0.intValue() * b1.intValue());
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable UInteger multiply(@Nullable UInteger b0,
       @Nullable UInteger b1) {
     return (b0 == null || b1 == null) ? castNonNull(null)
         : UInteger.valueOf(b0.longValue() * b1.longValue());
   }
 
+  @Contract("!null, !null -> !null")
   public static @Nullable ULong multiply(@Nullable ULong b0,
       @Nullable ULong b1) {
     if (b0 == null || b1 == null) {
@@ -3274,6 +3316,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>*</code> operator applied to nullable long and int values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long multiply(@Nullable Long b0, @Nullable Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -3281,6 +3324,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>*</code> operator applied to nullable int and long values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable Long multiply(@Nullable Integer b0, @Nullable Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
@@ -3288,6 +3332,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>*</code> operator applied to nullable BigDecimal values. */
+  @Contract("!null, !null -> !null")
   public static @Nullable BigDecimal multiply(@Nullable BigDecimal b0,
       @Nullable BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.multiply(b1);
@@ -3295,6 +3340,7 @@ public class SqlFunctions {
 
   /** SQL <code>*</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
+  @Contract("!null, !null -> !null")
   public static @Nullable Object multiplyAny(@Nullable Object b0,
       @Nullable Object b1) {
     if (b0 == null || b1 == null) {
@@ -5381,6 +5427,7 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Date, TimeZone)
    * @see #internalToDate(Integer) converse method
    */
+  @Contract("!null -> !null")
   public static @Nullable Integer toIntOptional(java.sql.@Nullable Date v) {
     return v == null
         ? castNonNull(null)
@@ -5394,6 +5441,7 @@ public class SqlFunctions {
    *
    * @see #toInt(java.sql.Date, TimeZone)
    */
+  @Contract("!null, _ -> !null")
   public static @Nullable Integer toIntOptional(java.sql.@Nullable Date v,
       TimeZone timeZone) {
     return v == null
@@ -5422,6 +5470,7 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Time)
    * @see #internalToTime(Integer) converse method
    */
+  @Contract("!null -> !null")
   public static @Nullable Integer toIntOptional(java.sql.@Nullable Time v) {
     return v == null ? castNonNull(null) : toInt(v);
   }
@@ -5443,6 +5492,7 @@ public class SqlFunctions {
         : (Integer) cannotConvert(o, int.class);
   }
 
+  @Contract("!null -> !null")
   public static @Nullable Integer toIntOptional(@Nullable Object o) {
     return o == null ? castNonNull(null) : toInt(o);
   }
@@ -5508,6 +5558,7 @@ public class SqlFunctions {
    * @see #toLong(Timestamp, TimeZone)
    * @see #internalToTimestamp(Long) converse method
    */
+  @Contract("!null -> !null")
   public static @Nullable Long toLongOptional(@Nullable Timestamp v) {
     return v == null ? castNonNull(null) : toLong(v, LOCAL_TZ);
   }
@@ -5519,6 +5570,7 @@ public class SqlFunctions {
    *
    * @see #toLong(Timestamp, TimeZone)
    */
+  @Contract("!null, _ -> !null")
   public static @Nullable Long toLongOptional(@Nullable Timestamp v,
       TimeZone timeZone) {
     if (v == null) {
@@ -5549,6 +5601,7 @@ public class SqlFunctions {
         : (Long) cannotConvert(o, long.class);
   }
 
+  @Contract("!null -> !null")
   public static @Nullable Long toLongOptional(@Nullable Object o) {
     return o == null ? castNonNull(null) : toLong(o);
   }
@@ -5646,6 +5699,7 @@ public class SqlFunctions {
    * @see #internalToDate(int)
    * @see #toIntOptional(java.sql.Date) converse method
    */
+  @Contract("!null -> !null")
   public static java.sql.@Nullable Date internalToDate(@Nullable Integer v) {
     return v == null ? castNonNull(null) : internalToDate(v.intValue());
   }
@@ -5670,10 +5724,12 @@ public class SqlFunctions {
    * @see #internalToTime(Integer)
    * @see #toIntOptional(java.sql.Time) converse method
    */
+  @Contract("!null -> !null")
   public static java.sql.@Nullable Time internalToTime(@Nullable Integer v) {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
 
+  @Contract("!null -> !null")
   public static @Nullable Integer toTimeWithLocalTimeZone(@Nullable String v) {
     if (v == null) {
       return castNonNull(null);
@@ -5684,6 +5740,7 @@ public class SqlFunctions {
         .getMillisOfDay();
   }
 
+  @Contract("!null, _ -> !null")
   public static @Nullable Integer toTimeWithLocalTimeZone(@Nullable String v,
       TimeZone timeZone) {
     if (v == null) {
@@ -6049,6 +6106,7 @@ public class SqlFunctions {
    * @see #toLongOptional(Timestamp, TimeZone)
    * @see #toLongOptional(Timestamp) converse method
    */
+  @Contract("!null -> !null")
   public static java.sql.@Nullable Timestamp internalToTimestamp(@Nullable Long v) {
     return v == null ? castNonNull(null) : internalToTimestamp(v.longValue());
   }
@@ -6332,6 +6390,7 @@ public class SqlFunctions {
         / (1000L * 1000L)); // milli > micro > nano
   }
 
+  @Contract("!null -> !null")
   public static @Nullable Long toTimestampWithLocalTimeZone(@Nullable String v) {
     if (v == null) {
       return castNonNull(null);
@@ -6342,6 +6401,7 @@ public class SqlFunctions {
         .getMillisSinceEpoch();
   }
 
+  @Contract("!null, _ -> !null")
   public static @Nullable Long toTimestampWithLocalTimeZone(@Nullable String v,
       TimeZone timeZone) {
     if (v == null) {
@@ -6356,6 +6416,7 @@ public class SqlFunctions {
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
 
   /** Helper for CAST(... AS VARCHAR(maxLength)). */
+  @Contract("!null, _ -> !null")
   public static @Nullable String truncate(@Nullable String s, int maxLength) {
     if (s == null) {
       return s;
@@ -6367,6 +6428,7 @@ public class SqlFunctions {
   }
 
   /** Helper for CAST(... AS CHAR(maxLength)). */
+  @Contract("!null, _ -> !null")
   public static @Nullable String truncateOrPad(@Nullable String s, int maxLength) {
     if (s == null) {
       return s;
@@ -6380,6 +6442,7 @@ public class SqlFunctions {
     }
   }
 
+  @Contract("!null, _ -> !null")
   public static @Nullable ByteString stringToBinary(@Nullable String s, Charset charset) {
     if (s == null) {
       return null;
@@ -6388,6 +6451,7 @@ public class SqlFunctions {
     }
   }
 
+  @Contract("!null -> !null")
   public static @Nullable ByteString byteArrayToByteString(byte @Nullable [] bytes) {
     if (bytes == null) {
       return null;
@@ -6405,6 +6469,7 @@ public class SqlFunctions {
   }
 
   /** Helper for CAST(... AS VARBINARY(maxLength)). */
+  @Contract("!null, _ -> !null")
   public static @Nullable ByteString truncate(@Nullable ByteString s, int maxLength) {
     if (s == null) {
       return s;
@@ -6416,6 +6481,7 @@ public class SqlFunctions {
   }
 
   /** Helper for CAST(... AS BINARY(maxLength)). */
+  @Contract("!null, _ -> !null")
   public static @Nullable ByteString truncateOrPad(@Nullable ByteString s, int maxLength) {
     if (s == null) {
       return s;
@@ -7030,11 +7096,13 @@ public class SqlFunctions {
   }
 
   /** NULL &rarr; NULL, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
+  @Contract("!null -> !null")
   public static @Nullable Boolean not(@Nullable Boolean b) {
     return b == null ? castNonNull(null) : !b;
   }
 
   /** Converts a JDBC array to a list. */
+  @Contract("!null -> !null")
   public static @Nullable List arrayToList(final java.sql.@Nullable Array a) {
     if (a == null) {
       return castNonNull(null);

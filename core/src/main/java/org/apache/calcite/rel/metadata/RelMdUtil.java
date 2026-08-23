@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
@@ -314,6 +315,7 @@ public class RelMdUtil {
    * @return the expected number of distinct values, or null if either argument
    * is null
    */
+  @Contract("!null, !null -> !null")
   public static @Nullable Double numDistinctVals(
       @Nullable Double domainSize,
       @Nullable Double numSelected) {
@@ -1080,6 +1082,7 @@ public class RelMdUtil {
    * <p>Throws if {@code result} is not null, not in range 0 to 1,
    * and assertions are enabled.
    */
+  @Contract("!null -> !null")
   public static @Nullable Double validatePercentage(@Nullable Double result) {
     assert isPercentage(result, true);
     return result;
@@ -1116,6 +1119,7 @@ public class RelMdUtil {
    * @return the corrected value from the {@code result}
    * @throws AssertionError if the {@code result} is negative
    */
+  @Contract("!null -> !null")
   public static @Nullable Double validateResult(@Nullable Double result) {
     if (result == null) {
       return null;

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
@@ -1813,6 +1814,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param underFrom whether node appears directly under a FROM clause
    * @return rewritten expression, or null if the original expression is null
    */
+  @Contract("!null, _ -> !null")
   protected @Nullable SqlNode performUnconditionalRewrites(
       @Nullable SqlNode node,
       boolean underFrom) {

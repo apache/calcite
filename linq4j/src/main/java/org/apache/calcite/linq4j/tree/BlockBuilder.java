@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.calcite.linq4j.annotations.Contract;
+
 import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
@@ -200,6 +202,7 @@ public class BlockBuilder {
    * Appends an expression to a list of statements if it is not null,
    * and returns the expression.
    */
+  @Contract("_, !null -> !null")
   public @Nullable Expression appendIfNotNull(String name, @Nullable Expression expression) {
     if (expression == null) {
       return null;

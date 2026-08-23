@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -73,6 +74,7 @@ public interface ExtendedEnumerable<TSource> {
    *
    * <p>If {@code seed} is not null, the result is never null.
    */
+  @Contract("!null, !null -> !null")
   <TAccumulate> @Nullable TAccumulate aggregate(@Nullable TAccumulate seed,
       Function2<@Nullable TAccumulate, TSource, @Nullable TAccumulate> func);
 

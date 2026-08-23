@@ -18,6 +18,7 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.linq4j.annotations.RequiresNonNull;
@@ -1500,6 +1501,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param plan Plan
    * @return Normalized plan
    */
+  @Contract("!null -> !null")
   public static @Nullable String normalizePlan(@Nullable String plan) {
     if (plan == null) {
       return null;

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.annotations.Contract;
+
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -91,6 +93,7 @@ public class SerializableCharset implements Serializable {
    * @param charset Character set to wrap, or null
    * @return Wrapped charset
    */
+  @Contract("!null -> !null")
   public static @Nullable SerializableCharset forCharset(@Nullable Charset charset) {
     if (charset == null) {
       return null;
