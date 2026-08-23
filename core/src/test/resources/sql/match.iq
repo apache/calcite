@@ -172,6 +172,41 @@ C    CL EMPID
 
 !ok
 
+# Test case for CALCITE-7734
+# An unqualified column in DEFINE/MEASURES resolves to the universal row pattern
+# variable "*", not to the table name; the plan must show LAST(*.$4, ...).
+select *
+from "hr"."emps" match_recognize (
+    order by "empid" desc
+    measures "commission" as c
+    pattern (s up)
+    define up as "commission" < prev("commission"));
+EnumerableMatch(partition=[[]], order=[[0 DESC]], outputFields=[[C]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(LAST(*.$4, 0), LAST(*.$4, 1))]], inputFields=[[empid, deptno, name, salary, commission]])
+  EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# [CALCITE-7734] An unqualified column resolves to "*" even when the input alias collides with a pattern variable.
+select *
+from "hr"."emps" as "A" match_recognize (
+    order by "empid" desc
+    measures "commission" as c
+    pattern ("A" up)
+    define up as "commission" < prev("commission"));
+EnumerableMatch(partition=[[]], order=[[0 DESC]], outputFields=[[C]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[('A', 'UP')], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(LAST(*.$4, 0), LAST(*.$4, 1))]], inputFields=[[empid, deptno, name, salary, commission]])
+  EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# [CALCITE-7734] A column explicitly qualified by a pattern variable still resolves to that variable.
+select *
+from "hr"."emps" as "A" match_recognize (
+    order by "empid" desc
+    measures "A"."commission" as c
+    pattern ("A" up)
+    define up as "A"."commission" < prev("A"."commission"));
+EnumerableMatch(partition=[[]], order=[[0 DESC]], outputFields=[[C]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[('A', 'UP')], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(LAST(A.$4, 0), LAST(A.$4, 1))]], inputFields=[[empid, deptno, name, salary, commission]])
+  EnumerableTableScan(table=[[hr, emps]])
+!plan
+
 !if (false) {
 # Match recognize
 SELECT *

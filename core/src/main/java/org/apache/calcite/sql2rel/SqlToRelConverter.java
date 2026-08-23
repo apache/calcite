@@ -4934,6 +4934,17 @@ public class SqlToRelConverter {
     String pv = null;
     if (bb.isPatternVarRef && identifier.names.size() > 1) {
       pv = identifier.names.get(0);
+      // Unqualified, or qualified by a non pattern variable, means universal variable "*".
+      final SqlValidator validator = bb.getValidator();
+      final SqlNode original = validator instanceof SqlValidatorImpl
+          ? ((SqlValidatorImpl) validator).getOriginal(identifier) : identifier;
+      final boolean unqualified = original instanceof SqlIdentifier
+          && ((SqlIdentifier) original).names.size() == 1;
+      if (unqualified
+          || (bb.scope instanceof MatchRecognizeScope
+              && !((MatchRecognizeScope) bb.scope).getPatternVars().contains(pv))) {
+        pv = "*";
+      }
     }
 
     final @Nullable SqlNode measure = bb.lookupMeasure(identifier);

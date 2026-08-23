@@ -811,6 +811,10 @@ public abstract class SqlImplementor {
         String pv = ref.getAlpha();
         SqlNode refNode = field(ref.getIndex());
         final SqlIdentifier id = (SqlIdentifier) refNode;
+        if ("*".equals(pv)) {
+          // The universal variable "*" is not a valid qualifier; emit the plain column reference.
+          return refNode;
+        }
         if (id.names.size() > 1) {
           return id.setName(0, pv);
         } else {
