@@ -1865,7 +1865,7 @@ public class Util {
    * @param clazz Class to cast to
    * @return An iterator whose members are of the desired type.
    */
-  public static <E> Iterator<E> cast(
+  public static <E extends @Nullable Object> Iterator<E> cast(
       final Iterator<? extends @Nullable Object> iter,
       final Class<E> clazz) {
     return transform(iter, x -> clazz.cast(castNonNull(x)));
@@ -2746,7 +2746,7 @@ public class Util {
   }
 
   /** Transforms a list, applying a function to each element. */
-  public static <F, T>
+  public static <F extends @Nullable Object, T extends @Nullable Object>
       List<T> transform(List<? extends F> list,
       java.util.function.Function<? super F, ? extends T> function) {
     if (list.isEmpty() && list instanceof ImmutableList) {
@@ -2760,7 +2760,7 @@ public class Util {
 
   /** Transforms a list, applying a function to each element, also passing in
    * the element's index in the list. */
-  public static <F, T>
+  public static <F extends @Nullable Object, T extends @Nullable Object>
       List<T> transformIndexed(List<? extends F> list,
       BiFunction<? super F, Integer, ? extends T> function) {
     if (list.isEmpty() && list instanceof ImmutableList) {
@@ -2774,7 +2774,7 @@ public class Util {
 
   /** Transforms an iterable, applying a function to each element. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <F, T>
+  public static <F extends @Nullable Object, T extends @Nullable Object>
       Iterable<T> transform(Iterable<? extends F> iterable,
       java.util.function.Function<? super F, ? extends T> function) {
     // FluentIterable provides toString
@@ -2787,7 +2787,7 @@ public class Util {
 
   /** Transforms an iterator. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <F, T>
+  public static <F extends @Nullable Object, T extends @Nullable Object>
       Iterator<T> transform(Iterator<? extends F> iterator,
       java.util.function.Function<? super F, ? extends T> function) {
     return new TransformingIterator<>(iterator, function);

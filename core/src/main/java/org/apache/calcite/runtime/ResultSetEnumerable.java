@@ -61,7 +61,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * @param <T> Element type
  */
-public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
+public class ResultSetEnumerable<T extends @Nullable Object> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
