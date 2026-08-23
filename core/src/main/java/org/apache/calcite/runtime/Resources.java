@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 
@@ -771,6 +772,7 @@ public class Resources {
      * value if the property is not set.
      *
      * <p>If {@code defaultValue} is not null, never returns null. */
+    @Contract("!null -> !null")
     public @Nullable String get(@Nullable String defaultValue) {
       return accessor.stringValue(this, defaultValue);
     }
@@ -796,6 +798,7 @@ public class Resources {
     int intValue(IntProp p);
     int intValue(IntProp p, int defaultValue);
     @Nullable String stringValue(StringProp p);
+    @Contract("_, !null -> !null")
     @Nullable String stringValue(StringProp p, @Nullable String defaultValue);
     boolean booleanValue(BooleanProp p);
     boolean booleanValue(BooleanProp p, boolean defaultValue);
@@ -825,6 +828,7 @@ public class Resources {
       return p.defaultValue();
     }
 
+    @Contract("_, !null -> !null")
     @Override public @Nullable String stringValue(StringProp p,
         @Nullable String defaultValue) {
       return defaultValue;

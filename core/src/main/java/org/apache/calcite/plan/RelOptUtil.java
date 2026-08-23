@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
@@ -2479,6 +2480,7 @@ public abstract class RelOptUtil {
    * returns null if and only if {@code rel} is null,
    * returns expanded detail info for {@code rel} if {@code expand} is true.
    */
+  @Contract("!null, _, _ -> !null")
   public static @Nullable String toString(
       final @Nullable RelNode rel,
       SqlExplainLevel detailLevel,

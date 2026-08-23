@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.HintStrategyTable;
@@ -1130,6 +1131,7 @@ public abstract class SqlUtil {
 
   /** If a node is "AS", returns the underlying expression; otherwise returns
    * the node. Returns null if and only if the node is null. */
+  @Contract("!null -> !null")
   public static @Nullable SqlNode stripAs(@Nullable SqlNode node) {
     if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);
