@@ -58,7 +58,8 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
   @Deprecated // to be removed before 2.0
   public void add(SqlOperatorTable table) {
     if (!tableList.contains(table)) {
-      tableList.add(table);
+      throw new UnsupportedOperationException(
+          "ChainedSqlOperatorTable is immutable; use SqlOperatorTables.chain");
     }
   }
 

@@ -19,6 +19,7 @@ dependencies {
     api(project(":linq4j"))
     api("org.apache.kafka:kafka-clients")
     api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")
 

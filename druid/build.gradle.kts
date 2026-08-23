@@ -28,6 +28,7 @@ dependencies {
     api("joda-time:joda-time")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("com.fasterxml.jackson.core:jackson-databind")
