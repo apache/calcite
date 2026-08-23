@@ -136,6 +136,7 @@ public class FileReader implements Iterable<Elements> {
     getTable();
   }
 
+  @SuppressWarnings("ReturnValueIgnored") // iterator() fills in the headings
   Elements getHeadings() {
     if (this.headings == null) {
       this.iterator();

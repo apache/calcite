@@ -54,7 +54,7 @@ dependencies {
     api("com.google.guava:guava")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.apiguardian:apiguardian-api")
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
