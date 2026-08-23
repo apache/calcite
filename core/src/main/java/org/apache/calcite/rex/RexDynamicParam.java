@@ -56,7 +56,7 @@ public class RexDynamicParam extends RexVariable {
     return index;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitDynamicParam(this);
   }
 

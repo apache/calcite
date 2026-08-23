@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Function with no parameters.
  *
  * @param <R> Result type
  */
-public interface Function0<R> extends Function<R> {
+public interface Function0<R extends @Nullable Object> extends Function<R> {
   R apply();
 }

@@ -99,7 +99,7 @@ public class RexFieldAccess extends RexNode {
     return SqlKind.FIELD_ACCESS;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitFieldAccess(this);
   }
 

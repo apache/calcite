@@ -295,7 +295,7 @@ public class FlatLists {
   /** Base class for flat lists.
    *
    * @param <T> element type */
-  public abstract static class AbstractFlatList<T>
+  public abstract static class AbstractFlatList<T extends @Nullable Object>
       extends AbstractImmutableList<T> implements RandomAccess {
     @Override protected final List<T> toList() {
       //noinspection unchecked
@@ -321,7 +321,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat1List<T>
+  protected static class Flat1List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -433,7 +433,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat2List<T>
+  protected static class Flat2List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -566,7 +566,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat3List<T>
+  protected static class Flat3List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -716,7 +716,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat4List<T>
+  protected static class Flat4List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -886,7 +886,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat5List<T>
+  protected static class Flat5List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -1075,7 +1075,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat6List<T>
+  protected static class Flat6List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -1312,7 +1312,7 @@ public class FlatLists {
    * @param <T> element type
    */
   @SuppressWarnings("ComparableType")
-  public interface ComparableList<T> extends List<T>, Comparable<List> {
+  public interface ComparableList<T extends @Nullable Object> extends List<T>, Comparable<List> {
   }
 
   /** Wrapper around a list that makes it implement the {@link Comparable}

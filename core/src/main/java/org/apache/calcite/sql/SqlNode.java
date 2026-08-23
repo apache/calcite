@@ -287,7 +287,7 @@ public abstract class SqlNode implements Cloneable {
    * <p>The type parameter <code>R</code> must be consistent with the type
    * parameter of the visitor.
    */
-  public abstract <R> R accept(SqlVisitor<R> visitor);
+  public abstract <R extends @Nullable Object> R accept(SqlVisitor<R> visitor);
 
   /**
    * Returns whether this node is structurally equivalent to another node.

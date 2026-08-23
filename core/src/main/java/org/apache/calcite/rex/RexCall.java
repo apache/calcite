@@ -192,7 +192,7 @@ public class RexCall extends RexNode {
     return isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION);
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitCall(this);
   }
 

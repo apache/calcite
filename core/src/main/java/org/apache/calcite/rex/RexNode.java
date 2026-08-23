@@ -107,7 +107,7 @@ public abstract class RexNode {
    * <p>Also see {@link RexUtil#apply(RexVisitor, java.util.List, RexNode)},
    * which applies a visitor to several expressions simultaneously.
    */
-  public abstract <R> R accept(RexVisitor<R> visitor);
+  public abstract <R extends @Nullable Object> R accept(RexVisitor<R> visitor);
 
   /**
    * Accepts a visitor with a payload, dispatching to the right overloaded

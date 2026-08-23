@@ -43,7 +43,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> the type of the property value
  */
-public final class CalciteSystemProperty<T> {
+public final class CalciteSystemProperty<T extends @Nullable Object> {
   /**
    * Holds all system properties related with the Calcite.
    *

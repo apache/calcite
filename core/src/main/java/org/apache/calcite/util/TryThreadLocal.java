@@ -30,7 +30,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> Value type
  */
-public abstract class TryThreadLocal<T> extends ThreadLocal<@Nullable T> {
+public abstract class TryThreadLocal<T extends @Nullable Object> extends ThreadLocal<@Nullable T> {
   /** Creates a TryThreadLocal with a fixed initial value.
    *
    * @param initialValue Initial value

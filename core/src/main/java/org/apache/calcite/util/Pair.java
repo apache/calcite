@@ -44,7 +44,7 @@ import static java.util.Objects.requireNonNull;
  * @param <T2> Right-hand type
  */
 @SuppressWarnings("NullAway")
-public class Pair<T1, T2>
+public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -82,7 +82,7 @@ public class Pair<T1, T2>
    * @param right right value
    * @return A Pair
    */
-  public static <T1, T2> Pair<T1, T2> of(
+  public static <T1 extends @Nullable Object, T2 extends @Nullable Object> Pair<T1, T2> of(
       T1 left, T2 right) {
     return new Pair<>(left, right);
   }
@@ -339,7 +339,7 @@ public class Pair<T1, T2>
    * @param <R>      Right type
    * @return Iterable over the left elements
    */
-  public static <L, R> Iterable<L> left(
+  public static <L extends @Nullable Object, R extends @Nullable Object> Iterable<L> left(
       final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
     return Util.transform(iterable, Map.Entry::getKey);
   }
@@ -352,13 +352,13 @@ public class Pair<T1, T2>
    * @param <R>      Right type
    * @return Iterable over the right elements
    */
-  public static <L, R> Iterable<R> right(
+  public static <L extends @Nullable Object, R extends @Nullable Object> Iterable<R> right(
       final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
     return Util.transform(iterable, Map.Entry::getValue);
   }
 
   @SuppressWarnings("unchecked")
-  public static <K, V> List<K> left(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<K> left(
       final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
     if (pairs instanceof PairList) {
       return ((PairList<K, V>) pairs).leftList();
@@ -367,7 +367,7 @@ public class Pair<T1, T2>
   }
 
   @SuppressWarnings("unchecked")
-  public static <K, V> List<V> right(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<V> right(
       final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
     if (pairs instanceof PairList) {
       return ((PairList<K, V>) pairs).rightList();

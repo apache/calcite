@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Supports a simple iteration over a collection.
  *
@@ -26,7 +28,7 @@ package org.apache.calcite.linq4j;
  *
  * @param <T> Element type
  */
-public interface Enumerator<T> extends AutoCloseable {
+public interface Enumerator<T extends @Nullable Object> extends AutoCloseable {
   /**
    * Gets the current element in the collection.
    *
