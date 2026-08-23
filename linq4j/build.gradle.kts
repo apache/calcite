@@ -16,7 +16,10 @@
  */
 dependencies {
     api("org.apiguardian:apiguardian-api")
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
+
+    // The annotations are not retained at run time and the artifact never ships with Calcite,
+    // so its Java 11 bytecode is fine even though Calcite itself targets Java 8
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")

@@ -42,7 +42,6 @@ plugins {
     calcite.buildext
     jacoco
     id("jacoco-report-aggregation")
-    id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
@@ -80,7 +79,6 @@ val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
-val enableCheckerframework by props()
 val enableErrorprone by props()
 val enableDependencyAnalysis by props()
 val enableJacoco by props()
@@ -93,6 +91,10 @@ val enableGradleMetadata by props()
 val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
+
+// Projects whose main code NullAway verifies. The other projects are not annotated well enough
+// yet, so NullAway would only produce noise there.
+val nullawayProjects = listOf(":linq4j", ":core")
 
 val hepLargePlanModeTestIncludes = mapOf(
     ":core" to listOf(
@@ -641,8 +643,10 @@ allprojects {
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
                     replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
-                    replaceRegex("jsr305 nullable -> checkerframework", "javax\\.annotation\\.Nullable", "org.checkerframework.checker.nullness.qual.Nullable")
-                    replaceRegex("jsr305 nonnull -> checkerframework", "javax\\.annotation\\.Nonnull", "org.checkerframework.checker.nullness.qual.NonNull")
+                    replaceRegex("jsr305 nullable -> jspecify", "javax\\.annotation\\.Nullable", "org.jspecify.annotations.Nullable")
+                    replaceRegex("jsr305 nonnull -> jspecify", "javax\\.annotation\\.Nonnull", "org.jspecify.annotations.NonNull")
+                    replaceRegex("checkerframework nullable -> jspecify", "org\\.checkerframework\\.checker\\.nullness\\.qual\\.Nullable", "org.jspecify.annotations.Nullable")
+                    replaceRegex("checkerframework nonnull -> jspecify", "org\\.checkerframework\\.checker\\.nullness\\.qual\\.NonNull", "org.jspecify.annotations.NonNull")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
@@ -775,9 +779,14 @@ allprojects {
             apply(plugin = "net.ltgt.errorprone")
             dependencies {
                 "errorprone"("com.google.errorprone:error_prone_core:${"errorprone".v}")
+                "errorprone"("com.uber.nullaway:nullaway:${"nullaway".v}")
                 "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
             }
+            val nullawayEnabled = project.path in nullawayProjects
             tasks.withType<JavaCompile>().configureEach {
+                val mainCode = name == "compileJava"
+                // NullAway reports every error it finds, and javac hides all but the first 100
+                options.compilerArgs.addAll(listOf("-Xmaxerrs", "10000"))
                 options.errorprone {
                     disableWarningsInGeneratedCode.set(true)
                     errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
@@ -796,54 +805,87 @@ allprojects {
                     )
                     // Analyze issues, and enable the check
                     disable(
+                        "AlreadyChecked",
+                        "AnnotateFormatMethod",
+                        "AssignmentExpression",
                         "BigDecimalEquals",
+                        "BooleanLiteral",
+                        "ClassInitializationDeadlock",
+                        "DoNotCall",
                         "DoNotCallSuggester",
-                        "StringSplitter"
+                        "DuplicateBranches",
+                        "EffectivelyPrivate",
+                        "EnumOrdinal",
+                        "ExposedPrivateType",
+                        "FloggerArgumentToString",
+                        "FormatStringShouldUsePlaceholders",
+                        "InlineMeInliner",
+                        "InlineMeSuggester",
+                        "IntLiteralCast",
+                        "InvalidLink",
+                        "JavaDurationGetSecondsToToSeconds",
+                        "JdkObsolete",
+                        "LabelledBreakTarget",
+                        "LenientFormatStringValidation",
+                        "ListRemoveAmbiguous",
+                        "MissingSummary",
+                        "NonApiType",
+                        "NonCanonicalType",
+                        "NotJavadoc",
+                        "RedundantControlFlow",
+                        "ReturnValueIgnored",
+                        "StaticAssignmentOfThrowable",
+                        "StringSplitter",
+                        "SuperCallToObjectMethod",
+                        "UnnecessaryMethodReference",
+                        "UnnecessaryStringBuilder",
+                        "UnsafeReflectiveConstructionCast",
+                        "UnusedMethod",
+                        "UnusedVariable"
                     )
+                    if (nullawayEnabled && mainCode) {
+                        // Nullness errors must fail the build, so the annotations stay trustworthy
+                        error("NullAway")
+                        // Only @NullMarked code is analyzed, so an unannotated package is skipped
+                        // rather than assumed non-null
+                        option("NullAway:OnlyNullMarked", "true")
+                        // JSpecify semantics, including nullness of generic type arguments
+                        option("NullAway:JSpecifyMode", "true")
+                        // Shorthand for HandleWildcardGenerics, JSpecifyJDKModels and
+                        // WarnOnGenericInferenceFailure. They are spelled out below as well so it is
+                        // clear which experiments Calcite relies on
+                        option("NullAway:JSpecifyExperimental", "true")
+                        // https://github.com/uber/NullAway/wiki/Configuration#handle-wildcard-generics
+                        option("NullAway:HandleWildcardGenerics", "true")
+                        // Nullness models for the JDK, which replace the CheckerFramework stub files
+                        option("NullAway:JSpecifyJDKModels", "true")
+                        // Report the calls where NullAway cannot infer the type arguments instead of
+                        // silently assuming they are fine
+                        option("NullAway:WarnOnGenericInferenceFailure", "true")
+                        // Calcite runs its tests with assertions enabled
+                        option("NullAway:AssertsEnabled", "true")
+                        // Validate @Contract annotations rather than trusting them
+                        option("NullAway:CheckContracts", "true")
+                        // Check every override, not only the ones carrying @Override
+                        option("NullAway:ExhaustiveOverride", "true")
+                        option(
+                            "NullAway:CastToNonNullMethod",
+                            "org.apache.calcite.linq4j.Nullness.castNonNull"
+                        )
+                        // Immutables-generated code is not annotated, and Calcite does not own it
+                        option("NullAway:TreatGeneratedAsUnannotated", "true")
+                        option(
+                            "NullAway:CustomGeneratedCodeAnnotations",
+                            "org.immutables.value.Generated"
+                        )
+                    } else {
+                        // Nullness is verified in a dedicated CI job only, so a nullness problem
+                        // fails that job alone and leaves the test jobs reporting test failures
+                        disable("NullAway")
+                    }
                 }
             }
         }
-        if (enableCheckerframework) {
-            apply(plugin = "org.checkerframework")
-            dependencies {
-                "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
-                // CheckerFramework annotations might be used in the code as follows:
-                // dependencies {
-                //     "compileOnly"("org.checkerframework:checker-qual")
-                //     "testCompileOnly"("org.checkerframework:checker-qual")
-                // }
-                if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
-                    // only needed for JDK 8
-                    "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8")
-                }
-            }
-            configure<org.checkerframework.gradle.plugin.CheckerFrameworkExtension> {
-                skipVersionCheck = true
-                // See https://checkerframework.org/manual/#introduction
-                checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
-                // Below checkers take significant time and they do not provide much value :-/
-                // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
-                // checkers.add("org.checkerframework.checker.regex.RegexChecker")
-                // https://checkerframework.org/manual/#creating-debugging-options-progress
-                // extraJavacArgs.add("-Afilenames")
-                extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
-                // Consider Java assert statements for nullness and other checks
-                extraJavacArgs.add("-AassumeAssertionsAreEnabled")
-                // https://checkerframework.org/manual/#stub-using
-                extraJavacArgs.add("-Astubs=" +
-                        fileTree("$rootDir/src/main/config/checkerframework") {
-                            include("**/*.astub")
-                        }.asPath
-                )
-                if (project.path == ":core") {
-                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
-                }
-                if (project.path == ":server") {
-                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.ddl\\.")
-                }
-            }
-        }
-
         tasks {
             configureEach<Jar> {
                 manifest {
@@ -882,7 +924,7 @@ allprojects {
                 if (werror) {
                     options.compilerArgs.add("-Werror")
                 }
-                if (enableCheckerframework) {
+                if (enableErrorprone) {
                     options.forkOptions.memoryMaximumSize = "2g"
                 }
                 excludeIntellijGenerated()
