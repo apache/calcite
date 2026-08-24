@@ -193,7 +193,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
   }
 
   @SuppressWarnings("NullAway")
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
     return list.toArray(a);
   }
 

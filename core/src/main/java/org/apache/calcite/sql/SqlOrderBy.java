@@ -23,6 +23,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree node that represents an {@code ORDER BY} on a query other than a
  * {@code SELECT} (e.g. {@code VALUES} or {@code UNION}).
@@ -72,14 +74,13 @@ public class SqlOrderBy extends SqlCall {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
-      query = operand;
+      query = requireNonNull(operand, "operand");
       break;
     case 1:
-      orderList = (SqlNodeList) operand;
+      orderList = requireNonNull((SqlNodeList) operand, "orderList");
       break;
     case 2:
       offset = operand;

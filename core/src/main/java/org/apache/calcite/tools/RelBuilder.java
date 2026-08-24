@@ -2141,7 +2141,7 @@ public class RelBuilder {
 
     // Perform a quick check for identity. We'll do a deeper check
     // later when we've derived column names.
-    if (!force && Iterables.isEmpty(fieldNames)
+    if (!force && !fieldNames.iterator().hasNext()
         && RexUtil.isIdentity(nodeList, inputRowType)) {
       return this;
     }
@@ -5393,7 +5393,7 @@ public class RelBuilder {
     }
 
     @Override public boolean offer(Frame frame) {
-      checkEmptyRowType(castNonNull(config), frame.rel);
+      checkEmptyRowType(config, frame.rel);
       deque.push(frame);
       return true;
     }

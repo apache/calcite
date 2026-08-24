@@ -539,7 +539,7 @@ public class ProfilerImpl implements Profiler {
       this.space = space;
     }
 
-    abstract void add(List<@Nullable Comparable> row);
+    abstract void add(List<? extends @Nullable Comparable> row);
     abstract void finish();
 
     /** Creates an initial collector of the appropriate kind. */
@@ -568,8 +568,8 @@ public class ProfilerImpl implements Profiler {
       this.sketchThreshold = sketchThreshold;
     }
 
-    @Override public void add(List<@Nullable Comparable> row) {
-      final Comparable v = row.get(columnOrdinal);
+    @Override public void add(List<? extends @Nullable Comparable> row) {
+      final Comparable v = castNonNull(row.get(columnOrdinal));
       if (v == NullSentinel.INSTANCE) {
         nullCount++;
       } else {
@@ -597,24 +597,24 @@ public class ProfilerImpl implements Profiler {
     protected static final ImmutableBitSet OF = ImmutableBitSet.of(2, 13);
     final Set<FlatLists.ComparableList> values = new HashSet<>();
     final int[] columnOrdinals;
-    final @Nullable Comparable[] columnValues;
+    final Comparable[] columnValues;
     int nullCount = 0;
     private final int sketchThreshold;
 
     CompositeCollector(Space space, int[] columnOrdinals, int sketchThreshold) {
       super(space);
       this.columnOrdinals = columnOrdinals;
-      this.columnValues = new @Nullable Comparable[columnOrdinals.length];
+      this.columnValues = new Comparable[columnOrdinals.length];
       this.sketchThreshold = sketchThreshold;
     }
 
-    @Override public void add(List<@Nullable Comparable> row) {
+    @Override public void add(List<? extends @Nullable Comparable> row) {
       if (space.columnOrdinals.equals(OF)) {
         Util.discard(0);
       }
       int nullCountThisRow = 0;
       for (int i = 0, length = columnOrdinals.length; i < length; i++) {
-        final Comparable value = row.get(columnOrdinals[i]);
+        final Comparable value = castNonNull(row.get(columnOrdinals[i]));
         if (value == NullSentinel.INSTANCE) {
           if (nullCountThisRow++ == 0) {
             nullCount++;
@@ -700,8 +700,8 @@ public class ProfilerImpl implements Profiler {
       this.columnOrdinal = columnOrdinal;
     }
 
-    @Override public void add(List<@Nullable Comparable> row) {
-      final Comparable value = row.get(columnOrdinal);
+    @Override public void add(List<? extends @Nullable Comparable> row) {
+      final Comparable value = castNonNull(row.get(columnOrdinal));
       if (value == NullSentinel.INSTANCE) {
         nullCount++;
         sketch.update(NULL_BITS);
@@ -722,14 +722,14 @@ public class ProfilerImpl implements Profiler {
       this.columnOrdinals = columnOrdinals;
     }
 
-    @Override public void add(List<@Nullable Comparable> row) {
+    @Override public void add(List<? extends @Nullable Comparable> row) {
       if (space.columnOrdinals.equals(OF)) {
         Util.discard(0);
       }
       int nullCountThisRow = 0;
       buf.clear();
       for (int columnOrdinal : columnOrdinals) {
-        final Comparable value = row.get(columnOrdinal);
+        final Comparable value = castNonNull(row.get(columnOrdinal));
         if (value == NullSentinel.INSTANCE) {
           if (nullCountThisRow++ == 0) {
             nullCount++;
