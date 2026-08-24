@@ -1109,7 +1109,7 @@ public class RelToSqlConverter extends SqlImplementor
               SqlNodeList.of(pos,
                   hints.stream()
                       .map(h -> RelToSqlConverter.toSqlHint(h, pos))
-                      .collect(Collectors.toList())));
+                      .collect(Collectors.<@Nullable SqlNode>toList())));
     } else {
       node = identifier;
     }
@@ -1123,13 +1123,13 @@ public class RelToSqlConverter extends SqlImplementor
               .flatMap(
                   e -> Stream.of(new SqlIdentifier(e.getKey(), pos),
                   SqlLiteral.createCharString(e.getValue(), pos)))
-              .collect(Collectors.toList())),
+              .collect(Collectors.<@Nullable SqlNode>toList())),
           SqlHint.HintOptionFormat.KV_LIST);
     } else if (!hint.listOptions.isEmpty()) {
       return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
           SqlNodeList.of(pos, hint.listOptions.stream()
               .map(e -> SqlLiteral.createCharString(e, pos))
-              .collect(Collectors.toList())),
+              .collect(Collectors.<@Nullable SqlNode>toList())),
           SqlHint.HintOptionFormat.LITERAL_LIST);
     }
     return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),

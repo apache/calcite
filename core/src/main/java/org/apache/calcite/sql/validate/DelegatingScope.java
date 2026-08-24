@@ -294,7 +294,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             RESOURCE.columnNotFound(columnName));
       case 1:
         tableName = map.keySet().iterator().next();
-        namespace = map.get(tableName).namespace;
+        namespace = requireNonNull(map.get(tableName), "tableName").namespace;
         break;
       default:
         throw validator.newValidationError(identifier,
