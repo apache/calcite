@@ -25,6 +25,11 @@ import org.jspecify.annotations.Nullable;
  * @param <R> Return type from each {@code visitXxx} method
  * @param <P> Payload type
  */
+
+// Every visitXxx returns null: this is the do-nothing traversal that subclasses override
+// where they care. It is meaningful only when R is instantiated nullable, and JSpecify
+// tracks upper bounds, so it cannot require that.
+@SuppressWarnings("NullAway")
 public class RexBiVisitorImpl<R extends @Nullable Object, P> implements RexBiVisitor<R, P> {
   //~ Instance fields --------------------------------------------------------
 

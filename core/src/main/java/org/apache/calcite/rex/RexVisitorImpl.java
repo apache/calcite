@@ -26,6 +26,11 @@ import java.util.List;
  *
  * @param <R> Return type from each {@code visitXxx} method.
  */
+
+// Every visitXxx returns null: this is the do-nothing traversal that subclasses override
+// where they care. It is meaningful only when R is instantiated nullable, and JSpecify
+// tracks upper bounds, so it cannot require that.
+@SuppressWarnings("NullAway")
 public class RexVisitorImpl<R extends @Nullable Object> implements RexVisitor<R> {
   //~ Instance fields --------------------------------------------------------
 
