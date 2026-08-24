@@ -186,6 +186,22 @@ public class SubstitutionVisitor {
   protected final MutableRel[] slots = new MutableRel[2];
 
   /** Creates a SubstitutionVisitor with the default rule set. */
+  /** Removes from {@code nodes} every node that is a parent of another.
+   *
+   * <p>The unbounded wildcard of {@code removeAll(Collection<?>)} is read from the
+   * bytecode signature, where it behaves as {@code ? extends Object} and rejects the
+   * nullable element type of {@code parents}, of which the root's is null.
+   * See <a href="https://github.com/uber/NullAway/issues/1732">NullAway#1732</a>.
+   *
+   * @param nodes all nodes in the tree
+   * @param parents the parents, of which the root's is null
+   */
+  @SuppressWarnings("NullAway")
+  private static void removeParents(List<MutableRel> nodes,
+      Set<@Nullable MutableRel> parents) {
+    nodes.removeAll(parents);
+  }
+
   public SubstitutionVisitor(RelNode target_, RelNode query_) {
     this(target_, query_, DEFAULT_RULES, RelFactories.LOGICAL_BUILDER);
   }
@@ -224,13 +240,15 @@ public class SubstitutionVisitor {
     // Populate the list of leaves in the tree under "target".
     // Leaves are all nodes that are not parents.
     // For determinism, it is important that the list is in scan order.
-    allNodes.removeAll(parents);
+    // The root's parent is null; see removeParents.
+    removeParents(allNodes, parents);
     targetLeaves = ImmutableList.copyOf(allNodes);
 
     allNodes.clear();
     parents.clear();
     visitor.go(query);
-    allNodes.removeAll(parents);
+    // The root's parent is null; see removeParents.
+    removeParents(allNodes, parents);
     queryLeaves = ImmutableList.copyOf(allNodes);
   }
 
