@@ -305,7 +305,8 @@ public class SqlFunctions {
 
   /** Whether the current Java version is 8 (1.8). */
   private static final boolean IS_JDK_8 =
-      System.getProperty("java.version").startsWith("1.8");
+      requireNonNull(System.getProperty("java.version"), "system property java.version")
+          .startsWith("1.8");
 
   private SqlFunctions() {
   }
@@ -7673,7 +7674,7 @@ public class SqlFunctions {
     if (keysArray.size() != valuesArray.size()) {
       throw RESOURCE.illegalArgumentsInMapFromArraysFunc(keysArray.size(), valuesArray.size()).ex();
     }
-    final Map map = new LinkedHashMap<>();
+    final Map<@Nullable Object, @Nullable Object> map = new LinkedHashMap<>();
     for (int i = 0; i < keysArray.size(); i++) {
       map.put(keysArray.get(i), valuesArray.get(i));
     }
@@ -7682,7 +7683,7 @@ public class SqlFunctions {
 
   /** Support the MAP_FROM_ENTRIES function. */
   public static @Nullable Map mapFromEntries(List entries) {
-    final Map map = new LinkedHashMap<>();
+    final Map<@Nullable Object, @Nullable Object> map = new LinkedHashMap<>();
     for (Object entry : entries) {
       if (entry == null) {
         return null;
@@ -7697,7 +7698,7 @@ public class SqlFunctions {
    * <p>odd-indexed elements are keys and even-indexed elements are values.
    */
   public static Map map(Object... args) {
-    final Map map = new LinkedHashMap<>();
+    final Map<@Nullable Object, @Nullable Object> map = new LinkedHashMap<>();
     for (int i = 0; i < args.length; i += 2) {
       Object key = args[i];
       Object value = args[i + 1];

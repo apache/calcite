@@ -386,13 +386,13 @@ public abstract class Linq4j {
    *
    * @return Enumerator over the cartesian product
    */
-  public static <T> Enumerator<List<T>> product(
+  public static <T extends @Nullable Object> Enumerator<List<T>> product(
       List<Enumerator<T>> enumerators) {
     return new CartesianProductListEnumerator<>(enumerators);
   }
 
   /** Returns the cartesian product of an iterable of iterables. */
-  public static <T> Iterable<List<T>> product(
+  public static <T extends @Nullable Object> Iterable<List<T>> product(
       final Iterable<? extends Iterable<T>> iterables) {
     return () -> {
       final List<Enumerator<T>> enumerators = new ArrayList<>();
