@@ -252,11 +252,11 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     final PhysType nullSafeKeyPhysType =
         leftResult.physType.project(leftNullSafeKeys, JavaRowFormat.LIST);
     final Expression nullSafeKeyComparator =
-        Util.first(nullSafeKeyPhysType.comparer(), Expressions.constant(null));
+        Util.firstNonNull(nullSafeKeyPhysType.comparer(), Expressions.constant(null));
     final PhysType keyPhysType =
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
     final Expression keyComparator =
-        Util.first(keyPhysType.comparer(), Expressions.constant(null));
+        Util.firstNonNull(keyPhysType.comparer(), Expressions.constant(null));
 
     return implementor.result(physType,
         builder.append(
@@ -322,7 +322,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         joinInfo.leftKeys, joinInfo.nullExclusionFlags),
                     rightResult.physType.generateNullAwareAccessor(
                         joinInfo.rightKeys, joinInfo.nullExclusionFlags),
-                    Util.first(keyPhysType.comparer(),
+                    Util.firstNonNull(keyPhysType.comparer(),
                         Expressions.constant(null)),
                     predicate)))
             .toBlock());

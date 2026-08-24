@@ -545,7 +545,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                             leftResult.physType, rightResult.physType)),
                     Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
                     comparator,
-                    Util.first(
+                    Util.firstNonNull(
                         leftKeyPhysType.comparer(),
                         Expressions.constant(null))))).toBlock());
   }
