@@ -2987,7 +2987,7 @@ public abstract class EnumerableDefaults {
    * Returns the maximum value in a generic
    * sequence.
    */
-  public static <TSource extends Comparable<TSource>> TSource max(
+  public static @Nullable <TSource extends Comparable<TSource>> TSource max(
       Enumerable<TSource> source) {
     return aggregate(source, maxFunction());
   }
@@ -2996,7 +2996,7 @@ public abstract class EnumerableDefaults {
    * Invokes a transform function on each element of a
    * sequence and returns the maximum Decimal value.
    */
-  public static <TSource> BigDecimal max(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal max(Enumerable<TSource> source,
       BigDecimalFunction1<TSource> selector) {
     return aggregate(source.select(selector), maxFunction());
   }
@@ -3006,7 +3006,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable Decimal
    * value.
    */
-  public static <TSource> BigDecimal max(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal max(Enumerable<TSource> source,
       NullableBigDecimalFunction1<TSource> selector) {
     return aggregate(source.select(selector), maxFunction());
   }
@@ -3025,7 +3025,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable Double
    * value.
    */
-  public static <TSource> Double max(Enumerable<TSource> source,
+  public static <TSource> @Nullable Double max(Enumerable<TSource> source,
       NullableDoubleFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.DOUBLE_MAX);
   }
@@ -3044,7 +3044,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable int value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Integer max(Enumerable<TSource> source,
+  public static <TSource> @Nullable Integer max(Enumerable<TSource> source,
       NullableIntegerFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.INTEGER_MAX);
   }
@@ -3107,22 +3107,22 @@ public abstract class EnumerableDefaults {
   }
 
   @SuppressWarnings("unchecked")
-  private static <TSource extends Comparable<TSource>> Function2<TSource, TSource, TSource>
-      minFunction() {
-    return (Function2<TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MIN;
+  private static <TSource extends Comparable<TSource>>
+      Function2<@Nullable TSource, TSource, TSource> minFunction() {
+    return (Function2<@Nullable TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MIN;
   }
 
   @SuppressWarnings("unchecked")
-  private static <TSource extends Comparable<TSource>> Function2<TSource, TSource, TSource>
-      maxFunction() {
-    return (Function2<TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MAX;
+  private static <TSource extends Comparable<TSource>>
+      Function2<@Nullable TSource, TSource, TSource> maxFunction() {
+    return (Function2<@Nullable TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MAX;
   }
 
   /**
    * Invokes a transform function on each element of a
    * sequence and returns the minimum Decimal value.
    */
-  public static <TSource> BigDecimal min(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal min(Enumerable<TSource> source,
       BigDecimalFunction1<TSource> selector) {
     Function2<BigDecimal, BigDecimal, BigDecimal> min = minFunction();
     return aggregate(source.select(selector), null, min);
@@ -3133,7 +3133,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable Decimal
    * value.
    */
-  public static <TSource> BigDecimal min(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal min(Enumerable<TSource> source,
       NullableBigDecimalFunction1<TSource> selector) {
     return aggregate(source.select(selector), minFunction());
   }
@@ -3152,7 +3152,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable Double
    * value.
    */
-  public static <TSource> Double min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Double min(Enumerable<TSource> source,
       NullableDoubleFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.DOUBLE_MIN);
   }
