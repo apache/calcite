@@ -3105,21 +3105,21 @@ public abstract class Expressions {
   /**
    * Creates an empty fluent list.
    */
-  public static <T> FluentList<T> list() {
+  public static <T extends @Nullable Object> FluentList<T> list() {
     return new FluentArrayList<>();
   }
 
   /**
    * Creates a fluent list with given elements.
    */
-  @SafeVarargs public static <T> FluentList<T> list(T... ts) {
+  @SafeVarargs public static <T extends @Nullable Object> FluentList<T> list(T... ts) {
     return new FluentArrayList<>(Arrays.asList(ts));
   }
 
   /**
    * Creates a fluent list with elements from the given collection.
    */
-  public static <T> FluentList<T> list(Iterable<T> ts) {
+  public static <T extends @Nullable Object> FluentList<T> list(Iterable<T> ts) {
     return new FluentArrayList<>(toList(ts));
   }
 
