@@ -175,7 +175,7 @@ public class SqlPivot extends SqlCall {
    * that are not used will become "GROUP BY" columns. */
   public Set<String> usedColumnNames() {
     final Set<String> columnNames = new HashSet<>();
-    final SqlVisitor<Void> nameCollector = new SqlBasicVisitor<Void>() {
+    final SqlVisitor<@Nullable Void> nameCollector = new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlIdentifier id) {
         columnNames.add(Util.last(id.names));
         return super.visit(id);

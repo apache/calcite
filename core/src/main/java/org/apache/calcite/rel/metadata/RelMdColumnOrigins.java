@@ -298,8 +298,8 @@ public class RelMdColumnOrigins
   private static @Nullable Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
       final RelMetadataQuery mq) {
     final Set<RelColumnOrigin> set = new HashSet<>();
-    final RexVisitor<Void> visitor =
-        new RexVisitorImpl<Void>(true) {
+    final RexVisitor<@Nullable Void> visitor =
+        new RexVisitorImpl<@Nullable Void>(true) {
           @Override public Void visitInputRef(RexInputRef inputRef) {
             Set<RelColumnOrigin> inputSet =
                 mq.getColumnOrigins(input, inputRef.getIndex());

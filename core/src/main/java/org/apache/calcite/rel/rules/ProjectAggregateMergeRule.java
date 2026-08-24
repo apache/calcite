@@ -39,6 +39,7 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -182,7 +183,7 @@ public class ProjectAggregateMergeRule
   private static int kindCount(Iterable<? extends RexNode> nodes,
       final SqlKind kind) {
     final AtomicInteger kindCount = new AtomicInteger(0);
-    new RexVisitorImpl<Void>(true) {
+    new RexVisitorImpl<@Nullable Void>(true) {
       @Override public Void visitCall(RexCall call) {
         if (call.getKind() == kind) {
           kindCount.incrementAndGet();

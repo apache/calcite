@@ -222,7 +222,7 @@ public class RexOver extends RexCall {
    * <p>It is re-entrant (two threads can use an instance at the same time)
    * and it can be re-used for multiple visits.
    */
-  private static class Finder extends RexVisitorImpl<Void> {
+  private static class Finder extends RexVisitorImpl<@Nullable Void> {
     Finder() {
       super(true);
     }

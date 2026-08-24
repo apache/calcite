@@ -1334,8 +1334,8 @@ public abstract class SqlUtil {
   public static boolean containsCall(SqlNode node,
       Predicate<SqlCall> callPredicate) {
     try {
-      SqlVisitor<Void> visitor =
-          new SqlBasicVisitor<Void>() {
+      SqlVisitor<@Nullable Void> visitor =
+          new SqlBasicVisitor<@Nullable Void>() {
             @Override public Void visit(SqlCall call) {
               if (callPredicate.test(call)) {
                 throw new Util.FoundOne(call);
@@ -1426,7 +1426,7 @@ public abstract class SqlUtil {
 
   /** Walks over a {@link org.apache.calcite.sql.SqlNode} tree and returns the
    * ancestry stack when it finds a given node. */
-  private static class Genealogist extends SqlBasicVisitor<Void> {
+  private static class Genealogist extends SqlBasicVisitor<@Nullable Void> {
     private final List<SqlNode> ancestors = new ArrayList<>();
     private final Predicate<SqlNode> predicate;
     private final Predicate<SqlNode> postPredicate;

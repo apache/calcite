@@ -177,7 +177,7 @@ public class RexMultisetUtil {
    * <p>totalCount &ge; multisetCount always holds true.
    */
   private static class RexCallMultisetOperatorCounter
-      extends RexVisitorImpl<Void> {
+      extends RexVisitorImpl<@Nullable Void> {
     int totalCount = 0;
     int multisetCount = 0;
 

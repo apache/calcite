@@ -2896,7 +2896,7 @@ public class Util {
    * Visitor which looks for an OVER clause inside a tree of
    * {@link SqlNode} objects.
    */
-  public static class OverFinder extends SqlBasicVisitor<Void> {
+  public static class OverFinder extends SqlBasicVisitor<@Nullable Void> {
     public static final OverFinder INSTANCE = new Util.OverFinder();
 
     @Override public Void visit(SqlCall call) {

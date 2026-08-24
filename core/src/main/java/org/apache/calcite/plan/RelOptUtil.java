@@ -4057,7 +4057,7 @@ public abstract class RelOptUtil {
   private static boolean containsGet(RexNode node) {
     try {
       node.accept(
-          new RexVisitorImpl<Void>(true) {
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitCall(RexCall call) {
               if (call.getOperator() == RexBuilder.GET_OPERATOR) {
                 throw Util.FoundOne.NULL;
@@ -4705,7 +4705,7 @@ public abstract class RelOptUtil {
   /**
    * Visitor which builds a bitmap of the inputs used by an expression.
    */
-  public static class InputFinder extends RexVisitorImpl<Void> {
+  public static class InputFinder extends RexVisitorImpl<@Nullable Void> {
     private final ImmutableBitSet.Builder bitBuilder;
     private final @Nullable Set<RelDataTypeField> extraFields;
     /** Correlation ids whose binder is the current scope. When non-null,

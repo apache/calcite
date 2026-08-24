@@ -1104,7 +1104,7 @@ public class JdbcRules {
   /** Visitor that checks whether part of a projection is a user-defined
    * function (UDF). */
   private static class CheckingUserDefinedFunctionVisitor
-      extends RexVisitorImpl<Void> {
+      extends RexVisitorImpl<@Nullable Void> {
 
     private boolean containsUsedDefinedFunction = false;
 

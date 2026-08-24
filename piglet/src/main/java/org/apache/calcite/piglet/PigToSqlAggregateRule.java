@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -80,7 +81,7 @@ public class PigToSqlAggregateRule
    * projection called in an expression and also whether a column is
    * referred in that expression.
    */
-  private static class PigAggUdfFinder extends RexVisitorImpl<Void> {
+  private static class PigAggUdfFinder extends RexVisitorImpl<@Nullable Void> {
     // Index of the column
     private final int projectCol;
     // List of all Pig aggregate UDFs found in the expression
