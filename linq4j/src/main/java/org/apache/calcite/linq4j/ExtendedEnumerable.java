@@ -748,7 +748,7 @@ public interface ExtendedEnumerable<TSource> {
    */
   <TInner, TResult> Enumerable<TResult> correlateJoin(
       JoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
-      Function2<TSource, TInner, TResult> resultSelector);
+      Function2<TSource, ? super @Nullable TInner, TResult> resultSelector);
 
   /**
    * Returns the last element of a sequence. (Defined

@@ -472,7 +472,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
 
   @Override public <TInner, TResult> Enumerable<TResult> correlateJoin(
       JoinType joinType, Function1<T, Enumerable<TInner>> inner,
-      Function2<T, TInner, TResult> resultSelector) {
+      Function2<T, ? super @Nullable TInner, TResult> resultSelector) {
     return EnumerableDefaults.correlateJoin(joinType, getThis(), inner,
         resultSelector);
   }
