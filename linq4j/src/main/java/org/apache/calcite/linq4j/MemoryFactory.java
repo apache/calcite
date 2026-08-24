@@ -26,7 +26,7 @@ import java.util.Arrays;
  *
  * @param <E> Type of the base Object
  */
-public class MemoryFactory<E> {
+public class MemoryFactory<E extends @Nullable Object> {
 
   private final int history;
   private final int future;
@@ -42,7 +42,7 @@ public class MemoryFactory<E> {
     this.offset = new ModularInteger(0, history + future + 1);
   }
 
-  public void add(E current) {
+  public void add(@Nullable E current) {
     values[offset.get()] = current;
     this.offset = offset.plus(1);
   }
@@ -61,7 +61,7 @@ public class MemoryFactory<E> {
    *
    * @param <E> Row type
    */
-  public static class Memory<E> {
+  public static class Memory<E extends @Nullable Object> {
     private final int history;
     private final int future;
     private final ModularInteger offset;
@@ -79,11 +79,11 @@ public class MemoryFactory<E> {
       return Arrays.toString(this.values);
     }
 
-    public E get() {
+    public @Nullable E get() {
       return get(0);
     }
 
-    public E get(int position) {
+    public @Nullable E get(int position) {
       if (position < 0 && position < -1 * history) {
         throw new IllegalArgumentException("History can only go back " + history
             + " points in time, you wanted " + Math.abs(position));
