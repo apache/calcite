@@ -23,6 +23,7 @@ import org.apache.calcite.rel.SingleRel;
  *
  * @param <T> Type of relational expression
  */
+
 abstract class AbstractSingleNode<T extends SingleRel> implements Node {
   protected final Source source;
   protected final Sink sink;

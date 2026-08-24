@@ -225,7 +225,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         final Object dataSet) {
       // Cache size. It might be expensive to compute.
       final int size = representation.size(dataSet);
-      return new AbstractList() {
+      return new AbstractList<@Nullable Object>() {
         @Override public @Nullable Object get(int index) {
           return representation.getObject(dataSet, index);
         }
@@ -284,10 +284,14 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return list.toArray(new @Nullable Comparable[0]);
     }
 
+    // Both arrays hold the column's values, nulls included, but an array creation keeps a
+    // non-null component type whatever it is assigned to.
+    @SuppressWarnings("NullAway")
     @Override public Object permute(Object dataSet, int[] sources) {
-      @Nullable Comparable[] list = (@Nullable Comparable[]) dataSet;
+      final @Nullable Comparable[] list = (@Nullable Comparable[]) dataSet;
       final int size = list.length;
-      final @Nullable Comparable[] comparables = new @Nullable Comparable[size];
+      final @Nullable Comparable[] comparables =
+          (@Nullable Comparable[]) new Comparable[size];
       for (int i = 0; i < size; i++) {
         comparables[i] = list[sources[i]];
       }

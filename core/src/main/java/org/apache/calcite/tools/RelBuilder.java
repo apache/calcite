@@ -2122,7 +2122,7 @@ public class RelBuilder {
 
     // Perform a quick check for identity. We'll do a deeper check
     // later when we've derived column names.
-    if (!force && Iterables.isEmpty(fieldNames)
+    if (!force && !fieldNames.iterator().hasNext()
         && RexUtil.isIdentity(nodeList, inputRowType)) {
       return this;
     }

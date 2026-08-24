@@ -413,7 +413,8 @@ public abstract class Functions {
    * @param <T1> Type of parameter 1
    * @return Function that does nothing.
    */
-  public static <R, T0, T1> Function2<R, T0, T1> ignore2() {
+  public static <R extends @Nullable Object, T0 extends @Nullable Object,
+      T1 extends @Nullable Object> Function2<R, T0, T1> ignore2() {
     //noinspection unchecked
     return Ignore.INSTANCE;
   }

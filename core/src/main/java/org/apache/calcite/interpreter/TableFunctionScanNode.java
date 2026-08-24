@@ -32,15 +32,18 @@ import com.google.common.collect.ImmutableList;
 
 import org.jspecify.annotations.Nullable;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Interpreter node that implements a
  * {@link TableFunctionScan}.
  */
+
 public class TableFunctionScanNode implements Node {
   private final Scalar scalar;
   private final Context context;
   private final Sink sink;
-  private final Function1<?, Row> mapFn;
+  private final Function1<@Nullable Object, Row> mapFn;
 
   private TableFunctionScanNode(Compiler compiler, TableFunctionScan rel) {
     final RelDataType rowType = rel.getRowType();
@@ -49,18 +52,19 @@ public class TableFunctionScanNode implements Node {
     this.sink = compiler.sink(rel);
     if (rowType.getFieldCount() == 1
         && rel.getElementType() != Object[].class) {
-      this.mapFn = (Function1<Object, Row>) Row::of;
+      this.mapFn = Row::of;
     } else {
-      this.mapFn = (Function1<@Nullable Object[], Row>) Row::asCopy;
+      this.mapFn = o -> Row.asCopy(castNonNull((@Nullable Object[]) o));
     }
   }
 
   @Override public void run() throws InterruptedException {
     final Object o = scalar.execute(context);
     if (o instanceof Enumerable) {
-      for (@SuppressWarnings({"unchecked", "rawtypes"})
-           final Enumerator<Row> enumerator =
-           ((Enumerable) o).select(mapFn).enumerator();
+      @SuppressWarnings("unchecked") final Enumerable<@Nullable Object> enumerable =
+          (Enumerable<@Nullable Object>) o;
+      for (final Enumerator<Row> enumerator =
+               enumerable.select(mapFn).enumerator();
            enumerator.moveNext();) {
         sink.send(enumerator.current());
       }

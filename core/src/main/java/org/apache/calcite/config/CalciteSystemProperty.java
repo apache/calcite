@@ -618,6 +618,9 @@ public final class CalciteSystemProperty<T extends @Nullable Object> {
 
   private final T value;
 
+  // apply() returns `? extends T`, which reads as @Nullable when T has a nullable bound.
+  // https://github.com/uber/NullAway/issues/1727
+  @SuppressWarnings("NullAway")
   private CalciteSystemProperty(String key,
       Function<? super @Nullable String, ? extends T> valueParser) {
     this.value = valueParser.apply(PROPERTIES.getProperty(key));

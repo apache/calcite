@@ -83,9 +83,13 @@ public class DataContexts {
    * value for a key, remove the key from the map; the effect will be the
    * same. */
   private static class MapDataContext extends EmptyDataContext {
-    private final ImmutableMap<String, ? extends @Nullable Object> map;
+    private final ImmutableMap<String, ?> map;
 
-    MapDataContext(Map<String, ? extends @Nullable Object> map) {
+    // The unbounded wildcard of ImmutableMap.copyOf is read from the bytecode signature,
+    // where it rejects the capture of this one.
+    // https://github.com/uber/NullAway/issues/1732
+    @SuppressWarnings("NullAway")
+    MapDataContext(Map<String, ?> map) {
       this.map = ImmutableMap.copyOf(map);
     }
 
