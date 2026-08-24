@@ -22,6 +22,7 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import org.apiguardian.api.API;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -189,7 +190,8 @@ public enum Hook {
   /** @deprecated Use {@link #propertyJ}. */
   @SuppressWarnings("Guava")
   @Deprecated // return type will change in 2.0
-  public static <V> com.google.common.base.Function<Holder<V>, Void> property(final V v) {
+  public static <V> com.google.common.base.Function<Holder<V>, @Nullable Void> property(
+      final V v) {
     return holder -> {
       holder.set(v);
       return null;
