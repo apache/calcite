@@ -76,7 +76,7 @@ public class FlatLists {
   }
 
   /** Creates a flat list with 3 elements. */
-  public static <T> List<T> of(T t0, T t1, T t2) {
+  public static <T extends @Nullable Object> List<T> of(T t0, T t1, T t2) {
     return new Flat3List<>(t0, t1, t2);
   }
 

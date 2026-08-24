@@ -191,7 +191,7 @@ public class LatticeSuggester {
       case 1:
         final StepRef edge = edges.get(0);
         final MutableNode parent = nodes.get(edge.source());
-        final List key =
+        final List<@Nullable Object> key =
             FlatLists.of(parent, tableRef.table, edge.step.keys);
         final MutableNode existingNode = nodesByParent.get(key);
         if (existingNode == null) {
