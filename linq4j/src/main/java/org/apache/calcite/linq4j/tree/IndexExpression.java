@@ -51,7 +51,7 @@ public class IndexExpression extends Expression {
     return shuttle.visit(this, array, indexExpressions);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

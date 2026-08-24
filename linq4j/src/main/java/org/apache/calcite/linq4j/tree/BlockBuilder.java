@@ -606,7 +606,7 @@ public class BlockBuilder {
   }
 
   /** Use counter. */
-  private static class UseCounter extends VisitorImpl<Void> {
+  private static class UseCounter extends VisitorImpl<@Nullable Void> {
     /** Map each parameter to information about how it is used. */
     private final IdentityHashMap<ParameterExpression, ParameterUse> map = new IdentityHashMap<>();
     /** Whether the node being visited is evaluated only if some other

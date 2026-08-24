@@ -43,7 +43,7 @@ public class ConditionalExpression extends AbstractNode {
     this.expressionList = requireNonNull(expressionList, "expressionList");
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
