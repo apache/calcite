@@ -772,6 +772,26 @@ class RexBuilderTest {
     assertThat(rexLiteralHalfUp.getValue(), hasToString("12300"));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7731">[CALCITE-7731]
+   * Bound plain-notation expansion of DECIMAL literals to prevent parse-time
+   * OutOfMemoryError</a>. Casting to a DECIMAL type whose (dialect-permitted)
+   * negative scale would make the plain-notation expansion exceed the
+   * configured bound must fail rather than attempt the expansion. */
+  @Test void testDecimalWithNegativeScaleExceedingPlainNotationBound() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(
+            CustomTypeSystems.withMinScale(RelDataTypeSystem.DEFAULT,
+                typeName -> -20_000));
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -20_000);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final BigDecimal value = new BigDecimal("123");
+    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+      builder.makeLiteral(value, type);
+    });
+    assertThat(e.getMessage(),
+        containsString("plain-notation expansion exceeds the configured bound"));
+  }
+
   /** Tests {@link DateString} year range. */
   @Test void testDateStringYearError() {
     try {

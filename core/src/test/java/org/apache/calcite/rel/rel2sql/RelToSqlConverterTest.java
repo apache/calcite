@@ -117,6 +117,7 @@ import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -132,8 +133,10 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -426,6 +429,27 @@ class RelToSqlConverterTest {
         + " AS \"t\" (\"a\", \"b\")";
     assertThat(toSqlPreservingLiteralTypes(root, dialect),
         isLinux(expectedPreserved));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7731">[CALCITE-7731]
+   * Bound plain-notation expansion of DECIMAL literals to prevent parse-time
+   * OutOfMemoryError</a>. A DECIMAL literal whose plain-notation expansion would
+   * exceed the configured bound must not be converted to SQL text. */
+  @Test void testDecimalLiteralPlainNotationBoundInRelToSql() {
+    final RelBuilder b = relBuilder();
+    final RexBuilder rexBuilder = b.getRexBuilder();
+    // A literal with 20,000 digits comfortably exceeds the default 10,000
+    // digit bound, without requiring a multi-gigabyte allocation to build.
+    final BigDecimal outOfBound = new BigDecimal(BigInteger.TEN.pow(20_000));
+    final RelNode root = b
+        .scan("EMP")
+        .project(rexBuilder.makeExactLiteral(outOfBound))
+        .build();
+    final SqlDialect dialect = DatabaseProduct.CALCITE.getDialect();
+    final IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> toSql(root, dialect));
+    assertThat(e.getMessage(),
+        containsString("exceeds the configured plain-notation bound"));
   }
 
   /** Parses a SQL query and converts it to a relational expression. */
