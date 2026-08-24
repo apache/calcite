@@ -66,7 +66,7 @@ public class FlatLists {
    * @param <T> Element type
    * @return    List containing the given members
    */
-  public static <T> List<T> ofSingle(T t0) {
+  public static <T extends @Nullable Object> List<T> ofSingle(T t0) {
     return new Flat1List<>(t0);
   }
 
@@ -225,7 +225,7 @@ public class FlatLists {
    * @param <T> Element type
    * @return List containing the given members
    */
-  public static <T> List<T> of(List<T> t) {
+  public static <T extends @Nullable Object> List<T> of(List<T> t) {
     return of_(t);
   }
 
