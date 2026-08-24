@@ -36,6 +36,11 @@ import org.jspecify.annotations.Nullable;
  *
  * @param <R> Return type
  */
+
+// Every visitXxx returns null: this is the do-nothing traversal that subclasses override
+// where they care. It is meaningful only when R is instantiated nullable, and JSpecify
+// tracks upper bounds, so it cannot require that.
+@SuppressWarnings("NullAway")
 public class SqlBasicVisitor<R extends @Nullable Object> implements SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------
 
