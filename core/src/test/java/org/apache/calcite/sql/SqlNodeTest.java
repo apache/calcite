@@ -23,6 +23,8 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Strings;
+
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
@@ -35,7 +37,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test of {@link SqlNode} and other SQL AST classes.
@@ -72,6 +76,24 @@ class SqlNodeTest {
   @Test void testRowEqualsDeep() {
     assertThat("CAST(a AS ROW(field INTEGER))",
         isEqualsDeep("CAST(a AS ROW(field INTEGER))"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7731">[CALCITE-7731]
+   * Bound plain-notation expansion of DECIMAL literals to prevent parse-time
+   * OutOfMemoryError</a>. A {@link SqlNumericLiteral} whose value's plain-notation
+   * expansion would exceed the configured bound must fail when unparsed, even if
+   * the literal was not created via the SQL parser. */
+  @Test void testNumericLiteralToValueExceedingPlainNotationBound() {
+    // A literal with a 20,001-digit fractional expansion comfortably exceeds
+    // the default 10,000 digit bound, without requiring a multi-gigabyte
+    // allocation to build.
+    final String digits = "0." + Strings.repeat("0", 20_000) + "1";
+    final SqlNumericLiteral literal =
+        SqlLiteral.createExactNumeric(digits, SqlParserPos.ZERO);
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, literal::toValue);
+    assertThat(e.getMessage(),
+        containsString("exceeds the configured plain-notation bound"));
   }
 
   private static Matcher<String> isEqualsDeep(String sqlExpected) {
