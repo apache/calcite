@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.JoinType;
-import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -293,9 +292,8 @@ public class EnumUtils {
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
       // Delegate copying the row values to JavaRowFormat
       final List<Statement> copyStatements =
-          Nullness.castNonNull(
-              inputPhysType.getFormat().copy(parameter, compactOutputVar,
-                  outputField, fieldCount));
+          inputPhysType.getFormat().copy(parameter, compactOutputVar,
+              outputField, fieldCount);
       if (joinType.generatesNullsOn(ord.i)) {
         // [CALCITE-6593] NPE when outer joining tables with many fields and unmatching rows
         compactCode.add(

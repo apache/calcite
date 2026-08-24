@@ -239,7 +239,7 @@ public class VisitorDataContext implements DataContext {
         if (value instanceof NlsString) {
           return Pair.of(index, ((NlsString) value).getValue());
         } else {
-          return Pair.of(index, value);
+          return Pair.<Integer, @Nullable Comparable>of(index, value);
         }
       }
     }

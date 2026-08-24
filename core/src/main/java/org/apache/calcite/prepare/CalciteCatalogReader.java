@@ -364,7 +364,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         typeFactory -> argTypesFactory.apply(typeFactory)
             .stream()
             .map(type ->
-                Util.first(type.getSqlTypeName().getFamily(),
+                Util.firstNonNull(type.getSqlTypeName().getFamily(),
                     SqlTypeFamily.ANY))
             .collect(toImmutableList());
     final Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory =

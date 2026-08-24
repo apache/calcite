@@ -1019,9 +1019,10 @@ public class SqlToRelConverter {
       bottomNames.add(rel.getRowType().getFieldNames().get(i));
     }
 
+    final Project bottomProject = castNonNull(project);
     bb.setRoot(
-        LogicalProject.create(castNonNull(project).getInput(), project.getHints(),
-            bottomExprs, bottomNames, project.getVariablesSet()), false);
+        LogicalProject.create(bottomProject.getInput(), bottomProject.getHints(),
+            bottomExprs, bottomNames, bottomProject.getVariablesSet()), false);
 
     final ImmutableBitSet aggGroupSet = ImmutableBitSet.range(groupSet.cardinality());
     bb.setRoot(
@@ -4555,7 +4556,9 @@ public class SqlToRelConverter {
     final SqlValidatorNamespace targetNs = getNamespace(call);
     SqlValidatorNamespace namespace;
     if (targetNs.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
-      namespace = targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class);
+      namespace =
+          requireNonNull(targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class),
+              "DmlNamespace");
     } else {
       namespace = targetNs.resolve();
     }
