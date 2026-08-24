@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.annotations.Contract;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -276,7 +275,6 @@ public class RexLiteral extends RexNode {
    * @param includeType whether the digest should include type or not
    * @return digest
    */
-  @RequiresNonNull({"typeName", "type"})
   public final String computeDigest(
       RexDigestIncludeType includeType) {
     if (includeType == RexDigestIncludeType.OPTIONAL) {
@@ -303,7 +301,6 @@ public class RexLiteral extends RexNode {
    * @see RexCall#computeDigest(boolean)
    * @return whether {@link RexDigestIncludeType} digest would include data type
    */
-  @RequiresNonNull("type")
   RexDigestIncludeType digestIncludesType() {
     return shouldIncludeType(value, type);
   }
@@ -1341,7 +1338,8 @@ public class RexLiteral extends RexNode {
     return visitor.visitLiteral(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLiteral(this, arg);
   }
 }

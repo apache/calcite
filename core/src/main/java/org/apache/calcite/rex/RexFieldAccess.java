@@ -103,7 +103,8 @@ public class RexFieldAccess extends RexNode {
     return visitor.visitFieldAccess(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitFieldAccess(this, arg);
   }
 
