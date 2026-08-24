@@ -28,5 +28,5 @@ import org.jspecify.annotations.Nullable;
  */
 @FunctionalInterface
 public interface UnboundMetadata<M extends @Nullable Metadata> {
-  M bind(RelNode rel, RelMetadataQuery mq);
+  @Nullable M bind(RelNode rel, RelMetadataQuery mq);
 }
