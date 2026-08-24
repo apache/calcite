@@ -765,7 +765,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                 RexTableInputRef.of(parentTRef, pair.target, uniqueKeyColumnType);
             if (!foreignKeyColumnType.isNullable()
                 && sourceEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
-                && castNonNull(sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef))
+                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef)
                     .contains(foreignKeyColumnRef)) {
               equiColumns.put(foreignKeyColumnRef, uniqueKeyColumnRef);
             } else {

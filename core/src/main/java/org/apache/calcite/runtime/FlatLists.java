@@ -407,7 +407,7 @@ public class FlatLists {
     }
 
     @Override public @Nullable Object[] toArray(Flat1List<@Nullable T> this) {
-      return new Object[] {castNonNull(t0)};
+      return new Object[] {t0};
     }
 
     @Override public int compareTo(List o) {
@@ -540,7 +540,7 @@ public class FlatLists {
     }
 
     @Override public @Nullable Object[] toArray(Flat2List<@Nullable T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1)};
+      return new Object[] {t0, t1};
     }
 
     @Override public int compareTo(List o) {
@@ -690,7 +690,7 @@ public class FlatLists {
     }
 
     @Override public @Nullable Object[] toArray(Flat3List<@Nullable T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2)};
+      return new Object[] {t0, t1, t2};
     }
 
     @Override public int compareTo(List o) {
@@ -859,8 +859,8 @@ public class FlatLists {
     }
 
     @Override public @Nullable Object[] toArray(Flat4List<@Nullable T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
-          castNonNull(t3)};
+      return new Object[] {t0, t1, t2,
+          t3};
     }
 
     @Override public int compareTo(List o) {
@@ -1048,8 +1048,8 @@ public class FlatLists {
     }
 
     @Override public @Nullable Object[] toArray(Flat5List<@Nullable T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
-          castNonNull(t3), castNonNull(t4)};
+      return new Object[] {t0, t1, t2,
+          t3, t4};
     }
 
     @Override public int compareTo(List o) {
@@ -1257,8 +1257,8 @@ public class FlatLists {
     }
 
     @Override public @Nullable Object[] toArray(Flat6List<@Nullable T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
-          castNonNull(t3), castNonNull(t4), castNonNull(t5)};
+      return new Object[] {t0, t1, t2,
+          t3, t4, t5};
     }
 
     @Override public int compareTo(List o) {
