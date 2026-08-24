@@ -736,8 +736,8 @@ public abstract class Functions {
    *
    * <p>Entries are compared in a canonical order, sorted by key and then by value.
    */
-  public static int compareMaps(Map<?, ? extends @Nullable Object> b0,
-      Map<?, ? extends @Nullable Object> b1) {
+  public static int compareMaps(Map<? extends @Nullable Object, ? extends @Nullable Object> b0,
+      Map<? extends @Nullable Object, ? extends @Nullable Object> b1) {
     if (b0 == b1) {
       return 0;
     }

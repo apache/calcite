@@ -7291,7 +7291,7 @@ public class SqlFunctions {
       return null;
     }
     int posInt = (int) pos;
-    Object[] baseArray = baselist.toArray();
+    @Nullable Object[] baseArray = baselist.toArray();
     if (posInt == 0 || posInt >= MAX_ARRAY_LENGTH || posInt <= -MAX_ARRAY_LENGTH) {
       throw new IllegalArgumentException("The index 0 is invalid. "
           + "An index shall be either < 0 or > 0 (the first element has index 1) "
@@ -7572,7 +7572,7 @@ public class SqlFunctions {
 
   /** Support the STR_TO_MAP function. */
   public static Map strToMap(String string, String stringDelimiter, String keyValueDelimiter) {
-    final Map map = new LinkedHashMap();
+    final Map<String, @Nullable String> map = new LinkedHashMap<>();
     final String[] keyValues = string.split(stringDelimiter, -1);
     for (String s : keyValues) {
       String[] keyValueArray = s.split(keyValueDelimiter, 2);
@@ -7636,7 +7636,7 @@ public class SqlFunctions {
 
   /** Support the SLICE function. */
   public static List slice(List list) {
-    List result = new ArrayList(list.size());
+    List<@Nullable Object> result = new ArrayList<>(list.size());
     for (Object e : list) {
       result.add(structAccess(e, 0, null));
     }
@@ -7857,7 +7857,8 @@ public class SqlFunctions {
    * Variant of {@link #flatList} for outer mode: an empty or {@code NULL}
    * collection yields one {@code NULL} element rather than no elements.
    */
-  public static Function1<List<Object>, Enumerable<@Nullable Object>> flatListOuter() {
+  public static Function1<@Nullable List<@Nullable Object>,
+      Enumerable<@Nullable Object>> flatListOuter() {
     return inputList -> inputList == null || inputList.isEmpty()
         ? Linq4j.asEnumerable(SINGLE_NULL)
         : Linq4j.asEnumerable(inputList)
@@ -8262,7 +8263,9 @@ public class SqlFunctions {
     @Override public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
-        Object[] a;
+        // toArray() yields @Nullable Object[] from the JDK model, and a SQL array may
+        // hold nulls. https://github.com/uber/NullAway/issues/1728
+        @Nullable Object[] a;
         if (element.getClass().isArray()) {
           a = (Object[]) element;
         } else {
