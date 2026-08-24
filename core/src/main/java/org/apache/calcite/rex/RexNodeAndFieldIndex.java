@@ -78,7 +78,8 @@ public class RexNodeAndFieldIndex extends RexVariable {
     return visitor.visitNodeAndFieldIndex(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitNodeAndFieldIndex(this, arg);
   }
 

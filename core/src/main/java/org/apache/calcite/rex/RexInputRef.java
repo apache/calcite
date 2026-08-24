@@ -125,7 +125,8 @@ public class RexInputRef extends RexSlot {
     return visitor.visitInputRef(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitInputRef(this, arg);
   }
 

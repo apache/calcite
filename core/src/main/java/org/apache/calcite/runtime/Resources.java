@@ -18,7 +18,6 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.annotations.Contract;
 import org.jspecify.annotations.Nullable;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -624,7 +623,6 @@ public class Resources {
       this.hasDefault = resource != null;
     }
 
-    @RequiresNonNull("method")
     protected final @Nullable Default getDefault() {
       if (hasDefault) {
         return castNonNull(method.getAnnotation(Default.class));

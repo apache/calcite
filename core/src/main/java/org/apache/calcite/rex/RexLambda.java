@@ -59,7 +59,8 @@ public class RexLambda extends RexNode {
     return visitor.visitLambda(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLambda(this, arg);
   }
 
