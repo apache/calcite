@@ -88,7 +88,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
   }
 
   /** Creates a {@code Pair} from a {@link java.util.Map.Entry}. */
-  public static <K, V> Pair<K, V> of(Map.Entry<? extends K, ? extends V> entry) {
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      Pair<K, V> of(Map.Entry<? extends K, ? extends V> entry) {
     return of(entry.getKey(), entry.getValue());
   }
 
@@ -149,7 +150,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param pairs Collection of Pair objects
    * @return map with the same contents as the collection
    */
-  public static <K, V> Map<K, V> toMap(Iterable<? extends Pair<? extends K, ? extends V>> pairs) {
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      Map<K, V> toMap(Iterable<? extends Pair<? extends K, ? extends V>> pairs) {
     final Map<K, V> map = new HashMap<>();
     for (Pair<? extends K, ? extends V> pair : pairs) {
       map.put(pair.left, pair.right);
@@ -167,7 +169,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @return List of pairs
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
-  public static <K, V> List<Pair<K, V>> zip(List<? extends K> ks, List<? extends V> vs) {
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      List<Pair<K, V>> zip(List<? extends K> ks, List<? extends V> vs) {
     return zip(ks, vs, false);
   }
 
@@ -183,7 +186,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @return List of pairs
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
-  public static <K, V> List<Pair<K, V>> zip(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<Pair<K, V>> zip(
       final List<? extends K> ks,
       final List<? extends V> vs,
       boolean strict) {
@@ -209,7 +212,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param vs Right iterable
    * @return Iterable over pairs
    */
-  public static <K, V> Iterable<Pair<K, V>> zip(
+  public static <K extends @Nullable Object, V extends @Nullable Object> Iterable<Pair<K, V>> zip(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs) {
     return () -> {
@@ -231,7 +234,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param vs Right array
    * @return List of pairs
    */
-  public static <K, V> List<Pair<K, V>> zip(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<Pair<K, V>> zip(
       final K[] ks,
       final V[] vs) {
     return new AbstractList<Pair<K, V>>() {
@@ -252,7 +255,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    *
    * @param <K> Key (left) value type
    * @param <V> Value (right) value type */
-  public static <K, V> List<Pair<K, V>> zipMutable(
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      List<Pair<K, V>> zipMutable(
       final List<K> ks,
       final List<V> vs) {
     return new MutableZipList<>(ks, vs);
@@ -273,7 +277,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param <K> Left type
    * @param <V> Right type
    */
-  public static <K, V> void forEach(
+  public static <K extends @Nullable Object, V extends @Nullable Object> void forEach(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs,
       BiConsumer<? super K, ? super V> consumer) {
@@ -286,7 +290,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
 
   /** Calls a consumer with an ordinal for each pair of items in two
    * iterables. */
-  public static <K, V> void forEachIndexed(Iterable<K> ks, Iterable<V> vs,
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      void forEachIndexed(Iterable<K> ks, Iterable<V> vs,
       PairWithOrdinalConsumer<K, V> consumer) {
     int i = 0;
     final Iterator<K> ki = ks.iterator();
@@ -298,7 +303,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
 
   /** Calls a consumer with an ordinal for each pair of items in an iterable
    * of pairs. */
-  public static <K, V> void forEachIndexed(
+  public static <K extends @Nullable Object, V extends @Nullable Object> void forEachIndexed(
       Iterable<? extends Map.Entry<K, V>> pairs,
       PairWithOrdinalConsumer<K, V> consumer) {
     int i = 0;
@@ -308,7 +313,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
   }
 
   /** Calls a consumer for each entry in a map. */
-  public static <K, V> void forEachIndexed(Map<K, V> map,
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      void forEachIndexed(Map<K, V> map,
       PairWithOrdinalConsumer<K, V> consumer) {
     forEachIndexed(map.entrySet(), consumer);
   }
@@ -323,7 +329,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param <K> Left type
    * @param <V> Right type
    */
-  public static <K, V> void forEach(
+  public static <K extends @Nullable Object, V extends @Nullable Object> void forEach(
       final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries,
       BiConsumer<? super K, ? super V> consumer) {
     for (Map.Entry<? extends K, ? extends V> entry : entries) {
