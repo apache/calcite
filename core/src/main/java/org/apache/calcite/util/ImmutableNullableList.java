@@ -67,7 +67,7 @@ public class ImmutableNullableList<E extends @Nullable Object> extends AbstractL
     // If there are no nulls, ImmutableList is better.
     for (E object : elements) {
       if (object == null) {
-        final Object[] objects = elements.toArray();
+        final @Nullable Object[] objects = elements.toArray();
         //noinspection unchecked
         return new ImmutableNullableList<>((E[]) objects);
       }

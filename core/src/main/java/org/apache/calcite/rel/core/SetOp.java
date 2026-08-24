@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -117,6 +118,7 @@ public abstract class SetOp extends AbstractRelNode implements Hintable {
   }
 
   @API(since = "1.43", status = API.Status.INTERNAL)
+  @Contract("null -> false")
   protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;

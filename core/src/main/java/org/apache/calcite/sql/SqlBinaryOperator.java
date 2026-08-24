@@ -162,11 +162,12 @@ public class SqlBinaryOperator extends SqlOperator {
               collation1);
 
       if (SqlTypeUtil.inCharFamily(type)) {
+        final RelDataType charType = type;
         type =
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
-                    type,
-                    type.getCharset(),
+                    charType,
+                    requireNonNull(charType.getCharset(), () -> "charset for type " + charType),
                     requireNonNull(resultCol, "resultCol"));
       }
     }

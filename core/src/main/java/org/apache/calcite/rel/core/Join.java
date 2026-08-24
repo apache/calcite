@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -240,6 +241,7 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
+  @Contract("null -> false")
   protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;
