@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,8 +76,9 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
         //noinspection unchecked
         jsonObj = objectMapper.readValue(source.file(), Object.class);
       } else if (Arrays.asList("http", "https", "ftp").contains(source.protocol())) {
-        //noinspection unchecked
-        jsonObj = objectMapper.readValue(source.url(), Object.class);
+        try (InputStream inputStream = source.url().openStream()) {
+          jsonObj = objectMapper.readValue(inputStream, Object.class);
+        }
       } else {
         jsonObj = objectMapper.readValue(source.reader(), Object.class);
       }
