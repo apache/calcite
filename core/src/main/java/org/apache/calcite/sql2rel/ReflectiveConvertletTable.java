@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
@@ -63,7 +62,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    * c. has a return type of "RexNode" or a subtype d. has a 2 parameters with
    * types ConvertletContext and SqlNode (or a subtype) respectively.
    */
-  @RequiresNonNull("map")
   private void registerNodeTypeMethod(
       final Method method) {
     if (!isPublic(method)) {
@@ -105,7 +103,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    * types: ConvertletContext; SqlOperator (or a subtype), SqlCall (or a
    * subtype).
    */
-  @RequiresNonNull("map")
   private void registerOpTypeMethod(
       final Method method) {
     if (!isPublic(method)) {

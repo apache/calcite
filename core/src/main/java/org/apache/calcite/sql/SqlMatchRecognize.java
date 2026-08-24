@@ -286,7 +286,7 @@ public class SqlMatchRecognize extends SqlCall {
           (SqlNodeList) operands[9], (SqlNodeList) operands[10], (SqlLiteral) operands[11]);
     }
 
-    @Override public <R> void acceptCall(
+    @Override public <R extends @Nullable Object> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,
