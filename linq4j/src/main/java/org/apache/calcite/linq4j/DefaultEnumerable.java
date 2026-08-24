@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -97,7 +96,6 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 
-  @Contract("!null, !null -> !null")
   @Override public <TAccumulate> @Nullable TAccumulate aggregate(@Nullable TAccumulate seed,
       Function2<@Nullable TAccumulate, T, @Nullable TAccumulate> func) {
     return EnumerableDefaults.aggregate(getThis(), seed, func);
