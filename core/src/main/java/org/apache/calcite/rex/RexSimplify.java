@@ -2472,7 +2472,8 @@ public class RexSimplify {
     }
   }
 
-  private Pair<Comparable, RuntimeException> evaluate(RexNode e, Map<RexNode, Comparable> map) {
+  private Pair<@Nullable Comparable, @Nullable RuntimeException> evaluate(RexNode e,
+      Map<RexNode, Comparable> map) {
     Comparable c = null;
     RuntimeException ex = null;
     try {
@@ -2516,8 +2517,10 @@ public class RexSimplify {
           continue assignment_loop;
         }
       }
-      Pair<Comparable, RuntimeException> p0 = evaluate(foo0.e, map);
-      Pair<Comparable, RuntimeException> p1 = evaluate(foo1.e, map);
+      Pair<@Nullable Comparable, @Nullable RuntimeException> p0 =
+          evaluate(foo0.e, map);
+      Pair<@Nullable Comparable, @Nullable RuntimeException> p1 =
+          evaluate(foo1.e, map);
       if (p0.right != null || p1.right != null) {
         if (p0.right == null || p1.right == null) {
           throw Util.first(p0.right, p1.right);

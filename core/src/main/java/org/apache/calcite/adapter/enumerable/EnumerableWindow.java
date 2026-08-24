@@ -953,7 +953,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       if (bound.isCurrentRow()) {
         return i_;
       }
-      RexNode node = bound.getOffset();
+      RexNode node = requireNonNull(bound.getOffset(), "offset");
       Expression offs = translator.translate(node);
       // Floating offset does not make sense since we refer to array index.
       // Nulls do not make sense as well.
@@ -1004,7 +1004,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     Expression val =
         translator.translate(new RexInputRef(orderKey, keyType), desiredKeyType);
     if (!bound.isCurrentRow()) {
-      RexNode node = bound.getOffset();
+      RexNode node = requireNonNull(bound.getOffset(), "offset");
       Expression offs = translator.translate(node);
       // TODO: support date + interval somehow
       if (bound.isFollowing()) {
