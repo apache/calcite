@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Describes a lambda expression. This captures a block of code that is similar
  * to a Java method body.
@@ -29,7 +31,7 @@ public class LambdaExpression extends Expression {
     return shuttle.visit(this);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

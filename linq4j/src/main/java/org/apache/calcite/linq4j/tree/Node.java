@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.jspecify.annotations.Nullable;
+
 /** Parse tree node. */
 public interface Node {
-  <R> R accept(Visitor<R> visitor);
+  <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor);
 
   Node accept(Shuttle shuttle);
 

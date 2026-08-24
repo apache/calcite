@@ -3262,7 +3262,7 @@ public abstract class Expressions {
     return expressions1;
   }
 
-  static <R> @Nullable R acceptNodes(@Nullable List<? extends Node> nodes,
+  static <R extends @Nullable Object> @Nullable R acceptNodes(@Nullable List<? extends Node> nodes,
       Visitor<R> visitor) {
     R r = null;
     if (nodes != null) {

@@ -16,44 +16,46 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Node visitor.
  *
  * @param <R> Return type
  */
-public interface Visitor<R> {
-  R visit(BinaryExpression binaryExpression);
-  R visit(BlockStatement blockStatement);
-  R visit(ClassDeclaration classDeclaration);
-  R visit(ConditionalExpression conditionalExpression);
-  R visit(ConditionalStatement conditionalStatement);
-  R visit(ConstantExpression constantExpression);
-  R visit(ConstructorDeclaration constructorDeclaration);
-  R visit(DeclarationStatement declarationStatement);
-  R visit(DefaultExpression defaultExpression);
-  R visit(DynamicExpression dynamicExpression);
-  R visit(FieldDeclaration fieldDeclaration);
-  R visit(ForStatement forStatement);
-  R visit(ForEachStatement forEachStatement);
-  R visit(FunctionExpression functionExpression);
-  R visit(GotoStatement gotoStatement);
-  R visit(IndexExpression indexExpression);
-  R visit(InvocationExpression invocationExpression);
-  R visit(LabelStatement labelStatement);
-  R visit(LambdaExpression lambdaExpression);
-  R visit(ListInitExpression listInitExpression);
-  R visit(MemberExpression memberExpression);
-  R visit(MemberInitExpression memberInitExpression);
-  R visit(MethodCallExpression methodCallExpression);
-  R visit(MethodDeclaration methodDeclaration);
-  R visit(NewArrayExpression newArrayExpression);
-  R visit(NewExpression newExpression);
-  R visit(ParameterExpression parameterExpression);
-  R visit(SwitchStatement switchStatement);
-  R visit(TernaryExpression ternaryExpression);
-  R visit(ThrowStatement throwStatement);
-  R visit(TryStatement tryStatement);
-  R visit(TypeBinaryExpression typeBinaryExpression);
-  R visit(UnaryExpression unaryExpression);
-  R visit(WhileStatement whileStatement);
+public interface Visitor<R extends @Nullable Object> {
+  @Nullable R visit(BinaryExpression binaryExpression);
+  @Nullable R visit(BlockStatement blockStatement);
+  @Nullable R visit(ClassDeclaration classDeclaration);
+  @Nullable R visit(ConditionalExpression conditionalExpression);
+  @Nullable R visit(ConditionalStatement conditionalStatement);
+  @Nullable R visit(ConstantExpression constantExpression);
+  @Nullable R visit(ConstructorDeclaration constructorDeclaration);
+  @Nullable R visit(DeclarationStatement declarationStatement);
+  @Nullable R visit(DefaultExpression defaultExpression);
+  @Nullable R visit(DynamicExpression dynamicExpression);
+  @Nullable R visit(FieldDeclaration fieldDeclaration);
+  @Nullable R visit(ForStatement forStatement);
+  @Nullable R visit(ForEachStatement forEachStatement);
+  @Nullable R visit(FunctionExpression functionExpression);
+  @Nullable R visit(GotoStatement gotoStatement);
+  @Nullable R visit(IndexExpression indexExpression);
+  @Nullable R visit(InvocationExpression invocationExpression);
+  @Nullable R visit(LabelStatement labelStatement);
+  @Nullable R visit(LambdaExpression lambdaExpression);
+  @Nullable R visit(ListInitExpression listInitExpression);
+  @Nullable R visit(MemberExpression memberExpression);
+  @Nullable R visit(MemberInitExpression memberInitExpression);
+  @Nullable R visit(MethodCallExpression methodCallExpression);
+  @Nullable R visit(MethodDeclaration methodDeclaration);
+  @Nullable R visit(NewArrayExpression newArrayExpression);
+  @Nullable R visit(NewExpression newExpression);
+  @Nullable R visit(ParameterExpression parameterExpression);
+  @Nullable R visit(SwitchStatement switchStatement);
+  @Nullable R visit(TernaryExpression ternaryExpression);
+  @Nullable R visit(ThrowStatement throwStatement);
+  @Nullable R visit(TryStatement tryStatement);
+  @Nullable R visit(TypeBinaryExpression typeBinaryExpression);
+  @Nullable R visit(UnaryExpression unaryExpression);
+  @Nullable R visit(WhileStatement whileStatement);
 }
