@@ -31,7 +31,8 @@ import java.util.Objects;
  * @param <T> Key type
  * @param <U> Value type
  */
-public class MapEntry<T, U> implements Map.Entry<T, U> {
+public class MapEntry<T extends @Nullable Object, U extends @Nullable Object>
+    implements Map.Entry<T, U> {
   final T t;
   final U u;
 
