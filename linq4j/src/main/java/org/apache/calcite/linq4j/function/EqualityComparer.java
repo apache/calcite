@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Compares values for equality.
  *
  * @param <T> Value type
  */
-public interface EqualityComparer<T> {
+public interface EqualityComparer<T extends @Nullable Object> {
   boolean equal(T v1, T v2);
 
   int hashCode(T t);
