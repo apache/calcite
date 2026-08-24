@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.util.mapping.IntPair;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
@@ -435,7 +434,6 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * @param fail Whether to assert if invalid
    * @return Whether valid
    */
-  @RequiresNonNull({"sources", "targets"})
   private boolean isValid(boolean fail) {
     final int size = targets.length;
     if (sources.length != size) {

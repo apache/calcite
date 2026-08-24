@@ -179,9 +179,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return objects;
   }
 
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
     final int size = ints.length;
-    if (castNonNull(a).length < size) {
+    if (a.length < size) {
       // Make a new array of a's runtime type, but my contents:
       a = a.getClass() == Object[].class
           ? (T[]) new Object[size]
@@ -335,8 +335,8 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
       return EMPTY_ARRAY;
     }
 
-    @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
-      if (castNonNull(a).length > 0) {
+    @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
+      if (a.length > 0) {
         a[0] = castNonNull(null);
       }
       return a;

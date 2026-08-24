@@ -30,7 +30,8 @@ import org.jspecify.annotations.Nullable;
 // where they care. It is meaningful only when R is instantiated nullable, and JSpecify
 // tracks upper bounds, so it cannot require that.
 @SuppressWarnings("NullAway")
-public class RexBiVisitorImpl<R extends @Nullable Object, P> implements RexBiVisitor<R, P> {
+public class RexBiVisitorImpl<R extends @Nullable Object, P extends @Nullable Object>
+    implements RexBiVisitor<R, P> {
   //~ Instance fields --------------------------------------------------------
 
   protected final boolean deep;

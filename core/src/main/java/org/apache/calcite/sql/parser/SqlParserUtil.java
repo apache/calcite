@@ -902,7 +902,7 @@ public final class SqlParserUtil {
    * example, if list contains <code>{A, B, C, D, E}</code> then <code>
    * replaceSublist(list, X, 1, 4)</code> returns <code>{A, X, E}</code>.
    */
-  public static <T> void replaceSublist(
+  public static <T extends @Nullable Object> void replaceSublist(
       List<T> list,
       int start,
       int end,
