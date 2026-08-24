@@ -223,7 +223,7 @@ public class EnumerableTableModify extends TableModify
    */
   public static long applyUpdateOneToOne(Enumerable<Object[]> source, List<Object[]> sink,
       int tableFieldCount, int[] updateColumnIndices) {
-    final Map<List<Object>, Deque<Object[]>> updatesByKey = new HashMap<>();
+    final Map<List<@Nullable Object>, Deque<Object[]>> updatesByKey = new HashMap<>();
     try (Enumerator<Object[]> e = source.enumerator()) {
       while (e.moveNext()) {
         final Object[] sourceRow = e.current();

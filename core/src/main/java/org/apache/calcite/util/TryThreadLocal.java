@@ -35,7 +35,7 @@ public abstract class TryThreadLocal<T extends @Nullable Object> extends ThreadL
    *
    * @param initialValue Initial value
    */
-  public static <S> TryThreadLocal<S> of(S initialValue) {
+  public static <S extends @Nullable Object> TryThreadLocal<S> of(S initialValue) {
     return new FixedTryThreadLocal<>(initialValue);
   }
 

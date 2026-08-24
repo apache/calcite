@@ -182,7 +182,7 @@ public interface SqlValidatorNamespace {
    * @return This namespace cast to desired type
    * @throws ClassCastException if no such interface is available
    */
-  <T> T unwrap(Class<T> clazz);
+  <T> @Nullable T unwrap(Class<T> clazz);
 
   /**
    * Returns whether this namespace implements a given interface, or wraps a
