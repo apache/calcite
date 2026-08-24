@@ -280,7 +280,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
 
     @Override public Object freeze(ColumnLoader.ValueSet valueSet, int @Nullable [] sources) {
       // We assume the values have been canonized.
-      final List<Comparable> list = permuteList(valueSet.values, sources);
+      final List<@Nullable Comparable> list = permuteList(valueSet.values, sources);
       return list.toArray(new Comparable[0]);
     }
 
@@ -438,7 +438,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       Arrays.sort(nonNullCodeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =
           new ColumnLoader.ValueSet(int.class);
-      final List<Comparable> list = permuteList(valueSet.values, sources);
+      final List<@Nullable Comparable> list = permuteList(valueSet.values, sources);
       for (Comparable value : list) {
         int code;
         if (value == null) {

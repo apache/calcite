@@ -32,7 +32,7 @@ import java.util.List;
  * @param <R> Return type
  * @param <P> Payload type
  */
-public interface RexBiVisitor<R extends @Nullable Object, P> {
+public interface RexBiVisitor<R extends @Nullable Object, P extends @Nullable Object> {
   //~ Methods ----------------------------------------------------------------
 
   R visitInputRef(RexInputRef inputRef, P arg);

@@ -2221,12 +2221,12 @@ public class Util {
   }
 
   /** Returns all but the first element of a list. */
-  public static <E> List<E> skip(List<E> list) {
+  public static <E extends @Nullable Object> List<E> skip(List<E> list) {
     return skip(list, 1);
   }
 
   /** Returns all but the first {@code n} elements of a list. */
-  public static <E> List<E> skip(List<E> list, int fromIndex) {
+  public static <E extends @Nullable Object> List<E> skip(List<E> list, int fromIndex) {
     return fromIndex == 0 ? list : list.subList(fromIndex, list.size());
   }
 

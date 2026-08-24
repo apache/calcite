@@ -151,7 +151,7 @@ public class ResultSetEnumerable<T extends @Nullable Object> extends AbstractEnu
 
   /** Executes a SQL query and returns the results as an enumerator, using a
    * row builder to convert JDBC column values into rows. */
-  public static <T> ResultSetEnumerable<T> of(
+  public static <T extends @Nullable Object> ResultSetEnumerable<T> of(
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory) {
@@ -163,7 +163,7 @@ public class ResultSetEnumerable<T extends @Nullable Object> extends AbstractEnu
    *
    * <p>It uses a {@link PreparedStatement} for computing the query result,
    * and that means that it can bind parameters. */
-  public static <T> ResultSetEnumerable<T> of(
+  public static <T extends @Nullable Object> ResultSetEnumerable<T> of(
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory,
