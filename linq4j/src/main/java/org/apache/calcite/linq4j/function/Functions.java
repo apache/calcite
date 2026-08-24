@@ -714,7 +714,8 @@ public abstract class Functions {
     }
   }
 
-  public static int compareLists(List<?> b0, List<?> b1) {
+  public static int compareLists(List<? extends @Nullable Object> b0,
+      List<? extends @Nullable Object> b1) {
     if (b0 == b1) {
       return 0;
     }
@@ -735,7 +736,8 @@ public abstract class Functions {
    *
    * <p>Entries are compared in a canonical order, sorted by key and then by value.
    */
-  public static int compareMaps(Map<?, ?> b0, Map<?, ?> b1) {
+  public static int compareMaps(Map<?, ? extends @Nullable Object> b0,
+      Map<?, ? extends @Nullable Object> b1) {
     if (b0 == b1) {
       return 0;
     }

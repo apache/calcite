@@ -224,14 +224,14 @@ public class SqlFunctions {
 
   /** Like {@link #LIST_AS_ENUMERABLE}, but for outer join mode: an empty or NULL
    * collection yields one NULL element rather than no elements. */
-  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
-      OUTER_LIST_AS_ENUMERABLE =
+  private static final Function1<@Nullable List<@Nullable Object>,
+      Enumerable<@Nullable Object>> OUTER_LIST_AS_ENUMERABLE =
           a0 -> a0 == null || a0.isEmpty() ? Linq4j.asEnumerable(SINGLE_NULL)
               : Linq4j.asEnumerable(a0);
 
   /** Like {@link #STRUCT_LIST_AS_ENUMERABLE}, but for outer join mode. */
-  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
-      OUTER_STRUCT_LIST_AS_ENUMERABLE =
+  private static final Function1<@Nullable List<@Nullable Object>,
+      Enumerable<@Nullable Object>> OUTER_STRUCT_LIST_AS_ENUMERABLE =
           a0 -> a0 == null || a0.isEmpty() ? Linq4j.asEnumerable(SINGLE_NULL)
               : Linq4j.asEnumerable(a0).<@Nullable Object>select(SqlFunctions::structValue);
 
@@ -273,7 +273,7 @@ public class SqlFunctions {
     }
 
     @Override public Enumerator<@Nullable Object[]> enumerator() {
-      return Linq4j.transform(product, List::toArray);
+      return Linq4j.transform(product, list -> list.toArray());
     }
   }
 
@@ -332,7 +332,8 @@ public class SqlFunctions {
 
   /** Whether the current Java version is 8 (1.8). */
   private static final boolean IS_JDK_8 =
-      System.getProperty("java.version").startsWith("1.8");
+      requireNonNull(System.getProperty("java.version"), "java.version")
+          .startsWith("1.8");
 
   private SqlFunctions() {
   }
@@ -7499,7 +7500,7 @@ public class SqlFunctions {
     if (keysArray.size() != valuesArray.size()) {
       throw RESOURCE.illegalArgumentsInMapFromArraysFunc(keysArray.size(), valuesArray.size()).ex();
     }
-    final Map map = new LinkedHashMap<>();
+    final Map<@Nullable Object, @Nullable Object> map = new LinkedHashMap<>();
     for (int i = 0; i < keysArray.size(); i++) {
       map.put(keysArray.get(i), valuesArray.get(i));
     }
@@ -7508,7 +7509,7 @@ public class SqlFunctions {
 
   /** Support the MAP_FROM_ENTRIES function. */
   public static @Nullable Map mapFromEntries(List entries) {
-    final Map map = new LinkedHashMap<>();
+    final Map<@Nullable Object, @Nullable Object> map = new LinkedHashMap<>();
     for (Object entry : entries) {
       if (entry == null) {
         return null;
@@ -7523,7 +7524,7 @@ public class SqlFunctions {
    * <p>odd-indexed elements are keys and even-indexed elements are values.
    */
   public static Map map(Object... args) {
-    final Map map = new LinkedHashMap<>();
+    final Map<@Nullable Object, @Nullable Object> map = new LinkedHashMap<>();
     for (int i = 0; i < args.length; i += 2) {
       Object key = args[i];
       Object value = args[i + 1];
