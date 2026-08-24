@@ -56,8 +56,8 @@ class PairLists {
       return ImmutablePairList.of();
     case 2:
       return new SingletonImmutablePairList<>(
-          castNonNull((T) list.get(0)),
-          castNonNull((U) list.get(1)));
+          (T) list.get(0),
+          (U) list.get(1));
     default:
       return new ArrayImmutablePairList<>(list.toArray());
     }

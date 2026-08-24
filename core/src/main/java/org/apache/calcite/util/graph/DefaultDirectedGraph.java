@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 /**
  * Default implementation of {@link DirectedGraph}.
  *
@@ -221,8 +219,8 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   private void removeMajorityVertices(Set<V> vertexSet) {
     vertexMap.keySet().removeAll(vertexSet);
     for (VertexInfo<V, E> info : vertexMap.values()) {
-      info.outEdges.removeIf(e -> vertexSet.contains(castNonNull((V) e.target)));
-      info.inEdges.removeIf(e -> vertexSet.contains(castNonNull((V) e.source)));
+      info.outEdges.removeIf(e -> vertexSet.contains((V) e.target));
+      info.inEdges.removeIf(e -> vertexSet.contains((V) e.source));
     }
   }
 

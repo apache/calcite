@@ -1739,7 +1739,7 @@ public abstract class SqlImplementor {
         if (!defaultCharset.equals(charsetName)) {
           // Set the charset only if it is not the same as the default charset
           return SqlLiteral.createCharString(
-              castNonNull(value).getValue(), charsetName, POS);
+              value.getValue(), charsetName, POS);
         }
       }
       // Create a string without specifying a charset

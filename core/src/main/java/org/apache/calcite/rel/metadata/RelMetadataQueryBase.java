@@ -27,8 +27,6 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -120,7 +118,7 @@ public class RelMetadataQueryBase {
 
   private MetadataHandlerProvider getMetadataHandlerProvider() {
     requireNonNull(metadataHandlerProvider, "metadataHandlerProvider");
-    return castNonNull(metadataHandlerProvider);
+    return metadataHandlerProvider;
   }
 
   /**
