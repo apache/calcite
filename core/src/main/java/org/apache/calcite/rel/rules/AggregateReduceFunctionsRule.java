@@ -260,7 +260,7 @@ public class AggregateReduceFunctionsRule
         inputExprs.size() - relBuilder.peek().getRowType().getFieldCount();
     if (extraArgCount > 0) {
       relBuilder.project(inputExprs,
-          CompositeList.of(
+          CompositeList.<@Nullable String>of(
               relBuilder.peek().getRowType().getFieldNames(),
               Collections.<@Nullable String>nCopies(extraArgCount, null)));
     }

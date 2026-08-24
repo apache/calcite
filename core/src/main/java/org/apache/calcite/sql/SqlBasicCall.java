@@ -134,7 +134,7 @@ public class SqlBasicCall extends SqlCall {
 
   /** Sets the {@code i}th element of {@code list} to value {@code e}, creating
    * an immutable copy of the list. */
-  private static <E> List<@Nullable E> set(List<E> list, int i, @Nullable E e) {
+  private static <E> List<@Nullable E> set(List<@Nullable E> list, int i, @Nullable E e) {
     if (i == 0 && list.size() == 1) {
       // short-cut case where the contents of the previous list can be ignored
       return ImmutableNullableList.of(e);
