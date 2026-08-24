@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function2;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Map;
 
 /**
@@ -37,6 +39,6 @@ public interface Lookup<K, V>
    *
    * @return Enumerable over results
    */
-  <TResult> Enumerable<TResult> applyResultSelector(
+  <TResult extends @Nullable Object> Enumerable<TResult> applyResultSelector(
       Function2<K, Enumerable<V>, TResult> resultSelector);
 }

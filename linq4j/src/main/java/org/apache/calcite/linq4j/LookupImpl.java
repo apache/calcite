@@ -181,7 +181,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     };
   }
 
-  @Override public <TResult> Enumerable<TResult> applyResultSelector(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> applyResultSelector(
       final Function2<K, Enumerable<V>, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {

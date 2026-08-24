@@ -956,7 +956,7 @@ public interface ExtendedEnumerable<TSource> {
    *
    * @return Collection of T2
    */
-  <TResult> Enumerable<TResult> ofType(Class<TResult> clazz);
+  <TResult extends @Nullable Object> Enumerable<TResult> ofType(Class<TResult> clazz);
 
   /**
    * Sorts the elements of a sequence in ascending
@@ -996,13 +996,14 @@ public interface ExtendedEnumerable<TSource> {
    * Projects each element of a sequence into a new
    * form.
    */
-  <TResult> Enumerable<TResult> select(Function1<TSource, TResult> selector);
+  <TResult extends @Nullable Object>
+      Enumerable<TResult> select(Function1<TSource, TResult> selector);
 
   /**
    * Projects each element of a sequence into a new
    * form by incorporating the element's index.
    */
-  <TResult> Enumerable<TResult> select(
+  <TResult extends @Nullable Object> Enumerable<TResult> select(
       Function2<TSource, Integer, TResult> selector);
 
   /**
@@ -1010,7 +1011,7 @@ public interface ExtendedEnumerable<TSource> {
    * {@code Enumerable<TSource>} and flattens the resulting sequences into one
    * sequence.
    */
-  <TResult> Enumerable<TResult> selectMany(
+  <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function1<TSource, Enumerable<TResult>> selector);
 
   /**
@@ -1019,7 +1020,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
-  <TResult> Enumerable<TResult> selectMany(
+  <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function2<TSource, Integer, Enumerable<TResult>> selector);
 
   /**

@@ -445,7 +445,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
    * Java type erasure.
    */
-  @Override <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
+  @Override <TResult extends @Nullable Object> Queryable<TResult> ofType(Class<TResult> clazz);
 
   @Override <T2> Queryable<T2> cast(Class<T2> clazz);
 
@@ -488,7 +488,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Projects each element of a sequence into a new form.
    */
-  <TResult> Queryable<TResult> select(
+  <TResult extends @Nullable Object> Queryable<TResult> select(
       FunctionExpression<Function1<TSource, TResult>> selector);
 
   /**
@@ -498,7 +498,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * <p>NOTE: Renamed from {@code select} because had same erasure as
    * {@link #select(org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
-  <TResult> Queryable<TResult> selectN(
+  <TResult extends @Nullable Object> Queryable<TResult> selectN(
       FunctionExpression<Function2<TSource, Integer, TResult>> selector);
 
 
@@ -507,7 +507,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * {@code Enumerable<TSource>} and combines the resulting sequences into one
    * sequence.
    */
-  <TResult> Queryable<TResult> selectMany(
+  <TResult extends @Nullable Object> Queryable<TResult> selectMany(
       FunctionExpression<Function1<TSource, Enumerable<TResult>>> selector);
 
   /**
@@ -519,7 +519,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
    * {@link #selectMany(org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
-  <TResult> Queryable<TResult> selectManyN(
+  <TResult extends @Nullable Object> Queryable<TResult> selectManyN(
       FunctionExpression<Function2<TSource, Integer, Enumerable<TResult>>>
         selector);
 

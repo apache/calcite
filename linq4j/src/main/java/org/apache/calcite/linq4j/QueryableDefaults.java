@@ -685,7 +685,7 @@ public abstract class QueryableDefaults {
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
    * Java type erasure.
    */
-  public static <TResult> Queryable<TResult> ofType(Queryable<?> queryable,
+  public static <TResult extends @Nullable Object> Queryable<TResult> ofType(Queryable<?> queryable,
       Class<TResult> clazz) {
     throw Extensions.todo();
   }
