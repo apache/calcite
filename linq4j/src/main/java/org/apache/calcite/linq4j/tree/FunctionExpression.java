@@ -104,7 +104,8 @@ public final class FunctionExpression<F extends Function<?>>
       dynamicFunction =
           (F) Proxy.newProxyInstance(classLoader,
               new Class[]{Types.toClass(type)},
-              (proxy, method, args) -> x.dynamicInvoke(args));
+              (proxy, method, args) ->
+                  x.dynamicInvoke(args == null ? new Object[0] : args));
     }
     return dynamicFunction;
   }
