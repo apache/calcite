@@ -113,7 +113,8 @@ public abstract class RexNode {
    * Accepts a visitor with a payload, dispatching to the right overloaded
    * {@link RexBiVisitor#visitInputRef(RexInputRef, Object)} visitXxx} method.
    */
-  public abstract <R, P> R accept(RexBiVisitor<R, P> visitor, P arg);
+  public abstract <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg);
 
   /** {@inheritDoc}
    *
