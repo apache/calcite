@@ -23,8 +23,6 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 import static java.util.Objects.requireNonNull;
 
 /** Immutable list of pairs.
@@ -88,8 +86,8 @@ public interface ImmutablePairList<T, U> extends PairList<T, U> {
         Object[] elements = new Object[2 * collection.size()];
         int i = 0;
         for (Map.Entry<T, U> entry2 : iterable) {
-          elements[i++] = castNonNull(entry2.getKey());
-          elements[i++] = castNonNull(entry2.getValue());
+          elements[i++] = entry2.getKey();
+          elements[i++] = entry2.getValue();
         }
         return new PairLists.ArrayImmutablePairList<>(elements);
       }
@@ -98,8 +96,8 @@ public interface ImmutablePairList<T, U> extends PairList<T, U> {
     // Not a collection, so we don't know its size in advance.
     final List<Object> list = new ArrayList<>();
     iterable.forEach(entry -> {
-      list.add(castNonNull(entry.getKey()));
-      list.add(castNonNull(entry.getValue()));
+      list.add(entry.getKey());
+      list.add(entry.getValue());
     });
     return PairLists.immutableBackedBy(list);
   }

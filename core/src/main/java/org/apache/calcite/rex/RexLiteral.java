@@ -755,7 +755,7 @@ public class RexLiteral extends RexNode {
     case ARRAY:
       assert value instanceof List : "value must implement List: " + value;
       @SuppressWarnings("unchecked") final List<RexLiteral> list =
-          (List<RexLiteral>) castNonNull(value);
+          (List<RexLiteral>) value;
       Util.asStringBuilder(sb, sb2 ->
           Util.printList(sb, list.size(), (sb3, i) ->
               sb3.append(list.get(i).computeDigest(includeType))));

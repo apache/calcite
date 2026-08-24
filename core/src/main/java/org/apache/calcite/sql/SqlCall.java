@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -103,7 +101,7 @@ public abstract class SqlCall extends SqlNode {
   public <S extends /*Nullable*/ SqlNode> S operand(int i) {
     // Note: in general, null elements exist in the list, however, the code
     // assumes operand(..) is non-nullable, so we add a cast here
-    return (S) castNonNull(getOperandList().get(i));
+    return (S) getOperandList().get(i);
   }
 
   public int operandCount() {

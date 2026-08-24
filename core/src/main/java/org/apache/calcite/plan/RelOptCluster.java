@@ -37,8 +37,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -111,7 +109,7 @@ public class RelOptCluster {
 
   @Deprecated // to be removed before 2.0
   public RelOptQuery getQuery() {
-    return new RelOptQuery(castNonNull(planner), nextCorrel, mapCorrelToRel);
+    return new RelOptQuery(planner, nextCorrel, mapCorrelToRel);
   }
 
   @Deprecated // to be removed before 2.0
@@ -193,7 +191,7 @@ public class RelOptCluster {
    * method, then use {@link RelOptRuleCall#getMetadataQuery()} instead. */
   public RelMetadataQuery getMetadataQuery() {
     if (mq == null) {
-      mq = castNonNull(mqSupplier).get();
+      mq = mqSupplier.get();
     }
     return mq;
   }

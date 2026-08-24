@@ -659,7 +659,7 @@ public class RelSubset extends AbstractRelNode {
                 finder.deadEnds.stream()
                     .filter(deadSubset -> deadSubset.getOriginal() != null)
                     .map(x -> {
-                      RelNode original = castNonNull(x.getOriginal());
+                      RelNode original = x.getOriginal();
                       return original.getClass().getSimpleName()
                           + traitDiff(original.getTraitSet(), x.getTraitSet());
                     })

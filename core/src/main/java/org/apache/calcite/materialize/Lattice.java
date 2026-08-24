@@ -1159,7 +1159,7 @@ public class Lattice {
               SqlValidatorUtil.uniquify(name, columnAliases,
                   SqlValidatorUtil.ATTEMPT_SUGGESTER);
           final BaseColumn column =
-              new BaseColumn(c++, castNonNull(node.alias), name, alias);
+              new BaseColumn(c++, node.alias, name, alias);
           columnList.add(column);
           columnAliasList.put(name, column); // name before it is made unique
         }

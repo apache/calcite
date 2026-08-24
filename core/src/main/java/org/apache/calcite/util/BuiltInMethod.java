@@ -1077,6 +1077,6 @@ public enum BuiltInMethod {
   }
 
   public String getMethodName() {
-    return castNonNull(method).getName();
+    return method.getName();
   }
 }

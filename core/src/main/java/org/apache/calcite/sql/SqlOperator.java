@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -625,7 +624,7 @@ public abstract class SqlOperator {
       throw validator.handleUnresolvedFunction(call, this, argTypes, null);
     }
 
-    ((SqlBasicCall) call).setOperator(castNonNull(sqlOperator));
+    ((SqlBasicCall) call).setOperator(sqlOperator);
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
 
     // Validate and determine coercibility and resulting collation

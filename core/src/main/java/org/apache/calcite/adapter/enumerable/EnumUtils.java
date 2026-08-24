@@ -294,7 +294,7 @@ public class EnumUtils {
       // Delegate copying the row values to JavaRowFormat
       final List<Statement> copyStatements =
           Nullness.castNonNull(
-              inputPhysType.getFormat().copy(parameter, Nullness.castNonNull(compactOutputVar),
+              inputPhysType.getFormat().copy(parameter, compactOutputVar,
                   outputField, fieldCount));
       if (joinType.generatesNullsOn(ord.i)) {
         // [CALCITE-6593] NPE when outer joining tables with many fields and unmatching rows
@@ -309,7 +309,7 @@ public class EnumUtils {
       outputField += fieldCount;
     }
 
-    compactCode.add(Nullness.castNonNull(compactOutputVar));
+    compactCode.add(compactOutputVar);
     return Expressions.lambda(
         Function2.class,
         compactCode.toBlock(),

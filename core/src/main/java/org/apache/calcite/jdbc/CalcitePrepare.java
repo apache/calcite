@@ -214,7 +214,7 @@ public interface CalcitePrepare {
 
     public static void pop(Context context) {
       final Deque<Context> stack = THREAD_CONTEXT_STACK.get();
-      Context x = castNonNull(stack).pop();
+      Context x = stack.pop();
       assert x == context;
     }
 
