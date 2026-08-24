@@ -111,7 +111,7 @@ public class SqlBasicVisitor<R extends @Nullable Object> implements SqlVisitor<R
     private static final ArgHandler<?> INSTANCE = new ArgHandlerImpl<>();
 
     @SuppressWarnings("unchecked")
-    public static <R> ArgHandler<R> instance() {
+    public static <R extends @Nullable Object> ArgHandler<R> instance() {
       return (ArgHandler<R>) INSTANCE;
     }
 

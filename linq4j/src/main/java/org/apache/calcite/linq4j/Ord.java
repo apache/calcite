@@ -48,7 +48,7 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
   /**
    * Creates an Ord.
    */
-  public static <E> Ord<E> of(int n, E e) {
+  public static <E extends @Nullable Object> Ord<E> of(int n, E e) {
     return new Ord<>(n, e);
   }
 
@@ -66,14 +66,16 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
   /**
    * Creates an iterable of {@code Ord}s over an iterable.
    */
-  public static <E> Iterable<Ord<E>> zip(final Iterable<? extends E> iterable) {
+  public static <E extends @Nullable Object>
+      Iterable<Ord<E>> zip(final Iterable<? extends E> iterable) {
     return () -> zip(iterable.iterator());
   }
 
   /**
    * Creates an iterator of {@code Ord}s over an iterator.
    */
-  public static <E> Iterator<Ord<E>> zip(final Iterator<? extends E> iterator) {
+  public static <E extends @Nullable Object>
+      Iterator<Ord<E>> zip(final Iterator<? extends E> iterator) {
     return new Iterator<Ord<E>>() {
       int n = 0;
 
@@ -81,6 +83,9 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
         return iterator.hasNext();
       }
 
+      // next() on an Iterator<? extends E> reads as @Nullable E when E has a nullable
+      // upper bound. https://github.com/uber/NullAway/issues/1727
+      @SuppressWarnings("NullAway")
       @Override public Ord<E> next() {
         return Ord.of(n++, iterator.next());
       }
@@ -94,14 +99,14 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
   /**
    * Returns a numbered list based on an array.
    */
-  public static <E> List<Ord<E>> zip(final E[] elements) {
+  public static <E extends @Nullable Object> List<Ord<E>> zip(final E[] elements) {
     return new OrdArrayList<>(elements);
   }
 
   /**
    * Returns a numbered list.
    */
-  public static <E> List<Ord<E>> zip(final List<? extends E> elements) {
+  public static <E extends @Nullable Object> List<Ord<E>> zip(final List<? extends E> elements) {
     return elements instanceof RandomAccess
         ? new OrdRandomAccessList<>(elements)
         : new OrdList<>(elements);
@@ -114,7 +119,7 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
    * (0, "a").
    */
   @SafeVarargs // heap pollution is not possible because we only read
-  public static <E> Iterable<Ord<E>> reverse(E... elements) {
+  public static <E extends @Nullable Object> Iterable<Ord<E>> reverse(E... elements) {
     return reverse(ImmutableList.copyOf(elements));
   }
 
@@ -124,7 +129,8 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
    * <p>Given the list ["a", "b", "c"], returns (2, "c") then (1, "b") then
    * (0, "a").
    */
-  public static <E> Iterable<Ord<E>> reverse(Iterable<? extends E> elements) {
+  public static <E extends @Nullable Object>
+      Iterable<Ord<E>> reverse(Iterable<? extends E> elements) {
     final ImmutableList<E> elementList = ImmutableList.copyOf(elements);
     return () -> new Iterator<Ord<E>>() {
       int i = elementList.size() - 1;
