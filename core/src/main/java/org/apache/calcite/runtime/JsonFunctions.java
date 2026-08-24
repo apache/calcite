@@ -447,7 +447,8 @@ public class JsonFunctions {
     return jsonize(map);
   }
 
-  public static void jsonObjectAggAdd(Map map, String k, @Nullable Object v,
+  public static void jsonObjectAggAdd(Map<String, @Nullable Object> map, String k,
+      @Nullable Object v,
       SqlJsonConstructorNullClause nullClause) {
     if (k == null) {
       throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
@@ -476,7 +477,7 @@ public class JsonFunctions {
     return jsonize(list);
   }
 
-  public static void jsonArrayAggAdd(List list, @Nullable Object element,
+  public static void jsonArrayAggAdd(List<@Nullable Object> list, @Nullable Object element,
       SqlJsonConstructorNullClause nullClause) {
     if (element == null) {
       if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
