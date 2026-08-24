@@ -50,6 +50,30 @@ public class EnumerableSortedAggregateTest {
             "deptno=20; max_salary=8000.0; num_employee=1");
   }
 
+  @Test void aggOnEmptyInput() {
+    tester(false, new HrSchema())
+        .query("select max(deptno) as m, count(*) as c "
+            + "from emps where deptno > 100")
+        .explainContains(
+            "EnumerableAggregate(group=[{}], m=[MAX($1)], c=[COUNT()])\n"
+                + "  EnumerableCalc")
+        .returnsOrdered("m=null; c=0");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6087">[CALCITE-6087]
+   * EnumerableSortedAggregate returns incorrect result when input is empty</a>. */
+  @Test void sortedAggRuleRejectsEmptyGroupSet() {
+    tester(false, new HrSchema())
+        .query("select max(deptno) as m, count(*) as c "
+            + "from emps where deptno > 100")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
+        })
+        .throws_("There are not enough rules to produce a node with desired properties");
+  }
+
   @Test void sortedAggTwoGroupKeys() {
     tester(false, new HrSchema())
         .query(
