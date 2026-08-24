@@ -18,6 +18,8 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.rel.core.Match;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Interpreter node that implements a
  * {@link Match}.
@@ -28,7 +30,7 @@ public class MatchNode extends AbstractSingleNode<Match> {
   }
 
   @Override public void run() throws InterruptedException {
-    Row row;
+    @Nullable Row row;
     while ((row = source.receive()) != null) {
       sink.send(row);
     }

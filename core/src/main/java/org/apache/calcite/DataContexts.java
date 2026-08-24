@@ -83,9 +83,9 @@ public class DataContexts {
    * value for a key, remove the key from the map; the effect will be the
    * same. */
   private static class MapDataContext extends EmptyDataContext {
-    private final ImmutableMap<String, ?> map;
+    private final ImmutableMap<String, ? extends @Nullable Object> map;
 
-    MapDataContext(Map<String, ?> map) {
+    MapDataContext(Map<String, ? extends @Nullable Object> map) {
       this.map = ImmutableMap.copyOf(map);
     }
 

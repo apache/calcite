@@ -1513,7 +1513,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (!matcher.find()) {
         return plan;
       }
-      final String token = matcher.group(); // e.g. "Subset#23."
+      // e.g. "Subset#23."; find() above has succeeded
+      final String token = requireNonNull(matcher.group(), "matcher.group()");
       plan = plan.replace(token, "Subset#{" + i++ + "}.");
     }
   }

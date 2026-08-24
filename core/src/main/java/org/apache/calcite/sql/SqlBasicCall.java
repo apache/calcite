@@ -140,7 +140,7 @@ public class SqlBasicCall extends SqlCall {
       return ImmutableNullableList.of(e);
     }
     //noinspection unchecked
-    @Nullable E[] objects = (E[]) list.toArray();
+    @Nullable E[] objects = (@Nullable E[]) list.toArray();
     objects[i] = e;
     return ImmutableNullableList.copyOf(objects);
   }
