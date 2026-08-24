@@ -125,7 +125,8 @@ public final class LogicalAsofJoin extends AsofJoin {
       return true;
     }
     return deepEquals0(obj)
-        && matchCondition.equals(((LogicalAsofJoin) obj).matchCondition)
+        && matchCondition.equals(
+            ((LogicalAsofJoin) requireNonNull(obj, "obj")).matchCondition)
         && systemFieldList.equals(((LogicalAsofJoin) obj).systemFieldList);
   }
 

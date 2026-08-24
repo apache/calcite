@@ -165,7 +165,7 @@ public final class LogicalFilter extends Filter {
 
   @Override public boolean deepEquals(@Nullable Object obj) {
     return deepEquals0(obj)
-        && variablesSet.equals(((LogicalFilter) obj).variablesSet);
+        && variablesSet.equals(((LogicalFilter) requireNonNull(obj, "obj")).variablesSet);
   }
 
   @Override public int deepHashCode() {

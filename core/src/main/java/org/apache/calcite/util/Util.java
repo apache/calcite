@@ -140,13 +140,13 @@ public class Util {
    * necessary, to make them look like Linux actual.
    */
   public static final String LINE_SEPARATOR =
-      System.getProperty("line.separator");
+      requireNonNull(System.getProperty("line.separator"), "line.separator");
 
   /**
    * System-dependent file separator, for example, "/" or "\."
    */
   public static final String FILE_SEPARATOR =
-      System.getProperty("file.separator");
+      requireNonNull(System.getProperty("file.separator"), "file.separator");
 
   /**
    * Datetime format string for generating a timestamp string to be used as
@@ -753,7 +753,7 @@ public class Util {
     // This is a bunch of weird code that is required to
     // make a valid URL on the Windows platform, due
     // to inconsistencies in what getAbsolutePath returns.
-    String fs = System.getProperty("file.separator");
+    String fs = FILE_SEPARATOR;
     if (fs.length() == 1) {
       char sep = fs.charAt(0);
       if (sep != '/') {

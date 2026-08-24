@@ -197,7 +197,7 @@ public final class LogicalJoin extends Join {
       return true;
     }
     return deepEquals0(obj)
-        && semiJoinDone == ((LogicalJoin) obj).semiJoinDone
+        && semiJoinDone == ((LogicalJoin) requireNonNull(obj, "obj")).semiJoinDone
         && systemFieldList.equals(((LogicalJoin) obj).systemFieldList);
   }
 

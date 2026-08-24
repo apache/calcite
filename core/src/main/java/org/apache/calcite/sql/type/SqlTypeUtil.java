@@ -1394,7 +1394,10 @@ public abstract class SqlTypeUtil {
    */
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
-    String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
+    String charSetName =
+        inCharFamily(type)
+            ? requireNonNull(type.getCharset(), "charset").name()
+            : null;
     return convertTypeToSpec(type, charSetName,
         RelDataType.PRECISION_NOT_SPECIFIED, RelDataType.SCALE_NOT_SPECIFIED);
   }
