@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.EqualityComparer;
 import org.apache.calcite.linq4j.function.Function1;
 
@@ -86,8 +85,6 @@ final class MergeUnionEnumerator<TSource, TKey> implements Enumerator<TSource> {
     initEnumerators();
   }
 
-  @RequiresNonNull("inputs")
-  @SuppressWarnings("NullAway")
   private void initEnumerators() {
     for (int i = 0; i < inputs.length; i++) {
       moveEnumerator(i);
