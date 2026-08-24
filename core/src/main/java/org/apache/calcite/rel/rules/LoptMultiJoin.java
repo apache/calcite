@@ -444,7 +444,6 @@ public class LoptMultiJoin {
    *
    * @return the bitmap containing the factor references
    */
-  @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   ImmutableBitSet getJoinFilterFactorBitmap(
       RexNode joinFilter,
       boolean setFields) {
@@ -466,7 +465,6 @@ public class LoptMultiJoin {
    * Sets bitmaps indicating which factors and fields each join filter
    * references.
    */
-  @RequiresNonNull({"allJoinFilters", "joinStart", "nFieldsInJoinFactor"})
   private void setJoinFilterRefs() {
     ListIterator<RexNode> filterIter = allJoinFilters.listIterator();
     while (filterIter.hasNext()) {
@@ -491,7 +489,6 @@ public class LoptMultiJoin {
    * @return bitmap representing factors referenced that will
    * be set by this method
    */
-  @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   private ImmutableBitSet factorBitmap(
       ImmutableBitSet fieldRefBitmap) {
     ImmutableBitSet.Builder factorRefBitmap = ImmutableBitSet.builder();
@@ -509,7 +506,6 @@ public class LoptMultiJoin {
    *
    * @return index corresponding to join factor
    */
-  @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   public int findRef(
       int rexInputRef) {
     for (int i = 0; i < nJoinFactors; i++) {

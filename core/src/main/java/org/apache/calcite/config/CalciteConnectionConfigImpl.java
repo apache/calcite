@@ -108,6 +108,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T fun(Class<T> operatorTableClass,
       @Nullable T defaultOperatorTable) {
     final String fun =
@@ -155,16 +158,16 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
-  @Contract("_, !null -> !null")
-  @Override public <T> @Nullable T parserFactory(Class<T> parserFactoryClass,
-      @Nullable T defaultParserFactory) {
+  @Override public <T extends @Nullable Object> T parserFactory(
+      Class<@NonNull T> parserFactoryClass,
+      T defaultParserFactory) {
     return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
         .getPlugin(parserFactoryClass, defaultParserFactory);
   }
 
-  @Contract("_, !null -> !null")
-  @Override public <T> @Nullable T schemaFactory(Class<T> schemaFactoryClass,
-      @Nullable T defaultSchemaFactory) {
+  @Override public <T extends @Nullable Object> T schemaFactory(
+      Class<@NonNull T> schemaFactoryClass,
+      T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
         .getPlugin(schemaFactoryClass, defaultSchemaFactory);
   }
@@ -183,9 +186,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
-  @Contract("_, !null -> !null")
-  @Override public <T> @Nullable T typeSystem(Class<T> typeSystemClass,
-      @Nullable T defaultTypeSystem) {
+  @Override public <T extends @Nullable Object> T typeSystem(Class<@NonNull T> typeSystemClass,
+      T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);
   }
@@ -225,18 +227,16 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
-  @Contract("_, !null -> !null")
-  @Override public <T> @Nullable T metaTableFactory(
-      Class<T> metaTableFactoryClass,
-      @Nullable T defaultMetaTableFactory) {
+  @Override public <T extends @Nullable Object> T metaTableFactory(
+      Class<@NonNull T> metaTableFactoryClass,
+      T defaultMetaTableFactory) {
     return CalciteConnectionProperty.META_TABLE_FACTORY.wrap(properties)
         .getPlugin(metaTableFactoryClass, defaultMetaTableFactory);
   }
 
-  @Contract("_, !null -> !null")
-  @Override public <T> @Nullable T metaColumnFactory(
-      Class<T> metaColumnFactoryClass,
-      @Nullable T defaultMetaColumnFactory) {
+  @Override public <T extends @Nullable Object> T metaColumnFactory(
+      Class<@NonNull T> metaColumnFactoryClass,
+      T defaultMetaColumnFactory) {
     return CalciteConnectionProperty.META_COLUMN_FACTORY.wrap(properties)
         .getPlugin(metaColumnFactoryClass, defaultMetaColumnFactory);
   }
