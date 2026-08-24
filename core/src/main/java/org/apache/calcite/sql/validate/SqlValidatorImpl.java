@@ -4605,7 +4605,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Namespace is either a select namespace or a wrapper around one.
     final SelectNamespace ns =
-        getNamespaceOrThrow(select).unwrap(SelectNamespace.class);
+        requireNonNull(
+            getNamespaceOrThrow(select).unwrap(SelectNamespace.class),
+            "ns");
 
     // Its rowtype is null, meaning it hasn't been validated yet.
     // This is important, because we need to take the targetRowType into
@@ -7371,7 +7373,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlLambdaScope scope = (SqlLambdaScope) scopes.get(lambdaExpr);
     requireNonNull(scope, "scope");
     final LambdaNamespace ns =
-        getNamespaceOrThrow(lambdaExpr).unwrap(LambdaNamespace.class);
+        requireNonNull(
+            getNamespaceOrThrow(lambdaExpr).unwrap(LambdaNamespace.class),
+            "ns");
 
     // Check for duplicate lambda parameter names
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
@@ -7409,7 +7413,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         (MatchRecognizeScope) getMatchRecognizeScope(matchRecognize);
 
     final MatchRecognizeNamespace ns =
-        getNamespaceOrThrow(call).unwrap(MatchRecognizeNamespace.class);
+        requireNonNull(getNamespaceOrThrow(call).unwrap(MatchRecognizeNamespace.class), "ns");
     assert ns.rowType == null;
 
     // rows per match
@@ -7662,7 +7666,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final PivotScope scope = (PivotScope) getJoinScope(pivot);
 
     final PivotNamespace ns =
-        getNamespaceOrThrow(pivot).unwrap(PivotNamespace.class);
+        requireNonNull(getNamespaceOrThrow(pivot).unwrap(PivotNamespace.class), "ns");
     assert ns.rowType == null;
 
     // Given
@@ -7738,7 +7742,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final UnpivotScope scope = (UnpivotScope) getJoinScope(unpivot);
 
     final UnpivotNamespace ns =
-        getNamespaceOrThrow(unpivot).unwrap(UnpivotNamespace.class);
+        requireNonNull(getNamespaceOrThrow(unpivot).unwrap(UnpivotNamespace.class), "ns");
     assert ns.rowType == null;
 
     // Given

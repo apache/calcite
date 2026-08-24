@@ -438,7 +438,8 @@ abstract class CalciteConnectionImpl
       final long currentOffset = localOffset;
       final long sysOffset = TimeZone.getDefault().getOffset(time);
       final String user = "sa";
-      final String systemUser = System.getProperty("user.name");
+      final String systemUser =
+          requireNonNull(System.getProperty("user.name"), "user.name");
       final String localeName = connection.config().locale();
       final Locale locale = localeName != null
           ? Util.parseLocale(localeName) : Locale.ROOT;

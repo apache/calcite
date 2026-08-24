@@ -2121,12 +2121,11 @@ public class Util {
   /** Returns the first value if it is not null,
    * otherwise the second value.
    *
-   * <p>The result may be null only if the second argument is not null.
+   * <p>The result is null only if both arguments are null.
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  @Contract("_, !null -> !null")
-  public static <T extends @Nullable Object> @Nullable T first(@Nullable T v0, @Nullable T v1) {
+  public static <T extends @Nullable Object> T first(@Nullable T v0, T v1) {
     return v0 != null ? v0 : v1;
   }
 
