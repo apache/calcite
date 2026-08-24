@@ -523,7 +523,7 @@ public interface QueryableFactory<T> {
    * Filters the elements of an IQueryable based on a
    * specified type.
    */
-  <TResult> Queryable<TResult> ofType(Queryable<T> source,
+  <TResult extends @Nullable Object> Queryable<TResult> ofType(Queryable<T> source,
       Class<TResult> clazz);
 
   <T2> Queryable<T2> cast(Queryable<T> source, Class<T2> clazz);
@@ -566,14 +566,14 @@ public interface QueryableFactory<T> {
   /**
    * Projects each element of a sequence into a new form.
    */
-  <TResult> Queryable<TResult> select(Queryable<T> source,
+  <TResult extends @Nullable Object> Queryable<TResult> select(Queryable<T> source,
       FunctionExpression<Function1<T, TResult>> selector);
 
   /**
    * Projects each element of a sequence into a new
    * form by incorporating the element's index.
    */
-  <TResult> Queryable<TResult> selectN(Queryable<T> source,
+  <TResult extends @Nullable Object> Queryable<TResult> selectN(Queryable<T> source,
       FunctionExpression<Function2<T, Integer, TResult>> selector);
 
 
@@ -582,7 +582,7 @@ public interface QueryableFactory<T> {
    * {@code Enumerable<T>} and combines the resulting sequences into one
    * sequence.
    */
-  <TResult> Queryable<TResult> selectMany(Queryable<T> source,
+  <TResult extends @Nullable Object> Queryable<TResult> selectMany(Queryable<T> source,
       FunctionExpression<Function1<T, Enumerable<TResult>>> selector);
 
   /**
@@ -591,7 +591,7 @@ public interface QueryableFactory<T> {
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
-  <TResult> Queryable<TResult> selectManyN(Queryable<T> source,
+  <TResult extends @Nullable Object> Queryable<TResult> selectManyN(Queryable<T> source,
       FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector);
 
   /**

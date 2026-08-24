@@ -501,7 +501,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public <TResult> Queryable<TResult> ofType(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> ofType(
       Queryable<T> source, Class<TResult> clazz) {
     throw new UnsupportedOperationException();
   }
@@ -543,7 +543,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public <TResult> Queryable<TResult> select(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> select(
       Queryable<T> source,
       FunctionExpression<Function1<T, TResult>> selector) {
     RelNode child = toRel(source);
@@ -554,19 +554,19 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     return castNonNull(null);
   }
 
-  @Override public <TResult> Queryable<TResult> selectN(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectN(
       Queryable<T> source,
       FunctionExpression<Function2<T, Integer, TResult>> selector) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public <TResult> Queryable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectMany(
       Queryable<T> source,
       FunctionExpression<Function1<T, Enumerable<TResult>>> selector) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public <TResult> Queryable<TResult> selectManyN(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectManyN(
       Queryable<T> source,
       FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector) {
     throw new UnsupportedOperationException();

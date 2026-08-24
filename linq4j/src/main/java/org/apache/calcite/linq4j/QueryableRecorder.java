@@ -630,7 +630,8 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castSingle(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public <TResult> Queryable<TResult> ofType(final Queryable<T> source,
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> ofType(final Queryable<T> source,
       final Class<TResult> clazz) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
@@ -687,7 +688,8 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     };
   }
 
-  @Override public <TResult> Queryable<TResult> select(final Queryable<T> source,
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> select(final Queryable<T> source,
       final FunctionExpression<Function1<T, TResult>> selector) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
@@ -700,7 +702,8 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public <TResult> Queryable<TResult> selectN(final Queryable<T> source,
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> selectN(final Queryable<T> source,
       final FunctionExpression<Function2<T, Integer, TResult>> selector) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
@@ -709,7 +712,8 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public <TResult> Queryable<TResult> selectMany(final Queryable<T> source,
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> selectMany(final Queryable<T> source,
       final FunctionExpression<Function1<T, Enumerable<TResult>>> selector) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
@@ -718,7 +722,8 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public <TResult> Queryable<TResult> selectManyN(final Queryable<T> source,
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> selectManyN(final Queryable<T> source,
       final FunctionExpression<Function2<T, Integer, Enumerable<TResult>>>
         selector) {
     return new NonLeafReplayableQueryable<T>(source) {

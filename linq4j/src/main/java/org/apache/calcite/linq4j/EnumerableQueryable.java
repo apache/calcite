@@ -151,7 +151,8 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.distinct(getThis(), comparer).asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> ofType(Class<TResult> clazz) {
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> ofType(Class<TResult> clazz) {
     return EnumerableDefaults.ofType(getThis(), clazz).asQueryable();
   }
 
@@ -423,25 +424,25 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
             keySelector.getFunction(), comparator));
   }
 
-  @Override public <TResult> Queryable<TResult> select(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> select(
       FunctionExpression<Function1<T, TResult>> selector) {
     return EnumerableDefaults.select(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> selectN(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectN(
       FunctionExpression<Function2<T, Integer, TResult>> selector) {
     return EnumerableDefaults.select(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectMany(
       FunctionExpression<Function1<T, Enumerable<TResult>>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> selectManyN(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectManyN(
       FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector.getFunction())
         .asQueryable();

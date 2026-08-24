@@ -1418,7 +1418,7 @@ public class EnumUtils {
   /**
    * Apply tumbling per row from the enumerable input.
    */
-  public static <TSource, TResult> Enumerable<TResult> tumbling(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> tumbling(
       Enumerable<TSource> inputEnumerable,
       Function1<TSource, TResult> outSelector) {
     return new AbstractEnumerable<TResult>() {

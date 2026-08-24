@@ -146,7 +146,8 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.distinct(getThis(), comparer);
   }
 
-  @Override public <TResult> Queryable<TResult> ofType(Class<TResult> clazz) {
+  @Override public <TResult extends @Nullable Object>
+      Queryable<TResult> ofType(Class<TResult> clazz) {
     return factory.ofType(getThis(), clazz);
   }
 
@@ -386,22 +387,22 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.orderByDescending(getThis(), keySelector, comparator);
   }
 
-  @Override public <TResult> Queryable<TResult> select(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> select(
       FunctionExpression<Function1<T, TResult>> selector) {
     return factory.select(getThis(), selector);
   }
 
-  @Override public <TResult> Queryable<TResult> selectN(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectN(
       FunctionExpression<Function2<T, Integer, TResult>> selector) {
     return factory.selectN(getThis(), selector);
   }
 
-  @Override public <TResult> Queryable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectMany(
       FunctionExpression<Function1<T, Enumerable<TResult>>> selector) {
     return factory.selectMany(getThis(), selector);
   }
 
-  @Override public <TResult> Queryable<TResult> selectManyN(
+  @Override public <TResult extends @Nullable Object> Queryable<TResult> selectManyN(
       FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector) {
     return factory.selectManyN(getThis(), selector);
   }
