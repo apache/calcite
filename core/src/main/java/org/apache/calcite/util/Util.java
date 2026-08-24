@@ -2127,7 +2127,8 @@ public class Util {
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  public static <T> @Nullable T first(@Nullable T v0, @Nullable T v1) {
+  @Contract("_, !null -> !null")
+  public static <T extends @Nullable Object> @Nullable T first(@Nullable T v0, @Nullable T v1) {
     return v0 != null ? v0 : v1;
   }
 
@@ -2271,7 +2272,7 @@ public class Util {
    * @param list List
    * @return Ordinal of first duplicate, or -1 if not found
    */
-  public static <E> int firstDuplicate(List<E> list) {
+  public static <E extends @Nullable Object> int firstDuplicate(List<E> list) {
     final int size = list.size();
     if (size < 2) {
       // Lists of size 0 and 1 are always distinct.
