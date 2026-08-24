@@ -947,7 +947,7 @@ public abstract class SqlOperator {
    * @param visitor Visitor
    * @param call    Call to visit
    */
-  public <R> @Nullable R acceptCall(SqlVisitor<R> visitor, SqlCall call) {
+  public <R extends @Nullable Object> @Nullable R acceptCall(SqlVisitor<R> visitor, SqlCall call) {
     for (SqlNode operand : call.getOperandList()) {
       if (operand == null) {
         continue;
@@ -972,7 +972,7 @@ public abstract class SqlOperator {
    *                        <code>AS</code> operator
    * @param argHandler      Called for each operand
    */
-  public <R> void acceptCall(
+  public <R extends @Nullable Object> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,

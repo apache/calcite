@@ -42,13 +42,13 @@ import static org.apache.calcite.linq4j.Nullness.castNonNullList;
 public interface PairList<T extends @Nullable Object, U extends @Nullable Object>
     extends List<Map.Entry<T, U>> {
   /** Creates an empty PairList. */
-  static <T, U> PairList<T, U> of() {
+  static <T extends @Nullable Object, U extends @Nullable Object> PairList<T, U> of() {
     return new PairLists.MutablePairList<>(new ArrayList<>());
   }
 
   /** Creates a singleton PairList. */
   @SuppressWarnings("RedundantCast")
-  static <T, U> PairList<T, U> of(T t, U u) {
+  static <T extends @Nullable Object, U extends @Nullable Object> PairList<T, U> of(T t, U u) {
     final List<@Nullable Object> list = new ArrayList<>();
     list.add((Object) t);
     list.add((Object) u);
@@ -56,14 +56,16 @@ public interface PairList<T extends @Nullable Object, U extends @Nullable Object
   }
 
   /** Creates a PairList with one or more entries. */
-  static <T, U> PairList<T, U> copyOf(T t, U u, Object... rest) {
+  static <T extends @Nullable Object, U extends @Nullable Object>
+      PairList<T, U> copyOf(T t, U u, Object... rest) {
     checkArgument(rest.length % 2 == 0, "even number");
     final List<@Nullable Object> list = Lists.asList(t, u, rest);
     return new PairLists.MutablePairList<>(new ArrayList<>(list));
   }
 
   /** Creates an empty PairList with a specified initial capacity. */
-  static <T, U> PairList<T, U> withCapacity(int initialCapacity) {
+  static <T extends @Nullable Object, U extends @Nullable Object>
+      PairList<T, U> withCapacity(int initialCapacity) {
     return backedBy(new ArrayList<>(initialCapacity));
   }
 
@@ -71,13 +73,14 @@ public interface PairList<T extends @Nullable Object, U extends @Nullable Object
    *
    * <p>Changes to the backing list will be reflected in the PairList.
    * If the backing list is immutable, this PairList will be also. */
-  static <T, U> PairList<T, U> backedBy(List<@Nullable Object> list) {
+  static <T extends @Nullable Object, U extends @Nullable Object>
+      PairList<T, U> backedBy(List<@Nullable Object> list) {
     return new PairLists.MutablePairList<>(list);
   }
 
   /** Creates a PairList from a Map. */
   @SuppressWarnings("RedundantCast")
-  static <T, U> PairList<T, U> of(Map<T, U> map) {
+  static <T extends @Nullable Object, U extends @Nullable Object> PairList<T, U> of(Map<T, U> map) {
     final List<@Nullable Object> list = new ArrayList<>(map.size() * 2);
     map.forEach((t, u) -> {
       list.add((Object) t);
@@ -87,7 +90,7 @@ public interface PairList<T extends @Nullable Object, U extends @Nullable Object
   }
 
   /** Creates a Builder. */
-  static <T, U> Builder<T, U> builder() {
+  static <T extends @Nullable Object, U extends @Nullable Object> Builder<T, U> builder() {
     return new Builder<>();
   }
 
