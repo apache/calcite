@@ -122,55 +122,56 @@ public class ImmutableNullableList<E extends @Nullable Object> extends AbstractL
   }
 
   /** Creates an immutable list of 1 element. */
-  public static <E> List<E> of(@Nullable E e1) {
+  public static <E extends @Nullable Object> List<E> of(@Nullable E e1) {
     //noinspection unchecked
     return e1 == null ? (List<E>) SINGLETON_NULL : ImmutableList.of(e1);
   }
 
   /** Creates an immutable list of 2 elements. */
-  public static <E> List<E> of(E e1, E e2) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2);
   }
 
   /** Creates an immutable list of 3 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3);
   }
 
   /** Creates an immutable list of 4 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4);
   }
 
   /** Creates an immutable list of 5 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4, E e5) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4, e5);
   }
 
   /** Creates an immutable list of 6 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4, e5, e6);
   }
 
   /** Creates an immutable list of 7 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4, e5, e6, e7);
   }
 
   /** Creates an immutable list of 8 or more elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7, E e8,
+  public static <E extends @Nullable Object>
+      List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7, E e8,
       E... others) {
     @SuppressWarnings("unchecked")
     E[] array = (E[]) new Object[8 + others.length];
