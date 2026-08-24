@@ -46,7 +46,7 @@ public class BinaryExpression extends Expression {
     return visitor.visit(this, expression0, expression1);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

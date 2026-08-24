@@ -58,7 +58,7 @@ public class ForStatement extends Statement {
     return shuttle.visit(this, decls1, condition1, post1, body1);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

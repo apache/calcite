@@ -47,7 +47,7 @@ public class TernaryExpression extends Expression {
     return shuttle.visit(this, expression0, expression1, expression2);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
