@@ -1125,18 +1125,18 @@ public abstract class EnumerableDefaults {
       curResult = null;
       TSource o = enumerator.current();
       TKey prevKey = keySelector.apply(o);
-      curAccumulator = accumulatorAdder.apply(castNonNull(curAccumulator), o);
+      curAccumulator = accumulatorAdder.apply(curAccumulator, o);
       while (enumerator.moveNext()) {
         o = enumerator.current();
         TKey curKey = keySelector.apply(o);
         if (comparator.compare(prevKey, curKey) != 0) {
           // current key is different from previous key, get accumulated results and re-create
           // accumulator for current key.
-          curResult = resultSelector.apply(prevKey, castNonNull(curAccumulator));
+          curResult = resultSelector.apply(prevKey, curAccumulator);
           curAccumulator = accumulatorInitializer.apply();
           break;
         }
-        curAccumulator = accumulatorAdder.apply(castNonNull(curAccumulator), o);
+        curAccumulator = accumulatorAdder.apply(curAccumulator, o);
         prevKey = curKey;
       }
 
@@ -2291,7 +2291,7 @@ public abstract class EnumerableDefaults {
                 outerValue = outerValues.get(i); // get current outer value
                 nextInnerValue();
                 // Compare current block row to current inner value
-                if (predicate.apply(castNonNull(outerValue), castNonNull(innerValue))) {
+                if (predicate.apply(outerValue, castNonNull(innerValue))) {
                   atLeastOneResult = true;
                   // Skip the rest of inner values in case of
                   // ANTI and SEMI when a match is found
