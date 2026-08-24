@@ -27,6 +27,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
@@ -56,8 +57,8 @@ class PairLists {
       return ImmutablePairList.of();
     case 2:
       return new SingletonImmutablePairList<>(
-          (T) list.get(0),
-          (U) list.get(1));
+          element(list.get(0)),
+          element(list.get(1)));
     default:
       return new ArrayImmutablePairList<>(list.toArray());
     }
@@ -78,12 +79,28 @@ class PairLists {
     }
   }
 
+  /** Casts an element of a packed list back to the type it was stored with.
+   *
+   * <p>A {@link PairList} keeps both halves of every pair in one
+   * {@code List<@Nullable Object>}, so the element type cannot carry the nullability of
+   * {@code T} and of {@code U} separately. A slot holds whatever was written into it: null
+   * only when the type argument it belongs to is itself nullable.
+   *
+   * @param o element of the packed list
+   * @param <E> type the element was stored with
+   * @return the element, typed
+   */
+  @SuppressWarnings({"unchecked", "NullAway"})
+  private static <E extends @Nullable Object> E element(@Nullable Object o) {
+    return (E) o;
+  }
+
   /** Base class for all implementations of PairList.
    *
    * @param <T> First type
    * @param <U> Second type
    */
-  abstract static class AbstractPairList<T, U>
+  abstract static class AbstractPairList<T extends @Nullable Object, U extends @Nullable Object>
       extends AbstractList<Map.Entry<T, U>>
       implements PairList<T, U> {
     /** Returns a list containing the alternating left and right elements
@@ -112,7 +129,8 @@ class PairLists {
    * @param <T> First type
    * @param <U> Second type
    */
-  static class MutablePairList<T, U> extends AbstractPairList<T, U> {
+  static class MutablePairList<T extends @Nullable Object, U extends @Nullable Object>
+      extends AbstractPairList<T, U> {
     final List<@Nullable Object> list;
 
     MutablePairList(List<@Nullable Object> list) {
@@ -138,19 +156,19 @@ class PairLists {
     @SuppressWarnings("unchecked")
     @Override public Map.Entry<T, U> get(int index) {
       int x = index * 2;
-      return new MapEntry<>((T) list.get(x), (U) list.get(x + 1));
+      return new MapEntry<>(element(list.get(x)), element(list.get(x + 1)));
     }
 
     @SuppressWarnings("unchecked")
     @Override public T left(int index) {
       int x = index * 2;
-      return (T) list.get(x);
+      return element(list.get(x));
     }
 
     @SuppressWarnings("unchecked")
     @Override public U right(int index) {
       int x = index * 2;
-      return (U) list.get(x + 1);
+      return element(list.get(x + 1));
     }
 
     @Override public Map.Entry<T, U> set(int index,
@@ -164,16 +182,16 @@ class PairLists {
     @SuppressWarnings("unchecked")
     @Override public Map.Entry<T, U> set(int index, T t, U u) {
       int x = index * 2;
-      T t0 = (T) list.set(x, t);
-      U u0 = (U) list.set(x + 1, u);
+      T t0 = element(list.set(x, t));
+      U u0 = element(list.set(x + 1, u));
       return new MapEntry<>(t0, u0);
     }
 
     @SuppressWarnings("unchecked")
     @Override public Map.Entry<T, U> remove(int index) {
       final int x = index * 2;
-      T t = (T) list.remove(x);
-      U u = (U) list.remove(x);
+      T t = element(list.remove(x));
+      U u = element(list.remove(x));
       return new MapEntry<>(t, u);
     }
 
@@ -222,7 +240,7 @@ class PairLists {
         }
 
         @Override public T get(int index) {
-          return (T) list.get(index * 2);
+          return element(list.get(index * 2));
         }
       };
     }
@@ -236,7 +254,7 @@ class PairLists {
         }
 
         @Override public U get(int index) {
-          return (U) list.get(index * 2 + 1);
+          return element(list.get(index * 2 + 1));
         }
       };
     }
@@ -245,8 +263,8 @@ class PairLists {
     @Override public void forEach(BiConsumer<T, U> consumer) {
       requireNonNull(consumer, "consumer");
       for (int i = 0; i < list.size();) {
-        T t = (T) list.get(i++);
-        U u = (U) list.get(i++);
+        T t = element(list.get(i++));
+        U u = element(list.get(i++));
         consumer.accept(t, u);
       }
     }
@@ -255,8 +273,8 @@ class PairLists {
     @Override public void forEachIndexed(IndexedBiConsumer<T, U> consumer) {
       requireNonNull(consumer, "consumer");
       for (int i = 0, j = 0; i < list.size();) {
-        T t = (T) list.get(i++);
-        U u = (U) list.get(i++);
+        T t = element(list.get(i++));
+        U u = element(list.get(i++));
         consumer.accept(j++, t, u);
       }
     }
@@ -275,8 +293,8 @@ class PairLists {
     @Override public <R> List<R> transform(BiFunction<T, U, R> function) {
       return Functions.generate(list.size() / 2, index -> {
         final int x = index * 2;
-        final T t = (T) list.get(x);
-        final U u = (U) list.get(x + 1);
+        final T t = element(list.get(x));
+        final U u = element(list.get(x + 1));
         return function.apply(t, u);
       });
     }
@@ -289,8 +307,8 @@ class PairLists {
       }
       final ImmutableList.Builder<R> builder = ImmutableList.builder();
       for (int i = 0, n = list.size(); i < n;) {
-        final T t = (T) list.get(i++);
-        final U u = (U) list.get(i++);
+        final T t = element(list.get(i++));
+        final U u = element(list.get(i++));
         builder.add(function.apply(t, u));
       }
       return builder.build();
@@ -303,8 +321,8 @@ class PairLists {
     @SuppressWarnings("unchecked")
     @Override public boolean anyMatch(BiPredicate<T, U> predicate) {
       for (int i = 0; i < list.size();) {
-        final T t = (T) list.get(i++);
-        final U u = (U) list.get(i++);
+        final T t = element(list.get(i++));
+        final U u = element(list.get(i++));
         if (predicate.test(t, u)) {
           return true;
         }
@@ -315,8 +333,8 @@ class PairLists {
     @SuppressWarnings("unchecked")
     @Override public boolean allMatch(BiPredicate<T, U> predicate) {
       for (int i = 0; i < list.size();) {
-        final T t = (T) list.get(i++);
-        final U u = (U) list.get(i++);
+        final T t = element(list.get(i++));
+        final U u = element(list.get(i++));
         if (!predicate.test(t, u)) {
           return false;
         }
@@ -327,8 +345,8 @@ class PairLists {
     @SuppressWarnings("unchecked")
     @Override public boolean noMatch(BiPredicate<T, U> predicate) {
       for (int i = 0; i < list.size();) {
-        final T t = (T) list.get(i++);
-        final U u = (U) list.get(i++);
+        final T t = element(list.get(i++));
+        final U u = element(list.get(i++));
         if (predicate.test(t, u)) {
           return false;
         }
@@ -369,11 +387,11 @@ class PairLists {
    * @param <T> First type
    * @param <U> Second type
    */
-  static class EmptyImmutablePairList<T, U>
+  static class EmptyImmutablePairList<T extends @Nullable Object, U extends @Nullable Object>
       extends AbstractPairList<T, U>
       implements ImmutablePairList<T, U> {
     @Override List<@Nullable Object> backingList() {
-      return ImmutableList.of();
+      return Collections.emptyList();
     }
 
     @Override public Map.Entry<T, U> get(int index) {
@@ -443,7 +461,7 @@ class PairLists {
    * @param <T> First type
    * @param <U> Second type
    */
-  static class SingletonImmutablePairList<T, U>
+  static class SingletonImmutablePairList<T extends @Nullable Object, U extends @Nullable Object>
       extends AbstractPairList<T, U>
       implements ImmutablePairList<T, U> {
     private final T t;
@@ -457,7 +475,7 @@ class PairLists {
     }
 
     @Override List<@Nullable Object> backingList() {
-      return ImmutableList.of(t, u);
+      return Arrays.asList(t, u);
     }
 
     @Override public Map.Entry<T, U> get(int index) {
@@ -547,7 +565,7 @@ class PairLists {
    * @param <T> First type
    * @param <U> Second type
    */
-  static class ArrayImmutablePairList<T, U>
+  static class ArrayImmutablePairList<T extends @Nullable Object, U extends @Nullable Object>
       extends AbstractPairList<T, U>
       implements ImmutablePairList<T, U> {
     private final Object[] elements;
