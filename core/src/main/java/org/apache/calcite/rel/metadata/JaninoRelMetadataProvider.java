@@ -238,7 +238,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
             new Class[] {handlerClass}, (proxy, method, args) -> {
-              final RelNode r = requireNonNull((RelNode) args[0], "(RelNode) args[0]");
+              final RelNode r =
+                  requireNonNull((RelNode) requireNonNull(args, "args")[0], "args[0]");
               throw new NoHandler(r.getClass());
             }));
   }

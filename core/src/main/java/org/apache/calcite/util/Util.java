@@ -139,14 +139,12 @@ public class Util {
    * '\n'. Apply {@link Util#toLinux(String)} to Windows actual results, if
    * necessary, to make them look like Linux actual.
    */
-  public static final String LINE_SEPARATOR =
-      System.getProperty("line.separator");
+  public static final String LINE_SEPARATOR = System.lineSeparator();
 
   /**
    * System-dependent file separator, for example, "/" or "\."
    */
-  public static final String FILE_SEPARATOR =
-      System.getProperty("file.separator");
+  public static final String FILE_SEPARATOR = File.separator;
 
   /**
    * Datetime format string for generating a timestamp string to be used as
@@ -753,7 +751,7 @@ public class Util {
     // This is a bunch of weird code that is required to
     // make a valid URL on the Windows platform, due
     // to inconsistencies in what getAbsolutePath returns.
-    String fs = System.getProperty("file.separator");
+    String fs = FILE_SEPARATOR;
     if (fs.length() == 1) {
       char sep = fs.charAt(0);
       if (sep != '/') {

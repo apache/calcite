@@ -166,7 +166,7 @@ public class SqlBinaryOperator extends SqlOperator {
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
                     type,
-                    type.getCharset(),
+                    requireNonNull(type.getCharset(), "charset"),
                     requireNonNull(resultCol, "resultCol"));
       }
     }
