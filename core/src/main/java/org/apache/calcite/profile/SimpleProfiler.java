@@ -17,7 +17,6 @@
 package org.apache.calcite.profile;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.runtime.FlatLists;
@@ -291,8 +290,6 @@ public class SimpleProfiler implements Profiler {
       }
       return false;
     }
-
-    @RequiresNonNull("columns")
     private ImmutableSortedSet<Column> toColumns(
         Iterable<Integer> ordinals) {
       //noinspection Convert2MethodRef

@@ -118,8 +118,8 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       this.metadata = requireNonNull(metadata, "metadata");
     }
 
-    @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)
-        throws Throwable {
+    @Override public @Nullable Object invoke(Object proxy, Method method,
+        @Nullable Object @Nullable [] args) throws Throwable {
       // Compute hash key.
       final ImmutableList.Builder<Object> builder = ImmutableList.builder();
       builder.add(method);

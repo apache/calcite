@@ -933,7 +933,7 @@ public class SqlWindow extends SqlCall {
           pos);
     }
 
-    @Override public <R> void acceptCall(
+    @Override public <R extends @Nullable Object> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,
