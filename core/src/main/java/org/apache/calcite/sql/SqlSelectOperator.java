@@ -119,7 +119,7 @@ public class SqlSelectOperator extends SqlOperator {
         null);
   }
 
-  @Override public <R> void acceptCall(
+  @Override public <R extends @Nullable Object> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,

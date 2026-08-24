@@ -106,7 +106,7 @@ public class SqlSnapshot extends SqlCall {
       return new SqlSnapshot(pos, operands[0], operands[1]);
     }
 
-    @Override public <R> void acceptCall(
+    @Override public <R extends @Nullable Object> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,

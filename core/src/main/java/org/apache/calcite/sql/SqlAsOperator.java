@@ -30,6 +30,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -119,7 +121,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     }
   }
 
-  @Override public <R> void acceptCall(
+  @Override public <R extends @Nullable Object> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
