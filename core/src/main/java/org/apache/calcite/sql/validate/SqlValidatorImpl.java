@@ -4805,7 +4805,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       //noinspection RedundantTypeArguments
       names = names.stream()
           .<@Nullable String>map(s -> s == null ? null : s.toUpperCase(Locale.ROOT))
-          .collect(Collectors.toList());
+          .collect(Collectors.<@Nullable String>toList());
     }
     final int duplicateAliasOrdinal = Util.firstDuplicate(names);
     if (duplicateAliasOrdinal >= 0) {
@@ -6917,7 +6917,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                   RESOURCE.viewConstraintNotSatisfied(colName,
                       Util.last(validatorTable.getQualifiedName())));
           RelOptUtil.validateValueAgainstConstraint(sourceValue,
-              projectMap.get(colIndex), validationError);
+              castNonNull(projectMap.get(colIndex)), validationError);
         }
       }
     }
