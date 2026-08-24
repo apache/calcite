@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -250,7 +251,7 @@ class ColumnLoader<T> {
       case JAVA_SQL_TIMESTAMP:
         final List<@Nullable Long> longs =
             Util.transform((List<@Nullable Timestamp>) list,
-                (Timestamp t) -> t == null ? null : t.getTime());
+                t -> t == null ? null : t.getTime());
         return longs;
       default:
         break;
@@ -262,7 +263,7 @@ class ColumnLoader<T> {
       case JAVA_SQL_TIME:
         return Util.<@Nullable Time, @Nullable Integer>transform(
             (List<@Nullable Time>) list,
-            (Time t) -> t == null ? null
+            t -> t == null ? null
                 : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
       default:
         break;
@@ -273,7 +274,7 @@ class ColumnLoader<T> {
       case OBJECT:
       case JAVA_SQL_DATE:
         return Util.<@Nullable Date, @Nullable Integer>transform(
-            (List<@Nullable Date>) list, (Date d) -> d == null
+            (List<@Nullable Date>) list, d -> d == null
                 ? null
                 : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
       default:
@@ -384,6 +385,7 @@ class ColumnLoader<T> {
       }
     }
 
+    @Contract("null -> false")
     private static boolean canBeLong(@Nullable Object o) {
       return o instanceof Boolean
           || o instanceof Character
