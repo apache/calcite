@@ -103,9 +103,9 @@ public abstract class EnumerableDefaults {
    * sequence. The specified seed value is used as the initial
    * accumulator value.
    */
-  public static <TSource, TAccumulate> TAccumulate aggregate(
+  public static <TSource, TAccumulate extends @Nullable Object> TAccumulate aggregate(
       Enumerable<TSource> source, TAccumulate seed,
-      Function2<TAccumulate, TSource, TAccumulate> func) {
+      Function2<TAccumulate, TSource, ? extends TAccumulate> func) {
     TAccumulate result = seed;
     try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
@@ -122,9 +122,10 @@ public abstract class EnumerableDefaults {
    * accumulator value, and the specified function is used to select
    * the result value.
    */
-  public static <TSource, TAccumulate, TResult> TResult aggregate(
+  public static <TSource, TAccumulate extends @Nullable Object,
+      TResult extends @Nullable Object> TResult aggregate(
       Enumerable<TSource> source, TAccumulate seed,
-      Function2<TAccumulate, TSource, TAccumulate> func,
+      Function2<TAccumulate, TSource, ? extends TAccumulate> func,
       Function1<TAccumulate, TResult> selector) {
     TAccumulate accumulate = seed;
     try (Enumerator<TSource> os = source.enumerator()) {
@@ -3207,7 +3208,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable int value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Integer min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Integer min(Enumerable<TSource> source,
       NullableIntegerFunction1<TSource> selector) {
     return aggregate(source.select(selector), null, Extensions.INTEGER_MIN);
   }
@@ -3218,7 +3219,9 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> long min(Enumerable<TSource> source,
       LongFunction1<TSource> selector) {
-    return aggregate(source.select(adapt(selector)), null, Extensions.LONG_MIN);
+    return requireNonNull(
+        aggregate(source.select(adapt(selector)), null, Extensions.LONG_MIN),
+        "min of an empty sequence");
   }
 
   /**
@@ -3226,7 +3229,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable long value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Long min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Long min(Enumerable<TSource> source,
       NullableLongFunction1<TSource> selector) {
     return aggregate(source.select(selector), null, Extensions.LONG_MIN);
   }
@@ -3246,7 +3249,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable Float
    * value.
    */
-  public static <TSource> Float min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Float min(Enumerable<TSource> source,
       NullableFloatFunction1<TSource> selector) {
     return aggregate(source.select(selector), null, Extensions.FLOAT_MIN);
   }
