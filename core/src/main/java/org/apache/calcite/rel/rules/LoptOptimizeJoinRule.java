@@ -316,10 +316,14 @@ public class LoptOptimizeJoinRule
       for (int j = i + 1; j < factors.length; j++) {
         int leftFactor = factors[i];
         int rightFactor = factors[j];
-        if (simpleFactors.get(leftFactor).getQualifiedName().equals(
-            simpleFactors.get(rightFactor).getQualifiedName())) {
+        final RelOptTable leftTable =
+            requireNonNull(simpleFactors.get(leftFactor), "leftFactor");
+        final RelOptTable rightTable =
+            requireNonNull(simpleFactors.get(rightFactor), "rightFactor");
+        if (leftTable.getQualifiedName().equals(
+            rightTable.getQualifiedName())) {
           selfJoinPairs.put(leftFactor, rightFactor);
-          repeatedTables.add(simpleFactors.get(leftFactor));
+          repeatedTables.add(leftTable);
           break;
         }
       }

@@ -107,6 +107,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T fun(Class<T> operatorTableClass,
       @Nullable T defaultOperatorTable) {
     final String fun =
@@ -155,6 +158,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T parserFactory(Class<T> parserFactoryClass,
       @Nullable T defaultParserFactory) {
     return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
@@ -162,6 +168,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T schemaFactory(Class<T> schemaFactoryClass,
       @Nullable T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
@@ -183,6 +192,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T typeSystem(Class<T> typeSystemClass,
       @Nullable T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
@@ -225,6 +237,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T metaTableFactory(
       Class<T> metaTableFactoryClass,
       @Nullable T defaultMetaTableFactory) {
@@ -233,6 +248,9 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T metaColumnFactory(
       Class<T> metaColumnFactoryClass,
       @Nullable T defaultMetaColumnFactory) {
