@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -291,7 +293,7 @@ public enum Primitive {
     // REVIEW: A per-type list might be more efficient. (Or might not.)
     return new AbstractList() {
       @Override public Object get(int index) {
-        return Array.get(array, index);
+        return castNonNull(Array.get(array, index));
       }
 
       @Override public int size() {

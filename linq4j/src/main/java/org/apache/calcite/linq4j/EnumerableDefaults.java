@@ -3133,7 +3133,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> @Nullable BigDecimal min(Enumerable<TSource> source,
       BigDecimalFunction1<TSource> selector) {
-    Function2<BigDecimal, BigDecimal, BigDecimal> min = minFunction();
+    Function2<@Nullable BigDecimal, BigDecimal, BigDecimal> min = minFunction();
     return aggregate(source.select(selector), null, min);
   }
 
@@ -3211,8 +3211,8 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> float min(Enumerable<TSource> source,
       FloatFunction1<TSource> selector) {
-    return aggregate(source.select(adapt(selector)), null,
-        Extensions.FLOAT_MIN);
+    return requireNonNull(
+        aggregate(source.select(adapt(selector)), null, Extensions.FLOAT_MIN));
   }
 
   /**
@@ -3232,7 +3232,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource, TResult extends Comparable<TResult>> @Nullable TResult min(
       Enumerable<TSource> source, Function1<TSource, TResult> selector) {
-    Function2<TResult, TResult, TResult> min = minFunction();
+    Function2<@Nullable TResult, TResult, TResult> min = minFunction();
     return aggregate(source.select(selector), null, min);
   }
 
@@ -3339,8 +3339,7 @@ public abstract class EnumerableDefaults {
                 continue;
               }
               // remove last entry from tree map, so that we keep at most 'needed' rows
-              @SuppressWarnings("NullAway")
-              List<TSource> l = map.get(lastKey);
+              List<TSource> l = requireNonNull(map.get(lastKey), "map.get(lastKey)");
               if (l.size() == 1) {
                 map.remove(lastKey);
               } else {
