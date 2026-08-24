@@ -35,6 +35,8 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Runtime context allowing access to the tables in a database.
  *
@@ -152,7 +154,7 @@ public interface DataContext {
     /** Returns the value of this variable in a given data context. */
     public <T> T get(DataContext dataContext) {
       //noinspection unchecked
-      return (T) clazz.cast(dataContext.get(camelName));
+      return (T) castNonNull(clazz.cast(dataContext.get(camelName)));
     }
   }
 }

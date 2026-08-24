@@ -1319,7 +1319,8 @@ public abstract class SqlImplementor {
         if (rexWindowBound.isUnbounded()) {
           return SqlWindow.createUnboundedPreceding(POS);
         } else {
-          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          SqlNode literal =
+              toSql(null, requireNonNull(rexWindowBound.getOffset(), "offset"));
           return SqlWindow.createPreceding(literal, POS);
         }
       }
@@ -1327,7 +1328,8 @@ public abstract class SqlImplementor {
         if (rexWindowBound.isUnbounded()) {
           return SqlWindow.createUnboundedFollowing(POS);
         } else {
-          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          SqlNode literal =
+              toSql(null, requireNonNull(rexWindowBound.getOffset(), "offset"));
           return SqlWindow.createFollowing(literal, POS);
         }
       }

@@ -116,7 +116,7 @@ public abstract class Prepare {
 
   // temporary. for testing.
   public static final TryThreadLocal<@Nullable Integer> THREAD_INSUBQUERY_THRESHOLD =
-      TryThreadLocal.of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
+      TryThreadLocal.<@Nullable Integer>of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {

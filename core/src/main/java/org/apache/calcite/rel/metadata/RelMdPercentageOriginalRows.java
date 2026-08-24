@@ -239,7 +239,13 @@ public class RelMdPercentageOriginalRows {
   private static @Nullable Double quotientForPercentage(
       @Nullable Double numerator,
       @Nullable Double denominator) {
-    if ((numerator == null) || (denominator == null)) {
+    // One if per argument, so that no control-flow merge precedes the return: the
+    // contract check treats a return reached by a merge as reachable even when every
+    // incoming edge is not. https://github.com/uber/NullAway/issues/1731
+    if (numerator == null) {
+      return null;
+    }
+    if (denominator == null) {
       return null;
     }
 

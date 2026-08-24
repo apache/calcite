@@ -29,6 +29,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ExecutionException;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Implementation of {@link MetadataFactory} that gets providers from a
  * {@link RelMetadataProvider} and stores them in a cache.
@@ -72,7 +74,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
       final Pair<Class<RelNode>, Class<Metadata>> key =
           Pair.of((Class<RelNode>) rel.getClass(), (Class<Metadata>) metadataClazz);
       final Metadata apply = cache.get(key).bind(rel, mq);
-      return metadataClazz.cast(apply);
+      return castNonNull(metadataClazz.cast(apply));
     } catch (UncheckedExecutionException | ExecutionException e) {
       throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }

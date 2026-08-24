@@ -1237,7 +1237,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final SqlValidatorNamespace ns = getNamespaceOrThrow(node);
     if (ns.isWrapperFor(IdentifierNamespace.class)) {
-      IdentifierNamespace idNs = ns.unwrap(IdentifierNamespace.class);
+      IdentifierNamespace idNs = requireNonNull(ns.unwrap(IdentifierNamespace.class), "idNs");
       final SqlIdentifier id = idNs.getId();
       for (int i = 0; i < id.names.size(); i++) {
         if (pos.toString().equals(
@@ -7830,7 +7830,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             requireNonNull(qualified.namespace,
                 () -> "namespace for " + qualified);
         if (namespace.isWrapperFor(AliasNamespace.class)) {
-          AliasNamespace aliasNs = namespace.unwrap(AliasNamespace.class);
+          AliasNamespace aliasNs =
+              requireNonNull(namespace.unwrap(AliasNamespace.class), "aliasNs");
           SqlNode aliased = requireNonNull(aliasNs.getNode(), () ->
               "sqlNode for aliasNs " + aliasNs);
           namespace = getNamespaceOrThrow(stripAs(aliased));
@@ -7845,7 +7846,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         for (String name : qualified.suffix()) {
           if (namespace.isWrapperFor(UnnestNamespace.class)) {
             // If identifier is drawn from a repeated subrecord via unnest, add name of array field
-            UnnestNamespace unnestNamespace = namespace.unwrap(UnnestNamespace.class);
+            UnnestNamespace unnestNamespace =
+                requireNonNull(namespace.unwrap(UnnestNamespace.class), "unnestNamespace");
             final SqlQualified columnUnnestedFrom = unnestNamespace.getColumnUnnestedFrom(name);
             if (columnUnnestedFrom != null) {
               origin.addAll(columnUnnestedFrom.suffix());

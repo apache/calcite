@@ -23,6 +23,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Variable that references a field of a lambda expression.
  */
@@ -42,7 +44,8 @@ public class RexLambdaRef extends RexSlot {
 
   @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
       RexBiVisitor<R, P> visitor, P arg) {
-    return (R) null;
+    // a lambda reference has no payload to hand a bi-visitor
+    return castNonNull(null);
   }
 
   @Override public boolean equals(final @Nullable Object obj) {

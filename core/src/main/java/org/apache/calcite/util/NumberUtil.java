@@ -151,7 +151,13 @@ public class NumberUtil {
   /** Returns the sum of two numbers, or null if either is null. */
   @Contract("!null, !null -> !null")
   public static @Nullable Double add(@Nullable Double a, @Nullable Double b) {
-    if (a == null || b == null) {
+    // One if per argument, so that no control-flow merge precedes the return: the
+    // contract check treats a return reached by a merge as reachable even when every
+    // incoming edge is not. https://github.com/uber/NullAway/issues/1731
+    if (a == null) {
+      return null;
+    }
+    if (b == null) {
       return null;
     }
 
