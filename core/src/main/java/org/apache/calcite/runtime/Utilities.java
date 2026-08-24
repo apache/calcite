@@ -220,6 +220,7 @@ public class Utilities {
                 : v0.compareTo(v1);
   }
 
+  @SuppressWarnings("NullAway") // a SQL comparator orders nulls; Comparator here is raw
   public static int compare(@Nullable Comparable v0, @Nullable Comparable v1,
       Comparator comparator) {
     //noinspection unchecked
