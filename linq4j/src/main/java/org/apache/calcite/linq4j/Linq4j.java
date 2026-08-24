@@ -127,7 +127,7 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final List<T> list) {
+  public static <T extends @Nullable Object> Enumerable<T> asEnumerable(final List<T> list) {
     return new ListEnumerable<>(list);
   }
 
@@ -142,7 +142,8 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final Collection<T> collection) {
+  public static <T extends @Nullable Object>
+      Enumerable<T> asEnumerable(final Collection<T> collection) {
     if (collection instanceof List) {
       //noinspection unchecked
       return asEnumerable((List) collection);
@@ -161,7 +162,8 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final Iterable<T> iterable) {
+  public static <T extends @Nullable Object>
+      Enumerable<T> asEnumerable(final Iterable<T> iterable) {
     if (iterable instanceof Collection) {
       //noinspection unchecked
       return asEnumerable((Collection) iterable);
@@ -177,7 +179,7 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final T[] ts) {
+  public static <T extends @Nullable Object> Enumerable<T> asEnumerable(final T[] ts) {
     return new ListEnumerable<>(Arrays.asList(ts));
   }
 
