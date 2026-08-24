@@ -1069,7 +1069,7 @@ public class SqlToRelConverter {
       if (idx >= 0) {
         topExprs.add(rexBuilder.makeInputRef(aggregate, idx));
       } else {
-        topExprs.add(project.getProjects().get(i).accept(shuttle));
+        topExprs.add(bottomProject.getProjects().get(i).accept(shuttle));
       }
     }
     bb.setRoot(

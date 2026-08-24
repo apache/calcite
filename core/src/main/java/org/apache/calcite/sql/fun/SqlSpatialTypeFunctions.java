@@ -156,8 +156,11 @@ public class SqlSpatialTypeFunctions {
       if (geom != null && deltaX != null && deltaY != null) {
         if (deltaX.compareTo(BigDecimal.ZERO) > 0
             && deltaY.compareTo(BigDecimal.ZERO) > 0) {
-          return new SpatialTypeFunctions.GridEnumerable(geom.getEnvelopeInternal(), deltaX, deltaY,
-              point);
+          @SuppressWarnings("NullAway")
+          final Enumerable<@Nullable Object[]> grid =
+              new SpatialTypeFunctions.GridEnumerable(geom.getEnvelopeInternal(),
+                  deltaX, deltaY, point);
+          return grid;
         }
       }
       return Linq4j.emptyEnumerable();

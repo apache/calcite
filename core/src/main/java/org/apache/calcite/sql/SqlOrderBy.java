@@ -75,7 +75,6 @@ public class SqlOrderBy extends SqlCall {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:

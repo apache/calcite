@@ -221,24 +221,25 @@ public class EnumerableTableModify extends TableModify
    * each queued source update is replaced and consumed, so duplicate keys update
    * only as many rows as appear in the source.
    */
-  public static long applyUpdateOneToOne(Enumerable<Object[]> source, List<Object[]> sink,
-      int tableFieldCount, int[] updateColumnIndices) {
-    final Map<List<@Nullable Object>, Deque<Object[]>> updatesByKey = new HashMap<>();
-    try (Enumerator<Object[]> e = source.enumerator()) {
+  public static long applyUpdateOneToOne(Enumerable<@Nullable Object[]> source,
+      List<@Nullable Object[]> sink, int tableFieldCount, int[] updateColumnIndices) {
+    final Map<List<@Nullable Object>, Deque<@Nullable Object[]>> updatesByKey = new HashMap<>();
+    try (Enumerator<@Nullable Object[]> e = source.enumerator()) {
       while (e.moveNext()) {
-        final Object[] sourceRow = e.current();
+        final @Nullable Object[] sourceRow = e.current();
         final List<@Nullable Object> key = Arrays.asList(Arrays.copyOf(sourceRow, tableFieldCount));
-        final Object[] newRow = applyUpdate(sourceRow, tableFieldCount, updateColumnIndices);
+        final @Nullable Object[] newRow =
+            applyUpdate(sourceRow, tableFieldCount, updateColumnIndices);
         updatesByKey.computeIfAbsent(key, k -> new ArrayDeque<>()).addLast(newRow);
       }
     }
 
     long updateCount = 0;
-    final ListIterator<Object[]> it = sink.listIterator();
+    final ListIterator<@Nullable Object[]> it = sink.listIterator();
     while (it.hasNext()) {
-      final Object[] current = it.next();
-      final List<Object> key = Arrays.asList(current);
-      final Deque<Object[]> pending = updatesByKey.get(key);
+      final @Nullable Object[] current = it.next();
+      final List<@Nullable Object> key = Arrays.asList(current);
+      final Deque<@Nullable Object[]> pending = updatesByKey.get(key);
       if (pending == null || pending.isEmpty()) {
         continue;
       }
@@ -463,11 +464,12 @@ public class EnumerableTableModify extends TableModify
    * @param updateColumnIndices 0-based indices of the columns being updated
    * @return the replacement row
    */
-  public static Object[] applyUpdate(Object[] row, int tableFieldCount, int[] updateColumnIndices) {
+  public static @Nullable Object[] applyUpdate(@Nullable Object[] row, int tableFieldCount,
+      int[] updateColumnIndices) {
     // Source row layout: [originalField_0, ..., originalField_N-1, newValue_0, ..., newValue_M-1]
     // where N = tableFieldCount and M = updateColumnIndices.length.
     // Copy the first N fields and overwrite the positions named in the SET clause.
-    final Object[] newRow = new Object[tableFieldCount];
+    final @Nullable Object[] newRow = new @Nullable Object[tableFieldCount];
     System.arraycopy(row, 0, newRow, 0, tableFieldCount);
     for (int i = 0; i < updateColumnIndices.length; i++) {
       newRow[updateColumnIndices[i]] = row[tableFieldCount + i];
@@ -479,21 +481,21 @@ public class EnumerableTableModify extends TableModify
    * Removes one sink row per source row, matching by field values in table order. Accepts a
    * lambda that extracts the key from a sink row.
    */
-  public static void applyDeleteRowsByKey(Enumerable<Object[]> sourceKeys,
-      Collection<Object> sinkRows, Function1<Object, Object[]> sinkKeySelector) {
+  public static void applyDeleteRowsByKey(Enumerable<@Nullable Object[]> sourceKeys,
+      Collection<Object> sinkRows, Function1<Object, @Nullable Object[]> sinkKeySelector) {
 
     // Build a map of source keys to the number of sink rows that must be removed for each.
-    final Map<List<Object>, Integer> pendingByKey = new HashMap<>();
-    try (Enumerator<Object[]> e = sourceKeys.enumerator()) {
+    final Map<List<@Nullable Object>, Integer> pendingByKey = new HashMap<>();
+    try (Enumerator<@Nullable Object[]> e = sourceKeys.enumerator()) {
       while (e.moveNext()) {
-        final List<Object> key = keyOf(e.current());
+        final List<@Nullable Object> key = keyOf(e.current());
         pendingByKey.put(key, pendingByKey.getOrDefault(key, 0) + 1);
       }
     }
 
     // Iterate over sink rows and remove matching rows based on key.
     for (java.util.Iterator<Object> it = sinkRows.iterator(); it.hasNext();) {
-      final List<Object> key = keyOf(sinkKeySelector.apply(it.next()));
+      final List<@Nullable Object> key = keyOf(sinkKeySelector.apply(it.next()));
       final Integer pending = pendingByKey.get(key);
       if (pending == null || pending == 0) {
         continue;
@@ -515,9 +517,8 @@ public class EnumerableTableModify extends TableModify
    * @param rowValues row values
    * @return key for row
    */
-  private static List<Object> keyOf(Object[] rowValues) {
-    return Arrays.<@Nullable Object>asList(
-        Arrays.copyOf(rowValues, rowValues.length));
+  private static List<@Nullable Object> keyOf(@Nullable Object[] rowValues) {
+    return Arrays.asList(Arrays.copyOf(rowValues, rowValues.length));
   }
 
 }

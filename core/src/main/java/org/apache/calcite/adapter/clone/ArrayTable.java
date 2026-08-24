@@ -225,7 +225,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         final Object dataSet) {
       // Cache size. It might be expensive to compute.
       final int size = representation.size(dataSet);
-      return new AbstractList() {
+      return new AbstractList<@Nullable Object>() {
         @Override public @Nullable Object get(int index) {
           return representation.getObject(dataSet, index);
         }
@@ -444,7 +444,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         if (value == null) {
           code = n;
         } else {
-          code = Arrays.binarySearch(codeValues, value);
+          code = Arrays.binarySearch(nonNullCodeValues, value);
           assert code >= 0 : code + ", " + value;
         }
         codeValueSet.add(code);

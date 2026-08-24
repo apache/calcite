@@ -1868,7 +1868,7 @@ public class Util {
   public static <E extends @Nullable Object> Iterator<E> cast(
       final Iterator<? extends @Nullable Object> iter,
       final Class<E> clazz) {
-    return transform(iter, x -> clazz.cast(castNonNull(x)));
+    return transform(iter, x -> clazz.cast(x));
   }
 
   /**
@@ -2724,14 +2724,14 @@ public class Util {
   }
 
   /** Combines a second immutable list builder into a first. */
-  public static <E> ImmutableList.Builder<E> combine(
+  public static <E extends @Nullable Object> ImmutableList.Builder<E> combine(
       ImmutableList.Builder<E> b0, ImmutableList.Builder<E> b1) {
     b0.addAll(b1.build());
     return b0;
   }
 
   /** Combines a second array list into a first. */
-  public static <E> ArrayList<E> combine(ArrayList<E> list0,
+  public static <E extends @Nullable Object> ArrayList<E> combine(ArrayList<E> list0,
       ArrayList<E> list1) {
     list0.addAll(list1);
     return list0;

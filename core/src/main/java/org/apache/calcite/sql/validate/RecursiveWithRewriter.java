@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.JoinConditionType;
@@ -253,6 +254,7 @@ final class RecursiveWithRewriter {
     }
   }
 
+  @Contract("null -> false")
   private boolean isSelfReference(@Nullable SqlNode node) {
     return node instanceof SqlIdentifier && ((SqlIdentifier) node).isSimple()
         && matcher.matches(((SqlIdentifier) node).getSimple(), item.name.getSimple());
@@ -519,7 +521,9 @@ final class RecursiveWithRewriter {
 
   private static SqlNode cast(SqlNode value, RelDataType type) {
     final SqlNode typeSpec = SqlTypeUtil.isInterval(type)
-        ? SqlNode.clone(type.getIntervalQualifier())
+        ? SqlNode.clone(
+            requireNonNull(type.getIntervalQualifier(),
+                () -> "intervalQualifier for type " + type))
         : SqlTypeUtil.convertTypeToSpec(type);
     return SqlStdOperatorTable.CAST.createCall(POS, value, typeSpec);
   }

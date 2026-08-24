@@ -108,7 +108,7 @@ public abstract class RexWindowBound {
    * @param <R> return type of the visitor
    * @return transformed bound
    */
-  public <R> RexWindowBound accept(RexVisitor<R> visitor) {
+  public <R extends @Nullable Object> RexWindowBound accept(RexVisitor<R> visitor) {
     return this;
   }
 

@@ -178,7 +178,7 @@ public final class RexWindowBounds {
       return super.nodeCount() + offset.nodeCount();
     }
 
-    @Override public <R> RexWindowBound accept(RexVisitor<R> visitor) {
+    @Override public <R extends @Nullable Object> RexWindowBound accept(RexVisitor<R> visitor) {
       R r = offset.accept(visitor);
       if (r instanceof RexNode && r != offset) {
         return new RexBoundedWindowBound(sqlKind, (RexNode) r);
