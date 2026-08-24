@@ -85,7 +85,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.fromMeasure;
  * <li>aggCalls = {AggCall(SUM, {1})}</li>
  * </ul>
  */
-class AggConverter implements SqlVisitor<Void> {
+class AggConverter implements SqlVisitor<@Nullable Void> {
   private final SqlToRelConverter.Blackboard bb;
   private final Map<String, String> nameMap;
 

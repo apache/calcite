@@ -688,7 +688,7 @@ public class PushProjector {
    * Visitor which builds a bitmap of the inputs used by an expressions, as
    * well as locating expressions corresponding to special operators.
    */
-  private static class InputSpecialOpFinder extends RexVisitorImpl<Void> {
+  private static class InputSpecialOpFinder extends RexVisitorImpl<@Nullable Void> {
     private final BitSet rexRefs;
     private final ImmutableBitSet leftFields;
     private final @Nullable ImmutableBitSet rightFields;

@@ -2907,7 +2907,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // expression. They need to be added to the window partition keys so that
       // decorrelation does not widen the window computation scope.
       final List<RexFieldAccess> correlationFields = new ArrayList<>();
-      over.accept(new RexVisitorImpl<Void>(true) {
+      over.accept(new RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
           if (cm.mapFieldAccessToCorRef.containsKey(fieldAccess)
               && !correlationFields.contains(fieldAccess)) {
@@ -4099,8 +4099,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return join;
     }
 
-    private RexVisitorImpl<Void> rexVisitor(final RelNode rel) {
-      return new RexVisitorImpl<Void>(true) {
+    private RexVisitorImpl<@Nullable Void> rexVisitor(final RelNode rel) {
+      return new RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
           final RexNode ref = fieldAccess.getReferenceExpr();
           if (ref instanceof RexCorrelVariable) {

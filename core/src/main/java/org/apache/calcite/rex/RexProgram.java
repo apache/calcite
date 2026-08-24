@@ -770,7 +770,7 @@ public class RexProgram {
   public Set<String> getCorrelVariableNames() {
     final Set<String> paramIdSet = new HashSet<>();
     RexUtil.apply(
-        new RexVisitorImpl<Void>(true) {
+        new RexVisitorImpl<@Nullable Void>(true) {
           @Override public Void visitCorrelVariable(
               RexCorrelVariable correlVariable) {
             paramIdSet.add(correlVariable.getName());
@@ -995,7 +995,7 @@ public class RexProgram {
   /**
    * Visitor which marks which expressions are used.
    */
-  private static class ReferenceCounter extends RexVisitorImpl<Void> {
+  private static class ReferenceCounter extends RexVisitorImpl<@Nullable Void> {
     private final int[] refCounts;
 
     ReferenceCounter(int[] refCounts) {

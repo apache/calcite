@@ -166,8 +166,8 @@ public class RexProgramBuilder {
   }
 
   private void validate(final RexNode expr, final int fieldOrdinal) {
-    final RexVisitor<Void> validator =
-        new RexVisitorImpl<Void>(true) {
+    final RexVisitor<@Nullable Void> validator =
+        new RexVisitorImpl<@Nullable Void>(true) {
           @Override public Void visitInputRef(RexInputRef input) {
             final int index = input.getIndex();
             final List<RelDataTypeField> fields =

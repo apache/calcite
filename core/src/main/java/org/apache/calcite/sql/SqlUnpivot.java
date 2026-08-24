@@ -144,7 +144,7 @@ public class SqlUnpivot extends SqlCall {
    * clause. All columns that are not used will be part of the returned row. */
   public Set<String> usedColumnNames() {
     final Set<String> columnNames = new HashSet<>();
-    final SqlVisitor<Void> nameCollector = new SqlBasicVisitor<Void>() {
+    final SqlVisitor<@Nullable Void> nameCollector = new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlIdentifier id) {
         columnNames.add(Util.last(id.names));
         return super.visit(id);

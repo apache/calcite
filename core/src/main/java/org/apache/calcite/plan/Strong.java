@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -151,7 +153,7 @@ public class Strong {
   public static boolean isStrong(RexNode e) {
     final ImmutableBitSet.Builder nullColumns = ImmutableBitSet.builder();
     e.accept(
-        new RexVisitorImpl<Void>(true) {
+        new RexVisitorImpl<@Nullable Void>(true) {
           @Override public Void visitInputRef(RexInputRef inputRef) {
             nullColumns.set(inputRef.getIndex());
             return super.visitInputRef(inputRef);

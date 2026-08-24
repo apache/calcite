@@ -27,6 +27,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -114,7 +116,7 @@ public class RexAnalyzer {
   /** Collects the variables (or other bindable sites) in an expression, and
    * counts features (such as CAST) that {@link RexInterpreter} cannot
    * handle. */
-  private static class VariableCollector extends RexVisitorImpl<Void> {
+  private static class VariableCollector extends RexVisitorImpl<@Nullable Void> {
     private final Set<RexNode> builder = new LinkedHashSet<>();
     private int unsupportedCount = 0;
 

@@ -37,6 +37,8 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -263,7 +265,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
   /**
    * Finds an AND operator in an expression.
    */
-  private static class AndFinder extends SqlBasicVisitor<Void> {
+  private static class AndFinder extends SqlBasicVisitor<@Nullable Void> {
     @Override public Void visit(SqlCall call) {
       final SqlOperator operator = call.getOperator();
       if (operator == SqlStdOperatorTable.AND) {
