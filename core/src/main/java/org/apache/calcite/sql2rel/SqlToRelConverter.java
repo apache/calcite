@@ -6750,7 +6750,7 @@ public class SqlToRelConverter {
   /**
    * Visitor that collects all aggregate functions in a {@link SqlNode} tree.
    */
-  private static class AggregateFinder extends SqlBasicVisitor<Void> {
+  private static class AggregateFinder extends SqlBasicVisitor<@Nullable Void> {
     final List<SqlNode> list = new ArrayList<>();
     final List<SqlNode> filterList = new ArrayList<>();
     final List<SqlNode> distinctList = new ArrayList<>();

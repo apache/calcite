@@ -33,6 +33,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -207,7 +208,7 @@ public class JoinExpandOrToUnionRule
 
   /**
    * Counts the number of InputRefs in a RexNode expression. */
-  private static class RexInputRefCounter extends RexVisitorImpl<Void> {
+  private static class RexInputRefCounter extends RexVisitorImpl<@Nullable Void> {
     private final int leftFieldCount;
     private int leftInputRefCount = 0;
     private int rightInputRefCount = 0;

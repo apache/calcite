@@ -3172,7 +3172,7 @@ public class RexSimplify {
   /**
    * Visitor which finds all inputs used by an expressions.
    */
-  private static class VariableCollector extends RexVisitorImpl<Void> {
+  private static class VariableCollector extends RexVisitorImpl<@Nullable Void> {
     private final Set<RexInputRef> refs = new HashSet<>();
 
     VariableCollector() {

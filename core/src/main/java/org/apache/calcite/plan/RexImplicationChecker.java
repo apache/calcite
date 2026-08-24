@@ -441,7 +441,7 @@ public class RexImplicationChecker {
    * <li>key: y value: {(&gt;, 20), usageCount = 1}
    * </ul>
    */
-  private static class InputUsageFinder extends RexVisitorImpl<Void> {
+  private static class InputUsageFinder extends RexVisitorImpl<@Nullable Void> {
     final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> usageMap =
         new HashMap<>();
 

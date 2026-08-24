@@ -2050,7 +2050,7 @@ public abstract class OperandTypes {
      * validated for the second time based on the given parameter type,
      * the type cached during the first validation must be cleared.
      */
-    protected static class TypeRemover extends SqlBasicVisitor<Void> {
+    protected static class TypeRemover extends SqlBasicVisitor<@Nullable Void> {
       private final SqlValidator validator;
 
       protected TypeRemover(SqlValidator validator) {

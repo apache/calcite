@@ -982,7 +982,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
    * Helper class used to locate expressions that either can be reduced to
    * literals or contain redundant casts.
    */
-  protected static class ReducibleExprLocator extends RexVisitorImpl<Void> {
+  protected static class ReducibleExprLocator extends RexVisitorImpl<@Nullable Void> {
     /** Whether an expression is constant, and if so, whether it can be
      * reduced to a simpler constant. */
     enum Constancy {

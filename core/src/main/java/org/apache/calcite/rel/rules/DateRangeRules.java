@@ -234,7 +234,7 @@ public abstract class DateRangeRules {
 
   /** Visitor that searches for calls to {@code EXTRACT}, {@code FLOOR} or
    * {@code CEIL}, building a list of distinct time units. */
-  private static class ExtractFinder extends RexVisitorImpl<Void>
+  private static class ExtractFinder extends RexVisitorImpl<@Nullable Void>
       implements AutoCloseable {
     private final Set<TimeUnitRange> timeUnits =
         EnumSet.noneOf(TimeUnitRange.class);

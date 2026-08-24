@@ -1483,7 +1483,7 @@ public class SubstitutionVisitor {
         try {
           // Fail the matching when filtering condition references
           // non-grouping columns in target.
-          qInputCond.accept(new RexVisitorImpl<Void>(true) {
+          qInputCond.accept(new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitInputRef(RexInputRef inputRef) {
               if (!target.groupSets.stream()
                   .allMatch(groupSet -> groupSet.get(inputRef.getIndex()))) {
@@ -1839,7 +1839,7 @@ public class SubstitutionVisitor {
     }
 
     try {
-      RexVisitor rexVisitor = new RexVisitorImpl<Void>(true) {
+      RexVisitor rexVisitor = new RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitInputRef(RexInputRef inputRef) {
           if (!(projects.get(inputRef.getIndex()) instanceof RexInputRef)) {
             throw Util.FoundOne.NULL;

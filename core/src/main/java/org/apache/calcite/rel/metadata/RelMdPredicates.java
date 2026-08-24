@@ -971,7 +971,7 @@ public class RelMdPredicates
     /**
      * Find expressions of the form 'col_x = col_y'.
      */
-    class EquivalenceFinder extends RexVisitorImpl<Void> {
+    class EquivalenceFinder extends RexVisitorImpl<@Nullable Void> {
       protected EquivalenceFinder() {
         super(true);
       }

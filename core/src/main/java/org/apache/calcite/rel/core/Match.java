@@ -214,7 +214,7 @@ public abstract class Match extends SingleRel {
   /**
    * Find aggregate functions in operands.
    */
-  private static class AggregateFinder extends RexVisitorImpl<Void> {
+  private static class AggregateFinder extends RexVisitorImpl<@Nullable Void> {
     final NavigableSet<RexMRAggCall> aggregateCalls = new TreeSet<>();
     final Map<String, NavigableSet<RexMRAggCall>> aggregateCallsPerVar =
         new TreeMap<>();
@@ -291,7 +291,7 @@ public abstract class Match extends SingleRel {
    * Visits the operands of an aggregate call to retrieve relevant pattern
    * variables.
    */
-  private static class PatternVarFinder extends RexVisitorImpl<Void> {
+  private static class PatternVarFinder extends RexVisitorImpl<@Nullable Void> {
     final Set<String> patternVars = new HashSet<>();
 
     PatternVarFinder() {

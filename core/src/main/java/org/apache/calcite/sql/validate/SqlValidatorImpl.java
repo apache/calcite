@@ -1782,7 +1782,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           RESOURCE.offsetFetchValueMustNotBeNegative(kind));
     }
     validateNoAggs(aggOrOverFinder, node, kind);
-    node.accept(new SqlBasicVisitor<Void>() {
+    node.accept(new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlIdentifier id) {
         if (makeNullaryCall(id) != null) {
           return null;
@@ -4579,7 +4579,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
       Consumer<SqlQualified> consumer) {
-    node.accept(new SqlBasicVisitor<Void>() {
+    node.accept(new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlIdentifier id) {
         final SqlQualified qualified = scope.fullyQualify(id);
         consumer.accept(qualified);
@@ -4593,7 +4593,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static void purgeForBypassFields(SqlNode node, SqlValidatorScope scope,
       Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds,
       Set<SqlQualified> remnantMustFilterFields) {
-    node.accept(new SqlBasicVisitor<Void>() {
+    node.accept(new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlIdentifier id) {
         final SqlQualified qualified = scope.fullyQualify(id);
         if (bypassQualifieds.contains(qualified)) {
@@ -6057,7 +6057,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // ok[0] is cleared if any identifier is not an outer reference;
     // ok[1] is set once at least one outer column is found.
     final boolean[] ok = {true, false};
-    node.accept(new SqlBasicVisitor<Void>() {
+    node.accept(new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlIdentifier id) {
         if (!isOuterReference(currentScope, id)) {
           ok[0] = false;
@@ -6082,7 +6082,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private static boolean containsSubQuery(SqlNode node) {
     final boolean[] found = {false};
-    node.accept(new SqlBasicVisitor<Void>() {
+    node.accept(new SqlBasicVisitor<@Nullable Void>() {
       @Override public Void visit(SqlCall call) {
         if (call.getKind().belongsTo(SqlKind.QUERY)) {
           found[0] = true;
@@ -8004,7 +8004,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /** Visitor that retrieves pattern variables defined. */
-  private static class PatternVarVisitor implements SqlVisitor<Void> {
+  private static class PatternVarVisitor implements SqlVisitor<@Nullable Void> {
     private final MatchRecognizeScope scope;
 
     PatternVarVisitor(MatchRecognizeScope scope) {
@@ -8921,8 +8921,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      */
     private boolean containsIdentifier(SqlNode sqlNode, SqlIdentifier target) {
       try {
-        SqlVisitor<Void> visitor =
-            new SqlBasicVisitor<Void>() {
+        SqlVisitor<@Nullable Void> visitor =
+            new SqlBasicVisitor<@Nullable Void>() {
               @Override public Void visit(SqlIdentifier identifier) {
                 if (identifier.equalsDeep(target, Litmus.IGNORE)) {
                   throw new Util.FoundOne(target);

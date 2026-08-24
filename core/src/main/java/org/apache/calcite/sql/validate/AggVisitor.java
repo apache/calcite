@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 /** Visitor that can find aggregate and windowed aggregate functions.
  *
  * @see AggFinder */
-abstract class AggVisitor extends SqlBasicVisitor<Void> {
+abstract class AggVisitor extends SqlBasicVisitor<@Nullable Void> {
   protected final SqlOperatorTable opTab;
   /** Whether to find windowed aggregates. */
   protected final boolean over;

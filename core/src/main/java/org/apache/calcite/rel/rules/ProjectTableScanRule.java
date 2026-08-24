@@ -36,6 +36,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +108,7 @@ public class ProjectTableScanRule
     requireNonNull(table.unwrap(ProjectableFilterableTable.class));
 
     final List<Integer> selectedColumns = new ArrayList<>();
-    final RexVisitorImpl<Void> visitor = new RexVisitorImpl<Void>(true) {
+    final RexVisitorImpl<@Nullable Void> visitor = new RexVisitorImpl<@Nullable Void>(true) {
       @Override public Void visitInputRef(RexInputRef inputRef) {
         if (!selectedColumns.contains(inputRef.getIndex())) {
           selectedColumns.add(inputRef.getIndex());

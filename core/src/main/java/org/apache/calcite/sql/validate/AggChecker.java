@@ -28,6 +28,8 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.Iterables;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -40,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * Visitor which throws an exception if any component of the expression is not a
  * group expression.
  */
-class AggChecker extends SqlBasicVisitor<Void> {
+class AggChecker extends SqlBasicVisitor<@Nullable Void> {
   //~ Instance fields --------------------------------------------------------
 
   private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();

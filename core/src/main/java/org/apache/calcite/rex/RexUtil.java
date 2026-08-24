@@ -828,8 +828,8 @@ public class RexUtil {
    */
   public static boolean isDeterministic(RexNode e) {
     try {
-      RexVisitor<Void> visitor =
-          new RexVisitorImpl<Void>(true) {
+      RexVisitor<@Nullable Void> visitor =
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitCall(RexCall call) {
               if (!call.getOperator().isDeterministic()) {
                 throw Util.FoundOne.NULL;
@@ -849,7 +849,7 @@ public class RexUtil {
   public static boolean containsDynamicFunction(RexNode e) {
     try {
       e.accept(
-          new RexVisitorImpl<Void>(true) {
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitCall(RexCall call) {
               if (call.getOperator().isDynamicFunction()) {
                 throw Util.FoundOne.NULL;
@@ -868,7 +868,7 @@ public class RexUtil {
   public static boolean containsDynamicParam(RexNode e) {
     try {
       e.accept(
-          new RexVisitorImpl<Void>(true) {
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
               throw Util.FoundOne.NULL;
             }
@@ -989,8 +989,8 @@ public class RexUtil {
       final SqlOperator operator,
       RexNode node) {
     try {
-      RexVisitor<Void> visitor =
-          new RexVisitorImpl<Void>(true) {
+      RexVisitor<@Nullable Void> visitor =
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitCall(RexCall call) {
               if (call.getOperator().equals(operator)) {
                 throw new Util.FoundOne(call);
@@ -1014,8 +1014,8 @@ public class RexUtil {
   public static boolean containsInputRef(
       RexNode node) {
     try {
-      RexVisitor<Void> visitor =
-          new RexVisitorImpl<Void>(true) {
+      RexVisitor<@Nullable Void> visitor =
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitInputRef(RexInputRef inputRef) {
               throw new Util.FoundOne(inputRef);
             }
@@ -1036,8 +1036,8 @@ public class RexUtil {
    */
   public static boolean containsFieldAccess(RexNode node) {
     try {
-      RexVisitor<Void> visitor =
-          new RexVisitorImpl<Void>(true) {
+      RexVisitor<@Nullable Void> visitor =
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
               throw new Util.FoundOne(fieldAccess);
             }
@@ -1286,8 +1286,8 @@ public class RexUtil {
    */
   public static @Nullable RexTableInputRef containsTableInputRef(RexNode node) {
     try {
-      RexVisitor<Void> visitor =
-          new RexVisitorImpl<Void>(true) {
+      RexVisitor<@Nullable Void> visitor =
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitTableInputRef(RexTableInputRef inputRef) {
               throw new Util.FoundOne(inputRef);
             }
@@ -1744,7 +1744,7 @@ public class RexUtil {
    * @param expr    Single expression, may be null
    */
   public static void apply(
-      RexVisitor<Void> visitor,
+      RexVisitor<@Nullable Void> visitor,
       RexNode[] exprs,
       @Nullable RexNode expr) {
     for (RexNode e : exprs) {
@@ -1764,7 +1764,7 @@ public class RexUtil {
    * @param expr    Single expression, may be null
    */
   public static void apply(
-      RexVisitor<Void> visitor,
+      RexVisitor<@Nullable Void> visitor,
       List<? extends RexNode> exprs,
       @Nullable RexNode expr) {
     for (RexNode e : exprs) {
@@ -2673,7 +2673,7 @@ public class RexUtil {
    */
   public static Set<RelTableRef> gatherTableReferences(final List<RexNode> nodes) {
     final Set<RelTableRef> occurrences = new HashSet<>();
-    new RexVisitorImpl<Void>(true) {
+    new RexVisitorImpl<@Nullable Void>(true) {
       @Override public Void visitTableInputRef(RexTableInputRef ref) {
         occurrences.add(ref.getTableRef());
         return super.visitTableInputRef(ref);
@@ -2802,7 +2802,7 @@ public class RexUtil {
    * input row type, or a {@link RexLocalRef} with ordinal greater than that set
    * using {@link #setLimit(int)}.
    */
-  private static class ForwardRefFinder extends RexVisitorImpl<Void> {
+  private static class ForwardRefFinder extends RexVisitorImpl<@Nullable Void> {
     private int limit = -1;
     private final RelDataType inputRowType;
 
@@ -2840,7 +2840,7 @@ public class RexUtil {
   /**
    * Visitor which builds a bitmap of the inputs used by an expression.
    */
-  public static class FieldAccessFinder extends RexVisitorImpl<Void> {
+  public static class FieldAccessFinder extends RexVisitorImpl<@Nullable Void> {
     private final List<RexFieldAccess> fieldAccessList;
 
     public FieldAccessFinder() {
@@ -3281,7 +3281,7 @@ public class RexUtil {
 
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
    * applied to an expression that contains a {@link RexCorrelVariable}. */
-  private static class CorrelationFinder extends RexVisitorImpl<Void> {
+  private static class CorrelationFinder extends RexVisitorImpl<@Nullable Void> {
     static final CorrelationFinder INSTANCE = new CorrelationFinder(null);
 
     /** Optional filter: when non-null, only correlation ids in this set
@@ -3360,7 +3360,7 @@ public class RexUtil {
 
   /** Visitor that collects all the top level SubQueries {@link RexSubQuery}
    *  in a projection list of a given {@link Project}.*/
-  public static class SubQueryCollector extends RexVisitorImpl<Void> {
+  public static class SubQueryCollector extends RexVisitorImpl<@Nullable Void> {
     private final List<RexSubQuery> subQueries;
     private SubQueryCollector() {
       super(true);
@@ -3383,7 +3383,7 @@ public class RexUtil {
 
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
    * applied to an expression that contains a {@link RexSubQuery}. */
-  public static class SubQueryFinder extends RexVisitorImpl<Void> {
+  public static class SubQueryFinder extends RexVisitorImpl<@Nullable Void> {
     public static final SubQueryFinder INSTANCE = new SubQueryFinder();
     private final @Nullable SqlKind kind;
 
@@ -3543,7 +3543,7 @@ public class RexUtil {
 
   /** Visitor that tells whether a node matching a particular description exists
    * in a tree. */
-  public abstract static class RexFinder extends RexVisitorImpl<Void> {
+  public abstract static class RexFinder extends RexVisitorImpl<@Nullable Void> {
     RexFinder() {
       super(true);
     }

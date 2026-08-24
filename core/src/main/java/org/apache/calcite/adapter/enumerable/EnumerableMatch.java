@@ -422,7 +422,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   /**
    * Visitor that finds out how much "history" we need in the past and future.
    */
-  private static class MaxHistoryFutureVisitor extends RexVisitorImpl<Void> {
+  private static class MaxHistoryFutureVisitor extends RexVisitorImpl<@Nullable Void> {
     private int history;
     private int future;
 
