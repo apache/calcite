@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @param <E> Element type
  */
-public class ImmutableNullableList<E> extends AbstractList<E> {
+public class ImmutableNullableList<E extends @Nullable Object> extends AbstractList<E> {
   private static final List SINGLETON_NULL = Collections.singletonList(null);
 
   private final E[] elements;
@@ -54,7 +54,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * {@link com.google.common.collect.ImmutableList#copyOf(java.util.Collection)}
    * except that this list allows nulls.
    */
-  public static <E> List<E> copyOf(Collection<? extends E> elements) {
+  public static <E extends @Nullable Object> List<E> copyOf(Collection<? extends E> elements) {
     if (elements instanceof ImmutableNullableList
         || elements instanceof ImmutableList
         || elements == SINGLETON_NULL) {
@@ -82,7 +82,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * {@link com.google.common.collect.ImmutableList#copyOf(Iterable)}
    * except that this list allows nulls.
    */
-  public static <E> List<E> copyOf(Iterable<? extends E> elements) {
+  public static <E extends @Nullable Object> List<E> copyOf(Iterable<? extends E> elements) {
     if (elements instanceof ImmutableNullableList
         || elements instanceof ImmutableList
         || elements == SINGLETON_NULL) {
@@ -109,7 +109,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * {@link com.google.common.collect.ImmutableList#copyOf(Object[])}
    * except that this list allows nulls.
    */
-  public static <E> List<E> copyOf(E[] elements) {
+  public static <E extends @Nullable Object> List<E> copyOf(E[] elements) {
     // Check for nulls.
     for (E object : elements) {
       if (object == null) {
@@ -198,7 +198,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * Returns a new builder. The generated builder is equivalent to the builder
    * created by the {@link Builder} constructor.
    */
-  public static <E> Builder<E> builder() {
+  public static <E extends @Nullable Object> Builder<E> builder() {
     return new Builder<>();
   }
 
