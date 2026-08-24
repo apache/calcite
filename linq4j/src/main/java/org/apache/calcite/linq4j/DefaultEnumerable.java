@@ -601,7 +601,8 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> ofType(Class<TResult> clazz) {
+  @Override public <TResult extends @Nullable Object>
+      Enumerable<TResult> ofType(Class<TResult> clazz) {
     return EnumerableDefaults.ofType(getThis(), clazz);
   }
 
@@ -630,21 +631,22 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.reverse(getThis());
   }
 
-  @Override public <TResult> Enumerable<TResult> select(Function1<T, TResult> selector) {
+  @Override public <TResult extends @Nullable Object>
+      Enumerable<TResult> select(Function1<T, TResult> selector) {
     return EnumerableDefaults.select(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> select(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> select(
       Function2<T, Integer, TResult> selector) {
     return EnumerableDefaults.select(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function1<T, Enumerable<TResult>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function2<T, Integer, Enumerable<TResult>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector);
   }

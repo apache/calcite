@@ -249,7 +249,7 @@ public abstract class Linq4j {
    * @see #ofType
    * @see #asEnumerable(Iterable)
    */
-  public static <TSource, TResult> Enumerable<TResult> cast(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> cast(
       Iterable<TSource> source, Class<TResult> clazz) {
     return asEnumerable(source).cast(clazz);
   }
@@ -285,7 +285,7 @@ public abstract class Linq4j {
    * @see Enumerable#cast(Class)
    * @see #cast
    */
-  public static <TSource, TResult> Enumerable<TResult> ofType(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> ofType(
       Iterable<TSource> source, Class<TResult> clazz) {
     return asEnumerable(source).ofType(clazz);
   }

@@ -3247,7 +3247,7 @@ public abstract class EnumerableDefaults {
    *
    * @return Collection of T2
    */
-  public static <TSource, TResult> Enumerable<TResult> ofType(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> ofType(
       Enumerable<TSource> enumerable, Class<TResult> clazz) {
     //noinspection unchecked
     return (Enumerable) where(enumerable,
@@ -3444,7 +3444,7 @@ public abstract class EnumerableDefaults {
   /**
    * Projects each element of a sequence into a new form.
    */
-  public static <TSource, TResult> Enumerable<TResult> select(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> select(
       final Enumerable<TSource> source,
       final Function1<TSource, TResult> selector) {
     if (selector == Functions.identitySelector()) {
@@ -3480,7 +3480,7 @@ public abstract class EnumerableDefaults {
    * Projects each element of a sequence into a new
    * form by incorporating the element's index.
    */
-  public static <TSource, TResult> Enumerable<TResult> select(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> select(
       final Enumerable<TSource> source,
       final Function2<TSource, Integer, TResult> selector) {
     return new AbstractEnumerable<TResult>() {
@@ -3519,7 +3519,7 @@ public abstract class EnumerableDefaults {
    * {@code Enumerable<TSource>} and flattens the resulting sequences into one
    * sequence.
    */
-  public static <TSource, TResult> Enumerable<TResult> selectMany(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       final Enumerable<TSource> source,
       final Function1<TSource, Enumerable<TResult>> selector) {
     return new AbstractEnumerable<TResult>() {
@@ -3565,7 +3565,7 @@ public abstract class EnumerableDefaults {
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
-  public static <TSource, TResult> Enumerable<TResult> selectMany(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       final Enumerable<TSource> source,
       final Function2<TSource, Integer, Enumerable<TResult>> selector) {
     return new AbstractEnumerable<TResult>() {
