@@ -109,7 +109,7 @@ public class ElasticsearchChecker {
     // ObjectNode
     ObjectNode objectNode = (ObjectNode) parent;
     final ObjectNode copy = objectNode.objectNode();
-    objectNode.fields().forEachRemaining(e -> {
+    objectNode.properties().forEach(e -> {
       final String property = e.getKey();
       final JsonNode node = e.getValue();
 

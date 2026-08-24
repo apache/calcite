@@ -151,7 +151,7 @@ final class ElasticsearchJson {
     }
 
     // otherwise continue visiting mapping(s)
-    Iterable<Map.Entry<String, JsonNode>> iter = mapping::fields;
+    Iterable<Map.Entry<String, JsonNode>> iter = mapping.properties();
     for (Map.Entry<String, JsonNode> entry : iter) {
       final String name = entry.getKey();
       final ObjectNode node = (ObjectNode) entry.getValue();
@@ -716,7 +716,7 @@ final class ElasticsearchJson {
 
       List<Aggregation> aggregations = new ArrayList<>();
 
-      Iterable<Map.Entry<String, JsonNode>> iter = node::fields;
+      Iterable<Map.Entry<String, JsonNode>> iter = node.properties();
       for (Map.Entry<String, JsonNode> entry : iter) {
         final String name = entry.getKey();
         final JsonNode value = entry.getValue();
