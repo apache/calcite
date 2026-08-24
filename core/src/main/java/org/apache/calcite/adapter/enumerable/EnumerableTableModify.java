@@ -227,7 +227,8 @@ public class EnumerableTableModify extends TableModify
     try (Enumerator<Object[]> e = source.enumerator()) {
       while (e.moveNext()) {
         final Object[] sourceRow = e.current();
-        final List<Object> key = Arrays.asList(Arrays.copyOf(sourceRow, tableFieldCount));
+        final List<@Nullable Object> key =
+            Arrays.asList(Arrays.copyOf(sourceRow, tableFieldCount));
         final Object[] newRow = applyUpdate(sourceRow, tableFieldCount, updateColumnIndices);
         updatesByKey.computeIfAbsent(key, k -> new ArrayDeque<>()).addLast(newRow);
       }
@@ -516,7 +517,8 @@ public class EnumerableTableModify extends TableModify
    * @return key for row
    */
   private static List<Object> keyOf(Object[] rowValues) {
-    return Arrays.asList(Arrays.copyOf(rowValues, rowValues.length));
+    return Arrays.<@Nullable Object>asList(
+        Arrays.copyOf(rowValues, rowValues.length));
   }
 
 }

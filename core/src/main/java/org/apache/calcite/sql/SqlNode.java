@@ -384,7 +384,7 @@ public abstract class SqlNode implements Cloneable {
       ArrayList<@Nullable SqlNode>, SqlNodeList> toList(SqlParserPos pos) {
     //noinspection RedundantTypeArguments
     return Collector.<T, ArrayList<@Nullable SqlNode>, SqlNodeList>of(
-        ArrayList::new, ArrayList::add, Util::combine,
+        ArrayList::new, (list, e) -> list.add(e), Util::combine,
         (ArrayList<@Nullable SqlNode> list) -> SqlNodeList.of(pos, list));
   }
 }

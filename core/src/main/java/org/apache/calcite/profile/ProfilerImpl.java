@@ -166,7 +166,8 @@ public class ProfilerImpl implements Profiler {
         }
       }
       this.singletonSpaces =
-          new ArrayList<>(Collections.nCopies(columns.size(), (Space) null));
+          new ArrayList<>(
+              Collections.<@Nullable Space>nCopies(columns.size(), null));
       if (combinationsPerPass > Math.pow(2D, columns.size())) {
         // There are not many columns. We can compute all combinations in the
         // first pass.
@@ -627,11 +628,10 @@ public class ProfilerImpl implements Profiler {
         // Too many values. Switch to a sketch collector.
         final HllCompositeCollector collector =
             new HllCompositeCollector(space, columnOrdinals);
-        final List<Comparable> list =
+        final List<@Nullable Comparable> list =
             new ArrayList<>(
-                Collections.nCopies(columnOrdinals[columnOrdinals.length - 1]
-                        + 1,
-                    null));
+                Collections.<@Nullable Comparable>nCopies(
+                    columnOrdinals[columnOrdinals.length - 1] + 1, null));
         for (FlatLists.ComparableList value : this.values) {
           for (int i = 0; i < value.size(); i++) {
             Comparable c = (Comparable) value.get(i);

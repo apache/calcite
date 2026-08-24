@@ -46,7 +46,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
@@ -537,8 +536,7 @@ public class RelMdColumnUniqueness
     relOptPredicateList.constantMap.keySet()
         .stream()
         .filter(RexInputRef.class::isInstance)
-        .map(RexInputRef.class::cast)
-        .map(RexSlot::getIndex)
+        .map(ref -> ((RexInputRef) ref).getIndex())
         .forEach(builder::set);
 
     relOptPredicateList.pulledUpPredicates.forEach(rex -> {

@@ -262,7 +262,7 @@ public class AggregateReduceFunctionsRule
       relBuilder.project(inputExprs,
           CompositeList.of(
               relBuilder.peek().getRowType().getFieldNames(),
-              Collections.nCopies(extraArgCount, null)));
+              Collections.<@Nullable String>nCopies(extraArgCount, null)));
     }
     newAggregateRel(relBuilder, oldAggRel, newCalls);
     newCalcRel(relBuilder, oldAggRel.getRowType(), projList);
