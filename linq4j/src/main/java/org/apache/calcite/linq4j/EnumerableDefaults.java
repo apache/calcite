@@ -1031,7 +1031,7 @@ public abstract class EnumerableDefaults {
                   left = new Linq4j.IterableEnumerator<>(value);
                   List<@Nullable TInner> rightList =
                       requireNonNull(rightIndex.get(key));
-                  right = new Linq4j.IterableEnumerator<>(rightList);
+                  right = new Linq4j.IterableEnumerator<@Nullable TInner>(rightList);
                 } else {
                   // Done with the data, start emitting records with null keys
                   emittingNullKeys = true;
@@ -4968,6 +4968,9 @@ public abstract class EnumerableDefaults {
       return Wrapped.upAs(comparer, key);
     }
 
+    // Map.get and Map.remove take a nullable key, and wrapping one throws, which is what
+    // this map did before it was annotated
+    @SuppressWarnings("NullAway")
     @Override public @Nullable V get(@Nullable Object key) {
       return map.get(wrap((K) key));
     }
@@ -4977,6 +4980,7 @@ public abstract class EnumerableDefaults {
       return map.put(wrap(key), value);
     }
 
+    @SuppressWarnings("NullAway")
     @Override public @Nullable V remove(@Nullable Object key) {
       return map.remove(wrap((K) key));
     }
@@ -5201,7 +5205,8 @@ public abstract class EnumerableDefaults {
               results =
                   new CartesianProductJoinEnumerator<>(resultSelector,
                       Linq4j.enumerator(lefts),
-                      Linq4j.enumerator(Collections.singletonList(null)));
+                      Linq4j.<@Nullable TInner>enumerator(
+                          Collections.singletonList(null)));
               return true;
             }
             if (!getLeftEnumerator().moveNext()) {
@@ -5256,9 +5261,10 @@ public abstract class EnumerableDefaults {
               : new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
                   Linq4j.enumerator(rights));
         } else {
-          // we must verify the non equi-join predicate, use nested loop join for that
+          // we must verify the non equi-join predicate, use nested loop join for that.
+          // Merge join generates no nulls on the left, so the optimized variant applies.
           results =
-              nestedLoopJoin(Linq4j.asEnumerable(lefts),
+              nestedLoopJoinOptimized(Linq4j.asEnumerable(lefts),
                   Linq4j.asEnumerable(rights), extraPredicate, resultSelector,
                   joinType).enumerator();
         }
@@ -5421,7 +5427,7 @@ public abstract class EnumerableDefaults {
 
     @SuppressWarnings("unchecked")
     CartesianProductJoinEnumerator(Function2<TOuter, @Nullable TInner, TResult> resultSelector,
-        Enumerator<TOuter> outer, Enumerator<TInner> inner) {
+        Enumerator<TOuter> outer, Enumerator<? extends @Nullable TInner> inner) {
       super(ImmutableList.of((Enumerator<Object>) outer, (Enumerator<Object>) inner));
       this.resultSelector = resultSelector;
     }

@@ -257,6 +257,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.<Integer>castSingle(); // CHECKSTYLE: IGNORE 0
   }
 
+  @SuppressWarnings("NullAway")
   @Override public Queryable<@Nullable T> defaultIfEmpty(final Queryable<T> source) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {

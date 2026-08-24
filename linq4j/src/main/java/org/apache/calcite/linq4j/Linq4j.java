@@ -189,7 +189,8 @@ public abstract class Linq4j {
    *
    * @return Enumerator over the collection
    */
-  public static <V> Enumerator<V> enumerator(Collection<? extends V> values) {
+  public static <V extends @Nullable Object> Enumerator<V> enumerator(
+      Collection<? extends V> values) {
     if (values instanceof List && values instanceof RandomAccess) {
       //noinspection unchecked
       return listEnumerator((List) values);
@@ -430,7 +431,7 @@ public abstract class Linq4j {
    *
    * @param <T> element type */
   @SuppressWarnings("unchecked")
-  static class IterableEnumerator<T> implements Enumerator<T> {
+  static class IterableEnumerator<T extends @Nullable Object> implements Enumerator<T> {
     private final Iterable<? extends T> iterable;
     @Nullable Iterator<? extends T> iterator;
     T current;
@@ -448,6 +449,9 @@ public abstract class Linq4j {
       return current;
     }
 
+    // NullAway treats the result of `Iterator<? extends T>.next()` as @Nullable once it is
+    // assigned to a T field, even though T is the field's own type
+    @SuppressWarnings("NullAway")
     @Override public boolean moveNext() {
       if (requireNonNull(iterator, "iterator").hasNext()) {
         current = iterator.next();
