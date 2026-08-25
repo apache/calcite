@@ -935,6 +935,9 @@ allprojects {
                     if (nullawayEnabled && mainCode) {
                         // Nullness errors must fail the build, so the annotations stay trustworthy
                         error("NullAway")
+                        // OnlyNullMarked skips a package that forgets @NullMarked rather than
+                        // reporting it, so require every class to say which of the two it is
+                        error("RequireExplicitNullMarking")
                         // Only @NullMarked code is analyzed, so an unannotated package is skipped
                         // rather than assumed non-null
                         option("NullAway:OnlyNullMarked", "true")
