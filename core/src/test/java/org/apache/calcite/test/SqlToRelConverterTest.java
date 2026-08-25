@@ -45,7 +45,11 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -364,6 +368,137 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "SELECT * FROM emp\n"
         + "JOIN dept on emp.deptno + 1 = dept.deptno - 2";
     sql(sql).ok();
+  }
+
+  /** Checks that every call in the plan for {@code sql} has the type that its
+   * operator derives from its operands. */
+  private void checkCallTypesConsistent(String sql) {
+    final RelNode rel = sql(sql).toRel();
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitCall(RexCall call) {
+        final RelDataType derived =
+            call.getOperator().inferReturnType(
+                RexCallBinding.create(rexBuilder.getTypeFactory(), call, ImmutableList.of()));
+        assertThat("type of " + call,
+            call.getType().getFullTypeString(), is(derived.getFullTypeString()));
+        return super.visitCall(call);
+      }
+    };
+    new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        other.accept(shuttle);
+        return super.visit(other);
+      }
+    }.visit(rel);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>A LEFT JOIN pads with NULLs the right input. */
+  @Test void testJoinConditionTypeLeft() {
+    checkCallTypesConsistent("select e.ename, d.name from emp as e\n"
+        + "left join dept as d on e.ename = trim(d.name)");
+    checkCallTypesConsistent("select e.ename, d.name from emp as e\n"
+        + "left join dept as d on trim(e.ename) = trim(d.name)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>An ON condition that reads only the NULL-padded side. */
+  @Test void testJoinConditionTypeOnePaddedSideOnly() {
+    checkCallTypesConsistent("select e.ename, d.name from emp as e\n"
+        + "left join dept as d on trim(d.name) = cast(d.deptno as varchar(10))");
+    checkCallTypesConsistent("select e.ename, d.name from emp as e\n"
+        + "left join dept as d on trim(d.name) = 'x'");
+    checkCallTypesConsistent("select e.ename, d.name from dept as d\n"
+        + "right join emp as e on trim(d.name) = 'x'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>A RIGHT JOIN, whose output NULL pads the left input. */
+  @Test void testJoinConditionTypeRight() {
+    checkCallTypesConsistent("select e.ename, d.name from dept as d\n"
+        + "right join emp as e on e.ename = trim(d.name)");
+    checkCallTypesConsistent("select e.ename, d.name from dept as d\n"
+        + "right join emp as e on trim(d.name) = trim(e.ename)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>A FULL JOIN, whose output NULL pads both inputs. */
+  @Test void testJoinConditionTypeFull() {
+    checkCallTypesConsistent("select e.ename, d.name from emp as e\n"
+        + "full join dept as d on trim(e.ename) = trim(d.name)");
+    checkCallTypesConsistent("select e.ename, d.name from dept as d\n"
+        + "full join emp as e on trim(d.name) = trim(e.ename)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>An ON condition over a column that a nested outer join
+   * has already padded: there the column really is nullable, so the condition
+   * must see it as nullable. */
+  @Test void testJoinConditionTypeNestedOuter() {
+    checkCallTypesConsistent("select e.ename from emp as e\n"
+        + "left join (dept as d left join emp as e2\n"
+        + "    on trim(d.name) = trim(e2.ename))\n"
+        + "  on trim(e.ename) = trim(e2.ename)");
+    checkCallTypesConsistent("select e.ename from\n"
+        + "(emp as e2 right join dept as d\n"
+        + "    on trim(e2.ename) = trim(d.name))\n"
+        + "  right join emp as e on trim(e2.ename) = trim(e.ename)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>An inner join nested inside the padded side of an outer
+   * join: the padding the outer join applies must not affect the condition of the inner join. */
+  @Test void testJoinConditionTypeInnerUnderOuter() {
+    checkCallTypesConsistent("select e.ename from emp as e\n"
+        + "left join (emp as e2 join dept as d on trim(e2.ename) = trim(d.name))\n"
+        + "  on trim(e.ename) = trim(d.name)");
+    checkCallTypesConsistent("select e.ename from\n"
+        + "(emp as e2 join dept as d on trim(e2.ename) = trim(d.name))\n"
+        + "  right join emp as e on trim(e.ename) = trim(d.name)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>A join condition over an expression other than TRIM, and
+   * for an INNER JOIN, which pads nothing. */
+  @Test void testJoinConditionTypeOtherExpressions() {
+    checkCallTypesConsistent("select e.ename from emp as e\n"
+        + "left join dept as d on upper(e.ename) = upper(d.name)");
+    checkCallTypesConsistent("select e.ename from emp as e\n"
+        + "left join dept as d on char_length(e.ename) = char_length(d.name)");
+    checkCallTypesConsistent("select e.ename from emp as e\n"
+        + "join dept as d on trim(e.ename) = trim(d.name)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7741">[CALCITE-7741]
+   * Outer join register incorrect types for their input collections</a>.
+   *
+   * <p>A LATERAL table on the padded side of an outer join. */
+  @Test void testJoinConditionTypeLateral() {
+    checkCallTypesConsistent("select * from dept as d\n"
+        + "left join lateral (select * from emp as e where e.deptno = d.deptno) as l on true");
   }
 
   @Test void testJoinOnIn() {

@@ -43,6 +43,10 @@ public class JoinScope extends ListScope {
   private final @Nullable SqlValidatorScope usingScope;
   private final SqlJoin join;
 
+  /** Whether the side of the join currently being registered is padded with
+   * NULLs by this join. See {@link #setRegisteringNullPaddedSide}. */
+  private boolean registeringPaddedSide;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -90,8 +94,19 @@ public class JoinScope extends ListScope {
       //
       // 'a' is a child namespace of 'a join b' and also of
       // 'a join b join c'.
-      usingScope.addChild(ns, alias, nullable);
+      //
+      // The enclosing scope sees this join's output, so it also sees the padding
+      // this join applies.
+      usingScope.addChild(ns, alias, nullable || registeringPaddedSide);
     }
+  }
+
+  /**
+   * Sets whether the side of the join being registered right now is
+   * the one this join pads with NULLs.
+   */
+  void setRegisteringNullPaddedSide(boolean nullPadded) {
+    this.registeringPaddedSide = nullPadded;
   }
 
   @Override public @Nullable SqlWindow lookupWindow(String name) {
