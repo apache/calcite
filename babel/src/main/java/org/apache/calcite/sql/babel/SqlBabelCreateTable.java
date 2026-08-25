@@ -32,6 +32,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -44,7 +46,10 @@ public class SqlBabelCreateTable extends SqlCreateTable {
           (operator, functionQualifier, pos, operands) ->
               new SqlBabelCreateTable(pos,
                   requireNonNull((SqlLiteral) operands[0]).booleanValue(),
-                  requireNonNull((SqlLiteral) operands[1]).symbolValue(TableCollectionType.class),
+                  castNonNull(
+                      requireNonNull((SqlLiteral) operands[1],
+                          "tableCollectionType operand of CREATE TABLE")
+                          .symbolValue(TableCollectionType.class)),
                   requireNonNull((SqlLiteral) operands[2]).booleanValue(),
                   requireNonNull((SqlLiteral) operands[3]).booleanValue(),
                   (SqlIdentifier) requireNonNull(operands[4]),
