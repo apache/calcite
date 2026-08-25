@@ -18,6 +18,8 @@ package org.apache.calcite.example.maze;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -102,7 +104,7 @@ class Maze {
   }
 
   /** Generates a list of lines representing the maze in text form. */
-  public Enumerator<String> enumerator(final Set<Integer> solutionSet) {
+  public Enumerator<String> enumerator(final @Nullable Set<Integer> solutionSet) {
     final CellContent cellContent;
     if (solutionSet == null) {
       cellContent = CellContent.SPACE;
