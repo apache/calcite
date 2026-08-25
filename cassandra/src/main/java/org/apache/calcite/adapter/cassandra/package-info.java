@@ -20,4 +20,7 @@
  *
  * <p>There is one table for each Cassandra column family.
  */
+@NullMarked
 package org.apache.calcite.adapter.cassandra;
+
+import org.jspecify.annotations.NullMarked;

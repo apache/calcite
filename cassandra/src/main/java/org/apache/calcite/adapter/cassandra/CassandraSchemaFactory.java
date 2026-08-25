@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Factory that creates a {@link CassandraSchema}.
@@ -59,7 +60,7 @@ public class CassandraSchemaFactory implements SchemaFactory {
     final Map<String, Object> sessionMap = projectMapOverKeys(operand, SESSION_DEFINING_KEYS);
 
     INFO_TO_SESSION.computeIfAbsent(sessionMap, m -> {
-      String host = (String) m.get("host");
+      String host = requireNonNull((String) m.get("host"), "host");
       String username = (String) m.get("username");
       String password = (String) m.get("password");
       int port = getPort(m);
