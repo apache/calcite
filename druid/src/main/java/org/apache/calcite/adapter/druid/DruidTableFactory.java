@@ -53,7 +53,10 @@ public class DruidTableFactory implements TableFactory {
   // name that is also the same name as a complex metric
   @Override public Table create(SchemaPlus schema, String name, Map operand,
       @Nullable RelDataType rowType) {
-    final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
+    final DruidSchema druidSchema =
+        requireNonNull(schema.unwrap(DruidSchema.class),
+            () -> "unable to unwrap DruidSchema from schema " + schema.getName()
+                + " for table " + name);
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
@@ -121,7 +124,10 @@ public class DruidTableFactory implements TableFactory {
           }
           metricName = (String) map2.get("name");
 
-          final String type = (String) map2.get("type");
+          final String type =
+              requireNonNull((String) map2.get("type"),
+                  () -> "property 'type' is required for metric " + metricName
+                      + " in table " + name);
           fieldName = (String) map2.get("fieldName");
 
           druidType = DruidType.getTypeFromMetric(type);
