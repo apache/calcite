@@ -30,6 +30,6 @@ public interface SplunkConnection {
   void getSearchResults(String search, Map<String, String> otherArgs,
       @Nullable List<String> fieldList, SearchResultListener srl);
 
-  Enumerator<Object> getSearchResultEnumerator(String search,
+  Enumerator<@Nullable Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, @Nullable List<String> fieldList);
 }
