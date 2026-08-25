@@ -20,4 +20,7 @@
  *
  * <p>One Kafka topic is mapping to one STREAM table.
  */
+@NullMarked
 package org.apache.calcite.adapter.kafka;
+
+import org.jspecify.annotations.NullMarked;

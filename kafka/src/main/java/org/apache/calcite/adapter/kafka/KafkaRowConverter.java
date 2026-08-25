@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Interface to handle formatting between Kafka message and Calcite row.
  *
@@ -35,10 +37,11 @@ public interface KafkaRowConverter<K, V> {
   /**
    * Generates the row type for a given Kafka topic.
    *
-   * @param topicName Kafka topic name
+   * @param topicName Kafka topic name, or null if the table reads from a
+   *                  consumer that subscribed on its own
    * @return row type
    */
-  RelDataType rowDataType(String topicName);
+  RelDataType rowDataType(@Nullable String topicName);
 
   /**
    * Parses and reformats a Kafka message from the consumer,
