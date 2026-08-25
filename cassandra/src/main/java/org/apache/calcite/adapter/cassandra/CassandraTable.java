@@ -117,7 +117,7 @@ public class CassandraTable extends AbstractQueryableTable
     return clusteringOrder;
   }
 
-  public Enumerable<Object> query(final CqlSession session) {
+  public Enumerable<@Nullable Object> query(final CqlSession session) {
     return query(session, ImmutableList.of(), ImmutableList.of(),
         ImmutableList.of(), ImmutableList.of(), 0, -1);
   }
@@ -129,7 +129,8 @@ public class CassandraTable extends AbstractQueryableTable
    * @param predicates A list of predicates which should be used in the query
    * @return Enumerator of results
    */
-  public Enumerable<Object> query(final CqlSession session, List<Map.Entry<String, Class>> fields,
+  public Enumerable<@Nullable Object> query(final CqlSession session,
+      List<Map.Entry<String, Class>> fields,
         final List<Map.Entry<String, String>> selectFields, List<String> predicates,
         List<String> order, final Integer offset, final Integer fetch) {
     // Build the type of the resulting row based on the provided fields
@@ -138,7 +139,7 @@ public class CassandraTable extends AbstractQueryableTable
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     final RelDataType rowType = getRowType(typeFactory);
 
-    Function1<String, Void> addField = fieldName -> {
+    Function1<String, @Nullable Void> addField = fieldName -> {
       RelDataType relDataType =
           requireNonNull(rowType.getField(fieldName, true, false)).getType();
       fieldInfo.add(fieldName, relDataType).nullable(true);
@@ -218,12 +219,13 @@ public class CassandraTable extends AbstractQueryableTable
     }
     queryBuilder.append(" ALLOW FILTERING");
 
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+    return new AbstractEnumerable<@Nullable Object>() {
+      @Override public Enumerator<@Nullable Object> enumerator() {
         final ResultSet results = session.execute(queryBuilder.toString());
         // Skip results until we get to the right offset
         int skip = 0;
-        Enumerator<Object> enumerator = new CassandraEnumerator(results, resultRowType);
+        Enumerator<@Nullable Object> enumerator =
+            new CassandraEnumerator(results, resultRowType);
         while (skip < offset && enumerator.moveNext()) {
           skip++;
         }
@@ -275,7 +277,7 @@ public class CassandraTable extends AbstractQueryableTable
      * @see org.apache.calcite.adapter.cassandra.CassandraMethod#CASSANDRA_QUERYABLE_QUERY
      */
     @SuppressWarnings("UnusedDeclaration")
-    public @Nullable Enumerable<Object> query(List<Map.Entry<String, Class>> fields,
+    public @Nullable Enumerable<@Nullable Object> query(List<Map.Entry<String, Class>> fields,
         List<Map.Entry<String, String>> selectFields, List<String> predicates,
         List<String> order, Integer offset, Integer fetch) {
       return getTable().query(getSession(), fields, selectFields, predicates,
