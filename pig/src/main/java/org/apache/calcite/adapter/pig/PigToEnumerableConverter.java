@@ -68,7 +68,7 @@ public class PigToEnumerableConverter
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder list = new BlockBuilder();
     final PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), rowType,
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(),
             pref.prefer(JavaRowFormat.ARRAY));
     PigRel.Implementor impl = new PigRel.Implementor();
     impl.visitChild(0, getInput());
