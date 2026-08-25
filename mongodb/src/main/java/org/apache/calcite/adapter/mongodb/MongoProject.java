@@ -37,6 +37,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
  * relational expression in MongoDB.
@@ -64,7 +66,7 @@ public class MongoProject extends Project implements MongoRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    return requireNonNull(super.computeSelfCost(planner, mq)).multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {

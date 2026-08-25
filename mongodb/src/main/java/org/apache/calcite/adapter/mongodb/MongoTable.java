@@ -41,11 +41,14 @@ import com.mongodb.client.MongoDatabase;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a MongoDB collection.
@@ -97,17 +100,19 @@ public class MongoTable extends AbstractQueryableTable
    * @param fields List of fields to project; or null to return map
    * @return Enumerator of results
    */
-  private Enumerable<Object> find(MongoDatabase mongoDb, String filterJson,
-      String projectJson, List<Map.Entry<String, Class>> fields) {
+  private Enumerable<@Nullable Object> find(MongoDatabase mongoDb,
+      @Nullable String filterJson, @Nullable String projectJson,
+      @Nullable List<Map.Entry<String, Class>> fields) {
     final MongoCollection collection =
         mongoDb.getCollection(collectionName);
     final Bson filter =
         filterJson == null ? null : BsonDocument.parse(filterJson);
     final Bson project =
         projectJson == null ? null : BsonDocument.parse(projectJson);
-    final Function1<Document, Object> getter = MongoEnumerator.getter(fields);
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+    final Function1<Document, @Nullable Object> getter =
+        MongoEnumerator.getter(fields);
+    return new AbstractEnumerable<@Nullable Object>() {
+      @Override public Enumerator<@Nullable Object> enumerator() {
         @SuppressWarnings("unchecked") final FindIterable<Document> cursor =
             collection.find(filter).projection(project);
         return new MongoEnumerator(cursor.iterator(), getter);
@@ -128,17 +133,17 @@ public class MongoTable extends AbstractQueryableTable
    * @param operations One or more JSON strings
    * @return Enumerator of results
    */
-  private Enumerable<Object> aggregate(final MongoDatabase mongoDb,
-      final List<Map.Entry<String, Class>> fields,
+  private Enumerable<@Nullable Object> aggregate(final MongoDatabase mongoDb,
+      final @Nullable List<Map.Entry<String, Class>> fields,
       final List<String> operations) {
     final List<Bson> list = new ArrayList<>();
     for (String operation : operations) {
       list.add(BsonDocument.parse(operation));
     }
-    final Function1<Document, Object> getter =
+    final Function1<Document, @Nullable Object> getter =
         MongoEnumerator.getter(fields);
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+    return new AbstractEnumerable<@Nullable Object>() {
+      @Override public Enumerator<@Nullable Object> enumerator() {
         final Iterator<Document> resultIterator;
         try {
           resultIterator = mongoDb.getCollection(collectionName)
@@ -170,7 +175,7 @@ public class MongoTable extends AbstractQueryableTable
     }
 
     private MongoDatabase getMongoDb() {
-      return schema.unwrap(MongoSchema.class).mongoDb;
+      return requireNonNull(schema.unwrap(MongoSchema.class), "mongoSchema").mongoDb;
     }
 
     private MongoTable getTable() {
@@ -182,7 +187,8 @@ public class MongoTable extends AbstractQueryableTable
      * @see org.apache.calcite.adapter.mongodb.MongoMethod#MONGO_QUERYABLE_AGGREGATE
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> aggregate(List<Map.Entry<String, Class>> fields,
+    public Enumerable<@Nullable Object> aggregate(
+        @Nullable List<Map.Entry<String, Class>> fields,
         List<String> operations) {
       return getTable().aggregate(getMongoDb(), fields, operations);
     }
@@ -197,8 +203,9 @@ public class MongoTable extends AbstractQueryableTable
      * @see org.apache.calcite.adapter.mongodb.MongoMethod#MONGO_QUERYABLE_FIND
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> find(String filterJson,
-        String projectJson, List<Map.Entry<String, Class>> fields) {
+    public Enumerable<@Nullable Object> find(@Nullable String filterJson,
+        @Nullable String projectJson,
+        @Nullable List<Map.Entry<String, Class>> fields) {
       return getTable().find(getMongoDb(), filterJson, projectJson, fields);
     }
   }
