@@ -52,7 +52,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
 
@@ -74,14 +74,14 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
       RelNode input,
       boolean indicator,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     return new GeodeAggregate(getCluster(), traitSet, input, groupSet,
         groupSets, aggCalls);
@@ -129,7 +129,9 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
       String oqlAggregateCall =
           Util.toString(aggCallFieldNames, functionName + "(", ", ", ")");
 
-      aggregateFunctionMap.put(GeodeUtils.checkSafeOqlIdentifier(aggCall.getName()),
+      aggregateFunctionMap.put(
+          GeodeUtils.checkSafeOqlIdentifier(
+              requireNonNull(aggCall.getName(), "aggCall name")),
           oqlAggregateCall);
     }
 

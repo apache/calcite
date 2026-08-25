@@ -102,7 +102,7 @@ public class GeodeUtils {
    * @return Returns a Geode {@link ClientCache} instance connected to Geode cluster
    */
   public static synchronized ClientCache createClientCache(String locatorHost,
-      int locatorPort, String autoSerializerPackagePath,
+      int locatorPort, @Nullable String autoSerializerPackagePath,
       boolean readSerialized) {
     if (locatorPort != currentLocatorPort
         || !equalsIgnoreCase(currentLocatorHost, locatorHost)) {
@@ -193,12 +193,12 @@ public class GeodeUtils {
     return values;
   }
 
-  private static Object handleStructEntry(
+  private static @Nullable Object handleStructEntry(
       List<RelDataTypeField> relDataTypeFields, Object obj) {
 
     Struct struct = (Struct) obj;
 
-    Object[] values = new Object[relDataTypeFields.size()];
+    final @Nullable Object[] values = new Object[relDataTypeFields.size()];
 
     int index = 0;
     for (RelDataTypeField relDataTypeField : relDataTypeFields) {
@@ -221,12 +221,12 @@ public class GeodeUtils {
     return values;
   }
 
-  private static Object handlePdxInstanceEntry(
+  private static @Nullable Object handlePdxInstanceEntry(
       List<RelDataTypeField> relDataTypeFields, Object obj) {
 
     PdxInstance pdxEntry = (PdxInstance) obj;
 
-    Object[] values = new Object[relDataTypeFields.size()];
+    final @Nullable Object[] values = new Object[relDataTypeFields.size()];
 
     int index = 0;
     for (RelDataTypeField relDataTypeField : relDataTypeFields) {
@@ -258,7 +258,7 @@ public class GeodeUtils {
       return null;
     }
 
-    Object[] values = new Object[relDataTypeFields.size()];
+    final @Nullable Object[] values = new Object[relDataTypeFields.size()];
 
     int index = 0;
     for (RelDataTypeField relDataTypeField : relDataTypeFields) {
@@ -274,7 +274,7 @@ public class GeodeUtils {
   }
 
   @SuppressWarnings("JavaUtilDate")
-  private static Object convert(Object o, Class clazz) {
+  private static @Nullable Object convert(@Nullable Object o, Class clazz) {
     if (o == null) {
       return null;
     }
@@ -311,11 +311,13 @@ public class GeodeUtils {
    * @param region existing region
    * @return derived data type.
    */
-  public static RelDataType autodetectRelTypeFromRegion(Region<?, ?> region) {
+  public static RelDataType autodetectRelTypeFromRegion(
+      Region<? extends Object, ? extends Object> region) {
     requireNonNull(region, "region");
 
     // try to detect type using value constraints (if they exists)
-    final Class<?> constraint = region.getAttributes().getValueConstraint();
+    final Class<?> constraint =
+        region.getAttributes().getValueConstraint();
     if (constraint != null && !PdxInstance.class.isAssignableFrom(constraint)) {
       return new JavaTypeFactoryExtImpl().createStructType(constraint);
     }
@@ -335,7 +337,8 @@ public class GeodeUtils {
       throw new IllegalStateException(message);
     }
 
-    final Object entry = region.get(iter.next());
+    final Object entry =
+        requireNonNull(region.get(iter.next()), "region entry");
     return createRelDataType(entry);
   }
 
