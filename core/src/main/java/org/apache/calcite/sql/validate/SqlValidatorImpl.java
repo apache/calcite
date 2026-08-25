@@ -2938,8 +2938,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.put(join, joinScope);
       final SqlNode left = join.getLeft();
       final SqlNode right = join.getRight();
-      boolean forceLeftNullable = forceNullable;
-      boolean forceRightNullable = forceNullable;
+      boolean forceLeftNullable = false;
+      boolean forceRightNullable = false;
       switch (join.getJoinType()) {
       case LEFT:
       case LEFT_ASOF:
@@ -2955,6 +2955,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       default:
         break;
       }
+      // joinScope resolves this join's ON condition, which reads the rows its
+      // inputs produced. JoinScope adds the padding when it passes a child on to
+      // the enclosing scope, which does see this join's output.
+      joinScope.setRegisteringNullPaddedSide(forceLeftNullable);
       final SqlNode newLeft =
           registerFrom(
               parentScope,
@@ -2964,11 +2968,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               left,
               null,
               null,
-              forceLeftNullable,
+              false,
               lateral);
       if (newLeft != left) {
         join.setLeft(newLeft);
       }
+      joinScope.setRegisteringNullPaddedSide(forceRightNullable);
       final SqlNode newRight =
           registerFrom(
               parentScope,
@@ -2978,11 +2983,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               right,
               null,
               null,
-              forceRightNullable,
+              false,
               lateral);
       if (newRight != right) {
         join.setRight(newRight);
       }
+      joinScope.setRegisteringNullPaddedSide(false);
       scopes.putIfAbsent(stripAs(join.getRight()), parentScope);
       scopes.putIfAbsent(stripAs(join.getLeft()), parentScope);
       registerSubQueries(joinScope, join.getCondition());
