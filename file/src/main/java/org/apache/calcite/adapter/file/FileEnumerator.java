@@ -23,6 +23,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Wraps {@link FileReader} and {@link FileRowConverter}, enumerates tr DOM
  * elements as table rows.
@@ -48,7 +50,7 @@ class FileEnumerator implements Enumerator<Object> {
     if (current == null) {
       this.moveNext();
     }
-    return current;
+    return castNonNull(current);
   }
 
   @Override public boolean moveNext() {

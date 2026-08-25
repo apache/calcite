@@ -22,4 +22,7 @@
  * table appears as a table.  Full select SQL operations are available on those
  * tables.
  */
+@NullMarked
 package org.apache.calcite.adapter.file;
+
+import org.jspecify.annotations.NullMarked;
