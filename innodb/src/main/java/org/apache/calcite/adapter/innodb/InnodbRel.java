@@ -39,7 +39,11 @@ public interface InnodbRel extends RelNode {
     IndexCondition indexCondition = IndexCondition.EMPTY_CONDITION;
     boolean ascOrder = true;
 
+    /** Set by {@code InnodbTableScan.implement} before anything reads it. */
+    @SuppressWarnings("NullAway.Init")
     RelOptTable table;
+    /** Set by {@code InnodbTableScan.implement} before anything reads it. */
+    @SuppressWarnings("NullAway.Init")
     InnodbTable innodbTable;
 
     public void addSelectFields(Map<String, String> fields) {
