@@ -66,7 +66,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
   private final String regionName;
   private final RelDataType rowType;
 
-  GeodeTable(Region<?, ?> region) {
+  GeodeTable(Region<? extends Object, ? extends Object> region) {
     super(Object[].class);
     this.regionName = region.getName();
     this.rowType = GeodeUtils.autodetectRelTypeFromRegion(region);
@@ -87,7 +87,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
    * @param predicates  A list of predicates which should be used in the query
    * @return Enumerator of results
    */
-  public Enumerable<Object> query(final GemFireCache clientCache,
+  public Enumerable<@Nullable Object> query(final GemFireCache clientCache,
       final List<Map.Entry<String, Class>> fields,
       final List<Map.Entry<String, String>> selectFields,
       final List<Map.Entry<String, String>> aggregateFunctions,
@@ -197,20 +197,35 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     Hook.QUERY_PLAN.run(oqlQuery);
     LOGGER.info("OQL: " + oqlQuery);
 
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
-        final QueryService queryService = clientCache.getQueryService();
-        try {
-          SelectResults results = (SelectResults) queryService.newQuery(oqlQuery).execute();
-          return new GeodeEnumerator(results, resultRowType);
-        } catch (Exception e) {
-          String message =
-              String.format(Locale.ROOT, "Failed to execute query [%s] on %s",
-                  oqlQuery, clientCache.getName());
-          throw new RuntimeException(message, e);
-        }
+    return new GeodeQueryEnumerable(clientCache, oqlQuery, resultRowType);
+  }
+
+  /** Enumerable over the results of an OQL query. */
+  private static class GeodeQueryEnumerable
+      extends AbstractEnumerable<@Nullable Object> {
+    private final GemFireCache clientCache;
+    private final String oqlQuery;
+    private final RelProtoDataType resultRowType;
+
+    GeodeQueryEnumerable(GemFireCache clientCache, String oqlQuery,
+        RelProtoDataType resultRowType) {
+      this.clientCache = clientCache;
+      this.oqlQuery = oqlQuery;
+      this.resultRowType = resultRowType;
+    }
+
+    @Override public Enumerator<@Nullable Object> enumerator() {
+      final QueryService queryService = clientCache.getQueryService();
+      try {
+        SelectResults results = (SelectResults) queryService.newQuery(oqlQuery).execute();
+        return new GeodeEnumerator(results, resultRowType);
+      } catch (Exception e) {
+        String message =
+            String.format(Locale.ROOT, "Failed to execute query [%s] on %s",
+                oqlQuery, clientCache.getName());
+        throw new RuntimeException(message, e);
       }
-    };
+    }
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -262,7 +277,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
      * Called via code-generation.
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> query(
+    public Enumerable<@Nullable Object> query(
         List<Map.Entry<String, Class>> fields,
         List<Map.Entry<String, String>> selectFields,
         List<Map.Entry<String, String>> aggregateFunctions,

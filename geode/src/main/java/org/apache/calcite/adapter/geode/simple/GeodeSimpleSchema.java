@@ -25,6 +25,8 @@ import org.apache.geode.cache.client.ClientCache;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Map;
 
 import static org.apache.calcite.adapter.geode.util.GeodeUtils.autodetectRelTypeFromRegion;
@@ -38,7 +40,7 @@ public class GeodeSimpleSchema extends AbstractSchema {
   private final String[] regionNames;
   @SuppressWarnings("unused")
   private final ClientCache clientCache;
-  private ImmutableMap<String, Table> tableMap;
+  private @Nullable ImmutableMap<String, Table> tableMap;
 
   public GeodeSimpleSchema(String locatorHost, int locatorPort,
       String[] regionNames, String pdxAutoSerializerPackageExp) {

@@ -65,7 +65,8 @@ public class GeodeSort extends Sort implements GeodeRel {
   }
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
-      RelCollation newCollation, RexNode offset, RexNode fetch) {
+      RelCollation newCollation, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     return new GeodeSort(getCluster(), traitSet, input, collation, fetch);
   }
 

@@ -261,8 +261,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private String translateOr(List<RexNode> disjunctions) {
       List<String> predicates = new ArrayList<>();
 
-      List<String> leftFieldNameList = new ArrayList<>();
-      List<String> inSetLeftFieldNameList = new ArrayList<>();
+      List<@Nullable String> leftFieldNameList = new ArrayList<>();
+      List<@Nullable String> inSetLeftFieldNameList = new ArrayList<>();
 
       for (RexNode node : disjunctions) {
         final String leftNodeFieldName = getLeftNodeFieldNameForNode(node);

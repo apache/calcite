@@ -29,6 +29,9 @@ import java.util.Map;
 
 import static org.apache.calcite.adapter.geode.util.GeodeUtils.createClientCache;
 
+import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates a {@link GeodeSchema}.
  */
@@ -49,10 +52,16 @@ public class GeodeSchemaFactory implements SchemaFactory {
   @Override public synchronized Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
-    String locatorHost = (String) map.get(LOCATOR_HOST);
-    int locatorPort = Integer.valueOf((String) map.get(LOCATOR_PORT));
-    String[] regionNames = ((String) map.get(REGIONS)).split(COMMA_DELIMITER);
-    String pbxSerializablePackagePath = (String) map.get(PDX_SERIALIZABLE_PACKAGE_PATH);
+    String locatorHost =
+        requireNonNull((String) map.get(LOCATOR_HOST), "locatorHost");
+    int locatorPort =
+        parseInt(
+            requireNonNull((String) map.get(LOCATOR_PORT), "locatorPort"));
+    String[] regionNames =
+        requireNonNull((String) map.get(REGIONS), "regions").split(COMMA_DELIMITER);
+    String pbxSerializablePackagePath =
+        requireNonNull((String) map.get(PDX_SERIALIZABLE_PACKAGE_PATH),
+            "pdxSerializablePackagePath");
 
     boolean allowSpatialFunctions = true;
     if (map.containsKey(ALLOW_SPATIAL_FUNCTIONS)) {

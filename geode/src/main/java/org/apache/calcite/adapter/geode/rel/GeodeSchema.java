@@ -26,6 +26,8 @@ import org.apache.geode.cache.Region;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +40,7 @@ public class GeodeSchema extends AbstractSchema {
 
   final GemFireCache cache;
   private final List<String> regionNames;
-  private ImmutableMap<String, Table> tableMap;
+  private @Nullable ImmutableMap<String, Table> tableMap;
 
   public GeodeSchema(final GemFireCache gemFireCache, final Iterable<String> regionNames) {
     super();
