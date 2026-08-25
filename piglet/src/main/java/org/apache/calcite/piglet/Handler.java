@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Walks over a Piglet AST and calls the corresponding methods in a
  * {@link PigRelBuilder}.
@@ -213,7 +215,9 @@ public class Handler {
     final ImmutableList.Builder<RexLiteral> listBuilder =
         ImmutableList.builder();
     for (Ast.Node node : nodeList) {
-      listBuilder.add(item(node, type.getComponentType()));
+      listBuilder.add(
+          item(node,
+              requireNonNull(type.getComponentType(), () -> "componentType of " + type)));
     }
     return listBuilder.build();
   }
