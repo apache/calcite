@@ -45,7 +45,6 @@ public enum DruidType {
 
   /** Returns a DruidType matching the given String type from a Druid metric. */
   static DruidType getTypeFromMetric(String type) {
-    requireNonNull(type, "type");
     if (type.equals("hyperUnique")) {
       return HYPER_UNIQUE;
     } else if (type.equals("thetaSketch")) {

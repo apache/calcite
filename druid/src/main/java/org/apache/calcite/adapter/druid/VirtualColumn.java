@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.Locale;
 
@@ -36,9 +38,9 @@ public class VirtualColumn implements DruidJson {
 
   private final DruidType outputType;
 
-  public VirtualColumn(String name, String expression, DruidType outputType) {
-    this.name = requireNonNull(name, "name");
-    this.expression = requireNonNull(expression, "expression");
+  public VirtualColumn(String name, String expression, @Nullable DruidType outputType) {
+    this.name = name;
+    this.expression = expression;
     this.outputType = outputType == null ? DruidType.FLOAT : outputType;
   }
 
@@ -67,11 +69,11 @@ public class VirtualColumn implements DruidJson {
    * Virtual Column builder.
    */
   public static class Builder {
-    private String name;
+    private @Nullable String name;
 
-    private String expression;
+    private @Nullable String expression;
 
-    private DruidType type;
+    private @Nullable DruidType type;
 
     public Builder withName(String name) {
       this.name = name;
@@ -83,13 +85,14 @@ public class VirtualColumn implements DruidJson {
       return this;
     }
 
-    public Builder withType(DruidType type) {
+    public Builder withType(@Nullable DruidType type) {
       this.type = type;
       return this;
     }
 
     public VirtualColumn build() {
-      return new VirtualColumn(name, expression, type);
+      return new VirtualColumn(requireNonNull(name, "name"),
+          requireNonNull(expression, "expression"), type);
     }
   }
 

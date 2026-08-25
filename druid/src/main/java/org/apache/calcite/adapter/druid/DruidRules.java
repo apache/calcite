@@ -409,13 +409,9 @@ public class DruidRules {
           cluster.getTypeFactory().builder();
       final RelNode input = Util.last(query.rels);
       for (RexNode e : below) {
-        final String name;
-        if (e instanceof RexInputRef) {
-          name = input.getRowType().getFieldNames().get(((RexInputRef) e).getIndex());
-        } else {
-          name = null;
-        }
-        builder.add(name, e.getType());
+        // splitProjects puts nothing but input references below
+        final RexInputRef ref = (RexInputRef) e;
+        builder.add(input.getRowType().getFieldNames().get(ref.getIndex()), e.getType());
       }
       final RelNode newProject =
           project.copy(project.getTraitSet(), input, below, builder.build());
@@ -668,7 +664,6 @@ public class DruidRules {
     private static DruidQuery optimizeFilteredAggregations(RelOptRuleCall call,
         DruidQuery query,
         Project project, Aggregate aggregate) {
-      Filter filter = null;
       final RexBuilder builder = query.getCluster().getRexBuilder();
       final RexExecutor executor =
           Util.first(query.getCluster().getPlanner().getExecutor(),
@@ -679,12 +674,11 @@ public class DruidRules {
       final RexSimplify simplify =
           new RexSimplify(builder, predicates, executor);
 
-      // if the druid query originally contained a filter
-      boolean containsFilter = false;
+      // the filter the druid query originally contained, if it contained one
+      Filter oldFilter = null;
       for (RelNode node : query.rels) {
         if (node instanceof Filter) {
-          filter = (Filter) node;
-          containsFilter = true;
+          oldFilter = (Filter) node;
           break;
         }
       }
@@ -720,9 +714,10 @@ public class DruidRules {
           aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
               aggregate.getGroupSet(), aggregate.getGroupSets(), newCalls);
 
-      if (containsFilter) {
+      if (oldFilter != null) {
         // AND the current filterNode with the filter node inside filter
-        filterNode = builder.makeCall(SqlStdOperatorTable.AND, filterNode, filter.getCondition());
+        filterNode =
+            builder.makeCall(SqlStdOperatorTable.AND, filterNode, oldFilter.getCondition());
       }
 
       // Simplify the filter as much as possible
@@ -741,19 +736,20 @@ public class DruidRules {
         filterNode = tempFilterNode;
       }
 
-      filter = LogicalFilter.create(scan, filterNode);
+      final Filter filter = LogicalFilter.create(scan, filterNode);
 
       boolean addNewFilter = !filter.getCondition().isAlwaysTrue() && allHaveFilters;
       // Assumes that Filter nodes are always right after
       // TableScan nodes (which are always present)
-      int startIndex = containsFilter && addNewFilter ? 2 : 1;
+      int startIndex = oldFilter != null && addNewFilter ? 2 : 1;
 
       List<RelNode> newNodes =
           constructNewNodes(query.rels, addNewFilter, startIndex,
               filter, project, aggregate);
 
       return DruidQuery.create(query.getCluster(),
-             aggregate.getTraitSet().replace(query.getConvention()),
+             aggregate.getTraitSet()
+                 .replace(requireNonNull(query.getConvention(), "convention")),
              query.getTable(), query.druidTable, newNodes);
     }
 
