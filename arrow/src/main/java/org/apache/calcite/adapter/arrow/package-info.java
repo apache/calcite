@@ -18,4 +18,7 @@
 /**
  * Query provider that reads from Arrow files.
  */
+@NullMarked
 package org.apache.calcite.adapter.arrow;
+
+import org.jspecify.annotations.NullMarked;

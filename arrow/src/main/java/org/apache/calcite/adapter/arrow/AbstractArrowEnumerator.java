@@ -28,6 +28,8 @@ import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.types.TimeUnit;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +37,7 @@ import java.util.List;
 /**
  * Enumerator that reads from a collection of Arrow value-vectors.
  */
-abstract class AbstractArrowEnumerator implements Enumerator<Object> {
+abstract class AbstractArrowEnumerator implements Enumerator<@Nullable Object> {
   protected final ArrowFileReader arrowFileReader;
   protected final List<Integer> fields;
   protected final List<ValueVector> valueVectors;
@@ -82,11 +84,11 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
     }
   }
 
-  @Override public Object current() {
+  @Override public @Nullable Object current() {
     if (fields.size() == 1) {
       return getValue(this.valueVectors.get(0), currRowIndex);
     }
-    Object[] current = new Object[valueVectors.size()];
+    final @Nullable Object[] current = new Object[valueVectors.size()];
     for (int i = 0; i < valueVectors.size(); i++) {
       ValueVector vector = this.valueVectors.get(i);
       current[i] = getValue(vector, currRowIndex);
@@ -99,7 +101,7 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
    * <p>For {@link TimeStampVector}, converts the raw value to
    * milliseconds since epoch, which is the representation used by
    * Calcite's Enumerable runtime for TIMESTAMP types. */
-  protected static Object getValue(ValueVector vector, int index) {
+  protected static @Nullable Object getValue(ValueVector vector, int index) {
     if (vector instanceof TimeStampVector) {
       if (vector.isNull(index)) {
         return null;
