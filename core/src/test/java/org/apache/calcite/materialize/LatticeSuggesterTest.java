@@ -20,13 +20,19 @@ import org.apache.calcite.materialize.Lattice.Measure;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
@@ -56,6 +62,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -69,6 +76,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * Unit tests for {@link LatticeSuggester}.
@@ -846,6 +854,36 @@ class LatticeSuggesterTest {
         + "GROUP BY \"num_children_at_home\" + 10, CAST(\"num_children_at_home\" AS DOUBLE) + 11";
     assertThat(lattice.sql(groupSet, true, measures),
         is(sql));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7558">[CALCITE-7558]
+   * Lattice.Measure.compareTo() collapses distinct aggregates that share the
+   * same name</a>. */
+  @Test void testMeasureNaturalOrderingKeepsDistinctAggregatorsWithSameName() {
+    final SqlAggFunction builtInSum = SqlStdOperatorTable.SUM;
+    final SqlAggFunction sameKindSum =
+        SqlBasicAggFunction.create("SUM", SqlKind.SUM,
+            ReturnTypes.ARG0_NULLABLE, OperandTypes.NUMERIC);
+    final SqlAggFunction otherKindSum =
+        SqlBasicAggFunction.create("SUM", SqlKind.OTHER_FUNCTION,
+            ReturnTypes.ARG0_NULLABLE, OperandTypes.NUMERIC);
+
+    final Measure builtInMeasure =
+        new Measure(builtInSum, false, "SUM", ImmutableList.of());
+    final Measure sameKindMeasure =
+        new Measure(sameKindSum, false, "SUM", ImmutableList.of());
+    final Measure otherKindMeasure =
+        new Measure(otherKindSum, false, "SUM", ImmutableList.of());
+    assertNotEquals(builtInMeasure, sameKindMeasure);
+    assertNotEquals(builtInMeasure, otherKindMeasure);
+    assertNotEquals(sameKindMeasure, otherKindMeasure);
+
+    final TreeSet<Measure> measures = new TreeSet<>();
+    measures.add(builtInMeasure);
+    measures.add(sameKindMeasure);
+    measures.add(otherKindMeasure);
+    assertThat(measures, hasSize(3));
   }
 
   private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec)

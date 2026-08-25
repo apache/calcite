@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -72,6 +73,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -577,6 +579,12 @@ public class Lattice {
    * COUNT(DISTINCT customer.id).
    */
   public static class Measure implements Comparable<Measure> {
+    /** Distinguishes aggregate functions that have the same name, using the
+     * other properties that {@link SqlOperator#equals(Object)} compares. */
+    private static final Comparator<SqlOperator> AGG_TIE_BREAKER =
+        Comparator.comparing((SqlOperator op) -> op.getKind().name())
+            .thenComparing((SqlOperator op) -> op.getClass().getName());
+
     public final SqlAggFunction agg;
     public final boolean distinct;
     public final @Nullable String name;
@@ -615,6 +623,9 @@ public class Lattice {
         c = agg.getName().compareTo(measure.agg.getName());
         if (c == 0) {
           c = Boolean.compare(distinct, measure.distinct);
+          if (c == 0) {
+            c = AGG_TIE_BREAKER.compare(agg, measure.agg);
+          }
         }
       }
       return c;
