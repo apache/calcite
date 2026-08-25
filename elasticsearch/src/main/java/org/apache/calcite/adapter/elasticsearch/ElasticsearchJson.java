@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.StreamSupport;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
@@ -69,7 +68,7 @@ final class ElasticsearchJson {
    * Visits leaves of the aggregation where all values are stored.
    */
   static void visitValueNodes(Aggregations aggregations,
-      Consumer<Map<String, Object>> consumer) {
+      Consumer<Map<String, @Nullable Object>> consumer) {
     requireNonNull(aggregations, "aggregations");
     requireNonNull(consumer, "consumer");
 
@@ -81,12 +80,12 @@ final class ElasticsearchJson {
     rows.forEach((k, v) -> {
       if (v.stream().allMatch(val -> val instanceof GroupValue)) {
         v.forEach(tuple -> {
-          Map<String, Object> groupRow = new LinkedHashMap<>(k.keys);
+          Map<String, @Nullable Object> groupRow = new LinkedHashMap<>(k.keys);
           groupRow.put(tuple.getName(), tuple.value());
           consumer.accept(groupRow);
         });
       } else {
-        Map<String, Object> row = new LinkedHashMap<>(k.keys);
+        Map<String, @Nullable Object> row = new LinkedHashMap<>(k.keys);
         v.forEach(val -> row.put(val.getName(), val.value()));
         consumer.accept(row);
       }
@@ -172,10 +171,10 @@ final class ElasticsearchJson {
    * Identifies a Calcite row (as in relational algebra).
    */
   private static class RowKey {
-    private final Map<String, Object> keys;
+    private final Map<String, @Nullable Object> keys;
     private final int hashCode;
 
-    private RowKey(final Map<String, Object> keys) {
+    private RowKey(final Map<String, @Nullable Object> keys) {
       this.keys = requireNonNull(keys, "keys");
       this.hashCode = Objects.hashCode(keys);
     }
@@ -184,14 +183,13 @@ final class ElasticsearchJson {
       this(toMap(buckets));
     }
 
-    private static Map<String, Object> toMap(Iterable<Bucket> buckets) {
-      return StreamSupport.stream(buckets.spliterator(), false)
-          .collect(LinkedHashMap::new,
-              (m, v) -> m.put(v.getName(), v.key()),
-              LinkedHashMap::putAll);
+    private static Map<String, @Nullable Object> toMap(Iterable<Bucket> buckets) {
+      final Map<String, @Nullable Object> map = new LinkedHashMap<>();
+      buckets.forEach(b -> map.put(b.getName(), b.key()));
+      return map;
     }
 
-    @Override public boolean equals(final Object o) {
+    @Override public boolean equals(final @Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -368,13 +366,13 @@ final class ElasticsearchJson {
      * ID of the document (not available in aggregations).
      */
     private final String id;
-    private final Map<String, Object> source;
-    private final Map<String, Object> fields;
+    private final @Nullable Map<String, Object> source;
+    private final @Nullable Map<String, Object> fields;
 
     @JsonCreator
     SearchHit(@JsonProperty(ElasticsearchConstants.ID) final String id,
-                      @JsonProperty("_source") final Map<String, Object> source,
-                      @JsonProperty("fields") final Map<String, Object> fields) {
+                      @JsonProperty("_source") final @Nullable Map<String, Object> source,
+                      @JsonProperty("fields") final @Nullable Map<String, Object> fields) {
       this.id = requireNonNull(id, "id");
 
       // both can't be null
@@ -406,7 +404,7 @@ final class ElasticsearchJson {
       return id;
     }
 
-    Object valueOrNull(String name) {
+    @Nullable Object valueOrNull(String name) {
       requireNonNull(name, "name");
 
       // for "select *" return whole document
@@ -462,16 +460,16 @@ final class ElasticsearchJson {
       return null;
     }
 
-    Map<String, Object> source() {
+    @Nullable Map<String, Object> source() {
       return source;
     }
 
-    Map<String, Object> fields() {
+    @Nullable Map<String, Object> fields() {
       return fields;
     }
 
     Map<String, Object> sourceOrFields() {
-      return source != null ? source : fields;
+      return source != null ? source : requireNonNull(fields, "fields");
     }
   }
 
@@ -483,7 +481,7 @@ final class ElasticsearchJson {
   static class Aggregations implements Iterable<Aggregation> {
 
     private final List<? extends Aggregation> aggregations;
-    private Map<String, Aggregation> aggregationsAsMap;
+    private @Nullable Map<String, Aggregation> aggregationsAsMap;
 
     Aggregations(List<? extends Aggregation> aggregations) {
       this.aggregations = requireNonNull(aggregations, "aggregations");
@@ -521,11 +519,11 @@ final class ElasticsearchJson {
      * Returns the aggregation that is associated with the specified name.
      */
     @SuppressWarnings("unchecked")
-    public final <A extends Aggregation> A get(String name) {
+    public final <A extends Aggregation> @Nullable A get(String name) {
       return (A) asMap().get(name);
     }
 
-    @Override public final boolean equals(Object obj) {
+    @Override public final boolean equals(@Nullable Object obj) {
       if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
@@ -589,11 +587,11 @@ final class ElasticsearchJson {
    * by a key, and can potentially hold sub-aggregations computed over all documents in it.
    */
   static class Bucket implements HasAggregations, Aggregation {
-    private final Object key;
+    private final @Nullable Object key;
     private final String name;
     private final Aggregations aggregations;
 
-    Bucket(final Object key,
+    Bucket(final @Nullable Object key,
         final String name,
         final Aggregations aggregations) {
       this.key = key; // key can be set after construction
@@ -604,7 +602,7 @@ final class ElasticsearchJson {
     /**
      * Returns the key associated with the bucket.
      */
-    Object key() {
+    @Nullable Object key() {
       return key;
     }
 
@@ -640,9 +638,9 @@ final class ElasticsearchJson {
    */
   static class MultiValue implements Aggregation {
     private final String name;
-    private final Map<String, Object> values;
+    private final Map<String, @Nullable Object> values;
 
-    MultiValue(final String name, final Map<String, Object> values) {
+    MultiValue(final String name, final Map<String, @Nullable Object> values) {
       this.name = requireNonNull(name, "name");
       this.values = requireNonNull(values, "values");
     }
@@ -651,7 +649,7 @@ final class ElasticsearchJson {
       return name;
     }
 
-    Map<String, Object> values() {
+    Map<String, @Nullable Object> values() {
       return values;
     }
 
@@ -678,15 +676,16 @@ final class ElasticsearchJson {
    * In order that rows which have the same key can be put into result map.
    */
   static class GroupValue extends MultiValue {
-    GroupValue(String name, Map<String, Object> values) {
+    GroupValue(String name, Map<String, @Nullable Object> values) {
       super(name, values);
     }
 
     /**
      * Constructs a {@link GroupValue} instance with a single value.
      */
-    static GroupValue of(String name, Object value) {
-      return new GroupValue(name, Collections.singletonMap("value", value));
+    static GroupValue of(String name, @Nullable Object value) {
+      return new GroupValue(name,
+          Collections.<String, @Nullable Object>singletonMap("value", value));
     }
   }
 
@@ -779,7 +778,7 @@ final class ElasticsearchJson {
       }
 
       final JsonNode keyNode = node.get("key");
-      final Object key;
+      final @Nullable Object key;
       if (isMissingBucket(keyNode) || keyNode.isNull()) {
         key = null;
       } else if (keyNode.isTextual()) {
