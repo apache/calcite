@@ -43,11 +43,14 @@ import org.apache.calcite.util.NlsString;
 import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule to push filters and projections to Splunk.
@@ -210,10 +213,10 @@ public class SplunkPushDownRule
   protected RelNode appendSearchString(
       String toAppend,
       SplunkTableScan splunkRel,
-      LogicalProject topProj,
-      LogicalProject bottomProj,
-      RelDataType topRow,
-      RelDataType bottomRow) {
+      @Nullable LogicalProject topProj,
+      @Nullable LogicalProject bottomProj,
+      @Nullable RelDataType topRow,
+      @Nullable RelDataType bottomRow) {
     final RelOptCluster cluster = splunkRel.getCluster();
     StringBuilder updateSearchStr = new StringBuilder(splunkRel.search);
 
@@ -252,6 +255,7 @@ public class SplunkPushDownRule
     // handle top projection (ie reordering and renaming)
     List<RelDataTypeField> newFields = bottomFields;
     if (topProj != null) {
+      requireNonNull(topFields, "topFields");
       LOGGER.debug("topProj: {}", topProj.getPermutation());
       newFields = new ArrayList<>();
       int i = 0;
@@ -415,13 +419,13 @@ public class SplunkPushDownRule
     return str;
   }
 
-  private static String toString(boolean like, RexLiteral literal) {
+  private static @Nullable String toString(boolean like, RexLiteral literal) {
     String value = null;
     SqlTypeName litSqlType = literal.getTypeName();
     if (SqlTypeName.NUMERIC_TYPES.contains(litSqlType)) {
-      value = literal.getValue().toString();
+      value = requireNonNull(literal.getValue(), "literal value").toString();
     } else if (litSqlType == SqlTypeName.CHAR) {
-      value = ((NlsString) literal.getValue()).getValue();
+      value = ((NlsString) requireNonNull(literal.getValue(), "literal value")).getValue();
       if (like) {
         value = value.replace("%", "*");
       }

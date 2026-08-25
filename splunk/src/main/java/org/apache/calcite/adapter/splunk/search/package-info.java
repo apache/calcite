@@ -18,4 +18,7 @@
 /**
  * Executes queries via Splunk's REST API.
  */
+@NullMarked
 package org.apache.calcite.adapter.splunk.search;
+
+import org.jspecify.annotations.NullMarked;

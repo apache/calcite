@@ -22,4 +22,7 @@
  * "host", "index", "source", "sourcetype". It has a variable type, so other
  * fields are held in a map field called "_others".
  */
+@NullMarked
 package org.apache.calcite.adapter.splunk;
+
+import org.jspecify.annotations.NullMarked;

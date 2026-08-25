@@ -68,7 +68,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final URL url;
   final String username;
   final String password;
-  String sessionKey;
+  @Nullable String sessionKey;
   final Map<String, String> requestHeaders = new HashMap<>();
 
   public SplunkConnectionImpl(String url, String username, String password)
@@ -83,7 +83,10 @@ public class SplunkConnectionImpl implements SplunkConnection {
     connect();
   }
 
-  private static void close(Closeable c) {
+  private static void close(@Nullable Closeable c) {
+    if (c == null) {
+      return;
+    }
     try {
       c.close();
     } catch (Exception ignore) {
@@ -392,18 +395,20 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
 
     @Override public Object current() {
-      return current;
+      return requireNonNull(current, "current");
     }
 
     @Override public boolean moveNext() {
       try {
+        final String[] fieldNames = this.fieldNames;
         String[] line;
-        while ((line = csvReader.readNext()) != null) {
+        while (fieldNames != null && (line = csvReader.readNext()) != null) {
           if (line.length == fieldNames.length) {
             switch (source) {
             case -3:
               // Re-map using sources
-              String[] mapped = new String[sources.length];
+              final int[] sources = requireNonNull(this.sources, "sources");
+              final @Nullable String[] mapped = new String[sources.length];
               for (int i = 0; i < sources.length; i++) {
                 int source1 = sources[i];
                 mapped[i] = source1 < 0 ? null : line[source1];

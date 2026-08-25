@@ -39,6 +39,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -61,8 +63,8 @@ public class SplunkTableScan
     implements EnumerableRel {
   final SplunkTable splunkTable;
   final String search;
-  final String earliest;
-  final String latest;
+  final @Nullable String earliest;
+  final @Nullable String latest;
   final List<String> fieldList;
 
   protected SplunkTableScan(
@@ -70,8 +72,8 @@ public class SplunkTableScan
       RelOptTable table,
       SplunkTable splunkTable,
       String search,
-      String earliest,
-      String latest,
+      @Nullable String earliest,
+      @Nullable String latest,
       List<String> fieldList) {
     super(
         cluster,
@@ -105,7 +107,8 @@ public class SplunkTableScan
         getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
       // REVIEW: is case-sensitive match what we want here?
-      builder.add(table.getRowType().getField(field, true, false));
+      builder.add(
+          requireNonNull(table.getRowType().getField(field, true, false), field));
     }
     return builder.build();
   }
