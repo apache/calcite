@@ -21,7 +21,11 @@ import java.util.List;
 
 /**
  * get the redis table's field info.
+ *
+ * <p>{@link RedisSchema#getTableFieldInfo} sets every field right after
+ * construction, which is why they are not initialized here.
  */
+@SuppressWarnings("NullAway.Init")
 public class RedisTableFieldInfo {
   private String tableName;
   private String dataFormat;
