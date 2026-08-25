@@ -18,6 +18,8 @@ package org.apache.calcite.piglet;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Locale;
@@ -88,7 +90,7 @@ class PigUdfFinder {
   /**
    * Finds "exec" method from a given array of methods.
    */
-  private static Method findExecMethod(Method[] methods) {
+  private static @Nullable Method findExecMethod(Method @Nullable [] methods) {
     if (methods == null) {
       return null;
     }

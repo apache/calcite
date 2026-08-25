@@ -236,7 +236,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
           pigRelOp.getPlan().getPredecessors(pigRelOp).get(op.getInputNum());
       if (builder.checkMap(childOp)) {
         // Inner plan that has been processed before (nested foreach or flatten)
-        builder.push(builder.getRel(childOp));
+        builder.push(requireNonNull(builder.getRel(childOp), "rel"));
         final List<RexNode> fields = builder.getFields(inputCount, inputOrdinal, op.getColNum());
 
         for (int i = fields.size() - 1; i >= 0; i--) {
@@ -364,7 +364,8 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
             builder, op.getFuncSpec(), buildOperands(numAgrs), returnType));
 
     String className = op.getFuncSpec().getClassName();
-    SqlOperator sqlOp = ((RexCall) stack.peek()).getOperator();
+    SqlOperator sqlOp =
+        ((RexCall) requireNonNull(stack.peek(), "stack.peek()")).getOperator();
     if (sqlOp instanceof SqlUserDefinedFunction) {
       ScalarFunctionImpl sqlFunc =
           (ScalarFunctionImpl) ((SqlUserDefinedFunction) sqlOp).getFunction();
@@ -450,9 +451,11 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     final int index = ((BigDecimal) ((RexLiteral) operand2).getValue()).intValue();
 
     RelNode referencedRel =
-        builder.getRel(
-            ((LogicalRelationalOperator) op.getImplicitReferencedOperator())
-                .getAlias());
+        requireNonNull(
+            builder.getRel(
+                ((LogicalRelationalOperator) op.getImplicitReferencedOperator())
+                    .getAlias()),
+            "referencedRel");
     builder.push(referencedRel);
     List<RexNode> projectCol = Lists.newArrayList(builder.field(index));
     builder.project(projectCol);

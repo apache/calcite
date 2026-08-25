@@ -31,16 +31,18 @@ import org.apache.pig.FuncSpec;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
+
 /** Pig user-defined function. */
 public class PigUserDefinedFunction extends SqlUserDefinedFunction {
-  public final FuncSpec funcSpec;
+  public final @Nullable FuncSpec funcSpec;
 
   private PigUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandMetadata operandMetadata,
       Function function,
-      FuncSpec funcSpec) {
+      @Nullable FuncSpec funcSpec) {
     super(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
         operandTypeInference, operandMetadata, function,
         SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR, SqlSyntax.FUNCTION);
@@ -50,7 +52,7 @@ public class PigUserDefinedFunction extends SqlUserDefinedFunction {
   public PigUserDefinedFunction(String name,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandMetadata operandMetadata, Function function,
-      FuncSpec funcSpec) {
+      @Nullable FuncSpec funcSpec) {
     this(new SqlIdentifier(ImmutableList.of(name), SqlParserPos.ZERO),
         returnTypeInference, null, operandMetadata, function, funcSpec);
   }

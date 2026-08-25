@@ -71,6 +71,6 @@ public class PigTable extends AbstractTable implements ScannableTable {
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
-    return null;
+    throw new UnsupportedOperationException("PigTable cannot be scanned");
   }
 }

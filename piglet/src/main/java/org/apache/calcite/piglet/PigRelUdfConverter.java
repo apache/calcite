@@ -32,6 +32,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.Map;
 
@@ -169,7 +171,7 @@ class PigRelUdfConverter {
    *
    * @param call Pig aggregate UDF call
    */
-  static SqlAggFunction getSqlAggFuncForPigUdf(RexCall call) {
+  static @Nullable SqlAggFunction getSqlAggFuncForPigUdf(RexCall call) {
     if (!(call.getOperator() instanceof PigUserDefinedFunction)) {
       return null;
     }

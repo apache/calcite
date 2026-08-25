@@ -16,4 +16,7 @@
  */
 
 /** Piglet, a Pig-like language. */
+@NullMarked
 package org.apache.calcite.piglet;
+
+import org.jspecify.annotations.NullMarked;
