@@ -37,8 +37,8 @@ public class CpuInfoTableFunction {
   public static ScannableTable eval(boolean b) {
     return new AbstractBaseScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             return new OsQuery("cpu_info");
           }
         };
