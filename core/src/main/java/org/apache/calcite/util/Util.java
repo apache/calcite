@@ -2900,7 +2900,7 @@ public class Util {
   public static class OverFinder extends SqlBasicVisitor<@Nullable Void> {
     public static final OverFinder INSTANCE = new Util.OverFinder();
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       if (call.getKind() == SqlKind.OVER) {
         throw FoundOne.NULL;
       }

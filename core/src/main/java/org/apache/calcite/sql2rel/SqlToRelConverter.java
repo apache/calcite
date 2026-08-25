@@ -6759,7 +6759,7 @@ public class SqlToRelConverter {
     final List<SqlNode> distinctList = new ArrayList<>();
     final List<SqlNode> orderList = new ArrayList<>();
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       // ignore window aggregates and ranking functions (associated with OVER operator)
       if (call.getOperator().getKind() == SqlKind.OVER) {
         return null;

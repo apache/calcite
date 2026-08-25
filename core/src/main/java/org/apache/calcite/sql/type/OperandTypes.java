@@ -2057,12 +2057,12 @@ public abstract class OperandTypes {
         this.validator = validator;
       }
 
-      @Override public Void visit(SqlIdentifier id) {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         validator.removeValidatedNodeType(id);
         return super.visit(id);
       }
 
-      @Override public Void visit(SqlCall call) {
+      @Override public @Nullable Void visit(SqlCall call) {
         validator.removeValidatedNodeType(call);
         return super.visit(call);
       }

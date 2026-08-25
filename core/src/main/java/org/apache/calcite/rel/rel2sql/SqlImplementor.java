@@ -2483,7 +2483,7 @@ public abstract class SqlImplementor {
       }
       final boolean[] result = {false};
       node.accept(new SqlBasicVisitor<@Nullable Void>() {
-        @Override public Void visit(SqlCall call) {
+        @Override public @Nullable Void visit(SqlCall call) {
           if (result[0]) {
             return null;
           }
