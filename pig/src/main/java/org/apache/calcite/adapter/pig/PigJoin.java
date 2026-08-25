@@ -30,6 +30,8 @@ import org.apache.calcite.sql.SqlKind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +62,7 @@ public class PigJoin extends Join implements PigRel {
    * The Pig alias of the joined relation will have the same name as one from
    * the left side of the join.
    */
-  @Override public RelOptTable getTable() {
+  @Override public @Nullable RelOptTable getTable() {
     return getLeft().getTable();
   }
 
