@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -499,6 +500,8 @@ public class RelJson {
       return toJson((RelDataTypeField) value);
     } else if (value instanceof RelDistribution) {
       return toJson((RelDistribution) value);
+    } else if (value instanceof RelHint) {
+      return toJson((RelHint) value);
     } else if (value instanceof Sarg) {
       //noinspection unchecked,rawtypes
       return toJson((Sarg) value);
@@ -516,6 +519,64 @@ public class RelJson {
       throw new UnsupportedOperationException("type not serializable as JSON: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");
     }
+  }
+
+  /** Serializes a {@link RelHint} as a JSON map. */
+  public Object toJson(RelHint node) {
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    map.put("name", node.hintName);
+    map.put("inheritPath", node.inheritPath);
+    if (!node.listOptions.isEmpty()) {
+      map.put("options", node.listOptions);
+    }
+    if (!node.kvOptions.isEmpty()) {
+      map.put("kvOptions", node.kvOptions);
+    }
+    if (node.pos != SqlParserPos.ZERO) {
+      map.put("pos", toJson(node.pos));
+    }
+    return map;
+  }
+
+  /** Converts a JSON object, such as produced by {@link #toJson(RelHint)},
+   * into a {@link RelHint}. */
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public RelHint toHint(Map<String, @Nullable Object> map) {
+    final RelHint.Builder builder = RelHint.builder(get(map, "name"));
+    final List<Integer> inheritPath = get(map, "inheritPath");
+    if (!inheritPath.isEmpty()) {
+      builder.inheritPath(inheritPath);
+    }
+    final List<String> options = (List<String>) map.get("options");
+    if (options != null) {
+      builder.hintOptions(options);
+    }
+    final Map<String, String> kvOptions = (Map<String, String>) map.get("kvOptions");
+    if (kvOptions != null) {
+      builder.hintOptions(kvOptions);
+    }
+    final Map<String, Object> pos = (Map<String, Object>) map.get("pos");
+    if (pos != null) {
+      builder.position(
+          new SqlParserPos(get(pos, "line"), get(pos, "column"),
+          get(pos, "end_line"), get(pos, "end_column")));
+    }
+    return builder.build();
+  }
+
+  /** Converts a JSON list, such as produced by {@link #toJson(RelHint)},
+   * into a list of {@link RelHint}s. Returns an empty list if {@code o} is
+   * null. */
+  @SuppressWarnings("unchecked")
+  public List<RelHint> toHints(@Nullable Object o) {
+    if (o == null) {
+      return ImmutableList.of();
+    }
+    final List<RelHint> hints = new ArrayList<>();
+    for (Object hint : (List) o) {
+      hints.add(toHint((Map<String, @Nullable Object>) hint));
+    }
+    return hints;
   }
 
   public <C extends Comparable<C>> Object toJson(Sarg<C> node) {

@@ -16,8 +16,13 @@
  */
 package org.apache.calcite.rel.externalize;
 
+import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintPredicates;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -34,7 +39,9 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.DiffRepository;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -44,8 +51,11 @@ import org.apache.calcite.util.JsonBuilder;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
@@ -173,5 +183,55 @@ public class RelJsonTest {
             + "            \"kind\": \"SEARCH\",\n"
             + "            \"syntax\": \"INTERNAL\"\n"
             + "          },"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7743">[CALCITE-7743]
+   * RelJson cannot emit hints</a>. */
+  @Test void testHint() {
+    final String sql = "select *\n"
+        + "from \"emps\" /*+ index(name) */";
+    final String plan =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final SchemaPlus schema =
+              rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
+          final FrameworkConfig config = Frameworks.newConfigBuilder()
+              .parserConfig(SqlParser.Config.DEFAULT)
+              .defaultSchema(schema)
+              .sqlToRelConverterConfig(SqlToRelConverter.config()
+                  .withHintStrategyTable(HintStrategyTable.builder()
+                      .hintStrategy("index", HintPredicates.TABLE_SCAN)
+                      .build()))
+              .build();
+          try {
+            final Planner planner = Frameworks.getPlanner(config);
+            final SqlNode n = planner.validate(planner.parse(sql));
+            final RelNode root = planner.rel(n).project();
+            final String json =
+                RelOptUtil.dumpPlan("", root,
+                    SqlExplainFormat.JSON, SqlExplainLevel.DIGEST_ATTRIBUTES);
+
+            // Reads the plan back and verifies that the hints survive.
+            final RelJsonReader reader =
+                new RelJsonReader(cluster, relOptSchema, schema);
+            final RelNode root2 = reader.read(json);
+            final List<RelHint> expectedHints = tableScan(root).getHints();
+            assertThat(tableScan(root2).getHints(), is(expectedHints));
+            return json;
+          } catch (SqlParseException | ValidationException
+              | RelConversionException | IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+    assertThat(plan, containsString("\"name\": \"INDEX\""));
+    assertThat(plan, containsString("\"options\": ["));
+    assertThat(plan, containsString("\"NAME\""));
+  }
+
+  /** Returns the {@link TableScan} of this plan. */
+  private static TableScan tableScan(RelNode rel) {
+    if (rel instanceof TableScan) {
+      return (TableScan) rel;
+    }
+    return (TableScan) rel.getInput(0);
   }
 }

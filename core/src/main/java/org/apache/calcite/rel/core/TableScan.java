@@ -88,7 +88,7 @@ public abstract class TableScan
    * Creates a TableScan by parsing serialized output.
    */
   protected TableScan(RelInput input) {
-    this(input.getCluster(), input.getTraitSet(), ImmutableList.of(), input.getTable("table"));
+    this(input.getCluster(), input.getTraitSet(), input.getHints(), input.getTable("table"));
   }
 
   //~ Methods ----------------------------------------------------------------
