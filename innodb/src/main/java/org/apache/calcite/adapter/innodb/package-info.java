@@ -18,4 +18,7 @@
 /**
  * InnoDB query provider.
  */
+@NullMarked
 package org.apache.calcite.adapter.innodb;
+
+import org.jspecify.annotations.NullMarked;
