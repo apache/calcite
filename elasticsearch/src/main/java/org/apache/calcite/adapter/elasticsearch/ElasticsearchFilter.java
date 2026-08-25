@@ -99,9 +99,15 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
         }
       }
       if (disMax) {
-        QueryBuilders.disMaxQueryBuilder(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+        QueryBuilders.disMaxQueryBuilder(
+            requireNonNull(PredicateAnalyzer.analyze(condition),
+                () -> "query for condition " + condition))
+            .writeJson(generator);
       } else {
-        QueryBuilders.constantScoreQuery(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+        QueryBuilders.constantScoreQuery(
+            requireNonNull(PredicateAnalyzer.analyze(condition),
+                () -> "query for condition " + condition))
+            .writeJson(generator);
       }
       generator.flush();
       generator.close();
