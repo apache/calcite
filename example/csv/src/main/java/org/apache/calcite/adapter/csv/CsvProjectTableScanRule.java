@@ -46,7 +46,7 @@ public class CsvProjectTableScanRule
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalProject project = call.rel(0);
     final CsvTableScan scan = call.rel(1);
-    int @Nullable [] fields = getProjectFields(project.getProjects());
+    int [] fields = getProjectFields(project.getProjects());
     if (fields == null) {
       // Project contains expressions more complex than just field references.
       return;

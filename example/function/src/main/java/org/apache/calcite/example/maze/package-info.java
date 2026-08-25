@@ -18,4 +18,7 @@
 /**
  * User-defined table function that generates a maze.
  */
+@NullMarked
 package org.apache.calcite.example.maze;
+
+import org.jspecify.annotations.NullMarked;
