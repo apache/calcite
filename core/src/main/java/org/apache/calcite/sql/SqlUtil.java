@@ -1336,7 +1336,7 @@ public abstract class SqlUtil {
     try {
       SqlVisitor<@Nullable Void> visitor =
           new SqlBasicVisitor<@Nullable Void>() {
-            @Override public Void visit(SqlCall call) {
+            @Override public @Nullable Void visit(SqlCall call) {
               if (callPredicate.test(call)) {
                 throw new Util.FoundOne(call);
               }
@@ -1466,11 +1466,11 @@ public abstract class SqlUtil {
       ancestors.remove(ancestors.size() - 1);
     }
 
-    @Override public Void visit(SqlIdentifier id) {
+    @Override public @Nullable Void visit(SqlIdentifier id) {
       return check(id);
     }
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       preCheck(call);
       for (SqlNode node : call.getOperandList()) {
         visitChild(node);
@@ -1478,15 +1478,15 @@ public abstract class SqlUtil {
       return postCheck(call);
     }
 
-    @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+    @Override public @Nullable Void visit(SqlIntervalQualifier intervalQualifier) {
       return check(intervalQualifier);
     }
 
-    @Override public Void visit(SqlLiteral literal) {
+    @Override public @Nullable Void visit(SqlLiteral literal) {
       return check(literal);
     }
 
-    @Override public Void visit(SqlNodeList nodeList) {
+    @Override public @Nullable Void visit(SqlNodeList nodeList) {
       preCheck(nodeList);
       for (SqlNode node : nodeList) {
         visitChild(node);
@@ -1494,11 +1494,11 @@ public abstract class SqlUtil {
       return postCheck(nodeList);
     }
 
-    @Override public Void visit(SqlDynamicParam param) {
+    @Override public @Nullable Void visit(SqlDynamicParam param) {
       return check(param);
     }
 
-    @Override public Void visit(SqlDataTypeSpec type) {
+    @Override public @Nullable Void visit(SqlDataTypeSpec type) {
       return check(type);
     }
   }

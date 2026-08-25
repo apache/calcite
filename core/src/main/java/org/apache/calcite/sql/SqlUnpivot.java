@@ -145,7 +145,7 @@ public class SqlUnpivot extends SqlCall {
   public Set<String> usedColumnNames() {
     final Set<String> columnNames = new HashSet<>();
     final SqlVisitor<@Nullable Void> nameCollector = new SqlBasicVisitor<@Nullable Void>() {
-      @Override public Void visit(SqlIdentifier id) {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         columnNames.add(Util.last(id.names));
         return super.visit(id);
       }
