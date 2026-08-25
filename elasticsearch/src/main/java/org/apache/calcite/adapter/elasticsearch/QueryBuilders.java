@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -118,7 +120,7 @@ class QueryBuilders {
    * @param name  The name of the field
    * @param value The value of the term
    */
-  static TermQueryBuilder termQuery(String name, Object value) {
+  static TermQueryBuilder termQuery(String name, @Nullable Object value) {
     return new TermQueryBuilder(name, value);
   }
 
@@ -138,7 +140,7 @@ class QueryBuilders {
    * @param name  The name of the field
    * @param value The value of the term
    */
-  static MatchQueryBuilder matchQuery(String name, Object value) {
+  static MatchQueryBuilder matchQuery(String name, @Nullable Object value) {
     return new MatchQueryBuilder(name, value);
   }
 
@@ -309,9 +311,9 @@ class QueryBuilders {
    */
   static class TermQueryBuilder extends QueryBuilder {
     private final String fieldName;
-    private final Object value;
+    private final @Nullable Object value;
 
-    private TermQueryBuilder(final String fieldName, final Object value) {
+    private TermQueryBuilder(final String fieldName, final @Nullable Object value) {
       this.fieldName = requireNonNull(fieldName, "fieldName");
       this.value = requireNonNull(value, "value");
     }
@@ -361,9 +363,9 @@ class QueryBuilders {
    */
   static class MatchQueryBuilder extends QueryBuilder {
     private final String fieldName;
-    private final Object value;
+    private final @Nullable Object value;
 
-    private MatchQueryBuilder(final String fieldName, final Object value) {
+    private MatchQueryBuilder(final String fieldName, final @Nullable Object value) {
       this.fieldName = requireNonNull(fieldName, "fieldName");
       this.value = requireNonNull(value, "value");
     }
@@ -415,7 +417,8 @@ class QueryBuilders {
    * @param value JSON value to write
    * @throws IOException if can't write to output
    */
-  private static void writeObject(JsonGenerator generator, Object value) throws IOException {
+  private static void writeObject(JsonGenerator generator, @Nullable Object value)
+      throws IOException {
     generator.writeObject(value);
   }
 
@@ -425,12 +428,12 @@ class QueryBuilders {
   static class RangeQueryBuilder extends QueryBuilder {
     private final String fieldName;
 
-    private Object lt;
+    private @Nullable Object lt;
     private boolean lte;
-    private Object gt;
+    private @Nullable Object gt;
     private boolean gte;
 
-    private String format;
+    private @Nullable String format;
 
     private RangeQueryBuilder(final String fieldName) {
       this.fieldName = requireNonNull(fieldName, "fieldName");
@@ -537,8 +540,8 @@ class QueryBuilders {
         String current = value.substring(index, index + 1);
         if (index == 0) {
           if (!current.equals(escape)) {
-            current = kv.keySet().contains(current) ? kv.get(current) : current;
-            ret.add(current);
+            final String replacement = kv.get(current);
+            ret.add(replacement != null ? replacement : current);
           } else {
             escapeCount++;
           }
@@ -560,12 +563,13 @@ class QueryBuilders {
         }
 
         String last = value.substring(index - 1, index);
-        if (kv.keySet().contains(current)) {
+        final String replacement = kv.get(current);
+        if (replacement != null) {
           if (!last.equals(escape)) {
-            ret.add(kv.get(current));
+            ret.add(replacement);
           } else {
             if (escapeCount % 2 == 0) {
-              ret.add(kv.get(current));
+              ret.add(replacement);
             } else {
               ret.add(current);
             }

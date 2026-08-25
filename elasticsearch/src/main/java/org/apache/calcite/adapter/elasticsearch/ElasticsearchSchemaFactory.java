@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +93,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
 
           try {
             // Free resources allocated by this RestClient
-            notice.getValue().close();
+            requireNonNull(notice.getValue(), "client").close();
           } catch (IOException ex) {
             LOGGER.warn("Could not close RestClient {}", notice.getValue(), ex);
           }
@@ -205,8 +206,10 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
    * @return new or cached low-level rest http client for ES
    */
   @SuppressWarnings({"java:S4830", "java:S5527"})
-  private static RestClient connect(List<HttpHost> hosts, String pathPrefix,
-                                    String username, String password,
+  private static RestClient connect(List<HttpHost> hosts,
+                                    @Nullable String pathPrefix,
+                                    @Nullable String username,
+                                    @Nullable String password,
                                     boolean disableSSLVerification) {
 
     requireNonNull(hosts, "hosts or coordinates");

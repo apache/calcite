@@ -40,6 +40,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -108,7 +110,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
    * @param aggregations aggregation functions
    * @return Enumerator of results
    */
-  private Enumerable<Object> find(List<String> ops,
+  private Enumerable<@Nullable Object> find(List<String> ops,
       List<Map.Entry<String, Class>> fields,
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort,
@@ -149,7 +151,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       query.put("size", fetch);
     }
 
-    final Function1<ElasticsearchJson.SearchHit, Object> getter =
+    final Function1<ElasticsearchJson.SearchHit, @Nullable Object> getter =
         ElasticsearchEnumerators.getter(fields, ImmutableMap.copyOf(mappings));
 
     Iterable<ElasticsearchJson.SearchHit> iter;
@@ -164,7 +166,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     return Linq4j.asEnumerable(iter).select(getter);
   }
 
-  private Enumerable<Object> aggregate(List<String> ops,
+  private Enumerable<@Nullable Object> aggregate(List<String> ops,
       List<Map.Entry<String, Class>> fields,
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<String> groupBy,
@@ -305,7 +307,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       }
     }
 
-    final Function1<ElasticsearchJson.SearchHit, Object> getter =
+    final Function1<ElasticsearchJson.SearchHit, @Nullable Object> getter =
         ElasticsearchEnumerators.getter(fields, ImmutableMap.copyOf(mapping));
 
     ElasticsearchJson.SearchHits hits =
@@ -369,7 +371,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
      * @return result as enumerable
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> find(List<String> ops,
+    public Enumerable<@Nullable Object> find(List<String> ops,
          List<Map.Entry<String, Class>> fields,
          List<Map.Entry<String, RelFieldCollation.Direction>> sort,
          List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort,
