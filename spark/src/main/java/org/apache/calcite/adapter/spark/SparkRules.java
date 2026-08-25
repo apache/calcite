@@ -194,7 +194,7 @@ public abstract class SparkRules {
         RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
       return new SparkValues(
-          getCluster(), rowType, tuples, traitSet);
+          getCluster(), getRowType(), tuples, traitSet);
     }
 
     @Override public Result implementSpark(Implementor implementor) {
@@ -215,7 +215,7 @@ public abstract class SparkRules {
       final Type rowClass = physType.getJavaRowType();
 
       final List<Expression> expressions = new ArrayList<>();
-      final List<RelDataTypeField> fields = rowType.getFieldList();
+      final List<RelDataTypeField> fields = getRowType().getFieldList();
       for (List<RexLiteral> tuple : tuples) {
         final List<Expression> literals = new ArrayList<>();
         for (Pair<RelDataTypeField, RexLiteral> pair
@@ -257,7 +257,7 @@ public abstract class SparkRules {
       super(config);
     }
 
-    @Override public RelNode convert(RelNode rel) {
+    @Override public @Nullable RelNode convert(RelNode rel) {
       final LogicalCalc calc = (LogicalCalc) rel;
 
       // If there's a multiset, let FarragoMultisetSplitter work on it

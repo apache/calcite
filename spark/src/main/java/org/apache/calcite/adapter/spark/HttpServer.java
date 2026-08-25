@@ -40,7 +40,7 @@ import java.util.Collections;
  * <p>Based on Spark HttpServer, wraps a Jetty server.
  */
 class HttpServer {
-  private static String localIpAddress;
+  private static @Nullable String localIpAddress;
 
   private final File resourceBase;
 

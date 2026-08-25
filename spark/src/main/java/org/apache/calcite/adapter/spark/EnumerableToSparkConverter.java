@@ -17,12 +17,6 @@
 package org.apache.calcite.adapter.spark;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.JavaRowFormat;
-import org.apache.calcite.adapter.enumerable.PhysType;
-import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -69,28 +63,6 @@ public class EnumerableToSparkConverter
     // Generate:
     //   Enumerable source = ...;
     //   return SparkRuntime.createRdd(sparkContext, source);
-    if (true) {
-      throw new RuntimeException("EnumerableToSparkConverter is not implemented");
-    }
-    final BlockBuilder list = new BlockBuilder();
-    final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(), getRowType(),
-            JavaRowFormat.CUSTOM);
-    final Expression source = null; // TODO:
-    final Expression sparkContext =
-        Expressions.call(
-            SparkMethod.GET_SPARK_CONTEXT.method,
-            implementor.getRootExpression());
-    final Expression rdd =
-        list.append(
-            "rdd",
-            Expressions.call(
-                SparkMethod.CREATE_RDD.method,
-                sparkContext,
-                source));
-    list.add(
-        Expressions.return_(null, rdd));
-    return implementor.result(physType, list.toBlock());
+    throw new RuntimeException("EnumerableToSparkConverter is not implemented");
   }
 }
