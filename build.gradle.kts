@@ -165,7 +165,7 @@ val werror by props(true) // treat javac warnings as errors
 
 // Projects whose main code NullAway verifies. The other projects are not annotated well enough
 // yet, so NullAway would only produce noise there.
-val nullawayProjects = listOf(":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel")
+val nullawayProjects = listOf(":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel", ":redis")
 
 val hepLargePlanModeTestIncludes = mapOf(
     ":core" to listOf(

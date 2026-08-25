@@ -26,6 +26,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import redis.clients.jedis.Jedis;
@@ -44,11 +45,12 @@ public class RedisJedisManager implements AutoCloseable {
   private final JedisPoolConfig jedisPoolConfig;
 
   private final String host;
-  private final String password;
+  private final @Nullable String password;
   private final int port;
   private final int database;
 
-  public RedisJedisManager(String host, int port, int database, String password) {
+  public RedisJedisManager(String host, int port, int database,
+      @Nullable String password) {
     JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
     jedisPoolConfig.setMaxTotal(GenericObjectPoolConfig.DEFAULT_MAX_TOTAL);
     jedisPoolConfig.setMaxIdle(GenericObjectPoolConfig.DEFAULT_MAX_IDLE);
@@ -73,7 +75,7 @@ public class RedisJedisManager implements AutoCloseable {
   }
 
   private JedisPool createConsumer() {
-    String pwd = password;
+    @Nullable String pwd = password;
     if (pwd == null || pwd.isEmpty()) {
       pwd = null;
     }
