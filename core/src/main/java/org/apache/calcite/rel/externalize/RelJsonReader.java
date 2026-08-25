@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
@@ -165,6 +166,10 @@ public class RelJsonReader {
           inputs.add(lookupInput(jsonInput));
         }
         return inputs.build();
+      }
+
+      @Override public List<RelHint> getHints() {
+        return relJson.toHints(jsonRel.get("hints"));
       }
 
       @Override public @Nullable RexNode getExpression(String tag) {

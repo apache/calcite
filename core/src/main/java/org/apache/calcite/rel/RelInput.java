@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -61,6 +62,14 @@ public interface RelInput {
   @Nullable List<ImmutableBitSet> getBitSetList(String tag);
 
   List<AggregateCall> getAggregateCalls(String tag);
+
+  /**
+   * Returns the hints attached to this relational expression, or an empty
+   * list if there are none.
+   */
+  default List<RelHint> getHints() {
+    return ImmutableList.of();
+  }
 
   @Nullable Object get(String tag);
 
