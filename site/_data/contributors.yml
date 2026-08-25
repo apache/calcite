@@ -397,6 +397,11 @@
   githubId: iwanttobepowerful
   org: Tencent
   role: Committer
+- name: Weiqing Zhou
+  apacheId: zwq
+  githubId: zzwqqq
+  org:
+  role: Committer
 - name: Xiong Duan
   apacheId: xiong
   githubId: NobiGo
