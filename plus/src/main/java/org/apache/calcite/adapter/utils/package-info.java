@@ -18,4 +18,7 @@
 /**
  * Used to put OS adapter related util classes.
  */
+@NullMarked
 package org.apache.calcite.adapter.utils;
+
+import org.jspecify.annotations.NullMarked;
