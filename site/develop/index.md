@@ -227,21 +227,19 @@ push it.
 Apache Calcite annotates its code with [JSpecify](https://jspecify.dev/) and verifies it with
 [NullAway](https://github.com/uber/NullAway) to avoid unexpected `NullPointerExceptions`.
 
-Only the main code of `calcite-linq4j` and `calcite-core` is verified for now. Every package in
-those two declares `@NullMarked` in its `package-info.java`, which makes types non-nullable unless
-they are annotated `@Nullable`. The other modules and all test code stay unmarked: `@NullMarked`
-claims that a package is fully annotated, and nothing checks that claim there yet.
+NullAway verifies the main code of the modules listed in `nullawayProjects` in the root
+`build.gradle.kts`; test code is not verified. Packages in those modules declare `@NullMarked` in
+their `package-info.java`, which makes types non-nullable unless they are annotated `@Nullable`.
 
-NullAway skips a package that is not `@NullMarked`, so a missing annotation costs coverage without
-saying a word. `LintTest.testLintNullMarked` fails when a package under one of the verified source
-roots has no `package-info.java`, or has one that does not declare `@NullMarked`.
+NullAway skips code that is not `@NullMarked`, so a missing annotation would cost coverage without
+saying a word. The `RequireExplicitNullMarking` check fails the build instead when a class in a
+verified module is neither `@NullMarked` nor `@NullUnmarked`.
 
-To verify one more module, add it to `nullawayProjects` in the root `build.gradle.kts` and to
-`LintTest.NULL_MARKED_ROOTS`.
+To verify one more module, add it to `nullawayProjects` and declare `@NullMarked` in its packages.
 
-To execute NullAway locally please use the following command:
+To execute NullAway locally, run the same command as CI:
 
-    ./gradlew -PenableErrorprone :linq4j:classes :core:classes
+    ./gradlew -PenableErrorprone classes jmhClasses
 
 Here's a small introduction to null-safe programming:
 
