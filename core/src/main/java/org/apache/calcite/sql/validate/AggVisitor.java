@@ -69,7 +69,7 @@ abstract class AggVisitor extends SqlBasicVisitor<@Nullable Void> {
     this.nameMatcher = requireNonNull(nameMatcher, "nameMatcher");
   }
 
-  @Override public Void visit(SqlCall call) {
+  @Override public @Nullable Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
     if (operator.isAggregator()

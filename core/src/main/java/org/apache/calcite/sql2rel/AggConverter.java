@@ -242,7 +242,7 @@ class AggConverter implements SqlVisitor<@Nullable Void> {
     convertedInputExprs.add(expr, name);
   }
 
-  @Override public Void visit(SqlIdentifier id) {
+  @Override public @Nullable Void visit(SqlIdentifier id) {
     if (isMeasureExpr(id)) {
       final SqlCall call =
           SqlInternalOperators.AGG_M2V.createCall(SqlParserPos.ZERO, id);
@@ -256,28 +256,28 @@ class AggConverter implements SqlVisitor<@Nullable Void> {
     return null;
   }
 
-  @Override public Void visit(SqlNodeList nodeList) {
+  @Override public @Nullable Void visit(SqlNodeList nodeList) {
     nodeList.forEach(this::visitNode);
     return null;
   }
 
-  @Override public Void visit(SqlLiteral lit) {
+  @Override public @Nullable Void visit(SqlLiteral lit) {
     return null;
   }
 
-  @Override public Void visit(SqlDataTypeSpec type) {
+  @Override public @Nullable Void visit(SqlDataTypeSpec type) {
     return null;
   }
 
-  @Override public Void visit(SqlDynamicParam param) {
+  @Override public @Nullable Void visit(SqlDynamicParam param) {
     return null;
   }
 
-  @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+  @Override public @Nullable Void visit(SqlIntervalQualifier intervalQualifier) {
     return null;
   }
 
-  @Override public Void visit(SqlCall call) {
+  @Override public @Nullable Void visit(SqlCall call) {
     switch (call.getKind()) {
     case FILTER:
     case IGNORE_NULLS:

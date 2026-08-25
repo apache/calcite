@@ -1925,7 +1925,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     validateNoAggs(aggOrOverFinder, node, kind);
     node.accept(new SqlBasicVisitor<@Nullable Void>() {
-      @Override public Void visit(SqlIdentifier id) {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         if (makeNullaryCall(id) != null) {
           return null;
         }
@@ -4868,7 +4868,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
       Consumer<SqlQualified> consumer) {
     node.accept(new SqlBasicVisitor<@Nullable Void>() {
-      @Override public Void visit(SqlCall call) {
+      @Override public @Nullable Void visit(SqlCall call) {
         // Do not descend into sub-queries, whose identifiers belong to their
         // own scope; the outer scope cannot resolve them
         if (call.getKind().belongsTo(SqlKind.QUERY)) {
@@ -4876,7 +4876,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         return super.visit(call);
       }
-      @Override public Void visit(SqlIdentifier id) {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         final SqlQualified qualified = scope.fullyQualify(id);
         consumer.accept(qualified);
         return null;
@@ -6569,7 +6569,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // ok[1] is set once at least one outer column is found.
     final boolean[] ok = {true, false};
     node.accept(new SqlBasicVisitor<@Nullable Void>() {
-      @Override public Void visit(SqlIdentifier id) {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         if (!isOuterReference(currentScope, id)) {
           ok[0] = false;
           return null;
@@ -6594,7 +6594,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static boolean containsSubQuery(SqlNode node) {
     final boolean[] found = {false};
     node.accept(new SqlBasicVisitor<@Nullable Void>() {
-      @Override public Void visit(SqlCall call) {
+      @Override public @Nullable Void visit(SqlCall call) {
         if (call.getKind().belongsTo(SqlKind.QUERY)) {
           found[0] = true;
           return null;
@@ -6670,7 +6670,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   void validateSubQueriesFilterRequirement(SqlNode expr) {
     expr.accept(new SqlBasicVisitor<@Nullable Void>() {
-      @Override public Void visit(SqlCall call) {
+      @Override public @Nullable Void visit(SqlCall call) {
         if (call.getKind().belongsTo(SqlKind.QUERY)) {
           final SqlValidatorNamespace ns = getNamespace(call);
           if (ns != null) {
@@ -8602,36 +8602,36 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       this.scope = scope;
     }
 
-    @Override public Void visit(SqlLiteral literal) {
+    @Override public @Nullable Void visit(SqlLiteral literal) {
       return null;
     }
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       for (int i = 0; i < call.getOperandList().size(); i++) {
         call.getOperandList().get(i).accept(this);
       }
       return null;
     }
 
-    @Override public Void visit(SqlNodeList nodeList) {
+    @Override public @Nullable Void visit(SqlNodeList nodeList) {
       throw Util.needToImplement(nodeList);
     }
 
-    @Override public Void visit(SqlIdentifier id) {
+    @Override public @Nullable Void visit(SqlIdentifier id) {
       checkArgument(id.isSimple());
       scope.addPatternVar(id.getSimple());
       return null;
     }
 
-    @Override public Void visit(SqlDataTypeSpec type) {
+    @Override public @Nullable Void visit(SqlDataTypeSpec type) {
       throw Util.needToImplement(type);
     }
 
-    @Override public Void visit(SqlDynamicParam param) {
+    @Override public @Nullable Void visit(SqlDynamicParam param) {
       throw Util.needToImplement(param);
     }
 
-    @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+    @Override public @Nullable Void visit(SqlIntervalQualifier intervalQualifier) {
       throw Util.needToImplement(intervalQualifier);
     }
   }
@@ -9452,7 +9452,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       try {
         SqlVisitor<@Nullable Void> visitor =
             new SqlBasicVisitor<@Nullable Void>() {
-              @Override public Void visit(SqlIdentifier identifier) {
+              @Override public @Nullable Void visit(SqlIdentifier identifier) {
                 if (identifier.equalsDeep(target, Litmus.IGNORE)) {
                   throw new Util.FoundOne(target);
                 }
