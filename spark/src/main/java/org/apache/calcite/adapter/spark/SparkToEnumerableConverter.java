@@ -40,6 +40,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression that converts input of
  * {@link org.apache.calcite.adapter.spark.SparkRel#CONVENTION Spark convention}
@@ -65,7 +67,7 @@ public class SparkToEnumerableConverter
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.01);
+    return requireNonNull(super.computeSelfCost(planner, mq)).multiplyBy(.01);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
