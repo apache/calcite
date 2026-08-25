@@ -34,6 +34,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
@@ -122,7 +124,7 @@ class FileSchema extends AbstractSchema {
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Map<String, Object> tableDef) {
     final String tableName = (String) tableDef.get("name");
-    final String url = (String) tableDef.get("url");
+    final String url = requireNonNull((String) tableDef.get("url"), "url");
     final Source source0 = Sources.url(url);
     final Source source;
     if (baseDirectory == null) {
@@ -134,7 +136,8 @@ class FileSchema extends AbstractSchema {
   }
 
   private static boolean addTable(ImmutableMap.Builder<String, Table> builder,
-      Source source, String tableName, @Nullable Map<String, Object> tableDef) {
+      Source source, @Nullable String tableName,
+      @Nullable Map<String, Object> tableDef) {
     final Source sourceSansGz = source.trim(".gz");
     final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
     if (sourceSansJson != null) {

@@ -53,9 +53,9 @@ class FileTable extends AbstractQueryableTable
   private final FileRowConverter converter;
 
   /** Creates a FileTable. */
-  private FileTable(Source source, String selector, Integer index,
+  private FileTable(Source source, @Nullable String selector, @Nullable Integer index,
       @Nullable RelProtoDataType protoRowType,
-      List<Map<String, Object>> fieldConfigs) {
+      @Nullable List<Map<String, Object>> fieldConfigs) {
     super(Object[].class);
 
     this.protoRowType = protoRowType;

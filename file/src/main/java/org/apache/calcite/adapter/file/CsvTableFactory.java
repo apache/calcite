@@ -32,6 +32,8 @@ import org.jspecify.annotations.Nullable;
 import java.io.File;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates a {@link CsvTranslatableTable}.
  *
@@ -46,7 +48,7 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
 
   @Override public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, @Nullable RelDataType rowType) {
-    String fileName = (String) operand.get("file");
+    String fileName = requireNonNull((String) operand.get("file"), "file");
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final Source source = Sources.file(base, fileName);
