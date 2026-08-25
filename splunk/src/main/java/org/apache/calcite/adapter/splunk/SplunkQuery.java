@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> Element type
  */
-public class SplunkQuery<T> extends AbstractEnumerable<T> {
+public class SplunkQuery<T extends @Nullable Object> extends AbstractEnumerable<T> {
   private final SplunkConnection splunkConnection;
   private final String search;
   private final @Nullable String earliest;

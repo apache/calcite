@@ -348,7 +348,7 @@ public abstract class Linq4j {
    *
    * @return Empty enumerator
    */
-  public static <T> Enumerator<T> emptyEnumerator() {
+  public static <T extends @Nullable Object> Enumerator<T> emptyEnumerator() {
     //noinspection unchecked
     return (Enumerator<T>) EMPTY_ENUMERATOR;
   }
