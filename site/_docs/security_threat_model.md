@@ -76,7 +76,7 @@ carve-out below. A report that reaches a sink not covered here is a model gap
 | `tableFactory` and function classes | `model` | a class loaded through a Calcite table or function SPI | Surprising vs unsurprising class loading (P1) |
 | `dataSource`, `jdbcDriver` | connection property or `model` | a class loaded through a standard-Java SPI (`javax.sql.DataSource`, `java.sql.Driver`) | Surprising vs unsurprising class loading (P1); the host it then dials is P3 |
 | `fun` | connection property | selects built-in function libraries by name | no class loading; ordinary SQL semantics under P1–P4 |
-| `model` — inline JSON, a `file:` path, or a URL | connection property | schema/table factories and adapter operands | P1 (factories via SPI), P2 (local-file operands), P3 (a URL model, or a URL-fetching adapter) |
+| `model` — inline JSON, a `file:` path, or a URL | connection property | schema/table factories and adapter operands | P1 (factories via SPI), P2 (local-file operands), P3 (a URL model, or a URL-fetching adapter). Reading the model URI's own bytes is the property's documented semantics; the principal who set the connection property authorises that read. |
 | A serialized RelNode plan (`RelJson`) — types and operators | any path that reconstructs a plan from attacker input | type and operator class resolution | Surprising vs unsurprising class loading (P1) |
 | Adapter operands — e.g. a file/CSV/JSON path, or the os-adapter | `model` or SQL | the adapter's configured resource | P2 for a configured local path (opt-in ⇒ not a vulnerability); the os-adapter is opt-in (not a vulnerability) |
 
@@ -120,6 +120,9 @@ carve-out below. A report that reaches a sink not covered here is a model gap
   must add it on purpose.
 * A file, CSV, or JSON adapter reading the local path it was configured
   with. Opt-in, by the same reasoning as the os-adapter.
+* Reading the file or URL named by `model=<uri>`. The property names a
+  resource the model handler reads on connection; letting an untrusted
+  principal set connection properties authorises that read.
 * Anything that needs a changed system property or classpath. Both are
   outside the attacker's reach by assumption.
 * The behavior of a third-party driver once Calcite has connected to the
