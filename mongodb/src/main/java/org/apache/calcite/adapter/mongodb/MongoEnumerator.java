@@ -38,11 +38,12 @@ import java.util.Locale;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 /** Enumerator that reads from a MongoDB collection. */
-class MongoEnumerator implements Enumerator<Object> {
+class MongoEnumerator implements Enumerator<@Nullable Object> {
   private final Iterator<Document> cursor;
-  private final Function1<Document, Object> getter;
+  private final Function1<Document, @Nullable Object> getter;
   private @Nullable Object current;
 
   /** Creates a MongoEnumerator.
@@ -51,7 +52,7 @@ class MongoEnumerator implements Enumerator<Object> {
    * @param getter Converts an object into a list of fields
    */
   MongoEnumerator(Iterator<Document> cursor,
-      Function1<Document, Object> getter) {
+      Function1<Document, @Nullable Object> getter) {
     this.cursor = cursor;
     this.getter = getter;
   }
@@ -95,7 +96,7 @@ class MongoEnumerator implements Enumerator<Object> {
   }
 
   /** Returns a function that projects a single field. */
-  static Function1<Document, Object> singletonGetter(final String fieldName,
+  static Function1<Document, @Nullable Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
     return a0 -> convert(fieldName, a0.get(fieldName), fieldClass);
   }
@@ -104,10 +105,10 @@ class MongoEnumerator implements Enumerator<Object> {
    *
    * @param fields List of fields to project; or null to return map
    */
-  static Function1<Document, Object[]> listGetter(
+  static Function1<Document, @Nullable Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
     return a0 -> {
-      Object[] objects = new Object[fields.size()];
+      final @Nullable Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         final Map.Entry<String, Class> field = fields.get(i);
         final String name = field.getKey();
@@ -117,8 +118,8 @@ class MongoEnumerator implements Enumerator<Object> {
     };
   }
 
-  static Function1<Document, Object> getter(
-      List<Map.Entry<String, Class>> fields) {
+  static Function1<Document, @Nullable Object> getter(
+      @Nullable List<Map.Entry<String, Class>> fields) {
     //noinspection unchecked
     return fields == null
         ? (Function1) mapGetter()
@@ -162,13 +163,14 @@ class MongoEnumerator implements Enumerator<Object> {
    * </ul>
    */
   @SuppressWarnings("JavaUtilDate")
-  private static Object convert(String fieldName, Object o, Class clazz) {
-    if (o == null) {
+  private static @Nullable Object convert(String fieldName, @Nullable Object o,
+      @Nullable Class clazz) {
+    if (o == null || clazz == null) {
       return null;
     }
     Primitive primitive = Primitive.of(clazz);
     if (primitive != null) {
-      clazz = primitive.boxClass;
+      clazz = requireNonNull(primitive.boxClass, "boxClass");
     } else {
       primitive = Primitive.ofBox(clazz);
     }

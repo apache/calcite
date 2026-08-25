@@ -165,7 +165,7 @@ val werror by props(true) // treat javac warnings as errors
 
 // Projects whose main code NullAway verifies. The other projects are not annotated well enough
 // yet, so NullAway would only produce noise there.
-val nullawayProjects = listOf(":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel", ":redis", ":splunk")
+val nullawayProjects = listOf(":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel", ":redis", ":splunk", ":mongodb", ":cassandra", ":pig", ":arrow", ":innodb", ":piglet", ":geode", ":elasticsearch", ":plus", ":example:csv", ":example:function", ":testkit", ":ubenchmark")
 
 val hepLargePlanModeTestIncludes = mapOf(
     ":core" to listOf(
@@ -873,7 +873,9 @@ allprojects {
             }
             val nullawayEnabled = project.path in nullawayProjects
             tasks.withType<JavaCompile>().configureEach {
-                val mainCode = name == "compileJava"
+                // :ubenchmark keeps its sources in the jmh source set, and they are
+                // the module's own code just as much as a main source set is
+                val mainCode = name == "compileJava" || name == "compileJmhJava"
                 // NullAway reports every error it finds, and javac hides all but the first 100
                 options.compilerArgs.addAll(listOf("-Xmaxerrs", "10000"))
                 options.errorprone {
