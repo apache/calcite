@@ -493,6 +493,23 @@ public final class CalciteSystemProperty<T> {
       stringProperty("calcite.model.classes.denied", "");
 
   /**
+   * Base directory that file-based connection models
+   * ({@code model=<path>}) must reside in.
+   *
+   * <p>The {@code model} connection property is settable by a query
+   * author, and a non-{@code inline:} value is read from the local
+   * filesystem before any schema is created. When this property is empty
+   * (the default), any local path is accepted. When it is set, relative
+   * model paths resolve under the configured directory and any model path
+   * that resolves outside it is rejected. The check is lexical and does
+   * not follow symbolic links.
+   *
+   * @see org.apache.calcite.model.ModelHandler
+   */
+  public static final CalciteSystemProperty<String> MODEL_BASE_DIRECTORY =
+      stringProperty("calcite.model.baseDirectory", "");
+
+  /**
    * Maximum number of decimal digits that the plain-notation expansion of a {@code DECIMAL}
    * literal may contain.
    *

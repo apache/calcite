@@ -18,6 +18,7 @@ package org.apache.calcite.model;
 
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
@@ -53,9 +54,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -76,6 +81,11 @@ public class ModelHandler {
       .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
       .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+
+  /** Receives the detail suppressed from the client-facing message when a
+   * non-inline model cannot be read or parsed. */
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ModelHandler.class);
 
   private final SchemaPlus rootSchema;
   private final @Nullable String defaultSchemaName;
@@ -114,10 +124,53 @@ public class ModelHandler {
       root = mapper.readValue(inline, JsonRoot.class);
     } else {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
-      root = mapper.readValue(new File(uri), JsonRoot.class);
+      try {
+        root = mapper.readValue(modelFile(uri), JsonRoot.class);
+      } catch (IOException e) {
+        // The client-facing message for a non-inline model must not depend
+        // on the file's contents or on whether the file exists. Collapse everything
+        // to one path-only summary; keep the detail in the operator log.
+        LOGGER.warn("Unable to read model file '{}'", uri, e);
+        throw new IOException("Unable to read model file '" + uri
+            + "'; see log of " + ModelHandler.class.getName()
+            + " for details");
+      } catch (RuntimeException e) {
+        // Same handling for RuntimeException, just in case some custom
+        // deserializers throw it.
+        LOGGER.warn("Unable to read model file '{}'", uri, e);
+        throw new RuntimeException("Unable to read model file '" + uri
+            + "'; see log of " + ModelHandler.class.getName()
+            + " for details");
+      }
     }
     visit(root);
     this.defaultSchemaName = root.defaultSchema;
+  }
+
+  /** Resolves a non-{@code inline:} model URI to a file, enforcing
+   * {@link CalciteSystemProperty#MODEL_BASE_DIRECTORY} when it is set. */
+  private static File modelFile(String uri) {
+    return modelFile(CalciteSystemProperty.MODEL_BASE_DIRECTORY.value(), uri);
+  }
+
+  /** As {@link #modelFile(String)}, but with an explicit base directory;
+   * package-private for tests.
+   *
+   * <p>An empty base directory means "no restriction": the URI is used as
+   * given. Otherwise a relative URI resolves under the base directory,
+   * and any URI that resolves (lexically) outside it is rejected. */
+  static File modelFile(String baseDirectory, String uri) {
+    if (baseDirectory.isEmpty()) {
+      return new File(uri);
+    }
+    final Path basePath = Paths.get(baseDirectory).toAbsolutePath().normalize();
+    final Path path = basePath.resolve(uri).normalize();
+    if (!path.startsWith(basePath)) {
+      throw new SecurityException("Model file '" + uri + "' resolves"
+          + " outside the configured base directory (system property '"
+          + "calcite.model.baseDirectory')");
+    }
+    return path.toFile();
   }
 
   @Deprecated // to be removed before 2.0
