@@ -56,6 +56,8 @@ import java.util.List;
 
 import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * User-defined functions ({@link SqlUserDefinedFunction UDFs})
  * needed for Pig-to-{@link RelNode} translation.
@@ -66,11 +68,17 @@ public class PigRelSqlUdfs {
 
   // Defines ScalarFunc from their implementations
   private static final ScalarFunction PIG_TUPLE_FUNC =
-      ScalarFunctionImpl.create(PigRelSqlUdfs.class, "buildTuple");
+      requireNonNull(
+          ScalarFunctionImpl.create(PigRelSqlUdfs.class, "buildTuple"),
+          "buildTuple");
   private static final ScalarFunction PIG_BAG_FUNC =
-      ScalarFunctionImpl.create(PigRelSqlUdfs.class, "buildBag");
+      requireNonNull(
+          ScalarFunctionImpl.create(PigRelSqlUdfs.class, "buildBag"),
+          "buildBag");
   private static final ScalarFunction MULTISET_PROJECTION_FUNC =
-      ScalarFunctionImpl.create(PigRelSqlUdfs.class, "projectMultiset");
+      requireNonNull(
+          ScalarFunctionImpl.create(PigRelSqlUdfs.class, "projectMultiset"),
+          "projectMultiset");
 
   /**
    * Multiset projection projects a subset of columns from the component type
@@ -149,7 +157,9 @@ public class PigRelSqlUdfs {
       final List<RelDataTypeField> fields = source.getComponentType().getFieldList();
       // Project a multiset of single column
       if (opBinding.getOperandCount() == 2) {
-        final int fieldNo = opBinding.getOperandLiteralValue(1, Integer.class);
+        final int fieldNo =
+            requireNonNull(opBinding.getOperandLiteralValue(1, Integer.class),
+                "fieldNo");
         if (fields.size() == 1) {
           // Corner case: source with only single column, nothing to do.
           assert fieldNo == 0;
@@ -162,7 +172,9 @@ public class PigRelSqlUdfs {
       final List<String> destNames = new ArrayList<>();
       final List<RelDataType> destTypes = new ArrayList<>();
       for (int i = 1; i < opBinding.getOperandCount(); i++) {
-        final int fieldNo = opBinding.getOperandLiteralValue(i, Integer.class);
+        final int fieldNo =
+            requireNonNull(opBinding.getOperandLiteralValue(i, Integer.class),
+                "fieldNo");
         destNames.add(fields.get(fieldNo).getName());
         destTypes.add(fields.get(fieldNo).getType());
       }
@@ -203,7 +215,8 @@ public class PigRelSqlUdfs {
             return false;
           }
           final int fieldNo =
-              callBinding.getOperandLiteralValue(i, Integer.class);
+              requireNonNull(callBinding.getOperandLiteralValue(i, Integer.class),
+                  "fieldNo");
           // Field number should between 0 and maxFieldNo
           if (fieldNo < 0 || fieldNo > maxFieldNo) {
             return false;
