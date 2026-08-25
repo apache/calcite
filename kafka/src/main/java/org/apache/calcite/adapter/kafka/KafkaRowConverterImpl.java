@@ -24,6 +24,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Default implementation of {@link KafkaRowConverter}, both key and value are byte[].
  */
@@ -34,7 +36,7 @@ public class KafkaRowConverterImpl implements KafkaRowConverter<byte[], byte[]> 
    * @param topicName Kafka topic name
    * @return row type
    */
-  @Override public RelDataType rowDataType(final String topicName) {
+  @Override public RelDataType rowDataType(final @Nullable String topicName) {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
