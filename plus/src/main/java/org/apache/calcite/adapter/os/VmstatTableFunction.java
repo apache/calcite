@@ -32,6 +32,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 import static java.lang.Long.parseLong;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table function that executes the OS "vmstat" command
@@ -48,7 +49,8 @@ public class VmstatTableFunction {
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
         final String[] args;
-        final String osName = System.getProperty("os.name");
+        final String osName =
+            requireNonNull(System.getProperty("os.name"), "os.name");
         final String osVersion = System.getProperty("os.version");
         Util.discard(osVersion);
         // Fork out to a shell so that we can get normal text-munging support.
@@ -64,11 +66,11 @@ public class VmstatTableFunction {
           args = new String[]{"/bin/sh", "-c", "vmstat -n | tail -n +3"};
         }
         return Processes.processLines(args)
-            .select(
-                new Function1<String, Object[]>() {
-                  @Override public Object[] apply(String line) {
+            .<@Nullable Object[]>select(
+                new Function1<String, @Nullable Object[]>() {
+                  @Override public @Nullable Object[] apply(String line) {
                     final String[] fields = line.trim().split("\\s+");
-                    final Object[] values = new Object[fieldNames.size()];
+                    final @Nullable Object[] values = new Object[fieldNames.size()];
                     for (int i = 0; i < values.length; i++) {
                       try {
                         values[i] = field(fieldNames.get(i), fields[i]);
@@ -95,7 +97,8 @@ public class VmstatTableFunction {
       }
 
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        final String osName = System.getProperty("os.name");
+        final String osName =
+            requireNonNull(System.getProperty("os.name"), "os.name");
         final RelDataTypeFactory.Builder builder = typeFactory.builder();
         switch (osName) {
         case "Mac OS X":

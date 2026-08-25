@@ -205,7 +205,8 @@ public class FilesTableFunction {
         final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
-        final String osName = System.getProperty("os.name");
+        final String osName =
+            requireNonNull(System.getProperty("os.name"), "os.name");
         final String osVersion = System.getProperty("os.version");
         Util.discard(osVersion);
         final Enumerable<String> enumerable;
@@ -255,7 +256,7 @@ public class FilesTableFunction {
       this.osName = osName;
     }
 
-    @Override public Object[] current() {
+    @Override public @Nullable Object[] current() {
       return requireNonNull(current, "current");
     }
 

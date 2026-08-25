@@ -46,17 +46,17 @@ public class StdinTableFunction {
     return new AbstractBaseScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         final InputStream is = DataContext.Variable.STDIN.get(root);
-        return new AbstractEnumerable<Object[]>() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
           final InputStreamReader in =
               new InputStreamReader(is, StandardCharsets.UTF_8);
           final BufferedReader br = new BufferedReader(in);
 
-          @Override public Enumerator<Object[]> enumerator() {
-            return new Enumerator<Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
+            return new Enumerator<@Nullable Object[]>() {
               @Nullable String line;
               int i;
 
-              @Override public Object[] current() {
+              @Override public @Nullable Object[] current() {
                 if (line == null) {
                   throw new NoSuchElementException();
                 }

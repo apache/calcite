@@ -23,6 +23,8 @@ import org.apache.calcite.util.JsonBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -274,7 +276,7 @@ public class SqlShell {
         }
       }
 
-      private void value(StringBuilder b, String s) {
+      private void value(StringBuilder b, @Nullable String s) {
         if (s == null) {
           // do nothing - unfortunately same as empty string
         } else if (s.contains("\"")) {
@@ -312,7 +314,8 @@ public class SqlShell {
           json.append(b, 0,
               Maps.asMap(fields, columnLabel -> {
                 try {
-                  final int i1 = fieldOrdinals.get(columnLabel);
+                  final int i1 =
+                      requireNonNull(fieldOrdinals.get(columnLabel), columnLabel);
                   switch (m.getColumnType(i1)) {
                   case Types.BOOLEAN:
                     final boolean b1 = r.getBoolean(i1);
@@ -358,7 +361,7 @@ public class SqlShell {
 
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
-        final List<String> values = new ArrayList<>();
+        final List<@Nullable String> values = new ArrayList<>();
         final int[] lengths = new int[n];
         final boolean[] rights = new boolean[n];
         for (int i = 0; i < n; i++) {
@@ -435,7 +438,7 @@ public class SqlShell {
         out.println();
       }
 
-      private void value(StringBuilder b, String value, int length,
+      private void value(StringBuilder b, @Nullable String value, int length,
           boolean right) {
         if (value == null) {
           pad(b, length, ' ');
