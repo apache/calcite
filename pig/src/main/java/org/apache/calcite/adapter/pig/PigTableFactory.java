@@ -27,6 +27,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates a {@link PigTable}.
  *
@@ -40,16 +42,23 @@ public class PigTableFactory implements TableFactory<PigTable> {
   @SuppressWarnings("unchecked")
   @Override public PigTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, @Nullable RelDataType rowType) {
-    String fileName = (String) operand.get("file");
+    String fileName =
+        requireNonNull((String) operand.get("file"),
+            () -> "operand 'file' is required for table " + name);
     File file = new File(fileName);
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     if (base != null && !file.isAbsolute()) {
       file = new File(base, fileName);
     }
-    final List<String> fieldNames = (List<String>) operand.get("columns");
+    final List<String> fieldNames =
+        requireNonNull((List<String>) operand.get("columns"),
+            () -> "operand 'columns' is required for table " + name);
     final PigTable result = new PigTable(file.getAbsolutePath(), fieldNames.toArray(new String[0]));
-    schema.unwrap(PigSchema.class).registerTable(name, result);
+    requireNonNull(schema.unwrap(PigSchema.class),
+        () -> "unable to unwrap PigSchema from schema " + schema.getName()
+            + " for table " + name)
+        .registerTable(name, result);
     return result;
   }
 }

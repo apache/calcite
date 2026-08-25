@@ -27,6 +27,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,7 +60,7 @@ public class PigFilter extends Filter implements PigRel {
    * Override this method so it looks down the tree to find the table this node
    * is acting on.
    */
-  @Override public RelOptTable getTable() {
+  @Override public @Nullable RelOptTable getTable() {
     return getInput().getTable();
   }
 
