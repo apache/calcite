@@ -363,7 +363,7 @@ jobs:
           job-id: errprone
           remote-build-cache-proxy-enabled: false
           # ErrorProne checks for Beta APIs, so use the latest supported Guava version
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes jmhClasses
 
   linux-slow:
     # Run slow tests when the commit is on main or it is requested explicitly by adding an

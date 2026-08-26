@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 @Threads(1)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class ParserInstantiationBenchmark {
 
   @Param({"0", "100"})

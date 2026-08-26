@@ -18,6 +18,7 @@ package org.apache.calcite.benchmarks;
 
 import org.apache.calcite.rel.AbstractRelNode;
 
+import org.jspecify.annotations.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -39,6 +40,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A benchmark of alternative implementations for {@link AbstractRelNode#getRelTypeName()}
  * method.
@@ -56,6 +59,7 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
    * {@link org.apache.calcite.rel.RelNode} interface.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class ClassNameState {
 
     private final String[] fullNames = new String[]{
@@ -185,7 +189,7 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
     @Param({"11", "31", "63"})
     private long seed;
 
-    private Random r = null;
+    private @Nullable Random r = null;
 
     /**
      * Sets up the random number generator at the beginning of each iteration.
@@ -203,7 +207,7 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
      * interface.
      */
     public String nextName() {
-      return fullNames[r.nextInt(fullNames.length)];
+      return fullNames[requireNonNull(r, "r").nextInt(fullNames.length)];
     }
   }
 

@@ -89,6 +89,7 @@ public class CodeGenerationBenchmark {
    * exploited by the embedded compiler in order to dynamically build a Java class.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class QueryState {
     /**
      * The number of distinct queries to be generated.
@@ -111,8 +112,12 @@ public class CodeGenerationBenchmark {
     /**
      * The necessary plan information for every generated query.
      */
+    /** Set by the {@code @Setup} method that JMH calls before the trial. */
+    @SuppressWarnings("NullAway.Init")
     PlanInfo[] planInfos;
 
+    /** Set by the {@code @Setup} method that JMH calls before the trial. */
+    @SuppressWarnings("NullAway.Init")
     ICompilerFactory compilerFactory;
 
     private int currentPlan = 0;
@@ -222,7 +227,11 @@ public class CodeGenerationBenchmark {
     }
   }
 
-  /** Plan information. */
+  /** Plan information.
+   *
+   * <p>Every field is filled in as the plan is built, which is why they are
+   * not initialized here. */
+  @SuppressWarnings("NullAway.Init")
   private static class PlanInfo {
     ClassDeclaration classExpr;
     EnumerableRel plan;
@@ -234,10 +243,14 @@ public class CodeGenerationBenchmark {
    * once at the beginning of each iteration.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class CacheState {
     @Param({"10", "100", "1000"})
     int cacheSize;
 
+    /** Set by the {@code @Setup} method that JMH calls before each
+     * iteration. */
+    @SuppressWarnings("NullAway.Init")
     Cache<String, Bindable> cache;
 
     @Setup(Level.Iteration)
