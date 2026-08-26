@@ -39,7 +39,7 @@ public class NullableTest {
     return "DependentNullable [col1: " + col1 + ", col2: " + col2 + ", col3: " + col3 + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof NullableTest
         && Objects.equals(col1, ((NullableTest) obj).col1)

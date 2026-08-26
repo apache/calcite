@@ -42,7 +42,7 @@ import java.util.List;
 public abstract class SqlToRelTestBase {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final String NL = System.getProperty("line.separator");
+  protected static final String NL = System.lineSeparator();
 
   //~ Instance fields --------------------------------------------------------
 

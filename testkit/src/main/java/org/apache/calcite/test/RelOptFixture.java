@@ -97,7 +97,7 @@ public class RelOptFixture {
   final SqlTestFactory factory;
   final @Nullable DiffRepository diffRepos;
   final @Nullable HepProgram preProgram;
-  final RelOptPlanner planner;
+  final @Nullable RelOptPlanner planner;
   final ImmutableMap<Hook, Consumer<Object>> hooks;
   final BiFunction<RelOptFixture, RelNode, RelNode> before;
   final BiFunction<RelOptFixture, RelNode, RelNode> after;
@@ -107,7 +107,7 @@ public class RelOptFixture {
 
   RelOptFixture(SqlTester tester, SqlTestFactory factory,
       @Nullable DiffRepository diffRepos, RelSupplier relSupplier,
-      @Nullable HepProgram preProgram, RelOptPlanner planner,
+      @Nullable HepProgram preProgram, @Nullable RelOptPlanner planner,
       ImmutableMap<Hook, Consumer<Object>> hooks,
       BiFunction<RelOptFixture, RelNode, RelNode> before,
       BiFunction<RelOptFixture, RelNode, RelNode> after,
@@ -391,6 +391,7 @@ public class RelOptFixture {
     } else {
       r2 = relBefore;
     }
+    final RelOptPlanner planner = requireNonNull(this.planner, "planner");
     planner.setRoot(r2);
     final RelNode r3 = planner.findBestExp();
 

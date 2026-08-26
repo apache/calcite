@@ -76,7 +76,7 @@ import static java.util.Objects.requireNonNull;
  * {@link SqlValidator}.
  */
 public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
-  private  static final String NL = System.getProperty("line.separator");
+  private  static final String NL = System.lineSeparator();
 
   public AbstractSqlTester() {
   }

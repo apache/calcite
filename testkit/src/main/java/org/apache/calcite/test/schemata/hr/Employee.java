@@ -44,7 +44,7 @@ public class Employee {
         + ", name: " + name + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof Employee
         && empid == ((Employee) obj).empid;

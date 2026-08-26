@@ -40,8 +40,8 @@ public class OrdersStreamTableFactory implements TableFactory<Table> {
     return new OrdersTable(getRowList());
   }
 
-  public static ImmutableList<Object[]> getRowList() {
-    final Object[][] rows = {
+  public static ImmutableList<@Nullable Object[]> getRowList() {
+    final @Nullable Object[][] rows = {
         {ts(10, 15, 0), 1, "paint", 10},
         {ts(10, 24, 15), 2, "paper", 5},
         {ts(10, 24, 45), 3, "brush", 12},

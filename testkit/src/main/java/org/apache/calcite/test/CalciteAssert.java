@@ -133,6 +133,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -197,7 +198,7 @@ public class CalciteAssert {
           return this;
         }
 
-        @Override public <T> AssertThat doWithConnection(
+        @Override public <T extends @Nullable Object> AssertThat doWithConnection(
             Function<CalciteConnection, T> fn) {
           return this;
         }
@@ -374,7 +375,7 @@ public class CalciteAssert {
   static Consumer<ResultSet> consistentResult(final boolean ordered) {
     return new Consumer<ResultSet>() {
       int executeCount = 0;
-      Collection expected;
+      @Nullable Collection expected;
 
       @Override public void accept(ResultSet resultSet) {
         ++executeCount;
@@ -386,7 +387,8 @@ public class CalciteAssert {
             expected = result;
           } else {
             @SuppressWarnings("UndefinedEquals")
-            boolean matches = expected.equals(result);
+            boolean matches =
+                requireNonNull(expected, "expected").equals(result);
             if (!matches) {
               // compare strings to get better error message
               assertThat(newlineList(result), equalTo(newlineList(expected)));
@@ -602,7 +604,7 @@ public class CalciteAssert {
           updateCount = statement.executeUpdate(sql);
         }
         if (exceptionChecker != null) {
-          exceptionChecker.accept(null);
+          exceptionChecker.accept(castNonNull(null));
           return;
         }
       } catch (Exception | Error e) {
@@ -613,10 +615,10 @@ public class CalciteAssert {
         throw e;
       }
       if (resultChecker != null) {
-        resultChecker.accept(resultSet);
+        resultChecker.accept(requireNonNull(resultSet, "resultSet"));
       }
       if (updateChecker != null) {
-        updateChecker.accept(updateCount);
+        updateChecker.accept(requireNonNull(updateCount, "updateCount"));
       }
       if (resultSet != null) {
         resultSet.close();
@@ -678,7 +680,7 @@ public class CalciteAssert {
           updateCount = statement.executeUpdate(sql);
         }
         if (exceptionChecker != null) {
-          exceptionChecker.accept(null);
+          exceptionChecker.accept(castNonNull(null));
           return;
         }
       } catch (Exception | Error e) {
@@ -689,10 +691,10 @@ public class CalciteAssert {
         throw e;
       }
       if (resultChecker != null) {
-        resultChecker.accept(resultSet);
+        resultChecker.accept(requireNonNull(resultSet, "resultSet"));
       }
       if (updateChecker != null) {
-        updateChecker.accept(updateCount);
+        updateChecker.accept(requireNonNull(updateCount, "updateCount"));
       }
       if (resultSet != null) {
         resultSet.close();
@@ -785,7 +787,7 @@ public class CalciteAssert {
 
   /** Calls a non-static method via reflection. Useful for testing methods that
    * don't exist in certain versions of the JDK. */
-  static Object call(Object o, String methodName, Object... args)
+  static @Nullable Object call(Object o, String methodName, Object... args)
       throws InvocationTargetException, IllegalAccessException {
     return method(o, methodName, args).invoke(o, args);
   }
@@ -1062,7 +1064,7 @@ public class CalciteAssert {
               .build();
         }
 
-        @Override public <C> C unwrap(Class<C> aClass) {
+        @Override public <C> @Nullable C unwrap(Class<C> aClass) {
           if (aClass.isAssignableFrom(SqlDialect.class)
               || aClass.isAssignableFrom(DataSource.class)) {
             return salesTable.unwrap(aClass);
@@ -1078,7 +1080,7 @@ public class CalciteAssert {
               .build();
         }
 
-        @Override public <C> C unwrap(Class<C> aClass) {
+        @Override public <C> @Nullable C unwrap(Class<C> aClass) {
           if (aClass.isAssignableFrom(SqlDialect.class)
               || aClass.isAssignableFrom(DataSource.class)) {
             return salesTable.unwrap(aClass);
@@ -1146,11 +1148,11 @@ public class CalciteAssert {
    * @param actual actual value
    */
   public static void assertArrayEqual(
-      String message, Object[] expected, Object[] actual) {
+      String message, Object @Nullable [] expected, Object @Nullable [] actual) {
     assertThat(message, str(actual), is(str(expected)));
   }
 
-  private static String str(Object[] objects) {
+  private static @Nullable String str(Object @Nullable [] objects) {
     return objects == null
           ? null
           : Arrays.stream(objects).map(Object::toString)
@@ -1297,10 +1299,10 @@ public class CalciteAssert {
         final String... materializations) {
       return withMaterializations(model, builder -> {
         assert materializations.length % 2 == 0;
-        final List<Object> list = builder.list();
+        final List<@Nullable Object> list = builder.list();
         for (int i = 0; i < materializations.length; i++) {
           String table = materializations[i++];
-          final Map<String, Object> map = builder.map();
+          final Map<String, @Nullable Object> map = builder.map();
           map.put("table", table);
           if (!existing) {
             map.put("view", table + "v");
@@ -1400,14 +1402,14 @@ public class CalciteAssert {
       } catch (Throwable e) {
         throwable = e;
       }
-      exceptionChecker.accept(throwable);
+      exceptionChecker.accept(castNonNull(throwable));
       return this;
     }
 
     /** Creates a {@link org.apache.calcite.jdbc.CalciteConnection}
      * and executes a callback. */
-    public <T> AssertThat doWithConnection(Function<CalciteConnection, T> fn)
-        throws Exception {
+    public <T extends @Nullable Object> AssertThat doWithConnection(
+        Function<CalciteConnection, T> fn) throws Exception {
       try (Connection connection = connectionFactory.createConnection()) {
         T t = fn.apply((CalciteConnection) connection);
         Util.discard(t);
@@ -1522,7 +1524,8 @@ public class CalciteAssert {
       return returns(
           checkResult(expected,
               new ResultSetFormatter() {
-                @Override protected String adjustValue(String s) {
+                @Override protected @Nullable String adjustValue(
+                    @Nullable String s) {
                   if (s != null) {
                     if (s.contains(".")) {
                       while (s.endsWith("0")) {
@@ -2151,7 +2154,7 @@ public class CalciteAssert {
       return this;
     }
 
-    protected String adjustValue(String string) {
+    protected @Nullable String adjustValue(@Nullable String string) {
       if (string != null) {
         string = TestUtil.correctRoundedFloat(string);
       }
