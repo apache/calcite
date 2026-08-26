@@ -34,6 +34,7 @@ import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -52,6 +53,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Benchmarks {@code HepPlanner}'s digest-based deduplication for
  * {@code UNION}/{@code INTERSECT}/{@code MINUS} trees. The rule program is
@@ -66,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
 @Threads(1)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class SetOpDigestBenchmark {
 
   private static final HepProgram EMPTY_PROGRAM = HepProgram.builder().build();
@@ -111,7 +115,10 @@ public class SetOpDigestBenchmark {
     templateTables = new ArrayList<>(templateCount);
     for (int i = 0; i < templateCount; i++) {
       templateTables.add(
-          builder.getRelOptSchema().getTableForMember(ImmutableList.of("EMP" + i)));
+          requireNonNull(
+              requireNonNull(builder.getRelOptSchema(), "relOptSchema")
+                  .getTableForMember(ImmutableList.of("EMP" + i)),
+              "table"));
     }
   }
 
@@ -172,7 +179,7 @@ public class SetOpDigestBenchmark {
   }
 
   @Benchmark
-  public RelNode dedupOnInsert() {
+  public @Nullable RelNode dedupOnInsert() {
     HepPlanner planner = new HepPlanner(EMPTY_PROGRAM);
     planner.setLargePlanMode(true);
     planner.setRoot(root);

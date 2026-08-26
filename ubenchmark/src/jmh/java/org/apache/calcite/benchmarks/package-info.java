@@ -18,4 +18,7 @@
 /**
  * JMH benchmarks for Calcite.
  */
+@NullMarked
 package org.apache.calcite.benchmarks;
+
+import org.jspecify.annotations.NullMarked;
