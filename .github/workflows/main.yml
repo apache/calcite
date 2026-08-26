@@ -396,7 +396,7 @@ jobs:
           job-id: errprone
           remote-build-cache-proxy-enabled: false
           # ErrorProne checks for Beta APIs, so use the latest supported Guava version
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes jmhClasses
           properties: |
             org.gradle.java.installations.auto-download=false
 

@@ -18,4 +18,7 @@
 /**
  * Benchmarks for Enumerable adapter.
  */
+@NullMarked
 package org.apache.calcite.adapter.enumerable;
+
+import org.jspecify.annotations.NullMarked;

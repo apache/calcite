@@ -61,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
 @Threads(1)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class HepQueryVarietyBenchmark {
 
   /** Backstop should a rule set stop reaching a fixpoint; these queries never reach it. */

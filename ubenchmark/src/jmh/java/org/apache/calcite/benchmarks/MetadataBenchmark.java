@@ -55,6 +55,7 @@ import java.util.function.Supplier;
 @Threads(1)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @BenchmarkMode(Mode.AverageTime)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class MetadataBenchmark {
 
   @Setup

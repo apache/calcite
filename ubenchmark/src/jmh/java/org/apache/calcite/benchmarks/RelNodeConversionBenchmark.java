@@ -71,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Threads(1)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class RelNodeConversionBenchmark {
 
   /**
@@ -134,6 +135,7 @@ public class RelNodeConversionBenchmark {
    * A state holding information needed to parse.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class SqlToRelNodeBenchmarkState extends RelNodeConversionBenchmarkState {
     @Param({"10000"})
     int length;
@@ -165,6 +167,7 @@ public class RelNodeConversionBenchmark {
    * A state holding information needed to convert To Rel.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class SqlNodeToRelNodeBenchmarkState extends RelNodeConversionBenchmarkState {
     @Param({"10000"})
     int length;
@@ -179,7 +182,7 @@ public class RelNodeConversionBenchmark {
       try {
         sqlNode = p.validate(p.parse(sql));
       } catch (Exception e) {
-        e.printStackTrace();
+        throw new RuntimeException("while parsing " + sql, e);
       }
     }
 

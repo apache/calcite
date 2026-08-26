@@ -61,6 +61,7 @@ public class StringConstructBenchmark {
    * benchmark.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class WriterState {
     public Writer writer;
 
@@ -75,6 +76,7 @@ public class StringConstructBenchmark {
    * operations.
    */
   @State(Scope.Thread)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class AppenderState {
     /**
      * The type of the appender to be initialised.
