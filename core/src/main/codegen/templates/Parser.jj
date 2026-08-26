@@ -2469,6 +2469,12 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
             ]
         )
     |
+        LOOKAHEAD(<LATERAL> CompoundTableIdentifier() <LPAREN>)
+        <LATERAL> { lateral = true; }
+        tableName = CompoundTableIdentifier()
+        tableRef = ImplicitTableFunctionCallArgs(tableName)
+        tableRef = addLateral(tableRef, lateral)
+    |
         LOOKAHEAD(2)
         [ <LATERAL> { lateral = true; } ]
         tableRef = ParenthesizedExpression(exprContext)

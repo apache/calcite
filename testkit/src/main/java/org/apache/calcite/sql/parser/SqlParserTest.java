@@ -4881,7 +4881,7 @@ public class SqlParserTest {
   @Test void testLateral() {
     // Bad: LATERAL table
     sql("select * from lateral ^emp^")
-        .fails("(?s)Encountered \"emp\" at .*");
+        .fails("(?s)Encountered \"emp <EOF>\" at .*");
     sql("select * from lateral table ^emp^ as e")
         .fails("(?s)Encountered \"emp\" at .*");
 
@@ -4925,7 +4925,8 @@ public class SqlParserTest {
     // Can not use explicit LATERAL keyword.
     final String sql1 = "select stream * from orders, LATERAL ^products_temporal^\n"
         + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
-    final String error = "(?s)Encountered \"products_temporal\" at line .*";
+    final String error =
+        "(?s)Encountered \"products_temporal for\" at line .*";
     sql(sql1).fails(error);
 
     // Inner join with a specific timestamp
@@ -5030,6 +5031,17 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
     sql(sql).ok(expected);
+  }
+
+  @Test void testLateralTableFunctionWithoutTableWrapper() {
+    sql("select * from dept, lateral ramp(dept.deptno) as r(v)")
+        .ok("SELECT *\n"
+            + "FROM `DEPT`,\n"
+            + "LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)) AS `R` (`V`)");
+    sql("select * from dept, lateral s.ramp(dept.deptno) as r(v)")
+        .ok("SELECT *\n"
+            + "FROM `DEPT`,\n"
+            + "LATERAL TABLE(`S`.`RAMP`(`DEPT`.`DEPTNO`)) AS `R` (`V`)");
   }
 
   @Test void testTableFunctionWithPartitionKey() {
