@@ -34,14 +34,14 @@ import org.jspecify.annotations.Nullable;
  */
 public class OrdersTable extends BaseOrderStreamTable
     implements StreamableTable {
-  private final ImmutableList<Object[]> rows;
+  private final ImmutableList<@Nullable Object[]> rows;
 
-  public OrdersTable(ImmutableList<Object[]> rows) {
+  public OrdersTable(ImmutableList<@Nullable Object[]> rows) {
     this.rows = rows;
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return Linq4j.asEnumerable(rows);
+    return Linq4j.<@Nullable Object[]>asEnumerable(rows);
   }
 
   @Override public Table stream() {

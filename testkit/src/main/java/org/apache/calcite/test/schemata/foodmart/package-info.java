@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * Foodmart schema, a JDBC schema that many tests query.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.foodmart;
 
 import org.jspecify.annotations.NullMarked;

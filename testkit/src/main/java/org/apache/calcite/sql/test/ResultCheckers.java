@@ -23,6 +23,7 @@ import org.apache.calcite.util.JdbcType;
 import com.google.common.collect.ImmutableSet;
 
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -35,6 +36,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -82,8 +85,8 @@ public class ResultCheckers {
     return isSingle(value);
   }
 
-  public static SqlTester.ResultChecker isSingle(String value) {
-    return new MatcherResultChecker<>(is(value),
+  public static SqlTester.ResultChecker isSingle(@Nullable String value) {
+    return new MatcherResultChecker<@Nullable String>(is(value),
         JdbcType.STRING_NULLABLE);
   }
 
@@ -107,7 +110,7 @@ public class ResultCheckers {
   }
 
   public static SqlTester.ResultChecker isNullValue() {
-    return new RefSetResultChecker(Collections.singleton(null));
+    return new RefSetResultChecker(Collections.singleton(castNonNull(null)));
   }
 
   /**
@@ -129,7 +132,7 @@ public class ResultCheckers {
       final String s = resultSet.getString(1);
       final String s0 = s == null ? "0" : s;
       final boolean wasNull0 = resultSet.wasNull();
-      actualSet.add(s);
+      actualSet.add(castNonNull(s));
       switch (rep) {
       case BOOLEAN:
       case PRIMITIVE_BOOLEAN:
@@ -221,7 +224,7 @@ public class ResultCheckers {
     if (resultSet.next()) {
       fail("Query \"" + sql + "\"returned 2 or more rows, expected 1");
     }
-    if (!pattern.matcher(actual).matches()) {
+    if (!pattern.matcher(requireNonNull(actual, "actual")).matches()) {
       fail("Query \"" + sql + "\"returned '"
               + actual
               + "', expected '"
@@ -308,7 +311,8 @@ public class ResultCheckers {
    *
    * @param <T> Result type
    */
-  static class MatcherResultChecker<T> implements SqlTester.ResultChecker {
+  static class MatcherResultChecker<T extends @Nullable Object>
+      implements SqlTester.ResultChecker {
     private final Matcher<T> matcher;
     private final JdbcType<T> jdbcType;
 

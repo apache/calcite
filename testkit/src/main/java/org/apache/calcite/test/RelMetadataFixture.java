@@ -47,6 +47,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -68,6 +69,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parameters for a Metadata test.
@@ -228,7 +231,7 @@ public class RelMetadataFixture {
   public RelMetadataFixture assertCpuCost(Matcher<Double> matcher,
       String reason) {
     RelNode rel = toRel();
-    RelOptCost cost = computeRelSelfCost(rel);
+    RelOptCost cost = requireNonNull(computeRelSelfCost(rel), "cost");
     assertThat(reason + "\n"
             + "sql:" + relSupplier + "\n"
             + "plan:" + RelOptUtil.toString(rel, SqlExplainLevel.ALL_ATTRIBUTES),
@@ -236,7 +239,7 @@ public class RelMetadataFixture {
     return this;
   }
 
-  private static RelOptCost computeRelSelfCost(RelNode rel) {
+  private static @Nullable RelOptCost computeRelSelfCost(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPlanner planner = new VolcanoPlanner();
     return rel.computeSelfCost(planner, mq);
@@ -279,7 +282,8 @@ public class RelMetadataFixture {
       Consumer<Set<RelColumnOrigin>> action) {
     RelNode rel = toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<RelColumnOrigin> columnOrigins = mq.getColumnOrigins(rel, 0);
+    final Set<RelColumnOrigin> columnOrigins =
+        requireNonNull(mq.getColumnOrigins(rel, 0), "columnOrigins");
     action.accept(columnOrigins);
     return this;
   }
@@ -365,7 +369,8 @@ public class RelMetadataFixture {
       ImmutableBitSet... expectedUniqueKeys) {
     RelNode rel = toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel, ignoreNulls);
+    Set<ImmutableBitSet> result =
+        requireNonNull(mq.getUniqueKeys(rel, ignoreNulls), "uniqueKeys");
     assertThat(result, notNullValue());
     assertThat("unique keys, sql: " + relSupplier
             + ", rel: " + RelOptUtil.toString(rel),
@@ -382,7 +387,8 @@ public class RelMetadataFixture {
    */
   private static void checkUniqueConsistent(RelNode rel, boolean ignoreNulls) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel, ignoreNulls);
+    final Set<ImmutableBitSet> uniqueKeys =
+        requireNonNull(mq.getUniqueKeys(rel, ignoreNulls), "uniqueKeys");
     assertThat(uniqueKeys, notNullValue());
     for (ImmutableBitSet key : uniqueKeys) {
       Boolean result2 = mq.areColumnsUnique(rel, key, ignoreNulls);
@@ -489,7 +495,8 @@ public class RelMetadataFixture {
       Matcher<Map<Class<? extends RelNode>, Integer>> matcher) {
     final RelNode rel = toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Multimap<Class<? extends RelNode>, RelNode> result = mq.getNodeTypes(rel);
+    final Multimap<Class<? extends RelNode>, RelNode> result =
+        requireNonNull(mq.getNodeTypes(rel), "nodeTypes");
     assertThat(result, notNullValue());
     final Map<Class<? extends RelNode>, Integer> resultCount = new HashMap<>();
     for (Map.Entry<Class<? extends RelNode>, Collection<RelNode>> e : result.asMap().entrySet()) {

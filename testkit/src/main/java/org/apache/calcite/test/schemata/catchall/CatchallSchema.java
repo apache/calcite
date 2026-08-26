@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Object whose fields are relations. Called "catch-all" because it's OK
  * if tests add new fields.
@@ -97,9 +99,9 @@ public class CatchallSchema {
   private static boolean isNumeric(Class type) {
     switch (Primitive.flavor(type)) {
     case BOX:
-      return Primitive.ofBox(type).isNumeric();
+      return requireNonNull(Primitive.ofBox(type), "boxed primitive").isNumeric();
     case PRIMITIVE:
-      return Primitive.of(type).isNumeric();
+      return requireNonNull(Primitive.of(type), "primitive").isNumeric();
     default:
       return Number.class.isAssignableFrom(type); // e.g. BigDecimal
     }

@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * Schema of Java objects that covers every type the reflective schema maps.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.catchall;
 
 import org.jspecify.annotations.NullMarked;

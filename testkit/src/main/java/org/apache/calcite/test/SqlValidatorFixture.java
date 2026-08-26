@@ -48,6 +48,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -288,7 +289,7 @@ public class SqlValidatorFixture {
         (sap, validator, n) -> {
           final RelDataType rowType = validator.getValidatedNodeType(n);
           final SqlValidatorNamespace selectNamespace =
-              validator.getNamespace(n);
+              requireNonNull(validator.getNamespace(n), "namespace");
           final String field0 = rowType.getFieldList().get(0).getName();
           final SqlMonotonicity monotonicity =
               selectNamespace.getMonotonicity(field0);
@@ -332,6 +333,7 @@ public class SqlValidatorFixture {
               RelDataType actualType = fields.get(0).getType();
               SqlCollation collation = actualType.getCollation();
               assertThat(collation, notNullValue());
+              requireNonNull(collation, "collation");
               assertThat(collation.getCollationName(), collationMatcher);
               assertThat(collation.getCoercibility(), coercibilityMatcher);
             }));
@@ -435,10 +437,10 @@ public class SqlValidatorFixture {
    */
   public SqlValidatorFixture assertFieldOrigin(Matcher<String> matcher) {
     tester.validateAndThen(factory, toSql(false), (sap, validator, n) -> {
-      final List<List<String>> list = validator.getFieldOrigins(n);
+      final List<@Nullable List<String>> list = validator.getFieldOrigins(n);
       final StringBuilder buf = new StringBuilder("{");
       int i = 0;
-      for (List<String> strings : list) {
+      for (@Nullable List<String> strings : list) {
         if (i++ > 0) {
           buf.append(", ");
         }

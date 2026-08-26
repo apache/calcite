@@ -276,7 +276,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkString(
       String expression,
-      String result,
+      @Nullable String result,
       String expectedType) {
     SqlTester.TypeChecker typeChecker =
         new SqlTests.StringTypeChecker(expectedType);

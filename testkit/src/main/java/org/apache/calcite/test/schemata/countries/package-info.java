@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * Table functions over a fixed list of countries and states.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.countries;
 
 import org.jspecify.annotations.NullMarked;

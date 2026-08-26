@@ -29,6 +29,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
  * SQL to relational algebra.
@@ -42,7 +44,8 @@ import java.util.List;
 public abstract class SqlToRelTestBase {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final String NL = System.getProperty("line.separator");
+  protected static final String NL =
+      requireNonNull(System.getProperty("line.separator"), "line.separator");
 
   //~ Instance fields --------------------------------------------------------
 

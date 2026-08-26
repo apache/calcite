@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * TPC-H schema, used by tests that plan the TPC-H queries.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.tpch;
 
 import org.jspecify.annotations.NullMarked;

@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * Bookstore schema, used by tests that query nested collections.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.bookstore;
 
 import org.jspecify.annotations.NullMarked;

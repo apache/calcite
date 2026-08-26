@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * HR schema, the small employee-and-department schema most tests query.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.hr;
 
 import org.jspecify.annotations.NullMarked;

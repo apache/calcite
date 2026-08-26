@@ -37,7 +37,7 @@ public class Event {
     return "Event [eventid: " + eventid + ", ts: " + ts + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof Event
         && eventid == ((Event) obj).eventid;

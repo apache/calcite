@@ -40,7 +40,7 @@ public class OrdersStreamTableFactory implements TableFactory<Table> {
     return new OrdersTable(getRowList());
   }
 
-  public static ImmutableList<Object[]> getRowList() {
+  public static ImmutableList<@Nullable Object[]> getRowList() {
     final Object[][] rows = {
         {ts(10, 15, 0), 1, "paint", 10},
         {ts(10, 24, 15), 2, "paper", 5},
@@ -48,7 +48,11 @@ public class OrdersStreamTableFactory implements TableFactory<Table> {
         {ts(10, 58, 0), 4, "paint", 3},
         {ts(11, 10, 0), 5, "paint", 3}
     };
-    return ImmutableList.copyOf(rows);
+    final ImmutableList.Builder<@Nullable Object[]> list = ImmutableList.builder();
+    for (Object[] row : rows) {
+      list.add(row);
+    }
+    return list.build();
   }
 
   private static Object ts(int h, int m, int s) {

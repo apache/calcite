@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -73,7 +75,7 @@ public class HierarchySchema {
       return "Hierarchy [managerid: " + managerid + ", subordinateid: " + subordinateid + "]";
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof Hierarchy
           && managerid == ((Hierarchy) obj).managerid

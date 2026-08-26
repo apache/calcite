@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * Lingual schema, a variant of the HR schema with nullable columns.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.lingual;
 
 import org.jspecify.annotations.NullMarked;

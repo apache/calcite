@@ -31,6 +31,8 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.jspecify.annotations.Nullable;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -102,9 +104,10 @@ public abstract class ConnectionFactories {
       this.postProcessors = requireNonNull(postProcessors, "postProcessors");
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
-          || obj.getClass() == MapConnectionFactory.class
+          || obj != null
+          && obj.getClass() == MapConnectionFactory.class
           && ((MapConnectionFactory) obj).map.equals(map)
           && ((MapConnectionFactory) obj).postProcessors.equals(postProcessors);
     }

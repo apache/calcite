@@ -16,9 +16,9 @@
  */
 
 /**
- * Classes for testing Calcite.
+ * Streaming order tables, used by tests that query a stream.
  */
 @NullMarked
-package org.apache.calcite.test;
+package org.apache.calcite.test.schemata.orderstream;
 
 import org.jspecify.annotations.NullMarked;
