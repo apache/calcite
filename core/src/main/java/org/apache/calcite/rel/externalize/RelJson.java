@@ -572,11 +572,11 @@ public class RelJson {
     if (o == null) {
       return ImmutableList.of();
     }
-    final List<RelHint> hints = new ArrayList<>();
+    final ImmutableList.Builder<RelHint> hints = ImmutableList.builder();
     for (Object hint : (List) o) {
       hints.add(toHint((Map<String, @Nullable Object>) hint));
     }
-    return hints;
+    return hints.build();
   }
 
   public <C extends Comparable<C>> Object toJson(Sarg<C> node) {
