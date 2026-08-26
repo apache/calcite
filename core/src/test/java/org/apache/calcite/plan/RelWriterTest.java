@@ -648,6 +648,91 @@ class RelWriterTest {
         .assertThatJson(isLinux(UUID_LITERAL));
   }
 
+  static final String NON_FINITE_APPROX_LITERAL = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"scott\",\n"
+      + "        \"EMP\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalProject\",\n"
+      + "      \"fields\": [\n"
+      + "        \"$f0\",\n"
+      + "        \"$f1\",\n"
+      + "        \"$f2\",\n"
+      + "        \"$f3\",\n"
+      + "        \"$f4\"\n"
+      + "      ],\n"
+      + "      \"exprs\": [\n"
+      + "        {\n"
+      + "          \"literal\": \"NaN\",\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"DOUBLE\",\n"
+      + "            \"nullable\": false\n"
+      + "          }\n"
+      + "        },\n"
+      + "        {\n"
+      + "          \"literal\": \"Infinity\",\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"DOUBLE\",\n"
+      + "            \"nullable\": false\n"
+      + "          }\n"
+      + "        },\n"
+      + "        {\n"
+      + "          \"literal\": \"-Infinity\",\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"DOUBLE\",\n"
+      + "            \"nullable\": false\n"
+      + "          }\n"
+      + "        },\n"
+      + "        {\n"
+      + "          \"literal\": 1.5,\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"DOUBLE\",\n"
+      + "            \"nullable\": false\n"
+      + "          }\n"
+      + "        },\n"
+      + "        {\n"
+      + "          \"literal\": \"Infinity\",\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"CHAR\",\n"
+      + "            \"nullable\": false,\n"
+      + "            \"precision\": 8\n"
+      + "          }\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6792">[CALCITE-6792]
+   * RelJsonReader failed to read RelJsonWriter output if 'NaN' or 'Infinity'
+   * approximate numerics are present</a>. */
+  @Test void testNonFiniteApproxLiteral() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RexBuilder rexBuilder = b.getRexBuilder();
+      final RelDataType doubleType =
+          b.getTypeFactory().createSqlType(SqlTypeName.DOUBLE);
+      return b.scan("EMP")
+          .project(rexBuilder.makeApproxLiteral(Double.NaN, doubleType),
+              rexBuilder.makeApproxLiteral(Double.POSITIVE_INFINITY, doubleType),
+              rexBuilder.makeApproxLiteral(Double.NEGATIVE_INFINITY, doubleType),
+              rexBuilder.makeApproxLiteral(1.5d, doubleType),
+              b.literal("Infinity"))
+          .build();
+    };
+    relFn(relFn)
+        .assertThatJson(isLinux(NON_FINITE_APPROX_LITERAL))
+        .assertThatPlanRoundTrips();
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table, a filter
@@ -1928,6 +2013,22 @@ class RelWriterTest {
           RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
       assertThat(relJson, matcher);
+      return this;
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    Fixture assertThatPlanRoundTrips() {
+      final FrameworkConfig config = RelBuilderTest.config().build();
+      final RelBuilder b = RelBuilder.create(config);
+      final RelNode rel = relFn.apply(b);
+      final String relJson =
+          RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+      final String originalPlan =
+          RelOptUtil.dumpPlan("", rel, format, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+      final String roundTrippedPlan =
+          deserializeAndDump(getSchema(rel), relJson, format);
+      assertThat(roundTrippedPlan, is(originalPlan));
       return this;
     }
 
