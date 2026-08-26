@@ -417,9 +417,21 @@ public enum Primitive {
     if (scale < 0) {
       // The result maybe scientific notation string,e.g. 1.234E+6,
       // we need to convert it to 1234000
+      if (!isBoundedDecimal(result)) {
+        throw new IllegalArgumentException(
+            "DECIMAL literal exceeds the configured plain-notation bound: " + result);
+      }
       return new BigDecimal(result.toPlainString());
     }
     return result;
+  }
+
+  private static boolean isBoundedDecimal(BigDecimal value) {
+    // Mirrors org.apache.calcite.sql.SqlUtil.isBoundedDecimal without
+    // introducing a core -> linq4j dependency (linq4j cannot depend on core).
+    // Bound is calcite.parser.maxDecimalLiteralPlainDigits (default 10000).
+    int limit = Integer.getInteger("calcite.parser.maxDecimalLiteralPlainDigits", 10_000);
+    return (long) value.precision() + Math.abs((long) value.scale()) <= limit;
   }
 
   /** Called from BuiltInMethod.CHAR_DECIMAL_CAST */
