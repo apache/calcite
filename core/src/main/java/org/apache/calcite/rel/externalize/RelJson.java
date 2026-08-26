@@ -459,6 +459,17 @@ public class RelJson {
     return map;
   }
 
+  /** Converts a literal's value to JSON. A non-finite approximate value becomes
+   * a string, because JSON has no syntax for NaN or infinity and the
+   * {@link java.math.BigDecimal} that the reader parses numbers into cannot
+   * represent one either. */
+  private @Nullable Object toJsonLiteralValue(@Nullable Object value) {
+    if (value instanceof Double && !Double.isFinite((Double) value)) {
+      return value.toString();
+    }
+    return toJson(value);
+  }
+
   public @Nullable Object toJson(@Nullable Object value) {
     if (value == null
         || value instanceof Number
@@ -610,7 +621,7 @@ public class RelJson {
       map.put("literal",
           value instanceof Enum
               ? RelEnumTypes.fromEnum((Enum) value)
-              : toJson(value));
+              : toJsonLiteralValue(value));
       map.put("type", toJson(node.getType()));
       return map;
     case INPUT_REF:
@@ -876,6 +887,11 @@ public class RelJson {
           literal = ByteString.of((String) literal, 16);
         } else if (sqlTypeName == SqlTypeName.UUID) {
           literal = SqlFunctions.stringToUuid((String) literal);
+        } else if (literal instanceof String
+            && SqlTypeName.APPROX_TYPES.contains(sqlTypeName)) {
+          // A non-finite value that toJson wrote as a string because JSON
+          // cannot represent it as a number.
+          literal = Double.valueOf((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type);
       }
