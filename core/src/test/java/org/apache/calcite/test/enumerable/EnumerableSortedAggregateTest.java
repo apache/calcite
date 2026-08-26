@@ -74,6 +74,34 @@ public class EnumerableSortedAggregateTest {
         .throws_("There are not enough rules to produce a node with desired properties");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6089">[CALCITE-6089]
+   * EnumerableSortedAggregate fails with ClassCastException: class X cannot be
+   * cast to class org.apache.calcite.runtime.FlatLists$ComparableList</a>. */
+  @Test void sortedAggCountUnionRejectsEmptyGroupSet() {
+    tester(false, new HrSchema())
+        .query("select count(*) as c from ( "
+            + "select * from emps where deptno=10 "
+            + "union all "
+            + "select * from emps where deptno=20)")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
+        })
+        .throws_("There are not enough rules to produce a node with desired properties");
+  }
+
+  /** As {@link #sortedAggCountUnionRejectsEmptyGroupSet()}, but with the
+   * default rules. */
+  @Test void sortedAggCountUnion() {
+    tester(false, new HrSchema())
+        .query("select count(*) as c from ( "
+            + "select * from emps where deptno=10 "
+            + "union all "
+            + "select * from emps where deptno=20)")
+        .returnsOrdered("c=4");
+  }
+
   @Test void sortedAggTwoGroupKeys() {
     tester(false, new HrSchema())
         .query(
