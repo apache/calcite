@@ -5484,6 +5484,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelDataType type = deriveType(scope, orderExpr2);
     setValidatedNodeType(orderExpr2, type);
     if (!type.isMeasure()) {
+      orderExpr2.validate(this, getSelectScope(select));
       return orderExpr2;
     }
 
