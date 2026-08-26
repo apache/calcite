@@ -59,6 +59,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.test.Matchers.relIsValid;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -76,7 +77,7 @@ import static java.util.Objects.requireNonNull;
  * {@link SqlValidator}.
  */
 public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
-  private  static final String NL = System.getProperty("line.separator");
+  private  static final String NL = castNonNull(System.getProperty("line.separator"));
 
   public AbstractSqlTester() {
   }

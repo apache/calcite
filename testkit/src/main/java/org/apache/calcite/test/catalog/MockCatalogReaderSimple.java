@@ -36,6 +36,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -69,7 +70,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     return new MockCatalogReaderSimple(typeFactory, caseSensitive).init();
   }
 
-  @Override public RelDataType getNamedType(SqlIdentifier typeName) {
+  @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
     if (typeName.equalsDeep(addressType.getSqlIdentifier(), Litmus.IGNORE)) {
       return addressType;
     } else {

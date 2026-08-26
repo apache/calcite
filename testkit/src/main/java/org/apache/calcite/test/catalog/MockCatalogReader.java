@@ -107,6 +107,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -319,7 +321,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     protected final List<ImmutableBitSet> keyList = new ArrayList<>();
     protected final List<RelReferentialConstraint> referentialConstraints =
         new ArrayList<>();
+    /** Set by {@code onRegister}, before anything asks for the row type. */
+    @SuppressWarnings("NullAway.Init")
     protected RelDataType rowType;
+    /** Set by {@code onRegister}, before anything asks for the collations. */
+    @SuppressWarnings("NullAway.Init")
     protected List<RelCollation> collationList;
     protected final List<String> names;
     protected final Double maxRowCount;
@@ -445,7 +451,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         throw new UnsupportedOperationException();
       }
 
-      @Override public <C> C unwrap(Class<C> aClass) {
+      @Override public <C> @Nullable C unwrap(Class<C> aClass) {
         if (aClass.isInstance(initializerFactory)) {
           return aClass.cast(initializerFactory);
         } else if (aClass.isInstance(MockTable.this)) {
@@ -550,7 +556,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return table;
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> @Nullable T unwrap(Class<T> clazz) {
       if (clazz.isInstance(this)) {
         return clazz.cast(this);
       }
@@ -762,8 +768,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
               : NullInitializerExpressionFactory.INSTANCE;
       return new MockModifiableViewRelOptTable(modifiableViewTable,
           catalogReader, catalogName, schemaName, name, stream, rowCount,
-          resolver, Util.first(initializerExpressionFactory,
-          NullInitializerExpressionFactory.INSTANCE));
+          castNonNull(resolver),
+          Util.first(initializerExpressionFactory,
+              NullInitializerExpressionFactory.INSTANCE));
     }
 
     public static MockViewTableMacro viewMacro(CalciteSchema schema, String viewSql,
@@ -781,7 +788,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           monotonicColumnSet, kind, resolver, initializerFactory);
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> @Nullable T unwrap(Class<T> clazz) {
       if (clazz.isInstance(modifiableViewTable)) {
         return clazz.cast(modifiableViewTable);
       }
@@ -799,13 +806,16 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
       @Override protected ModifiableViewTable modifiableViewTable(
           CalcitePrepare.AnalyzeViewResult parsed, String viewSql,
-          List<String> schemaPath, List<String> viewPath, CalciteSchema schema) {
+          List<String> schemaPath, @Nullable List<String> viewPath, CalciteSchema schema) {
         final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
         final Type elementType = typeFactory.getJavaClass(parsed.rowType);
         return new MockModifiableViewTable(elementType,
             RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath,
-            parsed.table, Schemas.path(schema.root(), parsed.tablePath),
-            parsed.constraint, parsed.columnMapping);
+            castNonNull(parsed.table),
+            Schemas.path(schema.root(),
+                castNonNull(parsed.tablePath)),
+            castNonNull(parsed.constraint),
+            castNonNull(parsed.columnMapping));
       }
     }
 
@@ -816,7 +826,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       private final RexNode constraint;
 
       MockModifiableViewTable(Type elementType, RelProtoDataType rowType,
-          String viewSql, List<String> schemaPath, List<String> viewPath,
+          String viewSql, List<String> schemaPath, @Nullable List<String> viewPath,
           Table table, Path tablePath, RexNode constraint,
           ImmutableIntList columnMapping) {
         super(elementType, rowType, viewSql, schemaPath, viewPath, table,
@@ -862,8 +872,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
               : NullInitializerExpressionFactory.INSTANCE;
       return new MockRelViewTable(viewTable,
           catalogReader, catalogName, schemaName, name, stream, rowCount,
-          resolver, Util.first(initializerExpressionFactory,
-          NullInitializerExpressionFactory.INSTANCE));
+          castNonNull(resolver),
+          Util.first(initializerExpressionFactory,
+              NullInitializerExpressionFactory.INSTANCE));
     }
 
     @Override public RelDataType getRowType() {
@@ -874,7 +885,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return viewTable.toRel(context, this);
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> @Nullable T unwrap(Class<T> clazz) {
       if (clazz.isInstance(viewTable)) {
         return clazz.cast(viewTable);
       }
@@ -899,7 +910,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       super(catalogReader, catalogName, schemaName, name, stream, false,
           rowCount, resolver, initializerFactory);
       this.fromTable = fromTable;
-      this.table = fromTable.unwrap(Table.class);
+      this.table = castNonNull(fromTable.unwrap(Table.class));
       this.mapping = mapping;
     }
 
@@ -907,7 +918,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     private class ModifiableView extends AbstractModifiableView
         implements Wrapper {
       @Override public Table getTable() {
-        return fromTable.unwrap(Table.class);
+        return castNonNull(fromTable.unwrap(Table.class));
       }
 
       @Override public Path getTablePath() {
@@ -941,7 +952,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
             });
       }
 
-      @Override public <C> C unwrap(Class<C> aClass) {
+      @Override public <C> @Nullable C unwrap(Class<C> aClass) {
         if (table instanceof Wrapper) {
           final C c = ((Wrapper) table).unwrap(aClass);
           if (c != null) {
@@ -968,7 +979,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         return resolver.resolveColumn(rowType, typeFactory, names);
       }
 
-      @Override public <C> C unwrap(Class<C> aClass) {
+      @Override public <C> @Nullable C unwrap(Class<C> aClass) {
         if (table instanceof Wrapper) {
           final C c = ((Wrapper) table).unwrap(aClass);
           if (c != null) {
@@ -1007,7 +1018,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           ImmutableSet.of());
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> @Nullable T unwrap(Class<T> clazz) {
       if (clazz.isAssignableFrom(ModifiableView.class)) {
         ModifiableView view = resolver == null
             ? new ModifiableView()
@@ -1106,7 +1117,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.table = table;
     }
 
-    @Override public <C> C unwrap(Class<C> aClass) {
+    @Override public <C> @Nullable C unwrap(Class<C> aClass) {
       return aClass.isInstance(this) ? aClass.cast(this)
           : aClass.isInstance(table) ? aClass.cast(table)
           : null;
