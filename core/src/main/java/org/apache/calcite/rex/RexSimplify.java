@@ -54,7 +54,6 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
@@ -92,7 +91,8 @@ public class RexSimplify {
   final RexUnknownAs defaultUnknownAs;
   final boolean predicateElimination;
   private final RexExecutor executor;
-  private final SafeRexVisitor safeRexVisitor;
+  /** Lazily initialized, to be obtained with {@link #getSafeRexVisitor()}. */
+  private @Nullable SafeRexVisitor safeRexVisitor;
 
   private static final Strong STRONG = new Strong();
 
@@ -121,7 +121,6 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = requireNonNull(executor, "executor");
-    this.safeRexVisitor = new SafeRexVisitor(this);
   }
 
   @Deprecated // to be removed before 2.0
@@ -186,6 +185,14 @@ public class RexSimplify {
         ? this
         : new RexSimplify(rexBuilder, predicates, defaultUnknownAs,
             predicateElimination, paranoid, executor);
+  }
+
+  /** Gets the {@link SafeRexVisitor} (lazily initialized). */
+  private SafeRexVisitor getSafeRexVisitor() {
+    if (this.safeRexVisitor == null) {
+      this.safeRexVisitor = new SafeRexVisitor(this);
+    }
+    return this.safeRexVisitor;
   }
 
   /** Simplifies a boolean expression, always preserving its type and its
@@ -1216,7 +1223,7 @@ public class RexSimplify {
       // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL";
       // this branch PRESERVES the operand subtrees, so it only
       // needs SHALLOW safety of the outer operator
-      if (!this.safeRexVisitor.isShallowSafe(a)) {
+      if (!this.getSafeRexVisitor().isShallowSafe(a)) {
         return simplifiedResult;
       }
       final List<RexNode> operands = new ArrayList<>();
@@ -1283,7 +1290,7 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(false);
     case ANY:
       // See symmetric comment in simplifyIsNotNull
-      if (!this.safeRexVisitor.isShallowSafe(a)) {
+      if (!this.getSafeRexVisitor().isShallowSafe(a)) {
         return simplifiedResult;
       }
       final List<RexNode> operands = new ArrayList<>();
@@ -1559,13 +1566,13 @@ public class RexSimplify {
     private final ImmutableSet<SqlOperator> safeOperators;
 
     // Optional RexSimplify, if present it can be used for simplifications during isSafe computation
-    private final @UnderInitialization @Nullable RexSimplify rexSimplify;
+    private final @Nullable RexSimplify rexSimplify;
 
     private SafeRexVisitor() {
       this(null);
     }
 
-    SafeRexVisitor(@UnderInitialization @Nullable RexSimplify rexSimplify) {
+    SafeRexVisitor(@Nullable RexSimplify rexSimplify) {
       this.rexSimplify = rexSimplify;
 
       ImmutableSet.Builder<SqlOperator> builder = ImmutableSet.builder();
@@ -1756,7 +1763,7 @@ public class RexSimplify {
   * <p>Checked arithmetic is unsafe too, because it throws on overflow
   */
   private boolean isSafeExpression(RexNode r) {
-    return r.accept(this.safeRexVisitor);
+    return r.accept(this.getSafeRexVisitor());
   }
 
   /**
