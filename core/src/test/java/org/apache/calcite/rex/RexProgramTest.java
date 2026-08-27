@@ -3167,6 +3167,14 @@ class RexProgramTest extends RexProgramTestBase {
                 plus(
                     plus(cast(vVarchar(), tDate(true)), interval(1, TimeUnit.MONTH)),
                     interval(10, TimeUnit.DAY)))));
+
+    // If one operand is effectively NULL, the simplification can happen even with an INTERVAL
+    checkSimplify(
+        isNull(plus(cast(nullVarchar, tDate(true)), interval(1, TimeUnit.MONTH))),
+        "true");
+    checkSimplify(
+        isNull(plus(sub(vDate(), nullDate), interval(1, TimeUnit.MONTH))),
+        "true");
   }
 
   @Test void testPushNotIntoCase() {
@@ -4954,6 +4962,9 @@ class RexProgramTest extends RexProgramTestBase {
     // A checked operation with a NULL operand is never performed, hence safe
     checkSimplify(
         rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_PLUS, a, nullInt),
+        "null:INTEGER");
+    checkSimplify(
+        rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_PLUS, a, plus(literal(1), nullInt)),
         "null:INTEGER");
   }
 
