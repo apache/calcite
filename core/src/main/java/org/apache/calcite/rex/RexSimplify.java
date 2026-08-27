@@ -54,6 +54,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
@@ -1558,13 +1559,13 @@ public class RexSimplify {
     private final ImmutableSet<SqlOperator> safeOperators;
 
     // Optional RexSimplify, if present it can be used for simplifications during isSafe computation
-    private final @Nullable RexSimplify rexSimplify;
+    private final @UnderInitialization @Nullable RexSimplify rexSimplify;
 
     private SafeRexVisitor() {
       this(null);
     }
 
-    SafeRexVisitor(@Nullable RexSimplify rexSimplify) {
+    SafeRexVisitor(@UnderInitialization @Nullable RexSimplify rexSimplify) {
       this.rexSimplify = rexSimplify;
 
       ImmutableSet.Builder<SqlOperator> builder = ImmutableSet.builder();
