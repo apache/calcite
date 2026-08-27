@@ -3148,7 +3148,6 @@ class RexProgramTest extends RexProgramTestBase {
         "<(CAST(?0.varchar0):INTEGER, 100)");
   }
 
-  @Disabled("[CALCITE-7746] Review operation safety on arithmetic on dates and intervals")
   @Test void testSimplifyIsNotNullDistributesAcrossStrongOpWithIntervals() {
     // Arithmetic on DATE and INTERVAL should be considered "unsafe" (since
     // it can throw at runtime), so simplification should not be applied

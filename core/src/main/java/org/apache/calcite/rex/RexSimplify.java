@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -90,6 +91,7 @@ public class RexSimplify {
   final RexUnknownAs defaultUnknownAs;
   final boolean predicateElimination;
   private final RexExecutor executor;
+  private final SafeRexVisitor safeRexVisitor;
 
   private static final Strong STRONG = new Strong();
 
@@ -118,6 +120,7 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = requireNonNull(executor, "executor");
+    this.safeRexVisitor = new SafeRexVisitor(this);
   }
 
   @Deprecated // to be removed before 2.0
@@ -1212,7 +1215,7 @@ public class RexSimplify {
       // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL";
       // this branch PRESERVES the operand subtrees, so it only
       // needs SHALLOW safety of the outer operator
-      if (!SafeRexVisitor.INSTANCE.isShallowSafe(a)) {
+      if (!this.safeRexVisitor.isShallowSafe(a)) {
         return simplifiedResult;
       }
       final List<RexNode> operands = new ArrayList<>();
@@ -1279,7 +1282,7 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(false);
     case ANY:
       // See symmetric comment in simplifyIsNotNull
-      if (!SafeRexVisitor.INSTANCE.isShallowSafe(a)) {
+      if (!this.safeRexVisitor.isShallowSafe(a)) {
         return simplifiedResult;
       }
       final List<RexNode> operands = new ArrayList<>();
@@ -1545,15 +1548,25 @@ public class RexSimplify {
   /**
    * Decides whether it is safe to flatten the given CASE part into ANDs/ORs.
    */
-  enum SafeRexVisitor implements RexVisitor<Boolean> {
-    INSTANCE;
+  private static class SafeRexVisitor implements RexVisitor<Boolean> {
+
+    private static final SafeRexVisitor INSTANCE = new SafeRexVisitor();
 
     @SuppressWarnings("ImmutableEnumChecker")
     private final Set<SqlKind> safeOps;
     @SuppressWarnings("ImmutableEnumChecker")
     private final ImmutableSet<SqlOperator> safeOperators;
 
-    SafeRexVisitor() {
+    // Optional RexSimplify, if present it can be used for simplifications during isSafe computation
+    private final @Nullable RexSimplify rexSimplify;
+
+    private SafeRexVisitor() {
+      this(null);
+    }
+
+    SafeRexVisitor(@Nullable RexSimplify rexSimplify) {
+      this.rexSimplify = rexSimplify;
+
       ImmutableSet.Builder<SqlOperator> builder = ImmutableSet.builder();
       builder.addAll(SqlStdOperatorTable.QUANTIFY_OPERATORS);
       safeOperators = builder.build();
@@ -1614,16 +1627,23 @@ public class RexSimplify {
       SqlKind sqlKind = call.getKind();
       SqlOperator sqlOperator = call.getOperator();
 
-      if (SqlKind.CHECKED_ARITHMETIC.contains(sqlKind)) {
-        // Checked arithmetic throws on overflow, so it is only safe when the
-        // arithmetic is never performed, i.e. when an operand is NULL.
+      if (SqlKind.CHECKED_ARITHMETIC.contains(sqlKind)
+          || (SqlKind.BINARY_ARITHMETIC.contains(sqlKind)
+              && call.operands.stream().anyMatch(o -> o.getType() instanceof IntervalSqlType))) {
+        // Checked arithmetic and binary arithmetic on intervals can throw at runtime,
+        // so it is only safe when the arithmetic is never performed, i.e. when an operand is NULL
         if (deep) {
           boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
           if (!areOperandsSafe) {
             return false;
           }
         }
-        return call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
+        return call.operands.stream()
+            .anyMatch(
+                o -> RexUtil.isNullLiteral(
+                // Simplify operand as much as possible
+                this.rexSimplify == null ? o : this.rexSimplify.simplify(o),
+                true));
       }
 
       switch (sqlKind) {
@@ -1734,7 +1754,16 @@ public class RexSimplify {
   *
   * <p>Checked arithmetic is unsafe too, because it throws on overflow
   */
-  static boolean isSafeExpression(RexNode r) {
+  private boolean isSafeExpression(RexNode r) {
+    return r.accept(this.safeRexVisitor);
+  }
+
+  /**
+   * Static equivalent of the method above, without any RexSimplify in the context
+   * (thus less powerful); to be used by classes on the same package that need to perform
+   * a "basic" isSafe computation without having a RexSimplify at hand.
+   */
+  static boolean isSafe(RexNode r) {
     return r.accept(SafeRexVisitor.INSTANCE);
   }
 
