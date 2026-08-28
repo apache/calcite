@@ -1554,7 +1554,8 @@ public class RexSimplify {
   }
 
   /**
-   * Decides whether it is safe to flatten the given CASE part into ANDs/ORs.
+   * Visitor to analyze a given {@link RexNode} and decide whether
+   * it is safe to unwind, see {@link #isSafeExpression(RexNode)}.
    */
   private static class SafeRexVisitor implements RexVisitor<Boolean> {
 
