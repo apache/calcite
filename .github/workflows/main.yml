@@ -28,7 +28,7 @@ on:
     branches:
       - '*'
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened]
     paths-ignore:
       - 'site/**'
     branches:
@@ -52,7 +52,6 @@ env:
 
 jobs:
   windows-jdk8:
-    if: github.event.action != 'labeled'
     name: 'Windows (JDK 8)'
     runs-on: windows-latest
     steps:
@@ -84,7 +83,6 @@ jobs:
         call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
   windows-jdk17:
-    if: github.event.action != 'labeled'
     name: 'Windows (JDK 17)'
     runs-on: windows-latest
     steps:
@@ -116,7 +114,6 @@ jobs:
           call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
   windows-jdk21:
-    if: github.event.action != 'labeled'
     name: 'Windows (JDK 21)'
     runs-on: windows-latest
     steps:
@@ -148,7 +145,6 @@ jobs:
           call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
   linux-jdk8-oldest-guava-tz:
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 8, oldest Guava, America/New_York Timezone)'
     runs-on: ubuntu-latest
     env:
@@ -170,7 +166,6 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} build
 
   linux-jdk8-latest-guava-tz:
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 8, latest Guava, America/New_York Timezone)'
     runs-on: ubuntu-latest
     env:
@@ -192,7 +187,6 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} tasks build
 
   linux-jdk11-tz:
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 11, Pacific/Chatham Timezone)'
     runs-on: ubuntu-latest
     env:
@@ -214,7 +208,6 @@ jobs:
           arguments: --scan --no-parallel --no-daemon build
 
   linux-jdk17:  # LTS JDK version, don't remove until EOL
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
     steps:
@@ -234,7 +227,6 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
 
   linux-jdk121:  # LTS JDK version, don't remove until EOL
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 21)'
     runs-on: ubuntu-latest
     steps:
@@ -254,7 +246,6 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
 
   linux-jdk24: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 24)'
     runs-on: ubuntu-latest
     steps:
@@ -274,7 +265,6 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
 
   linux-avatica:
-    if: github.event.action != 'labeled'
     name: 'Linux (JDK 11, Avatica main)'
     runs-on: ubuntu-latest
     steps:
@@ -311,7 +301,6 @@ jobs:
           enableMavenLocal=
 
   mac:
-    if: github.event.action != 'labeled'
     name: 'macOS (JDK 21)'
     runs-on: macos-15
     steps:
@@ -342,7 +331,6 @@ jobs:
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
   errorprone-guava-latest:
-    if: github.event.action != 'labeled'
     name: 'ErrorProne (JDK 11, latest Guava)'
     runs-on: ubuntu-latest
     steps:
@@ -400,30 +388,7 @@ jobs:
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
-  linux-slow:
-    # Run slow tests when the commit is on main or it is requested explicitly by adding an
-    # appropriate label in the PR
-    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'slow-tests-needed')
-    name: 'Linux (JDK 8) Slow Tests'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 8'
-        uses: actions/setup-java@v5
-        with:
-          java-version: 8
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk8
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon testSlow
-
   linux-druid:
-    if: github.event.action != 'labeled'
     name: 'Druid Tests'
     runs-on: ubuntu-latest
     steps:
