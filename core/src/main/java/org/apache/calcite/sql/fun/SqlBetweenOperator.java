@@ -29,7 +29,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
+import org.apache.calcite.sql.type.FirstWithOthersOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -77,7 +77,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
    * Custom operand-type checking strategy.
    */
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      new ComparableOperandTypeChecker(3, RelDataTypeComparability.ALL,
+      new FirstWithOthersOperandTypeChecker(3, RelDataTypeComparability.ALL,
           SqlOperandTypeChecker.Consistency.COMPARE);
   private static final SqlWriter.FrameType FRAME_TYPE =
       SqlWriter.FrameTypeEnum.create("BETWEEN");
