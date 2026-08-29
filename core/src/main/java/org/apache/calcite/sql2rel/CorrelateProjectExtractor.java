@@ -18,6 +18,7 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -115,8 +116,11 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     boolean isTrivialCorrelation =
         callsWithCorrelationInRight.stream()
             .allMatch(exp -> isDirectFieldAccess(exp, correlate.getCorrelationId()));
+    // A nested correlate on the right re-binding the same id owns the refs below it.
+    boolean rightRebindsCorrelationId =
+        rebindsCorrelationId(right, correlate.getCorrelationId());
     // Early exit condition
-    if (isTrivialCorrelation) {
+    if (isTrivialCorrelation || rightRebindsCorrelationId) {
       if (correlate.getLeft().equals(left) && correlate.getRight().equals(right)) {
         return correlate;
       } else {
@@ -199,6 +203,21 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
     builder.project(builder.fields(retainFields));
     return builder.build();
+  }
+
+  /** Returns whether {@code plan} contains a {@link Correlate} that re-binds {@code corrId}. */
+  private static boolean rebindsCorrelationId(RelNode plan, CorrelationId corrId) {
+    final boolean[] found = {false};
+    plan.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        if (other instanceof Correlate
+            && ((Correlate) other).getCorrelationId().equals(corrId)) {
+          found[0] = true;
+        }
+        return super.visit(other);
+      }
+    });
+    return found[0];
   }
 
   /**
