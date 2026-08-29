@@ -2548,4 +2548,43 @@ public class RelDecorrelatorTest {
         + "            LogicalTableScan(table=[[bookstore, authors]])\n";
     assertThat(after, hasTree(planAfter));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7753">[CALCITE-7753]
+   * CorrelateProjectExtractor corrupts plans with nested Correlates that reuse
+   * the same correlation id</a>. */
+  @Test void testNestedCorrelatesSharingCorrelationId() {
+    final RelBuilder builder = RelBuilder.create(config().build())
+        .transform(c -> c.withSimplify(false));
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    builder.scan("EMP").variable(v::set);
+    final RelNode emp = builder.build();
+
+    final RelNode inner = builder
+        .scan("EMP")
+        .scan("EMP")
+        .filter(builder.equals(builder.field(v.get(), "DEPTNO"), builder.field("DEPTNO")))
+        .correlate(JoinRelType.INNER, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .filter(builder.isNull(builder.field(v.get(), "COMM")))
+        .build();
+
+    final RelNode before = builder
+        .push(emp)
+        .push(inner)
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "COMM"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{6}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[IS NULL($cor0.COMM)])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelDecorrelator.decorrelateQuery(before, builder,
+        RuleSets.ofList(Collections.emptyList()),
+        RuleSets.ofList(Collections.emptyList()));
+  }
 }
