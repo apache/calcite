@@ -51,6 +51,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
@@ -255,6 +256,10 @@ public enum BuiltInMethod {
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class, Predicate2.class, Function2.class,
       JoinType.class, Comparator.class, EqualityComparer.class),
+  IE_JOIN(EnumerableDefaults.class, "ieJoin", Enumerable.class,
+      Enumerable.class, Function1.class, Function1.class, Function1.class,
+      Function1.class, Comparator.class, Comparator.class,
+      ExpressionType.class, ExpressionType.class, Function2.class),
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(EnumerableDefaults.class, "semiJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class,

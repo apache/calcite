@@ -81,6 +81,7 @@ public class Programs {
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_IE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_CONDITIONAL_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
