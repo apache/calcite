@@ -16,15 +16,14 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.linq4j.annotations.EnsuresNonNullIf;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -141,7 +140,7 @@ public class SqlSelect extends SqlCall {
     return SqlKind.SELECT;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
         groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints,
@@ -214,7 +213,6 @@ public class SqlSelect extends SqlCall {
     return null;
   }
 
-  @Pure
   public final @Nullable SqlNode getFrom() {
     return from;
   }
@@ -223,7 +221,6 @@ public class SqlSelect extends SqlCall {
     this.from = from;
   }
 
-  @Pure
   public final @Nullable SqlNodeList getGroup() {
     return groupBy;
   }
@@ -232,7 +229,6 @@ public class SqlSelect extends SqlCall {
     this.groupBy = groupBy;
   }
 
-  @Pure
   public final @Nullable SqlNode getHaving() {
     return having;
   }
@@ -241,7 +237,6 @@ public class SqlSelect extends SqlCall {
     this.having = having;
   }
 
-  @Pure
   public final SqlNodeList getSelectList() {
     return selectList;
   }
@@ -250,7 +245,6 @@ public class SqlSelect extends SqlCall {
     this.selectList = selectList;
   }
 
-  @Pure
   public final @Nullable SqlNode getWhere() {
     return where;
   }
@@ -263,7 +257,6 @@ public class SqlSelect extends SqlCall {
     return windowDecls;
   }
 
-  @Pure
   public final @Nullable SqlNode getQualify() {
     return qualify;
   }
@@ -272,7 +265,6 @@ public class SqlSelect extends SqlCall {
     this.qualify = qualify;
   }
 
-  @Pure
   public final @Nullable SqlNodeList getOrderList() {
     return orderBy;
   }
@@ -289,7 +281,6 @@ public class SqlSelect extends SqlCall {
     return hasByClause;
   }
 
-  @Pure
   public final @Nullable SqlNode getOffset() {
     return offset;
   }
@@ -298,7 +289,6 @@ public class SqlSelect extends SqlCall {
     this.offset = offset;
   }
 
-  @Pure
   public final @Nullable SqlNode getFetch() {
     return fetch;
   }
@@ -307,12 +297,11 @@ public class SqlSelect extends SqlCall {
     this.fetch = fetch;
   }
 
-  @Pure
   public @Nullable SqlNodeList getHints() {
     return this.hints;
   }
 
-  @EnsuresNonNullIf(expression = "hints", result = true)
+  @EnsuresNonNullIf(value = "hints", result = true)
   public boolean hasHints() {
     // The hints may be passed as null explicitly.
     return this.hints != null && !this.hints.isEmpty();

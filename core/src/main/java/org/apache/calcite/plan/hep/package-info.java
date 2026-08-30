@@ -19,4 +19,7 @@
  * Provides a heuristic planner implementation for the interfaces in
  * {@link org.apache.calcite.plan}.
  */
+@NullMarked
 package org.apache.calcite.plan.hep;
+
+import org.jspecify.annotations.NullMarked;

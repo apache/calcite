@@ -22,7 +22,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;

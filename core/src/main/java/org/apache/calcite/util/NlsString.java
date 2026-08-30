@@ -29,8 +29,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -216,17 +215,14 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
         Comparator.nullsFirst(Comparator.naturalOrder()));
   }
 
-  @Pure
   public @Nullable String getCharsetName() {
     return charsetName;
   }
 
-  @Pure
   public @Nullable Charset getCharset() {
     return charset;
   }
 
-  @Pure
   public @Nullable SqlCollation getCollation() {
     return collation;
   }
@@ -396,7 +392,6 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   }
 
   /** Returns the value as a {@link ByteString}. */
-  @Pure
   public @Nullable ByteString getValueBytes() {
     return bytesValue;
   }

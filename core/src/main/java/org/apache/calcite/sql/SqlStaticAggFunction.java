@@ -23,7 +23,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Aggregate function whose value may be a constant expression, based on
  * only the contents of the GROUP BY clause. */

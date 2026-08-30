@@ -33,9 +33,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -53,7 +51,6 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> Element type
  */
-@Covariant(0)
 public class QueryableRecorder<T> implements QueryableFactory<T> {
   private static final QueryableRecorder INSTANCE = new QueryableRecorder();
 
@@ -268,9 +265,9 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     };
   }
 
-  @SuppressWarnings("return.type.incompatible")
-  @Override public Queryable<@PolyNull T> defaultIfEmpty(final Queryable<T> source,
-      final @PolyNull T value) {
+  @SuppressWarnings("NullAway")
+  @Override public Queryable<@Nullable T> defaultIfEmpty(final Queryable<T> source,
+      final @Nullable T value) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
         factory.defaultIfEmpty(source, value);

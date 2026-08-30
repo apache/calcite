@@ -27,7 +27,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
@@ -674,7 +674,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     private final Map<String, MakeCall> map;
 
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("NullAway")
     private JdbcToInternalLookupTable() {
       // A table of all functions can be found at
       // http://java.sun.com/products/jdbc/driverdevs.html

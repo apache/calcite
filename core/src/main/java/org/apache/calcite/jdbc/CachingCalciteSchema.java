@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -57,7 +57,7 @@ class CachingCalciteSchema extends CalciteSchema {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
-  @SuppressWarnings({"argument.type.incompatible", "return.type.incompatible"})
+  @SuppressWarnings("NullAway")
   private CachingCalciteSchema(@Nullable CalciteSchema parent, Schema schema,
       String name,
       @Nullable NameMap<CalciteSchema> subSchemaMap,

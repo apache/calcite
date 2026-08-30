@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rex;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Collection of {@link RexSqlConvertlet}s.

@@ -36,7 +36,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.sql.SQLException;

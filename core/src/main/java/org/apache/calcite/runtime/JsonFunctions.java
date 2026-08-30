@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.annotations.EnsuresNonNullIf;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
@@ -40,8 +41,7 @@ import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -901,7 +901,7 @@ public class JsonFunctions {
       this.exc = exc;
     }
 
-    @EnsuresNonNullIf(expression = "exc", result = true)
+    @EnsuresNonNullIf(value = "exc", result = true)
     public boolean hasException() {
       return exc != null;
     }
@@ -966,7 +966,7 @@ public class JsonFunctions {
       return requireNonNull(obj, "json object must not be null");
     }
 
-    @EnsuresNonNullIf(expression = "exc", result = true)
+    @EnsuresNonNullIf(value = "exc", result = true)
     public boolean hasException() {
       return exc != null;
     }

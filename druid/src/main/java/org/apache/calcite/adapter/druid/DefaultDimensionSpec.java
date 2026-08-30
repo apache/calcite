@@ -18,7 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 

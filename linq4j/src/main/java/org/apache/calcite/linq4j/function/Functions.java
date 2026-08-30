@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.linq4j.function;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.checkerframework.framework.qual.TypeUseLocation;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
@@ -539,8 +537,8 @@ public abstract class Functions {
     }
     // Normalize both to List: an ARRAY of ROW is a List of Object[],
     // and each element is normalized in turn.
-    final @Nullable List<?> list1 = asListOrNull(v1);
-    final @Nullable List<?> list2 = asListOrNull(v2);
+    final List<?> list1 = asListOrNull(v1);
+    final List<?> list2 = asListOrNull(v2);
     if (list1 != null && list2 != null) {
       final int n = list1.size();
       if (n != list2.size()) {
@@ -604,7 +602,7 @@ public abstract class Functions {
     if (o == null) {
       return 0x789d;
     }
-    final @Nullable List<?> list = asListOrNull(o);
+    final List<?> list = asListOrNull(o);
     if (list != null) {
       int h = 1;
       for (Object element : list) {
@@ -872,7 +870,7 @@ public abstract class Functions {
    * @param <R> result type
    * @param <T0> first argument type
    * @param <T1> second argument type */
-  private static final class Ignore<@Nullable R, T0, T1>
+  private static final class Ignore<R extends @Nullable Object, T0, T1>
       implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
     @Override public R apply() {
       return null;
@@ -886,12 +884,6 @@ public abstract class Functions {
       return null;
     }
 
-    @DefaultQualifier(
-        value = Nullable.class,
-        locations = {
-        TypeUseLocation.LOWER_BOUND,
-        TypeUseLocation.UPPER_BOUND,
-    })
     static final Ignore INSTANCE = new Ignore<>();
   }
 

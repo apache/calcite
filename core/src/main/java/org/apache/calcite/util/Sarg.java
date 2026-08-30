@@ -25,7 +25,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.function.BiConsumer;
 
@@ -65,7 +65,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see SqlStdOperatorTable#SEARCH
  */
-@SuppressWarnings("type.argument.type.incompatible")
+@SuppressWarnings("NullAway")
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final RexUnknownAs nullAs;

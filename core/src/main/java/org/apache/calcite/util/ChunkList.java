@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractSequentialList;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
    * Creates a ChunkList whose contents are a given Collection.
    */
   public ChunkList(Collection<E> collection) {
-    @SuppressWarnings({"method.invocation.invalid", "unused"})
+    @SuppressWarnings({"NullAway", "unused"})
     boolean ignore = addAll(collection);
   }
 
@@ -153,7 +153,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
 
   private static <E> E @Nullable [] prev(E[] chunk) {
     //noinspection unchecked
-    return (E @Nullable []) chunk[0];
+    return (E[]) chunk[0];
   }
 
   private static <E> void setPrev(E[] chunk, E @Nullable [] prev) {
@@ -163,7 +163,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
 
   private static <E> E @Nullable [] next(E[] chunk) {
     //noinspection unchecked
-    return (E @Nullable []) chunk[1];
+    return (E[]) chunk[1];
   }
 
   private static <E> void setNext(E[] chunk, E @Nullable [] next) {

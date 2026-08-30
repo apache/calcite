@@ -30,8 +30,8 @@ import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.JdbcType;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.UnaryOperator;

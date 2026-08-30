@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
@@ -53,7 +53,7 @@ public class TimeString implements Comparable<TimeString> {
   }
 
   /** Creates a TimeString. */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public TimeString(String v) {
     this(v, false);
     checkArgument(INPUT_PATTERN.matcher(v).matches(),

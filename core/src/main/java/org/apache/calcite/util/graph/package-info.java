@@ -18,4 +18,7 @@
 /**
  * Graph-theoretic algorithms and data structures.
  */
+@NullMarked
 package org.apache.calcite.util.graph;
+
+import org.jspecify.annotations.NullMarked;

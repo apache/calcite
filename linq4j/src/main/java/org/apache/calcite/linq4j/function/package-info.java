@@ -18,4 +18,7 @@
 /**
  * Contains definitions of functions and predicates.
  */
+@NullMarked
 package org.apache.calcite.linq4j.function;
+
+import org.jspecify.annotations.NullMarked;

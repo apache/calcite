@@ -18,7 +18,7 @@ package org.apache.calcite.util.trace;
 
 import org.apache.calcite.util.NumberUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.text.DecimalFormat;

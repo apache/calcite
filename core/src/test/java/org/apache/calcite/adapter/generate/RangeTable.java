@@ -27,7 +27,7 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.NoSuchElementException;

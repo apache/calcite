@@ -25,7 +25,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Planner rule that converts a {@link LogicalTableScan} to an {@link EnumerableTableScan}.
  * You may provide a custom config to convert other nodes that extend {@link TableScan}.

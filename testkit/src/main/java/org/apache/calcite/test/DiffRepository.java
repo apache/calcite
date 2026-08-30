@@ -29,7 +29,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
 import org.w3c.dom.CDATASection;
@@ -379,7 +379,7 @@ public class DiffRepository {
         return null;
       }
     }
-    final @Nullable Element resourceElement =
+    final Element resourceElement =
         getResourceElement(testCaseElement, resourceName);
     if (resourceElement != null) {
       return getText(resourceElement);

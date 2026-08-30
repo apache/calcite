@@ -24,7 +24,7 @@ import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -109,7 +109,7 @@ public class MeasureScope extends DelegatingScope {
     final int aliasOrdinal = matcher.indexOf(aliasList, name);
     if (aliasOrdinal >= 0) {
       final SqlNode selectItem = select.getSelectList().get(aliasOrdinal);
-      final @Nullable SqlNode measure = SqlValidatorUtil.getMeasure(selectItem);
+      final SqlNode measure = SqlValidatorUtil.getMeasure(selectItem);
       if (measure != null) {
         return measure;
       }
@@ -121,7 +121,7 @@ public class MeasureScope extends DelegatingScope {
   @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()) {
-      @Nullable SqlQualified qualified = qualifyUsingAlias(select, identifier);
+      SqlQualified qualified = qualifyUsingAlias(select, identifier);
       if (qualified != null) {
         return qualified;
       }

@@ -28,7 +28,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class RexSqlStandardConvertletTable
     extends RexSqlReflectiveConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public RexSqlStandardConvertletTable() {
     super();
 
@@ -152,7 +152,7 @@ public class RexSqlStandardConvertletTable
     final SqlOperator op = call.getOperator();
     final List<RexNode> operands = call.getOperands();
 
-    final @Nullable List<@Nullable SqlNode> exprs =
+    final List<@Nullable SqlNode> exprs =
         convertExpressionList(converter, operands);
     if (exprs == null) {
       return null;
@@ -168,7 +168,7 @@ public class RexSqlStandardConvertletTable
       List<RexNode> nodes) {
     final List<@Nullable SqlNode> exprs = new ArrayList<>();
     for (RexNode node : nodes) {
-      @Nullable SqlNode converted = converter.convertNode(node);
+      SqlNode converted = converter.convertNode(node);
       if (converted == null) {
         return null;
       }
@@ -197,7 +197,7 @@ public class RexSqlStandardConvertletTable
   private void registerTypeAppendOp(final SqlOperator op) {
     registerOp(
         op, (converter, call) -> {
-          @Nullable List<@Nullable SqlNode> operandList =
+          List<@Nullable SqlNode> operandList =
               convertExpressionList(converter, call.operands);
           if (operandList == null) {
             return null;
@@ -219,7 +219,7 @@ public class RexSqlStandardConvertletTable
     registerOp(
         op, (converter, call) -> {
           assert op instanceof SqlCaseOperator;
-          @Nullable List<@Nullable SqlNode> operands =
+          List<@Nullable SqlNode> operands =
               convertExpressionList(converter, call.operands);
           if (operands == null) {
             return null;
@@ -248,7 +248,7 @@ public class RexSqlStandardConvertletTable
     }
 
     @Override public @Nullable SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
-      @Nullable List<@Nullable SqlNode> operands =
+      List<@Nullable SqlNode> operands =
           convertExpressionList(converter, call.operands);
       if (operands == null) {
         return null;

@@ -22,7 +22,7 @@ import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.server.CalciteServerStatement;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 

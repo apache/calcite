@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -467,7 +467,7 @@ public class LatticeSuggester {
           final ImmutableNullableList.Builder<@Nullable ColRef> columnBuilder =
               ImmutableNullableList.builder();
           for (Pair<RexNode, String> p : project.getNamedProjects()) {
-            @SuppressWarnings("method.invocation.invalid")
+            @SuppressWarnings("NullAway")
             ColRef colRef = toColRef(p.left, p.right);
             columnBuilder.add(colRef);
           }

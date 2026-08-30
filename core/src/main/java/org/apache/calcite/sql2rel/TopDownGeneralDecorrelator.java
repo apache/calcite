@@ -63,7 +63,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -137,7 +137,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
 
   // invokes using reflection a method named unnestInternal based on the
   // runtime type of the argument.
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   private final ReflectUtil.MethodDispatcher<RelNode> dispatcher =
       ReflectUtil.createMethodDispatcher(
           RelNode.class, getVisitor(), "unnestInternal", RelNode.class, boolean.class);
@@ -153,7 +153,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
    *                                        expressions
    * @param parentMapRelToUnnestedQuery       a map from RelNode to its UnnestedQuery
    */
-  @SuppressWarnings("initialization.fields.uninitialized")
+  @SuppressWarnings("NullAway")
   private TopDownGeneralDecorrelator(
       RelBuilder builder,
       boolean hasParent,

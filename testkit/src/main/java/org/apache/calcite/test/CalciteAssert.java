@@ -103,8 +103,8 @@ import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 import net.hydromatic.steelwheels.data.hsqldb.SteelwheelsHsqldb;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

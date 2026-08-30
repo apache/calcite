@@ -24,7 +24,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.Source;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Table based on a JSON file.

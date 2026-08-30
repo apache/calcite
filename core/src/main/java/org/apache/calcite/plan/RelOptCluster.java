@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.HintStrategyTable;
@@ -29,9 +30,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -149,7 +148,6 @@ public class RelOptCluster {
   @EnsuresNonNull({"this.metadataProvider", "this.metadataFactory"})
   @SuppressWarnings("deprecation")
   public void setMetadataProvider(
-      @UnknownInitialization RelOptCluster this,
       RelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
     this.metadataFactory =
@@ -182,7 +180,6 @@ public class RelOptCluster {
    */
   @EnsuresNonNull("this.mqSupplier")
   public void setMetadataQuerySupplier(
-      @UnknownInitialization RelOptCluster this,
       Supplier<RelMetadataQuery> mqSupplier) {
     this.mqSupplier = mqSupplier;
   }

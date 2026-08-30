@@ -18,11 +18,7 @@
 /**
  * Provides a server for hosting Calcite connections.
  */
-@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.FIELD)
-@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.PARAMETER)
-@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.RETURN)
+@NullMarked
 package org.apache.calcite.server;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.checkerframework.framework.qual.TypeUseLocation;
+import org.jspecify.annotations.NullMarked;

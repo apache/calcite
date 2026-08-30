@@ -47,4 +47,7 @@
  *        provides an optimizer interface.</li>
  * </ul>
  */
+@NullMarked
 package org.apache.calcite.rel.rules;
+
+import org.jspecify.annotations.NullMarked;

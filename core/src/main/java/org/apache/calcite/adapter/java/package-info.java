@@ -19,4 +19,7 @@
  * Query provider based on Java in-memory data
  * structures.
  */
+@NullMarked
 package org.apache.calcite.adapter.java;
+
+import org.jspecify.annotations.NullMarked;

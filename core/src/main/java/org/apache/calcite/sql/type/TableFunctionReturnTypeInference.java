@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -23,9 +25,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;

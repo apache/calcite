@@ -53,9 +53,8 @@ import org.apache.calcite.sql.validate.implicit.TypeCoercionFactory;
 import org.apache.calcite.sql.validate.implicit.TypeCoercions;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -125,7 +124,6 @@ public interface SqlValidator {
    *
    * @return catalog reader
    */
-  @Pure
   SqlValidatorCatalogReader getCatalogReader();
 
   /**
@@ -133,7 +131,6 @@ public interface SqlValidator {
    *
    * @return operator table
    */
-  @Pure
   SqlOperatorTable getOperatorTable();
 
   /**
@@ -511,7 +508,6 @@ public interface SqlValidator {
    *
    * @return type factory
    */
-  @Pure
   RelDataTypeFactory getTypeFactory();
 
   /**

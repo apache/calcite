@@ -22,7 +22,7 @@ import org.apache.calcite.schema.lookup.Lookup;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Extension to the {@link Schema} interface.
@@ -93,7 +93,7 @@ public interface SchemaPlus extends Schema {
   @Override boolean isMutable();
 
   /** Returns an underlying object. */
-  <T extends Object> @Nullable T unwrap(Class<T> clazz);
+  <T> @Nullable T unwrap(Class<T> clazz);
 
   void setPath(ImmutableList<ImmutableList<String>> path);
 

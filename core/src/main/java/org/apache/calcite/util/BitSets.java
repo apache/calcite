@@ -327,7 +327,7 @@ public final class BitSets {
     private final SortedMap<Integer, BitSet> equivalence;
     private final NavigableMap<Integer, BitSet> closure = new TreeMap<>();
 
-    @SuppressWarnings({"JdkObsolete", "method.invocation.invalid"})
+    @SuppressWarnings({"JdkObsolete", "NullAway"})
     Closure(SortedMap<Integer, BitSet> equivalence) {
       this.equivalence = equivalence;
       final ImmutableIntList keys =

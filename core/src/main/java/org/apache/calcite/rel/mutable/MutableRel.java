@@ -24,7 +24,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

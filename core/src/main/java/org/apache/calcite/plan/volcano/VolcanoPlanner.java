@@ -18,6 +18,9 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
@@ -62,12 +65,7 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -229,7 +227,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Creates a {@code VolcanoPlanner} with a given cost factory.
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public VolcanoPlanner(@Nullable RelOptCostFactory costFactory,
       @Nullable Context externalContext) {
     super(costFactory == null ? VolcanoCost.FACTORY : costFactory,
@@ -283,7 +281,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ensureRootConverters();
   }
 
-  @Pure
   @Override public @Nullable RelNode getRoot() {
     return root;
   }
@@ -1523,7 +1520,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param plan Plan
    * @return Normalized plan
    */
-  public static @PolyNull String normalizePlan(@PolyNull String plan) {
+  public static @Nullable String normalizePlan(@Nullable String plan) {
     if (plan == null) {
       return null;
     }

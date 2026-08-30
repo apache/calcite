@@ -32,7 +32,7 @@ import org.apache.calcite.util.Holder;
 
 import net.hydromatic.tpcds.query.Query;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

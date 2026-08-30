@@ -16,10 +16,8 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.plan.hep.HepMatchOrder;
-
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,7 +64,6 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
 
   @RequiresNonNull("graph")
   private void populate(
-      @UnderInitialization TopologicalOrderIterator<V, E> this,
       Map<V, int[]> countMap, List<V> empties) {
     for (V v : graph.vertexMap.keySet()) {
       countMap.put(v, new int[] {0});

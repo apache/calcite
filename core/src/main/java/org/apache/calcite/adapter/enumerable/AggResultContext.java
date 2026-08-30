@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.core.AggregateCall;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Information for a call to

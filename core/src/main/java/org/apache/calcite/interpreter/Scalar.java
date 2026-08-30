@@ -18,7 +18,7 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.function.Function;
 

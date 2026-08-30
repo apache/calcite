@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -29,8 +29,8 @@ import static java.util.Objects.requireNonNull;
  * @param <K> Key type
  * @param <V> Value type
  */
-@SuppressWarnings("type.argument.type.incompatible")
-class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
+@SuppressWarnings("NullAway")
+class GroupingImpl<K, V> extends AbstractEnumerable<V>
     implements Grouping<K, V>, Map.Entry<K, Enumerable<V>> {
   private final K key;
   private final List<V> values;

@@ -40,8 +40,8 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;

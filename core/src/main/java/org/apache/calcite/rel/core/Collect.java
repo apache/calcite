@@ -33,7 +33,7 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -171,8 +171,8 @@ public class Collect extends SingleRel {
   }
 
   /** Returns the row type, guaranteed not null.
-   * (The row type is never null after initialization, but
-   * CheckerFramework can't deduce that references are safe.) */
+   * (The field is nullable because it is populated lazily, but it is set by the time any
+   * caller can reach this method.) */
   protected final RelDataType rowType() {
     return requireNonNull(rowType, "rowType");
   }

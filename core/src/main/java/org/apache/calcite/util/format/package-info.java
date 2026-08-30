@@ -18,4 +18,7 @@
 /**
  * Utility classes for handling format strings.
  */
+@NullMarked
 package org.apache.calcite.util.format;
+
+import org.jspecify.annotations.NullMarked;

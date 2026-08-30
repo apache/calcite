@@ -18,4 +18,7 @@
 /**
  * Runtime support for values of the VARIANT data type.
  */
+@NullMarked
 package org.apache.calcite.runtime.variant;
+
+import org.jspecify.annotations.NullMarked;

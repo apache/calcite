@@ -21,7 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Proxy;
 import java.util.Map;

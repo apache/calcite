@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigInteger;
 import java.util.NavigableMap;
@@ -68,7 +68,7 @@ public class TimeFrameSet {
   public @Nullable TimeFrame getOpt(String name) {
     final NavigableMap<String, TimeFrames.TimeFrameImpl> range =
         nameMap.range(name, false);
-    @Nullable TimeFrame timeFrame =
+    TimeFrame timeFrame =
         Iterables.getFirst(range.values(), null);
     while (timeFrame instanceof TimeFrames.AliasFrame) {
       timeFrame = ((TimeFrames.AliasFrame) timeFrame).frame;

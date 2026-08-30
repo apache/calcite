@@ -18,8 +18,7 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,7 +114,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().listIterator(index);
   }
 
-  @Override public @PolyNull Object[] toArray(ConsList<@PolyNull E> this) {
+  @Override public @Nullable Object[] toArray(ConsList<@Nullable E> this) {
     return toList().toArray();
   }
 

@@ -31,7 +31,7 @@ import au.com.bytecode.opencsv.CSVReader;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;

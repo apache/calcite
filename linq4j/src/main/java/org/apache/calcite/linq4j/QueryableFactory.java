@@ -33,9 +33,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -45,7 +43,6 @@ import java.util.Comparator;
  *
  * @param <T> Element type
  */
-@Covariant(0)
 public interface QueryableFactory<T> {
 
   /**
@@ -215,7 +212,7 @@ public interface QueryableFactory<T> {
    *
    * <p>If {@code value} is not null, the result is never null.
    */
-  Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source, @PolyNull T value);
+  Queryable<@Nullable T> defaultIfEmpty(Queryable<T> source, @Nullable T value);
 
   /**
    * Returns distinct elements from a sequence by using

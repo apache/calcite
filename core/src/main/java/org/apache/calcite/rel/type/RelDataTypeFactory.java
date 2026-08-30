@@ -25,7 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeMappingRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;

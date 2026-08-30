@@ -24,8 +24,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;

@@ -28,7 +28,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -75,7 +75,7 @@ public class SortNode extends AbstractSingleNode<Sort> {
 
   @Override public void run() throws InterruptedException {
     final BigDecimal offset = getOffset();
-    final @Nullable BigDecimal fetch = getFetch();
+    final BigDecimal fetch = getFetch();
     // In pure limit mode. No sort required.
     Row row;
   loop:
@@ -166,7 +166,7 @@ public class SortNode extends AbstractSingleNode<Sort> {
 
   private BigDecimal getValue(RexNode node, @Nullable Scalar scalar,
       @Nullable Context context, String kind) {
-    final @Nullable Object value;
+    final Object value;
     if (node instanceof RexLiteral) {
       value = RexLiteral.bigDecimalValue(node);
     } else {

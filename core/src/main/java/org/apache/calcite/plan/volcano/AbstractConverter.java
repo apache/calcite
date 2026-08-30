@@ -30,8 +30,8 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

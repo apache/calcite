@@ -101,7 +101,7 @@ public class Graphs {
    * @param <V> Vertex type
    * @param <E> Edge type
    */
-  public static class FrozenGraph<V extends Object, E extends DefaultEdge> {
+  public static class FrozenGraph<V, E extends DefaultEdge> {
     private final DefaultDirectedGraph<V, E> graph;
     private final Map<Pair<V, V>, int[]> shortestDistances;
 

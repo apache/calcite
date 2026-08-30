@@ -25,7 +25,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ExecutionException;
 
@@ -64,7 +64,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
         });
   }
 
-  @Override public <@Nullable M extends @Nullable Metadata> M query(
+  @Override public <M extends @Nullable Metadata> M query(
       RelNode rel, RelMetadataQuery mq,
       Class<M> metadataClazz) {
     try {

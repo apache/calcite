@@ -75,8 +75,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

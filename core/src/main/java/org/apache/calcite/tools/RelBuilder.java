@@ -137,8 +137,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -3835,11 +3835,11 @@ public class RelBuilder {
    */
   public RelBuilder sortLimit(Number offset, Number fetch,
       Iterable<? extends RexNode> nodes) {
-    final @Nullable RexNode offsetNode =
+    final RexNode offsetNode =
         new BigDecimal(offset.toString()).compareTo(BigDecimal.ZERO) <= 0
             ? null
             : literal(offset);
-    final @Nullable RexNode fetchNode =
+    final RexNode fetchNode =
         new BigDecimal(fetch.toString()).compareTo(BigDecimal.ZERO) < 0
             ? null
             : literal(fetch);
@@ -4707,7 +4707,7 @@ public class RelBuilder {
       if (this.filter != null && !this.aggFunction.allowsFilter()) {
         throw new IllegalArgumentException("FILTER not allowed");
       }
-      final @Nullable ImmutableBitSet distinctKeys =
+      final ImmutableBitSet distinctKeys =
           this.distinctKeys == null
               ? null
               : ImmutableBitSet.of(
@@ -4770,7 +4770,7 @@ public class RelBuilder {
     }
 
     @Override public AggCall unique(@Nullable Iterable<RexNode> distinctKeys) {
-      final @Nullable ImmutableList<RexNode> distinctKeyList =
+      final ImmutableList<RexNode> distinctKeyList =
           distinctKeys == null ? null : ImmutableList.copyOf(distinctKeys);
       return Objects.equals(distinctKeyList, this.distinctKeys)
           ? this

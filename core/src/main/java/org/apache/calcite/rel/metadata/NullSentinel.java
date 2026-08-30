@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Placeholder for null values. */
 public enum NullSentinel {

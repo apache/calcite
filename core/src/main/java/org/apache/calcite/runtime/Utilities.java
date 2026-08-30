@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.EnumerableDefaults;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.text.Collator;
 import java.util.Comparator;

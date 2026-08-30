@@ -42,8 +42,7 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -277,8 +276,8 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  private static @PolyNull Set<RelColumnOrigin> createDerivedColumnOrigins(
-      @PolyNull Set<RelColumnOrigin> inputSet) {
+  private static @Nullable Set<RelColumnOrigin> createDerivedColumnOrigins(
+      @Nullable Set<RelColumnOrigin> inputSet) {
     if (inputSet == null) {
       return null;
     }

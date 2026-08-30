@@ -16,11 +16,9 @@
  */
 
 /**
- * Defines metadata interfaces and utilities for relational
- * expressions.
- */
-
-/**
  * Code for generating metadata handlers.
  */
+@NullMarked
 package org.apache.calcite.rel.metadata.janino;
+
+import org.jspecify.annotations.NullMarked;

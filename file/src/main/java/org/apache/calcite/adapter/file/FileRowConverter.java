@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.jspecify.annotations.Nullable;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -193,7 +193,7 @@ class FileRowConverter {
     for (FieldDef f : this.fields) {
       names.add(f.getName());
 
-      @Nullable FileFieldType fieldType = f.getType();
+      FileFieldType fieldType = f.getType();
       RelDataType type;
 
       if (fieldType == null) {
@@ -223,13 +223,13 @@ class FileRowConverter {
     private final int matchSeq;
 
     CellReader(Map<String, Object> config) {
-      final @Nullable String unusedType = (String) config.get("type");
+      final String unusedType = (String) config.get("type");
       this.selector = first((String) config.get("selector"), "*");
       this.selectedElement = (Integer) config.get("selectedElement");
-      @Nullable String replace = (String) config.get("replace");
+      String replace = (String) config.get("replace");
       this.replacePattern = replace == null ? null : Pattern.compile(replace);
       this.replaceWith = first((String) config.get("replaceWith"), "");
-      @Nullable String match = (String) config.get("match");
+      String match = (String) config.get("match");
       this.matchPattern = match == null ? null : Pattern.compile(match);
       this.matchSeq = first((Integer) config.get("matchSeq"), 0);
     }

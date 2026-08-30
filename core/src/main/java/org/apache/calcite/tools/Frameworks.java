@@ -46,7 +46,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Connection;
 import java.util.List;

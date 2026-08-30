@@ -73,8 +73,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -932,9 +932,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final List<JsonAggregation> aggregations = new ArrayList<>();
     for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
       final String fieldName;
-      final @Nullable String expression;
+      final String expression;
       final AggregateCall aggCall = agg.left;
-      final @Nullable RexNode filterNode;
+      final RexNode filterNode;
       // Type check First
       final RelDataType type = aggCall.getType();
       final SqlTypeName sqlTypeName = type.getSqlTypeName();
@@ -1006,7 +1006,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       ImmutableBitSet numericCollationIndexes, @Nullable Integer fetch,
       @Nullable Project postProject, @Nullable Filter havingFilter) {
     // Handle filter
-    final @Nullable DruidJsonFilter jsonFilter = computeFilter(filter);
+    final DruidJsonFilter jsonFilter = computeFilter(filter);
 
     if (groupSet == null) {
       // It is Scan Query since no Grouping
@@ -1062,7 +1062,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
 
-    final @Nullable DruidJsonFilter havingJsonFilter;
+    final DruidJsonFilter havingJsonFilter;
     if (havingFilter != null) {
       havingJsonFilter =
           DruidJsonFilter.toDruidFilters(havingFilter.getCondition(),

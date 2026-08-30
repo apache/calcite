@@ -22,7 +22,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -55,7 +55,7 @@ public class SqlWith extends SqlCall {
     return ImmutableList.of(withList, body);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -115,7 +115,7 @@ public class SqlWith extends SqlCall {
     }
 
 
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
       return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);

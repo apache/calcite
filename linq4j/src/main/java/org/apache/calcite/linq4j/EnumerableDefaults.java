@@ -42,11 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.dataflow.qual.Pure;
-import org.checkerframework.framework.qual.HasQualifierParameter;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -418,10 +414,10 @@ public abstract class EnumerableDefaults {
    *
    * <p>If {@code value} is not null, the result is never null.
    */
-  @SuppressWarnings("return.type.incompatible")
-  public static <TSource> Enumerable<@PolyNull TSource> defaultIfEmpty(
+  @SuppressWarnings("NullAway")
+  public static <TSource> Enumerable<@Nullable TSource> defaultIfEmpty(
       Enumerable<TSource> enumerable,
-      @PolyNull TSource value) {
+      @Nullable TSource value) {
     try (Enumerator<TSource> os = enumerable.enumerator()) {
       if (os.moveNext()) {
         return Linq4j.<TSource>asEnumerable(() -> new Iterator<TSource>() {
@@ -570,7 +566,7 @@ public abstract class EnumerableDefaults {
     try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         boolean unused = collection.remove(o);
       }
       return Linq4j.asEnumerable(collection);
@@ -948,7 +944,7 @@ public abstract class EnumerableDefaults {
           if (!matches) {
             continue;
           }
-          @Nullable TInner bestElement = best.get(i);
+          TInner bestElement = best.get(i);
           if (bestElement == null) {
             best.set(i, r);
           } else {
@@ -990,7 +986,7 @@ public abstract class EnumerableDefaults {
             }
 
             TSource l = requireNonNull(left, "left").current();
-            @Nullable TInner r = requireNonNull(right, "right").current();
+            TInner r = requireNonNull(right, "right").current();
             return resultSelector.apply(l, r);
           }
 
@@ -1009,7 +1005,7 @@ public abstract class EnumerableDefaults {
                 }
                 if (hasNext) {
                   if (!emitNullsOnRight) {
-                    @Nullable TInner r =
+                    TInner r =
                         requireNonNull(right, "right").current();
                     if (r == null) {
                       continue;
@@ -1169,7 +1165,7 @@ public abstract class EnumerableDefaults {
       while (os.moveNext()) {
         TSource o = os.current();
         TKey key = keySelector.apply(o);
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         TAccumulate accumulator = map.get(key);
         if (accumulator == null) {
           accumulator = accumulatorInitializer.apply();
@@ -1198,7 +1194,7 @@ public abstract class EnumerableDefaults {
         for (Function1<TSource, TKey> keySelector : keySelectors) {
           TSource o = os.current();
           TKey key = keySelector.apply(o);
-          @SuppressWarnings("argument.type.incompatible")
+          @SuppressWarnings("NullAway")
           TAccumulate accumulator = map.get(key);
           if (accumulator == null) {
             accumulator = accumulatorInitializer.apply();
@@ -1252,7 +1248,7 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
-            @SuppressWarnings("argument.type.incompatible")
+            @SuppressWarnings("NullAway")
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
@@ -1294,7 +1290,7 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
-            @SuppressWarnings("argument.type.incompatible")
+            @SuppressWarnings("NullAway")
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
@@ -1339,7 +1335,7 @@ public abstract class EnumerableDefaults {
     try (Enumerator<TSource> os = source0.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         boolean removed = set1.remove(o);
         if (removed) {
           resultCollection.add(o);
@@ -1530,7 +1526,7 @@ public abstract class EnumerableDefaults {
                   // not the left.
                   List<TInner> list = new ArrayList<>();
                   for (TKey key : unmatchedKeys) {
-                    @SuppressWarnings("argument.type.incompatible")
+                    @SuppressWarnings("NullAway")
                     Enumerable<TInner> innerValues = requireNonNull(innerLookup.get(key));
                     for (TInner tInner : innerValues) {
                       list.add(tInner);
@@ -2237,7 +2233,7 @@ public abstract class EnumerableDefaults {
           int i = -1; // outer position
           int j = -1; // inner position
 
-          @SuppressWarnings("argument.type.incompatible")
+          @SuppressWarnings("NullAway")
           @Override public TResult current() {
             return resultSelector.apply(outerValue, innerValue);
           }
@@ -2483,7 +2479,7 @@ public abstract class EnumerableDefaults {
 
         final Predicate1<TSource> predicate = v0 -> {
           TKey key = outerKeySelector.apply(v0);
-          @SuppressWarnings("argument.type.incompatible")
+          @SuppressWarnings("NullAway")
           Enumerable<TInner> innersOfKey = key == null ? null : innerLookup.get().get(key);
           if (innersOfKey == null) {
             return anti;
@@ -3328,12 +3324,12 @@ public abstract class EnumerableDefaults {
             TKey key = keySelector.apply(o);
             if (needed.signum() >= 0 && size.compareTo(needed) >= 0) {
               // the current row will never appear in the output, so just skip it
-              @KeyFor("map") TKey lastKey = map.lastKey();
+              TKey lastKey = map.lastKey();
               if (comparator.compare(key, lastKey) >= 0) {
                 continue;
               }
               // remove last entry from tree map, so that we keep at most 'needed' rows
-              @SuppressWarnings("argument.type.incompatible")
+              @SuppressWarnings("NullAway")
               List<TSource> l = map.get(lastKey);
               if (l.size() == 1) {
                 map.remove(lastKey);
@@ -4851,8 +4847,7 @@ public abstract class EnumerableDefaults {
    * @param <F> source element type
    * @param <T> element type
    */
-  @HasQualifierParameter(Nullable.class)
-  static class CastingEnumerator<F extends @PolyNull Object, @PolyNull T extends @PolyNull Object>
+  static class CastingEnumerator<F, T>
       implements Enumerator<T> {
     private final Enumerator<F> enumerator;
     private final Class<T> clazz;
@@ -4923,13 +4918,13 @@ public abstract class EnumerableDefaults {
       this.comparer = comparer;
     }
 
-    @Override public Set<Entry<@KeyFor("this") K, V>> entrySet() {
+    @Override public Set<Entry<K, V>> entrySet() {
       return new WrapMapEntrySet();
     }
 
     /** EntrySet for {@link WrapMap}. */
-    private class WrapMapEntrySet extends AbstractSet<Entry<@KeyFor("this") K, V>> {
-      @SuppressWarnings("override.return.invalid")
+    private class WrapMapEntrySet extends AbstractSet<Entry<K, V>> {
+      @SuppressWarnings("NullAway")
       @Override public Iterator<Entry<K, V>> iterator() {
         final Iterator<Entry<Wrapped<K>, V>> iterator =
             map.entrySet().iterator();
@@ -4955,12 +4950,11 @@ public abstract class EnumerableDefaults {
       }
     }
 
-    @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+    @SuppressWarnings("NullAway")
     @Override public boolean containsKey(@Nullable Object key) {
       return map.containsKey(wrap((K) key));
     }
 
-    @Pure
     private Wrapped<K> wrap(K key) {
       return Wrapped.upAs(comparer, key);
     }
@@ -4969,7 +4963,7 @@ public abstract class EnumerableDefaults {
       return map.get(wrap((K) key));
     }
 
-    @SuppressWarnings("contracts.postcondition.not.satisfied")
+    @SuppressWarnings("NullAway")
     @Override public @Nullable V put(K key, V value) {
       return map.put(wrap(key), value);
     }
@@ -5055,7 +5049,7 @@ public abstract class EnumerableDefaults {
     private boolean remainingLeft;
     private TResult current = (TResult) DUMMY;
 
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("NullAway")
     MergeJoinEnumerator(Enumerable<TSource> leftEnumerable,
         Enumerable<TInner> rightEnumerable,
         Function1<TSource, TKey> outerKeySelector,

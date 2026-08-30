@@ -35,7 +35,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +76,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction
   }
 
   @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
-    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
+    return (SqlOperandMetadata) super.getOperandTypeChecker();
   }
 
   @SuppressWarnings("deprecation")

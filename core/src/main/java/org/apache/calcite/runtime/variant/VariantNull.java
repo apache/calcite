@@ -18,7 +18,7 @@ package org.apache.calcite.runtime.variant;
 
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** The VARIANT type has its own notion of null, which is
  * different from the SQL NULL value.  For example, two variant nulls are equal

@@ -35,7 +35,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicBoolean;

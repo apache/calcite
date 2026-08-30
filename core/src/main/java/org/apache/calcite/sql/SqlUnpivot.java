@@ -22,7 +22,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -84,7 +84,7 @@ public class SqlUnpivot extends SqlCall {
         SqlLiteral.createBoolean(includeNulls, SqlParserPos.ZERO));
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     // Only 'query' is mutable. (It is required for validation.)
     switch (i) {

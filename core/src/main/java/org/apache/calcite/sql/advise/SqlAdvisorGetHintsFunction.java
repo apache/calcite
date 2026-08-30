@@ -36,7 +36,7 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;

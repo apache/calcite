@@ -46,7 +46,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -342,7 +342,7 @@ public abstract class OperandTypes {
   private static <E> void flatten(List<E> list,
       Function<E, @Nullable List<? extends E>> expander) {
     for (int i  = 0; i < list.size();) {
-      @Nullable List<? extends E> list2 = expander.apply(list.get(i));
+      List<? extends E> list2 = expander.apply(list.get(i));
       if (list2 == null) {
         ++i;
       } else {
@@ -651,7 +651,7 @@ public abstract class OperandTypes {
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
           i -> i == 2) {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         @Override public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}

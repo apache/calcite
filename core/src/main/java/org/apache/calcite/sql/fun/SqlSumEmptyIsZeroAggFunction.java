@@ -29,7 +29,7 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -70,7 +70,7 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
         typeFactory.createSqlType(SqlTypeName.ANY), true);
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(SqlSplittableAggFunction.Sum0Splitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.Sum0Splitter.INSTANCE);
     }

@@ -24,7 +24,7 @@ import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.PrintWriter;

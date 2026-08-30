@@ -32,7 +32,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Locale;

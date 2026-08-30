@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.schema.impl;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -36,8 +37,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;

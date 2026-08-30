@@ -18,4 +18,7 @@
 /**
  * Calcite-specific classes for implementation of regular and window aggregates.
  */
+@NullMarked
 package org.apache.calcite.adapter.enumerable.impl;
+
+import org.jspecify.annotations.NullMarked;

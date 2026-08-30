@@ -26,7 +26,7 @@ import org.apache.calcite.sql.advise.SqlAdvisor;
 
 import com.google.common.base.CaseFormat;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.InputStream;
 import java.io.OutputStream;

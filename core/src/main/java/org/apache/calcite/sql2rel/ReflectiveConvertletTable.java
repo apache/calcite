@@ -16,15 +16,14 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -66,7 +65,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    */
   @RequiresNonNull("map")
   private void registerNodeTypeMethod(
-      @UnderInitialization ReflectiveConvertletTable this,
       final Method method) {
     if (!isPublic(method)) {
       return;
@@ -90,7 +88,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     }
     map.put(parameterType, (SqlRexConvertlet) (cx, call) -> {
       try {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         RexNode result =
             (RexNode) method.invoke(ReflectiveConvertletTable.this, cx, call);
         return requireNonNull(result,
@@ -109,7 +107,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    */
   @RequiresNonNull("map")
   private void registerOpTypeMethod(
-      @UnderInitialization ReflectiveConvertletTable this,
       final Method method) {
     if (!isPublic(method)) {
       return;
@@ -137,7 +134,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     }
     map.put(opClass, (SqlRexConvertlet) (cx, call) -> {
       try {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         RexNode result =
             (RexNode) method.invoke(ReflectiveConvertletTable.this, cx,
                 call.getOperator(), call);
@@ -192,7 +189,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    * @param convertlet Convertlet
    */
   protected void registerOp(
-      @UnderInitialization ReflectiveConvertletTable this,
       SqlOperator op, SqlRexConvertlet convertlet) {
     map.put(op, convertlet);
   }
@@ -204,7 +200,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    * @param target Operator to translate calls to
    */
   protected void addAlias(
-      @UnderInitialization ReflectiveConvertletTable this,
       final SqlOperator alias, final SqlOperator target) {
     map.put(
         alias, (SqlRexConvertlet) (cx, call) -> {

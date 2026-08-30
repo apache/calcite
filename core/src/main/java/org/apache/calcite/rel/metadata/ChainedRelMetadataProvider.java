@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -51,7 +51,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
   /**
    * Creates a chain.
    */
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   protected ChainedRelMetadataProvider(
       ImmutableList<RelMetadataProvider> providers) {
     this.providers = providers;
@@ -71,7 +71,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  @Override public <M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     final List<UnboundMetadata<M>> functions = new ArrayList<>();

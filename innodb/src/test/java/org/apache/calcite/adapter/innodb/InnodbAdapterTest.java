@@ -30,7 +30,7 @@ import com.alibaba.innodb.java.reader.util.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

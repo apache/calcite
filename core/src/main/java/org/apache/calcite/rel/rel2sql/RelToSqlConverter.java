@@ -105,7 +105,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -146,7 +146,7 @@ public class RelToSqlConverter extends SqlImplementor
   /** Creates a RelToSqlConverter; if {@code preserveLiteralTypes}, literals
    * whose type is not implied by their SQL text are wrapped in CASTs;
    * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   public RelToSqlConverter(SqlDialect dialect, boolean preserveLiteralTypes) {
     super(dialect, preserveLiteralTypes);
     dispatcher =
@@ -961,7 +961,7 @@ public class RelToSqlConverter extends SqlImplementor
     if (fromJoin == null) {
       return field;
     }
-    final @Nullable SqlNode qualified = joinField(input, key, fromJoin);
+    final SqlNode qualified = joinField(input, key, fromJoin);
     return qualified != null ? qualified : field;
   }
 
@@ -970,7 +970,7 @@ public class RelToSqlConverter extends SqlImplementor
    * tables. */
   private static @Nullable SqlNode joinField(RelNode input, int field,
       SqlNode from) {
-    final @Nullable String alias = SqlValidatorUtil.alias(from);
+    final String alias = SqlValidatorUtil.alias(from);
     if (alias != null) {
       return new SqlIdentifier(
           ImmutableList.of(alias,
@@ -1041,7 +1041,7 @@ public class RelToSqlConverter extends SqlImplementor
     if (expression.getKind() == SqlKind.COALESCE) {
       final List<SqlNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) expression).getOperands()) {
-        final @Nullable SqlNode sqlOperand =
+        final SqlNode sqlOperand =
             joinExpression(input, operand, from);
         if (sqlOperand == null) {
           return null;
@@ -1406,14 +1406,14 @@ public class RelToSqlConverter extends SqlImplementor
 
   private SqlNode toSqlOffset(Sort sort, Context context) {
     final RexNode offset = requireNonNull(sort.offset, "offset");
-    final @Nullable RexLiteral reduced =
+    final RexLiteral reduced =
         RexUtil.reduceOffsetToLiteral(sort.getCluster(), offset);
     return offsetFetchToSql(context, reduced == null ? offset : reduced);
   }
 
   private SqlNode toSqlFetch(Sort sort, Context context) {
     final RexNode fetch = requireNonNull(sort.fetch, "fetch");
-    final @Nullable RexLiteral reduced =
+    final RexLiteral reduced =
         RexUtil.reduceFetchToLiteral(sort.getCluster(), fetch);
     return offsetFetchToSql(context, reduced == null ? fetch : reduced);
   }

@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -267,7 +267,7 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
   @Deprecated // to be removed before 2.0
-  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  @Override public <M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     if (metadataClass == metadataClass0) {
       return apply(relClass);
@@ -278,7 +278,7 @@ public class ReflectiveRelMetadataProvider
 
   @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
   @Deprecated // to be removed before 2.0
-  public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  public <M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass) {
     List<Class<? extends RelNode>> newSources = new ArrayList<>();
     for (;;) {

@@ -18,8 +18,8 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.linq4j.Enumerator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.select.Elements;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
 

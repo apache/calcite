@@ -25,4 +25,7 @@
  * efficiency; for example, it may attempt to push down filters to the
  * source SQL system.
  */
+@NullMarked
 package org.apache.calcite.linq4j.tree;
+
+import org.jspecify.annotations.NullMarked;

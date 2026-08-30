@@ -19,7 +19,7 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.MetaImpl.MetaColumn;
 import org.apache.calcite.schema.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

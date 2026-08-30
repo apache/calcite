@@ -57,7 +57,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -128,7 +128,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     }
   }
 
-  @SuppressWarnings({"unused", "nullness"})
+  @SuppressWarnings({"unused", "NullAway"})
   private static void sampleOfTheGeneratedWindowedAggregate() {
     // Here's overview of the generated code
     // For each list of rows that have the same partitioning key, evaluate

@@ -28,7 +28,7 @@ import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.bson.types.Binary;
 import org.bson.types.Decimal128;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Date;

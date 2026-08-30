@@ -21,8 +21,7 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.Initialized;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -77,8 +76,8 @@ public abstract class LatticeNode {
         if (i++ > 0) {
           sb.append(' ');
         }
-        @SuppressWarnings({"argument.type.incompatible", "assignment.type.incompatible"})
-        final @Initialized LatticeChildNode node =
+        @SuppressWarnings("NullAway")
+        final LatticeChildNode node =
             new LatticeChildNode(space, this, mutableChild);
         sb.append(node.digest);
         b.add(node);

@@ -32,11 +32,7 @@
  * instantiating materializations from the intermediate results of queries, and
  * recognize what materializations would be useful based on actual query load.
  */
-@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.FIELD)
-@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.PARAMETER)
-@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.RETURN)
+@NullMarked
 package org.apache.calcite.materialize;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.checkerframework.framework.qual.TypeUseLocation;
+import org.jspecify.annotations.NullMarked;

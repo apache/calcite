@@ -20,7 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 
 import org.apache.commons.math3.fraction.BigFraction;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Time frame.
  *

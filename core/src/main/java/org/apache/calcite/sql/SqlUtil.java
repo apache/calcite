@@ -56,8 +56,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -715,7 +714,7 @@ public abstract class SqlUtil {
             return true;
           }
           final SqlOperandMetadata operandMetadata = (SqlOperandMetadata) operandTypeChecker;
-          @SuppressWarnings("assignment.type.incompatible")
+          @SuppressWarnings("NullAway")
           final List<@Nullable RelDataType> paramTypes =
               operandMetadata.paramTypes(typeFactory);
           final List<@Nullable RelDataType> permutedArgTypes;
@@ -1131,7 +1130,7 @@ public abstract class SqlUtil {
 
   /** If a node is "AS", returns the underlying expression; otherwise returns
    * the node. Returns null if and only if the node is null. */
-  public static @PolyNull SqlNode stripAs(@PolyNull SqlNode node) {
+  public static @Nullable SqlNode stripAs(@Nullable SqlNode node) {
     if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);
     }

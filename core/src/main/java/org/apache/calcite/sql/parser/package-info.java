@@ -18,4 +18,7 @@
 /**
  * Provides a SQL parser.
  */
+@NullMarked
 package org.apache.calcite.sql.parser;
+
+import org.jspecify.annotations.NullMarked;

@@ -18,4 +18,7 @@
 /**
  * SQL validation.
  */
+@NullMarked
 package org.apache.calcite.sql.validate;
+
+import org.jspecify.annotations.NullMarked;

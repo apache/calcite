@@ -29,7 +29,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -172,7 +172,7 @@ class ArrowTranslator {
       ConditionToken.Operator rop, RexCall call) {
     final RexNode left = call.operands.get(0);
     final RexNode right = call.operands.get(1);
-    @Nullable ConditionToken expression = translateBinary2(op, left, right);
+    ConditionToken expression = translateBinary2(op, left, right);
     if (expression != null) {
       return expression;
     }
@@ -188,7 +188,7 @@ class ArrowTranslator {
       RexCall call) {
     final RexNode left = call.operands.get(0);
     final RexNode right = call.operands.get(1);
-    @Nullable ConditionToken expression = translateBinary2(op, left, right);
+    ConditionToken expression = translateBinary2(op, left, right);
     if (expression != null) {
       return expression;
     }
@@ -237,7 +237,7 @@ class ArrowTranslator {
   /** Translates a call to a unary operator. */
   private ConditionToken translateUnary(ConditionToken.Operator op, RexCall call) {
     final RexNode opNode = call.operands.get(0);
-    @Nullable ConditionToken expression = translateUnary2(op, opNode);
+    ConditionToken expression = translateUnary2(op, opNode);
 
     if (expression != null) {
       return expression;

@@ -48,7 +48,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -213,8 +213,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     boolean semiOrAntijoin = !rel.getJoinType().projectsRight();
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
-    final @Nullable List<@Nullable Double> lefts = mq.getAverageColumnSizes(left);
-    final @Nullable List<@Nullable Double> rights;
+    final List<@Nullable Double> lefts = mq.getAverageColumnSizes(left);
+    final List<@Nullable Double> rights;
     if (semiOrAntijoin) {
       if (rel.getJoinType() == JoinRelType.LEFT_MARK) {
         RelDataTypeField markColType =

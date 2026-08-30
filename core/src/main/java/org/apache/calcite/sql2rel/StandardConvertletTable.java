@@ -86,8 +86,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -740,7 +739,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   protected RexNode convertCast(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       final SqlCall call) {
     RelDataTypeFactory typeFactory = cx.getTypeFactory();
@@ -875,7 +873,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   protected RexNode convertCharset(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx, SqlCall call) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final SqlParserPos pos = call.getParserPosition();
@@ -912,7 +909,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   protected RexNode translateCharset(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx, SqlCall call) {
     final SqlParserPos pos = call.getParserPosition();
     final SqlNode expr = call.operand(0);
@@ -968,7 +964,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   public RexNode convertDatetimeMinus(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlDatetimeSubtractionOperator op,
       SqlCall call) {
@@ -1137,7 +1132,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   private RexNode convertItem(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlCall call) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
@@ -1173,7 +1167,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   private RexNode convertColon(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlCall call) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
@@ -1199,7 +1192,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
    * @return Rex call
    */
   public RexNode convertCall(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlCall call) {
     final SqlOperator op = call.getOperator();
@@ -1381,7 +1373,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   private RexNode convertPlus(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx, SqlCall call) {
     final RexNode rex = convertCall(cx, call);
     switch (rex.getType().getSqlTypeName()) {
@@ -1422,7 +1413,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   private RexNode convertIsDistinctFrom(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlCall call,
       boolean neg) {
@@ -1640,7 +1630,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   @Deprecated // to be removed before 2.0
   public RexNode castToValidatedType(
-      @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlCall call,
       RexNode value) {
