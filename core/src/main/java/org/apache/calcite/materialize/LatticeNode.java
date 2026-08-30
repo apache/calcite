@@ -76,7 +76,6 @@ public abstract class LatticeNode {
         if (i++ > 0) {
           sb.append(' ');
         }
-        @SuppressWarnings("NullAway")
         final LatticeChildNode node =
             new LatticeChildNode(space, this, mutableChild);
         sb.append(node.digest);

@@ -569,7 +569,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             .build();
     @SuppressWarnings("unchecked")
     final List<T> list = (List) ImmutableList.of(1);
-    final List<String> origin = null;
+    final @Nullable List<String> origin = null;
     final List<@Nullable List<String>> origins =
         Collections.nCopies(x.getFieldCount(), origin);
     final List<ColumnMetaData> columns =

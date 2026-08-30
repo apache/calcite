@@ -851,7 +851,7 @@ public class Lattice {
       final DirectedGraph<Vertex, Edge> graph =
           DefaultDirectedGraph.create(Edge.FACTORY);
       final List<Vertex> vertices = new ArrayList<>();
-      for (Pair<TableScan, @Nullable String> p : Pair.zip(relNodes, aliases)) {
+      for (Pair<TableScan, String> p : Pair.zip(relNodes, aliases)) {
         final LatticeTable table = space.register(p.left.getTable());
         final Vertex vertex = new Vertex(table, p.right);
         graph.addVertex(vertex);

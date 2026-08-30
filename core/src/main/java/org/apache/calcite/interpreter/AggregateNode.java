@@ -93,7 +93,6 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
     for (AggregateCall aggregateCall : rel.getAggCallList()) {
-      @SuppressWarnings("NullAway")
       AccumulatorFactory accumulator =
           getAccumulator(compiler, aggregateCall, false);
       builder.add(accumulator);

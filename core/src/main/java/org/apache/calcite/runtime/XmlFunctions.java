@@ -182,7 +182,7 @@ public class XmlFunctions {
 
       final Node documentNode = getDocumentNode(xml);
       try {
-        List<String> result = new ArrayList<>();
+        List<@Nullable String> result = new ArrayList<>();
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(documentNode, XPathConstants.NODESET);
         for (int i = 0; i < nodes.getLength(); i++) {

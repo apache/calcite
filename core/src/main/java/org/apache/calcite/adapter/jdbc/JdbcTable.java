@@ -78,7 +78,6 @@ import static java.util.Objects.requireNonNull;
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
-  @SuppressWarnings("NullAway")
   private final Supplier<RelProtoDataType> protoRowTypeSupplier =
       Suppliers.memoize(this::supplyProto);
   public final JdbcSchema jdbcSchema;

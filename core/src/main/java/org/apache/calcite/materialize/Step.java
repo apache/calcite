@@ -145,7 +145,6 @@ class Step extends DefaultEdge {
       LatticeTable, Step> {
     private final LatticeSpace space;
 
-    @SuppressWarnings("NullAway")
     Factory(LatticeSpace space) {
       this.space = requireNonNull(space, "space");
     }

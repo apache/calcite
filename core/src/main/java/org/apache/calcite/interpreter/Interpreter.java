@@ -82,7 +82,6 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     final RelNode rel = optimize(rootRel);
     final CompilerImpl compiler =
         new Nodes.CoreCompiler(this, rootRel.getCluster());
-    @SuppressWarnings("NullAway")
     Pair<RelNode, Map<RelNode, NodeInfo>> pair = compiler.visitRoot(rel);
     this.rootRel = pair.left;
     this.nodes = ImmutableMap.copyOf(pair.right);

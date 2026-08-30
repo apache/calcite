@@ -113,7 +113,7 @@ public class EnumerableMergeUnion extends EnumerableUnion {
     final Expression sortComparator = pair.right;
 
     final Expression equalityComparator =
-        Util.firstNonNull(physType.comparer(),
+        Util.first(physType.comparer(),
             Expressions.call(BuiltInMethod.IDENTITY_COMPARER.method));
 
     final Expression unionExp =

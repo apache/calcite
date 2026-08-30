@@ -1221,7 +1221,7 @@ public class EnumUtils {
         }
         // A key column index of -1 means that there is no key; every element
         // then maps to the same (null) key, forming one session timeline.
-        Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
+        @Nullable Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
         Object watermark =
             requireNonNull(element[indexOfWatermarkedColumn],
                 "element[indexOfWatermarkedColumn]");

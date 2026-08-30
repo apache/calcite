@@ -109,7 +109,6 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   @Contract("_, !null -> !null")
   // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
   // that suits both the Class argument and a nullable default.
-  @SuppressWarnings("NullAway")
   @Override public <T> @Nullable T fun(Class<T> operatorTableClass,
       @Nullable T defaultOperatorTable) {
     final String fun =

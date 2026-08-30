@@ -413,7 +413,7 @@ public class CalciteMetaImpl extends MetaImpl {
           return new CalciteMetaSchema(schema, catalog, schema.getName());
         })
         .orderBy((Function1<MetaSchema, Comparable>) metaSchema ->
-            (Comparable) FlatLists.of(Util.first(metaSchema.tableCatalog, ""),
+            (Comparable) FlatLists.of(Util.firstNonNull(metaSchema.tableCatalog, ""),
                 metaSchema.tableSchem));
   }
 

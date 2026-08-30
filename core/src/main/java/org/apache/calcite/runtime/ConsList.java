@@ -114,13 +114,13 @@ public class ConsList<E extends @Nullable Object> extends AbstractImmutableList<
     return toList().listIterator(index);
   }
 
-  @Override public @Nullable Object[] toArray(ConsList<@Nullable E> this) {
+  @Override public @Nullable Object[] toArray() {
     return toList().toArray();
   }
 
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
     final int s = size();
-    if (s > castNonNull(a).length) {
+    if (s > a.length) {
       a = (T[]) Arrays.copyOf(a, s, a.getClass());
     } else if (s < a.length) {
       a[s] = castNonNull(null);
@@ -130,7 +130,7 @@ public class ConsList<E extends @Nullable Object> extends AbstractImmutableList<
       //noinspection unchecked
       a[i++] = (T) c.first;
       if (!(c.rest instanceof ConsList)) {
-        Object[] a2 = c.rest.toArray();
+        @Nullable Object[] a2 = c.rest.toArray();
         //noinspection SuspiciousSystemArraycopy
         System.arraycopy(a2, 0, a, i, a2.length);
         return a;

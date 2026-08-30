@@ -363,7 +363,7 @@ abstract class CalciteConnectionImpl
     }
 
     public CalciteConnection getConnection() {
-      return (CalciteConnection) provider;
+      return (CalciteConnection) requireNonNull(provider, "provider");
     }
   }
 

@@ -375,7 +375,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         ImmutableList.of(
                             leftResult.physType, rightResult.physType)))
                     .append(
-                        Util.first(keyPhysType.comparer(),
+                        Util.firstNonNull(keyPhysType.comparer(),
                             Expressions.constant(null)))
                     .append(
                         Expressions.constant(joinType.generatesNullsOnLeft()))

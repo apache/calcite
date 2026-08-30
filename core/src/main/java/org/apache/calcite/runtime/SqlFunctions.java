@@ -273,6 +273,9 @@ public class SqlFunctions {
     }
 
     @Override public Enumerator<@Nullable Object[]> enumerator() {
+      // A List::toArray method reference does not resolve: the JDK model reports one
+      // signature at a call site and requires another in an override.
+      // https://github.com/uber/NullAway/issues/1728
       return Linq4j.transform(product, list -> list.toArray());
     }
   }
@@ -8263,8 +8266,6 @@ public class SqlFunctions {
     @Override public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
-        // toArray() yields @Nullable Object[] from the JDK model, and a SQL array may
-        // hold nulls. https://github.com/uber/NullAway/issues/1728
         @Nullable Object[] a;
         if (element.getClass().isArray()) {
           a = (Object[]) element;
