@@ -2290,7 +2290,7 @@ public class Util {
       return -1;
     }
     // we use HashMap here, because it is more efficient than HashSet.
-    final Map<E, Object> set = new HashMap<>(size);
+    final Map<@Nullable E, Object> set = new HashMap<>(size);
     for (E e : list) {
       if (set.put(e, "") != null) {
         return set.size();

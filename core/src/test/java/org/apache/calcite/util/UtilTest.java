@@ -54,8 +54,6 @@ import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.util.Assert;
 
@@ -249,7 +247,7 @@ class UtilTest {
   }
 
   @Test void testJoinNullable() {
-    final List<@Nullable Object> parts = Arrays.asList("a", null, "b");
+    final List<Object> parts = Arrays.asList("a", null, "b");
     assertThat(Util.joinNullable(parts, ":"), is("a::b"));
     assertThat(Util.joinNullable(Collections.emptyList(), ","), is(""));
     assertThat(Util.joinNullable(Arrays.asList(null, null), ":"), is(":"));
@@ -2518,7 +2516,7 @@ class UtilTest {
     assertThat(local1.get(), is("foo"));
     local1.set(null); // null values are allowed
 
-    final TryThreadLocal<@Nullable String> local2 =
+    final TryThreadLocal<String> local2 =
         TryThreadLocal.of(null);
     assertThat(local2.get(), nullValue());
     TryThreadLocal.Memo memo2 = local2.push("a");
@@ -2539,7 +2537,7 @@ class UtilTest {
     }
     assertThat(local2.get(), is("x"));
 
-    final Supplier<@NonNull String> stringSupplier =
+    final Supplier<String> stringSupplier =
         new Supplier<String>() {
       final Random random = new Random();
 
@@ -2564,7 +2562,7 @@ class UtilTest {
     }
 
     @SuppressWarnings("DataFlowIssue")
-    final Supplier<@NonNull String> nullSupplier = () -> null;
+    final Supplier<String> nullSupplier = () -> null;
     final TryThreadLocal<String> local4 =
         TryThreadLocal.withInitial(nullSupplier);
     local4.set("abc");

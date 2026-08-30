@@ -206,7 +206,7 @@ public class Smalls {
       @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
           SchemaPlus schema, String tableName) {
         BaseQueryable<IntString> queryable =
-            new BaseQueryable<IntString>(null, IntString.class, null) {
+            new BaseQueryable<IntString>(queryProvider, IntString.class, null) {
               @Override public Enumerator<IntString> enumerator() {
                 return new Enumerator<IntString>() {
                   static final String Z = "abcdefghijklm";

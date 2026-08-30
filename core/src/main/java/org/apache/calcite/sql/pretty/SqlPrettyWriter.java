@@ -287,7 +287,6 @@ public class SqlPrettyWriter implements SqlWriter {
 
   //~ Constructors -----------------------------------------------------------
 
-  @SuppressWarnings("NullAway")
   private SqlPrettyWriter(SqlWriterConfig config,
       StringBuilder buf, @SuppressWarnings("unused") boolean ignore) {
     this.buf = requireNonNull(buf, "buf");

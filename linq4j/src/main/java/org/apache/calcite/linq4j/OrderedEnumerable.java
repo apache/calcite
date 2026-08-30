@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Represents the result of applying a sorting operation to an
  * {@link org.apache.calcite.linq4j.Enumerable}.
  *
  * @param <T> element type
  */
-public interface OrderedEnumerable<T>
+public interface OrderedEnumerable<T extends @Nullable Object>
     extends Enumerable<T>, ExtendedOrderedEnumerable<T> {
 }

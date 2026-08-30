@@ -1563,7 +1563,6 @@ public class SqlDialect {
     @SuppressWarnings("ImmutableEnumChecker")
     private final Supplier<SqlDialect> dialect;
 
-    @SuppressWarnings("NullAway")
     DatabaseProduct(String databaseProductName, @Nullable String quoteString,
         NullCollation nullCollation) {
       requireNonNull(databaseProductName, "databaseProductName");

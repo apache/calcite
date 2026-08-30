@@ -36,7 +36,6 @@ public class SimpleNamespaceContext implements NamespaceContext {
   private final Map<String, String> prefixToNamespaceUri = new HashMap<>();
   private final Map<String, Set<String>> namespaceUriToPrefixes = new HashMap<>();
 
-  @SuppressWarnings("NullAway")
   public SimpleNamespaceContext(Map<String, String> bindings) {
     bindNamespaceUri(XMLConstants.XML_NS_PREFIX, XMLConstants.XML_NS_URI);
     bindNamespaceUri(XMLConstants.XMLNS_ATTRIBUTE, XMLConstants.XMLNS_ATTRIBUTE_NS_URI);

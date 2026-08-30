@@ -169,10 +169,6 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return list.contains(o);
   }
 
-  // The unbounded wildcard of Collection<?> is read from the bytecode signature, where it
-  // behaves as ? extends Object and rejects a nullable type argument.
-  // https://github.com/uber/NullAway/issues/1732
-  @SuppressWarnings("NullAway")
   @Override public boolean containsAll(Collection<?> c) {
     return list.containsAll(c);
   }
@@ -225,18 +221,10 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return castNonNull(list.remove(index));
   }
 
-  // The unbounded wildcard of Collection<?> is read from the bytecode signature, where it
-  // behaves as ? extends Object and rejects a nullable type argument.
-  // https://github.com/uber/NullAway/issues/1732
-  @SuppressWarnings("NullAway")
   @Override public boolean removeAll(Collection<?> c) {
     return list.removeAll(c);
   }
 
-  // The unbounded wildcard of Collection<?> is read from the bytecode signature, where it
-  // behaves as ? extends Object and rejects a nullable type argument.
-  // https://github.com/uber/NullAway/issues/1732
-  @SuppressWarnings("NullAway")
   @Override public boolean retainAll(Collection<?> c) {
     return list.retainAll(c);
   }

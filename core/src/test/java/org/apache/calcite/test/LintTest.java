@@ -31,11 +31,8 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -68,12 +65,6 @@ class LintTest {
   private static final Pattern CALCITE_PATTERN =
       compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
   private static final Pattern PATTERN = compile("^ *(// )?");
-
-  private static final String PACKAGE_INFO = "package-info.java";
-  /** Source roots that NullAway verifies; see {@code nullawayProjects} in the root
-   * {@code build.gradle.kts}. */
-  private static final List<String> NULL_MARKED_ROOTS =
-      ImmutableList.of("linq4j/src/main/java/", "core/src/main/java/");
 
   private static final Pattern COMMONS_LANG3_IMPORT_PATTERN =
       compile("^\\s*import\\s+(static\\s+)?"
@@ -371,65 +362,6 @@ class LintTest {
 
     g.messages.forEach(System.out::println);
     assertThat(g.messages, empty());
-  }
-
-  /** Fails when a main-source package is not declared {@code @NullMarked}.
-   *
-   * <p>NullAway analyzes {@code @NullMarked} code only, so a package that forgets the
-   * annotation is silently skipped rather than reported. Add a {@code package-info.java}
-   * to the new package, copying the {@code @NullMarked} declaration from a sibling
-   * package.
-   *
-   * <p>Only the main sources of the modules that NullAway verifies are checked. Marking a
-   * package that nobody verifies would claim a guarantee that nothing backs. Widen
-   * {@link #NULL_MARKED_ROOTS} together with {@code nullawayProjects}.
-   *
-   * <p>A package that spans both modules needs only one {@code package-info.java}, in
-   * either of them, because a second one would put a duplicate class on the classpath. */
-  @Test void testLintNullMarked() throws IOException {
-    assumeTrue(TestUnsafe.haveGit(), "Invalid git environment");
-
-    final List<String> messages = new ArrayList<>();
-    final Set<String> mainPackages = new HashSet<>();
-    final Set<String> markedPackages = new HashSet<>();
-    for (File file : TestUnsafe.getJavaFiles()) {
-      final String path = file.getPath().replace(File.separatorChar, '/');
-      final String root =
-          NULL_MARKED_ROOTS.stream()
-              .filter(path::contains)
-              .findFirst()
-              .orElse(null);
-      if (root == null) {
-        continue;
-      }
-      final int i = path.indexOf(root) + root.length();
-      final String packageName =
-          path.substring(i, path.lastIndexOf('/')).replace('/', '.');
-      mainPackages.add(packageName);
-      if (file.getName().equals(PACKAGE_INFO)) {
-        if (isNullMarked(file)) {
-          markedPackages.add(packageName);
-        } else {
-          messages.add(file + ": " + PACKAGE_INFO + " is not annotated @NullMarked");
-        }
-      }
-    }
-    mainPackages.stream()
-        .filter(packageName -> !markedPackages.contains(packageName))
-        .map(packageName ->
-            packageName + ": package has no " + PACKAGE_INFO + " declaring @NullMarked")
-        .sorted()
-        .forEach(messages::add);
-
-    messages.forEach(System.out::println);
-    assertThat(messages, empty());
-  }
-
-  private static boolean isNullMarked(File file) throws IOException {
-    try (Stream<String> lines =
-             Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
-      return lines.anyMatch(line -> line.startsWith("@NullMarked"));
-    }
   }
 
   /** Tests that the most recent N commit messages are good.

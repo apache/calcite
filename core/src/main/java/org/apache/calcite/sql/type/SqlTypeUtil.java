@@ -485,13 +485,11 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns whether a type is some kind of INTERVAL. */
-  @SuppressWarnings("NullAway")
   public static boolean isInterval(RelDataType type) {
     return SqlTypeFamily.DATETIME_INTERVAL.contains(type);
   }
 
   /** Returns whether a type is in SqlTypeFamily.Character. */
-  @SuppressWarnings("NullAway")
   public static boolean inCharFamily(RelDataType type) {
     return type.getFamily() == SqlTypeFamily.CHARACTER;
   }

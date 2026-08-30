@@ -174,7 +174,6 @@ public class RelSubset extends AbstractRelNode {
       RelOptPlanner planner) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
-    @SuppressWarnings("NullAway")
     Iterable<RelNode> rels = getRels();
     for (RelNode rel : rels) {
       final RelOptCost cost = planner.getCost(rel, mq);

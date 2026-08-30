@@ -162,7 +162,7 @@ public class JsonBuilder {
     buf.append("{");
     newline(buf, indent + 1);
     int n = 0;
-    for (Map.Entry<String, @Nullable Object> entry : map.entrySet()) {
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
       if (n++ > 0) {
         buf.append(",");
         newline(buf, indent + 1);

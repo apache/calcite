@@ -913,7 +913,6 @@ public class SqlWindow extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("NullAway")
     @Override public SqlCall createCall(
         @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,

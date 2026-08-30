@@ -137,7 +137,7 @@ public class SqlSetOption extends SqlAlter {
 
   @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
-    final List<@Nullable SqlNode> operandList = new ArrayList<>();
+    final List<SqlNode> operandList = new ArrayList<>();
     if (scope == null) {
       operandList.add(null);
     } else {

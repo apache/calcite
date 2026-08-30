@@ -86,7 +86,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     }
     map.put(parameterType, (SqlRexConvertlet) (cx, call) -> {
       try {
-        @SuppressWarnings("NullAway")
         RexNode result =
             (RexNode) method.invoke(ReflectiveConvertletTable.this, cx, call);
         return requireNonNull(result,
@@ -131,7 +130,6 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     }
     map.put(opClass, (SqlRexConvertlet) (cx, call) -> {
       try {
-        @SuppressWarnings("NullAway")
         RexNode result =
             (RexNode) method.invoke(ReflectiveConvertletTable.this, cx,
                 call.getOperator(), call);

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Exposes the enumerator, which supports a simple iteration over a collection,
  * without the extension methods.
@@ -29,7 +31,7 @@ package org.apache.calcite.linq4j;
  * @param <T> Element type
  * @see Enumerable
  */
-public interface RawEnumerable<T> {
+public interface RawEnumerable<T extends @Nullable Object> {
   /**
    * Returns an enumerator that iterates through a collection.
    */

@@ -48,7 +48,7 @@ import java.util.Map;
  *
  * @param <TSource> Element type
  */
-public interface ExtendedEnumerable<TSource> {
+public interface ExtendedEnumerable<TSource extends @Nullable Object> {
 
   /**
    * Performs an operation for each member of this enumeration.

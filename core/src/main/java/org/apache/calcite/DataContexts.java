@@ -40,7 +40,7 @@ public class DataContexts {
   public static final DataContext EMPTY = new EmptyDataContext();
 
   /** Returns an instance of {@link DataContext} with the given map. */
-  public static DataContext of(Map<String, ?> map) {
+  public static DataContext of(Map<String, ? extends Object> map) {
     return new MapDataContext(map);
   }
 
@@ -85,11 +85,7 @@ public class DataContexts {
   private static class MapDataContext extends EmptyDataContext {
     private final ImmutableMap<String, ?> map;
 
-    // The unbounded wildcard of ImmutableMap.copyOf is read from the bytecode signature,
-    // where it rejects the capture of this one.
-    // https://github.com/uber/NullAway/issues/1732
-    @SuppressWarnings("NullAway")
-    MapDataContext(Map<String, ?> map) {
+    MapDataContext(Map<String, ? extends Object> map) {
       this.map = ImmutableMap.copyOf(map);
     }
 
