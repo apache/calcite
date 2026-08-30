@@ -656,7 +656,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       this(clazz, nullable, null, null);
     }
 
-    @SuppressWarnings("NullAway")
     public JavaType(
         Class clazz,
         boolean nullable,

@@ -97,7 +97,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     }
     double d = 0d;
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
-    for (Pair<@Nullable Double, RelDataTypeField> p
+    for (Pair<Double, RelDataTypeField> p
         : Pair.zip(averageColumnSizes, fields)) {
       if (p.left == null) {
         Double fieldValueSize = averageFieldValueSize(p.right);

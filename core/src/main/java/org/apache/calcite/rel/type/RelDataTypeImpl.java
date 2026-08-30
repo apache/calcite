@@ -352,7 +352,6 @@ public abstract class RelDataTypeImpl
    * This should be called in every non-abstract subclass
    * constructor once the type is fully defined.
    */
-  @SuppressWarnings("NullAway")
   protected void computeDigest() {
     digest = null;
     innerDigest = new InnerRelDataTypeDigest();

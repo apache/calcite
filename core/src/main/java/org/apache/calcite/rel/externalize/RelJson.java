@@ -840,7 +840,7 @@ public class RelJson {
       final Map<String, @Nullable Object> map = (Map) o;
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (map.containsKey("op")) {
-        final Map<String, @Nullable Object> opMap = get(map, "op");
+        final Map<String, Object> opMap = get(map, "op");
         if (map.containsKey("class")) {
           opMap.put("class", get(map, "class"));
         }

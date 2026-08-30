@@ -28,7 +28,6 @@ abstract class MutableBiRel extends MutableRel {
   protected MutableRel left;
   protected MutableRel right;
 
-  @SuppressWarnings("NullAway")
   protected MutableBiRel(MutableRelType type, RelOptCluster cluster,
       RelDataType rowType, MutableRel left, MutableRel right) {
     super(cluster, rowType, type);

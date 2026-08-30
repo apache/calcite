@@ -68,7 +68,6 @@ public abstract class Calc extends SingleRel implements Hintable {
    * @param child Input relation
    * @param program Calc program
    */
-  @SuppressWarnings("NullAway")
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,

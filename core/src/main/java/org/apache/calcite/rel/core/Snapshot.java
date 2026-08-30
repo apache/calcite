@@ -80,7 +80,6 @@ public abstract class Snapshot extends SingleRel implements Hintable {
    * @param period    Timestamp expression which as the table was at the given
    *                  time in the past
    */
-  @SuppressWarnings("NullAway")
   protected Snapshot(RelOptCluster cluster, RelTraitSet traitSet, List<RelHint> hints,
       RelNode input, RexNode period) {
     super(cluster, traitSet, input);
@@ -98,7 +97,6 @@ public abstract class Snapshot extends SingleRel implements Hintable {
    * @param period    Timestamp expression which as the table was at the given
    *                  time in the past
    */
-  @SuppressWarnings("NullAway")
   protected Snapshot(
       RelOptCluster cluster, RelTraitSet traitSet, RelNode input, RexNode period) {
     this(cluster, traitSet, ImmutableList.of(), input, period);

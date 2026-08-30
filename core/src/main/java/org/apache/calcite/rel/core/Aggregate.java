@@ -150,7 +150,6 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
-  @SuppressWarnings("NullAway")
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
