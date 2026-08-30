@@ -39,7 +39,6 @@ import static java.util.Objects.requireNonNull;
 class LatticeSpace {
   final SqlStatisticProvider statisticProvider;
   private final Map<List<String>, LatticeTable> tableMap = new HashMap<>();
-  @SuppressWarnings("NullAway")
   final AttributedDirectedGraph<LatticeTable, Step> g =
       new AttributedDirectedGraph<>(new Step.Factory(this));
   private final Map<List<String>, String> simpleTableNames = new HashMap<>();

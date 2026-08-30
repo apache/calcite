@@ -1246,7 +1246,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       RexImpTable.NullAs nullAs,
       List<? extends @Nullable Type> storageTypes) {
     final List<Expression> list = new ArrayList<>();
-    for (Pair<RexNode, ? extends @Nullable Type> e : Pair.zip(operandList, storageTypes)) {
+    for (Pair<RexNode, ? extends Type> e : Pair.zip(operandList, storageTypes)) {
       list.add(translate(e.left, nullAs, e.right));
     }
     return list;
@@ -1351,7 +1351,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    */
   public static Expression translateCondition(RexProgram program,
       JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
-      Function1<String, InputGetter> correlates, SqlConformance conformance,
+      @Nullable Function1<String, InputGetter> correlates, SqlConformance conformance,
       boolean nullable, RexImplementorTable implementorTable) {
     RexLocalRef condition = program.getCondition();
     if (condition == null) {

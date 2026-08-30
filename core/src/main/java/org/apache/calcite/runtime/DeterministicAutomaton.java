@@ -42,7 +42,6 @@ public class DeterministicAutomaton {
   private final ImmutableList<Transition> transitions;
 
   /** Constructs the DFA from an epsilon-NFA. */
-  @SuppressWarnings("NullAway")
   DeterministicAutomaton(Automaton automaton) {
     this.automaton = requireNonNull(automaton, "automaton");
     // Calculate eps closure of start state

@@ -34,7 +34,6 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    *
    * @param block root code block
    */
-  @SuppressWarnings("NullAway")
   public NestedBlockBuilderImpl(BlockBuilder block) {
     nestBlock(block);
   }

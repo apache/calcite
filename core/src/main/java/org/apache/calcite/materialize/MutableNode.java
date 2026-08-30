@@ -69,7 +69,6 @@ class MutableNode {
   }
 
   /** Creates a non-root node. */
-  @SuppressWarnings("NullAway")
   MutableNode(LatticeTable table, @Nullable MutableNode parent, @Nullable Step step) {
     this.table = requireNonNull(table, "table");
     this.parent = parent;
