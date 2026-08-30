@@ -107,12 +107,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getEnum(NullCollation.class, NullCollation.HIGH);
   }
 
-  @Contract("_, !null -> !null")
-  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
-  // that suits both the Class argument and a nullable default.
-  @SuppressWarnings("NullAway")
-  @Override public <T> @Nullable T fun(Class<T> operatorTableClass,
-      @Nullable T defaultOperatorTable) {
+  @Override public <T extends @Nullable Object> T fun(Class<@NonNull T> operatorTableClass,
+      T defaultOperatorTable) {
     final String fun =
         CalciteConnectionProperty.FUN.wrap(properties).getString();
     if (fun == null || fun.equals("") || fun.equals("standard")) {

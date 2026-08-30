@@ -57,7 +57,6 @@ class CachingCalciteSchema extends CalciteSchema {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
-  @SuppressWarnings("NullAway")
   private CachingCalciteSchema(@Nullable CalciteSchema parent, Schema schema,
       String name,
       @Nullable NameMap<CalciteSchema> subSchemaMap,

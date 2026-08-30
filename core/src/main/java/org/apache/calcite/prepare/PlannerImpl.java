@@ -104,7 +104,6 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
-  @SuppressWarnings("NullAway")
   public PlannerImpl(FrameworkConfig config) {
     this.costFactory = config.getCostFactory();
     this.defaultSchema = config.getDefaultSchema();

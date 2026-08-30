@@ -21,7 +21,6 @@ import org.apache.calcite.util.ImmutableNullableList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
@@ -34,7 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.linq4j.Nullness.castNonNullArray;
 
 /**
  * Space-efficient, comparable, immutable lists.
@@ -257,7 +256,9 @@ public class FlatLists {
       //   write our own implementation and reduce creation overhead a
       //   bit.
       //noinspection unchecked
-      return new ComparableListImpl(Arrays.asList(t.toArray()));
+      // The JDK model types toArray() as @Nullable Object[]; the elements are
+      // non-null because T is.
+      return new ComparableListImpl(Arrays.asList(castNonNullArray(t.toArray())));
     }
   }
 
@@ -397,8 +398,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 1) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 1) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 1, a.getClass());
       }
@@ -406,7 +407,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @Nullable Object[] toArray(Flat1List<@Nullable T> this) {
+    @Override public @Nullable Object[] toArray() {
       return new Object[] {t0};
     }
 
@@ -529,8 +530,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 2) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 2) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 2, a.getClass());
       }
@@ -539,7 +540,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @Nullable Object[] toArray(Flat2List<@Nullable T> this) {
+    @Override public @Nullable Object[] toArray() {
       return new Object[] {t0, t1};
     }
 
@@ -678,8 +679,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 3) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 3) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 3, a.getClass());
       }
@@ -689,7 +690,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @Nullable Object[] toArray(Flat3List<@Nullable T> this) {
+    @Override public @Nullable Object[] toArray() {
       return new Object[] {t0, t1, t2};
     }
 
@@ -846,8 +847,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 4) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 4) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 4, a.getClass());
       }
@@ -858,9 +859,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @Nullable Object[] toArray(Flat4List<@Nullable T> this) {
-      return new Object[] {t0, t1, t2,
-          t3};
+    @Override public @Nullable Object[] toArray() {
+      return new Object[] {t0, t1, t2, t3};
     }
 
     @Override public int compareTo(List o) {
@@ -1034,8 +1034,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 5) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 5) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 5, a.getClass());
       }
@@ -1047,9 +1047,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @Nullable Object[] toArray(Flat5List<@Nullable T> this) {
-      return new Object[] {t0, t1, t2,
-          t3, t4};
+    @Override public @Nullable Object[] toArray() {
+      return new Object[] {t0, t1, t2, t3, t4};
     }
 
     @Override public int compareTo(List o) {
@@ -1242,8 +1241,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 6) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 6) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 6, a.getClass());
       }
@@ -1256,9 +1255,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @Nullable Object[] toArray(Flat6List<@Nullable T> this) {
-      return new Object[] {t0, t1, t2,
-          t3, t4, t5};
+    @Override public @Nullable Object[] toArray() {
+      return new Object[] {t0, t1, t2, t3, t4, t5};
     }
 
     @Override public int compareTo(List o) {
@@ -1336,7 +1334,7 @@ public class FlatLists {
       return list.size();
     }
 
-    @Override @NonNull public Object[] toArray(@NonNull ComparableListImpl<T> this) {
+    @Override public @Nullable Object[] toArray() {
       return this.list.toArray();
     }
 

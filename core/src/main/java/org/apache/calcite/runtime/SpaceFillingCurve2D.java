@@ -115,7 +115,6 @@ public interface SpaceFillingCurve2D {
 
   /** Lexicographic ordering for {@link IndexRange}. */
   class IndexRangeOrdering extends Ordering<IndexRange> {
-    @SuppressWarnings("NullAway")
     @Override public int compare(IndexRange x, IndexRange y) {
       final int c1 = Long.compare(x.lower(), y.lower());
       if (c1 != 0) {

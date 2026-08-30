@@ -285,7 +285,6 @@ public class Resources {
     protected final Method method;
     protected final String key;
 
-    @SuppressWarnings("NullAway")
     public Element(Method method) {
       this.method = method;
       this.key = deriveKey();

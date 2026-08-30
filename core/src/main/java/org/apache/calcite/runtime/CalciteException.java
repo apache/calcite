@@ -53,7 +53,6 @@ public class CalciteException extends RuntimeException {
    * @param message error message
    * @param cause   underlying cause
    */
-  @SuppressWarnings("NullAway")
   public CalciteException(
       String message,
       @Nullable Throwable cause) {
