@@ -19,9 +19,11 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Variable that references a field of a lambda expression.
@@ -36,12 +38,14 @@ public class RexLambdaRef extends RexSlot {
     return SqlKind.LAMBDA_REF;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitLambdaRef(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
-    return (R) null;
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
+    // a lambda reference has no payload to hand a bi-visitor
+    return castNonNull(null);
   }
 
   @Override public boolean equals(final @Nullable Object obj) {

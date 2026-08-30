@@ -27,9 +27,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -292,10 +290,7 @@ public class SimpleProfiler implements Profiler {
       }
       return false;
     }
-
-    @RequiresNonNull("columns")
     private ImmutableSortedSet<Column> toColumns(
-        @UnknownInitialization Run this,
         Iterable<Integer> ordinals) {
       //noinspection Convert2MethodRef
       return ImmutableSortedSet.copyOf(

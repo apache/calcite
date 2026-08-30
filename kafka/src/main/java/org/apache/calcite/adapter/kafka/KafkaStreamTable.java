@@ -39,11 +39,13 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A table that maps to an Apache Kafka topic.
@@ -79,7 +81,8 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
 
       Properties consumerConfig = new Properties();
       consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-          tableOptions.getBootstrapServers());
+          requireNonNull(tableOptions.getBootstrapServers(),
+              KafkaTableConstants.SCHEMA_BOOTSTRAP_SERVERS));
       // by default it's <byte[], byte[]>
       consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
           "org.apache.kafka.common.serialization.ByteArrayDeserializer");

@@ -22,20 +22,23 @@ import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Geode Simple Enumerator.
  *
  * @param <E> Element type
  */
-public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
+public abstract class GeodeSimpleEnumerator<E extends @Nullable Object>
+    implements Enumerator<E> {
 
   private @Nullable Iterator results;
 
-  private E current;
+  private @Nullable E current;
 
   protected GeodeSimpleEnumerator(ClientCache clientCache, String regionName) {
     QueryService queryService = clientCache.getQueryService();
@@ -49,7 +52,7 @@ public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
   }
 
   @Override public E current() {
-    return current;
+    return castNonNull(current);
   }
 
   @Override public boolean moveNext() {

@@ -19,7 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
 import org.apache.calcite.util.DelegatingInvocationHandler;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Proxy;
 import java.util.regex.Pattern;

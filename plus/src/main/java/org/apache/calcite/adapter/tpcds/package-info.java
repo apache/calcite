@@ -18,4 +18,7 @@
 /**
  * TPC-DS schema.
  */
+@NullMarked
 package org.apache.calcite.adapter.tpcds;
+
+import org.jspecify.annotations.NullMarked;

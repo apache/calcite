@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -27,8 +28,7 @@ import org.apache.calcite.rel.core.Union;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -235,10 +235,11 @@ public class RelMdPercentageOriginalRows {
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 
-  private static @PolyNull Double quotientForPercentage(
-      @PolyNull Double numerator,
-      @PolyNull Double denominator) {
-    if ((numerator == null) || (denominator == null)) {
+  @Contract("!null, !null -> !null")
+  private static @Nullable Double quotientForPercentage(
+      @Nullable Double numerator,
+      @Nullable Double denominator) {
+    if (numerator == null || denominator == null) {
       return null;
     }
 

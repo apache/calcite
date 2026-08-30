@@ -50,8 +50,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,7 +76,8 @@ import static java.util.Objects.requireNonNull;
  * {@link SqlValidator}.
  */
 public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
-  private  static final String NL = System.getProperty("line.separator");
+  private  static final String NL =
+      requireNonNull(System.getProperty("line.separator"), "line.separator");
 
   public AbstractSqlTester() {
   }

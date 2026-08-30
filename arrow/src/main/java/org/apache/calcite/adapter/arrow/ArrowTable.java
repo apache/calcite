@@ -44,15 +44,13 @@ import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Table backed by an Apache Arrow file.
@@ -100,9 +98,8 @@ public class ArrowTable extends AbstractTable
   /** Called via code generation; see uses of
    * {@link org.apache.calcite.adapter.arrow.ArrowMethod#ARROW_QUERY}. */
   @SuppressWarnings("unused")
-  public Enumerable<Object> query(DataContext root, ImmutableIntList fields,
-      List<List<List<String>>> conditions) {
-    requireNonNull(fields, "fields");
+  public Enumerable<@Nullable Object> query(@Nullable DataContext root,
+      ImmutableIntList fields, List<List<List<String>>> conditions) {
 
     FileInputStream fis = null;
     try {
@@ -188,7 +185,7 @@ public class ArrowTable extends AbstractTable
      * @return result as enumerable
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> query(List<Integer> fields,
+    public Enumerable<@Nullable Object> query(List<Integer> fields,
         List<List<List<String>>> conditions) {
       final ImmutableIntList fieldList = ImmutableIntList.copyOf(fields);
       return getTable().query(null, fieldList, conditions);

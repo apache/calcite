@@ -16,14 +16,12 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -48,12 +46,12 @@ public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
 
   private @Nullable RelOptRuleOperand parent;
-  private @NotOnlyInitialized RelOptRule rule;
+  private RelOptRule rule;
   private final Predicate<RelNode> predicate;
 
   // REVIEW jvs 29-Aug-2004: some of these are Volcano-specific and should be
   // factored out
-  public int @MonotonicNonNull [] solveOrder;
+  @MonotonicNonNull public int[] solveOrder;
   public int ordinalInParent;
   public int ordinalInRule;
   public final @Nullable RelTrait trait;
@@ -106,8 +104,7 @@ public class RelOptRuleOperand {
    * and add constructor parameters for them. See
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1166">[CALCITE-1166]
    * Disallow sub-classes of RelOptRuleOperand</a>. */
-  @SuppressWarnings({"initialization.fields.uninitialized",
-      "initialization.invalid.field.write.initialized", "unchecked"})
+  @SuppressWarnings({"NullAway", "unchecked"})
   <R extends RelNode> RelOptRuleOperand(
       Class<R> clazz,
       @Nullable RelTrait trait,
@@ -171,8 +168,7 @@ public class RelOptRuleOperand {
    *
    * @param rule containing rule
    */
-  @SuppressWarnings("initialization.invalid.field.write.initialized")
-  public void setRule(@UnknownInitialization RelOptRule rule) {
+  public void setRule(RelOptRule rule) {
     this.rule = rule;
   }
 

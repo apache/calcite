@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.AbstractSequentialIterator;
 import com.google.common.collect.Iterators;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -103,7 +105,7 @@ class Scrolling {
 
     /** Keeps last value of {@code scrollId} in memory so scroll can be released
      * upon termination. */
-    private String scrollId;
+    private @Nullable String scrollId;
 
     private AutoClosingIterator(
         final Iterator<ElasticsearchJson.Result> delegate,
@@ -155,7 +157,7 @@ class Scrolling {
       this.limit = limit;
     }
 
-    @Override protected ElasticsearchJson.Result computeNext(
+    @Override protected ElasticsearchJson.@Nullable Result computeNext(
         final ElasticsearchJson.Result previous) {
       final int hits = previous.searchHits().hits().size();
       if (hits == 0 || count >= limit) {

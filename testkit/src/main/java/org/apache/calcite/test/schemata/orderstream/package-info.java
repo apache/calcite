@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.commons.compiler;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * Streaming order tables, used by tests that query a stream.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.orderstream;
 
-public interface ISimpleCompiler {
-  void setParentClassLoader(@Nullable ClassLoader optionalParentClassLoader);
-}
+import org.jspecify.annotations.NullMarked;

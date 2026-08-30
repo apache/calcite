@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
-
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 import java.util.Random;
 

@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -116,7 +116,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private final DirectedGraph<HepRelVertex, DefaultEdge> graph =
       DefaultDirectedGraph.create();
 
-  private final Function2<RelNode, RelNode, Void> onCopyHook;
+  private final Function2<RelNode, RelNode, @Nullable Void> onCopyHook;
 
   private final List<RelOptMaterialization> materializations =
       new ArrayList<>();
@@ -185,11 +185,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
       HepProgram program,
       @Nullable Context context,
       boolean noDag,
-      @Nullable Function2<RelNode, RelNode, Void> onCopyHook,
+      @Nullable Function2<RelNode, RelNode, @Nullable Void> onCopyHook,
       RelOptCostFactory costFactory) {
     super(costFactory, context);
     this.mainProgram = requireNonNull(program, "program");
-    this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
+    this.onCopyHook =
+        Util.first(onCopyHook,
+            Functions.<RelNode, RelNode, @Nullable Void>ignore2());
     this.noDag = noDag;
     this.largePlanMode = CalciteSystemProperty.HEP_PLANNER_LARGE_PLAN_MODE.value();
   }

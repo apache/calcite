@@ -19,6 +19,7 @@ package org.apache.calcite.rel.externalize;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -88,9 +89,8 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -196,7 +196,7 @@ public class RelJson {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends Object> T get(Map<String, ? extends @Nullable Object> map,
+  private static <T> T get(Map<String, ? extends @Nullable Object> map,
       String key) {
     return (T) requireNonNull(map.get(key), () -> "entry for key " + key);
   }
@@ -829,7 +829,8 @@ public class RelJson {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @PolyNull RexNode toRex(RelInput relInput, @PolyNull Object o) {
+  @Contract("_, !null -> !null")
+  @Nullable RexNode toRex(RelInput relInput, @Nullable Object o) {
     final RelOptCluster cluster = relInput.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (o == null) {
@@ -839,7 +840,7 @@ public class RelJson {
       final Map<String, @Nullable Object> map = (Map) o;
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (map.containsKey("op")) {
-        final Map<String, @Nullable Object> opMap = get(map, "op");
+        final Map<String, Object> opMap = get(map, "op");
         if (map.containsKey("class")) {
           opMap.put("class", get(map, "class"));
         }

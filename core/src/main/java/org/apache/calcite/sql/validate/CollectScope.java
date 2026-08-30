@@ -19,7 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The name-resolution context for expression inside a multiset call. The

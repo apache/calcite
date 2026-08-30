@@ -21,7 +21,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -119,7 +119,7 @@ public class SqlSelectOperator extends SqlOperator {
         null);
   }
 
-  @Override public <R> void acceptCall(
+  @Override public <R extends @Nullable Object> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,

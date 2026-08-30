@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
@@ -69,8 +70,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -116,7 +116,7 @@ public abstract class Prepare {
 
   // temporary. for testing.
   public static final TryThreadLocal<@Nullable Integer> THREAD_INSUBQUERY_THRESHOLD =
-      TryThreadLocal.of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
+      TryThreadLocal.<@Nullable Integer>of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {

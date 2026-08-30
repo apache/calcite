@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression that uses the Pig calling convention.
  */
@@ -55,7 +57,8 @@ public interface PigRel extends RelNode {
     private final List<String> statements = new ArrayList<>();
 
     public String getTableName(RelNode input) {
-      final List<String> qualifiedName = input.getTable().getQualifiedName();
+      final List<String> qualifiedName =
+          requireNonNull(input.getTable(), "table").getQualifiedName();
       return qualifiedName.get(qualifiedName.size() - 1);
     }
 

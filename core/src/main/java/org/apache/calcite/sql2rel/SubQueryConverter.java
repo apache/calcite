@@ -19,7 +19,7 @@ package org.apache.calcite.sql2rel;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * SubQueryConverter provides the interface for classes that convert sub-queries

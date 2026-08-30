@@ -36,7 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
@@ -223,11 +223,12 @@ public class EnumerableTableModify extends TableModify
    */
   public static long applyUpdateOneToOne(Enumerable<Object[]> source, List<Object[]> sink,
       int tableFieldCount, int[] updateColumnIndices) {
-    final Map<List<Object>, Deque<Object[]>> updatesByKey = new HashMap<>();
+    final Map<List<@Nullable Object>, Deque<Object[]>> updatesByKey = new HashMap<>();
     try (Enumerator<Object[]> e = source.enumerator()) {
       while (e.moveNext()) {
         final Object[] sourceRow = e.current();
-        final List<Object> key = Arrays.asList(Arrays.copyOf(sourceRow, tableFieldCount));
+        final List<@Nullable Object> key =
+            Arrays.asList(Arrays.copyOf(sourceRow, tableFieldCount));
         final Object[] newRow = applyUpdate(sourceRow, tableFieldCount, updateColumnIndices);
         updatesByKey.computeIfAbsent(key, k -> new ArrayDeque<>()).addLast(newRow);
       }
@@ -483,17 +484,17 @@ public class EnumerableTableModify extends TableModify
       Collection<Object> sinkRows, Function1<Object, Object[]> sinkKeySelector) {
 
     // Build a map of source keys to the number of sink rows that must be removed for each.
-    final Map<List<Object>, Integer> pendingByKey = new HashMap<>();
+    final Map<List<@Nullable Object>, Integer> pendingByKey = new HashMap<>();
     try (Enumerator<Object[]> e = sourceKeys.enumerator()) {
       while (e.moveNext()) {
-        final List<Object> key = keyOf(e.current());
+        final List<@Nullable Object> key = keyOf(e.current());
         pendingByKey.put(key, pendingByKey.getOrDefault(key, 0) + 1);
       }
     }
 
     // Iterate over sink rows and remove matching rows based on key.
     for (java.util.Iterator<Object> it = sinkRows.iterator(); it.hasNext();) {
-      final List<Object> key = keyOf(sinkKeySelector.apply(it.next()));
+      final List<@Nullable Object> key = keyOf(sinkKeySelector.apply(it.next()));
       final Integer pending = pendingByKey.get(key);
       if (pending == null || pending == 0) {
         continue;
@@ -515,8 +516,9 @@ public class EnumerableTableModify extends TableModify
    * @param rowValues row values
    * @return key for row
    */
-  private static List<Object> keyOf(Object[] rowValues) {
-    return Arrays.asList(Arrays.copyOf(rowValues, rowValues.length));
+  private static List<@Nullable Object> keyOf(Object[] rowValues) {
+    return Arrays.<@Nullable Object>asList(
+        Arrays.copyOf(rowValues, rowValues.length));
   }
 
 }

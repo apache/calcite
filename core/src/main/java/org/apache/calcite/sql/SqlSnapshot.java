@@ -21,7 +21,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -96,7 +96,7 @@ public class SqlSnapshot extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     @Override public SqlCall createCall(
         @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,
@@ -106,7 +106,7 @@ public class SqlSnapshot extends SqlCall {
       return new SqlSnapshot(pos, operands[0], operands[1]);
     }
 
-    @Override public <R> void acceptCall(
+    @Override public <R extends @Nullable Object> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,

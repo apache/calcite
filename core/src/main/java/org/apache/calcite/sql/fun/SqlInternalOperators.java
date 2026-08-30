@@ -32,9 +32,8 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -57,10 +56,10 @@ public abstract class SqlInternalOperators {
       new SqlRowOperator("$ANONYMOUS_ROW") {
         @Override public void unparse(SqlWriter writer, SqlCall call,
             int leftPrec, int rightPrec) {
-          @SuppressWarnings("assignment.type.incompatible")
-          List<@Nullable SqlNode> operandList = call.getOperandList();
+          List<SqlNode> operandList = call.getOperandList();
           writer.list(SqlWriter.FrameTypeEnum.PARENTHESES, SqlWriter.COMMA,
-              SqlNodeList.of(call.getParserPosition(), operandList));
+              SqlNodeList.of(call.getParserPosition(),
+                  ImmutableNullableList.copyOf(operandList)));
         }
       };
 

@@ -33,7 +33,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.primitives.Ints;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -274,7 +274,8 @@ final class JdbcUtils {
       // Get data source objects from a cache, so that we don't have to sniff
       // out what kind of database they are quite as often.
       final List<@Nullable String> key =
-          ImmutableNullableList.of(url, username, password, driverClassName);
+          ImmutableNullableList.<@Nullable String>of(url, username, password,
+              driverClassName);
       return cache.getUnchecked(key);
     }
   }

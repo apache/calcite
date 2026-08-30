@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +42,7 @@ class ElasticsearchEnumerators {
     return ElasticsearchJson.SearchHit::sourceOrFields;
   }
 
-  private static Function1<ElasticsearchJson.SearchHit, Object> singletonGetter(
+  private static Function1<ElasticsearchJson.SearchHit, @Nullable Object> singletonGetter(
       final String fieldName,
       final Class fieldClass,
       final Map<String, String> mapping) {
@@ -52,7 +54,7 @@ class ElasticsearchEnumerators {
         key = mapping.getOrDefault(fieldName, fieldName);
       }
 
-      final Object value;
+      final @Nullable Object value;
       if (ElasticsearchConstants.ID.equals(key)
           || ElasticsearchConstants.ID.equals(mapping.getOrDefault(fieldName, fieldName))) {
         // is the original projection on _id field?
@@ -72,10 +74,10 @@ class ElasticsearchEnumerators {
    *
    * @return function that converts the search result into a generic array
    */
-  private static Function1<ElasticsearchJson.SearchHit, Object[]> listGetter(
+  private static Function1<ElasticsearchJson.SearchHit, @Nullable Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields, Map<String, String> mapping) {
     return hit -> {
-      Object[] objects = new Object[fields.size()];
+      final @Nullable Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         final Map.Entry<String, Class> field = fields.get(i);
         final String key;
@@ -85,7 +87,7 @@ class ElasticsearchEnumerators {
           key = mapping.getOrDefault(field.getKey(), field.getKey());
         }
 
-        final Object value;
+        final @Nullable Object value;
         if (ElasticsearchConstants.ID.equals(key)
             || ElasticsearchConstants.ID.equals(mapping.get(field.getKey()))
             || ElasticsearchConstants.ID.equals(field.getKey())) {
@@ -102,7 +104,7 @@ class ElasticsearchEnumerators {
     };
   }
 
-  static Function1<ElasticsearchJson.SearchHit, Object> getter(
+  static Function1<ElasticsearchJson.SearchHit, @Nullable Object> getter(
       List<Map.Entry<String, Class>> fields, Map<String, String> mapping) {
     requireNonNull(fields, "fields");
     //noinspection unchecked
@@ -120,13 +122,13 @@ class ElasticsearchEnumerators {
   }
 
   @SuppressWarnings("JavaUtilDate")
-  private static Object convert(Object o, Class clazz) {
-    if (o == null) {
+  private static @Nullable Object convert(@Nullable Object o, @Nullable Class clazz) {
+    if (o == null || clazz == null) {
       return null;
     }
     Primitive primitive = Primitive.of(clazz);
     if (primitive != null) {
-      clazz = primitive.boxClass;
+      clazz = requireNonNull(primitive.boxClass, "boxClass");
     } else {
       primitive = Primitive.ofBox(clazz);
     }

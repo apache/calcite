@@ -18,7 +18,7 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.PairList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.AbstractList;
@@ -43,8 +43,8 @@ import static java.util.Objects.requireNonNull;
  * @param <T1> Left-hand type
  * @param <T2> Right-hand type
  */
-@SuppressWarnings("type.argument.type.incompatible")
-public class Pair<T1, T2>
+@SuppressWarnings("NullAway")
+public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -82,12 +82,14 @@ public class Pair<T1, T2>
    * @param right right value
    * @return A Pair
    */
-  public static <T1, T2> Pair<T1, T2> of(T1 left, T2 right) {
+  public static <T1 extends @Nullable Object, T2 extends @Nullable Object> Pair<T1, T2> of(
+      T1 left, T2 right) {
     return new Pair<>(left, right);
   }
 
   /** Creates a {@code Pair} from a {@link java.util.Map.Entry}. */
-  public static <K, V> Pair<K, V> of(Map.Entry<? extends K, ? extends V> entry) {
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      Pair<K, V> of(Map.Entry<? extends K, ? extends V> entry) {
     return of(entry.getKey(), entry.getValue());
   }
 
@@ -148,7 +150,8 @@ public class Pair<T1, T2>
    * @param pairs Collection of Pair objects
    * @return map with the same contents as the collection
    */
-  public static <K, V> Map<K, V> toMap(Iterable<? extends Pair<? extends K, ? extends V>> pairs) {
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      Map<K, V> toMap(Iterable<? extends Pair<? extends K, ? extends V>> pairs) {
     final Map<K, V> map = new HashMap<>();
     for (Pair<? extends K, ? extends V> pair : pairs) {
       map.put(pair.left, pair.right);
@@ -166,7 +169,8 @@ public class Pair<T1, T2>
    * @return List of pairs
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
-  public static <K, V> List<Pair<K, V>> zip(List<? extends K> ks, List<? extends V> vs) {
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      List<Pair<K, V>> zip(List<? extends K> ks, List<? extends V> vs) {
     return zip(ks, vs, false);
   }
 
@@ -182,7 +186,7 @@ public class Pair<T1, T2>
    * @return List of pairs
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
-  public static <K, V> List<Pair<K, V>> zip(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<Pair<K, V>> zip(
       final List<? extends K> ks,
       final List<? extends V> vs,
       boolean strict) {
@@ -208,7 +212,7 @@ public class Pair<T1, T2>
    * @param vs Right iterable
    * @return Iterable over pairs
    */
-  public static <K, V> Iterable<Pair<K, V>> zip(
+  public static <K extends @Nullable Object, V extends @Nullable Object> Iterable<Pair<K, V>> zip(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs) {
     return () -> {
@@ -230,7 +234,7 @@ public class Pair<T1, T2>
    * @param vs Right array
    * @return List of pairs
    */
-  public static <K, V> List<Pair<K, V>> zip(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<Pair<K, V>> zip(
       final K[] ks,
       final V[] vs) {
     return new AbstractList<Pair<K, V>>() {
@@ -251,7 +255,8 @@ public class Pair<T1, T2>
    *
    * @param <K> Key (left) value type
    * @param <V> Value (right) value type */
-  public static <K, V> List<Pair<K, V>> zipMutable(
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      List<Pair<K, V>> zipMutable(
       final List<K> ks,
       final List<V> vs) {
     return new MutableZipList<>(ks, vs);
@@ -272,7 +277,7 @@ public class Pair<T1, T2>
    * @param <K> Left type
    * @param <V> Right type
    */
-  public static <K, V> void forEach(
+  public static <K extends @Nullable Object, V extends @Nullable Object> void forEach(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs,
       BiConsumer<? super K, ? super V> consumer) {
@@ -285,7 +290,8 @@ public class Pair<T1, T2>
 
   /** Calls a consumer with an ordinal for each pair of items in two
    * iterables. */
-  public static <K, V> void forEachIndexed(Iterable<K> ks, Iterable<V> vs,
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      void forEachIndexed(Iterable<K> ks, Iterable<V> vs,
       PairWithOrdinalConsumer<K, V> consumer) {
     int i = 0;
     final Iterator<K> ki = ks.iterator();
@@ -297,7 +303,7 @@ public class Pair<T1, T2>
 
   /** Calls a consumer with an ordinal for each pair of items in an iterable
    * of pairs. */
-  public static <K, V> void forEachIndexed(
+  public static <K extends @Nullable Object, V extends @Nullable Object> void forEachIndexed(
       Iterable<? extends Map.Entry<K, V>> pairs,
       PairWithOrdinalConsumer<K, V> consumer) {
     int i = 0;
@@ -307,7 +313,8 @@ public class Pair<T1, T2>
   }
 
   /** Calls a consumer for each entry in a map. */
-  public static <K, V> void forEachIndexed(Map<K, V> map,
+  public static <K extends @Nullable Object, V extends @Nullable Object>
+      void forEachIndexed(Map<K, V> map,
       PairWithOrdinalConsumer<K, V> consumer) {
     forEachIndexed(map.entrySet(), consumer);
   }
@@ -322,7 +329,7 @@ public class Pair<T1, T2>
    * @param <K> Left type
    * @param <V> Right type
    */
-  public static <K, V> void forEach(
+  public static <K extends @Nullable Object, V extends @Nullable Object> void forEach(
       final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries,
       BiConsumer<? super K, ? super V> consumer) {
     for (Map.Entry<? extends K, ? extends V> entry : entries) {
@@ -338,7 +345,7 @@ public class Pair<T1, T2>
    * @param <R>      Right type
    * @return Iterable over the left elements
    */
-  public static <L, R> Iterable<L> left(
+  public static <L extends @Nullable Object, R extends @Nullable Object> Iterable<L> left(
       final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
     return Util.transform(iterable, Map.Entry::getKey);
   }
@@ -351,13 +358,13 @@ public class Pair<T1, T2>
    * @param <R>      Right type
    * @return Iterable over the right elements
    */
-  public static <L, R> Iterable<R> right(
+  public static <L extends @Nullable Object, R extends @Nullable Object> Iterable<R> right(
       final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
     return Util.transform(iterable, Map.Entry::getValue);
   }
 
   @SuppressWarnings("unchecked")
-  public static <K, V> List<K> left(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<K> left(
       final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
     if (pairs instanceof PairList) {
       return ((PairList<K, V>) pairs).leftList();
@@ -366,7 +373,7 @@ public class Pair<T1, T2>
   }
 
   @SuppressWarnings("unchecked")
-  public static <K, V> List<V> right(
+  public static <K extends @Nullable Object, V extends @Nullable Object> List<V> right(
       final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
     if (pairs instanceof PairList) {
       return ((PairList<K, V>) pairs).rightList();

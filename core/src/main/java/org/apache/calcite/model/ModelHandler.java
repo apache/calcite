@@ -53,7 +53,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +106,7 @@ public class ModelHandler {
    * by reflection from the model against {@code classNameFilter}. Use
    * this to apply a stricter (or more permissive) filter than the
    * standard one. */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public ModelHandler(SchemaPlus rootSchema, String uri,
       ClassNameFilter classNameFilter) throws IOException {
     super();

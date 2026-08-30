@@ -18,7 +18,7 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function1;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -127,7 +127,7 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final List<T> list) {
+  public static <T extends @Nullable Object> Enumerable<T> asEnumerable(final List<T> list) {
     return new ListEnumerable<>(list);
   }
 
@@ -142,7 +142,8 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final Collection<T> collection) {
+  public static <T extends @Nullable Object>
+      Enumerable<T> asEnumerable(final Collection<T> collection) {
     if (collection instanceof List) {
       //noinspection unchecked
       return asEnumerable((List) collection);
@@ -161,7 +162,8 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final Iterable<T> iterable) {
+  public static <T extends @Nullable Object>
+      Enumerable<T> asEnumerable(final Iterable<T> iterable) {
     if (iterable instanceof Collection) {
       //noinspection unchecked
       return asEnumerable((Collection) iterable);
@@ -177,7 +179,7 @@ public abstract class Linq4j {
    *
    * @return enumerable
    */
-  public static <T> Enumerable<T> asEnumerable(final T[] ts) {
+  public static <T extends @Nullable Object> Enumerable<T> asEnumerable(final T[] ts) {
     return new ListEnumerable<>(Arrays.asList(ts));
   }
 
@@ -189,7 +191,8 @@ public abstract class Linq4j {
    *
    * @return Enumerator over the collection
    */
-  public static <V> Enumerator<V> enumerator(Collection<? extends V> values) {
+  public static <V extends @Nullable Object> Enumerator<V> enumerator(
+      Collection<? extends V> values) {
     if (values instanceof List && values instanceof RandomAccess) {
       //noinspection unchecked
       return listEnumerator((List) values);
@@ -248,7 +251,7 @@ public abstract class Linq4j {
    * @see #ofType
    * @see #asEnumerable(Iterable)
    */
-  public static <TSource, TResult> Enumerable<TResult> cast(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> cast(
       Iterable<TSource> source, Class<TResult> clazz) {
     return asEnumerable(source).cast(clazz);
   }
@@ -284,7 +287,7 @@ public abstract class Linq4j {
    * @see Enumerable#cast(Class)
    * @see #cast
    */
-  public static <TSource, TResult> Enumerable<TResult> ofType(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> ofType(
       Iterable<TSource> source, Class<TResult> clazz) {
     return asEnumerable(source).ofType(clazz);
   }
@@ -385,13 +388,13 @@ public abstract class Linq4j {
    *
    * @return Enumerator over the cartesian product
    */
-  public static <T> Enumerator<List<T>> product(
+  public static <T extends @Nullable Object> Enumerator<List<T>> product(
       List<Enumerator<T>> enumerators) {
     return new CartesianProductListEnumerator<>(enumerators);
   }
 
   /** Returns the cartesian product of an iterable of iterables. */
-  public static <T> Iterable<List<T>> product(
+  public static <T extends @Nullable Object> Iterable<List<T>> product(
       final Iterable<? extends Iterable<T>> iterables) {
     return () -> {
       final List<Enumerator<T>> enumerators = new ArrayList<>();
@@ -430,7 +433,7 @@ public abstract class Linq4j {
    *
    * @param <T> element type */
   @SuppressWarnings("unchecked")
-  static class IterableEnumerator<T> implements Enumerator<T> {
+  static class IterableEnumerator<T extends @Nullable Object> implements Enumerator<T> {
     private final Iterable<? extends T> iterable;
     @Nullable Iterator<? extends T> iterator;
     T current;
@@ -448,6 +451,9 @@ public abstract class Linq4j {
       return current;
     }
 
+    // NullAway treats the result of `Iterator<? extends T>.next()` as @Nullable once it is
+    // assigned to a T field, even though T is the field's own type
+    @SuppressWarnings("NullAway")
     @Override public boolean moveNext() {
       if (requireNonNull(iterator, "iterator").hasNext()) {
         current = iterator.next();
@@ -555,7 +561,7 @@ public abstract class Linq4j {
       return getCollection().size();
     }
 
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     @Override public boolean contains(T element) {
       return getCollection().contains(element);
     }
@@ -664,7 +670,9 @@ public abstract class Linq4j {
   /** Enumerator that returns one null element.
    *
    * @param <E> element type */
-  private static class SingletonNullEnumerator<@Nullable E> implements Enumerator<E> {
+  @SuppressWarnings("NullAway") // only meaningful when E is instantiated nullable
+  private static class SingletonNullEnumerator<E extends @Nullable Object>
+      implements Enumerator<E> {
     int i = 0;
 
     @Override public E current() {

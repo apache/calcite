@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.lang.reflect;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * TPC-H schema, used by tests that plan the TPC-H queries.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.tpch;
 
-class Proxy {
-  Object newProxyInstance(@Nullable ClassLoader loader, Class<?>[] interfaces, InvocationHandler h);
-}
+import org.jspecify.annotations.NullMarked;

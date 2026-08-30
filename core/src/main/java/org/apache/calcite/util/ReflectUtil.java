@@ -21,7 +21,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
@@ -417,7 +417,7 @@ public abstract class ReflectUtil {
    * @return cache of methods
    */
   public static <R extends ReflectiveVisitor,
-      E extends Object> ReflectiveVisitDispatcher<R, E> createDispatcher(
+      E> ReflectiveVisitDispatcher<R, E> createDispatcher(
       final Class<R> visitorBaseClazz,
       final Class<E> visiteeBaseClazz) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
@@ -511,7 +511,7 @@ public abstract class ReflectUtil {
    * @param arg0Clazz       Base type of argument zero
    * @param otherArgClasses Types of remaining arguments
    */
-  public static <E extends Object, T> MethodDispatcher<T> createMethodDispatcher(
+  public static <E, T> MethodDispatcher<T> createMethodDispatcher(
       final Class<T> returnClazz,
       final ReflectiveVisitor visitor,
       final String methodName,

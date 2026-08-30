@@ -14,12 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.linq4j.annotations;
 
-import org.checkerframework.checker.nullness.qual.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-class ConnectionConfigImpl {
-  public static class PropEnv {
-    public <T> @PolyNull T getPlugin(Class<T> pluginClass, @PolyNull T defaultInstance);
-  }
+/**
+ * States which nullable fields the method has assigned by the time it returns.
+ *
+ * <p>Callers may read those fields without a null check afterwards. This is what an
+ * {@code init}-style method needs in order to satisfy the constructor's initialization check.
+ */
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.METHOD)
+public @interface EnsuresNonNull {
+  /** Returns the fields that are non-null once the method returns.
+   *
+   * @return field names, optionally qualified with {@code this.} */
+  String[] value();
 }

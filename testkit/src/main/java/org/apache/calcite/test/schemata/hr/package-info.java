@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.lang.reflect;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * HR schema, the small employee-and-department schema most tests query.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.hr;
 
-class Constructor<T> {
-  public @NonNull T newInstance(@Nullable Object... initargs);
-}
+import org.jspecify.annotations.NullMarked;

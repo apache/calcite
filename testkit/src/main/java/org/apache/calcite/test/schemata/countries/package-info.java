@@ -14,20 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * Table functions over a fixed list of countries and states.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.countries;
 
-interface ConnectionProperty {
-  enum Type {
-    NONE;
-
-    Class deduceValueClass(@Nullable Object defaultValue, @Nullable Class valueClass);
-
-    boolean valid(@Nullable Object defaultValue, Class clazz);
-  }
-
-  @Nullable Object defaultValue();
-
-  @Nullable Class valueClass();
-}
+import org.jspecify.annotations.NullMarked;

@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jayway.jsonpath.spi.json;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * Foodmart schema, a JDBC schema that many tests query.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.foodmart;
 
-interface JacksonJsonProvider {
-  String toJson(@Nullable Object obj);
-}
+import org.jspecify.annotations.NullMarked;

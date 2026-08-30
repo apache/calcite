@@ -23,7 +23,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -105,7 +105,7 @@ public class SqlMatchRecognize extends SqlCall {
     return SqlKind.MATCH_RECOGNIZE;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
         patternDefList, measureList, after, subsetList, rowsPerMatch, partitionList, orderList,
@@ -121,7 +121,7 @@ public class SqlMatchRecognize extends SqlCall {
     validator.validateMatchRecognize(this);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
@@ -271,7 +271,7 @@ public class SqlMatchRecognize extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     @Override public SqlCall createCall(
         @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,
@@ -286,7 +286,7 @@ public class SqlMatchRecognize extends SqlCall {
           (SqlNodeList) operands[9], (SqlNodeList) operands[10], (SqlLiteral) operands[11]);
     }
 
-    @Override public <R> void acceptCall(
+    @Override public <R extends @Nullable Object> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,

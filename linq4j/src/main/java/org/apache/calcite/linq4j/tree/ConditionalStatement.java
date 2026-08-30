@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -48,7 +48,7 @@ public class ConditionalStatement extends Statement {
     return shuttle.visit(this, list);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -27,14 +27,11 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -76,7 +73,6 @@ public abstract class SqlCall extends SqlNode {
     return getOperator().getKind();
   }
 
-  @Pure
   public abstract SqlOperator getOperator();
 
   /**
@@ -105,7 +101,7 @@ public abstract class SqlCall extends SqlNode {
   public <S extends /*Nullable*/ SqlNode> S operand(int i) {
     // Note: in general, null elements exist in the list, however, the code
     // assumes operand(..) is non-nullable, so we add a cast here
-    return (S) castNonNull(getOperandList().get(i));
+    return (S) getOperandList().get(i);
   }
 
   public int operandCount() {
@@ -172,7 +168,7 @@ public abstract class SqlCall extends SqlNode {
     // no valid options
   }
 
-  @Override public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -245,7 +241,6 @@ public abstract class SqlCall extends SqlNode {
     return false;
   }
 
-  @Pure
   public @Nullable SqlLiteral getFunctionQuantifier() {
     return null;
   }

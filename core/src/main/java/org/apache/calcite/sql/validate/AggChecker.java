@@ -28,6 +28,8 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.Iterables;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -40,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * Visitor which throws an exception if any component of the expression is not a
  * group expression.
  */
-class AggChecker extends SqlBasicVisitor<Void> {
+class AggChecker extends SqlBasicVisitor<@Nullable Void> {
   //~ Instance fields --------------------------------------------------------
 
   private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();
@@ -100,7 +102,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     return false;
   }
 
-  @Override public Void visit(SqlIdentifier id) {
+  @Override public @Nullable Void visit(SqlIdentifier id) {
     if (id.isStar()) {
       // Star may validly occur in "SELECT COUNT(*) OVER w"
       return null;
@@ -165,7 +167,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     return resolved.count() == 1 && !resolved.only().scope.isWithin(currentSelectScope);
   }
 
-  @Override public Void visit(SqlCall call) {
+  @Override public @Nullable Void visit(SqlCall call) {
     final SqlValidatorScope scope =
         requireNonNull(scopes.peek(), () -> "scope for " + call);
     if (call.getOperator().isAggregator()) {

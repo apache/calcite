@@ -18,11 +18,11 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Source;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -60,7 +60,7 @@ public class FileReader implements Iterable<Elements> {
     this(source, null, null);
   }
 
-  private void getTable() throws FileReaderException {
+  private Element readTable() throws FileReaderException {
     final Document doc;
     try {
       String proto = source.protocol();
@@ -77,7 +77,7 @@ public class FileReader implements Iterable<Elements> {
       throw new FileReaderException("Cannot read " + source, e);
     }
 
-    this.tableElement = (this.selector != null && !this.selector.isEmpty())
+    return (this.selector != null && !this.selector.isEmpty())
         ? getSelectedTable(doc, this.selector) : getBestTable(doc);
   }
 
@@ -133,21 +133,24 @@ public class FileReader implements Iterable<Elements> {
 
   void refresh() throws FileReaderException {
     this.headings = null;
-    getTable();
+    this.tableElement = readTable();
   }
 
   Elements getHeadings() {
-    if (this.headings == null) {
+    Elements headings = this.headings;
+    if (headings == null) {
       this.iterator();
+      headings = requireNonNull(this.headings, "headings");
     }
 
-    return this.headings;
+    return headings;
   }
 
   @Override public FileReaderIterator iterator() {
-    if (this.tableElement == null) {
+    Element tableElement = this.tableElement;
+    if (tableElement == null) {
       try {
-        getTable();
+        tableElement = this.tableElement = readTable();
       } catch (RuntimeException | Error e) {
         throw e;
       } catch (Exception e) {
@@ -156,7 +159,7 @@ public class FileReader implements Iterable<Elements> {
     }
 
     FileReaderIterator iterator =
-        new FileReaderIterator(this.tableElement.select("tr"));
+        new FileReaderIterator(tableElement.select("tr"));
 
     // if we haven't cached the headings, get them
     // TODO: this needs to be reworked to properly cache the headings
@@ -166,7 +169,7 @@ public class FileReader implements Iterable<Elements> {
       // if not, generate some default column names
       if (headings.isEmpty()) {
         // rewind and peek at the first row of data
-        iterator = new FileReaderIterator(this.tableElement.select("tr"));
+        iterator = new FileReaderIterator(tableElement.select("tr"));
         Elements firstRow = iterator.next("td");
         int i = 0;
         headings = new Elements();
@@ -177,7 +180,7 @@ public class FileReader implements Iterable<Elements> {
           headings.add(th);
         }
         // rewind, so queries see the first row
-        iterator = new FileReaderIterator(this.tableElement.select("tr"));
+        iterator = new FileReaderIterator(tableElement.select("tr"));
       }
       this.headings = headings;
     }

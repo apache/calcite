@@ -30,7 +30,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -48,7 +48,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   @Deprecated // to be removed before 2.0
   public SqlUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       @Nullable SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
       Function function) {
@@ -62,7 +62,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   /** Creates a {@link SqlUserDefinedFunction}. */
   public SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       @Nullable SqlOperandMetadata operandMetadata,
       Function function) {
     this(opName, kind, returnTypeInference, operandTypeInference,
@@ -72,7 +72,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   /** Creates a {@link SqlUserDefinedFunction} with sql syntax. */
   public SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       @Nullable SqlOperandMetadata operandMetadata,
       Function function, SqlSyntax syntax) {
     this(opName, kind, returnTypeInference, operandTypeInference,
@@ -82,7 +82,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   /** Constructor used internally and by derived classes. */
   protected SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       @Nullable SqlOperandMetadata operandMetadata,
       Function function,
       SqlFunctionCategory category, SqlSyntax syntax) {

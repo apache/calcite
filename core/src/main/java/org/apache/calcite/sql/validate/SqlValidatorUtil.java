@@ -70,7 +70,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -122,16 +122,17 @@ public class SqlValidatorUtil {
       boolean @Nullable [] usedDataset) {
     if (namespace.isWrapperFor(TableNamespace.class)) {
       final TableNamespace tableNamespace =
-          namespace.unwrap(TableNamespace.class);
+          requireNonNull(namespace.unwrap(TableNamespace.class), "tableNamespace");
       return getRelOptTable(tableNamespace,
           requireNonNull(catalogReader, "catalogReader"), datasetName, usedDataset,
           tableNamespace.extendedFields);
     } else if (namespace.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
       final SqlValidatorImpl.DmlNamespace dmlNamespace =
-          namespace.unwrap(SqlValidatorImpl.DmlNamespace.class);
+          requireNonNull(namespace.unwrap(SqlValidatorImpl.DmlNamespace.class), "dmlNamespace");
       final SqlValidatorNamespace resolvedNamespace = dmlNamespace.resolve();
       if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
-        final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
+        final TableNamespace tableNamespace =
+            requireNonNull(resolvedNamespace.unwrap(TableNamespace.class), "tableNamespace");
         final SqlValidatorTable validatorTable = tableNamespace.getTable();
         final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
             ? ImmutableList.of()
@@ -246,10 +247,7 @@ public class SqlValidatorUtil {
         ImmutableBitSet.of(
             Util.transform(sourceRowType.getFieldList(),
                 RelDataTypeField::getIndex));
-    // checkerframework: found   : Set<@KeyFor("indexToField") Integer>
-    //noinspection RedundantCast
-    ImmutableBitSet target =
-        ImmutableBitSet.of((Iterable<Integer>) indexToField.keySet());
+    ImmutableBitSet target = ImmutableBitSet.of(indexToField.keySet());
     return source.intersect(target);
   }
 

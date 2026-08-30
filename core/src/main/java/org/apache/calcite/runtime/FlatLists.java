@@ -21,9 +21,7 @@ import org.apache.calcite.util.ImmutableNullableList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -35,7 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.linq4j.Nullness.castNonNullArray;
 
 /**
  * Space-efficient, comparable, immutable lists.
@@ -67,7 +65,7 @@ public class FlatLists {
    * @param <T> Element type
    * @return    List containing the given members
    */
-  public static <T> List<T> ofSingle(T t0) {
+  public static <T extends @Nullable Object> List<T> ofSingle(T t0) {
     return new Flat1List<>(t0);
   }
 
@@ -77,7 +75,7 @@ public class FlatLists {
   }
 
   /** Creates a flat list with 3 elements. */
-  public static <T> List<T> of(T t0, T t1, T t2) {
+  public static <T extends @Nullable Object> List<T> of(T t0, T t1, T t2) {
     return new Flat3List<>(t0, t1, t2);
   }
 
@@ -226,7 +224,7 @@ public class FlatLists {
    * @param <T> Element type
    * @return List containing the given members
    */
-  public static <T> List<T> of(List<T> t) {
+  public static <T extends @Nullable Object> List<T> of(List<T> t) {
     return of_(t);
   }
 
@@ -258,12 +256,14 @@ public class FlatLists {
       //   write our own implementation and reduce creation overhead a
       //   bit.
       //noinspection unchecked
-      return new ComparableListImpl(Arrays.asList(t.toArray()));
+      // toArray() yields @Nullable Object[] from the JDK model, and these elements are
+      // Comparable. https://github.com/uber/NullAway/issues/1728
+      return new ComparableListImpl(Arrays.asList(castNonNullArray(t.toArray())));
     }
   }
 
   /** Returns a list that consists of a given list plus an element. */
-  public static <E extends Object> List<E> append(List<E> list, E e) {
+  public static <E> List<E> append(List<E> list, E e) {
     if (list instanceof AbstractFlatList) {
       //noinspection unchecked
       return ((AbstractFlatList) list).append(e);
@@ -275,13 +275,13 @@ public class FlatLists {
 
   /** Returns a list that consists of a given list plus an element, guaranteed
    * to be an {@link ImmutableList}. */
-  public static <E extends Object> ImmutableList<E> append(ImmutableList<E> list, E e) {
+  public static <E> ImmutableList<E> append(ImmutableList<E> list, E e) {
     return ImmutableList.<E>builder().addAll(list).add(e).build();
   }
 
   /** Returns a map that consists of a given map plus an (key, value),
    * guaranteed to be an {@link ImmutableMap}. */
-  public static <K extends Object, V extends Object> ImmutableMap<K, V> append(
+  public static <K, V> ImmutableMap<K, V> append(
       Map<K, V> map, K k, V v) {
     final ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
     builder.put(k, v);
@@ -322,7 +322,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat1List<T>
+  protected static class Flat1List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -398,8 +398,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 1) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 1) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 1, a.getClass());
       }
@@ -407,8 +407,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat1List<@PolyNull T> this) {
-      return new Object[] {castNonNull(t0)};
+    @Override public Object[] toArray() {
+      return new Object[] {t0};
     }
 
     @Override public int compareTo(List o) {
@@ -434,7 +434,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat2List<T>
+  protected static class Flat2List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -530,8 +530,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 2) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 2) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 2, a.getClass());
       }
@@ -540,8 +540,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat2List<@PolyNull T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1)};
+    @Override public Object[] toArray() {
+      return new Object[] {t0, t1};
     }
 
     @Override public int compareTo(List o) {
@@ -567,7 +567,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat3List<T>
+  protected static class Flat3List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -679,8 +679,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 3) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 3) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 3, a.getClass());
       }
@@ -690,8 +690,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat3List<@PolyNull T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2)};
+    @Override public Object[] toArray() {
+      return new Object[] {t0, t1, t2};
     }
 
     @Override public int compareTo(List o) {
@@ -717,7 +717,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat4List<T>
+  protected static class Flat4List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -847,8 +847,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 4) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 4) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 4, a.getClass());
       }
@@ -859,9 +859,9 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat4List<@PolyNull T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
-          castNonNull(t3)};
+    @Override public Object[] toArray() {
+      return new Object[] {t0, t1, t2,
+          t3};
     }
 
     @Override public int compareTo(List o) {
@@ -887,7 +887,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat5List<T>
+  protected static class Flat5List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -1035,8 +1035,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 5) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 5) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 5, a.getClass());
       }
@@ -1048,9 +1048,9 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat5List<@PolyNull T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
-          castNonNull(t3), castNonNull(t4)};
+    @Override public Object[] toArray() {
+      return new Object[] {t0, t1, t2,
+          t3, t4};
     }
 
     @Override public int compareTo(List o) {
@@ -1076,7 +1076,7 @@ public class FlatLists {
    *
    * @param <T> Element type
    */
-  protected static class Flat6List<T>
+  protected static class Flat6List<T extends @Nullable Object>
       extends AbstractFlatList<T>
       implements ComparableList<T> {
     private final T t0;
@@ -1243,8 +1243,8 @@ public class FlatLists {
     }
 
     @SuppressWarnings({"unchecked" })
-    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
-      if (castNonNull(a).length < 6) {
+    @Override public <T2 extends @Nullable Object> T2[] toArray(T2[] a) {
+      if (a.length < 6) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 6, a.getClass());
       }
@@ -1257,9 +1257,9 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat6List<@PolyNull T> this) {
-      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
-          castNonNull(t3), castNonNull(t4), castNonNull(t5)};
+    @Override public Object[] toArray() {
+      return new Object[] {t0, t1, t2,
+          t3, t4, t5};
     }
 
     @Override public int compareTo(List o) {
@@ -1337,7 +1337,7 @@ public class FlatLists {
       return list.size();
     }
 
-    @Override @NonNull public Object[] toArray(@NonNull ComparableListImpl<T> this) {
+    @Override public @Nullable Object[] toArray() {
       return this.list.toArray();
     }
 

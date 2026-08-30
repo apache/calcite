@@ -51,6 +51,7 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -381,7 +382,7 @@ public abstract class ProjectToWindowRule
         graph.addVertex(i);
       }
 
-      new RexBiVisitorImpl<Void, Integer>(true) {
+      new RexBiVisitorImpl<@Nullable Void, Integer>(true) {
         @Override public Void visitLocalRef(RexLocalRef localRef, Integer i) {
           graph.addEdge(localRef.getIndex(), i);
           return null;

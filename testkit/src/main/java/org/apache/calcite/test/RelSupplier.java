@@ -26,6 +26,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -84,7 +86,7 @@ interface RelSupplier {
       return sql;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof SqlRelSupplier
           && ((SqlRelSupplier) o).sql.equals(this.sql);
@@ -123,7 +125,7 @@ interface RelSupplier {
       return relFn.hashCode();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof FnRelSupplier
           && ((FnRelSupplier) o).relFn == relFn;

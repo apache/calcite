@@ -18,4 +18,7 @@
 /**
  * Defines a type system for relational expressions.
  */
+@NullMarked
 package org.apache.calcite.rel.type;
+
+import org.jspecify.annotations.NullMarked;

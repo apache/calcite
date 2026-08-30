@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -32,7 +32,10 @@ import static java.util.Objects.requireNonNull;
  * <p>It is frustrating that we can't use an {@code enum} to implement an
  * interface with a type parameter. At times like this, we wish Java had
  * Generalized Algebraic Data Types (GADTs). */
-@SuppressWarnings("rawtypes")
+// The XXX_NULLABLE constants return null for a null column. They cannot say so in their
+// signature: the enum implements JdbcType raw, because a constant cannot carry its own
+// type argument, so every get() is checked against the erased T.
+@SuppressWarnings({"rawtypes", "NullAway"})
 enum JdbcTypeImpl implements JdbcType {
   BIG_DECIMAL(BigDecimal.class, false) {
     @Override public BigDecimal get(int column,

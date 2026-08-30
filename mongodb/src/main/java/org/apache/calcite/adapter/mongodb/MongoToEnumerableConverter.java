@@ -40,10 +40,12 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression representing a scan of a table in a Mongo data source.
@@ -65,7 +67,7 @@ public class MongoToEnumerableConverter
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.1);
+    return requireNonNull(super.computeSelfCost(planner, mq)).multiplyBy(.1);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -104,8 +106,10 @@ public class MongoToEnumerableConverter
                 Pair.class));
     final Expression table =
         list.append("table",
-            mongoImplementor.table.getExpression(
-                MongoTable.MongoQueryable.class));
+            requireNonNull(
+                requireNonNull(mongoImplementor.table, "table")
+                    .getExpression(MongoTable.MongoQueryable.class),
+                "table expression"));
     List<String> opList = mongoImplementor.list.rightList();
     final Expression ops =
         list.append("ops",

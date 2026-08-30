@@ -82,7 +82,7 @@ public class ProxyingMetadataHandlerProvider implements MetadataHandlerProvider 
       Method metadataMethod =
           requireNonNull(methodMap.get(method.getName()),
               () -> "Not supported: " + method);
-      RelNode rel = requireNonNull((RelNode) args[0], "rel must be non null");
+      RelNode rel = requireNonNull((RelNode) requireNonNull(args, "args")[0], "args[0]");
       RelMetadataQuery mq =
           requireNonNull((RelMetadataQuery) args[1], "mq must be non null");
 

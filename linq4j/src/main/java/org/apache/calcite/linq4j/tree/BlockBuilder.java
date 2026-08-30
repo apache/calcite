@@ -16,8 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.apache.calcite.linq4j.annotations.Contract;
+
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -201,7 +202,8 @@ public class BlockBuilder {
    * Appends an expression to a list of statements if it is not null,
    * and returns the expression.
    */
-  public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
+  @Contract("_, !null -> !null")
+  public @Nullable Expression appendIfNotNull(String name, @Nullable Expression expression) {
     if (expression == null) {
       return null;
     }
@@ -604,7 +606,7 @@ public class BlockBuilder {
   }
 
   /** Use counter. */
-  private static class UseCounter extends VisitorImpl<Void> {
+  private static class UseCounter extends VisitorImpl<@Nullable Void> {
     /** Map each parameter to information about how it is used. */
     private final IdentityHashMap<ParameterExpression, ParameterUse> map = new IdentityHashMap<>();
     /** Whether the node being visited is evaluated only if some other

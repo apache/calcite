@@ -27,6 +27,8 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
@@ -53,7 +55,7 @@ public class PigProject extends Project implements PigRel {
    * Override this method so it looks down the tree to find the table this node
    * is acting on.
    */
-  @Override public RelOptTable getTable() {
+  @Override public @Nullable RelOptTable getTable() {
     return getInput().getTable();
   }
 }

@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.Spaces;
-import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
@@ -29,7 +28,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
 import org.w3c.dom.CDATASection;
@@ -298,7 +297,7 @@ public class DiffRepository {
   public static DiffRepository castNonNull(
       @Nullable DiffRepository diffRepos) {
     if (diffRepos != null) {
-      return Nullness.castNonNull(diffRepos);
+      return diffRepos;
     }
     throw new IllegalArgumentException("diffRepos is null; if you require a "
         + "DiffRepository, set it in your test's fixture() method");
@@ -395,9 +394,9 @@ public class DiffRepository {
     // all other child elements.
     final NodeList childNodes = element.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
-      Node node = childNodes.item(i);
+      Node node = requireNonNull(childNodes.item(i), "child");
       if (node instanceof CDATASection) {
-        return node.getNodeValue();
+        return requireNonNull(node.getNodeValue(), "CDATA text");
       }
     }
 
@@ -428,7 +427,7 @@ public class DiffRepository {
       @Nullable List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
-      Node child = childNodes.item(i);
+      Node child = requireNonNull(childNodes.item(i), "child");
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
         Element testCase = (Element) child;
         final String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
@@ -502,7 +501,7 @@ public class DiffRepository {
   }
 
   public void assertEquals(String tag, String expected, String actual) {
-    final String testCaseName = getCurrentTestCaseName(true);
+    final String testCaseName = getCurrentTestCaseName();
     String expected2 = expand(tag, expected);
     if (expected2 == null) {
       update(testCaseName, expected, actual);
@@ -619,7 +618,8 @@ public class DiffRepository {
       return;
     }
     try {
-      boolean b = logFile.getParentFile().mkdirs();
+      boolean b =
+          requireNonNull(logFile.getParentFile(), "log file directory").mkdirs();
       Util.discard(b);
       try (Writer w = Util.printWriter(logFile)) {
         write(doc, w, indent);
@@ -645,7 +645,7 @@ public class DiffRepository {
     final SortedMap<String, Node> testCases = new TreeMap<>();
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
-      Node child = childNodes.item(i);
+      Node child = requireNonNull(childNodes.item(i), "child");
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
         Element testCase = (Element) child;
         final String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
@@ -671,7 +671,7 @@ public class DiffRepository {
     }
     if (!existsOnlyInXml.isEmpty()) {
       for (String value : existsOnlyInXml) {
-        root.removeChild(testCases.get(value));
+        root.removeChild(requireNonNull(testCases.get(value), value));
       }
     }
 
@@ -689,7 +689,7 @@ public class DiffRepository {
     final NodeList childNodes = root.getChildNodes();
 
     for (int i = 0; i < childNodes.getLength(); i++) {
-      Node child = childNodes.item(i);
+      Node child = requireNonNull(childNodes.item(i), "child");
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
         Element testCase = (Element) child;
         String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
@@ -742,7 +742,7 @@ public class DiffRepository {
     Element found = null;
     final List<Node> kills = new ArrayList<>();
     for (int i = 0; i < childNodes.getLength(); i++) {
-      Node child = childNodes.item(i);
+      Node child = requireNonNull(childNodes.item(i), "child");
       if (child.getNodeName().equals(RESOURCE_TAG)
           && resourceName.equals(
               ((Element) child).getAttribute(RESOURCE_NAME_ATTR))) {
@@ -762,7 +762,7 @@ public class DiffRepository {
   private static void removeAllChildren(Element element) {
     final NodeList childNodes = element.getChildNodes();
     while (childNodes.getLength() > 0) {
-      element.removeChild(childNodes.item(0));
+      element.removeChild(requireNonNull(childNodes.item(0), "child"));
     }
   }
 
@@ -814,7 +814,7 @@ public class DiffRepository {
       out.print("<?xml version=\"1.0\" ?>\n");
       childNodes = node.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
-        Node child = childNodes.item(i);
+        Node child = requireNonNull(childNodes.item(i), "child");
         writeNode(child, out);
       }
       break;
@@ -825,19 +825,20 @@ public class DiffRepository {
       out.beginBeginTag(tagName);
 
       // Attributes.
-      final NamedNodeMap attributeMap = element.getAttributes();
+      final NamedNodeMap attributeMap =
+          requireNonNull(element.getAttributes(), "attributes");
       for (int i = 0; i < attributeMap.getLength(); i++) {
-        final Node att = attributeMap.item(i);
+        final Node att = requireNonNull(attributeMap.item(i), "attribute");
         out.attribute(
             att.getNodeName(),
-            att.getNodeValue());
+            requireNonNull(att.getNodeValue(), "attribute value"));
       }
       out.endBeginTag(tagName);
 
       // Write child nodes, ignoring attributes but including text.
       childNodes = node.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
-        Node child = childNodes.item(i);
+        Node child = requireNonNull(childNodes.item(i), "child");
         if (child.getNodeType() == Node.ATTRIBUTE_NODE) {
           continue;
         }
@@ -849,7 +850,7 @@ public class DiffRepository {
     case Node.ATTRIBUTE_NODE:
       out.attribute(
           node.getNodeName(),
-          node.getNodeValue());
+          requireNonNull(node.getNodeValue(), "attribute value"));
       break;
 
     case Node.CDATA_SECTION_NODE:
@@ -861,7 +862,7 @@ public class DiffRepository {
 
     case Node.TEXT_NODE:
       Text text = (Text) node;
-      final String wholeText = text.getNodeValue();
+      final String wholeText = requireNonNull(text.getNodeValue(), "text");
       if (!isWhitespace(wholeText)) {
         out.cdata(wholeText, false);
       }
@@ -979,7 +980,7 @@ public class DiffRepository {
       return Objects.hash(clazz, baseRepository, filter);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof Key
           && clazz.equals(((Key) obj).clazz)
@@ -1006,7 +1007,7 @@ public class DiffRepository {
   private static Iterable<Node> iterate(NodeList nodeList) {
     return new AbstractList<Node>() {
       @Override public Node get(int index) {
-        return nodeList.item(index);
+        return requireNonNull(nodeList.item(index), "node");
       }
 
       @Override public int size() {

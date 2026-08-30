@@ -33,10 +33,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file that can implement simple filtering.
@@ -103,7 +105,9 @@ public class CsvFilterableTable extends CsvTable
           && right instanceof RexLiteral) {
         final int index = ((RexInputRef) left).getIndex();
         if (filterValues[index] == null) {
-          filterValues[index] = ((RexLiteral) right).getValue2().toString();
+          filterValues[index] =
+              requireNonNull(((RexLiteral) right).getValue2(), "value")
+                  .toString();
           return true;
         }
       }

@@ -48,7 +48,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -97,7 +97,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     }
     double d = 0d;
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
-    for (Pair<@Nullable Double, RelDataTypeField> p
+    for (Pair<Double, RelDataTypeField> p
         : Pair.zip(averageColumnSizes, fields)) {
       if (p.left == null) {
         Double fieldValueSize = averageFieldValueSize(p.right);

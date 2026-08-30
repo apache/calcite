@@ -52,8 +52,8 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -234,7 +234,7 @@ public abstract class DateRangeRules {
 
   /** Visitor that searches for calls to {@code EXTRACT}, {@code FLOOR} or
    * {@code CEIL}, building a list of distinct time units. */
-  private static class ExtractFinder extends RexVisitorImpl<Void>
+  private static class ExtractFinder extends RexVisitorImpl<@Nullable Void>
       implements AutoCloseable {
     private final Set<TimeUnitRange> timeUnits =
         EnumSet.noneOf(TimeUnitRange.class);

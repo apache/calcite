@@ -33,6 +33,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Arrays;
 
 import static java.util.Objects.requireNonNull;
@@ -50,7 +52,7 @@ public class SqlColonOperator extends SqlSpecialOperator {
 
   // Path segments are structural literals/identifiers, never column refs, so
   // they must not be routed through expression visitors such as AggChecker.
-  @Override public <R> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
+  @Override public <R extends @Nullable Object> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
       boolean onlyExpressions, SqlBasicVisitor.ArgHandler<R> argHandler) {
     if (onlyExpressions) {
       argHandler.visitChild(visitor, call, 0, call.operand(0));

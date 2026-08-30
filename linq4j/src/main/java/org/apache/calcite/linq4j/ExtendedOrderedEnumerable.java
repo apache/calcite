@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 
 /**
@@ -25,7 +27,8 @@ import java.util.Comparator;
  *
  * @param <T> Element type
  */
-public interface ExtendedOrderedEnumerable<T> extends Enumerable<T> {
+public interface ExtendedOrderedEnumerable<T extends @Nullable Object>
+    extends Enumerable<T> {
   /**
    * Performs a subsequent ordering of the elements in an
    * {@link OrderedEnumerable} according to a key, using a specified

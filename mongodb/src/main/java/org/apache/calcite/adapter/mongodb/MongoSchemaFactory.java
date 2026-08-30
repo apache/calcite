@@ -27,6 +27,8 @@ import com.mongodb.MongoCredential;
 
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates a {@link MongoSchema}.
  *
@@ -40,7 +42,7 @@ public class MongoSchemaFactory implements SchemaFactory {
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     final String host = (String) operand.get("host");
-    final String database = (String) operand.get("database");
+    final String database = requireNonNull((String) operand.get("database"), "database");
     final String authMechanismName = (String) operand.get("authMechanism");
 
     final MongoClientSettings.Builder settings =
@@ -61,7 +63,7 @@ public class MongoSchemaFactory implements SchemaFactory {
         AuthenticationMechanism.fromMechanismName(authMechanismName);
     final String username = (String) map.get("username");
     final String authDatabase = (String) map.get("authDatabase");
-    final String password = (String) map.get("password");
+    final String password = requireNonNull((String) map.get("password"), "password");
 
     switch (authenticationMechanism) {
     case PLAIN:

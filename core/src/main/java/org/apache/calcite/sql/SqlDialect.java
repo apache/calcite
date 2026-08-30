@@ -47,8 +47,7 @@ import org.apache.calcite.util.format.FormatModels;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -737,7 +736,6 @@ public class SqlDialect {
    * Returns whether the dialect supports character set names as part of a
    * data type, for instance {@code VARCHAR(30) CHARACTER SET `ISO-8859-1`}.
    */
-  @Pure
   public boolean supportsCharSet() {
     return true;
   }
@@ -1548,7 +1546,6 @@ public class SqlDialect {
     @SuppressWarnings("ImmutableEnumChecker")
     private final Supplier<SqlDialect> dialect;
 
-    @SuppressWarnings("argument.type.incompatible")
     DatabaseProduct(String databaseProductName, @Nullable String quoteString,
         NullCollation nullCollation) {
       requireNonNull(databaseProductName, "databaseProductName");

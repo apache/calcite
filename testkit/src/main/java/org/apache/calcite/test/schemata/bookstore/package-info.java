@@ -14,22 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.janino;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * Bookstore schema, used by tests that query nested collections.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.bookstore;
 
-class JavaSourceClassLoader {
-  JavaSourceClassLoader(
-    ClassLoader parentClassLoader,
-    File @Nullable [] optionalSourcePath,
-    @Nullable String optionalCharacterEncoding
-  );
-
-  JavaSourceClassLoader(
-    ClassLoader parentClassLoader,
-    ResourceFinder sourceFinder,
-    @Nullable String optionalCharacterEncoding
-  );
-
-  protected @Nullable Map<String /*name*/, byte[] /*bytecode*/> generateBytecodes(String name);
-}
+import org.jspecify.annotations.NullMarked;

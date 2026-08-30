@@ -29,6 +29,8 @@ import org.apache.pig.scripting.Pig;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +45,7 @@ public class PigAggregate extends Aggregate implements PigRel {
   /** Creates a PigAggregate. */
   public PigAggregate(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() == PigRel.CONVENTION;
   }
@@ -51,13 +53,13 @@ public class PigAggregate extends Aggregate implements PigRel {
   @Deprecated // to be removed before 2.0
   public PigAggregate(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, boolean indicator, ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     return new PigAggregate(input.getCluster(), traitSet, input, groupSet,
         groupSets, aggCalls);
@@ -86,7 +88,7 @@ public class PigAggregate extends Aggregate implements PigRel {
    * Override this method so it looks down the tree to find the table this node
    * is acting on.
    */
-  @Override public RelOptTable getTable() {
+  @Override public @Nullable RelOptTable getTable() {
     return getInput().getTable();
   }
 

@@ -19,6 +19,7 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -27,8 +28,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Properties;
@@ -106,8 +106,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getEnum(NullCollation.class, NullCollation.HIGH);
   }
 
-  @Override public <T> @PolyNull T fun(Class<T> operatorTableClass,
-      @PolyNull T defaultOperatorTable) {
+  @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @Override public <T> @Nullable T fun(Class<T> operatorTableClass,
+      @Nullable T defaultOperatorTable) {
     final String fun =
         CalciteConnectionProperty.FUN.wrap(properties).getString();
     if (fun == null || fun.equals("") || fun.equals("standard")) {
@@ -153,14 +156,22 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
-  @Override public <T> @PolyNull T parserFactory(Class<T> parserFactoryClass,
-      @PolyNull T defaultParserFactory) {
+  @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
+  @Override public <T> @Nullable T parserFactory(Class<T> parserFactoryClass,
+      @Nullable T defaultParserFactory) {
     return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
         .getPlugin(parserFactoryClass, defaultParserFactory);
   }
 
-  @Override public <T> @PolyNull T schemaFactory(Class<T> schemaFactoryClass,
-      @PolyNull T defaultSchemaFactory) {
+  @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
+  @Override public <T> @Nullable T schemaFactory(Class<T> schemaFactoryClass,
+      @Nullable T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
         .getPlugin(schemaFactoryClass, defaultSchemaFactory);
   }
@@ -179,8 +190,12 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
-  @Override public <T> @PolyNull T typeSystem(Class<T> typeSystemClass,
-      @PolyNull T defaultTypeSystem) {
+  @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
+  @Override public <T> @Nullable T typeSystem(Class<T> typeSystemClass,
+      @Nullable T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);
   }
@@ -220,16 +235,24 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
-  @Override public <T> @PolyNull T metaTableFactory(
+  @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
+  @Override public <T> @Nullable T metaTableFactory(
       Class<T> metaTableFactoryClass,
-      @PolyNull T defaultMetaTableFactory) {
+      @Nullable T defaultMetaTableFactory) {
     return CalciteConnectionProperty.META_TABLE_FACTORY.wrap(properties)
         .getPlugin(metaTableFactoryClass, defaultMetaTableFactory);
   }
 
-  @Override public <T> @PolyNull T metaColumnFactory(
+  @Contract("_, !null -> !null")
+  // getPlugin comes from Avatica, which is not annotated, so NullAway cannot infer a T
+  // that suits both the Class argument and a nullable default.
+  @SuppressWarnings("NullAway")
+  @Override public <T> @Nullable T metaColumnFactory(
       Class<T> metaColumnFactoryClass,
-      @PolyNull T defaultMetaColumnFactory) {
+      @Nullable T defaultMetaColumnFactory) {
     return CalciteConnectionProperty.META_COLUMN_FACTORY.wrap(properties)
         .getPlugin(metaColumnFactoryClass, defaultMetaColumnFactory);
   }

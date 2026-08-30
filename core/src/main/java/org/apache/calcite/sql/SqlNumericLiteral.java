@@ -22,8 +22,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 
@@ -66,7 +65,6 @@ public class SqlNumericLiteral extends SqlLiteral {
     return prec;
   }
 
-  @Pure
   public @Nullable Integer getScale() {
     return scale;
   }

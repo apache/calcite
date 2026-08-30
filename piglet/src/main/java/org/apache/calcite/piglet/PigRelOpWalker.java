@@ -25,6 +25,8 @@ import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Collection;
 
 /**
@@ -69,7 +71,8 @@ class PigRelOpWalker extends PlanWalker {
    * @param visitor The visitor of each Pig logical operator node
    * @throws FrontendException Exception during processing Pig operator
    */
-  private void postOrderWalk(Operator root, PlanPreVisitor visitor) throws FrontendException {
+  private void postOrderWalk(@Nullable Operator root, PlanPreVisitor visitor)
+      throws FrontendException {
     if (root == null || visitor.preVisit((LogicalRelationalOperator) root)) {
       return;
     }

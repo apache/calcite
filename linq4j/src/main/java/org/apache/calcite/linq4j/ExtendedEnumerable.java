@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -34,9 +35,7 @@ import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -49,8 +48,7 @@ import java.util.Map;
  *
  * @param <TSource> Element type
  */
-@Covariant(0)
-public interface ExtendedEnumerable<TSource> {
+public interface ExtendedEnumerable<TSource extends @Nullable Object> {
 
   /**
    * Performs an operation for each member of this enumeration.
@@ -76,8 +74,9 @@ public interface ExtendedEnumerable<TSource> {
    *
    * <p>If {@code seed} is not null, the result is never null.
    */
-  <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
-      Function2<@PolyNull TAccumulate, TSource, @PolyNull TAccumulate> func);
+  @Contract("!null, !null -> !null")
+  <TAccumulate> @Nullable TAccumulate aggregate(@Nullable TAccumulate seed,
+      Function2<@Nullable TAccumulate, TSource, @Nullable TAccumulate> func);
 
   /**
    * Applies an accumulator function over a
@@ -280,7 +279,7 @@ public interface ExtendedEnumerable<TSource> {
    *
    * <p>If {@code value} is not null, the result is never null.
    */
-  Enumerable<@PolyNull TSource> defaultIfEmpty(@PolyNull TSource value);
+  Enumerable<@Nullable TSource> defaultIfEmpty(@Nullable TSource value);
 
   /**
    * Returns distinct elements from a sequence by using
@@ -749,7 +748,7 @@ public interface ExtendedEnumerable<TSource> {
    */
   <TInner, TResult> Enumerable<TResult> correlateJoin(
       JoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
-      Function2<TSource, TInner, TResult> resultSelector);
+      Function2<TSource, ? super @Nullable TInner, TResult> resultSelector);
 
   /**
    * Returns the last element of a sequence. (Defined
@@ -957,7 +956,7 @@ public interface ExtendedEnumerable<TSource> {
    *
    * @return Collection of T2
    */
-  <TResult> Enumerable<TResult> ofType(Class<TResult> clazz);
+  <TResult extends @Nullable Object> Enumerable<TResult> ofType(Class<TResult> clazz);
 
   /**
    * Sorts the elements of a sequence in ascending
@@ -997,13 +996,14 @@ public interface ExtendedEnumerable<TSource> {
    * Projects each element of a sequence into a new
    * form.
    */
-  <TResult> Enumerable<TResult> select(Function1<TSource, TResult> selector);
+  <TResult extends @Nullable Object>
+      Enumerable<TResult> select(Function1<TSource, TResult> selector);
 
   /**
    * Projects each element of a sequence into a new
    * form by incorporating the element's index.
    */
-  <TResult> Enumerable<TResult> select(
+  <TResult extends @Nullable Object> Enumerable<TResult> select(
       Function2<TSource, Integer, TResult> selector);
 
   /**
@@ -1011,7 +1011,7 @@ public interface ExtendedEnumerable<TSource> {
    * {@code Enumerable<TSource>} and flattens the resulting sequences into one
    * sequence.
    */
-  <TResult> Enumerable<TResult> selectMany(
+  <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function1<TSource, Enumerable<TResult>> selector);
 
   /**
@@ -1020,7 +1020,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
-  <TResult> Enumerable<TResult> selectMany(
+  <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function2<TSource, Integer, Enumerable<TResult>> selector);
 
   /**

@@ -27,7 +27,7 @@ import org.apache.calcite.schema.impl.AbstractTable;
 
 import org.apache.geode.cache.client.ClientCache;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
 

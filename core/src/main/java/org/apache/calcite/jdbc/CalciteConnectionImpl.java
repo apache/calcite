@@ -72,7 +72,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
@@ -363,7 +363,7 @@ abstract class CalciteConnectionImpl
     }
 
     public CalciteConnection getConnection() {
-      return (CalciteConnection) provider;
+      return (CalciteConnection) requireNonNull(provider, "provider");
     }
   }
 
@@ -438,7 +438,8 @@ abstract class CalciteConnectionImpl
       final long currentOffset = localOffset;
       final long sysOffset = TimeZone.getDefault().getOffset(time);
       final String user = "sa";
-      final String systemUser = System.getProperty("user.name");
+      final String systemUser =
+          requireNonNull(System.getProperty("user.name"), "user.name");
       final String localeName = connection.config().locale();
       final Locale locale = localeName != null
           ? Util.parseLocale(localeName) : Locale.ROOT;

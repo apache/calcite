@@ -125,8 +125,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -2269,7 +2269,7 @@ public class RelMetadataTest {
               .distinct()
               .filter(b.equals(b.field("SAL"), b.literal(1)))
               .build();
-          final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+          final Holder<RexCorrelVariable> v = Holder.empty();
           final RelNode rel1 = b.scan("EMP")
               .variable(v::set)
               .project(b.field("DEPTNO"), b.field("SAL"))
@@ -3631,7 +3631,7 @@ public class RelMetadataTest {
   private void checkSize(String query, double expected) {
     final RelNode rel = sql(query).toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final List<@Nullable Double> averageColumnSizes = mq.getAverageColumnSizes(rel);
+    final List<Double> averageColumnSizes = mq.getAverageColumnSizes(rel);
     assertNotNull(averageColumnSizes);
     assertThat(averageColumnSizes, hasSize(1));
     assertThat(averageColumnSizes.get(0), is(expected));

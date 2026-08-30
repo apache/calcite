@@ -23,7 +23,7 @@ import org.apache.calcite.schema.SchemaPlus;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -40,7 +40,7 @@ public class DataContexts {
   public static final DataContext EMPTY = new EmptyDataContext();
 
   /** Returns an instance of {@link DataContext} with the given map. */
-  public static DataContext of(Map<String, ?> map) {
+  public static DataContext of(Map<String, ? extends Object> map) {
     return new MapDataContext(map);
   }
 
@@ -85,7 +85,7 @@ public class DataContexts {
   private static class MapDataContext extends EmptyDataContext {
     private final ImmutableMap<String, ?> map;
 
-    MapDataContext(Map<String, ?> map) {
+    MapDataContext(Map<String, ? extends Object> map) {
       this.map = ImmutableMap.copyOf(map);
     }
 

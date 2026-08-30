@@ -28,7 +28,7 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.util.Random;
@@ -107,7 +107,7 @@ public class MazeTable extends AbstractTable implements ScannableTable {
     }
 
     @Override public Enumerator<@Nullable Object[]> enumerator() {
-      final Set<Integer> solutionSet;
+      final @Nullable Set<Integer> solutionSet;
       if (solution) {
         solutionSet = maze.solve(0, 0);
       } else {

@@ -22,6 +22,9 @@ import org.apache.calcite.schema.SchemaPlus;
 
 import java.util.Map;
 
+import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
+
 /**
  * Geode Simple Table Schema Factory.
  */
@@ -41,10 +44,16 @@ public class GeodeSimpleSchemaFactory implements SchemaFactory {
       String name, Map<String, Object> operand) {
     Map map = (Map) operand;
 
-    String locatorHost = (String) map.get(LOCATOR_HOST);
-    int locatorPort = Integer.valueOf((String) map.get(LOCATOR_PORT));
-    String[] regionNames = ((String) map.get(REGIONS)).split(COMMA_DELIMITER);
-    String pdxSerializablePackagePath = (String) map.get(PDX_SERIALIZABLE_PACKAGE_PATH);
+    String locatorHost =
+        requireNonNull((String) map.get(LOCATOR_HOST), "locatorHost");
+    int locatorPort =
+        parseInt(
+            requireNonNull((String) map.get(LOCATOR_PORT), "locatorPort"));
+    String[] regionNames =
+        requireNonNull((String) map.get(REGIONS), "regions").split(COMMA_DELIMITER);
+    String pdxSerializablePackagePath =
+        requireNonNull((String) map.get(PDX_SERIALIZABLE_PACKAGE_PATH),
+            "pdxSerializablePackagePath");
 
     return new GeodeSimpleSchema(locatorHost, locatorPort, regionNames, pdxSerializablePackagePath);
   }

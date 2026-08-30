@@ -136,8 +136,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -236,8 +236,9 @@ public class RelBuilder {
    */
   private static RelOptTable.ViewExpander getViewExpander(RelOptCluster cluster,
       Context context) {
-    return context.maybeUnwrap(RelOptTable.ViewExpander.class)
-        .orElseGet(() -> ViewExpanders.simpleContext(cluster));
+    return requireNonNull(
+        context.maybeUnwrap(RelOptTable.ViewExpander.class)
+            .orElseGet(() -> ViewExpanders.simpleContext(cluster)));
   }
 
   /** Derives the Config to be used for this RelBuilder.
@@ -2122,7 +2123,7 @@ public class RelBuilder {
 
     // Perform a quick check for identity. We'll do a deeper check
     // later when we've derived column names.
-    if (!force && Iterables.isEmpty(fieldNames)
+    if (!force && !fieldNames.iterator().hasNext()
         && RexUtil.isIdentity(nodeList, inputRowType)) {
       return this;
     }
@@ -2338,7 +2339,7 @@ public class RelBuilder {
     @SuppressWarnings({"unchecked", "rawtypes"})
     final List<? extends RexNode> nodeList =
         nodes instanceof List ? (List) nodes : ImmutableList.copyOf(nodes);
-    final List<@Nullable String> fieldNameList =
+    final @Nullable List<@Nullable String> fieldNameList =
         fieldNames == null ? null
           : fieldNames instanceof List ? (List<@Nullable String>) fieldNames
           : ImmutableNullableList.copyOf(fieldNames);
@@ -3580,7 +3581,7 @@ public class RelBuilder {
           "Value count must be a positive multiple of field count");
     }
     final int rowCount = values.length / fieldNames.length;
-    for (Ord<@Nullable String> fieldName : Ord.zip(fieldNames)) {
+    for (Ord<String> fieldName : Ord.zip(fieldNames)) {
       if (allNull(values, fieldName.i, fieldNames.length)) {
         throw new IllegalArgumentException("All values of field '" + fieldName.e
             + "' (field index " + fieldName.i + ")"

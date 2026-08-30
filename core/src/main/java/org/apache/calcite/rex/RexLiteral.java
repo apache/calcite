@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -47,11 +48,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
@@ -278,9 +275,7 @@ public class RexLiteral extends RexNode {
    * @param includeType whether the digest should include type or not
    * @return digest
    */
-  @RequiresNonNull({"typeName", "type"})
   public final String computeDigest(
-      @UnknownInitialization RexLiteral this,
       RexDigestIncludeType includeType) {
     if (includeType == RexDigestIncludeType.OPTIONAL) {
       if (digest != null) {
@@ -306,9 +301,7 @@ public class RexLiteral extends RexNode {
    * @see RexCall#computeDigest(boolean)
    * @return whether {@link RexDigestIncludeType} digest would include data type
    */
-  @RequiresNonNull("type")
-  RexDigestIncludeType digestIncludesType(
-      @UnknownInitialization RexLiteral this) {
+  RexDigestIncludeType digestIncludesType() {
     return shouldIncludeType(value, type);
   }
 
@@ -759,7 +752,7 @@ public class RexLiteral extends RexNode {
     case ARRAY:
       assert value instanceof List : "value must implement List: " + value;
       @SuppressWarnings("unchecked") final List<RexLiteral> list =
-          (List<RexLiteral>) castNonNull(value);
+          (List<RexLiteral>) value;
       Util.asStringBuilder(sb, sb2 ->
           Util.printList(sb, list.size(), (sb3, i) ->
               sb3.append(list.get(i).computeDigest(includeType))));
@@ -825,10 +818,11 @@ public class RexLiteral extends RexNode {
    *                 by the Jdbc call to return a column as a string
    * @return a typed RexLiteral, or null
    */
-  public static @PolyNull RexLiteral fromJdbcString(
+  @Contract("_, _, !null -> !null")
+  public static @Nullable RexLiteral fromJdbcString(
       RelDataType type,
       SqlTypeName typeName,
-      @PolyNull String literal) {
+      @Nullable String literal) {
     if (literal == null) {
       return null;
     }
@@ -967,7 +961,6 @@ public class RexLiteral extends RexNode {
    * <p>For backwards compatibility, returns DATE. TIME and TIMESTAMP as a
    * {@link Calendar} value in UTC time zone.
    */
-  @Pure
   public @Nullable Comparable getValue() {
     assert valueMatchesType(value, typeName, true) : value;
     if (value == null) {
@@ -1341,11 +1334,12 @@ public class RexLiteral extends RexNode {
         && (((RexLiteral) node).value == null);
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitLiteral(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLiteral(this, arg);
   }
 }

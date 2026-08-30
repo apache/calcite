@@ -105,7 +105,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -146,7 +146,7 @@ public class RelToSqlConverter extends SqlImplementor
   /** Creates a RelToSqlConverter; if {@code preserveLiteralTypes}, literals
    * whose type is not implied by their SQL text are wrapped in CASTs;
    * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   public RelToSqlConverter(SqlDialect dialect, boolean preserveLiteralTypes) {
     super(dialect, preserveLiteralTypes);
     dispatcher =
@@ -1078,7 +1078,7 @@ public class RelToSqlConverter extends SqlImplementor
               SqlNodeList.of(pos,
                   hints.stream()
                       .map(h -> RelToSqlConverter.toSqlHint(h, pos))
-                      .collect(Collectors.toList())));
+                      .collect(Collectors.<@Nullable SqlNode>toList())));
     } else {
       node = identifier;
     }
@@ -1092,13 +1092,13 @@ public class RelToSqlConverter extends SqlImplementor
               .flatMap(
                   e -> Stream.of(new SqlIdentifier(e.getKey(), pos),
                   SqlLiteral.createCharString(e.getValue(), pos)))
-              .collect(Collectors.toList())),
+              .collect(Collectors.<@Nullable SqlNode>toList())),
           SqlHint.HintOptionFormat.KV_LIST);
     } else if (hint.listOptions != null) {
       return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
           SqlNodeList.of(pos, hint.listOptions.stream()
               .map(e -> SqlLiteral.createCharString(e, pos))
-              .collect(Collectors.toList())),
+              .collect(Collectors.<@Nullable SqlNode>toList())),
           SqlHint.HintOptionFormat.LITERAL_LIST);
     }
     return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
@@ -1439,10 +1439,11 @@ public class RelToSqlConverter extends SqlImplementor
     // Use the foreign catalog, schema and table names, if they exist,
     // rather than the qualified name of the shadow table in Calcite.
     final RelOptTable table = requireNonNull(e.getTable());
-    return table.maybeUnwrap(JdbcTable.class)
-        .map(JdbcTable::tableName)
-        .orElseGet(() ->
-            new SqlIdentifier(table.getQualifiedName(), SqlParserPos.ZERO));
+    return requireNonNull(
+        table.maybeUnwrap(JdbcTable.class)
+            .map(JdbcTable::tableName)
+            .orElseGet(() ->
+                new SqlIdentifier(table.getQualifiedName(), SqlParserPos.ZERO)));
   }
 
   /** Visits a TableModify; called by {@link #dispatch} via reflection. */

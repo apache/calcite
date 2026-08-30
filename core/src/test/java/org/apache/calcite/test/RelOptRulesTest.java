@@ -148,8 +148,8 @@ import org.apache.calcite.util.Optionality;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -9906,7 +9906,7 @@ class RelOptRulesTest extends RelOptTestBase {
     //               from emp
     //               where dept.deptno = emp.deptno
     //                 and emp.sal > 100)
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("DEPT")
         .variable(v::set)

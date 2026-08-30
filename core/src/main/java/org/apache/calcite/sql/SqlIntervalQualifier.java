@@ -32,7 +32,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Locale;
@@ -280,7 +280,7 @@ public class SqlIntervalQualifier extends SqlNode {
     validator.validateIntervalQualifier(this);
   }
 
-  @Override public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 

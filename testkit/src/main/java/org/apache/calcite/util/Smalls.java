@@ -65,7 +65,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -213,10 +213,10 @@ public class Smalls {
 
                   int i = 0;
                   int curI;
-                  String curS;
+                  @Nullable String curS;
 
                   @Override public IntString current() {
-                    return new IntString(curI, curS);
+                    return new IntString(curI, requireNonNull(curS, "curS"));
                   }
 
                   @Override public boolean moveNext() {
@@ -371,25 +371,7 @@ public class Smalls {
       }
 
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
-            return new Enumerator<Object[]>() {
-              @Override public Object[] current() {
-                return new Object[] {};
-              }
-
-              @Override public boolean moveNext() {
-                return false;
-              }
-
-              @Override public void reset() {
-              }
-
-              @Override public void close() {
-              }
-            };
-          }
-        };
+        return Linq4j.emptyEnumerable();
       }
 
       @Override public Statistic getStatistic() {
@@ -420,36 +402,7 @@ public class Smalls {
       }
 
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
-            return new Enumerator<Object[]>() {
-              private long prev = 1;
-              private long current = 0;
-
-              @Override public Object[] current() {
-                return new Object[] {current};
-              }
-
-              @Override public boolean moveNext() {
-                final long next = current + prev;
-                if (limit >= 0 && next > limit) {
-                  return false;
-                }
-                prev = current;
-                current = next;
-                return true;
-              }
-
-              @Override public void reset() {
-                prev = 0;
-                current = 1;
-              }
-
-              @Override public void close() {
-              }
-            };
-          }
-        };
+        return new FibonacciEnumerable(limit);
       }
 
       @Override public Statistic getStatistic() {
@@ -622,7 +575,7 @@ public class Smalls {
       }
       THREAD_DIGEST.set(b.toString());
       this.initY = fx.isArgumentConstant(1)
-          ? fx.getArgumentValueAs(1, Integer.class)
+          ? requireNonNull(fx.getArgumentValueAs(1, Integer.class), "y")
           : 100;
     }
 
@@ -641,8 +594,8 @@ public class Smalls {
       INSTANCE_COUNT.get().incrementAndGet();
     }
 
-    public Integer eval(@Parameter(name = "x") Integer x,
-        @Parameter(name = "y") Integer y) {
+    public @Nullable Integer eval(@Parameter(name = "x") @Nullable Integer x,
+        @Parameter(name = "y") @Nullable Integer y) {
       if (x == null || y == null) {
         return null;
       }
@@ -683,7 +636,8 @@ public class Smalls {
   /** Example of a semi-strict UDF.
    * (Returns null if its parameter is null or if its length is 4.) */
   public static class Null4Function {
-    @SemiStrict public static String eval(@Parameter(name = "s") String s) {
+    @SemiStrict public static @Nullable String eval(
+        @Parameter(name = "s") @Nullable String s) {
       if (s == null || s.length() == 4) {
         return null;
       }
@@ -695,7 +649,8 @@ public class Smalls {
    * Throws {@link NullPointerException} if argument is null.
    * Returns null if its argument's length is 8. */
   public static class Null8Function {
-    @SemiStrict public static String eval(@Parameter(name = "s") String s) {
+    @SemiStrict public static @Nullable String eval(
+        @Parameter(name = "s") String s) {
       if (s.length() == 8) {
         return null;
       }
@@ -857,29 +812,30 @@ public class Smalls {
       return SqlFunctions.internalToDate(v);
     }
 
-    public static java.sql.Date toDateFun(Long v) {
+    public static java.sql.@Nullable Date toDateFun(@Nullable Long v) {
       return v == null ? null : SqlFunctions.internalToDate(v.intValue());
     }
     public static java.sql.Timestamp toTimestampFun(Long v) {
       return SqlFunctions.internalToTimestamp(v);
     }
-    public static java.sql.Time toTimeFun(Long v) {
+    public static java.sql.@Nullable Time toTimeFun(@Nullable Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
 
     /** For overloaded user-defined functions that have {@code double} and
      * {@code BigDecimal} arguments will go wrong. */
-    public static double toDouble(BigDecimal var) {
+    public static double toDouble(@Nullable BigDecimal var) {
       return var == null ? 0.0d : var.doubleValue();
     }
-    public static double toDouble(Double var) {
+    public static double toDouble(@Nullable Double var) {
       return var == null ? 0.0d : var;
     }
-    public static double toDouble(Float var) {
+    public static double toDouble(@Nullable Float var) {
       return var == null ? 0.0d : Double.valueOf(var.toString());
     }
 
-    public static List arrayAppendFun(List v, Integer i) {
+    public static @Nullable List arrayAppendFun(@Nullable List v,
+        @Nullable Integer i) {
       if (v == null || i == null) {
         return null;
       } else {
@@ -1473,7 +1429,7 @@ public class Smalls {
       implements TranslatableTable {
     private final String[] columnNames = { "A", "B" };
     private final Class<?>[] columnTypes = { String.class, Integer.class };
-    private final Object[][] rows = new Object[3][];
+    private final @Nullable Object[][] rows = new @Nullable Object[3][];
 
     public SimpleTable() {
       super(Object[].class);
@@ -1495,11 +1451,11 @@ public class Smalls {
       return typeFactory.createStructType(columnDesc);
     }
 
-    public Iterator<Object[]> iterator() {
+    public Iterator<@Nullable Object[]> iterator() {
       return Linq4j.enumeratorIterator(enumerator());
     }
 
-    public Enumerator<Object[]> enumerator() {
+    public Enumerator<@Nullable Object[]> enumerator() {
       return enumeratorImpl(null);
     }
 
@@ -1514,43 +1470,54 @@ public class Smalls {
       };
     }
 
-    private Enumerator<Object[]> enumeratorImpl(final int[] fields) {
-      return new Enumerator<Object[]>() {
-        private Object[] current;
-        private final Iterator<Object[]> iterator = Arrays.asList(rows)
-            .iterator();
+    private Enumerator<@Nullable Object[]> enumeratorImpl(
+        final int @Nullable [] fields) {
+      return new SimpleEnumerator(rows, fields);
+    }
 
-        @Override public Object[] current() {
-          return current;
-        }
+    /** Enumerator over the rows of a {@link SimpleTable}. */
+    private static class SimpleEnumerator
+        implements Enumerator<@Nullable Object[]> {
+      private final int @Nullable [] fields;
+      private final Iterator<@Nullable Object[]> iterator;
+      private @Nullable Object @Nullable [] current;
 
-        @Override public boolean moveNext() {
-          if (iterator.hasNext()) {
-            Object[] full = iterator.next();
-            current = fields != null ? convertRow(full) : full;
-            return true;
-          } else {
-            current = null;
-            return false;
-          }
-        }
+      SimpleEnumerator(@Nullable Object[][] rows, int @Nullable [] fields) {
+        this.fields = fields;
+        this.iterator = Arrays.asList(rows).iterator();
+      }
 
-        @Override public void reset() {
-          throw new UnsupportedOperationException();
-        }
+      @Override public @Nullable Object[] current() {
+        return requireNonNull(current, "current");
+      }
 
-        @Override public void close() {
-          // noop
+      @Override public boolean moveNext() {
+        if (iterator.hasNext()) {
+          @Nullable Object[] full = iterator.next();
+          current = fields != null ? convertRow(full, fields) : full;
+          return true;
+        } else {
+          current = null;
+          return false;
         }
+      }
 
-        private Object[] convertRow(Object[] full) {
-          final Object[] objects = new Object[fields.length];
-          for (int i = 0; i < fields.length; i++) {
-            objects[i] = full[fields[i]];
-          }
-          return objects;
+      @Override public void reset() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override public void close() {
+        // noop
+      }
+
+      private static @Nullable Object[] convertRow(@Nullable Object[] full,
+          int[] fields) {
+        final @Nullable Object[] objects = new Object[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+          objects[i] = full[fields[i]];
         }
-      };
+        return objects;
+      }
     }
 
     @Override public RelNode toRel(
@@ -1573,7 +1540,7 @@ public class Smalls {
 
   /** User-defined function that decodes a Base64 string to bytes. */
   public static class MyUnbase64Function {
-    public static ByteString eval(String s) {
+    public static @Nullable ByteString eval(@Nullable String s) {
       if (s == null) {
         return null;
       }
@@ -1603,7 +1570,7 @@ public class Smalls {
 
   /** User-defined function with return type Character[]. */
   public static class CharacterArrayFunction {
-    public static Character[] eval(String s) {
+    public static Character @Nullable [] eval(@Nullable String s) {
       if (s == null) {
         return null;
       }
@@ -1614,4 +1581,53 @@ public class Smalls {
       return characters;
     }
   }
+
+  /** Enumerable over the Fibonacci numbers up to a limit. */
+  private static class FibonacciEnumerable
+      extends AbstractEnumerable<@Nullable Object[]> {
+    private final long limit;
+
+    FibonacciEnumerable(long limit) {
+      this.limit = limit;
+    }
+
+    @Override public Enumerator<@Nullable Object[]> enumerator() {
+      return new FibonacciEnumerator(limit);
+    }
+  }
+
+  /** Enumerator over the Fibonacci numbers up to a limit. */
+  private static class FibonacciEnumerator
+      implements Enumerator<@Nullable Object[]> {
+    private final long limit;
+    private long prev = 1;
+    private long current = 0;
+
+    FibonacciEnumerator(long limit) {
+      this.limit = limit;
+    }
+
+    @Override public @Nullable Object[] current() {
+      return new Object[] {current};
+    }
+
+    @Override public boolean moveNext() {
+      final long next = current + prev;
+      if (limit >= 0 && next > limit) {
+        return false;
+      }
+      prev = current;
+      current = next;
+      return true;
+    }
+
+    @Override public void reset() {
+      prev = 0;
+      current = 1;
+    }
+
+    @Override public void close() {
+    }
+  }
+
 }

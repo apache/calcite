@@ -68,7 +68,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -413,7 +413,7 @@ public class CalciteMetaImpl extends MetaImpl {
           return new CalciteMetaSchema(schema, catalog, schema.getName());
         })
         .orderBy((Function1<MetaSchema, Comparable>) metaSchema ->
-            (Comparable) FlatLists.of(Util.first(metaSchema.tableCatalog, ""),
+            (Comparable) FlatLists.of(Util.firstNonNull(metaSchema.tableCatalog, ""),
                 metaSchema.tableSchem));
   }
 

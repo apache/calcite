@@ -69,6 +69,8 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,6 +80,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Visits Pig logical operators and converts them into corresponding relational
  * algebra plans.
@@ -85,7 +89,7 @@ import java.util.Set;
 class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   // The relational algebra builder customized for Pig
   protected final PigRelBuilder builder;
-  private Operator currentRoot;
+  private @Nullable Operator currentRoot;
 
   /** Type of Pig groups. */
   private enum GroupType {
@@ -112,7 +116,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     this.currentRoot = null;
   }
 
-  Operator getCurrentRoot() {
+  @Nullable Operator getCurrentRoot() {
     return currentRoot;
   }
 
@@ -142,7 +146,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     String fullName = load.getSchemaFile();
     if (fullName.contains("file://")) {
       // load from database catalog. Pig will see it as a file in the working directory
-      fullName = Paths.get(load.getSchemaFile()).getFileName().toString();
+      fullName =
+          requireNonNull(Paths.get(load.getSchemaFile()).getFileName(),
+              "fileName").toString();
     }
     String[] tableNames;
     if (fullName.startsWith("/")) {
@@ -154,7 +160,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       tableNames = fullName.split("\\.");
     }
     final LogicalSchema pigSchema = load.getSchema();
-    final RelOptTable pigRelOptTable;
+    final @Nullable RelOptTable pigRelOptTable;
     if (pigSchema == null) {
       pigRelOptTable = null;
     } else {
@@ -162,8 +168,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       // relational row type
       final RelDataType rowType = PigTypes.convertSchema(pigSchema);
       pigRelOptTable =
-          PigTable.createRelOptTable(builder.getRelOptSchema(), rowType,
-              Arrays.asList(tableNames));
+          PigTable.createRelOptTable(
+              requireNonNull(builder.getRelOptSchema(), "relOptSchema"),
+              rowType, Arrays.asList(tableNames));
     }
     builder.scan(pigRelOptTable, tableNames);
     builder.register(load);
@@ -367,7 +374,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
               getGroupRowOperands(fieldRels, isCubeRollup));
       fieldRels.add(row);
       builder.project(fieldRels);
-      builder.updateAlias(builder.getPig(originalRel), builder.getAlias(originalRel), false);
+      builder.updateAlias(
+          requireNonNull(builder.getPig(originalRel), "pigOp"),
+          requireNonNull(builder.getAlias(originalRel), "alias"), false);
     }
   }
 

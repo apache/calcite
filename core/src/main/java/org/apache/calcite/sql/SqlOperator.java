@@ -41,14 +41,12 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -247,7 +245,6 @@ public abstract class SqlOperator {
     return new SqlIdentifier(getName(), SqlParserPos.ZERO);
   }
 
-  @Pure
   public SqlKind getKind() {
     return kind;
   }
@@ -627,7 +624,7 @@ public abstract class SqlOperator {
       throw validator.handleUnresolvedFunction(call, this, argTypes, null);
     }
 
-    ((SqlBasicCall) call).setOperator(castNonNull(sqlOperator));
+    ((SqlBasicCall) call).setOperator(sqlOperator);
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
 
     // Validate and determine coercibility and resulting collation
@@ -875,7 +872,6 @@ public abstract class SqlOperator {
    * @return whether this operator is an analytic function (aggregate function
    * or window function)
    */
-  @Pure
   public boolean isAggregator() {
     return false;
   }
@@ -951,7 +947,7 @@ public abstract class SqlOperator {
    * @param visitor Visitor
    * @param call    Call to visit
    */
-  public <R> @Nullable R acceptCall(SqlVisitor<R> visitor, SqlCall call) {
+  public <R extends @Nullable Object> @Nullable R acceptCall(SqlVisitor<R> visitor, SqlCall call) {
     for (SqlNode operand : call.getOperandList()) {
       if (operand == null) {
         continue;
@@ -976,7 +972,7 @@ public abstract class SqlOperator {
    *                        <code>AS</code> operator
    * @param argHandler      Called for each operand
    */
-  public <R> void acceptCall(
+  public <R extends @Nullable Object> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -1032,7 +1028,6 @@ public abstract class SqlOperator {
    *
    * @see Strong
    */
-  @Pure
   public @Nullable Supplier<Strong.Policy> getStrongPolicyInference() {
     return null;
   }

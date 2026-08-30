@@ -46,7 +46,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -650,7 +650,7 @@ public abstract class OperandTypes {
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
           i -> i == 2) {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         @Override public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {
@@ -2050,19 +2050,19 @@ public abstract class OperandTypes {
      * validated for the second time based on the given parameter type,
      * the type cached during the first validation must be cleared.
      */
-    protected static class TypeRemover extends SqlBasicVisitor<Void> {
+    protected static class TypeRemover extends SqlBasicVisitor<@Nullable Void> {
       private final SqlValidator validator;
 
       protected TypeRemover(SqlValidator validator) {
         this.validator = validator;
       }
 
-      @Override public Void visit(SqlIdentifier id) {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         validator.removeValidatedNodeType(id);
         return super.visit(id);
       }
 
-      @Override public Void visit(SqlCall call) {
+      @Override public @Nullable Void visit(SqlCall call) {
         validator.removeValidatedNodeType(call);
         return super.visit(call);
       }

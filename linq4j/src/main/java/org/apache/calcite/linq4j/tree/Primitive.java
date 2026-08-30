@@ -17,11 +17,11 @@
 package org.apache.calcite.linq4j.tree;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
 import org.joou.UInteger;
 import org.joou.ULong;
 import org.joou.UShort;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -36,6 +36,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -291,7 +293,7 @@ public enum Primitive {
     // REVIEW: A per-type list might be more efficient. (Or might not.)
     return new AbstractList() {
       @Override public Object get(int index) {
-        return Array.get(array, index);
+        return castNonNull(Array.get(array, index));
       }
 
       @Override public int size() {
@@ -1010,7 +1012,7 @@ public enum Primitive {
   /**
    * Reads value from a source into an array.
    */
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   public void arrayItem(Source source, Object dataSet, int ordinal) {
     switch (this) {
     case DOUBLE:

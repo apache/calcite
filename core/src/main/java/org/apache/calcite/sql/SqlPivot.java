@@ -26,7 +26,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -76,7 +76,7 @@ public class SqlPivot extends SqlCall {
     return ImmutableNullableList.of(query, aggList, axisList, inList);
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     // Only 'query' is mutable. (It is required for validation.)
     switch (i) {
@@ -175,8 +175,8 @@ public class SqlPivot extends SqlCall {
    * that are not used will become "GROUP BY" columns. */
   public Set<String> usedColumnNames() {
     final Set<String> columnNames = new HashSet<>();
-    final SqlVisitor<Void> nameCollector = new SqlBasicVisitor<Void>() {
-      @Override public Void visit(SqlIdentifier id) {
+    final SqlVisitor<@Nullable Void> nameCollector = new SqlBasicVisitor<@Nullable Void>() {
+      @Override public @Nullable Void visit(SqlIdentifier id) {
         columnNames.add(Util.last(id.names));
         return super.visit(id);
       }

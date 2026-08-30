@@ -37,7 +37,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -477,7 +477,11 @@ class InnodbFilterTranslator {
         .map(indexCondition::nameMatch).orElse(true);
   }
 
-  /** Internal representation of a row expression. */
+  /** Internal representation of a row expression.
+   *
+   * <p>Every field is set as the translator walks the expression, which is why
+   * they are not initialized here. */
+  @SuppressWarnings("NullAway.Init")
   private static class InternalRexNode {
     /** Relation expression node. */
     RexNode node;

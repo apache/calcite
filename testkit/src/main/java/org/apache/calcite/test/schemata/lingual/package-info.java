@@ -14,16 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
 
-import org.checkerframework.checker.nullness.qual.*;
+/**
+ * Lingual schema, a variant of the HR schema with nullable columns.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.lingual;
 
-class AvaticaStatement {
-  AvaticaStatement(AvaticaConnection connection,
-    Meta.@Nullable StatementHandle h, int resultSetType, int resultSetConcurrency,
-    int resultSetHoldability);
-
-  AvaticaStatement(AvaticaConnection connection,
-    Meta.@Nullable StatementHandle h, int resultSetType, int resultSetConcurrency,
-    int resultSetHoldability, Meta.Signature signature);
-}
+import org.jspecify.annotations.NullMarked;

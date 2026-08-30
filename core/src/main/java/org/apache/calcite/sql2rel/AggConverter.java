@@ -55,7 +55,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,7 +85,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.fromMeasure;
  * <li>aggCalls = {AggCall(SUM, {1})}</li>
  * </ul>
  */
-class AggConverter implements SqlVisitor<Void> {
+class AggConverter implements SqlVisitor<@Nullable Void> {
   private final SqlToRelConverter.Blackboard bb;
   private final Map<String, String> nameMap;
 
@@ -242,7 +242,7 @@ class AggConverter implements SqlVisitor<Void> {
     convertedInputExprs.add(expr, name);
   }
 
-  @Override public Void visit(SqlIdentifier id) {
+  @Override public @Nullable Void visit(SqlIdentifier id) {
     if (isMeasureExpr(id)) {
       final SqlCall call =
           SqlInternalOperators.AGG_M2V.createCall(SqlParserPos.ZERO, id);
@@ -256,28 +256,28 @@ class AggConverter implements SqlVisitor<Void> {
     return null;
   }
 
-  @Override public Void visit(SqlNodeList nodeList) {
+  @Override public @Nullable Void visit(SqlNodeList nodeList) {
     nodeList.forEach(this::visitNode);
     return null;
   }
 
-  @Override public Void visit(SqlLiteral lit) {
+  @Override public @Nullable Void visit(SqlLiteral lit) {
     return null;
   }
 
-  @Override public Void visit(SqlDataTypeSpec type) {
+  @Override public @Nullable Void visit(SqlDataTypeSpec type) {
     return null;
   }
 
-  @Override public Void visit(SqlDynamicParam param) {
+  @Override public @Nullable Void visit(SqlDynamicParam param) {
     return null;
   }
 
-  @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+  @Override public @Nullable Void visit(SqlIntervalQualifier intervalQualifier) {
     return null;
   }
 
-  @Override public Void visit(SqlCall call) {
+  @Override public @Nullable Void visit(SqlCall call) {
     switch (call.getKind()) {
     case FILTER:
     case IGNORE_NULLS:

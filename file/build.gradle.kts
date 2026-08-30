@@ -24,7 +24,7 @@ plugins {
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")
     implementation("com.joestelmach:natty")

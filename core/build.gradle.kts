@@ -54,7 +54,7 @@ dependencies {
     api("com.google.guava:guava")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.apiguardian:apiguardian-api")
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -76,6 +76,8 @@ dependencies {
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")
     annotationProcessor("org.immutables:value")
+    // The annotations are not retained at run time and the artifact never ships with Calcite,
+    // so its Java 11 bytecode is fine even though Calcite itself targets Java 8
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
     testAnnotationProcessor("org.immutables:value")

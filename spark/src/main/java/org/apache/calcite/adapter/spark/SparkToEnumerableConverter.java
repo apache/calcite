@@ -36,9 +36,11 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.validate.SqlConformance;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that converts input of
@@ -65,7 +67,7 @@ public class SparkToEnumerableConverter
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.01);
+    return requireNonNull(super.computeSelfCost(planner, mq)).multiplyBy(.01);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

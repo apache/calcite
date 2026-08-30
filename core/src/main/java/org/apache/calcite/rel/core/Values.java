@@ -37,7 +37,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -84,7 +84,6 @@ public abstract class Values extends AbstractRelNode implements Hintable {
    *                list contains tuples; each inner list is one tuple; all
    *                tuples must be of same length, conforming to rowType
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Values(
       RelOptCluster cluster,
       List<RelHint> hints,
@@ -111,7 +110,6 @@ public abstract class Values extends AbstractRelNode implements Hintable {
    *                list contains tuples; each inner list is one tuple; all
    *                tuples must be of same length, conforming to rowType
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Values(
       RelOptCluster cluster,
       RelDataType rowType,

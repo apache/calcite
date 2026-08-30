@@ -18,4 +18,7 @@
 /**
  * Utilities for RPC to Splunk.
  */
+@NullMarked
 package org.apache.calcite.adapter.splunk.util;
+
+import org.jspecify.annotations.NullMarked;

@@ -32,14 +32,12 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -79,7 +77,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
     this.optionList = optionList; // may be null
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(
         SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),
@@ -133,8 +131,8 @@ public class SqlCreateForeignSchema extends SqlCreate {
     }
     return new AbstractList<Pair<SqlIdentifier, SqlNode>>() {
       @Override public Pair<SqlIdentifier, SqlNode> get(int index) {
-        return Pair.of((SqlIdentifier) castNonNull(optionList.get(index * 2)),
-            castNonNull(optionList.get(index * 2 + 1)));
+        return Pair.of((SqlIdentifier) optionList.get(index * 2),
+            optionList.get(index * 2 + 1));
       }
 
       @Override public int size() {

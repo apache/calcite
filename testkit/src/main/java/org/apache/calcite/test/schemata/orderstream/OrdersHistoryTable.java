@@ -22,17 +22,17 @@ import org.apache.calcite.linq4j.Linq4j;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Table representing the history of the ORDERS stream. */
 public class OrdersHistoryTable extends BaseOrderStreamTable {
-  private final ImmutableList<Object[]> rows;
+  private final ImmutableList<@Nullable Object[]> rows;
 
-  public OrdersHistoryTable(ImmutableList<Object[]> rows) {
+  public OrdersHistoryTable(ImmutableList<@Nullable Object[]> rows) {
     this.rows = rows;
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return Linq4j.asEnumerable(rows);
+    return Linq4j.<@Nullable Object[]>asEnumerable(rows);
   }
 }

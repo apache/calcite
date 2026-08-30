@@ -40,7 +40,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
@@ -225,7 +225,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         final Object dataSet) {
       // Cache size. It might be expensive to compute.
       final int size = representation.size(dataSet);
-      return new AbstractList() {
+      return new AbstractList<@Nullable Object>() {
         @Override public @Nullable Object get(int index) {
           return representation.getObject(dataSet, index);
         }
@@ -280,14 +280,18 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
 
     @Override public Object freeze(ColumnLoader.ValueSet valueSet, int @Nullable [] sources) {
       // We assume the values have been canonized.
-      final List<Comparable> list = permuteList(valueSet.values, sources);
-      return list.toArray(new Comparable[0]);
+      final List<@Nullable Comparable> list = permuteList(valueSet.values, sources);
+      return list.toArray(new @Nullable Comparable[0]);
     }
 
+    // Both arrays hold the column's values, nulls included, but an array creation keeps a
+    // non-null component type whatever it is assigned to.
+    @SuppressWarnings("NullAway")
     @Override public Object permute(Object dataSet, int[] sources) {
-      @Nullable Comparable[] list = (@Nullable Comparable[]) dataSet;
+      final @Nullable Comparable[] list = (@Nullable Comparable[]) dataSet;
       final int size = list.length;
-      final @Nullable Comparable[] comparables = new Comparable[size];
+      final @Nullable Comparable[] comparables =
+          (@Nullable Comparable[]) new Comparable[size];
       for (int i = 0; i < size; i++) {
         comparables[i] = list[sources[i]];
       }
@@ -433,12 +437,12 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
           valueSet.map.keySet().toArray(new Comparable[n + extra]);
       // codeValues[0..n] is non-null since valueSet.map.keySet is non-null
       // There might be null at the very end, however, it won't participate in Arrays.sort
-      @SuppressWarnings("assignment.type.incompatible")
+      @SuppressWarnings("NullAway")
       Comparable[] nonNullCodeValues = codeValues;
       Arrays.sort(nonNullCodeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =
           new ColumnLoader.ValueSet(int.class);
-      final List<Comparable> list = permuteList(valueSet.values, sources);
+      final List<@Nullable Comparable> list = permuteList(valueSet.values, sources);
       for (Comparable value : list) {
         int code;
         if (value == null) {
@@ -798,7 +802,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
   }
 
-  private static <E> List<E> permuteList(
+  private static <E extends @Nullable Object> List<E> permuteList(
       final List<E> list, final int @Nullable [] sources) {
     if (sources == null) {
       return list;

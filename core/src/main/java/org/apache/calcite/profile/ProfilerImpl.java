@@ -33,7 +33,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.yahoo.sketches.hll.HllSketch;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -166,7 +166,8 @@ public class ProfilerImpl implements Profiler {
         }
       }
       this.singletonSpaces =
-          new ArrayList<>(Collections.nCopies(columns.size(), (Space) null));
+          new ArrayList<>(
+              Collections.<@Nullable Space>nCopies(columns.size(), null));
       if (combinationsPerPass > Math.pow(2D, columns.size())) {
         // There are not many columns. We can compute all combinations in the
         // first pass.
@@ -538,7 +539,7 @@ public class ProfilerImpl implements Profiler {
       this.space = space;
     }
 
-    abstract void add(List<Comparable> row);
+    abstract void add(List<? extends @Nullable Comparable> row);
     abstract void finish();
 
     /** Creates an initial collector of the appropriate kind. */
@@ -567,8 +568,8 @@ public class ProfilerImpl implements Profiler {
       this.sketchThreshold = sketchThreshold;
     }
 
-    @Override public void add(List<Comparable> row) {
-      final Comparable v = row.get(columnOrdinal);
+    @Override public void add(List<? extends @Nullable Comparable> row) {
+      final Comparable v = castNonNull(row.get(columnOrdinal));
       if (v == NullSentinel.INSTANCE) {
         nullCount++;
       } else {
@@ -607,13 +608,13 @@ public class ProfilerImpl implements Profiler {
       this.sketchThreshold = sketchThreshold;
     }
 
-    @Override public void add(List<Comparable> row) {
+    @Override public void add(List<? extends @Nullable Comparable> row) {
       if (space.columnOrdinals.equals(OF)) {
         Util.discard(0);
       }
       int nullCountThisRow = 0;
       for (int i = 0, length = columnOrdinals.length; i < length; i++) {
-        final Comparable value = row.get(columnOrdinals[i]);
+        final Comparable value = castNonNull(row.get(columnOrdinals[i]));
         if (value == NullSentinel.INSTANCE) {
           if (nullCountThisRow++ == 0) {
             nullCount++;
@@ -627,11 +628,10 @@ public class ProfilerImpl implements Profiler {
         // Too many values. Switch to a sketch collector.
         final HllCompositeCollector collector =
             new HllCompositeCollector(space, columnOrdinals);
-        final List<Comparable> list =
+        final List<@Nullable Comparable> list =
             new ArrayList<>(
-                Collections.nCopies(columnOrdinals[columnOrdinals.length - 1]
-                        + 1,
-                    null));
+                Collections.<@Nullable Comparable>nCopies(
+                    columnOrdinals[columnOrdinals.length - 1] + 1, null));
         for (FlatLists.ComparableList value : this.values) {
           for (int i = 0; i < value.size(); i++) {
             Comparable c = (Comparable) value.get(i);
@@ -700,8 +700,8 @@ public class ProfilerImpl implements Profiler {
       this.columnOrdinal = columnOrdinal;
     }
 
-    @Override public void add(List<Comparable> row) {
-      final Comparable value = row.get(columnOrdinal);
+    @Override public void add(List<? extends @Nullable Comparable> row) {
+      final Comparable value = castNonNull(row.get(columnOrdinal));
       if (value == NullSentinel.INSTANCE) {
         nullCount++;
         sketch.update(NULL_BITS);
@@ -722,14 +722,14 @@ public class ProfilerImpl implements Profiler {
       this.columnOrdinals = columnOrdinals;
     }
 
-    @Override public void add(List<Comparable> row) {
+    @Override public void add(List<? extends @Nullable Comparable> row) {
       if (space.columnOrdinals.equals(OF)) {
         Util.discard(0);
       }
       int nullCountThisRow = 0;
       buf.clear();
       for (int columnOrdinal : columnOrdinals) {
-        final Comparable value = row.get(columnOrdinal);
+        final Comparable value = castNonNull(row.get(columnOrdinal));
         if (value == NullSentinel.INSTANCE) {
           if (nullCountThisRow++ == 0) {
             nullCount++;

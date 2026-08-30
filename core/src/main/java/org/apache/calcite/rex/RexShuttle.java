@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.sql.SqlAggFunction;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -277,7 +277,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
    *
    * <p>Returns null if and only if {@code exprList} is null.
    */
-  public final <T extends @Nullable RexNode> @PolyNull List<T> apply(@PolyNull List<T> exprList) {
+  @Contract("!null -> !null")
+  public final <T extends @Nullable RexNode> @Nullable List<T> apply(@Nullable List<T> exprList) {
     if (exprList == null) {
       return exprList;
     }
@@ -293,7 +294,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * Applies this shuttle to an expression, or returns null if the expression
    * is null.
    */
-  public final @PolyNull RexNode apply(@PolyNull RexNode expr) {
+  @Contract("!null -> !null")
+  public final @Nullable RexNode apply(@Nullable RexNode expr) {
     return (expr == null) ? expr : expr.accept(this);
   }
 }

@@ -19,7 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -110,7 +110,7 @@ public class SqlBasicCall extends SqlCall {
     return operator;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return operandList;
   }
@@ -134,13 +134,13 @@ public class SqlBasicCall extends SqlCall {
 
   /** Sets the {@code i}th element of {@code list} to value {@code e}, creating
    * an immutable copy of the list. */
-  private static <E> List<@Nullable E> set(List<E> list, int i, @Nullable E e) {
+  private static <E> List<@Nullable E> set(List<@Nullable E> list, int i, @Nullable E e) {
     if (i == 0 && list.size() == 1) {
       // short-cut case where the contents of the previous list can be ignored
       return ImmutableNullableList.of(e);
     }
     //noinspection unchecked
-    @Nullable E[] objects = (E[]) list.toArray();
+    @Nullable E[] objects = (@Nullable E[]) list.toArray();
     objects[i] = e;
     return ImmutableNullableList.copyOf(objects);
   }

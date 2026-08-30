@@ -110,8 +110,8 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -169,7 +169,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *  Each entry maps a CorrelationId to the Frame where its correlated variables originate. */
   protected final Deque<Pair<CorrelationId, Frame>> frameStack = new ArrayDeque<>();
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   protected final ReflectUtil.MethodDispatcher<@Nullable Frame> dispatcher =
       ReflectUtil.<RelNode, @Nullable Frame>createMethodDispatcher(
           Frame.class, getVisitor(), "decorrelateRel",
@@ -2800,7 +2800,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // expression. They need to be added to the window partition keys so that
       // decorrelation does not widen the window computation scope.
       final List<RexFieldAccess> correlationFields = new ArrayList<>();
-      over.accept(new RexVisitorImpl<Void>(true) {
+      over.accept(new RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
           if (cm.mapFieldAccessToCorRef.containsKey(fieldAccess)
               && !correlationFields.contains(fieldAccess)) {
@@ -3992,8 +3992,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return join;
     }
 
-    private RexVisitorImpl<Void> rexVisitor(final RelNode rel) {
-      return new RexVisitorImpl<Void>(true) {
+    private RexVisitorImpl<@Nullable Void> rexVisitor(final RelNode rel) {
+      return new RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
           final RexNode ref = fieldAccess.getReferenceExpr();
           if (ref instanceof RexCorrelVariable) {

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -34,7 +36,7 @@ public class  Location {
     return "Location [x: " + x + ", y: " + y + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof Location
         && x == ((Location) obj).x

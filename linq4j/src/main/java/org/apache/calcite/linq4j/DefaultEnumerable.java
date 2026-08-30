@@ -34,8 +34,7 @@ import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -55,7 +54,8 @@ import java.util.Map;
  *
  * @param <T> Element type
  */
-public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
+public abstract class DefaultEnumerable<T extends @Nullable Object>
+    implements OrderedEnumerable<T> {
 
   /**
    * Derived classes might wish to override this method to return the "outer"
@@ -97,8 +97,8 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 
-  @Override public <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
-      Function2<@PolyNull TAccumulate, T, @PolyNull TAccumulate> func) {
+  @Override public <TAccumulate> @Nullable TAccumulate aggregate(@Nullable TAccumulate seed,
+      Function2<@Nullable TAccumulate, T, @Nullable TAccumulate> func) {
     return EnumerableDefaults.aggregate(getThis(), seed, func);
   }
 
@@ -199,7 +199,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.defaultIfEmpty(getThis());
   }
 
-  @Override public Enumerable<@PolyNull T> defaultIfEmpty(@PolyNull T value) {
+  @Override public Enumerable<@Nullable T> defaultIfEmpty(@Nullable T value) {
     return EnumerableDefaults.defaultIfEmpty(getThis(), value);
   }
 
@@ -473,7 +473,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
 
   @Override public <TInner, TResult> Enumerable<TResult> correlateJoin(
       JoinType joinType, Function1<T, Enumerable<TInner>> inner,
-      Function2<T, TInner, TResult> resultSelector) {
+      Function2<T, ? super @Nullable TInner, TResult> resultSelector) {
     return EnumerableDefaults.correlateJoin(joinType, getThis(), inner,
         resultSelector);
   }
@@ -602,7 +602,8 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> ofType(Class<TResult> clazz) {
+  @Override public <TResult extends @Nullable Object>
+      Enumerable<TResult> ofType(Class<TResult> clazz) {
     return EnumerableDefaults.ofType(getThis(), clazz);
   }
 
@@ -631,21 +632,22 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.reverse(getThis());
   }
 
-  @Override public <TResult> Enumerable<TResult> select(Function1<T, TResult> selector) {
+  @Override public <TResult extends @Nullable Object>
+      Enumerable<TResult> select(Function1<T, TResult> selector) {
     return EnumerableDefaults.select(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> select(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> select(
       Function2<T, Integer, TResult> selector) {
     return EnumerableDefaults.select(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function1<T, Enumerable<TResult>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector);
   }
 
-  @Override public <TResult> Enumerable<TResult> selectMany(
+  @Override public <TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       Function2<T, Integer, Enumerable<TResult>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector);
   }

@@ -27,7 +27,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -59,7 +59,8 @@ public class InnodbSort extends Sort implements InnodbRel {
   }
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
-      RelCollation newCollation, RexNode offset, RexNode fetch) {
+      RelCollation newCollation, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     return new InnodbSort(getCluster(), traitSet, input, collation);
   }
 

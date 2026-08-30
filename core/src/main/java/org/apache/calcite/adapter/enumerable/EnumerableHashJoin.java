@@ -42,7 +42,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -252,11 +252,11 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     final PhysType nullSafeKeyPhysType =
         leftResult.physType.project(leftNullSafeKeys, JavaRowFormat.LIST);
     final Expression nullSafeKeyComparator =
-        Util.first(nullSafeKeyPhysType.comparer(), Expressions.constant(null));
+        Util.firstNonNull(nullSafeKeyPhysType.comparer(), Expressions.constant(null));
     final PhysType keyPhysType =
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
     final Expression keyComparator =
-        Util.first(keyPhysType.comparer(), Expressions.constant(null));
+        Util.firstNonNull(keyPhysType.comparer(), Expressions.constant(null));
 
     return implementor.result(physType,
         builder.append(
@@ -322,7 +322,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         joinInfo.leftKeys, joinInfo.nullExclusionFlags),
                     rightResult.physType.generateNullAwareAccessor(
                         joinInfo.rightKeys, joinInfo.nullExclusionFlags),
-                    Util.first(keyPhysType.comparer(),
+                    Util.firstNonNull(keyPhysType.comparer(),
                         Expressions.constant(null)),
                     predicate)))
             .toBlock());
@@ -375,7 +375,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         ImmutableList.of(
                             leftResult.physType, rightResult.physType)))
                     .append(
-                        Util.first(keyPhysType.comparer(),
+                        Util.firstNonNull(keyPhysType.comparer(),
                             Expressions.constant(null)))
                     .append(
                         Expressions.constant(joinType.generatesNullsOnLeft()))

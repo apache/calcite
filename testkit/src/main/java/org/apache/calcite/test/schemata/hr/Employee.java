@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -44,7 +44,7 @@ public class Employee {
         + ", name: " + name + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof Employee
         && empid == ((Employee) obj).empid;

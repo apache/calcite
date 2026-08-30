@@ -37,7 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
@@ -343,9 +343,8 @@ public class RexImplicationChecker {
       final SqlKind sKind2 =
           secondLen == 2 ? secondUsageList.get(1).getKey().getKind() : null;
 
-      // Note: arguments to isEquivalentOp are never null, however checker-framework's
-      // dataflow is not strong enough, so the first parameter is marked as nullable
-      //noinspection ConstantConditions
+      // The first parameter of isEquivalentOp is declared @Nullable, so that a caller can
+      // pass a kind that was not found; here both kinds are known to be present
       if (firstLen == 2 && secondLen == 2
           && fKind2 != null && sKind2 != null
           && !(isEquivalentOp(fKind, sKind) && isEquivalentOp(fKind2, sKind2))
@@ -442,7 +441,7 @@ public class RexImplicationChecker {
    * <li>key: y value: {(&gt;, 20), usageCount = 1}
    * </ul>
    */
-  private static class InputUsageFinder extends RexVisitorImpl<Void> {
+  private static class InputUsageFinder extends RexVisitorImpl<@Nullable Void> {
     final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> usageMap =
         new HashMap<>();
 
@@ -524,7 +523,7 @@ public class RexImplicationChecker {
    *
    * @param <T1> left type
    * @param <T2> right type */
-  private static class InputRefUsage<T1, T2> {
+  private static class InputRefUsage<T1 extends @Nullable Object, T2 extends @Nullable Object> {
     private final PairList<T1, T2> usageList = PairList.of();
     private int usageCount = 0;
   }

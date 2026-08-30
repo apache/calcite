@@ -18,7 +18,7 @@ package org.apache.calcite.util;
 
 import com.google.common.io.CharSource;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;

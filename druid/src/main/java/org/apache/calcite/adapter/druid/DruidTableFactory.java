@@ -25,9 +25,9 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,7 +53,8 @@ public class DruidTableFactory implements TableFactory {
   // name that is also the same name as a complex metric
   @Override public Table create(SchemaPlus schema, String name, Map operand,
       @Nullable RelDataType rowType) {
-    final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
+    final DruidSchema druidSchema =
+        requireNonNull(schema.unwrap(DruidSchema.class), "druidSchema");
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
@@ -121,7 +122,7 @@ public class DruidTableFactory implements TableFactory {
           }
           metricName = (String) map2.get("name");
 
-          final String type = (String) map2.get("type");
+          final String type = requireNonNull((String) map2.get("type"), "type");
           fieldName = (String) map2.get("fieldName");
 
           druidType = DruidType.getTypeFromMetric(type);
@@ -148,7 +149,7 @@ public class DruidTableFactory implements TableFactory {
       }
     }
     final Object interval = operand.get("interval");
-    final List<Interval> intervals;
+    final @Nullable List<Interval> intervals;
     if (interval instanceof String) {
       intervals =
           ImmutableList.of(

@@ -14,22 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.util;
 
-import java.util.function.Supplier;
+/**
+ * Schema of Java objects that covers every type the reflective schema maps.
+ */
+@NullMarked
+package org.apache.calcite.test.schemata.catchall;
 
-import org.checkerframework.checker.nullness.qual.*;
-
-interface Map<K, V> {
-  boolean containsKey(@Nullable Object o);
-
-  boolean containsValue(@Nullable Object value);
-
-  boolean remove(@Nullable Object key, @Nullable Object value);
-
-  @Nullable V remove(@Nullable Object o);
-
-  @Nullable V get(@Nullable Object key);
-
-  V getOrDefault(@Nullable Object key, V defaultValue);
-}
+import org.jspecify.annotations.NullMarked;

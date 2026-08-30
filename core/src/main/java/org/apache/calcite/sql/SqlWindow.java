@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.EnsuresNonNullIf;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -35,9 +36,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -179,13 +178,13 @@ public class SqlWindow extends SqlCall {
     return SqlKind.WINDOW;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(declName, refName, partitionList, orderList,
         isRows, lowerBound, upperBound, allowPartial, exclude);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -305,7 +304,6 @@ public class SqlWindow extends SqlCall {
     this.isRows = isRows;
   }
 
-  @Pure
   public boolean isRows() {
     return isRows.booleanValue();
   }
@@ -597,7 +595,7 @@ public class SqlWindow extends SqlCall {
    * (for example, a window of size 1 hour which has only 45 minutes of data
    * in it) will appear to windowed aggregate functions to be empty.
    */
-  @EnsuresNonNullIf(expression = "allowPartial", result = false)
+  @EnsuresNonNullIf(value = "allowPartial", result = false)
   public boolean isAllowPartial() {
     // Default (and standard behavior) is to allow partial windows.
     return allowPartial == null
@@ -915,7 +913,6 @@ public class SqlWindow extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
         @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,
@@ -935,7 +932,7 @@ public class SqlWindow extends SqlCall {
           pos);
     }
 
-    @Override public <R> void acceptCall(
+    @Override public <R extends @Nullable Object> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,

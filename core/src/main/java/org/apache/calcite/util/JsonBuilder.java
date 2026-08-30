@@ -20,7 +20,7 @@ import org.apache.calcite.avatica.util.Spaces;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -162,7 +162,7 @@ public class JsonBuilder {
     buf.append("{");
     newline(buf, indent + 1);
     int n = 0;
-    for (Map.Entry<String, @Nullable Object> entry : map.entrySet()) {
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
       if (n++ > 0) {
         buf.append(",");
         newline(buf, indent + 1);

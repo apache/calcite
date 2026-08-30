@@ -33,7 +33,7 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -197,7 +197,7 @@ public final class LogicalJoin extends Join {
       return true;
     }
     return deepEquals0(obj)
-        && semiJoinDone == ((LogicalJoin) obj).semiJoinDone
+        && semiJoinDone == ((LogicalJoin) requireNonNull(obj, "obj")).semiJoinDone
         && systemFieldList.equals(((LogicalJoin) obj).systemFieldList);
   }
 

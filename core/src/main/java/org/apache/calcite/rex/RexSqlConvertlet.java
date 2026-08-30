@@ -18,7 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts a {@link RexNode} expression into a {@link SqlNode} expression.

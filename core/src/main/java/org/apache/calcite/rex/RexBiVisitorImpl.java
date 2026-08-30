@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rex;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Default implementation of {@link RexBiVisitor}, which visits each node but
@@ -25,7 +25,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @param <R> Return type from each {@code visitXxx} method
  * @param <P> Payload type
  */
-public class RexBiVisitorImpl<@Nullable R, P> implements RexBiVisitor<R, P> {
+
+// Every visitXxx returns null: this is the do-nothing traversal that subclasses override
+// where they care. It is meaningful only when R is instantiated nullable, and JSpecify
+// tracks upper bounds, so it cannot require that.
+@SuppressWarnings("NullAway")
+public class RexBiVisitorImpl<R extends @Nullable Object, P extends @Nullable Object>
+    implements RexBiVisitor<R, P> {
   //~ Instance fields --------------------------------------------------------
 
   protected final boolean deep;

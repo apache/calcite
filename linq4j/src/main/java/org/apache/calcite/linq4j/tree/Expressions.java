@@ -26,7 +26,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -2754,7 +2754,7 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * without a default case.
    */
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   public static SwitchStatement switch_(Expression switchValue,
       SwitchCase... cases) {
     return switch_(switchValue, null, null, toList(cases));
@@ -2764,7 +2764,7 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   public static SwitchStatement switch_(Expression switchValue,
       Expression defaultBody, SwitchCase... cases) {
     return switch_(switchValue, defaultBody, null, toList(cases));
@@ -3105,21 +3105,21 @@ public abstract class Expressions {
   /**
    * Creates an empty fluent list.
    */
-  public static <T> FluentList<T> list() {
+  public static <T extends @Nullable Object> FluentList<T> list() {
     return new FluentArrayList<>();
   }
 
   /**
    * Creates a fluent list with given elements.
    */
-  @SafeVarargs public static <T> FluentList<T> list(T... ts) {
+  @SafeVarargs public static <T extends @Nullable Object> FluentList<T> list(T... ts) {
     return new FluentArrayList<>(Arrays.asList(ts));
   }
 
   /**
    * Creates a fluent list with elements from the given collection.
    */
-  public static <T> FluentList<T> list(Iterable<T> ts) {
+  public static <T extends @Nullable Object> FluentList<T> list(Iterable<T> ts) {
     return new FluentArrayList<>(toList(ts));
   }
 
@@ -3262,7 +3262,7 @@ public abstract class Expressions {
     return expressions1;
   }
 
-  static <R> @Nullable R acceptNodes(@Nullable List<? extends Node> nodes,
+  static <R extends @Nullable Object> @Nullable R acceptNodes(@Nullable List<? extends Node> nodes,
       Visitor<R> visitor) {
     R r = null;
     if (nodes != null) {

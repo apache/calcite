@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.avatica.util.ByteString;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

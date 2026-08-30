@@ -26,7 +26,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlAbstractGroupFunction;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 /** Visitor that can find aggregate and windowed aggregate functions.
  *
  * @see AggFinder */
-abstract class AggVisitor extends SqlBasicVisitor<Void> {
+abstract class AggVisitor extends SqlBasicVisitor<@Nullable Void> {
   protected final SqlOperatorTable opTab;
   /** Whether to find windowed aggregates. */
   protected final boolean over;
@@ -69,7 +69,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     this.nameMatcher = requireNonNull(nameMatcher, "nameMatcher");
   }
 
-  @Override public Void visit(SqlCall call) {
+  @Override public @Nullable Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
     if (operator.isAggregator()

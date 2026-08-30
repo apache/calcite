@@ -18,4 +18,7 @@
 /**
  * Provides compilers for Java code.
  */
+@NullMarked
 package org.apache.calcite.util.javac;
+
+import org.jspecify.annotations.NullMarked;

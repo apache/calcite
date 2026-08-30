@@ -18,4 +18,7 @@
 /**
  * Provides utility classes.
  */
+@NullMarked
 package org.apache.calcite.adapter.clone;
+
+import org.jspecify.annotations.NullMarked;

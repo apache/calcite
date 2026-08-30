@@ -16,13 +16,16 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Function with one parameter.
  *
  * @param <R> Result type
  * @param <T0> Type of parameter 0
  */
-public interface Function1<T0, R> extends Function<R> {
+public interface Function1<T0 extends @Nullable Object, R extends @Nullable Object>
+    extends Function<R> {
   /**
    * The identity function.
    *

@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.redis;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +32,8 @@ import static java.util.Objects.requireNonNull;
 /**
  * Implementation of {@link RedisEnumerator}.
  */
-class RedisEnumerator implements Enumerator<Object[]> {
-  private final Enumerator<Object[]> enumerator;
+class RedisEnumerator implements Enumerator<@Nullable Object[]> {
+  private final Enumerator<@Nullable Object[]> enumerator;
 
   RedisEnumerator(RedisConfig redisConfig, RedisSchema schema, String tableName) {
     RedisTableFieldInfo tableFieldInfo = schema.getTableFieldInfo(tableName);
@@ -60,13 +62,14 @@ class RedisEnumerator implements Enumerator<Object[]> {
       fieldBuilder.put("key", "key");
     } else {
       for (LinkedHashMap<String, Object> field : tableFieldInfo.getFields()) {
-        fieldBuilder.put(field.get("name").toString(), field.get("type").toString());
+        fieldBuilder.put(requireNonNull(field.get("name"), "name").toString(),
+            requireNonNull(field.get("type"), "type").toString());
       }
     }
     return fieldBuilder;
   }
 
-  @Override public Object[] current() {
+  @Override public @Nullable Object[] current() {
     return enumerator.current();
   }
 

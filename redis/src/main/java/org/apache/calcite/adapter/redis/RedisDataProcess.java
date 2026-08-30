@@ -85,7 +85,7 @@ public class RedisDataProcess {
         if (obj == null) {
           arr[i] = "";
         } else {
-          arr[i] = jsonNode.findValue(fields.get(i).get("mapping").toString());
+          arr[i] = jsonNode.findValue(obj.toString());
         }
       }
     } catch (Exception e) {

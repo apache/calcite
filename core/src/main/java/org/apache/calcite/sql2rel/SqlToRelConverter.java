@@ -194,8 +194,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -1019,9 +1019,10 @@ public class SqlToRelConverter {
       bottomNames.add(rel.getRowType().getFieldNames().get(i));
     }
 
+    final Project bottomProject = castNonNull(project);
     bb.setRoot(
-        LogicalProject.create(castNonNull(project).getInput(), project.getHints(),
-            bottomExprs, bottomNames, project.getVariablesSet()), false);
+        LogicalProject.create(bottomProject.getInput(), bottomProject.getHints(),
+            bottomExprs, bottomNames, bottomProject.getVariablesSet()), false);
 
     final ImmutableBitSet aggGroupSet = ImmutableBitSet.range(groupSet.cardinality());
     bb.setRoot(
@@ -1044,7 +1045,7 @@ public class SqlToRelConverter {
       if (idx >= 0) {
         topExprs.add(rexBuilder.makeInputRef(aggregate, idx));
       } else {
-        topExprs.add(castNonNull(project).getProjects().get(i).accept(shuttle));
+        topExprs.add(bottomProject.getProjects().get(i).accept(shuttle));
       }
     }
     bb.setRoot(
@@ -4555,7 +4556,9 @@ public class SqlToRelConverter {
     final SqlValidatorNamespace targetNs = getNamespace(call);
     SqlValidatorNamespace namespace;
     if (targetNs.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
-      namespace = targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class);
+      namespace =
+          requireNonNull(targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class),
+              "DmlNamespace");
     } else {
       namespace = targetNs.resolve();
     }
@@ -4636,7 +4639,7 @@ public class SqlToRelConverter {
     }
 
     // sourceExps should not contain nulls (see the loop above)
-    @SuppressWarnings("assignment.type.incompatible")
+    @SuppressWarnings("NullAway")
     List<RexNode> nonNullExprs = sourceExps;
 
     return relBuilder.push(source)
@@ -4682,7 +4685,7 @@ public class SqlToRelConverter {
     return NullInitializerExpressionFactory.INSTANCE;
   }
 
-  private static <T extends Object> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
+  private static <T> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
     if (o instanceof Wrapper) {
       return ((Wrapper) o).unwrap(clazz);
     }
@@ -4934,17 +4937,6 @@ public class SqlToRelConverter {
     String pv = null;
     if (bb.isPatternVarRef && identifier.names.size() > 1) {
       pv = identifier.names.get(0);
-      // Unqualified, or qualified by a non pattern variable, means universal variable "*".
-      final SqlValidator validator = bb.getValidator();
-      final SqlNode original = validator instanceof SqlValidatorImpl
-          ? ((SqlValidatorImpl) validator).getOriginal(identifier) : identifier;
-      final boolean unqualified = original instanceof SqlIdentifier
-          && ((SqlIdentifier) original).names.size() == 1;
-      if (unqualified
-          || (bb.scope instanceof MatchRecognizeScope
-              && !((MatchRecognizeScope) bb.scope).getPatternVars().contains(pv))) {
-        pv = "*";
-      }
     }
 
     final @Nullable SqlNode measure = bb.lookupMeasure(identifier);
@@ -6750,13 +6742,13 @@ public class SqlToRelConverter {
   /**
    * Visitor that collects all aggregate functions in a {@link SqlNode} tree.
    */
-  private static class AggregateFinder extends SqlBasicVisitor<Void> {
+  private static class AggregateFinder extends SqlBasicVisitor<@Nullable Void> {
     final List<SqlNode> list = new ArrayList<>();
     final List<SqlNode> filterList = new ArrayList<>();
     final List<SqlNode> distinctList = new ArrayList<>();
     final List<SqlNode> orderList = new ArrayList<>();
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       // ignore window aggregates and ranking functions (associated with OVER operator)
       if (call.getOperator().getKind() == SqlKind.OVER) {
         return null;

@@ -49,9 +49,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -84,7 +82,6 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     final RelNode rel = optimize(rootRel);
     final CompilerImpl compiler =
         new Nodes.CoreCompiler(this, rootRel.getCluster());
-    @SuppressWarnings("method.invocation.invalid")
     Pair<RelNode, Map<RelNode, NodeInfo>> pair = compiler.visitRoot(rel);
     this.rootRel = pair.left;
     this.nodes = ImmutableMap.copyOf(pair.right);
@@ -299,7 +296,6 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     final ScalarCompiler scalarCompiler;
     private final ReflectiveVisitDispatcher<CompilerImpl, RelNode> dispatcher =
         ReflectUtil.createDispatcher(CompilerImpl.class, RelNode.class);
-    @NotOnlyInitialized
     protected final Interpreter interpreter;
     protected @Nullable RelNode rootRel;
     protected @Nullable RelNode rel;
@@ -311,7 +307,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     private static final String REWRITE_METHOD_NAME = "rewrite";
     private static final String VISIT_METHOD_NAME = "visit";
 
-    CompilerImpl(@UnknownInitialization Interpreter interpreter, RelOptCluster cluster) {
+    CompilerImpl(Interpreter interpreter, RelOptCluster cluster) {
       this.interpreter = interpreter;
       this.scalarCompiler = new JaninoRexCompiler(cluster.getRexBuilder());
     }

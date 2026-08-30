@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.HintStrategyTable;
@@ -29,16 +30,12 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -112,7 +109,7 @@ public class RelOptCluster {
 
   @Deprecated // to be removed before 2.0
   public RelOptQuery getQuery() {
-    return new RelOptQuery(castNonNull(planner), nextCorrel, mapCorrelToRel);
+    return new RelOptQuery(planner, nextCorrel, mapCorrelToRel);
   }
 
   @Deprecated // to be removed before 2.0
@@ -149,7 +146,6 @@ public class RelOptCluster {
   @EnsuresNonNull({"this.metadataProvider", "this.metadataFactory"})
   @SuppressWarnings("deprecation")
   public void setMetadataProvider(
-      @UnknownInitialization RelOptCluster this,
       RelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
     this.metadataFactory =
@@ -182,7 +178,6 @@ public class RelOptCluster {
    */
   @EnsuresNonNull("this.mqSupplier")
   public void setMetadataQuerySupplier(
-      @UnknownInitialization RelOptCluster this,
       Supplier<RelMetadataQuery> mqSupplier) {
     this.mqSupplier = mqSupplier;
   }
@@ -196,7 +191,7 @@ public class RelOptCluster {
    * method, then use {@link RelOptRuleCall#getMetadataQuery()} instead. */
   public RelMetadataQuery getMetadataQuery() {
     if (mq == null) {
-      mq = castNonNull(mqSupplier).get();
+      mq = mqSupplier.get();
     }
     return mq;
   }

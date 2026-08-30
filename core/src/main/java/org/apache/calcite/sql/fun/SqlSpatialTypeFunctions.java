@@ -35,7 +35,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.jts.geom.Geometry;
 
 import java.math.BigDecimal;
@@ -156,8 +156,9 @@ public class SqlSpatialTypeFunctions {
       if (geom != null && deltaX != null && deltaY != null) {
         if (deltaX.compareTo(BigDecimal.ZERO) > 0
             && deltaY.compareTo(BigDecimal.ZERO) > 0) {
-          return new SpatialTypeFunctions.GridEnumerable(geom.getEnvelopeInternal(), deltaX, deltaY,
-              point);
+          return new SpatialTypeFunctions.GridEnumerable(geom.getEnvelopeInternal(),
+              deltaX, deltaY, point)
+              .select(row -> row);
         }
       }
       return Linq4j.emptyEnumerable();

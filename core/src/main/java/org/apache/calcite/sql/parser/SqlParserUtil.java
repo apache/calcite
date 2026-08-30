@@ -57,7 +57,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.StringReader;
@@ -902,7 +902,7 @@ public final class SqlParserUtil {
    * example, if list contains <code>{A, B, C, D, E}</code> then <code>
    * replaceSublist(list, X, 1, 4)</code> returns <code>{A, X, E}</code>.
    */
-  public static <T> void replaceSublist(
+  public static <T extends @Nullable Object> void replaceSublist(
       List<T> list,
       int start,
       int end,
@@ -978,7 +978,7 @@ public final class SqlParserUtil {
     case CALL:
       final PrecedenceClimbingParser.Call call =
           (PrecedenceClimbingParser.Call) token;
-      final List<@Nullable SqlNode> list = new ArrayList<>();
+      final List<SqlNode> list = new ArrayList<>();
       for (PrecedenceClimbingParser.Token arg : call.args) {
         list.add(convert(arg));
       }

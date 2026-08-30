@@ -19,9 +19,7 @@ package org.apache.calcite.util.graph;
 import com.google.common.collect.Ordering;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 /**
  * Default implementation of {@link DirectedGraph}.
  *
@@ -45,10 +41,10 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     implements DirectedGraph<V, E> {
   final Set<E> edges = new LinkedHashSet<>();
   final Map<V, VertexInfo<V, E>> vertexMap = new LinkedHashMap<>();
-  final @NotOnlyInitialized EdgeFactory<V, E> edgeFactory;
+  final EdgeFactory<V, E> edgeFactory;
 
   /** Creates a graph. */
-  public DefaultDirectedGraph(@UnknownInitialization EdgeFactory<V, E> edgeFactory) {
+  public DefaultDirectedGraph(EdgeFactory<V, E> edgeFactory) {
     this.edgeFactory = edgeFactory;
   }
 
@@ -97,7 +93,6 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   @API(since = "1.26", status = API.Status.EXPERIMENTAL)
   protected final VertexInfo<V, E> getVertex(V vertex) {
-    @SuppressWarnings("argument.type.incompatible")
     final VertexInfo<V, E> info = vertexMap.get(vertex);
     if (info == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
@@ -162,9 +157,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return outRemoved;
   }
 
-  @SuppressWarnings("return.type.incompatible")
   @Override public Set<V> vertexSet() {
-    // Set<V extends @KeyFor("this.vertexMap") Object> -> Set<V>
     return vertexMap.keySet();
   }
 
@@ -194,7 +187,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
    * if {@code collection} is a small fraction of the set of vertices. */
   private void removeMinorityVertices(Collection<V> collection) {
     for (V v : collection) {
-      @SuppressWarnings("argument.type.incompatible") // nullable keys are supported by .get
+      @SuppressWarnings("NullAway") // nullable keys are supported by .get
       final VertexInfo<V, E> info = vertexMap.get(v);
       if (info == null) {
         continue;
@@ -225,8 +218,8 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   private void removeMajorityVertices(Set<V> vertexSet) {
     vertexMap.keySet().removeAll(vertexSet);
     for (VertexInfo<V, E> info : vertexMap.values()) {
-      info.outEdges.removeIf(e -> vertexSet.contains(castNonNull((V) e.target)));
-      info.inEdges.removeIf(e -> vertexSet.contains(castNonNull((V) e.source)));
+      info.outEdges.removeIf(e -> vertexSet.contains((V) e.target));
+      info.inEdges.removeIf(e -> vertexSet.contains((V) e.source));
     }
   }
 

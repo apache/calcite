@@ -30,7 +30,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,16 +44,15 @@ public class RedisTable extends AbstractTable
 
   final RedisSchema schema;
   final String tableName;
-  final RelProtoDataType protoRowType;
+  final @Nullable RelProtoDataType protoRowType;
   final ImmutableMap<String, Object> allFields;
   final String dataFormat;
   final RedisConfig redisConfig;
-  RedisEnumerator redisEnumerator;
 
   public RedisTable(
       RedisSchema schema,
       String tableName,
-      RelProtoDataType protoRowType,
+      @Nullable RelProtoDataType protoRowType,
       Map<String, Object> allFields,
       String dataFormat,
       RedisConfig redisConfig) {
@@ -86,7 +85,7 @@ public class RedisTable extends AbstractTable
       RedisSchema schema,
       String tableName,
       RedisConfig redisConfig,
-      RelProtoDataType protoRowType) {
+      @Nullable RelProtoDataType protoRowType) {
     RedisTableFieldInfo tableFieldInfo = schema.getTableFieldInfo(tableName);
     Map<String, Object> allFields = RedisEnumerator.deduceRowType(tableFieldInfo);
     return new RedisTable(schema, tableName, protoRowType,
@@ -97,7 +96,7 @@ public class RedisTable extends AbstractTable
       RedisSchema schema,
       String tableName,
       Map operand,
-      RelProtoDataType protoRowType) {
+      @Nullable RelProtoDataType protoRowType) {
     RedisConfig redisConfig =
         new RedisConfig(schema.host, schema.port,
             schema.database, schema.password);
@@ -105,8 +104,8 @@ public class RedisTable extends AbstractTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new RedisEnumerator(redisConfig, schema, tableName);
       }
     };

@@ -56,7 +56,7 @@ import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.TrinoSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;

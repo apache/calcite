@@ -19,7 +19,7 @@ package org.apache.calcite.rel;
 import org.apache.calcite.plan.Context;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 

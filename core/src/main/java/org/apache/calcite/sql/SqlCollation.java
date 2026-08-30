@@ -28,9 +28,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
@@ -165,7 +163,6 @@ public class SqlCollation implements Serializable {
   }
 
   protected String generateCollationName(
-      @UnderInitialization SqlCollation this,
       Charset charset) {
     return charset.name().toUpperCase(Locale.ROOT) + "$" + String.valueOf(locale) + "$" + strength;
   }
@@ -340,7 +337,6 @@ public class SqlCollation implements Serializable {
    * collation, or {@code null} if no specific {@link Collator} is needed, in
    * which case {@link String#compareTo} will be used.
    */
-  @Pure
   @JsonIgnore
   public @Nullable Collator getCollator() {
     return null;

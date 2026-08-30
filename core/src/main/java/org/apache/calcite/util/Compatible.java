@@ -47,7 +47,8 @@ public interface Compatible {
               // Use MethodHandles.privateLookupIn if it is available (JDK 9
               // and above)
               @SuppressWarnings("rawtypes")
-              final Class<?> clazz = (Class) requireNonNull(args[0], "args[0]");
+              final Class<?> clazz =
+                  (Class) requireNonNull(requireNonNull(args, "args")[0], "args[0]");
               try {
                 final Method privateLookupMethod =
                     MethodHandles.class.getMethod("privateLookupIn",

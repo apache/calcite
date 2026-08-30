@@ -20,7 +20,7 @@ import org.apache.calcite.util.SimpleNamespaceContext;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -182,7 +182,7 @@ public class XmlFunctions {
 
       final Node documentNode = getDocumentNode(xml);
       try {
-        List<String> result = new ArrayList<>();
+        List<@Nullable String> result = new ArrayList<>();
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(documentNode, XPathConstants.NODESET);
         for (int i = 0; i < nodes.getLength(); i++) {

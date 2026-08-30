@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function2;
 
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Map;
@@ -126,35 +128,35 @@ public abstract class Extensions {
       (v1, v2) -> v1 + v2;
 
   @SuppressWarnings("unchecked")
-  static final Function2<Comparable, Comparable, Comparable> COMPARABLE_MIN =
+  static final Function2<@Nullable Comparable, Comparable, Comparable> COMPARABLE_MIN =
       (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
   @SuppressWarnings("unchecked")
-  static final Function2<Comparable, Comparable, Comparable> COMPARABLE_MAX =
+  static final Function2<@Nullable Comparable, Comparable, Comparable> COMPARABLE_MAX =
       (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
-  static final Function2<Float, Float, Float> FLOAT_MIN =
+  static final Function2<@Nullable Float, Float, Float> FLOAT_MIN =
       (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
-  static final Function2<Float, Float, Float> FLOAT_MAX =
+  static final Function2<@Nullable Float, Float, Float> FLOAT_MAX =
       (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
-  static final Function2<Double, Double, Double> DOUBLE_MIN =
+  static final Function2<@Nullable Double, Double, Double> DOUBLE_MIN =
       (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
-  static final Function2<Double, Double, Double> DOUBLE_MAX =
+  static final Function2<@Nullable Double, Double, Double> DOUBLE_MAX =
       (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
-  static final Function2<Integer, Integer, Integer> INTEGER_MIN =
+  static final Function2<@Nullable Integer, Integer, Integer> INTEGER_MIN =
       (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
-  static final Function2<Integer, Integer, Integer> INTEGER_MAX =
+  static final Function2<@Nullable Integer, Integer, Integer> INTEGER_MAX =
       (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
-  static final Function2<Long, Long, Long> LONG_MIN =
+  static final Function2<@Nullable Long, Long, Long> LONG_MIN =
       (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
-  static final Function2<Long, Long, Long> LONG_MAX =
+  static final Function2<@Nullable Long, Long, Long> LONG_MAX =
       (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
   // flags a piece of code we're yet to implement

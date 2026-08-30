@@ -14,10 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.sql;
+package org.apache.calcite.linq4j.annotations;
 
-import org.checkerframework.checker.nullness.qual.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-interface DatabaseMetaData {
-  ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern);
+/**
+ * States that a field starts as null and is never assigned null again once it holds a value.
+ *
+ * <p>The field is exempt from the constructor's initialization check, and a null check on it holds
+ * across an intervening method call. Every read still needs that check: the field is null until
+ * something assigns it.
+ */
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target({ElementType.FIELD, ElementType.TYPE_USE})
+public @interface MonotonicNonNull {
 }

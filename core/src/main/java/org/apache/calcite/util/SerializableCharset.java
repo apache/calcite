@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.apache.calcite.linq4j.annotations.Contract;
+
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -69,7 +71,7 @@ public class SerializableCharset implements Serializable {
   @SuppressWarnings("JdkObsolete")
   private void readObject(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
-    charsetName = (String) in.readObject();
+    charsetName = requireNonNull((String) in.readObject(), "charsetName");
     charset =
         requireNonNull(Charset.availableCharsets().get(this.charsetName),
             () -> "charset is not found: " + charsetName);
@@ -91,7 +93,8 @@ public class SerializableCharset implements Serializable {
    * @param charset Character set to wrap, or null
    * @return Wrapped charset
    */
-  public static @PolyNull SerializableCharset forCharset(@PolyNull Charset charset) {
+  @Contract("!null -> !null")
+  public static @Nullable SerializableCharset forCharset(@Nullable Charset charset) {
     if (charset == null) {
       return null;
     }

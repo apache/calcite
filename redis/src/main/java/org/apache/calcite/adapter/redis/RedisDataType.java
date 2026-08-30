@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.redis;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * All available data type for Redis.
  */
@@ -74,7 +76,7 @@ public enum RedisDataType {
     this.typeName = typeName;
   }
 
-  public static RedisDataType fromTypeName(String typeName) {
+  public static @Nullable RedisDataType fromTypeName(String typeName) {
     for (RedisDataType type : RedisDataType.values()) {
       if (type.getTypeName().equals(typeName)) {
         return type;

@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -61,7 +61,7 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) throws InvalidRelException  {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
 
@@ -107,14 +107,14 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       RelNode input,
       boolean indicator,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) throws InvalidRelException {
     this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     try {
       return new ElasticsearchAggregate(getCluster(), traitSet, input,
@@ -155,7 +155,8 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
         field.put("size", 1);
       }
 
-      implementor.addAggregation(aggCall.getName(), aggregation.toString());
+      implementor.addAggregation(
+          requireNonNull(aggCall.getName(), "aggCall name"), aggregation.toString());
     }
   }
 

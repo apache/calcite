@@ -25,8 +25,6 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,8 +39,7 @@ import static java.util.Objects.requireNonNull;
 class LatticeSpace {
   final SqlStatisticProvider statisticProvider;
   private final Map<List<String>, LatticeTable> tableMap = new HashMap<>();
-  @SuppressWarnings("assignment.type.incompatible")
-  final @NotOnlyInitialized AttributedDirectedGraph<LatticeTable, Step> g =
+  final AttributedDirectedGraph<LatticeTable, Step> g =
       new AttributedDirectedGraph<>(new Step.Factory(this));
   private final Map<List<String>, String> simpleTableNames = new HashMap<>();
   private final Set<String> simpleNames = new HashSet<>();

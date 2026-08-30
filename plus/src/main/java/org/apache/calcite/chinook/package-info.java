@@ -18,4 +18,7 @@
 /**
  * End to end tests.
  */
+@NullMarked
 package org.apache.calcite.chinook;
+
+import org.jspecify.annotations.NullMarked;

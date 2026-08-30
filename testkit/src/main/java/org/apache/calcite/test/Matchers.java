@@ -55,6 +55,8 @@ import java.util.stream.StreamSupport;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
@@ -208,7 +210,8 @@ public class Matchers {
    * @see Util#toLinux(String)
    */
   public static Matcher<String> isLinux(final String value) {
-    return compose(Is.is(value), input -> input == null ? null : Util.toLinux(input));
+    return compose(Is.is(value),
+        input -> input == null ? castNonNull(null) : Util.toLinux(input));
   }
 
   /** Matcher that matches a {@link RelNode} if the {@code RelNode} is valid

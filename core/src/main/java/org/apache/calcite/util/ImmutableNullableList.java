@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @param <E> Element type
  */
-public class ImmutableNullableList<E> extends AbstractList<E> {
+public class ImmutableNullableList<E extends @Nullable Object> extends AbstractList<E> {
   private static final List SINGLETON_NULL = Collections.singletonList(null);
 
   private final E[] elements;
@@ -54,7 +54,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * {@link com.google.common.collect.ImmutableList#copyOf(java.util.Collection)}
    * except that this list allows nulls.
    */
-  public static <E> List<E> copyOf(Collection<? extends E> elements) {
+  public static <E extends @Nullable Object> List<E> copyOf(Collection<? extends E> elements) {
     if (elements instanceof ImmutableNullableList
         || elements instanceof ImmutableList
         || elements == SINGLETON_NULL) {
@@ -67,7 +67,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     // If there are no nulls, ImmutableList is better.
     for (E object : elements) {
       if (object == null) {
-        final Object[] objects = elements.toArray();
+        final @Nullable Object[] objects = elements.toArray();
         //noinspection unchecked
         return new ImmutableNullableList<>((E[]) objects);
       }
@@ -82,7 +82,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * {@link com.google.common.collect.ImmutableList#copyOf(Iterable)}
    * except that this list allows nulls.
    */
-  public static <E> List<E> copyOf(Iterable<? extends E> elements) {
+  public static <E extends @Nullable Object> List<E> copyOf(Iterable<? extends E> elements) {
     if (elements instanceof ImmutableNullableList
         || elements instanceof ImmutableList
         || elements == SINGLETON_NULL) {
@@ -109,7 +109,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * {@link com.google.common.collect.ImmutableList#copyOf(Object[])}
    * except that this list allows nulls.
    */
-  public static <E> List<E> copyOf(E[] elements) {
+  public static <E extends @Nullable Object> List<E> copyOf(E[] elements) {
     // Check for nulls.
     for (E object : elements) {
       if (object == null) {
@@ -122,55 +122,56 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
   }
 
   /** Creates an immutable list of 1 element. */
-  public static <E> List<E> of(@Nullable E e1) {
+  public static <E extends @Nullable Object> List<E> of(@Nullable E e1) {
     //noinspection unchecked
     return e1 == null ? (List<E>) SINGLETON_NULL : ImmutableList.of(e1);
   }
 
   /** Creates an immutable list of 2 elements. */
-  public static <E> List<E> of(E e1, E e2) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2);
   }
 
   /** Creates an immutable list of 3 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3);
   }
 
   /** Creates an immutable list of 4 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4);
   }
 
   /** Creates an immutable list of 5 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4, E e5) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4, e5);
   }
 
   /** Creates an immutable list of 6 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4, e5, e6);
   }
 
   /** Creates an immutable list of 7 elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7) {
+  public static <E extends @Nullable Object> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
     return UnmodifiableArrayList.of(e1, e2, e3, e4, e5, e6, e7);
   }
 
   /** Creates an immutable list of 8 or more elements. */
-  public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7, E e8,
+  public static <E extends @Nullable Object>
+      List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7, E e8,
       E... others) {
     @SuppressWarnings("unchecked")
     E[] array = (E[]) new Object[8 + others.length];
@@ -198,7 +199,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * Returns a new builder. The generated builder is equivalent to the builder
    * created by the {@link Builder} constructor.
    */
-  public static <E> Builder<E> builder() {
+  public static <E extends @Nullable Object> Builder<E> builder() {
     return new Builder<>();
   }
 
@@ -207,7 +208,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    *
    * @param <E> element type
    */
-  public static final class Builder<E> {
+  public static final class Builder<E extends @Nullable Object> {
     private final List<E> contents = new ArrayList<>();
 
     /**

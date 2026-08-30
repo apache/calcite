@@ -26,8 +26,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 import java.util.TimeZone;
 
@@ -53,7 +53,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
     }
 
     final SqlTypeName fromType = operand.getType().getSqlTypeName();
-    String fromTypeString = dateTimeFormatString(fromType);
+    @Nullable String fromTypeString = dateTimeFormatString(fromType);
     final SqlTypeName toType = rexNode.getType().getSqlTypeName();
     final String timeZoneConf = druidQuery.getConnectionConfig().timeZone();
     final TimeZone timeZone = TimeZone.getTimeZone(timeZoneConf);
@@ -136,7 +136,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
   private static String castCharToDateTime(
       TimeZone timeZone,
       String operand,
-      final SqlTypeName toType, String format) {
+      final SqlTypeName toType, @Nullable String format) {
     // Cast strings to date times by parsing them from SQL format.
     final String timestampExpression =
         DruidExpressions.functionCall("timestamp_parse",

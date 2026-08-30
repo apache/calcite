@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.JoinType;
-import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -65,7 +64,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -293,9 +292,8 @@ public class EnumUtils {
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
       // Delegate copying the row values to JavaRowFormat
       final List<Statement> copyStatements =
-          Nullness.castNonNull(
-              inputPhysType.getFormat().copy(parameter, Nullness.castNonNull(compactOutputVar),
-                  outputField, fieldCount));
+          inputPhysType.getFormat().copy(parameter, compactOutputVar,
+              outputField, fieldCount);
       if (joinType.generatesNullsOn(ord.i)) {
         // [CALCITE-6593] NPE when outer joining tables with many fields and unmatching rows
         compactCode.add(
@@ -309,7 +307,7 @@ public class EnumUtils {
       outputField += fieldCount;
     }
 
-    compactCode.add(Nullness.castNonNull(compactOutputVar));
+    compactCode.add(compactOutputVar);
     return Expressions.lambda(
         Function2.class,
         compactCode.toBlock(),
@@ -1223,7 +1221,7 @@ public class EnumUtils {
         }
         // A key column index of -1 means that there is no key; every element
         // then maps to the same (null) key, forming one session timeline.
-        Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
+        @Nullable Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
         Object watermark =
             requireNonNull(element[indexOfWatermarkedColumn],
                 "element[indexOfWatermarkedColumn]");
@@ -1415,7 +1413,7 @@ public class EnumUtils {
   /**
    * Apply tumbling per row from the enumerable input.
    */
-  public static <TSource, TResult> Enumerable<TResult> tumbling(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> tumbling(
       Enumerable<TSource> inputEnumerable,
       Function1<TSource, TResult> outSelector) {
     return new AbstractEnumerable<TResult>() {

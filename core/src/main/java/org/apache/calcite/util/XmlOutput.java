@@ -18,7 +18,7 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -581,7 +581,7 @@ public class XmlOutput {
      * Call this before attempting to escape strings; after this,
      * defineEscape may not be called again.
      */
-    @SuppressWarnings("assignment.type.incompatible")
+    @SuppressWarnings("NullAway")
     public void makeImmutable() {
       translationTable =
           requireNonNull(translationVector, "translationVector").toArray(new String[0]);

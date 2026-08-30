@@ -36,7 +36,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -685,7 +685,7 @@ public abstract class QueryableDefaults {
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
    * Java type erasure.
    */
-  public static <TResult> Queryable<TResult> ofType(Queryable<?> queryable,
+  public static <TResult extends @Nullable Object> Queryable<TResult> ofType(Queryable<?> queryable,
       Class<TResult> clazz) {
     throw Extensions.todo();
   }

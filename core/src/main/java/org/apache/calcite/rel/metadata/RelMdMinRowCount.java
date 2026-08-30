@@ -37,7 +37,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static org.apache.calcite.rel.metadata.RelMdUtil.literalValueApproximatedByDouble;
 

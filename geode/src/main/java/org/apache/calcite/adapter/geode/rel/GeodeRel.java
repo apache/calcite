@@ -20,6 +20,8 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,10 +63,14 @@ public interface GeodeRel extends RelNode {
 
     final Map<String, String> oqlAggregateFunctions = new LinkedHashMap<>();
 
-    Long limitValue;
+    @Nullable Long limitValue;
 
+    /** Set by {@code GeodeTableScan.implement} before anything reads it. */
+    @SuppressWarnings("NullAway.Init")
     RelOptTable table;
 
+    /** Set by {@code GeodeTableScan.implement} before anything reads it. */
+    @SuppressWarnings("NullAway.Init")
     GeodeTable geodeTable;
 
     /**

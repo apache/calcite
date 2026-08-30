@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 
@@ -107,13 +107,14 @@ public abstract class RexNode {
    * <p>Also see {@link RexUtil#apply(RexVisitor, java.util.List, RexNode)},
    * which applies a visitor to several expressions simultaneously.
    */
-  public abstract <R> R accept(RexVisitor<R> visitor);
+  public abstract <R extends @Nullable Object> R accept(RexVisitor<R> visitor);
 
   /**
    * Accepts a visitor with a payload, dispatching to the right overloaded
    * {@link RexBiVisitor#visitInputRef(RexInputRef, Object)} visitXxx} method.
    */
-  public abstract <R, P> R accept(RexBiVisitor<R, P> visitor, P arg);
+  public abstract <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg);
 
   /** {@inheritDoc}
    *

@@ -24,4 +24,7 @@
  * <p>The advisor uses the validation and parser framework set up in
  * <code>org.apache.calcite.sql.validate</code> package.
 */
+@NullMarked
 package org.apache.calcite.sql.advise;
+
+import org.jspecify.annotations.NullMarked;

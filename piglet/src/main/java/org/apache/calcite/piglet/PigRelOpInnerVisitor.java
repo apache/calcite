@@ -41,6 +41,8 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -141,7 +143,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
       List<String> flattenOutputAliases) throws FrontendException {
     final List<LogicalExpressionPlan> pigProjections = gen.getOutputPlans();
     final List<RexNode> innerCols = new ArrayList<>(); // For projection expressions
-    final List<String> fieldAlias = new ArrayList<>(); // For projection names/alias
+    final List<@Nullable String> fieldAlias = new ArrayList<>(); // For projection names/alias
 
     if (gen.getOutputPlanSchemas() == null) {
       throw new IllegalArgumentException(
@@ -189,7 +191,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
         }
       } else {
         innerCols.add(rexNode);
-        String alias = null;
+        @Nullable String alias = null;
         if (outputFieldSchema.size() == 1) {
           // If simple type, take user alias if available
           alias = outputFieldSchema.getField(0).alias;

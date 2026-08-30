@@ -37,7 +37,7 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -91,7 +91,6 @@ public abstract class Correlate extends BiRel implements Hintable {
    * @param requiredColumns Set of columns that are used by correlation
    * @param joinType Join type
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Correlate(
       RelOptCluster cluster,
       RelTraitSet traitSet,

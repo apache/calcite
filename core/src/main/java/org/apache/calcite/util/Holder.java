@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.function.UnaryOperator;
 
@@ -29,7 +29,7 @@ import java.util.function.UnaryOperator;
  *
  * @param <E> Element type
  */
-public class Holder<E> {
+public class Holder<E extends @Nullable Object> {
   private E e;
 
   /** Creates a Holder containing a given value.

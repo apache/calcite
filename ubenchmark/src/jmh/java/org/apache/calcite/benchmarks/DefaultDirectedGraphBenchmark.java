@@ -22,6 +22,7 @@ import org.apache.calcite.util.graph.DirectedGraph;
 
 import com.google.common.collect.Lists;
 
+import org.jspecify.annotations.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -53,7 +54,7 @@ public class DefaultDirectedGraphBenchmark {
       this.id = id;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof Node
           && ((Node) o).id == id;
@@ -68,6 +69,7 @@ public class DefaultDirectedGraphBenchmark {
    * State object for the benchmarks.
    */
   @State(Scope.Benchmark)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class GraphState {
 
     static final int NUM_LAYERS = 8;
@@ -182,14 +184,14 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public DefaultEdge addEdgeBenchmark(GraphState state) {
+  public @Nullable DefaultEdge addEdgeBenchmark(GraphState state) {
     return state.graph.addEdge(state.nodes.get(0), state.nodes.get(5));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public DefaultEdge getEdgeBenchmark(GraphState state) {
+  public @Nullable DefaultEdge getEdgeBenchmark(GraphState state) {
     return state.graph.getEdge(state.nodes.get(0), state.nodes.get(1));
   }
 

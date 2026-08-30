@@ -32,7 +32,7 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,7 +125,8 @@ public final class LogicalAsofJoin extends AsofJoin {
       return true;
     }
     return deepEquals0(obj)
-        && matchCondition.equals(((LogicalAsofJoin) obj).matchCondition)
+        && matchCondition.equals(
+            ((LogicalAsofJoin) requireNonNull(obj, "obj")).matchCondition)
         && systemFieldList.equals(((LogicalAsofJoin) obj).systemFieldList);
   }
 

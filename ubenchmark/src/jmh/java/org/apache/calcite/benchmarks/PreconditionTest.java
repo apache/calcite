@@ -34,6 +34,7 @@ import static com.google.common.base.Preconditions.checkState;
  */
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Benchmark)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class PreconditionTest {
   boolean fire = true;
   String param = "world";

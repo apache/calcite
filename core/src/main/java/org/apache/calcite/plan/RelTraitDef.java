@@ -22,7 +22,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of

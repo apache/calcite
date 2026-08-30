@@ -124,8 +124,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -811,10 +810,6 @@ public abstract class SqlImplementor {
         String pv = ref.getAlpha();
         SqlNode refNode = field(ref.getIndex());
         final SqlIdentifier id = (SqlIdentifier) refNode;
-        if ("*".equals(pv)) {
-          // The universal variable "*" is not a valid qualifier; emit the plain column reference.
-          return refNode;
-        }
         if (id.names.size() > 1) {
           return id.setName(0, pv);
         } else {
@@ -1320,7 +1315,8 @@ public abstract class SqlImplementor {
         if (rexWindowBound.isUnbounded()) {
           return SqlWindow.createUnboundedPreceding(POS);
         } else {
-          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          SqlNode literal =
+              toSql(null, requireNonNull(rexWindowBound.getOffset(), "offset"));
           return SqlWindow.createPreceding(literal, POS);
         }
       }
@@ -1328,7 +1324,8 @@ public abstract class SqlImplementor {
         if (rexWindowBound.isUnbounded()) {
           return SqlWindow.createUnboundedFollowing(POS);
         } else {
-          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          SqlNode literal =
+              toSql(null, requireNonNull(rexWindowBound.getOffset(), "offset"));
           return SqlWindow.createFollowing(literal, POS);
         }
       }
@@ -1740,7 +1737,7 @@ public abstract class SqlImplementor {
         if (!defaultCharset.equals(charsetName)) {
           // Set the charset only if it is not the same as the default charset
           return SqlLiteral.createCharString(
-              castNonNull(value).getValue(), charsetName, POS);
+              value.getValue(), charsetName, POS);
         }
       }
       // Create a string without specifying a charset
@@ -2309,7 +2306,6 @@ public abstract class SqlImplementor {
 
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(
-        @UnknownInitialization Result this,
         RelNode rel, List<Clause> clauses,
         Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
@@ -2419,8 +2415,7 @@ public abstract class SqlImplementor {
      * Returns whether any grouping key of {@code aggregate} is represented by
      * a literal expression in this result's {@code SELECT} list.
      */
-    private boolean hasGroupByLiteral(
-        @UnknownInitialization Result this, Aggregate aggregate) {
+    private boolean hasGroupByLiteral(Aggregate aggregate) {
       if (!(node instanceof SqlSelect)) {
         return false;
       }
@@ -2449,7 +2444,7 @@ public abstract class SqlImplementor {
      *
      * @param sqlNode SqlNode to check
      */
-    private boolean hasSortByOrdinal(@UnknownInitialization Result this,
+    private boolean hasSortByOrdinal(
                                      @Nullable SqlNode sqlNode) {
       if (sqlNode == null) {
         return false;
@@ -2477,14 +2472,14 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean containsOver(@UnknownInitialization Result this,
+    private boolean containsOver(
         @Nullable SqlNode node) {
       if (node == null) {
         return false;
       }
       final boolean[] result = {false};
-      node.accept(new SqlBasicVisitor<Void>() {
-        @Override public Void visit(SqlCall call) {
+      node.accept(new SqlBasicVisitor<@Nullable Void>() {
+        @Override public @Nullable Void visit(SqlCall call) {
           if (result[0]) {
             return null;
           }
@@ -2510,7 +2505,6 @@ public abstract class SqlImplementor {
      * @param operandPredicate Predicate for the nested operands
      * @return whether any nested operands matches the predicate */
     private boolean hasNested(
-        @UnknownInitialization Result this,
         Aggregate aggregate,
         Predicate<SqlNode> operandPredicate) {
       final boolean[] result = {false};

@@ -26,8 +26,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -105,7 +105,7 @@ public class RelDotWriter extends RelWriterImpl {
     sb.setLength(0);
 
     if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
-      for (Pair<String, @Nullable Object> value : values) {
+      for (Pair<String, Object> value : values) {
         if (value.right instanceof RelNode) {
           continue;
         }

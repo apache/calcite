@@ -21,7 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -104,7 +104,7 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
   @Override public void makeNullable() {
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     } else {

@@ -36,7 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -165,7 +165,7 @@ public final class LogicalFilter extends Filter {
 
   @Override public boolean deepEquals(@Nullable Object obj) {
     return deepEquals0(obj)
-        && variablesSet.equals(((LogicalFilter) obj).variablesSet);
+        && variablesSet.equals(((LogicalFilter) requireNonNull(obj, "obj")).variablesSet);
   }
 
   @Override public int deepHashCode() {

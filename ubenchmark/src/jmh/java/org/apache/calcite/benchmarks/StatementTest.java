@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.jspecify.annotations.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -39,6 +40,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Compares {@link java.sql.Statement} vs {@link java.sql.PreparedStatement}.
@@ -66,6 +69,7 @@ public class StatementTest {
    */
   @State(Scope.Thread)
   @BenchmarkMode(Mode.AverageTime)
+  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class HrConnection {
     final Connection con;
     int id;
@@ -124,7 +128,7 @@ public class StatementTest {
   }
 
   @Benchmark
-  public String prepareBindExecute(HrConnection state) throws SQLException {
+  public @Nullable String prepareBindExecute(HrConnection state) throws SQLException {
     Connection con = state.con;
     Statement st = null;
     ResultSet rs = null;
@@ -144,7 +148,7 @@ public class StatementTest {
   }
 
   @Benchmark
-  public String bindExecute(HrPreparedStatement state)
+  public @Nullable String bindExecute(HrPreparedStatement state)
       throws SQLException {
     PreparedStatement st = state.ps;
     ResultSet rs = null;
@@ -161,7 +165,7 @@ public class StatementTest {
   }
 
   @Benchmark
-  public String executeQuery(HrConnection state) throws SQLException {
+  public @Nullable String executeQuery(HrConnection state) throws SQLException {
     Connection con = state.con;
     Statement st = null;
     ResultSet rs = null;
@@ -178,7 +182,7 @@ public class StatementTest {
   }
 
   @Benchmark
-  public String forEach(HrConnection state) {
+  public @Nullable String forEach(HrConnection state) {
     final Employee[] emps = state.hr.emps;
     for (Employee emp : emps) {
       if (emp.empid == state.id) {
@@ -188,7 +192,7 @@ public class StatementTest {
     return null;
   }
 
-  private static void close(ResultSet rs, Statement st) {
+  private static void close(@Nullable ResultSet rs, @Nullable Statement st) {
     if (rs != null) {
       try {
         rs.close();
@@ -214,7 +218,7 @@ public class StatementTest {
     public final Employee[] emps = {
         new Employee(100, 10, "Bill", 10000, 1000),
         new Employee(200, 20, "Eric", 8000, 500),
-        new Employee(150, 10, "Sebastian", 7000, null),
+        new Employee(150, 10, "Sebastian", 7000, castNonNull(null)),
         new Employee(110, 10, "Theodore", 11500, 250),
     };
     public final Department[] depts = {

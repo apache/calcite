@@ -24,7 +24,7 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -136,27 +136,27 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     ((List<SqlNode>) list).forEach(action);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public Iterator</*Nullable*/ SqlNode> iterator() {
     return list.iterator();
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public ListIterator</*Nullable*/ SqlNode> listIterator() {
     return list.listIterator();
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public ListIterator</*Nullable*/ SqlNode> listIterator(int index) {
     return list.listIterator(index);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public List</*Nullable*/ SqlNode> subList(int fromIndex, int toIndex) {
     return list.subList(fromIndex, toIndex);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public /*Nullable*/ SqlNode get(int n) {
     return list.get(n);
   }
@@ -181,15 +181,15 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return list.lastIndexOf(o);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public Object[] toArray() {
     // Per JDK specification, must return an Object[] not SqlNode[]; see e.g.
     // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=6260652
     return list.toArray();
   }
 
-  @SuppressWarnings("return.type.incompatible")
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @SuppressWarnings("NullAway")
+  @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
     return list.toArray(a);
   }
 
@@ -269,7 +269,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     }
   }
 
-  @Override public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -51,8 +51,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -501,7 +500,7 @@ public class RelMdExpressionLineage
   private static Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
       RexNode expr, ImmutableBitSet predFieldsUsed, Map<RexInputRef, Set<RexNode>> mapping,
       Map<RexInputRef, RexNode> singleMapping) {
-    final @KeyFor("mapping") RexInputRef inputRef = mapping.keySet().iterator().next();
+    final RexInputRef inputRef = mapping.keySet().iterator().next();
     final Set<RexNode> replacements =
         requireNonNull(mapping.remove(inputRef),
             () -> "mapping.remove(inputRef) is null for " + inputRef);

@@ -34,7 +34,6 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    *
    * @param block root code block
    */
-  @SuppressWarnings("method.invocation.invalid")
   public NestedBlockBuilderImpl(BlockBuilder block) {
     nestBlock(block);
   }

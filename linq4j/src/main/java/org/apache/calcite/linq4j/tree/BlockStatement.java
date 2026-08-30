@@ -16,8 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.HashSet;
@@ -43,7 +42,6 @@ public class BlockStatement extends Statement {
   }
 
   private boolean distinctVariables(
-      @UnderInitialization(BlockStatement.class) BlockStatement this,
       boolean fail) {
     Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
@@ -65,7 +63,7 @@ public class BlockStatement extends Statement {
     return shuttle.visit(this, newStatements);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

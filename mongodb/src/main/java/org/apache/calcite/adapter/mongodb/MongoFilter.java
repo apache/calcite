@@ -40,13 +40,15 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -65,7 +67,7 @@ public class MongoFilter extends Filter implements MongoRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    return requireNonNull(super.computeSelfCost(planner, mq)).multiplyBy(0.1);
   }
 
   @Override public MongoFilter copy(RelTraitSet traitSet, RelNode input,
@@ -94,16 +96,16 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     private String translateMatch(RexNode condition) {
-      Map<String, Object> map = builder.map();
+      Map<String, @Nullable Object> map = builder.map();
       map.put("$match", translateOr(condition));
       return builder.toJsonString(map);
     }
 
-    private Map<String, Object> translateOr(RexNode condition) {
+    private Map<String, @Nullable Object> translateOr(RexNode condition) {
       final RexNode condition2 =
           RexUtil.expandSearch(rexBuilder, null, condition);
 
-      List<Map<String, Object>> list = new ArrayList<>();
+      List<Map<String, @Nullable Object>> list = new ArrayList<>();
       for (RexNode node : RelOptUtil.disjunctions(condition2)) {
         list.add(translateAnd(node));
       }
@@ -111,7 +113,7 @@ public class MongoFilter extends Filter implements MongoRel {
       case 1:
         return list.get(0);
       default:
-        Map<String, Object> map = builder.map();
+        Map<String, @Nullable Object> map = builder.map();
         map.put("$or", list);
         return map;
       }
@@ -119,34 +121,34 @@ public class MongoFilter extends Filter implements MongoRel {
 
     /** Translates a condition that may be an AND of other conditions. Gathers
      * together conditions that apply to the same field. */
-    private Map<String, Object> translateAnd(RexNode node0) {
+    private Map<String, @Nullable Object> translateAnd(RexNode node0) {
       final Multimap<String, Pair<String, RexLiteral>> multimap =
           HashMultimap.create();
       final Map<String, RexLiteral> eqMap =
           new LinkedHashMap<>();
-      final List<Map<String, Object>> orMapList = new ArrayList<>();
+      final List<Map<String, @Nullable Object>> orMapList = new ArrayList<>();
       for (RexNode node : RelOptUtil.conjunctions(node0)) {
         translateMatch2(node, orMapList, multimap, eqMap);
       }
-      Map<String, Object> map = builder.map();
+      Map<String, @Nullable Object> map = builder.map();
       for (Map.Entry<String, RexLiteral> entry : eqMap.entrySet()) {
         multimap.removeAll(entry.getKey());
         map.put(entry.getKey(), literalValue(entry.getValue()));
       }
       for (Map.Entry<String, Collection<Pair<String, RexLiteral>>> entry
           : multimap.asMap().entrySet()) {
-        Map<String, Object> map2 = builder.map();
+        Map<String, @Nullable Object> map2 = builder.map();
         for (Pair<String, RexLiteral> s : entry.getValue()) {
           String op = s.left;
           if ("$ne".equals(op))  {
             if (map2.containsKey("$nin")) {
               map2.computeIfPresent("$nin", (k, v) -> {
-                ((List<Object>) v).add(literalValue(s.right));
+                ((List<@Nullable Object>) v).add(literalValue(s.right));
                 return v;
               });
             } else if (map2.containsKey(op)) {
               // if two $ne conditions, translate to $nin op
-              List<Object> ninList = builder.list();
+              List<@Nullable Object> ninList = builder.list();
               ninList.add(map2.remove(op));
               ninList.add(literalValue(s.right));
               map2.put("$nin", ninList);
@@ -161,7 +163,7 @@ public class MongoFilter extends Filter implements MongoRel {
         map.put(entry.getKey(), map2);
       }
       if (!orMapList.isEmpty()) {
-        Map<String, Object> andMap = builder.map();
+        Map<String, @Nullable Object> andMap = builder.map();
         if (!map.isEmpty()) {
           orMapList.add(map);
         }
@@ -171,7 +173,8 @@ public class MongoFilter extends Filter implements MongoRel {
       return map;
     }
 
-    private static void addPredicate(Map<String, Object> map, String op, Object v) {
+    private static void addPredicate(Map<String, @Nullable Object> map, String op,
+        @Nullable Object v) {
       if (map.containsKey(op) && stronger(op, map.get(op), v)) {
         return;
       }
@@ -184,7 +187,7 @@ public class MongoFilter extends Filter implements MongoRel {
      * <p>For example, {@code stronger("$lt", 100, 200)} returns true, because
      * "&lt; 100" is a more powerful condition than "&lt; 200".
      */
-    private static boolean stronger(String key, Object v0, Object v1) {
+    private static boolean stronger(String key, @Nullable Object v0, @Nullable Object v1) {
       if (key.equals("$lt") || key.equals("$lte")) {
         if (v0 instanceof Number && v1 instanceof Number) {
           return ((Number) v0).doubleValue() < ((Number) v1).doubleValue();
@@ -199,11 +202,11 @@ public class MongoFilter extends Filter implements MongoRel {
       return false;
     }
 
-    private static Object literalValue(RexLiteral literal) {
+    private static @Nullable Object literalValue(RexLiteral literal) {
       return literal.getValue2();
     }
 
-    private Void translateMatch2(RexNode node, List<Map<String, Object>> orMapList,
+    private Void translateMatch2(RexNode node, List<Map<String, @Nullable Object>> orMapList,
         Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       switch (node.getKind()) {
       case EQUALS:
@@ -233,15 +236,15 @@ public class MongoFilter extends Filter implements MongoRel {
       }
     }
 
-    private Void translateOrAddToList(RexNode node, List<Map<String, Object>> orMapList) {
-      Map<String, Object> or = translateOr(node);
+    private Void translateOrAddToList(RexNode node, List<Map<String, @Nullable Object>> orMapList) {
+      Map<String, @Nullable Object> or = translateOr(node);
       orMapList.add(or);
       return null;
     }
 
     /** Translates a call to a binary operator, reversing arguments if
      * necessary. */
-    private Void translateBinary(String op, String rop, RexCall call,
+    private @Nullable Void translateBinary(@Nullable String op, @Nullable String rop, RexCall call,
         Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       final RexNode left = call.operands.get(0);
       final RexNode right = call.operands.get(1);
@@ -257,7 +260,7 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     /** Translates a call to a binary operator. Returns whether successful. */
-    private boolean translateBinary2(String op, RexNode left, RexNode right,
+    private boolean translateBinary2(@Nullable String op, RexNode left, RexNode right,
         Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       switch (right.getKind()) {
       case LITERAL:
@@ -286,7 +289,7 @@ public class MongoFilter extends Filter implements MongoRel {
       }
     }
 
-    private static void translateOp2(String op, String name, RexLiteral right,
+    private static void translateOp2(@Nullable String op, String name, RexLiteral right,
         Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       if (op == null) {
         // E.g.: {deptno: 100}
@@ -320,7 +323,8 @@ public class MongoFilter extends Filter implements MongoRel {
         throw new AssertionError("cannot translate LIKE with non-literal pattern: " + call);
       }
       final RexLiteral patternLiteral = (RexLiteral) right;
-      final String sqlPattern = patternLiteral.getValue2().toString();
+      final String sqlPattern =
+          requireNonNull(patternLiteral.getValue2(), "pattern").toString();
 
       final @Nullable String escapeStr = escapeStr(call);
       final String finalRegex = Like.sqlToRegexAnchored(sqlPattern, escapeStr);
@@ -344,7 +348,7 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     /** Translates NOT to a MongoDB $nor expression. */
-    private Void translateNot(RexCall call, List<Map<String, Object>> orMapList) {
+    private Void translateNot(RexCall call, List<Map<String, @Nullable Object>> orMapList) {
       final RexNode operand = call.operands.get(0);
       switch (operand.getKind()) {
       case LIKE:
@@ -355,7 +359,7 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     /** Translates NOT LIKE to {$nor: [{field: {$regex: ...}}]}. */
-    private Void translateNotLike(RexCall call, List<Map<String, Object>> orMapList) {
+    private Void translateNotLike(RexCall call, List<Map<String, @Nullable Object>> orMapList) {
       final RexNode left = stripCast(call.operands.get(0));
       final RexNode right = call.operands.get(1);
 
@@ -363,7 +367,8 @@ public class MongoFilter extends Filter implements MongoRel {
         throw new AssertionError("cannot translate NOT LIKE with non-literal pattern: " + call);
       }
       final RexLiteral patternLiteral = (RexLiteral) right;
-      final String sqlPattern = patternLiteral.getValue2().toString();
+      final String sqlPattern =
+          requireNonNull(patternLiteral.getValue2(), "pattern").toString();
 
       final @Nullable String escapeStr = escapeStr(call);
       final String finalRegex = Like.sqlToRegexAnchored(sqlPattern, escapeStr);
@@ -385,13 +390,13 @@ public class MongoFilter extends Filter implements MongoRel {
         throw new AssertionError("cannot translate NOT LIKE " + call);
       }
 
-      Map<String, Object> regexMap = builder.map();
-      Map<String, Object> regexOp = builder.map();
+      Map<String, @Nullable Object> regexMap = builder.map();
+      Map<String, @Nullable Object> regexOp = builder.map();
       regexOp.put("$regex", finalRegex);
       regexMap.put(name, regexOp);
-      List<Object> norList = builder.list();
+      List<@Nullable Object> norList = builder.list();
       norList.add(regexMap);
-      Map<String, Object> norMap = builder.map();
+      Map<String, @Nullable Object> norMap = builder.map();
       norMap.put("$nor", norList);
       orMapList.add(norMap);
       return null;
@@ -414,7 +419,8 @@ public class MongoFilter extends Filter implements MongoRel {
       if (escapeNode.getKind() != SqlKind.LITERAL) {
         throw new AssertionError("cannot translate LIKE with non-literal escape: " + call);
       }
-      final String escape = ((RexLiteral) escapeNode).getValue2().toString();
+      final String escape =
+          requireNonNull(((RexLiteral) escapeNode).getValue2(), "escape").toString();
       if (escape.length() != 1) {
         throw new AssertionError("cannot translate LIKE with multi-character escape: " + call);
       }

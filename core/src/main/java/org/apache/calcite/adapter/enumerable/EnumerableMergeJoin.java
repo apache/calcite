@@ -54,7 +54,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -545,7 +545,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                             leftResult.physType, rightResult.physType)),
                     Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
                     comparator,
-                    Util.first(
+                    Util.firstNonNull(
                         leftKeyPhysType.comparer(),
                         Expressions.constant(null))))).toBlock());
   }
