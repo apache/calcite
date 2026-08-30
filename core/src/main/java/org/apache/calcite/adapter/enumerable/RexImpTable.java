@@ -87,11 +87,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
 import org.joou.UInteger;
 import org.joou.ULong;
 import org.joou.UShort;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -2406,7 +2406,7 @@ public class RexImpTable implements RexImplementorTable {
           int curentPosition; // position in for-win-agg-loop
           int startIndex;     // index of start of window
           Comparable @Nullable [] rows;  // accessed via WinAggAddContext.compareRows
-          @SuppressWarnings("nullness")
+          @SuppressWarnings("NullAway")
           void sample() {
             if (curentPosition > startIndex) {
               if (rows[curentPosition - 1].compareTo(rows[curentPosition])

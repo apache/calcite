@@ -194,8 +194,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -4636,7 +4636,7 @@ public class SqlToRelConverter {
     }
 
     // sourceExps should not contain nulls (see the loop above)
-    @SuppressWarnings("assignment.type.incompatible")
+    @SuppressWarnings("NullAway")
     List<RexNode> nonNullExprs = sourceExps;
 
     return relBuilder.push(source)
@@ -4682,7 +4682,7 @@ public class SqlToRelConverter {
     return NullInitializerExpressionFactory.INSTANCE;
   }
 
-  private static <T extends Object> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
+  private static <T> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
     if (o instanceof Wrapper) {
       return ((Wrapper) o).unwrap(clazz);
     }

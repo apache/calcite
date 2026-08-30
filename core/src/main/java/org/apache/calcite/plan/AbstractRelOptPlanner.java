@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -30,10 +31,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.text.NumberFormat;
@@ -275,7 +273,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   @Override public void addListener(
-      @UnknownInitialization AbstractRelOptPlanner this,
       RelOptListener newListener) {
     if (listener == null) {
       listener = new MulticastRelOptListener();
@@ -467,7 +464,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  @Pure
   public @Nullable RelOptListener getListener() {
     return listener;
   }

@@ -124,8 +124,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -2309,7 +2308,6 @@ public abstract class SqlImplementor {
 
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(
-        @UnknownInitialization Result this,
         RelNode rel, List<Clause> clauses,
         Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
@@ -2419,8 +2417,7 @@ public abstract class SqlImplementor {
      * Returns whether any grouping key of {@code aggregate} is represented by
      * a literal expression in this result's {@code SELECT} list.
      */
-    private boolean hasGroupByLiteral(
-        @UnknownInitialization Result this, Aggregate aggregate) {
+    private boolean hasGroupByLiteral(Aggregate aggregate) {
       if (!(node instanceof SqlSelect)) {
         return false;
       }
@@ -2449,7 +2446,7 @@ public abstract class SqlImplementor {
      *
      * @param sqlNode SqlNode to check
      */
-    private boolean hasSortByOrdinal(@UnknownInitialization Result this,
+    private boolean hasSortByOrdinal(
                                      @Nullable SqlNode sqlNode) {
       if (sqlNode == null) {
         return false;
@@ -2477,7 +2474,7 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean containsOver(@UnknownInitialization Result this,
+    private boolean containsOver(
         @Nullable SqlNode node) {
       if (node == null) {
         return false;
@@ -2510,7 +2507,6 @@ public abstract class SqlImplementor {
      * @param operandPredicate Predicate for the nested operands
      * @return whether any nested operands matches the predicate */
     private boolean hasNested(
-        @UnknownInitialization Result this,
         Aggregate aggregate,
         Predicate<SqlNode> operandPredicate) {
       final boolean[] result = {false};

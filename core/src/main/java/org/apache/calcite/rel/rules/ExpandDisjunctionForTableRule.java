@@ -33,8 +33,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;

@@ -28,8 +28,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -324,7 +323,6 @@ public class SqlIdentifier extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Pure
   public @Nullable SqlCollation getCollation() {
     return collation;
   }

@@ -34,8 +34,7 @@ import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -97,8 +96,8 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 
-  @Override public <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
-      Function2<@PolyNull TAccumulate, T, @PolyNull TAccumulate> func) {
+  @Override public <TAccumulate> @Nullable TAccumulate aggregate(@Nullable TAccumulate seed,
+      Function2<@Nullable TAccumulate, T, @Nullable TAccumulate> func) {
     return EnumerableDefaults.aggregate(getThis(), seed, func);
   }
 
@@ -199,7 +198,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.defaultIfEmpty(getThis());
   }
 
-  @Override public Enumerable<@PolyNull T> defaultIfEmpty(@PolyNull T value) {
+  @Override public Enumerable<@Nullable T> defaultIfEmpty(@Nullable T value) {
     return EnumerableDefaults.defaultIfEmpty(getThis(), value);
   }
 

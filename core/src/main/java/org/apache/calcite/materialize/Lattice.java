@@ -21,6 +21,8 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -66,10 +68,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -137,7 +136,7 @@ public class Lattice {
     }
     checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     LatticeStatisticProvider statisticProvider =
         requireNonNull(statisticProviderFactory.apply(this));
     this.statisticProvider = statisticProvider;
@@ -150,7 +149,6 @@ public class Lattice {
 
   @RequiresNonNull({"rootNode", "defaultMeasures", "columns"})
   private boolean isValid(
-      @UnknownInitialization Lattice this,
       Litmus litmus) {
     if (!rootNode.isValid(litmus)) {
       return false;

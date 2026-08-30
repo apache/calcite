@@ -16,11 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -28,10 +25,11 @@ import java.util.List;
  * The methods in this class allow to cast nullable reference to a non-nullable one.
  * This is an internal class, and it is not meant to be used as a public API.
  *
- * <p>The class enables to remove checker-qual runtime dependency, and helps IDEs to see
- * the resulting types of {@code castNonNull} better.
+ * <p>The class keeps the nullness annotations out of the runtime dependencies, and helps IDEs
+ * to see the resulting types of {@code castNonNull} better. NullAway is configured to treat
+ * {@code castNonNull} as its {@code CastToNonNullMethod}, so it reports a call whose argument is
+ * already non-null.
  */
-@SuppressWarnings({"cast.unsafe", "RedundantCast", "contracts.postcondition.not.satisfied"})
 public class Nullness {
   private Nullness() {
   }
@@ -56,8 +54,8 @@ public class Nullness {
    * T get() { return value; }
    * </code></pre>
    *
-   * <p>The issue is checkerframework does not permit that because {@code T}
-   * has unknown nullability, so the following needs to be used:
+   * <p>The issue is that {@code T} has unknown nullability, so the following needs to be
+   * used:
    *
    * <pre><code>
    * T get() { return castNonNull(value); }
@@ -68,10 +66,8 @@ public class Nullness {
    *
    * @return the argument, cast to have the type qualifier @NonNull
    */
-  @Pure
-  public static @EnsuresNonNull("#1")
-  <T extends @Nullable Object> @NonNull T castNonNull(
-      @Nullable T ref) {
+  @SuppressWarnings({"NullAway", "RedundantCast"})
+  public static <T extends @Nullable Object> @NonNull T castNonNull(@Nullable T ref) {
     //noinspection ConstantConditions
     return (@NonNull T) ref;
   }
@@ -85,8 +81,7 @@ public class Nullness {
    * @return the argument, cast so that elements are @NonNull
    */
   @SuppressWarnings({"unchecked", "ConstantConditions"})
-  @Pure
-  public static <T> @NonNull T[] castNonNullArray(
+  public static <T extends @Nullable Object> @NonNull T[] castNonNullArray(
       @Nullable T[] ts) {
     return (@NonNull T []) (Object) ts;
   }
@@ -100,26 +95,23 @@ public class Nullness {
    * @return the argument, cast so that elements are @NonNull
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
-  @Pure
-  public static <T> List<@NonNull T> castNonNullList(
+  public static <T extends @Nullable Object> List<@NonNull T> castNonNullList(
       List<? extends @Nullable T> ts) {
     return (List) (Object) ts;
   }
 
   /**
-   * Allows you to treat an uninitialized or under-initialization object as
-   * initialized with no assertions.
+   * Allows you to pass a partly constructed object where a fully constructed one is expected.
    *
    * @param <T>     The type of the reference
-   * @param ref     A reference that was @Uninitialized at some point but is
-   *                now fully initialized
+   * @param ref     A reference that is still under construction but is fully initialized by the
+   *                time the callee uses it
    *
-   * @return the argument, cast to have type qualifier @Initialized
+   * @return the argument
    */
   @SuppressWarnings({"unchecked"})
-  @Pure
-  public static <T> T castToInitialized(@UnderInitialization T ref) {
-    // To throw CheckerFramework off the scent, we put the object into an array,
+  public static <T extends @Nullable Object> T castToInitialized(T ref) {
+    // To throw the nullness checker off the scent, we put the object into an array,
     // cast the array to an Object, and cast back to an array.
     Object src = new Object[] {ref};
     Object[] dest = (Object[]) src;

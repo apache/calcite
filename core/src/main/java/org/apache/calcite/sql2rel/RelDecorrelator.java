@@ -110,8 +110,8 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -169,7 +169,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *  Each entry maps a CorrelationId to the Frame where its correlated variables originate. */
   protected final Deque<Pair<CorrelationId, Frame>> frameStack = new ArrayDeque<>();
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   protected final ReflectUtil.MethodDispatcher<@Nullable Frame> dispatcher =
       ReflectUtil.<RelNode, @Nullable Frame>createMethodDispatcher(
           Frame.class, getVisitor(), "decorrelateRel",

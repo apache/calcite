@@ -48,8 +48,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -279,7 +279,7 @@ public final class AggregateExpandDistinctAggregatesRule
       doRewrite(relBuilder, aggregate, n++, argList.left, argList.right, refs);
     }
     // It is assumed doRewrite above replaces nulls in refs
-    @SuppressWarnings("assignment.type.incompatible")
+    @SuppressWarnings("NullAway")
     List<RexInputRef> nonNullRefs = refs;
     relBuilder.project(nonNullRefs, fieldNames);
     call.transformTo(relBuilder.build());

@@ -18,4 +18,7 @@
 /**
  * SQL unparsers for JDBC dialects.
  */
+@NullMarked
 package org.apache.calcite.sql.dialect;
+
+import org.jspecify.annotations.NullMarked;

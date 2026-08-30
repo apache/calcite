@@ -26,7 +26,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -46,7 +46,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR, null);
   }
 
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     Pair<@Nullable RelDataType, @Nullable RelDataType> type =
         getComponentTypes(

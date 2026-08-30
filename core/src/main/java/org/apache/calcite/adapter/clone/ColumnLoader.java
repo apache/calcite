@@ -27,8 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -67,7 +66,7 @@ class ColumnLoader<T> {
    * @param sourceTable Source data
    * @param protoRowType Logical row type
    * @param repList Physical row types, or null if not known */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
@@ -202,7 +201,7 @@ class ColumnLoader<T> {
         // We have discovered a the first unique key in the table.
         sort[0] = pair.i;
         // map.keySet().size() == list.size() above implies list contains only non-null elements
-        @SuppressWarnings("assignment.type.incompatible")
+        @SuppressWarnings("NullAway")
         final Comparable[] values =
             valueSet.values.toArray(new Comparable[0]);
         final Kev[] kevs = new Kev[list.size()];
@@ -385,7 +384,6 @@ class ColumnLoader<T> {
       }
     }
 
-    @EnsuresNonNullIf(result = true, expression = "#1")
     private static boolean canBeLong(@Nullable Object o) {
       return o instanceof Boolean
           || o instanceof Character

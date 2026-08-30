@@ -29,7 +29,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

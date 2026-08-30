@@ -27,4 +27,7 @@
  *
  * </ul>
  */
+@NullMarked
 package org.apache.calcite.rel.stream;
+
+import org.jspecify.annotations.NullMarked;

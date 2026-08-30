@@ -115,7 +115,7 @@ public class Uncollect extends SingleRel {
    * @param isOuter            If true, an empty or NULL collection yields one row of
    *                           NULLs (LEFT JOIN); if false, it yields no rows (INNER)
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       boolean withOrdinality, List<String> itemAliases, boolean expandStructFields,
       boolean isOuter) {

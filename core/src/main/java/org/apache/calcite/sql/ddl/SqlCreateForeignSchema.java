@@ -32,7 +32,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -79,7 +79,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
     this.optionList = optionList; // may be null
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(
         SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),

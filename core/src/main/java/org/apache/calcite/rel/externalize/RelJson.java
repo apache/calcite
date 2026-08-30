@@ -88,9 +88,8 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -196,7 +195,7 @@ public class RelJson {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends Object> T get(Map<String, ? extends @Nullable Object> map,
+  private static <T> T get(Map<String, ? extends @Nullable Object> map,
       String key) {
     return (T) requireNonNull(map.get(key), () -> "entry for key " + key);
   }
@@ -829,7 +828,7 @@ public class RelJson {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @PolyNull RexNode toRex(RelInput relInput, @PolyNull Object o) {
+  @Nullable RexNode toRex(RelInput relInput, @Nullable Object o) {
     final RelOptCluster cluster = relInput.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (o == null) {

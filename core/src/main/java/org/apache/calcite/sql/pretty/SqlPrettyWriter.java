@@ -31,7 +31,7 @@ import org.apache.calcite.util.trace.CalciteLogger;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
@@ -287,7 +287,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   //~ Constructors -----------------------------------------------------------
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   private SqlPrettyWriter(SqlWriterConfig config,
       StringBuilder buf, @SuppressWarnings("unused") boolean ignore) {
     this.buf = requireNonNull(buf, "buf");

@@ -109,7 +109,7 @@ public class SqlNonNullableAccessors {
   }
 
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <T extends Object> T getOperandLiteralValueOrThrow(SqlOperatorBinding opBinding,
+  public static <T> T getOperandLiteralValueOrThrow(SqlOperatorBinding opBinding,
       int ordinal, Class<T> clazz) {
     return requireNonNull(opBinding.getOperandLiteralValue(ordinal, clazz),
         () -> "expected non-null operand " + ordinal + " in " + safeToString(opBinding));

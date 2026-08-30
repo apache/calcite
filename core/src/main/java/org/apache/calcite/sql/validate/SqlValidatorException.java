@@ -50,7 +50,7 @@ public class SqlValidatorException extends Exception
    * @param message error message
    * @param cause   underlying cause
    */
-  @SuppressWarnings({"argument.type.incompatible", "method.invocation.invalid"})
+  @SuppressWarnings("NullAway")
   public SqlValidatorException(
       String message,
       Throwable cause) {

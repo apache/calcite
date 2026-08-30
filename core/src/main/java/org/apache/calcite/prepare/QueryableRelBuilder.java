@@ -51,8 +51,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -254,8 +253,8 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source,
-      @PolyNull T value) {
+  @Override public Queryable<@Nullable T> defaultIfEmpty(Queryable<T> source,
+      @Nullable T value) {
     throw new UnsupportedOperationException();
   }
 

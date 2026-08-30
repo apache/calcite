@@ -27,8 +27,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,7 +75,6 @@ public abstract class SqlCall extends SqlNode {
     return getOperator().getKind();
   }
 
-  @Pure
   public abstract SqlOperator getOperator();
 
   /**
@@ -245,7 +243,6 @@ public abstract class SqlCall extends SqlNode {
     return false;
   }
 
-  @Pure
   public @Nullable SqlLiteral getFunctionQuantifier() {
     return null;
   }

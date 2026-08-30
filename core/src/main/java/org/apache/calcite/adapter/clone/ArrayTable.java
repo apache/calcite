@@ -40,7 +40,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
@@ -433,7 +433,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
           valueSet.map.keySet().toArray(new Comparable[n + extra]);
       // codeValues[0..n] is non-null since valueSet.map.keySet is non-null
       // There might be null at the very end, however, it won't participate in Arrays.sort
-      @SuppressWarnings("assignment.type.incompatible")
+      @SuppressWarnings("NullAway")
       Comparable[] nonNullCodeValues = codeValues;
       Arrays.sort(nonNullCodeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =

@@ -22,7 +22,7 @@ import org.apache.calcite.linq4j.Linq4j;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Table representing the history of the ORDERS stream. */
 public class OrdersHistoryTable extends BaseOrderStreamTable {

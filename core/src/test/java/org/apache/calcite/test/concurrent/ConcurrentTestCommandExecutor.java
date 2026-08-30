@@ -18,7 +18,7 @@ package org.apache.calcite.test.concurrent;
 
 import org.apache.calcite.util.Unsafe;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintStream;
 import java.sql.Connection;

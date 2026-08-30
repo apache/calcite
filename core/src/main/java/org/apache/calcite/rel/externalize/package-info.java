@@ -19,4 +19,7 @@
  * Facilities to externalize {@link org.apache.calcite.rel.RelNode}s to and from
  * XML and JSON format.
  */
+@NullMarked
 package org.apache.calcite.rel.externalize;
+
+import org.jspecify.annotations.NullMarked;

@@ -87,8 +87,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.common.value.qual.MinLen;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1072,7 +1071,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     private RexNode flattenComparison(
         RexBuilder rexBuilder,
         SqlOperator op,
-        @MinLen(1) List<RexNode> exprs) {
+        List<RexNode> exprs) {
       final PairList<RexNode, String> flattenedExps = PairList.of();
       flattenProjections(this, exprs, null, "", flattenedExps);
       int n = flattenedExps.size() / 2;

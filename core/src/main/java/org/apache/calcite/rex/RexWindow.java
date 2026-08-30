@@ -20,7 +20,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -72,7 +72,7 @@ public class RexWindow {
    * "ROWS BETWEEN 5 PRECEDING AND CURRENT ROW" is printed as
    * "ROWS 5 PRECEDING".
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   RexWindow(
       List<RexNode> partitionKeys,
       List<RexFieldCollation> orderKeys,

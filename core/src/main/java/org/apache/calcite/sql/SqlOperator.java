@@ -41,8 +41,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -247,7 +246,6 @@ public abstract class SqlOperator {
     return new SqlIdentifier(getName(), SqlParserPos.ZERO);
   }
 
-  @Pure
   public SqlKind getKind() {
     return kind;
   }
@@ -875,7 +873,6 @@ public abstract class SqlOperator {
    * @return whether this operator is an analytic function (aggregate function
    * or window function)
    */
-  @Pure
   public boolean isAggregator() {
     return false;
   }
@@ -1032,7 +1029,6 @@ public abstract class SqlOperator {
    *
    * @see Strong
    */
-  @Pure
   public @Nullable Supplier<Strong.Policy> getStrongPolicyInference() {
     return null;
   }

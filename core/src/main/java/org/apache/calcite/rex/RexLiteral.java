@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -47,11 +48,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
@@ -280,7 +277,6 @@ public class RexLiteral extends RexNode {
    */
   @RequiresNonNull({"typeName", "type"})
   public final String computeDigest(
-      @UnknownInitialization RexLiteral this,
       RexDigestIncludeType includeType) {
     if (includeType == RexDigestIncludeType.OPTIONAL) {
       if (digest != null) {
@@ -307,8 +303,7 @@ public class RexLiteral extends RexNode {
    * @return whether {@link RexDigestIncludeType} digest would include data type
    */
   @RequiresNonNull("type")
-  RexDigestIncludeType digestIncludesType(
-      @UnknownInitialization RexLiteral this) {
+  RexDigestIncludeType digestIncludesType() {
     return shouldIncludeType(value, type);
   }
 
@@ -825,10 +820,10 @@ public class RexLiteral extends RexNode {
    *                 by the Jdbc call to return a column as a string
    * @return a typed RexLiteral, or null
    */
-  public static @PolyNull RexLiteral fromJdbcString(
+  public static @Nullable RexLiteral fromJdbcString(
       RelDataType type,
       SqlTypeName typeName,
-      @PolyNull String literal) {
+      @Nullable String literal) {
     if (literal == null) {
       return null;
     }
@@ -967,7 +962,6 @@ public class RexLiteral extends RexNode {
    * <p>For backwards compatibility, returns DATE. TIME and TIMESTAMP as a
    * {@link Calendar} value in UTC time zone.
    */
-  @Pure
   public @Nullable Comparable getValue() {
     assert valueMatchesType(value, typeName, true) : value;
     if (value == null) {

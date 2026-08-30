@@ -18,4 +18,7 @@
 /**
  * Utility classes for the SQL object model, parsing, and validation.
  */
+@NullMarked
 package org.apache.calcite.sql.util;
+
+import org.jspecify.annotations.NullMarked;

@@ -18,4 +18,7 @@
 /**
  * Provides a pretty-printer for SQL statements.
  */
+@NullMarked
 package org.apache.calcite.sql.pretty;
+
+import org.jspecify.annotations.NullMarked;

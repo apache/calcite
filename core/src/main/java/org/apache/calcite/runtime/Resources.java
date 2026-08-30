@@ -16,10 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -287,7 +285,7 @@ public class Resources {
     protected final Method method;
     protected final String key;
 
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("NullAway")
     public Element(Method method) {
       this.method = method;
       this.key = deriveKey();
@@ -626,9 +624,7 @@ public class Resources {
     }
 
     @RequiresNonNull("method")
-    protected final @Nullable Default getDefault(
-        @UnderInitialization Prop this
-    ) {
+    protected final @Nullable Default getDefault() {
       if (hasDefault) {
         return castNonNull(method.getAnnotation(Default.class));
       } else {
@@ -775,7 +771,7 @@ public class Resources {
      * value if the property is not set.
      *
      * <p>If {@code defaultValue} is not null, never returns null. */
-    public @PolyNull String get(@PolyNull String defaultValue) {
+    public @Nullable String get(@Nullable String defaultValue) {
       return accessor.stringValue(this, defaultValue);
     }
 
@@ -800,7 +796,7 @@ public class Resources {
     int intValue(IntProp p);
     int intValue(IntProp p, int defaultValue);
     @Nullable String stringValue(StringProp p);
-    @PolyNull String stringValue(StringProp p, @PolyNull String defaultValue);
+    @Nullable String stringValue(StringProp p, @Nullable String defaultValue);
     boolean booleanValue(BooleanProp p);
     boolean booleanValue(BooleanProp p, boolean defaultValue);
     double doubleValue(DoubleProp p);
@@ -829,8 +825,8 @@ public class Resources {
       return p.defaultValue();
     }
 
-    @Override public @PolyNull String stringValue(StringProp p,
-        @PolyNull String defaultValue) {
+    @Override public @Nullable String stringValue(StringProp p,
+        @Nullable String defaultValue) {
       return defaultValue;
     }
 
@@ -1143,8 +1139,8 @@ public class Resources {
       return p.defaultValue;
     }
 
-    @Override public @PolyNull String stringValue(StringProp p,
-        @PolyNull String defaultValue) {
+    @Override public @Nullable String stringValue(StringProp p,
+        @Nullable String defaultValue) {
       final String s = properties.getProperty(p.key);
       return s == null ? defaultValue : s;
     }

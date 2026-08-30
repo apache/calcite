@@ -42,7 +42,7 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -297,7 +297,7 @@ public class SqlLiteral extends SqlNode {
    *
    * @throws AssertionError if the value type is not supported
    */
-  public <T extends Object> T getValueAs(Class<T> clazz) {
+  public <T> T getValueAs(Class<T> clazz) {
     Object value = this.value;
     if (clazz.isInstance(value)) {
       return clazz.cast(value);

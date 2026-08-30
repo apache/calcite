@@ -28,7 +28,7 @@ import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -65,7 +65,7 @@ public class SqlBabelCreateTable extends SqlCreateTable {
     this.volatile_ = volatile_;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(SqlLiteral.createBoolean(getReplace(), pos),
         SqlLiteral.createSymbol(tableCollectionType, pos),

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
@@ -48,7 +48,7 @@ public class DateString implements Comparable<DateString> {
   }
 
   /** Creates a DateString. */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public DateString(String v) {
     this(v, false);
     checkArgument(PATTERN.matcher(v).matches(),

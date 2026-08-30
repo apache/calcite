@@ -105,7 +105,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -146,7 +146,7 @@ public class RelToSqlConverter extends SqlImplementor
   /** Creates a RelToSqlConverter; if {@code preserveLiteralTypes}, literals
    * whose type is not implied by their SQL text are wrapped in CASTs;
    * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   public RelToSqlConverter(SqlDialect dialect, boolean preserveLiteralTypes) {
     super(dialect, preserveLiteralTypes);
     dispatcher =

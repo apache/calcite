@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelDigest;
@@ -42,10 +43,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -127,9 +125,7 @@ public abstract class AbstractRelNode implements RelNode {
     return cluster;
   }
 
-  @Pure
-  @Override public final @Nullable Convention getConvention(
-      @UnknownInitialization AbstractRelNode this) {
+  @Override public final @Nullable Convention getConvention() {
     return traitSet == null ? null : traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 
@@ -235,7 +231,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public final <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass,
+  @Override public final <M extends @Nullable Metadata> M metadata(Class<M> metadataClass,
       RelMetadataQuery mq) {
     final MetadataFactory factory = cluster.getMetadataFactory();
     final M metadata = factory.query(this, mq, metadataClass);

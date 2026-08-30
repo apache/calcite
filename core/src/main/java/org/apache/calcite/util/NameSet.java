@@ -18,7 +18,7 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.Maps;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -70,11 +70,7 @@ public class NameSet {
    * name. If case-sensitive, that iterable will have 0 or 1 elements; if
    * case-insensitive, it may have 0 or more. */
   public Collection<String> range(String name, boolean caseSensitive) {
-    // This produces checkerframework false-positive
-    // type of expression: Set<@KeyFor("this.names.range(name, caseSensitive)") String>
-    // method return type: Collection<String>
-    //noinspection RedundantCast
-    return (Collection<String>) names.range(name, caseSensitive).keySet();
+    return names.range(name, caseSensitive).keySet();
   }
 
   /** Returns whether this set contains the given name, with a given

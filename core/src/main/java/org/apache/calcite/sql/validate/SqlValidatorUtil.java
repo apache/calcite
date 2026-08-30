@@ -70,7 +70,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -246,10 +246,7 @@ public class SqlValidatorUtil {
         ImmutableBitSet.of(
             Util.transform(sourceRowType.getFieldList(),
                 RelDataTypeField::getIndex));
-    // checkerframework: found   : Set<@KeyFor("indexToField") Integer>
-    //noinspection RedundantCast
-    ImmutableBitSet target =
-        ImmutableBitSet.of((Iterable<Integer>) indexToField.keySet());
+    ImmutableBitSet target = ImmutableBitSet.of(indexToField.keySet());
     return source.intersect(target);
   }
 

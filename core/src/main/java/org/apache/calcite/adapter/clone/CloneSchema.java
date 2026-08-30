@@ -39,7 +39,7 @@ import org.apache.calcite.schema.lookup.Lookup;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;

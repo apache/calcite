@@ -19,7 +19,7 @@ package org.apache.calcite.schema;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Information about a function call that is passed to the constructor of a

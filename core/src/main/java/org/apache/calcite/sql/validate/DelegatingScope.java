@@ -37,7 +37,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,7 +74,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
 
   /** Computes and stores information that cannot be computed on construction,
    * but only after sub-queries have been validated. */
-  @SuppressWarnings({"methodref.receiver.bound.invalid"})
+  @SuppressWarnings("NullAway")
   public final Supplier<AggregatingSelectScope.Resolved> resolved =
       Suppliers.memoize(this::resolve);
 

@@ -87,7 +87,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

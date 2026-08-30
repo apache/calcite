@@ -18,7 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.avatica.util.Spacer;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;

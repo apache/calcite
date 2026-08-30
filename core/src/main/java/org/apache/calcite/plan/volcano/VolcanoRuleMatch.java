@@ -42,7 +42,7 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
    *                 can modify it later
    * @param nodeInputs Map from relational expressions to their inputs
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   VolcanoRuleMatch(VolcanoPlanner volcanoPlanner, RelOptRuleOperand operand0,
       RelNode[] rels, Map<RelNode, List<RelNode>> nodeInputs) {
     super(volcanoPlanner, operand0, rels.clone(), nodeInputs);

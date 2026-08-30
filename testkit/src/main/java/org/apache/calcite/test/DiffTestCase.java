@@ -20,9 +20,9 @@ import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.incava.diff.Diff;
 import org.incava.diff.Difference;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 

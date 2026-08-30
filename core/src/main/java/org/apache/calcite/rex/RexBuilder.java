@@ -67,8 +67,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.jts.geom.Geometry;
 
 import java.math.BigDecimal;
@@ -138,7 +137,7 @@ public class RexBuilder {
    *
    * @param typeFactory Type factory
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public RexBuilder(RelDataTypeFactory typeFactory) {
     this.typeFactory = typeFactory;
     this.booleanTrue =
@@ -2396,7 +2395,7 @@ public class RexBuilder {
    * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
    *
    * <p>Returns null if and only if {@code o} is null. */
-  private @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
+  private @Nullable Object clean(@Nullable Object o, RelDataType type) {
     if (o == null) {
       return o;
     }

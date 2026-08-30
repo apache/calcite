@@ -22,7 +22,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
 

@@ -27,8 +27,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -88,9 +87,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Instance fields --------------------------------------------------------
 
-  // It is not clear if @UnknownKeyFor is needed here or not, however, checkerframework inference
-  // fails otherwise, see https://github.com/typetools/checker-framework/issues/4048
-  protected final ImmutableList<@UnknownKeyFor ? extends SqlOperandTypeChecker> allowedRules;
+  protected final ImmutableList<? extends SqlOperandTypeChecker> allowedRules;
   protected final Composition composition;
   private final @Nullable String allowedSignatures;
   private final @Nullable BiFunction<SqlOperator, String, String> signatureGenerator;

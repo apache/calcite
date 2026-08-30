@@ -48,7 +48,7 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -1051,7 +1051,7 @@ public abstract class CalcRelSplitter {
           continue;
         }
         currentLevel = exprLevels[i];
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         final Void unused = exprs[i].accept(this);
       }
     }

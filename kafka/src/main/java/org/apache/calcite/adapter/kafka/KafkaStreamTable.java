@@ -39,7 +39,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Properties;

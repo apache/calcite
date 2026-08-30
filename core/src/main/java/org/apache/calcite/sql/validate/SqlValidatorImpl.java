@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -132,13 +133,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -344,7 +340,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder =
         new AggFinder(opTab, true, true, true, null, nameMatcher);
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
 
@@ -378,17 +374,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return config.conformance();
   }
 
-  @Pure
   @Override public SqlValidatorCatalogReader getCatalogReader() {
     return catalogReader;
   }
 
-  @Pure
   @Override public SqlOperatorTable getOperatorTable() {
     return opTab;
   }
 
-  @Pure
   @Override public RelDataTypeFactory getTypeFactory() {
     return typeFactory;
   }
@@ -1820,8 +1813,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param underFrom whether node appears directly under a FROM clause
    * @return rewritten expression, or null if the original expression is null
    */
-  protected @PolyNull SqlNode performUnconditionalRewrites(
-      @PolyNull SqlNode node,
+  protected @Nullable SqlNode performUnconditionalRewrites(
+      @Nullable SqlNode node,
       boolean underFrom) {
     if (node == null) {
       return null;
@@ -6361,8 +6354,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @SuppressWarnings("RedundantCast")
       final ImmutableBitSet constrainedColumns =
           ImmutableBitSet.of((Iterable<Integer>) projectMap.keySet());
-      @SuppressWarnings("assignment.type.incompatible")
-      List<@KeyFor({"tableIndexToTargetField", "projectMap"}) Integer> constrainedTargetColumns =
+      @SuppressWarnings("NullAway")
+      List<Integer> constrainedTargetColumns =
           targetColumns.intersect(constrainedColumns).asList();
 
       // Validate insert values against the view constraint.
@@ -8881,7 +8874,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * Add all possible expandable 'group by' ordinals to {@link aliasOrdinalExpandSet}.
      */
     @RequiresNonNull({"root"})
-    private void addExpandableOrdinals(@UnknownInitialization ExtendedExpander this) {
+    private void addExpandableOrdinals() {
       switch (root.getKind()) {
       case LITERAL:
         aliasOrdinalExpandSet.add(root);
@@ -8906,7 +8899,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      *
      * @param sqlNode expression within grouping sets, rollup, cube
      */
-    private void addOrdinal2ExpandSet(@UnknownInitialization ExtendedExpander this,
+    private void addOrdinal2ExpandSet(
         SqlNode sqlNode) {
       if (sqlNode.getKind() == SqlKind.ROW) {
         List<SqlNode> rowOperandList = ((SqlCall) sqlNode).getOperandList();

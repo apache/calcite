@@ -89,7 +89,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   private final Map<Equivalence.Wrapper<Object>, ParameterExpression> stashedParameters =
       new LinkedHashMap<>();
 
-  @SuppressWarnings("methodref.receiver.bound.invalid")
+  @SuppressWarnings("NullAway")
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
       this::getCorrelVariableGetter;
 

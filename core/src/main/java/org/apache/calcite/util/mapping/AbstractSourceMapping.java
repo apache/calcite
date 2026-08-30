@@ -59,7 +59,7 @@ public abstract class AbstractSourceMapping
     return MappingType.INVERSE_PARTIAL_FUNCTION;
   }
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   @Override public Iterator<IntPair> iterator() {
     return new Iterator<IntPair>() {
       int source;

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractSequentialList;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
    * Creates a ChunkList whose contents are a given Collection.
    */
   public ChunkList(Collection<E> collection) {
-    @SuppressWarnings({"method.invocation.invalid", "unused"})
+    @SuppressWarnings({"NullAway", "unused"})
     boolean ignore = addAll(collection);
   }
 

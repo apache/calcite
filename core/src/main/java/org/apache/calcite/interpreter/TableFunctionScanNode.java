@@ -30,7 +30,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Interpreter node that implements a

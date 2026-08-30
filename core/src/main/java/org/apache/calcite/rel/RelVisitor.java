@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A <code>RelVisitor</code> is a Visitor role in the

@@ -53,7 +53,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -3418,7 +3418,7 @@ public class RexSimplify {
    * <p>Returns whether the value was found.
    */
   private static <E> boolean replaceLast(List<E> list, E oldVal, E newVal) {
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     final int index = list.lastIndexOf(oldVal);
     if (index < 0) {
       return false;

@@ -28,7 +28,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 
@@ -84,7 +84,7 @@ class SqlGroupingFunction extends SqlAbstractGroupFunction {
     return null;
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(STATIC)) {
       return clazz.cast(STATIC);
     }

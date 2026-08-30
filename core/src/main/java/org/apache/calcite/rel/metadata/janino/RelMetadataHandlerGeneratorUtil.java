@@ -20,8 +20,8 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;

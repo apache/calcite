@@ -63,7 +63,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

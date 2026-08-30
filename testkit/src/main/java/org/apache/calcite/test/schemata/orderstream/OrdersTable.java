@@ -27,7 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Table representing the ORDERS stream.

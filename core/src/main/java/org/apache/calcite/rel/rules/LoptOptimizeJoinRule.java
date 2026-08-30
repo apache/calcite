@@ -47,9 +47,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.IntPair;
 
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -308,15 +307,15 @@ public class LoptOptimizeJoinRule
     // self-join.
     final List<RelOptTable> repeatedTables = new ArrayList<>();
     final Map<Integer, Integer> selfJoinPairs = new HashMap<>();
-    @KeyFor("simpleFactors") Integer [] factors =
+    Integer [] factors =
         new TreeSet<>(simpleFactors.keySet()).toArray(new Integer[0]);
     for (int i = 0; i < factors.length; i++) {
       if (repeatedTables.contains(simpleFactors.get(factors[i]))) {
         continue;
       }
       for (int j = i + 1; j < factors.length; j++) {
-        @KeyFor("simpleFactors") int leftFactor = factors[i];
-        @KeyFor("simpleFactors") int rightFactor = factors[j];
+        int leftFactor = factors[i];
+        int rightFactor = factors[j];
         if (simpleFactors.get(leftFactor).getQualifiedName().equals(
             simpleFactors.get(rightFactor).getQualifiedName())) {
           selfJoinPairs.put(leftFactor, rightFactor);

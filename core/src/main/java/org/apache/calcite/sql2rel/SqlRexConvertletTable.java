@@ -18,7 +18,7 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.sql.SqlCall;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Collection of {@link SqlRexConvertlet}s.

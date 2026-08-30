@@ -30,8 +30,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -191,7 +190,6 @@ public class SqlFunction extends SqlOperator {
    * ALL</code> quantifier. The default is <code>false</code>; some aggregate
    * functions return <code>true</code>.
    */
-  @Pure
   public boolean isQuantifierAllowed() {
     return false;
   }

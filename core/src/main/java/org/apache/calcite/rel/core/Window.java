@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -51,9 +52,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.Collections;
@@ -295,7 +294,7 @@ public abstract class Window extends SingleRel implements Hintable {
     }
 
     @RequiresNonNull({"keys", "orderKeys", "lowerBound", "upperBound", "aggCalls"})
-    private String computeString(@UnderInitialization Group this) {
+    private String computeString() {
       final StringBuilder buf = new StringBuilder("window(");
       final int i = buf.length();
       if (!keys.isEmpty()) {

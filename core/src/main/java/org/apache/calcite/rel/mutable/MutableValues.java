@@ -18,7 +18,7 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.core.Values;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Values}. */
 public class MutableValues extends MutableLeafRel {

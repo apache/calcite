@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;
@@ -41,9 +42,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -171,12 +170,11 @@ public class RelSubset extends AbstractRelNode {
    */
   @EnsuresNonNull("bestCost")
   private void computeBestCost(
-      @UnderInitialization RelSubset this,
       RelOptCluster cluster,
       RelOptPlanner planner) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("NullAway")
     Iterable<RelNode> rels = getRels();
     for (RelNode rel : rels) {
       final RelOptCost cost = planner.getCost(rel, mq);

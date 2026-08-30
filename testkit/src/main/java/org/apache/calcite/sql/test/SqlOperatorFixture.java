@@ -37,7 +37,7 @@ import org.apache.calcite.test.ConnectionFactory;
 import org.apache.calcite.test.Matchers;
 import org.apache.calcite.util.Bug;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;

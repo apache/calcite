@@ -19,4 +19,7 @@
  * Contains generated code for the
  * {@link org.apache.calcite.sql.parser Calcite SQL parser}.
  */
+@NullMarked
 package org.apache.calcite.sql.parser.impl;
+
+import org.jspecify.annotations.NullMarked;

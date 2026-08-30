@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.jspecify.annotations.Nullable;
 
 import java.text.NumberFormat;
 import java.text.ParseException;

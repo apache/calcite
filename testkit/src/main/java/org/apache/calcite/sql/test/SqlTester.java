@@ -27,7 +27,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.util.function.Consumer;

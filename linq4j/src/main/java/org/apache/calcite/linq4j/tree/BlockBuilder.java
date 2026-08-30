@@ -16,8 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -201,7 +200,7 @@ public class BlockBuilder {
    * Appends an expression to a list of statements if it is not null,
    * and returns the expression.
    */
-  public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
+  public @Nullable Expression appendIfNotNull(String name, @Nullable Expression expression) {
     if (expression == null) {
       return null;
     }

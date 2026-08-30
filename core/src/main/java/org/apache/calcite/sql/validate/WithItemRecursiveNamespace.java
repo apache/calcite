@@ -23,7 +23,7 @@ import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Very similar to {@link WithItemNamespace} but created only for RECURSIVE queries. */
 class WithItemRecursiveNamespace extends WithItemNamespace {

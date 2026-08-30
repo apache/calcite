@@ -28,7 +28,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.util.NlsString;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -154,7 +154,7 @@ public abstract class SqlOperatorBinding {
    *
    * @return value of operand
    */
-  public <T extends Object> @Nullable T getOperandLiteralValue(int ordinal, Class<T> clazz) {
+  public <T> @Nullable T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     throw new UnsupportedOperationException();
   }
 

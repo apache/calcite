@@ -49,8 +49,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -315,9 +314,9 @@ public class RelMdUtil {
    * @return the expected number of distinct values, or null if either argument
    * is null
    */
-  public static @PolyNull Double numDistinctVals(
-      @PolyNull Double domainSize,
-      @PolyNull Double numSelected) {
+  public static @Nullable Double numDistinctVals(
+      @Nullable Double domainSize,
+      @Nullable Double numSelected) {
     if ((domainSize == null) || (numSelected == null)) {
       return domainSize;
     }
@@ -911,7 +910,7 @@ public class RelMdUtil {
 
   public static double estimateFilteredRows(RelNode child, @Nullable RexNode condition,
       RelMetadataQuery mq) {
-    @SuppressWarnings("unboxing.of.nullable")
+    @SuppressWarnings("NullAway")
     double result =
         multiply(mq.getRowCount(child), mq.getSelectivity(child, condition));
     return result;
@@ -1081,7 +1080,7 @@ public class RelMdUtil {
    * <p>Throws if {@code result} is not null, not in range 0 to 1,
    * and assertions are enabled.
    */
-  public static @PolyNull Double validatePercentage(@PolyNull Double result) {
+  public static @Nullable Double validatePercentage(@Nullable Double result) {
     assert isPercentage(result, true);
     return result;
   }
@@ -1117,7 +1116,7 @@ public class RelMdUtil {
    * @return the corrected value from the {@code result}
    * @throws AssertionError if the {@code result} is negative
    */
-  public static @PolyNull Double validateResult(@PolyNull Double result) {
+  public static @Nullable Double validateResult(@Nullable Double result) {
     if (result == null) {
       return null;
     }

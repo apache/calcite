@@ -34,9 +34,7 @@ import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -49,7 +47,6 @@ import java.util.Map;
  *
  * @param <TSource> Element type
  */
-@Covariant(0)
 public interface ExtendedEnumerable<TSource> {
 
   /**
@@ -76,8 +73,8 @@ public interface ExtendedEnumerable<TSource> {
    *
    * <p>If {@code seed} is not null, the result is never null.
    */
-  <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
-      Function2<@PolyNull TAccumulate, TSource, @PolyNull TAccumulate> func);
+  <TAccumulate> @Nullable TAccumulate aggregate(@Nullable TAccumulate seed,
+      Function2<@Nullable TAccumulate, TSource, @Nullable TAccumulate> func);
 
   /**
    * Applies an accumulator function over a
@@ -280,7 +277,7 @@ public interface ExtendedEnumerable<TSource> {
    *
    * <p>If {@code value} is not null, the result is never null.
    */
-  Enumerable<@PolyNull TSource> defaultIfEmpty(@PolyNull TSource value);
+  Enumerable<@Nullable TSource> defaultIfEmpty(@Nullable TSource value);
 
   /**
    * Returns distinct elements from a sequence by using
