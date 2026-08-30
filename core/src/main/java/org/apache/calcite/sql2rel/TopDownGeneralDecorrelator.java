@@ -137,7 +137,6 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
 
   // invokes using reflection a method named unnestInternal based on the
   // runtime type of the argument.
-  @SuppressWarnings("NullAway")
   private final ReflectUtil.MethodDispatcher<RelNode> dispatcher =
       ReflectUtil.createMethodDispatcher(
           RelNode.class, getVisitor(), "unnestInternal", RelNode.class, boolean.class);

@@ -50,7 +50,6 @@ public class SqlValidatorException extends Exception
    * @param message error message
    * @param cause   underlying cause
    */
-  @SuppressWarnings("NullAway")
   public SqlValidatorException(
       String message,
       Throwable cause) {

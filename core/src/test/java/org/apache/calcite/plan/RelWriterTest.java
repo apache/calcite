@@ -1634,7 +1634,7 @@ class RelWriterTest {
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
    * in this plan, or null if there are no scans. */
   private static RelOptSchema getSchema(RelNode rel) {
-    final Holder<@Nullable RelOptSchema> schemaHolder = Holder.empty();
+    final Holder<RelOptSchema> schemaHolder = Holder.empty();
     rel.accept(
         new RelShuttleImpl() {
           @Override public RelNode visit(TableScan scan) {

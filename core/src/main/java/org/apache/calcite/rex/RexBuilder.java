@@ -138,7 +138,6 @@ public class RexBuilder {
    *
    * @param typeFactory Type factory
    */
-  @SuppressWarnings("NullAway")
   public RexBuilder(RelDataTypeFactory typeFactory) {
     this.typeFactory = typeFactory;
     this.booleanTrue =

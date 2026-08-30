@@ -9906,7 +9906,7 @@ class RelOptRulesTest extends RelOptTestBase {
     //               from emp
     //               where dept.deptno = emp.deptno
     //                 and emp.sal > 100)
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("DEPT")
         .variable(v::set)

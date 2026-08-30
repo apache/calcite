@@ -860,6 +860,7 @@ public abstract class Functions {
    * @param <R> result type
    * @param <T0> first argument type
    * @param <T1> second argument type */
+  @SuppressWarnings("NullAway") // only meaningful when R is instantiated nullable
   private static final class Ignore<R extends @Nullable Object, T0, T1>
       implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
     @Override public R apply() {

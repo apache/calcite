@@ -48,7 +48,6 @@ public class DateString implements Comparable<DateString> {
   }
 
   /** Creates a DateString. */
-  @SuppressWarnings("NullAway")
   public DateString(String v) {
     this(v, false);
     checkArgument(PATTERN.matcher(v).matches(),

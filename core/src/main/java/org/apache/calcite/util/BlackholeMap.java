@@ -94,12 +94,10 @@ final class BlackholeMap<K, V> extends AbstractMap<K, V> {
 
   private BlackholeMap() {}
 
-  @SuppressWarnings("NullAway")
   @Override public @Nullable V put(K key, V value) {
     return null;
   }
 
-  @SuppressWarnings("NullAway")
   @Override public Set<Entry<K, V>> entrySet() {
     return BHSet.of();
   }

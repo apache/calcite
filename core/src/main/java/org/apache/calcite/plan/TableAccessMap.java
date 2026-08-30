@@ -113,7 +113,6 @@ public class TableAccessMap {
   /**
    * Returns a set of qualified names for all tables accessed.
    */
-  @SuppressWarnings("NullAway")
   public Set<List<String>> getTablesAccessed() {
     return accessMap.keySet();
   }

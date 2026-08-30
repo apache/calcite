@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Iterator;
 
 /**
@@ -28,7 +30,8 @@ import java.util.Iterator;
  *
  * @param <T> Element type
  */
-public abstract class AbstractEnumerable<T> extends DefaultEnumerable<T> {
+public abstract class AbstractEnumerable<T extends @Nullable Object>
+    extends DefaultEnumerable<T> {
   @Override public Iterator<T> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }

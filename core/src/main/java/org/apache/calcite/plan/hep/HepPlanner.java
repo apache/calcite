@@ -190,7 +190,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     super(costFactory, context);
     this.mainProgram = requireNonNull(program, "program");
     this.onCopyHook =
-        Util.firstNonNull(onCopyHook,
+        Util.first(onCopyHook,
             Functions.<RelNode, RelNode, @Nullable Void>ignore2());
     this.noDag = noDag;
     this.largePlanMode = CalciteSystemProperty.HEP_PLANNER_LARGE_PLAN_MODE.value();

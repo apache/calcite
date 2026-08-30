@@ -105,6 +105,7 @@ public abstract class EnumerableDefaults {
   // NullAway treats the result of a call returning `? extends TAccumulate` as @Nullable
   // once it is assigned to a TAccumulate local, even though TAccumulate is the local's own
   // type. The wildcard is what lets a reducer with a non-null result feed a nullable seed.
+  // https://github.com/uber/NullAway/issues/1727
   @SuppressWarnings("NullAway")
   public static <TSource, TAccumulate extends @Nullable Object> TAccumulate aggregate(
       Enumerable<TSource> source, TAccumulate seed,
@@ -128,6 +129,7 @@ public abstract class EnumerableDefaults {
   // NullAway treats the result of a call returning `? extends TAccumulate` as @Nullable
   // once it is assigned to a TAccumulate local, even though TAccumulate is the local's own
   // type. The wildcard is what lets a reducer with a non-null result feed a nullable seed.
+  // https://github.com/uber/NullAway/issues/1727
   @SuppressWarnings("NullAway")
   public static <TSource, TAccumulate extends @Nullable Object,
       TResult extends @Nullable Object> TResult aggregate(

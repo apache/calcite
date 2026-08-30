@@ -44,7 +44,6 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *
    * @param size Number of elements in the permutation
    */
-  @SuppressWarnings("NullAway")
   public Permutation(int size) {
     targets = new int[size];
     sources = new int[size];

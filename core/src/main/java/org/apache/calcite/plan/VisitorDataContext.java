@@ -99,7 +99,7 @@ public class VisitorDataContext implements DataContext {
       List<? extends Pair<RexInputRef, ? extends @Nullable RexNode>> usageList) {
     final int size = rowType.getFieldList().size();
     final @Nullable Object[] values = new Object[size];
-    for (Pair<RexInputRef, ? extends @Nullable RexNode> elem : usageList) {
+    for (Pair<RexInputRef, ? extends RexNode> elem : usageList) {
       Pair<Integer, ?> value = getValue(elem.getKey(), elem.getValue());
       if (value == null) {
         LOGGER.warn("{} is not handled for {} for checking implication",

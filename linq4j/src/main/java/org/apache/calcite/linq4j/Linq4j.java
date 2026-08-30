@@ -670,6 +670,7 @@ public abstract class Linq4j {
   /** Enumerator that returns one null element.
    *
    * @param <E> element type */
+  @SuppressWarnings("NullAway") // only meaningful when E is instantiated nullable
   private static class SingletonNullEnumerator<E extends @Nullable Object>
       implements Enumerator<E> {
     int i = 0;

@@ -227,7 +227,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Creates a {@code VolcanoPlanner} with a given cost factory.
    */
-  @SuppressWarnings("NullAway")
   public VolcanoPlanner(@Nullable RelOptCostFactory costFactory,
       @Nullable Context externalContext) {
     super(costFactory == null ? VolcanoCost.FACTORY : costFactory,

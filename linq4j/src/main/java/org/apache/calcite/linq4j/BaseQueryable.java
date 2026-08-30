@@ -23,6 +23,8 @@ import org.jspecify.annotations.Nullable;
 import java.lang.reflect.Type;
 import java.util.Iterator;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Skeleton implementation of {@link Queryable}.
  *
@@ -34,11 +36,13 @@ import java.util.Iterator;
  */
 public abstract class BaseQueryable<TSource>
     extends AbstractQueryable<TSource> {
-  protected final QueryProvider provider;
+  /** Provider, or null for a queryable that overrides {@link #enumerator()}
+   * and so never asks the provider to execute it. */
+  protected final @Nullable QueryProvider provider;
   protected final Type elementType;
   protected final @Nullable Expression expression;
 
-  protected BaseQueryable(QueryProvider provider, Type elementType,
+  protected BaseQueryable(@Nullable QueryProvider provider, Type elementType,
       @Nullable Expression expression) {
     this.provider = provider;
     this.elementType = elementType;
@@ -46,7 +50,7 @@ public abstract class BaseQueryable<TSource>
   }
 
   @Override public QueryProvider getProvider() {
-    return provider;
+    return requireNonNull(provider, "provider");
   }
 
   @Override public Type getElementType() {
@@ -62,6 +66,6 @@ public abstract class BaseQueryable<TSource>
   }
 
   @Override public Enumerator<TSource> enumerator() {
-    return provider.executeQuery(this);
+    return getProvider().executeQuery(this);
   }
 }

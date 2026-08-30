@@ -718,7 +718,7 @@ public abstract class SqlUtil {
           @SuppressWarnings("NullAway")
           final List<@Nullable RelDataType> paramTypes =
               operandMetadata.paramTypes(typeFactory);
-          final List<@Nullable RelDataType> permutedArgTypes;
+          final @Nullable List<@Nullable RelDataType> permutedArgTypes;
           if (argNames != null) {
             final List<String> paramNames = operandMetadata.paramNames();
             permutedArgTypes = permuteArgTypes(paramNames, argNames, argTypes);
@@ -731,7 +731,7 @@ public abstract class SqlUtil {
               paramTypes.add(null);
             }
           }
-          for (Pair<@Nullable RelDataType, @Nullable RelDataType> p
+          for (Pair<RelDataType, RelDataType> p
               : Pair.zip(paramTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;

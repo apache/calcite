@@ -74,7 +74,6 @@ public abstract class DelegatingScope implements SqlValidatorScope {
 
   /** Computes and stores information that cannot be computed on construction,
    * but only after sub-queries have been validated. */
-  @SuppressWarnings("NullAway")
   public final Supplier<AggregatingSelectScope.Resolved> resolved =
       Suppliers.memoize(this::resolve);
 

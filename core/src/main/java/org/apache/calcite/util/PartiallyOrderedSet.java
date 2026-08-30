@@ -134,7 +134,6 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param ordering Ordering relation
    * @param collection Initial contents of partially-ordered set
    */
-  @SuppressWarnings("NullAway")
   public PartiallyOrderedSet(Ordering<E> ordering, Collection<E> collection) {
     this(ordering, new HashMap<>(collection.size() * 3 / 2), null, null);
     addAll(collection);

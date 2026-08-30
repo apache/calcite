@@ -2132,6 +2132,22 @@ public class Util {
     return v0 != null ? v0 : v1;
   }
 
+  /** Returns the first argument if it is not null, otherwise the second.
+   *
+   * <p>Same as {@link #first(Object, Object)}, for the common case where the fallback is not
+   * null and so neither is the result. Where the result feeds a generic call, NullAway reads
+   * the {@code @Contract} on {@code first} too late to constrain the type argument, and the
+   * non-null return type here is what the inference needs.
+   *
+   * @param v0 value, may be null
+   * @param v1 fallback, used when {@code v0} is null
+   * @param <T> value type
+   * @return {@code v0} if it is not null, otherwise {@code v1}
+   */
+  public static <T extends @Nullable Object> T firstNonNull(@Nullable T v0, T v1) {
+    return v0 != null ? v0 : v1;
+  }
+
   /** Unboxes a {@link Double} value,
    * using a given default value if it is null. */
   public static double first(@Nullable Double v0, double v1) {
@@ -2293,7 +2309,7 @@ public class Util {
       return -1;
     }
     // we use HashMap here, because it is more efficient than HashSet.
-    final Map<E, Object> set = new HashMap<>(size);
+    final Map<@Nullable E, Object> set = new HashMap<>(size);
     for (E e : list) {
       if (set.put(e, "") != null) {
         return set.size();

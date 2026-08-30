@@ -4720,7 +4720,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else if (stripDot.getKind() == SqlKind.LAMBDA) {
         // do not need to check lambda
       } else {
-        List<? extends @Nullable SqlNode> children =
+        List<? extends SqlNode> children =
             ((SqlCall) stripDot).getOperandList();
         for (SqlNode child : children) {
           checkRollUp(parent, current, child, scope, contextClause);

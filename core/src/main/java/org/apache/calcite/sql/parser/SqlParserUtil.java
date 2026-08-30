@@ -978,7 +978,7 @@ public final class SqlParserUtil {
     case CALL:
       final PrecedenceClimbingParser.Call call =
           (PrecedenceClimbingParser.Call) token;
-      final List<@Nullable SqlNode> list = new ArrayList<>();
+      final List<SqlNode> list = new ArrayList<>();
       for (PrecedenceClimbingParser.Token arg : call.args) {
         list.add(convert(arg));
       }

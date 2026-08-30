@@ -47,7 +47,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -589,7 +588,7 @@ class RelFieldTrimmerTest {
    */
   @Test void testLogicalCorrelateFieldTrimmer() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .projectPlus(builder.call(SqlStdOperatorTable.PLUS, builder.field(0), builder.field(0)))
         .variable(v::set)
@@ -633,7 +632,7 @@ class RelFieldTrimmerTest {
    */
   @Test void testLogicalCorrelateFieldTrimmer2() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .projectPlus(builder.call(SqlStdOperatorTable.PLUS, builder.field(0), builder.field(0)))
         .variable(v::set)
@@ -682,7 +681,7 @@ class RelFieldTrimmerTest {
    */
   @Test void testTrimCorrelatedSubquery() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     builder.scan("EMP")
         .variable(v::set)
         .filter(
@@ -734,7 +733,7 @@ class RelFieldTrimmerTest {
    */
   @Test void testTrimCorrelatedSubqueryInFilterCondition() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode original = builder.scan("EMP")
         .variable(v::set)
         .filter(ImmutableList.of(v.get().id),
@@ -775,7 +774,7 @@ class RelFieldTrimmerTest {
 
   @Test void testTrimCorrelatedSubqueryInJoinCondition() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     final RelNode original =
         builder.scan("EMP")
             .variable(v::set)
