@@ -25,9 +25,24 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.asmchecker.AsmCheckerTask
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
+import org.gradle.api.artifacts.transform.CacheableTransform
+import org.gradle.api.artifacts.transform.InputArtifact
+import org.gradle.api.artifacts.transform.TransformAction
+import org.gradle.api.artifacts.transform.TransformOutputs
+import org.gradle.api.artifacts.transform.TransformParameters
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.gradle.api.attributes.Attribute
+import org.gradle.api.file.FileSystemLocation
+import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
@@ -71,6 +86,62 @@ repositories {
 
 tasks.wrapper {
     distributionType = Wrapper.DistributionType.BIN
+}
+
+val jspecifyJava8Compatible =
+    Attribute.of("org.apache.calcite.jspecify-java8-compatible", Boolean::class.javaObjectType)
+
+/** Removes the Java 9-only MODULE target from JSpecify's @NullMarked annotation. Workaround for https://github.com/jspecify/jspecify/issues/795 */
+@CacheableTransform
+abstract class JSpecifyJava8Transform : TransformAction<TransformParameters.None> {
+    @get:InputArtifact
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val inputArtifact: Provider<FileSystemLocation>
+
+    override fun transform(outputs: TransformOutputs) {
+        val input = inputArtifact.get().asFile
+        if (input.length() > 64_000L ||
+            !ZipFile(input).use { it.getEntry("org/jspecify/annotations/NullMarked.class") != null }) {
+            outputs.file(input)
+            return
+        }
+        val output = outputs.file(input.name)
+        ZipInputStream(input.inputStream().buffered()).use { source ->
+            ZipOutputStream(output.outputStream().buffered()).use { destination ->
+                while (true) {
+                    val entry = source.nextEntry ?: break
+                    destination.putNextEntry(ZipEntry(entry.name))
+                    if (!entry.isDirectory) {
+                        val bytes = source.readBytes()
+                        destination.write(
+                            if (entry.name == "org/jspecify/annotations/NullMarked.class") {
+                                bytes.replaceModuleTarget()
+                            } else bytes
+                        )
+                    }
+                    destination.closeEntry()
+                    source.closeEntry()
+                }
+            }
+        }
+    }
+
+    private fun ByteArray.replaceModuleTarget(): ByteArray {
+        fun utf8Entry(value: String): ByteArray {
+            val bytes = value.toByteArray(Charsets.US_ASCII)
+            return byteArrayOf(1, 0, bytes.size.toByte()) + bytes
+        }
+
+        val module = utf8Entry("MODULE")
+        val method = "METHOD".toByteArray(Charsets.US_ASCII)
+        val signature = utf8Entry("Ljava/lang/annotation/ElementType;") + module
+        val offset = (0..(size - signature.size)).singleOrNull { index ->
+            signature.indices.all { offset -> this[index + offset] == signature[offset] }
+        } ?: return this
+        return copyOf().also {
+            method.copyInto(it, offset + signature.size - method.size)
+        }
+    }
 }
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
@@ -584,6 +655,24 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
+        configurations.configureEach {
+            if (isCanBeResolved && !isCanBeConsumed) {
+                attributes.attribute(jspecifyJava8Compatible, true)
+            }
+        }
+        dependencies {
+            attributesSchema {
+                attribute(jspecifyJava8Compatible)
+            }
+            artifactTypes.getByName(ArtifactTypeDefinition.JAR_TYPE)
+                .attributes.attribute(jspecifyJava8Compatible, false)
+            registerTransform(JSpecifyJava8Transform::class) {
+                from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, ArtifactTypeDefinition.JAR_TYPE)
+                    .attribute(jspecifyJava8Compatible, false)
+                to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, ArtifactTypeDefinition.JAR_TYPE)
+                    .attribute(jspecifyJava8Compatible, true)
+            }
+        }
         configure<JavaPluginExtension> {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
