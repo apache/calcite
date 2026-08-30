@@ -90,7 +90,7 @@ public class RexExecutable {
         assert values.length == constExps.size();
         final List<RexNode> successfullyReduced = new ArrayList<>(constExps.size());
         final List<@Nullable Object> valueList = Arrays.asList(values);
-        for (Pair<RexNode, @Nullable Object> value : Pair.zip(constExps, valueList)) {
+        for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
           successfullyReduced.add(
               rexBuilder.makeLiteral(value.right, value.left.getType(), true));
         }

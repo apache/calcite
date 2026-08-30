@@ -262,7 +262,7 @@ class InterpreterTest {
       final List<RelDataType> fieldTypes =
           Util.transform(rel.getRowType().getFieldList(),
               RelDataTypeField::getType);
-      final Function<@Nullable Object[], List<@Nullable Object>> converter =
+      final Function<Object[], List<Object>> converter =
           EnumUtils.toExternal(fieldTypes, DateTimeUtils.DEFAULT_ZONE);
       assertRows(interpreter, converter, unordered, rows);
     }

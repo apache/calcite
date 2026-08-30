@@ -5926,7 +5926,8 @@ public class SqlFunctions {
 
       final SimpleDateFormat sdf = new SimpleDateFormat(dateFormatString, Locale.ENGLISH);
       final Date date = sdf.parse(dateString, pos);
-      if (pos.getErrorIndex() >= 0 || pos.getIndex() != dateString.length()) {
+      if (date == null || pos.getErrorIndex() >= 0
+          || pos.getIndex() != dateString.length()) {
         SQLException e =
             new SQLException(
                 String.format(Locale.ROOT,
@@ -6023,7 +6024,7 @@ public class SqlFunctions {
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(key -> key.toDateFormat(f)));
 
-    private <T> T withParser(String fmt, String timeZone,
+    private <T extends @Nullable Object> T withParser(String fmt, String timeZone,
         Function<DateFormat, T> action) {
       final DateFormat dateFormat = cache.getUnchecked(new Key(fmt, timeZone));
       return action.apply(dateFormat);
@@ -6041,7 +6042,8 @@ public class SqlFunctions {
           withParser(fmt, timeZone, parser -> parser.parse(datetime, pos));
       // Throw if either the parse was unsuccessful, or the format string did
       // not contain enough elements to parse the datetime string completely.
-      if (pos.getErrorIndex() >= 0 || pos.getIndex() != datetime.length()) {
+      if (parsed == null || pos.getErrorIndex() >= 0
+          || pos.getIndex() != datetime.length()) {
         SQLException e =
             new SQLException(
                 String.format(Locale.ROOT,

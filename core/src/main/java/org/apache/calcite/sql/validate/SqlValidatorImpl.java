@@ -4890,7 +4890,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private @Nullable FilterRequirement pipeInputRequirement(
       SelectNamespace ns) {
     // A surrogate is registered with its pipe operator as enclosing node.
-    final @Nullable SqlNode node = ns.getEnclosingNode();
+    final SqlNode node = ns.getEnclosingNode();
     if (!(node instanceof SqlPipeCall)) {
       return null;
     }
@@ -5006,7 +5006,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else if (stripDot.getKind() == SqlKind.LAMBDA) {
         // do not need to check lambda
       } else {
-        List<? extends @Nullable SqlNode> children =
+        List<? extends SqlNode> children =
             ((SqlCall) stripDot).getOperandList();
         for (SqlNode child : children) {
           checkRollUp(parent, current, child, scope, contextClause);
@@ -5452,7 +5452,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     ns.filterRequirement = FilterRequirement.EMPTY;
     // The input's tables in a surrogate's scope report the requirements they
     // started with; the input's own requirement says what remains.
-    final @Nullable FilterRequirement inputRequirement =
+    final FilterRequirement inputRequirement =
         pipeInputRequirement(ns);
     if (select.getFrom() != null) {
       final SelectScope fromScope = (SelectScope) getFromScope(select);

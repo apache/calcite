@@ -3600,7 +3600,7 @@ public class SqlToRelConverter {
     // Offset in the FROM list of the first input of the join that defines the
     // variable, and the row type of the variable, which spans the FROM list
     int offset = 0;
-    @Nullable RelDataType correlRowType = null;
+    RelDataType correlRowType = null;
 
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
@@ -3716,7 +3716,7 @@ public class SqlToRelConverter {
     // A join scope never has an aggregate root
     Litmus.THROW.check(fieldMapping.isEmpty() || offset == 0,
         "aggregate root in a join scope");
-    @Nullable RelDataType newCorrelRowType = null;
+    RelDataType newCorrelRowType = null;
     if (!fieldMapping.isEmpty()) {
       newCorrelRowType = bb.root().getRowType();
     } else if (offset > 0) {

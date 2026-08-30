@@ -476,8 +476,8 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       for (RexLocalRef projectExpr : program.getProjectList()) {
         origProjectExprs.add(expandedExprList.get(projectExpr.getIndex()));
       }
-      final @Nullable RexLocalRef origConditionRef = program.getCondition();
-      final @Nullable RexNode origConditionExpr =
+      final RexLocalRef origConditionRef = program.getCondition();
+      final RexNode origConditionExpr =
           origConditionRef != null
               ? expandedExprList.get(origConditionRef.getIndex())
               : null;

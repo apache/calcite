@@ -164,7 +164,7 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
    * @param action The action to be performed for each element
    * @param <T> Element type
    */
-  public static <T> void forEach(Iterable<T> iterable,
+  public static <T extends @Nullable Object> void forEach(Iterable<T> iterable,
       ObjIntConsumer<? super T> action) {
     int i = 0;
     for (T t : iterable) {
@@ -182,7 +182,7 @@ public class Ord<E extends @Nullable Object> implements Map.Entry<Integer, E> {
    * @param action The action to be performed for each element
    * @param <T> Element type
    */
-  public static <T> void forEach(T[] ts,
+  public static <T extends @Nullable Object> void forEach(T[] ts,
       ObjIntConsumer<? super T> action) {
     for (int i = 0; i < ts.length; i++) {
       action.accept(ts[i], i);

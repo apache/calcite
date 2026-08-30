@@ -244,8 +244,9 @@ public class RelBuilder {
    */
   private static RelOptTable.ViewExpander getViewExpander(RelOptCluster cluster,
       Context context) {
-    return context.maybeUnwrap(RelOptTable.ViewExpander.class)
-        .orElseGet(() -> ViewExpanders.simpleContext(cluster));
+    return requireNonNull(
+        context.maybeUnwrap(RelOptTable.ViewExpander.class)
+            .orElseGet(() -> ViewExpanders.simpleContext(cluster)));
   }
 
   /** Derives the Config to be used for this RelBuilder.
@@ -3653,8 +3654,9 @@ public class RelBuilder {
     final ImmutableList<ImmutableList<RexLiteral>> tupleList =
         tupleList(fieldNames.length, values);
     assert tupleList.size() == rowCount;
+    // Explicit type arguments work around https://github.com/uber/NullAway/issues/2179
     final List<String> fieldNameList =
-        Util.transformIndexed(Arrays.asList(fieldNames), (name, i) ->
+        Util.<@Nullable String, String>transformIndexed(Arrays.asList(fieldNames), (name, i) ->
             name != null ? name : SqlUtil.deriveAliasFromOrdinal(i));
     return values(tupleList, fieldNameList);
   }

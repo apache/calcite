@@ -54,7 +54,8 @@ import java.util.Map;
  *
  * @param <T> Element type
  */
-public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
+public abstract class DefaultEnumerable<T extends @Nullable Object>
+    implements OrderedEnumerable<T> {
 
   /**
    * Derived classes might wish to override this method to return the "outer"

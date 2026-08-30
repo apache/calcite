@@ -828,7 +828,7 @@ public abstract class SqlUtil {
               paramTypes.add(null);
             }
           }
-          for (Pair<@Nullable RelDataType, @Nullable RelDataType> p
+          for (Pair<RelDataType, RelDataType> p
               : Pair.zip(paramTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;

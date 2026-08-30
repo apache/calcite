@@ -51,7 +51,6 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -173,7 +172,7 @@ public class RelDecorrelatorTest {
 
   @Test void testGroupKeyNotInFrontWhenDecorrelate() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode before = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -664,7 +663,7 @@ public class RelDecorrelatorTest {
     // Simplification is disabled to keep the IS NOT DISTINCT FROM condition
     // intact (otherwise it would be rewritten in terms of = and IS NULL).
     final RelBuilder noSimplify = builder.transform(c -> c.withSimplify(false));
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode before = noSimplify.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -2601,7 +2600,7 @@ public class RelDecorrelatorTest {
   @Test void testNestedCorrelatesSharingCorrelationId() {
     final RelBuilder builder = RelBuilder.create(config().build())
         .transform(c -> c.withSimplify(false));
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     builder.scan("EMP").variable(v::set);
     final RelNode emp = builder.build();
 
