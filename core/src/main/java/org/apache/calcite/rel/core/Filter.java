@@ -77,7 +77,6 @@ public abstract class Filter extends SingleRel implements Hintable {
    * @param condition boolean expression which determines whether a row is
    *                  allowed to pass
    */
-  @SuppressWarnings("NullAway")
   protected Filter(
       RelOptCluster cluster,
       RelTraitSet traits,

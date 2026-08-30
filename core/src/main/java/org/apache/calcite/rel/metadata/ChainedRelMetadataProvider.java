@@ -51,7 +51,6 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
   /**
    * Creates a chain.
    */
-  @SuppressWarnings("NullAway")
   protected ChainedRelMetadataProvider(
       ImmutableList<RelMetadataProvider> providers) {
     this.providers = providers;

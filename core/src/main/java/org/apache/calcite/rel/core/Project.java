@@ -88,7 +88,6 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param variableSet Correlation variables set by this relational expression
    *                    to be used by nested expressions
    */
-  @SuppressWarnings("NullAway")
   protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,

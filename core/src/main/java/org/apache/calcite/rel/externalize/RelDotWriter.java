@@ -105,7 +105,7 @@ public class RelDotWriter extends RelWriterImpl {
     sb.setLength(0);
 
     if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
-      for (Pair<String, @Nullable Object> value : values) {
+      for (Pair<String, Object> value : values) {
         if (value.right instanceof RelNode) {
           continue;
         }

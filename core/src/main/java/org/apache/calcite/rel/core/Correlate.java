@@ -91,7 +91,6 @@ public abstract class Correlate extends BiRel implements Hintable {
    * @param requiredColumns Set of columns that are used by correlation
    * @param joinType Join type
    */
-  @SuppressWarnings("NullAway")
   protected Correlate(
       RelOptCluster cluster,
       RelTraitSet traitSet,

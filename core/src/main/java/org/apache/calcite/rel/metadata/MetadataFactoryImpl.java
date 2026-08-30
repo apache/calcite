@@ -59,7 +59,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
     //noinspection RedundantTypeArguments
     return CacheLoader.<Pair<Class<RelNode>, Class<Metadata>>,
         UnboundMetadata<@Nullable Metadata>>from(key -> {
-          final UnboundMetadata<@Nullable Metadata> function =
+          final UnboundMetadata<Metadata> function =
               provider.apply(key.left, key.right);
           // Return DUMMY, not null, so the cache knows to not ask again.
           return function != null ? function : DUMMY;

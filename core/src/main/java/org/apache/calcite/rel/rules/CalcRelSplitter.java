@@ -1051,7 +1051,6 @@ public abstract class CalcRelSplitter {
           continue;
         }
         currentLevel = exprLevels[i];
-        @SuppressWarnings("NullAway")
         final Void unused = exprs[i].accept(this);
       }
     }
