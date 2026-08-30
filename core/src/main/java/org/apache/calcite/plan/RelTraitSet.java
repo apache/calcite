@@ -24,7 +24,7 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -397,7 +397,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelDistribution> @Nullable T getDistribution() {
-    return (@Nullable T) getTrait(RelDistributionTraitDef.INSTANCE);
+    return (T) getTrait(RelDistributionTraitDef.INSTANCE);
   }
 
   /**
@@ -430,7 +430,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelCollation> @Nullable T getCollation() {
-    return (@Nullable T) getTrait(RelCollationTraitDef.INSTANCE);
+    return (T) getTrait(RelCollationTraitDef.INSTANCE);
   }
 
   /**
@@ -470,8 +470,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   public <T extends RelTrait> T canonize(T trait) {
     if (trait == null) {
-      // Return "trait" makes the input type to be the same as the output type,
-      // so checkerframework is happy
+      // Returning "trait" keeps the output type identical to the input type
       return trait;
     }
 

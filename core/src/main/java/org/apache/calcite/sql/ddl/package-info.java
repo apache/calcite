@@ -27,4 +27,7 @@
  * the parser and its supporting classes into your own module, rather than try
  * to extend this one.
  */
+@NullMarked
 package org.apache.calcite.sql.ddl;
+
+import org.jspecify.annotations.NullMarked;

@@ -56,7 +56,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Suppliers;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
-  @SuppressWarnings("methodref.receiver.bound.invalid")
+  @SuppressWarnings("NullAway")
   private final Supplier<RelProtoDataType> protoRowTypeSupplier =
       Suppliers.memoize(this::supplyProto);
   public final JdbcSchema jdbcSchema;
@@ -106,7 +106,7 @@ public class JdbcTable extends AbstractQueryableTable
     return jdbcTableType;
   }
 
-  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
+  @Override public <C> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(jdbcSchema.getDataSource())) {
       return aClass.cast(jdbcSchema.getDataSource());
     } else if (aClass.isInstance(jdbcSchema.dialect)) {

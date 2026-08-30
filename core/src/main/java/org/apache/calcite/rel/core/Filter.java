@@ -41,8 +41,7 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -78,7 +77,7 @@ public abstract class Filter extends SingleRel implements Hintable {
    * @param condition boolean expression which determines whether a row is
    *                  allowed to pass
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   protected Filter(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -199,7 +198,6 @@ public abstract class Filter extends SingleRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  @EnsuresNonNullIf(expression = "#1", result = true)
   protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;

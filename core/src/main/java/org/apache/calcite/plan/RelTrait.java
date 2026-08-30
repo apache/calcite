@@ -20,7 +20,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.util.mapping.Mappings;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RelTrait represents the manifestation of a relational expression trait within

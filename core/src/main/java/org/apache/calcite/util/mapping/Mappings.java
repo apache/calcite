@@ -25,8 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CheckReturnValue;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -1358,8 +1357,7 @@ public abstract class Mappings {
         return i < targets.length;
       }
 
-      private void advance(
-          @UnknownInitialization MappingItr this) {
+      private void advance() {
         do {
           ++i;
         } while (i < targets.length && targets[i] == -1);
@@ -1718,7 +1716,7 @@ public abstract class Mappings {
       return size;
     }
 
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("NullAway")
     @Override public Iterator<IntPair> iterator() {
       return new Iterator<IntPair>() {
         int i = -1;

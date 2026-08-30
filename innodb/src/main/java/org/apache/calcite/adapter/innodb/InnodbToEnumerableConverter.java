@@ -42,7 +42,7 @@ import org.apache.calcite.util.Util;
 
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.Collections;

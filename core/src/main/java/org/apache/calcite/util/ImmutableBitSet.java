@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -24,10 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.nio.LongBuffer;
@@ -286,7 +284,6 @@ public class ImmutableBitSet
   /**
    * Given a bit index, return word index containing it.
    */
-  @Pure
   private static int wordIndex(int bitIndex) {
     return bitIndex >> ADDRESS_BITS_PER_WORD;
   }
@@ -1044,7 +1041,6 @@ public class ImmutableBitSet
 
     @RequiresNonNull("equivalence")
     private ImmutableBitSet computeClosure(
-        @UnderInitialization Closure this,
         int pos) {
       ImmutableBitSet o = closure.get(pos);
       if (o != null) {

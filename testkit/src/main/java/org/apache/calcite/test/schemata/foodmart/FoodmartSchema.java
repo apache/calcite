@@ -18,7 +18,7 @@ package org.apache.calcite.test.schemata.foodmart;
 
 import org.apache.calcite.test.CalciteAssert;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 

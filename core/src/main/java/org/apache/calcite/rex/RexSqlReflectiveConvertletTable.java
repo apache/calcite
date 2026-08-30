@@ -18,7 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.sql.SqlOperator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +51,7 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
 
     // Is there a convertlet for this class of operator
     // (e.g. SqlBinaryOperator)?
-    @Nullable Class<?> clazz = op.getClass();
+    Class<?> clazz = op.getClass();
     while (clazz != null) {
       convertlet = (RexSqlConvertlet) map.get(clazz);
       if (convertlet != null) {

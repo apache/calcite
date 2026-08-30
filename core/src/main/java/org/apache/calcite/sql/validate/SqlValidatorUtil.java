@@ -70,7 +70,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -246,10 +246,7 @@ public class SqlValidatorUtil {
         ImmutableBitSet.of(
             Util.transform(sourceRowType.getFieldList(),
                 RelDataTypeField::getIndex));
-    // checkerframework: found   : Set<@KeyFor("indexToField") Integer>
-    //noinspection RedundantCast
-    ImmutableBitSet target =
-        ImmutableBitSet.of((Iterable<Integer>) indexToField.keySet());
+    ImmutableBitSet target = ImmutableBitSet.of(indexToField.keySet());
     return source.intersect(target);
   }
 
@@ -1548,7 +1545,7 @@ public class SqlValidatorUtil {
     SqlCall call = sqlCallBinding.getCall();
     List<RelDataType> operandTypes = sqlCallBinding.collectOperandTypes();
     List<SqlNode> operands = call.getOperandList();
-    @Nullable List<SqlNode> adjustedOperands = null;
+    List<SqlNode> adjustedOperands = null;
     RelDataType elementType;
     for (int i = 0; i < operands.size(); i++) {
       if (i % 2 == 0) {
@@ -1627,7 +1624,7 @@ public class SqlValidatorUtil {
     /** Copies a list of nodes. */
     public static @Nullable SqlNodeList copy(SqlValidatorScope scope, SqlNodeList list) {
       //noinspection deprecation
-      return (@Nullable SqlNodeList) list.accept(new DeepCopier(scope));
+      return (SqlNodeList) list.accept(new DeepCopier(scope));
     }
 
     @Override public SqlNode visit(SqlNodeList list) {

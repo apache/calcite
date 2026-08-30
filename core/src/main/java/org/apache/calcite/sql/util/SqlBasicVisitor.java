@@ -25,7 +25,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Basic implementation of {@link SqlVisitor} which does nothing at each node.
@@ -36,7 +36,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * @param <R> Return type
  */
-public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
+public class SqlBasicVisitor<R extends @Nullable Object> implements SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------
 
   @Override public R visit(SqlLiteral literal) {
@@ -77,7 +77,7 @@ public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
   /** Argument handler.
    *
    * @param <R> result type */
-  public interface ArgHandler<R> {
+  public interface ArgHandler<R extends @Nullable Object> {
     /** Returns the result of visiting all children of a call to an operator,
      * then the call itself.
      *
@@ -102,7 +102,7 @@ public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
    *
    * @param <R> result type
    */
-  public static class ArgHandlerImpl<@Nullable R> implements ArgHandler<R> {
+  public static class ArgHandlerImpl<R extends @Nullable Object> implements ArgHandler<R> {
     private static final ArgHandler<?> INSTANCE = new ArgHandlerImpl<>();
 
     @SuppressWarnings("unchecked")

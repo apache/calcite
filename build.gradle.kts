@@ -734,8 +734,10 @@ allprojects {
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
                     replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
-                    replaceRegex("jsr305 nullable -> checkerframework", "javax\\.annotation\\.Nullable", "org.checkerframework.checker.nullness.qual.Nullable")
-                    replaceRegex("jsr305 nonnull -> checkerframework", "javax\\.annotation\\.Nonnull", "org.checkerframework.checker.nullness.qual.NonNull")
+                    replaceRegex("jsr305 nullable -> jspecify", "javax\\.annotation\\.Nullable", "org.jspecify.annotations.Nullable")
+                    replaceRegex("jsr305 nonnull -> jspecify", "javax\\.annotation\\.Nonnull", "org.jspecify.annotations.NonNull")
+                    replaceRegex("checkerframework nullable -> jspecify", "org\\.checkerframework\\.checker\\.nullness\\.qual\\.Nullable", "org.jspecify.annotations.Nullable")
+                    replaceRegex("checkerframework nonnull -> jspecify", "org\\.checkerframework\\.checker\\.nullness\\.qual\\.NonNull", "org.jspecify.annotations.NonNull")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",

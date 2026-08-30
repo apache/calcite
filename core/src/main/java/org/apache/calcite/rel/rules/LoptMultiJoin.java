@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -35,11 +37,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -139,12 +137,12 @@ public class LoptMultiJoin {
    * Bitmap indicating which factors each factor references in join filters
    * that correspond to comparisons.
    */
-  ImmutableBitSet @MonotonicNonNull [] factorsRefByFactor;
+  @MonotonicNonNull ImmutableBitSet[] factorsRefByFactor;
 
   /**
    * Weights of each factor combination.
    */
-  int @MonotonicNonNull [][] factorWeights;
+  @MonotonicNonNull int[][] factorWeights;
 
   /**
    * Type factory.
@@ -448,7 +446,6 @@ public class LoptMultiJoin {
    */
   @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   ImmutableBitSet getJoinFilterFactorBitmap(
-      @UnderInitialization LoptMultiJoin this,
       RexNode joinFilter,
       boolean setFields) {
     ImmutableBitSet fieldRefBitmap = fieldBitmap(joinFilter);
@@ -470,8 +467,7 @@ public class LoptMultiJoin {
    * references.
    */
   @RequiresNonNull({"allJoinFilters", "joinStart", "nFieldsInJoinFactor"})
-  private void setJoinFilterRefs(
-      @UnderInitialization LoptMultiJoin this) {
+  private void setJoinFilterRefs() {
     ListIterator<RexNode> filterIter = allJoinFilters.listIterator();
     while (filterIter.hasNext()) {
       RexNode joinFilter = filterIter.next();
@@ -497,7 +493,6 @@ public class LoptMultiJoin {
    */
   @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   private ImmutableBitSet factorBitmap(
-      @UnknownInitialization LoptMultiJoin this,
       ImmutableBitSet fieldRefBitmap) {
     ImmutableBitSet.Builder factorRefBitmap = ImmutableBitSet.builder();
     for (int field : fieldRefBitmap) {
@@ -516,7 +511,6 @@ public class LoptMultiJoin {
    */
   @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   public int findRef(
-      @UnknownInitialization LoptMultiJoin this,
       int rexInputRef) {
     for (int i = 0; i < nJoinFactors; i++) {
       if ((rexInputRef >= joinStart[i])

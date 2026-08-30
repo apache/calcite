@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Source of rows.

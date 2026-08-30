@@ -71,7 +71,6 @@ dependencies {
         apiv("com.yahoo.datasketches:sketches-core")
         apiv("commons-codec:commons-codec")
         apiv("commons-io:commons-io")
-        apiv("org.checkerframework:checker-qual", "checkerframework")
         apiv("org.locationtech.jts:jts-core")
         apiv("org.locationtech.jts.io:jts-io-common")
         apiv("org.locationtech.proj4j:proj4j")

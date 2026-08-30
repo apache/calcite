@@ -18,7 +18,7 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.PairList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.AbstractList;
@@ -43,7 +43,7 @@ import static java.util.Objects.requireNonNull;
  * @param <T1> Left-hand type
  * @param <T2> Right-hand type
  */
-@SuppressWarnings("type.argument.type.incompatible")
+@SuppressWarnings("NullAway")
 public class Pair<T1, T2>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
@@ -82,7 +82,8 @@ public class Pair<T1, T2>
    * @param right right value
    * @return A Pair
    */
-  public static <T1, T2> Pair<T1, T2> of(T1 left, T2 right) {
+  public static <T1, T2> Pair<T1, T2> of(
+      T1 left, T2 right) {
     return new Pair<>(left, right);
   }
 

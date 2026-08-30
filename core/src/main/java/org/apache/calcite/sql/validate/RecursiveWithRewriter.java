@@ -45,8 +45,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -254,7 +253,6 @@ final class RecursiveWithRewriter {
     }
   }
 
-  @EnsuresNonNullIf(expression = "#1", result = true)
   private boolean isSelfReference(@Nullable SqlNode node) {
     return node instanceof SqlIdentifier && ((SqlIdentifier) node).isSimple()
         && matcher.matches(((SqlIdentifier) node).getSimple(), item.name.getSimple());

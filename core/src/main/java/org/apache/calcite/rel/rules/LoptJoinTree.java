@@ -19,9 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +37,6 @@ import static java.util.Objects.requireNonNull;
 public class LoptJoinTree {
   //~ Instance fields --------------------------------------------------------
 
-  @NotOnlyInitialized
   private final BinaryTree factorTree;
   private final RelNode joinTree;
   private final boolean removableSelfJoin;
@@ -53,7 +49,7 @@ public class LoptJoinTree {
    * @param joinTree RelNode corresponding to the single node
    * @param factorId factor id of the node
    */
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   public LoptJoinTree(RelNode joinTree, int factorId) {
     this.joinTree = joinTree;
     this.factorTree = new Leaf(factorId, this);
@@ -159,10 +155,9 @@ public class LoptJoinTree {
    * track of the parent LoptJoinTree object associated with the binary tree.
    */
   protected abstract static class BinaryTree {
-    @NotOnlyInitialized
     private final LoptJoinTree parent;
 
-    protected BinaryTree(@UnderInitialization LoptJoinTree parent) {
+    protected BinaryTree(LoptJoinTree parent) {
       this.parent = parent;
     }
 
@@ -177,7 +172,7 @@ public class LoptJoinTree {
   protected static class Leaf extends BinaryTree {
     private final int id;
 
-    public Leaf(int rootId, @UnderInitialization LoptJoinTree parent) {
+    public Leaf(int rootId, LoptJoinTree parent) {
       super(parent);
       this.id = rootId;
     }
@@ -197,7 +192,7 @@ public class LoptJoinTree {
     private final BinaryTree left;
     private final BinaryTree right;
 
-    public Node(BinaryTree left, BinaryTree right, @UnderInitialization LoptJoinTree parent) {
+    public Node(BinaryTree left, BinaryTree right, LoptJoinTree parent) {
       super(parent);
       this.left = requireNonNull(left, "left");
       this.right = requireNonNull(right, "right");

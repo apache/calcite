@@ -26,7 +26,7 @@ import java.util.List;
 abstract class MutableSingleRel extends MutableRel {
   protected MutableRel input;
 
-  @SuppressWarnings("initialization.invalid.field.write.initialized")
+  @SuppressWarnings("NullAway")
   protected MutableSingleRel(MutableRelType type,
       RelDataType rowType, MutableRel input) {
     super(input.cluster, rowType, type);

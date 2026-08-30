@@ -21,9 +21,8 @@ import org.apache.calcite.util.ImmutableNullableList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -263,7 +262,7 @@ public class FlatLists {
   }
 
   /** Returns a list that consists of a given list plus an element. */
-  public static <E extends Object> List<E> append(List<E> list, E e) {
+  public static <E> List<E> append(List<E> list, E e) {
     if (list instanceof AbstractFlatList) {
       //noinspection unchecked
       return ((AbstractFlatList) list).append(e);
@@ -275,13 +274,13 @@ public class FlatLists {
 
   /** Returns a list that consists of a given list plus an element, guaranteed
    * to be an {@link ImmutableList}. */
-  public static <E extends Object> ImmutableList<E> append(ImmutableList<E> list, E e) {
+  public static <E> ImmutableList<E> append(ImmutableList<E> list, E e) {
     return ImmutableList.<E>builder().addAll(list).add(e).build();
   }
 
   /** Returns a map that consists of a given map plus an (key, value),
    * guaranteed to be an {@link ImmutableMap}. */
-  public static <K extends Object, V extends Object> ImmutableMap<K, V> append(
+  public static <K, V> ImmutableMap<K, V> append(
       Map<K, V> map, K k, V v) {
     final ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
     builder.put(k, v);
@@ -407,7 +406,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat1List<@PolyNull T> this) {
+    @Override public @Nullable Object[] toArray(Flat1List<@Nullable T> this) {
       return new Object[] {castNonNull(t0)};
     }
 
@@ -540,7 +539,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat2List<@PolyNull T> this) {
+    @Override public @Nullable Object[] toArray(Flat2List<@Nullable T> this) {
       return new Object[] {castNonNull(t0), castNonNull(t1)};
     }
 
@@ -690,7 +689,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat3List<@PolyNull T> this) {
+    @Override public @Nullable Object[] toArray(Flat3List<@Nullable T> this) {
       return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2)};
     }
 
@@ -859,7 +858,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat4List<@PolyNull T> this) {
+    @Override public @Nullable Object[] toArray(Flat4List<@Nullable T> this) {
       return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
           castNonNull(t3)};
     }
@@ -1048,7 +1047,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat5List<@PolyNull T> this) {
+    @Override public @Nullable Object[] toArray(Flat5List<@Nullable T> this) {
       return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
           castNonNull(t3), castNonNull(t4)};
     }
@@ -1257,7 +1256,7 @@ public class FlatLists {
       return a;
     }
 
-    @Override public @PolyNull Object[] toArray(Flat6List<@PolyNull T> this) {
+    @Override public @Nullable Object[] toArray(Flat6List<@Nullable T> this) {
       return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
           castNonNull(t3), castNonNull(t4), castNonNull(t5)};
     }

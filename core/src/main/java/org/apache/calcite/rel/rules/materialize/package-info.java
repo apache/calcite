@@ -18,4 +18,7 @@
 /**
  * Provides a materialized rewriting algorithm encapsulated within a planner rule.
  */
+@NullMarked
 package org.apache.calcite.rel.rules.materialize;
+
+import org.jspecify.annotations.NullMarked;

@@ -23,7 +23,7 @@ import org.apache.calcite.sql.SqlOperator;
 
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rex;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ import java.util.List;
  *
  * @param <R> Return type from each {@code visitXxx} method.
  */
-public class RexVisitorImpl<@Nullable R> implements RexVisitor<R> {
+public class RexVisitorImpl<R extends @Nullable Object> implements RexVisitor<R> {
   //~ Instance fields --------------------------------------------------------
 
   protected final boolean deep;

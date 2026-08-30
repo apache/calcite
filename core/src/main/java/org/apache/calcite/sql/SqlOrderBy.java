@@ -19,9 +19,11 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -35,11 +37,10 @@ import static java.util.Objects.requireNonNull;
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
-    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
-      return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
-          operands[2], operands[3]);
+      return new SqlOrderBy(pos, castNonNull(operands[0]),
+          castNonNull((SqlNodeList) operands[1]), operands[2], operands[3]);
     }
   };
 
@@ -69,7 +70,7 @@ public class SqlOrderBy extends SqlCall {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }

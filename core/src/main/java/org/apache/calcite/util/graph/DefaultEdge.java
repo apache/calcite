@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -47,9 +47,7 @@ public class DefaultEdge {
     return source + " -> " + target;
   }
 
-  public static <V extends Object> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    // see https://github.com/typetools/checker-framework/issues/3637
-    //noinspection Convert2MethodRef
-    return (source1, target1) -> new DefaultEdge(source1, target1);
+  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
+    return DefaultEdge::new;
   }
 }

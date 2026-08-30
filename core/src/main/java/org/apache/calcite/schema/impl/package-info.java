@@ -18,4 +18,7 @@
 /**
  * Utilities to help implement Calcite's SPIs.
  */
+@NullMarked
 package org.apache.calcite.schema.impl;
+
+import org.jspecify.annotations.NullMarked;

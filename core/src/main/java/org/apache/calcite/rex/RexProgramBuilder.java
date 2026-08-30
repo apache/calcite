@@ -24,7 +24,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,7 +66,7 @@ public class RexProgramBuilder {
   /**
    * Creates a program-builder.
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
       @Nullable RexSimplify unusedSimplify) {
     this.inputRowType = requireNonNull(inputRowType, "inputRowType");
@@ -94,7 +94,7 @@ public class RexProgramBuilder {
    * @param normalize      Whether to normalize
    * @param simplify       Simplifier, or null to not simplify
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   private RexProgramBuilder(
       RexBuilder rexBuilder,
       final RelDataType inputRowType,

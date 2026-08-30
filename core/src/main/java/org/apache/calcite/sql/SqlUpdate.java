@@ -23,8 +23,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -37,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 public class SqlUpdate extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("UPDATE", SqlKind.UPDATE) {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
             SqlParserPos pos,
             @Nullable SqlNode... operands) {
@@ -90,13 +89,13 @@ public class SqlUpdate extends SqlCall {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, targetColumnList,
         sourceExpressionList, condition, sourceSelect, alias);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -129,7 +128,6 @@ public class SqlUpdate extends SqlCall {
   }
 
   /** Returns the alias for the target table of this UPDATE. */
-  @Pure
   public @Nullable SqlIdentifier getAlias() {
     return alias;
   }

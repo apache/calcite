@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -338,7 +338,7 @@ class PairLists {
 
     @Override public void reverse() {
       for (int i = 0, j = list.size() - 2; i < j;) {
-        @Nullable Object o = list.get(i);
+        Object o = list.get(i);
         list.set(i, list.get(j));
         list.set(j, o);
         o = list.get(i + 1);

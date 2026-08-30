@@ -18,7 +18,7 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function1;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -555,7 +555,7 @@ public abstract class Linq4j {
       return getCollection().size();
     }
 
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     @Override public boolean contains(T element) {
       return getCollection().contains(element);
     }
@@ -664,7 +664,8 @@ public abstract class Linq4j {
   /** Enumerator that returns one null element.
    *
    * @param <E> element type */
-  private static class SingletonNullEnumerator<@Nullable E> implements Enumerator<E> {
+  private static class SingletonNullEnumerator<E extends @Nullable Object>
+      implements Enumerator<E> {
     int i = 0;
 
     @Override public E current() {

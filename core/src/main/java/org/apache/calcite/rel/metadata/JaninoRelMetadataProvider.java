@@ -30,11 +30,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.ICompilerFactory;
 import org.codehaus.commons.compiler.ISimpleCompiler;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -106,7 +106,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
+  @Override public <M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     throw new UnsupportedOperationException();
   }

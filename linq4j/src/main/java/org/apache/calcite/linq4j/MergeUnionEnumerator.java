@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.EqualityComparer;
 import org.apache.calcite.linq4j.function.Function1;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.HashSet;
@@ -88,8 +87,8 @@ final class MergeUnionEnumerator<TSource, TKey> implements Enumerator<TSource> {
   }
 
   @RequiresNonNull("inputs")
-  @SuppressWarnings("method.invocation.invalid")
-  private void initEnumerators(@UnknownInitialization MergeUnionEnumerator<TSource, TKey> this) {
+  @SuppressWarnings("NullAway")
+  private void initEnumerators() {
     for (int i = 0; i < inputs.length; i++) {
       moveEnumerator(i);
     }
@@ -114,7 +113,7 @@ final class MergeUnionEnumerator<TSource, TKey> implements Enumerator<TSource> {
     }
 
     // check duplicates
-    @SuppressWarnings("dereference.of.nullable")
+    @SuppressWarnings("NullAway")
     final EnumerableDefaults.Wrapped<TSource> wrapped = wrapper.apply(value);
     if (!processed.contains(wrapped)) {
       final TKey key = sortKeySelector.apply(value);
@@ -122,7 +121,7 @@ final class MergeUnionEnumerator<TSource, TKey> implements Enumerator<TSource> {
         // Since inputs are sorted, we do not need to keep in the set all the items that we
         // have previously returned, just the ones with the same key, as soon as we see a new
         // key, we can clear the set containing the items belonging to the previous key
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         final int sortComparison = sortComparator.compare(key, currentKeyInProcessedSet);
         if (sortComparison != 0) {
           processed.clear();

@@ -31,7 +31,6 @@ dependencies {
 
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.hadoop:hadoop-common")
-    implementation("org.checkerframework:checker-qual")
     implementation("org.jspecify:jspecify")
     implementation("org.slf4j:slf4j-api")
 

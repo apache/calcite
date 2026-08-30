@@ -39,7 +39,7 @@ public class RelCrossType extends RelDataTypeImpl {
    * Creates a cartesian product type. This should only be called from a
    * factory method.
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("NullAway")
   public RelCrossType(
       List<RelDataType> types,
       List<RelDataTypeField> fields) {

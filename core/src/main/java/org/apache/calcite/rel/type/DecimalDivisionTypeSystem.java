@@ -19,7 +19,7 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Type system that reduces decimal division scale based on the number of

@@ -20,7 +20,7 @@ import org.apache.calcite.linq4j.Enumerator;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -276,7 +276,7 @@ public abstract class Types {
    *
    * @return Whether parameter can be assigned from argument
    */
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   private static boolean assignableFrom(Class<?> parameter, Class<?> argument) {
     return parameter.isAssignableFrom(argument)
            || parameter.isPrimitive()

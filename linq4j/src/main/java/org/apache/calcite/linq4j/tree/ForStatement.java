@@ -18,7 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.Ord;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;

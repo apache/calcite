@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -63,7 +61,7 @@ public interface ImmutablePairList<T, U> extends PairList<T, U> {
   /** Creates an ImmutablePairList whose contents are a copy of a given
    * collection. */
   @SuppressWarnings("unchecked")
-  static <@NonNull T, @NonNull U> ImmutablePairList<T, U> copyOf(
+  static <T, U> ImmutablePairList<T, U> copyOf(
       Iterable<? extends Map.Entry<T, U>> iterable) {
     // Every PairList - mutable and immutable - knows how to quickly make
     // itself immutable.

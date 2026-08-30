@@ -90,7 +90,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Reader;
 import java.sql.PreparedStatement;
@@ -155,7 +155,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         mutable ? context.getMutableRootSchema()
             : context.getRootSchema();
     for (String p : path) {
-      @Nullable CalciteSchema subSchema = schema.getSubSchema(p, true);
+      CalciteSchema subSchema = schema.getSubSchema(p, true);
       if (subSchema == null) {
         return Pair.of(null, name);
       }
@@ -319,7 +319,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       CalcitePrepare.Context context) {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, false, drop.name);
-    final @Nullable CalciteSchema schema =
+    final CalciteSchema schema =
         pair.left; // null if schema does not exist
     final String objectName = pair.right;
 

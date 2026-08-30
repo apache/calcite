@@ -25,7 +25,6 @@ dependencies {
     api(project(":core"))
     api(project(":file"))
     api(project(":linq4j"))
-    api("org.checkerframework:checker-qual")
     api("org.jspecify:jspecify")
 
     implementation("com.fasterxml.jackson.core:jackson-core")

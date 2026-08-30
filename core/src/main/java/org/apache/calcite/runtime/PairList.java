@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +39,8 @@ import static org.apache.calcite.linq4j.Nullness.castNonNullList;
  * @param <T> First type
  * @param <U> Second type
  */
-public interface PairList<T, U> extends List<Map.Entry<T, U>> {
+public interface PairList<T, U>
+    extends List<Map.Entry<T, U>> {
   /** Creates an empty PairList. */
   static <T, U> PairList<T, U> of() {
     return new PairLists.MutablePairList<>(new ArrayList<>());
@@ -187,6 +188,8 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
    * reversed.
    *
    * <p>Throws {@link NullPointerException} if any keys or values are null. */
+  // On JDK 21 and later this overrides List.reversed(), but Calcite still compiles on JDK 8
+  @SuppressWarnings("MissingOverride")
   ImmutablePairList<T, U> reversed();
 
   /** Action to be taken each step of an indexed iteration over a PairList.

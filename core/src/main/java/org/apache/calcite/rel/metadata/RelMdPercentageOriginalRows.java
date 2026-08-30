@@ -27,8 +27,7 @@ import org.apache.calcite.rel.core.Union;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -235,9 +234,9 @@ public class RelMdPercentageOriginalRows {
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 
-  private static @PolyNull Double quotientForPercentage(
-      @PolyNull Double numerator,
-      @PolyNull Double denominator) {
+  private static @Nullable Double quotientForPercentage(
+      @Nullable Double numerator,
+      @Nullable Double denominator) {
     if ((numerator == null) || (denominator == null)) {
       return null;
     }

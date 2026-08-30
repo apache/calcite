@@ -21,7 +21,7 @@ import org.apache.calcite.util.TestUnsafe;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

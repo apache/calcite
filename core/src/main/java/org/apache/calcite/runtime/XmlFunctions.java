@@ -20,7 +20,7 @@ import org.apache.calcite.util.SimpleNamespaceContext;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;

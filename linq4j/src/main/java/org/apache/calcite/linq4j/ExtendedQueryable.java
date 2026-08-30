@@ -33,8 +33,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -44,7 +43,6 @@ import java.util.Comparator;
  *
  * @param <TSource> Element type
  */
-@Covariant(0)
 interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**

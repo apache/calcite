@@ -28,7 +28,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.TransientTable;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Implementation of {@link org.apache.calcite.avatica.util.Cursor} on top of an

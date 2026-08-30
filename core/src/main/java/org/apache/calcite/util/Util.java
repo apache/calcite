@@ -43,9 +43,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -684,7 +682,7 @@ public class Util {
    * characters found in {@code search} are replaced by the character in the same position in
    * {@code replacement}; if {@code replacement} is shorter, remaining matches are removed.
    */
-  public static @PolyNull String replaceChars(@PolyNull String s, @Nullable String search,
+  public static @Nullable String replaceChars(@Nullable String s, @Nullable String search,
       @Nullable String replacement) {
     if (s == null || s.isEmpty() || search == null || search.isEmpty()) {
       return s;
@@ -1865,8 +1863,8 @@ public class Util {
    * @param clazz Class to cast to
    * @return An iterator whose members are of the desired type.
    */
-  public static <E extends @PolyNull Object> Iterator<E> cast(
-      final Iterator<? extends @PolyNull Object> iter,
+  public static <E> Iterator<E> cast(
+      final Iterator<? extends @Nullable Object> iter,
       final Class<E> clazz) {
     return transform(iter, x -> clazz.cast(castNonNull(x)));
   }
@@ -2127,7 +2125,7 @@ public class Util {
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  public static <T extends Object> @PolyNull T first(@Nullable T v0, @PolyNull T v1) {
+  public static <T> @Nullable T first(@Nullable T v0, @Nullable T v1) {
     return v0 != null ? v0 : v1;
   }
 
@@ -2576,7 +2574,7 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
-      @SuppressWarnings("override.return.invalid")
+      @SuppressWarnings("NullAway")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -2746,7 +2744,8 @@ public class Util {
   }
 
   /** Transforms a list, applying a function to each element. */
-  public static <F, T> List<T> transform(List<? extends F> list,
+  public static <F, T>
+      List<T> transform(List<? extends F> list,
       java.util.function.Function<? super F, ? extends T> function) {
     if (list.isEmpty() && list instanceof ImmutableList) {
       return ImmutableList.of(); // save ourselves some effort
@@ -2759,7 +2758,8 @@ public class Util {
 
   /** Transforms a list, applying a function to each element, also passing in
    * the element's index in the list. */
-  public static <F, T> List<T> transformIndexed(List<? extends F> list,
+  public static <F, T>
+      List<T> transformIndexed(List<? extends F> list,
       BiFunction<? super F, Integer, ? extends T> function) {
     if (list.isEmpty() && list instanceof ImmutableList) {
       return ImmutableList.of(); // save ourselves some effort
@@ -2772,7 +2772,8 @@ public class Util {
 
   /** Transforms an iterable, applying a function to each element. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <F, T> Iterable<T> transform(Iterable<? extends F> iterable,
+  public static <F, T>
+      Iterable<T> transform(Iterable<? extends F> iterable,
       java.util.function.Function<? super F, ? extends T> function) {
     // FluentIterable provides toString
     return new FluentIterable<T>() {
@@ -2784,7 +2785,8 @@ public class Util {
 
   /** Transforms an iterator. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <F, T> Iterator<T> transform(Iterator<? extends F> iterator,
+  public static <F, T>
+      Iterator<T> transform(Iterator<? extends F> iterator,
       java.util.function.Function<? super F, ? extends T> function) {
     return new TransformingIterator<>(iterator, function);
   }
@@ -2883,7 +2885,6 @@ public class Util {
       this.node = node;
     }
 
-    @Pure
     public @Nullable Object getNode() {
       return node;
     }
@@ -3003,7 +3004,7 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      @SuppressWarnings("method.invocation.invalid")
+      @SuppressWarnings("NullAway")
       T current = moveNext();
       this.current = current;
     }

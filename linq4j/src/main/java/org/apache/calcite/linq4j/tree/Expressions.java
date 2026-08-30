@@ -26,7 +26,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -2754,7 +2754,7 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * without a default case.
    */
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   public static SwitchStatement switch_(Expression switchValue,
       SwitchCase... cases) {
     return switch_(switchValue, null, null, toList(cases));
@@ -2764,7 +2764,7 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   public static SwitchStatement switch_(Expression switchValue,
       Expression defaultBody, SwitchCase... cases) {
     return switch_(switchValue, defaultBody, null, toList(cases));
