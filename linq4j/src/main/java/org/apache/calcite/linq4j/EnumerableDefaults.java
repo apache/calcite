@@ -34,6 +34,7 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultiset;
@@ -2529,6 +2530,50 @@ public abstract class EnumerableDefaults {
         };
 
         return EnumerableDefaults.where(outer.enumerator(), predicate);
+      }
+    };
+  }
+
+  /**
+   * Joins pairs that satisfy two inequality predicates.
+   *
+   * <p>Each operator compares a left key with a right key using the
+   * corresponding comparator. Null keys do not match. Both inputs are
+   * materialized and sorted before the first result is returned.
+   *
+   * @throws IllegalArgumentException if either operator is not
+   *     {@link ExpressionType#LessThan}, {@link ExpressionType#LessThanOrEqual},
+   *     {@link ExpressionType#GreaterThan}, or
+   *     {@link ExpressionType#GreaterThanOrEqual}
+   */
+  public static <TLeft, TRight, TKey1, TKey2, TResult>
+      Enumerable<TResult> ieJoin(Enumerable<TLeft> left,
+      Enumerable<TRight> right,
+      Function1<? super TLeft, TKey1> leftKeySelector1,
+      Function1<? super TRight, TKey1> rightKeySelector1,
+      Function1<? super TLeft, TKey2> leftKeySelector2,
+      Function1<? super TRight, TKey2> rightKeySelector2,
+      Comparator<? super TKey1> comparator1,
+      Comparator<? super TKey2> comparator2,
+      ExpressionType operator1, ExpressionType operator2,
+      Function2<? super TLeft, ? super TRight, TResult> resultSelector) {
+    for (ExpressionType operator : Arrays.asList(operator1, operator2)) {
+      switch (operator) {
+      case LessThan:
+      case LessThanOrEqual:
+      case GreaterThan:
+      case GreaterThanOrEqual:
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported IEJoin operator: " + operator);
+      }
+    }
+    return new AbstractEnumerable<TResult>() {
+      @Override public Enumerator<TResult> enumerator() {
+        return new IEJoinEnumerator<>(left, right,
+            leftKeySelector1, rightKeySelector1,
+            leftKeySelector2, rightKeySelector2,
+            comparator1, comparator2, operator1, operator2, resultSelector);
       }
     };
   }
