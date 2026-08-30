@@ -87,7 +87,7 @@ public class RelWriterImpl implements RelWriter {
     s.append(rel.getRelTypeName());
     if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
       int j = 0;
-      for (Pair<String, @Nullable Object> value : values) {
+      for (Pair<String, Object> value : values) {
         if (value.right instanceof RelNode) {
           continue;
         }
@@ -186,7 +186,7 @@ public class RelWriterImpl implements RelWriter {
    */
   public String simple() {
     final StringBuilder buf = new StringBuilder("(");
-    for (Ord<Pair<String, @Nullable Object>> ord : Ord.zip(values)) {
+    for (Ord<Pair<String, Object>> ord : Ord.zip(values)) {
       if (ord.i > 0) {
         buf.append(", ");
       }

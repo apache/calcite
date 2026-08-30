@@ -154,10 +154,10 @@ public class SetOpToFilterRule
     }
 
     int branchCount = 0;
-    for (Map.Entry<Pair<RelNode, @Nullable Integer>, List<@Nullable RexNode>> entry
+    for (Map.Entry<Pair<RelNode, Integer>, List<RexNode>> entry
         : sourceToConds.entrySet()) {
-      Pair<RelNode, @Nullable Integer> left = entry.getKey();
-      List<@Nullable RexNode> conds = entry.getValue();
+      Pair<RelNode, Integer> left = entry.getKey();
+      List<RexNode> conds = entry.getValue();
       // Single null condition indicates pass-through branch,
       // directly add its corresponding input to the new inputs list.
       if (conds.size() == 1 && conds.get(0) == null) {

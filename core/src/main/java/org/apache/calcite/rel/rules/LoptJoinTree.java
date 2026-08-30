@@ -49,7 +49,6 @@ public class LoptJoinTree {
    * @param joinTree RelNode corresponding to the single node
    * @param factorId factor id of the node
    */
-  @SuppressWarnings("NullAway")
   public LoptJoinTree(RelNode joinTree, int factorId) {
     this.joinTree = joinTree;
     this.factorTree = new Leaf(factorId, this);

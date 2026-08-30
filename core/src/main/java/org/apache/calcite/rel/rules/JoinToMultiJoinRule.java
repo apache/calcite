@@ -363,7 +363,7 @@ public class JoinToMultiJoinRule
       requireNonNull(destFields, "destFields");
       int[] adjustments = new int[srcFields.size()];
       Arrays.fill(adjustments, adjustmentAmount);
-      for (Pair<JoinRelType, @Nullable RexNode> src : srcJoinSpecs) {
+      for (Pair<JoinRelType, RexNode> src : srcJoinSpecs) {
         destJoinSpecs.add(
             Pair.of(
                 src.left,

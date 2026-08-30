@@ -39,7 +39,6 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   private final RelDataTypeHolder holder;
 
   /** Creates a DynamicRecordTypeImpl. */
-  @SuppressWarnings("NullAway")
   public DynamicRecordTypeImpl(RelDataTypeFactory typeFactory) {
     this.holder = new RelDataTypeHolder(typeFactory);
     computeDigest();

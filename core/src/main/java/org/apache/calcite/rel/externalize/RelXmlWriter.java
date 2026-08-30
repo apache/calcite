@@ -99,7 +99,7 @@ public class RelXmlWriter extends RelWriterImpl {
     xmlOutput.endBeginTag("RelNode");
 
     final List<RelNode> inputs = new ArrayList<>();
-    for (Pair<String, @Nullable Object> pair : values) {
+    for (Pair<String, Object> pair : values) {
       if (pair.right instanceof RelNode) {
         inputs.add((RelNode) pair.right);
         continue;
@@ -144,7 +144,7 @@ public class RelXmlWriter extends RelWriterImpl {
     xmlOutput.beginBeginTag(tagName);
     xmlOutput.attribute("id", rel.getId() + "");
 
-    for (Pair<String, @Nullable Object> value : values) {
+    for (Pair<String, Object> value : values) {
       if (value.right instanceof RelNode) {
         continue;
       }

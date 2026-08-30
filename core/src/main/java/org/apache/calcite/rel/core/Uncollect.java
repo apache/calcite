@@ -139,7 +139,6 @@ public class Uncollect extends SingleRel {
    * @param isOuter                 If true, preserves input rows with null/empty
    *                                collections (LEFT JOIN); if false, drops them (INNER)
    */
-  @SuppressWarnings("NullAway")
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       boolean withOrdinality, List<String> itemAliases,
       ImmutableBitSet passthroughFieldIndices, ImmutableBitSet collectionFieldIndices,
