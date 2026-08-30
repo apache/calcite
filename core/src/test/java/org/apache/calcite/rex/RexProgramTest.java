@@ -1136,6 +1136,72 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(div(vInt(), nullInt), "null:INTEGER");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7694">[CALCITE-7694]
+   * RexSimplify should simplify comparisons involving RAND() using its [0, 1) range</a>. */
+  @Test void simplifyRand() {
+    // RAND() >= 1 is always false; RAND() < 1 (equivalently) covers the bound
+    checkSimplify(gt(rand(), literal(1.0)), "false");
+    checkSimplify(ge(rand(), literal(1.0)), "false");
+    checkSimplify(lt(rand(), literal(0.0)), "false");
+    checkSimplify(le(rand(), literal(-0.1)), "false");
+
+    // RAND() >= 0 > -0.5 is always true; RAND() < 1 is always true
+    checkSimplify(gt(rand(), literal(-0.5)), "true");
+    checkSimplify(lt(rand(), literal(1.0)), "true");
+
+    // literal on the left is normalized by flipping the comparison
+    checkSimplify(gt(literal(1.0), rand()), "true");
+
+    // arithmetic on RAND() is normalized before the range check
+    // RAND() * 3 < 3  ->  RAND() < 1.0  ->  true
+    checkSimplify(lt(mul(rand(), literal(3)), literal(3)), "true");
+    // RAND() + 1 < 2  ->  RAND() < 1.0  ->  true
+    checkSimplify(lt(add(rand(), literal(1)), literal(2)), "true");
+    // RAND() - 1 > 0  ->  RAND() > 1.0  ->  false
+    checkSimplify(gt(sub(rand(), literal(1)), literal(0)), "false");
+    // RAND() / 2 > 1  ->  RAND() > 2.0  ->  false
+    checkSimplify(gt(div(rand(), literal(2)), literal(1)), "false");
+    // negative coefficient flips the comparison: 1 - RAND() > 1  ->  RAND() < 0.0  ->  false
+    checkSimplify(gt(sub(literal(1), rand()), literal(1)), "false");
+
+    // RAND() = d / RAND() <> d for d outside [0, 1)
+    checkSimplify(eq(rand(), literal(5.0)), "false");
+    checkSimplify(ne(rand(), literal(5.0)), "true");
+    // arithmetic normalized before the equality check: RAND() * 2 = 4 -> RAND() = 2.0 -> false
+    checkSimplify(eq(mul(rand(), literal(2)), literal(4)), "false");
+
+    // RAND(seed) has the same [0, 1) range, so the same simplifications apply
+    checkSimplify(gt(rand(literal(1)), literal(1.0)), "false");
+    checkSimplify(lt(rand(literal(1)), literal(1.0)), "true");
+
+    // exact BigDecimal arithmetic: RAND() * 0.1 < 0.3  ->  RAND() < 3  ->  true
+    checkSimplify(
+        lt(mul(rand(), literal(new BigDecimal("0.1"))),
+        literal(new BigDecimal("0.3"))), "true");
+    // bound 5/3 is not exactly representable, but the endpoint comparison is done
+    // by multiplication (no division), so 3*RAND() < 5  ->  RAND() < 5/3  ->  true
+    checkSimplify(lt(mul(literal(3), rand()), literal(5)), "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7694">[CALCITE-7694]
+   * RexSimplify should simplify comparisons involving RAND() using its [0, 1) range</a>. */
+  @Test void simplifyRandUnchanged() {
+    // RAND() in [0, 1): value inside the range is undecidable
+    checkSimplifyUnchanged(gt(rand(), literal(0.5)));
+    checkSimplifyUnchanged(lt(rand(), literal(0.5)));
+    // equality against a value inside [0, 1) is undecidable
+    checkSimplifyUnchanged(eq(rand(), literal(0.5)));
+    // RAND() * (-1) < 0  ->  RAND() > 0.0, which is undecidable (RAND() may be 0)
+    checkSimplifyUnchanged(lt(mul(rand(), literal(-1)), literal(0)));
+    // non-linear: two RAND() calls are not normalized
+    checkSimplifyUnchanged(lt(mul(rand(), rand()), literal(1)));
+    // dividing RAND() by 3 gives a coefficient of 1/3 with no exact decimal
+    // expansion; extractLinearRand bails out rather than rounding the coefficient
+    checkSimplifyUnchanged(gt(div(rand(), literal(3)), literal(5)));
+  }
+
   @Test void testSimplifyFilter() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);

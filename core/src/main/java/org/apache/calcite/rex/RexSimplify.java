@@ -794,6 +794,24 @@ public class RexSimplify {
       }
     }
 
+    // Simplify comparisons involving RAND() function.
+    // RAND() returns values in [0, 1), so certain comparisons can be reduced.
+    // Short-circuit the (potentially recursive) checks below when neither
+    // operand mentions RAND(), which is the common case.
+    if (findRandCall(o0) != null || findRandCall(o1) != null) {
+      final @Nullable RexNode randSimplified =
+          simplifyRandComparison(e.getKind(), o0, o1);
+      if (randSimplified != null) {
+        return randSimplified;
+      }
+
+      // Normalize comparisons with arithmetic on RAND(), e.g. RAND() * 3 < 3 → RAND() < 1.0
+      final @Nullable RexNode normalized = normalizeRandComparison(e);
+      if (normalized != null && !normalized.equals(e)) {
+        return simplify(normalized, unknownAs);
+      }
+    }
+
     RexNode node = simplifyComparisonWithNull(e, unknownAs);
     if (node instanceof RexLiteral) {
       return node;
@@ -3792,6 +3810,290 @@ public class RexSimplify {
         this.nullAs = this.nullAs.or(UNKNOWN);
         break;
       }
+    }
+  }
+
+  /** Checks if a RexNode is a numeric literal (possibly wrapped in CAST). */
+  private static boolean isNumericLiteral(RexNode node) {
+    RexNode stripped = RexUtil.removeCast(node);
+    return stripped.isA(SqlKind.LITERAL)
+        && SqlTypeUtil.isNumeric(stripped.getType());
+  }
+
+  /** Extracts an exact {@link BigDecimal} value from a numeric literal. */
+  private static BigDecimal getLiteralBigDecimal(RexNode node) {
+    RexNode stripped = RexUtil.removeCast(node);
+    assert stripped instanceof RexLiteral;
+    Comparable<?> value = ((RexLiteral) stripped).getValue();
+    if (value instanceof BigDecimal) {
+      return (BigDecimal) value;
+    }
+    if (value instanceof Double) {
+      return BigDecimal.valueOf((Double) value);
+    }
+    throw new AssertionError("Unexpected literal value: " + value);
+  }
+
+  /**
+   * Normalizes comparisons with arithmetic on RAND() into a constant boolean
+   * when the comparison is decidable from the [0, 1) range.
+   * For example, RAND() * 3 < 3 → RAND() < 1.0 → true.
+   *
+   * @param e The comparison expression
+   * @return Constant boolean literal, or null if the comparison is undecidable
+   */
+  private @Nullable RexNode normalizeRandComparison(RexCall e) {
+    final RexNode o0 = e.operands.get(0);
+    final RexNode o1 = e.operands.get(1);
+
+    // Try: randExpr <op> literal
+    RexNode result = tryNormalizeRandExpr(o0, o1, e.getKind());
+    if (result != null) {
+      return result;
+    }
+    // Try: literal <op> randExpr → flip comparison and normalize
+    return tryNormalizeRandExpr(o1, o0, e.getKind().reverse());
+  }
+
+  /**
+   * Counts the number of RAND() calls in an expression tree.
+   */
+  private static int countRandCalls(RexNode expr) {
+    if (isRandCall(expr)) {
+      return 1;
+    }
+    if (expr instanceof RexCall) {
+      int count = 0;
+      for (RexNode operand : ((RexCall) expr).getOperands()) {
+        count += countRandCalls(operand);
+      }
+      return count;
+    }
+    return 0;
+  }
+
+  /**
+   * Finds the first RAND() call in an expression tree.
+   */
+  private static @Nullable RexNode findRandCall(RexNode expr) {
+    if (isRandCall(expr)) {
+      return expr;
+    }
+    if (expr instanceof RexCall) {
+      for (RexNode operand : ((RexCall) expr).getOperands()) {
+        RexNode rand = findRandCall(operand);
+        if (rand != null) {
+          return rand;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Extracts the linear coefficient and offset of RAND() from an expression.
+   * For a linear expression coef * RAND() + offset, returns Pair.of(coef, offset).
+   * Returns null if the expression is not linear in RAND().
+   *
+   * <p>Uses {@link BigDecimal} arithmetic so that the normalized bound is exact;
+   * a non-terminating division yields null rather than a rounded approximation.
+   */
+  private @Nullable Pair<BigDecimal, BigDecimal> extractLinearRand(RexNode expr) {
+    if (isRandCall(expr)) {
+      return Pair.of(BigDecimal.ONE, BigDecimal.ZERO);
+    }
+    if (isNumericLiteral(expr)) {
+      return Pair.of(BigDecimal.ZERO, getLiteralBigDecimal(expr));
+    }
+    if (!(expr instanceof RexCall)) {
+      return null;
+    }
+    final RexCall call = (RexCall) expr;
+    if (call.getOperands().size() != 2) {
+      return null;
+    }
+    final Pair<BigDecimal, BigDecimal> l = extractLinearRand(call.getOperands().get(0));
+    final Pair<BigDecimal, BigDecimal> r = extractLinearRand(call.getOperands().get(1));
+    if (l == null || r == null) {
+      return null;
+    }
+
+    switch (call.getKind()) {
+    case PLUS:
+    case CHECKED_PLUS:
+      return Pair.of(l.left.add(r.left), l.right.add(r.right));
+    case MINUS:
+    case CHECKED_MINUS:
+      return Pair.of(l.left.subtract(r.left), l.right.subtract(r.right));
+    case TIMES:
+    case CHECKED_TIMES:
+      // Non-linear: both sides contain RAND() → RAND() * RAND()
+      if (l.left.signum() != 0 && r.left.signum() != 0) {
+        return null;
+      }
+      // (c1*RAND + o1) * (c2*RAND + o2) where c1=0 or c2=0
+      // Result: (c1*o2 + c2*o1)*RAND + o1*o2
+      return Pair.of(l.left.multiply(r.right).add(l.right.multiply(r.left)),
+          l.right.multiply(r.right));
+    case DIVIDE:
+    case CHECKED_DIVIDE:
+      // Right side cannot contain RAND()
+      if (r.left.signum() != 0) {
+        return null;
+      }
+      if (r.right.signum() == 0) {
+        return null; // divide by zero
+      }
+      try {
+        return Pair.of(l.left.divide(r.right), l.right.divide(r.right));
+      } catch (ArithmeticException e) {
+        return null; // non-terminating decimal expansion; cannot represent exactly
+      }
+    default:
+      return null;
+    }
+  }
+
+  /**
+   * Tries to normalize {@code randExpr <op> literal} by rewriting the linear
+   * arithmetic on RAND() into a comparison of RAND() against a constant bound,
+   * then evaluating it against the [0, 1) range.
+   * For example, {@code 2*RAND()+1 < 3 → RAND() < 1.0 → true}.
+   *
+   * @param randExpr Expression that may contain RAND()
+   * @param literal The other operand (must be a literal)
+   * @param kind Comparison kind
+   * @return Constant boolean literal if the comparison is decidable, else null
+   */
+  private @Nullable RexNode tryNormalizeRandExpr(RexNode randExpr, RexNode literal,
+      SqlKind kind) {
+    if (!isNumericLiteral(literal)) {
+      return null;
+    }
+    // Already pure RAND(), no arithmetic to normalize
+    if (isRandCall(randExpr)) {
+      return null;
+    }
+    // Must contain exactly one RAND() call
+    if (countRandCalls(randExpr) != 1) {
+      return null;
+    }
+    Pair<BigDecimal, BigDecimal> linear = extractLinearRand(randExpr);
+    if (linear == null) {
+      return null;
+    }
+    final BigDecimal coef = linear.left;
+    final BigDecimal offset = linear.right;
+    if (coef.signum() == 0) {
+      return null; // no RAND() in expression
+    }
+
+    // coef * RAND() + offset <op> d
+    // → RAND() <op/op'> (d - offset) / coef  (flip op when coef < 0)
+    // Avoid the division: the bound is (d - offset) / coef, so its position
+    // relative to an endpoint e is sign((d - offset) - e * coef) * sign(coef).
+    final BigDecimal d = getLiteralBigDecimal(literal);
+    final BigDecimal num = d.subtract(offset);
+    final int coefSign = coef.signum();
+    final SqlKind newKind = coefSign > 0 ? kind : kind.reverse();
+    final int cmp0 = num.signum() * coefSign;                    // bound vs 0
+    final int cmp1 = num.subtract(coef).signum() * coefSign;     // bound vs 1
+    final Boolean result = evalRandComparison(newKind, cmp0, cmp1);
+    return result == null ? null : rexBuilder.makeLiteral(result);
+  }
+
+  /** Checks if a RexNode is a RAND() function call.
+   *  Note: RAND(seed) with seed is also handled.
+   */
+  private static boolean isRandCall(RexNode node) {
+    if (node instanceof RexCall) {
+      RexCall call = (RexCall) node;
+      return call.getOperator() == SqlStdOperatorTable.RAND;
+    }
+    return false;
+  }
+
+  /** Simplifies comparisons involving RAND() function.
+   *  RAND() returns values in [0, 1), so certain comparisons can be reduced.
+   *  For example, RAND() > 1.0 is always false, RAND() < 0.0 is always false.
+   *
+   * @param kind The comparison kind (GREATER_THAN, LESS_THAN, etc.)
+   * @param o0 The first operand
+   * @param o1 The second operand
+   * @return The simplified RexNode, or null if no simplification is possible
+   */
+  private @Nullable RexNode simplifyRandComparison(SqlKind kind, RexNode o0, RexNode o1) {
+    // Check if one operand is RAND() and the other is a literal (possibly wrapped in CAST)
+    RexNode strippedO0 = RexUtil.removeCast(o0);
+    RexNode strippedO1 = RexUtil.removeCast(o1);
+    if (isRandCall(strippedO0) && strippedO1.isA(SqlKind.LITERAL)) {
+      return simplifyRandComparison0(kind, (RexLiteral) strippedO1, true);
+    }
+    if (strippedO0.isA(SqlKind.LITERAL) && isRandCall(strippedO1)) {
+      return simplifyRandComparison0(kind, (RexLiteral) strippedO0, false);
+    }
+    return null;
+  }
+
+  /** Helper method to simplify RAND() comparison.
+   *
+   * @param kind The comparison kind
+   * @param literal The literal value
+   * @param randIsLeft Whether RAND() is on the left side of the comparison
+   * @return The simplified RexNode, or null if no simplification is possible
+   */
+  private @Nullable RexNode simplifyRandComparison0(SqlKind kind, RexLiteral literal,
+      boolean randIsLeft) {
+    // For DOUBLE type, getValue() returns Double; for DECIMAL, it returns BigDecimal
+    final Comparable<?> value = literal.getValue();
+    final BigDecimal d;
+    if (value instanceof BigDecimal) {
+      d = (BigDecimal) value;
+    } else if (value instanceof Double) {
+      d = BigDecimal.valueOf((Double) value);
+    } else {
+      return null;
+    }
+    // Compare the bound d against the range endpoints 0 and 1.
+    final SqlKind op = randIsLeft ? kind : kind.reverse();
+    final Boolean result = evalRandComparison(op, d.signum(), d.compareTo(BigDecimal.ONE));
+    return result == null ? null : rexBuilder.makeLiteral(result);
+  }
+
+  /**
+   * Evaluates {@code RAND() <op> bound} using the knowledge that RAND() lies in
+   * the half-open range [0, 1), given only the sign of {@code bound} and the
+   * sign of {@code bound - 1}. Taking the two comparisons as inputs lets callers
+   * decide them with exact arithmetic (e.g. via multiplication instead of
+   * division) rather than materializing the bound.
+   *
+   * @param op The comparison kind, oriented as RAND() on the left
+   * @param cmp0 The sign of {@code bound} (i.e. {@code bound} compared with 0)
+   * @param cmp1 The sign of {@code bound - 1} (i.e. {@code bound} compared with 1)
+   * @return TRUE or FALSE if the comparison is decidable, else null
+   */
+  private static @Nullable Boolean evalRandComparison(SqlKind op, int cmp0, int cmp1) {
+    switch (op) {
+    case GREATER_THAN:
+      // RAND() > d: true if d < 0, false if d >= 1
+      return cmp0 < 0 ? Boolean.TRUE : cmp1 >= 0 ? Boolean.FALSE : null;
+    case GREATER_THAN_OR_EQUAL:
+      // RAND() >= d: true if d <= 0, false if d >= 1
+      return cmp0 <= 0 ? Boolean.TRUE : cmp1 >= 0 ? Boolean.FALSE : null;
+    case LESS_THAN:
+      // RAND() < d: true if d >= 1, false if d <= 0
+      return cmp1 >= 0 ? Boolean.TRUE : cmp0 <= 0 ? Boolean.FALSE : null;
+    case LESS_THAN_OR_EQUAL:
+      // RAND() <= d: true if d >= 1, false if d < 0
+      return cmp1 >= 0 ? Boolean.TRUE : cmp0 < 0 ? Boolean.FALSE : null;
+    case EQUALS:
+      // RAND() = d: always false when d is outside [0, 1); undecidable otherwise
+      return cmp0 < 0 || cmp1 >= 0 ? Boolean.FALSE : null;
+    case NOT_EQUALS:
+      // RAND() <> d: always true when d is outside [0, 1); undecidable otherwise
+      return cmp0 < 0 || cmp1 >= 0 ? Boolean.TRUE : null;
+    default:
+      return null;
     }
   }
 }
