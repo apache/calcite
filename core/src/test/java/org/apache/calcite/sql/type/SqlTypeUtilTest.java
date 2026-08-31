@@ -122,6 +122,30 @@ class SqlTypeUtilTest {
     return builder.build();
   }
 
+  @Test void testContainsType() {
+    assertThat(SqlTypeUtil.containsType(f.sqlInt,
+        SqlTypeUtil::isApproximateNumeric), is(false));
+    assertThat(SqlTypeUtil.containsType(f.sqlFloat,
+        SqlTypeUtil::isApproximateNumeric), is(true));
+    assertThat(SqlTypeUtil.containsType(struct(f.sqlInt, f.arrayFloat),
+        SqlTypeUtil::isApproximateNumeric), is(true));
+    assertThat(SqlTypeUtil.containsType(f.arrayOfArrayFloat,
+        SqlTypeUtil::isApproximateNumeric), is(true));
+    assertThat(SqlTypeUtil.containsType(f.multisetFloat,
+        SqlTypeUtil::isApproximateNumeric), is(true));
+
+    final RelDataType floatKeyMap =
+        f.typeFactory.createMapType(f.sqlFloat, f.sqlInt);
+    final RelDataType floatValueMap =
+        f.typeFactory.createMapType(f.sqlInt, f.sqlFloat);
+    assertThat(SqlTypeUtil.containsType(floatKeyMap,
+        SqlTypeUtil::isApproximateNumeric), is(true));
+    assertThat(SqlTypeUtil.containsType(floatValueMap,
+        SqlTypeUtil::isApproximateNumeric), is(true));
+    assertThat(SqlTypeUtil.containsType(struct(f.arrayBigInt, f.mapOfInt),
+        SqlTypeUtil::isApproximateNumeric), is(false));
+  }
+
   @Test void testModifyTypeCoercionMappings() {
     SqlTypeMappingRules.Builder builder = SqlTypeMappingRules.builder();
     final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();

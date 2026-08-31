@@ -552,22 +552,7 @@ public class RelMdFunctionalDependency
    * including when nested in rows, collections, or maps.
    */
   private static boolean typeSupportsGroupKeyInference(RelDataType type) {
-    if (SqlTypeUtil.isApproximateNumeric(type) || SqlTypeUtil.isInterval(type)) {
-      return false;
-    }
-    if (type.isStruct() && type.getFieldList().stream()
-        .anyMatch(field -> !typeSupportsGroupKeyInference(field.getType()))) {
-      return false;
-    }
-    final RelDataType componentType = type.getComponentType();
-    if (componentType != null && !typeSupportsGroupKeyInference(componentType)) {
-      return false;
-    }
-    final RelDataType keyType = type.getKeyType();
-    if (keyType != null && !typeSupportsGroupKeyInference(keyType)) {
-      return false;
-    }
-    final RelDataType valueType = type.getValueType();
-    return valueType == null || typeSupportsGroupKeyInference(valueType);
+    return !SqlTypeUtil.containsType(type,
+        t -> SqlTypeUtil.isApproximateNumeric(t) || SqlTypeUtil.isInterval(t));
   }
 }
