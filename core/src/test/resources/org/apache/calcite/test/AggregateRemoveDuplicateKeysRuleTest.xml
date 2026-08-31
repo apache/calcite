@@ -16,6 +16,25 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testKeepsDerivedGroupKeyForNestedDouble">
+    <Resource name="sql">
+      <![CDATA[select x, x[1] as y, count(*) as c
+from (values (array[cast(0 as double)]),
+  (array[cast(1 as double)])) as t(x)
+group by x, x[1]]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+  LogicalProject(X=[$0], Y=[ITEM($0, 1)])
+    LogicalUnion(all=[true])
+      LogicalProject(EXPR$0=[ARRAY(0.0E0:DOUBLE)])
+        LogicalValues(tuples=[[{ 0 }]])
+      LogicalProject(EXPR$0=[ARRAY(1.0E0:DOUBLE)])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testKeepsDoubleGroupKeyInferredFromEquality">
     <Resource name="sql">
       <![CDATA[select x, y, count(*) as c

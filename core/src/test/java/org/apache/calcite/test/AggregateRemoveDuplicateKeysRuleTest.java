@@ -130,6 +130,19 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .checkUnchanged();
   }
 
+  @Test void testKeepsDerivedGroupKeyForNestedDouble() {
+    // Determinism alone is insufficient for approximate values, including
+    // nested occurrences. Keep the derived key unless grouping equality is
+    // known to be congruent with the expression for ARRAY<DOUBLE>.
+    final String sql = "select x, x[1] as y, count(*) as c\n"
+        + "from (values (array[cast(0 as double)]),\n"
+        + "  (array[cast(1 as double)])) as t(x)\n"
+        + "group by x, x[1]";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
   @Test void testKeepsNonRedundantGroupKeys() {
     final String sql = "select deptno, job, count(*) as c\n"
         + "from emp\n"

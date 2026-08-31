@@ -275,7 +275,8 @@ public class RelMdFunctionalDependency
         ImmutableBitSet bitSet = expr instanceof RexInputRef
             ? ImmutableBitSet.of(((RexInputRef) expr).getIndex())
             : inputBits[i];
-        if (inputFdSet.implies(refIndex, bitSet)) {
+        if (typeSupportsGroupKeyInference(k.getType())
+            && inputFdSet.implies(refIndex, bitSet)) {
           fdBuilder.addArrow(v, i);
         }
       });
@@ -519,8 +520,8 @@ public class RelMdFunctionalDependency
         RexNode right = operands.get(1);
 
         if (left instanceof RexInputRef && right instanceof RexInputRef
-            && typeSupportsEqualityInference(left.getType())
-            && typeSupportsEqualityInference(right.getType())) {
+            && typeSupportsGroupKeyInference(left.getType())
+            && typeSupportsGroupKeyInference(right.getType())) {
           int leftRef = ((RexInputRef) left).getIndex();
           int rightRef = ((RexInputRef) right).getIndex();
 
@@ -537,7 +538,7 @@ public class RelMdFunctionalDependency
   private static boolean fieldsSupportEqualityInference(RelNode input,
       ImmutableBitSet fields) {
     for (int field : fields) {
-      if (!typeSupportsEqualityInference(
+      if (!typeSupportsGroupKeyInference(
           input.getRowType().getFieldList().get(field).getType())) {
         return false;
       }
@@ -546,27 +547,27 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Returns whether SQL equality for a type is compatible with grouping-key
-   * equality. Approximate numerics and intervals are unsafe, including when
-   * nested in rows, collections, or maps.
+   * Returns whether a type can safely be used to infer that one grouping key
+   * determines another. Approximate numerics and intervals are unsafe,
+   * including when nested in rows, collections, or maps.
    */
-  private static boolean typeSupportsEqualityInference(RelDataType type) {
+  private static boolean typeSupportsGroupKeyInference(RelDataType type) {
     if (SqlTypeUtil.isApproximateNumeric(type) || SqlTypeUtil.isInterval(type)) {
       return false;
     }
     if (type.isStruct() && type.getFieldList().stream()
-        .anyMatch(field -> !typeSupportsEqualityInference(field.getType()))) {
+        .anyMatch(field -> !typeSupportsGroupKeyInference(field.getType()))) {
       return false;
     }
     final RelDataType componentType = type.getComponentType();
-    if (componentType != null && !typeSupportsEqualityInference(componentType)) {
+    if (componentType != null && !typeSupportsGroupKeyInference(componentType)) {
       return false;
     }
     final RelDataType keyType = type.getKeyType();
-    if (keyType != null && !typeSupportsEqualityInference(keyType)) {
+    if (keyType != null && !typeSupportsGroupKeyInference(keyType)) {
       return false;
     }
     final RelDataType valueType = type.getValueType();
-    return valueType == null || typeSupportsEqualityInference(valueType);
+    return valueType == null || typeSupportsGroupKeyInference(valueType);
   }
 }
