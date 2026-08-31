@@ -2139,6 +2139,25 @@ public class RexSimplify {
           strongOperands.add(rexFieldAccess);
         }
       }
+      // Also probe sub-expressions coming from IS_NOT_NULL(...) predicates that
+      // are not bare input refs or field accesses (e.g. CAST calls); without
+      // this, IS_NOT_NULL(CAST(x)) AND (CAST(x) + 1) < 10 would not be absorbed
+      for (RexNode operand : notNullOperands) {
+        if (operand instanceof RexInputRef
+            || operand instanceof RexFieldAccess
+            || strongOperands.contains(operand)
+            || !RexUtil.isDeterministic(operand)) {
+          continue;
+        }
+        final Strong strong = new Strong() {
+          @Override public boolean isNull(RexNode node) {
+            return node.equals(operand) || super.isNull(node);
+          }
+        };
+        if (strong.isNotTrue(term)) {
+          strongOperands.add(operand);
+        }
+      }
     }
     // If one column should be null and is in a comparison predicate,
     // it is not satisfiable.
