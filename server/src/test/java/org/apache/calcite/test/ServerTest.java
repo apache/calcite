@@ -241,6 +241,77 @@ class ServerTest {
     }
   }
 
+  /** Tests DELETE on a single-column table, whose Java row type is a
+   * primitive. */
+  @Test void testDeleteSingleColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (i int not null)");
+      s.executeUpdate("insert into t values (1)");
+      s.executeUpdate("insert into t values (2)");
+      s.executeUpdate("insert into t values (3)");
+
+      // Delete 0 rows (no predicate match)
+      int count = s.executeUpdate("delete from t where i = 99");
+      assertThat(count, is(0));
+
+      // Delete 1 row
+      count = s.executeUpdate("delete from t where i = 2");
+      assertThat(count, is(1));
+
+      try (ResultSet r = s.executeQuery("select count(*) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(2));
+      }
+
+      // Delete the two remaining rows
+      count = s.executeUpdate("delete from t where i > 0");
+      assertThat(count, is(2));
+
+      try (ResultSet r = s.executeQuery("select count(*) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(0));
+      }
+    }
+  }
+
+  /** Tests DELETE on a single-column table whose Java row type is already a
+   * reference. */
+  @Test void testDeleteSingleObjectColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (v varchar(10) not null)");
+      s.executeUpdate("insert into t values ('a')");
+      s.executeUpdate("insert into t values ('b')");
+
+      final int count = s.executeUpdate("delete from t where v = 'a'");
+      assertThat(count, is(1));
+
+      try (ResultSet r = s.executeQuery("select count(*) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(1));
+      }
+    }
+  }
+
+  /** Tests DELETE on a nullable single-column table. */
+  @Test void testDeleteSingleNullableColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (i int)");
+      s.executeUpdate("insert into t values (1)");
+      s.executeUpdate("insert into t values (2)");
+
+      final int count = s.executeUpdate("delete from t where i = 1");
+      assertThat(count, is(1));
+
+      try (ResultSet r = s.executeQuery("select count(*) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(1));
+      }
+    }
+  }
+
   @Test void testDeleteDuplicateRows() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
