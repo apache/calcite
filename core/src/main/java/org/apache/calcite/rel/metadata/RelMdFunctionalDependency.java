@@ -293,7 +293,7 @@ public class RelMdFunctionalDependency
 
       // Map all determinant columns
       ImmutableBitSet mappedDeterminants = mapAllCols(determinants, mapping);
-      if (mappedDeterminants.isEmpty()) {
+      if (mappedDeterminants.isEmpty() && !determinants.isEmpty()) {
         continue;
       }
 
@@ -346,18 +346,13 @@ public class RelMdFunctionalDependency
     ArrowSet inputFdSet = mq.getFDs(rel.getInput());
 
     ImmutableBitSet groupSet = rel.getGroupSet();
+    Mappings.TargetMapping inputToOutputMap =
+        Mappings.target(groupSet::indexOf,
+            rel.getInput().getRowType().getFieldCount(), rel.getGroupCount());
 
     // Preserve input FDs that only involve group columns
     if (Aggregate.isSimple(rel)) {
-      for (Arrow inputFd : inputFdSet.getArrows()) {
-        ImmutableBitSet determinants = inputFd.getDeterminants();
-        ImmutableBitSet dependents = inputFd.getDependents();
-
-        // Only preserve if both determinants and dependents are within group columns
-        if (groupSet.contains(determinants) && groupSet.contains(dependents)) {
-          fdBuilder.addArrow(determinants, dependents);
-        }
-      }
+      mapInputFDs(inputFdSet, inputToOutputMap, fdBuilder);
 
       // Add transitive dependencies within group columns
       for (int groupCol : groupSet) {
@@ -365,7 +360,8 @@ public class RelMdFunctionalDependency
         ImmutableBitSet closure = inputFdSet.dependents(singleton);
         ImmutableBitSet groupDependents = closure.intersect(groupSet).except(singleton);
         if (!groupDependents.isEmpty()) {
-          fdBuilder.addArrow(singleton, groupDependents);
+          fdBuilder.addArrow(mapAllCols(singleton, inputToOutputMap),
+              mapAllCols(groupDependents, inputToOutputMap));
         }
       }
     }
@@ -374,7 +370,7 @@ public class RelMdFunctionalDependency
     if (!groupSet.isEmpty() && !rel.getAggCallList().isEmpty()) {
       ImmutableBitSet aggCols =
           ImmutableBitSet.range(rel.getGroupCount(), rel.getRowType().getFieldCount());
-      fdBuilder.addArrow(groupSet, aggCols);
+      fdBuilder.addArrow(ImmutableBitSet.range(rel.getGroupCount()), aggCols);
     }
 
     return fdBuilder.build();

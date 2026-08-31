@@ -100,6 +100,21 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .checkUnchanged();
   }
 
+  @Test void testMapsFdForNonContiguousAggregateGroupSet() {
+    // AggregateProjectMergeRule changes the input group set to {1, 2, 3},
+    // whose keys occupy output positions {0, 1, 2}. Map the input FD 1 -> 2
+    // to output FD 0 -> 1, so the rule removes b rather than c.
+    final String sql = "select a, b, c, count(*) as n\n"
+        + "from (values (0, 1, 1, 10), (0, 1, 1, 20))\n"
+        + "  as t(z, a, b, c)\n"
+        + "where a = b\n"
+        + "group by a, b, c";
+
+    sql(sql).withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .check();
+  }
+
   @Test void testKeepsNonRedundantGroupKeys() {
     final String sql = "select deptno, job, count(*) as c\n"
         + "from emp\n"
