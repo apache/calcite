@@ -3026,6 +3026,27 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /**
+   * Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7758">[CALCITE-7758]
+   * RexSimplify does not absorb redundant IS NOT NULL on non-input-ref sub-expressions
+   * in AND simplification</a>.
+   */
+  @Test void testSimplifyIsNotNullAndStrongExpressionWithCast() {
+    // "unsafe" cast
+    checkSimplifyFilter(
+        and(
+            lt(plus(cast(vVarchar(), tDouble(true)), literal(1)), literal(10)),
+            isNotNull(cast(vVarchar(), tDouble(true)))),
+        "<(+(CAST(?0.varchar0):DOUBLE, 1), 10)");
+
+    // safe cast
+    checkSimplifyFilter(
+        and(
+            lt(plus(cast(vInt(), tDouble(true)), literal(1)), literal(10)),
+            isNotNull(cast(vInt(), tDouble(true)))),
+        "<(+(CAST(?0.int0):DOUBLE, 1), 10)");
+  }
+
+  /**
    * Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7722">[CALCITE-7722]
    * RexSimplify IS [NOT] NULL on a safe operator with Strong policy ANY and unsafe operands
    * can be further simplified</a>.
