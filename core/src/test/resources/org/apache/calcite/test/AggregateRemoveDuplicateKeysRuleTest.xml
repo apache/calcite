@@ -16,6 +16,27 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testKeepsDoubleGroupKeyInferredFromEquality">
+    <Resource name="sql">
+      <![CDATA[select x, y, count(*) as c
+from (values
+  (cast(0 as double), cast(0 as double)),
+  (cast(0 as double), -cast(0 as double))) as t(x, y)
+where x = y
+group by x, y]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+  LogicalFilter(condition=[=($0, $1)])
+    LogicalProject(X=[$0], Y=[$1])
+      LogicalUnion(all=[true])
+        LogicalValues(tuples=[[{ 0.0E0, 0.0E0 }]])
+        LogicalProject(EXPR$0=[0.0E0:DOUBLE], EXPR$1=[-(0.0E0:DOUBLE)])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testKeepsFdFromNullGeneratingInputOfLeftJoin">
     <Resource name="sql">
       <![CDATA[select r.a, r.y, count(*) as c

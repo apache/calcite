@@ -29,12 +29,14 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Arrow;
 import org.apache.calcite.util.ArrowSet;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -475,7 +477,9 @@ public class RelMdFunctionalDependency
 
     if (joinType == JoinRelType.LEFT || joinType == JoinRelType.RIGHT) {
       final JoinInfo joinInfo = rel.analyzeCondition();
-      if (!joinInfo.isEqui() || joinInfo.leftKeys.isEmpty()) {
+      if (!joinInfo.isEqui() || joinInfo.leftKeys.isEmpty()
+          || !fieldsSupportEqualityInference(rel.getLeft(), joinInfo.leftSet())
+          || !fieldsSupportEqualityInference(rel.getRight(), joinInfo.rightSet())) {
         return;
       }
 
@@ -514,7 +518,9 @@ public class RelMdFunctionalDependency
         RexNode left = operands.get(0);
         RexNode right = operands.get(1);
 
-        if (left instanceof RexInputRef && right instanceof RexInputRef) {
+        if (left instanceof RexInputRef && right instanceof RexInputRef
+            && typeSupportsEqualityInference(left.getType())
+            && typeSupportsEqualityInference(right.getType())) {
           int leftRef = ((RexInputRef) left).getIndex();
           int rightRef = ((RexInputRef) right).getIndex();
 
@@ -522,5 +528,45 @@ public class RelMdFunctionalDependency
         }
       }
     }
+  }
+
+  /**
+   * Returns whether equality on the given fields can safely imply a functional
+   * dependency for grouping purposes.
+   */
+  private static boolean fieldsSupportEqualityInference(RelNode input,
+      ImmutableBitSet fields) {
+    for (int field : fields) {
+      if (!typeSupportsEqualityInference(
+          input.getRowType().getFieldList().get(field).getType())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether SQL equality for a type is compatible with grouping-key
+   * equality. Approximate numerics and intervals are unsafe, including when
+   * nested in rows, collections, or maps.
+   */
+  private static boolean typeSupportsEqualityInference(RelDataType type) {
+    if (SqlTypeUtil.isApproximateNumeric(type) || SqlTypeUtil.isInterval(type)) {
+      return false;
+    }
+    if (type.isStruct() && type.getFieldList().stream()
+        .anyMatch(field -> !typeSupportsEqualityInference(field.getType()))) {
+      return false;
+    }
+    final RelDataType componentType = type.getComponentType();
+    if (componentType != null && !typeSupportsEqualityInference(componentType)) {
+      return false;
+    }
+    final RelDataType keyType = type.getKeyType();
+    if (keyType != null && !typeSupportsEqualityInference(keyType)) {
+      return false;
+    }
+    final RelDataType valueType = type.getValueType();
+    return valueType == null || typeSupportsEqualityInference(valueType);
   }
 }

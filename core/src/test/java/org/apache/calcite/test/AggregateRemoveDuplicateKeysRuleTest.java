@@ -115,6 +115,21 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .check();
   }
 
+  @Test void testKeepsDoubleGroupKeyInferredFromEquality() {
+    // SQL equality considers 0.0 and -0.0 equal, but Enumerable grouping
+    // distinguishes their Double keys. Therefore x = y does not prove that
+    // x determines y for the purpose of removing y from the GROUP BY.
+    final String sql = "select x, y, count(*) as c\n"
+        + "from (values\n"
+        + "  (cast(0 as double), cast(0 as double)),\n"
+        + "  (cast(0 as double), -cast(0 as double))) as t(x, y)\n"
+        + "where x = y\n"
+        + "group by x, y";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
   @Test void testKeepsNonRedundantGroupKeys() {
     final String sql = "select deptno, job, count(*) as c\n"
         + "from emp\n"
