@@ -22,6 +22,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.rtti.BasicSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
+import org.apache.calcite.util.UuidValue;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
@@ -37,7 +38,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 import static org.apache.calcite.runtime.rtti.RuntimeTypeInformation.RuntimeSqlTypeName.NAME;
 
@@ -55,7 +55,7 @@ public class VariantNonNull extends VariantSqlValue {
     // sanity check
     switch (runtimeType.getTypeName()) {
     case UUID:
-      assert value instanceof UUID;
+      assert value instanceof UuidValue;
       this.value = value;
       break;
     case NAME:

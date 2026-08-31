@@ -60,6 +60,7 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.UuidValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
@@ -1576,7 +1577,12 @@ public class RexBuilder {
   }
 
   public RexLiteral makeUuidLiteral(@Nullable UUID uuid) {
-    return new RexLiteral(uuid, typeFactory.createSqlType(SqlTypeName.UUID), SqlTypeName.UUID);
+    UuidValue uuidValue = (uuid != null) ? new UuidValue(uuid) : null;
+    return new RexLiteral(uuidValue, typeFactory.createSqlType(SqlTypeName.UUID), SqlTypeName.UUID);
+  }
+
+  public RexLiteral makeUuidLiteral(@Nullable UuidValue uuidValue) {
+    return new RexLiteral(uuidValue, typeFactory.createSqlType(SqlTypeName.UUID), SqlTypeName.UUID);
   }
 
   /**
@@ -2374,7 +2380,11 @@ public class RexBuilder {
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
     case UUID:
-      return makeUuidLiteral((UUID) value);
+      if (value instanceof UUID) {
+        return makeUuidLiteral((UUID) value);
+      } else {
+        return makeUuidLiteral((UuidValue) value);
+      }
     default:
       throw new IllegalArgumentException(
           "Cannot create literal for type '" + sqlTypeName + "'");
