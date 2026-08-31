@@ -16,6 +16,45 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testKeepsFdFromNullGeneratingInputOfLeftJoin">
+    <Resource name="sql">
+      <![CDATA[select r.a, r.y, count(*) as c
+from (values (1), (2)) as l(z)
+left join (
+  select z, a, coalesce(a, 1) as y
+  from (values (1, cast(null as integer))) as v(z, a)
+) as r on l.z = r.z
+group by r.a, r.y]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+  LogicalProject(A=[$2], Y=[$3])
+    LogicalJoin(condition=[=($0, $1)], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }, { 2 }]])
+      LogicalProject(Z=[$0], A=[$1], Y=[CASE(IS NOT NULL($1), CAST($1):INTEGER NOT NULL, 1)])
+        LogicalValues(tuples=[[{ 1, null }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testKeepsGroupKeyFromPreservedSideOfLeftJoin">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e.deptno, count(*) as c
+from emp e
+left join dept d on e.deptno = d.deptno
+group by d.deptno, e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], DEPTNO0=[$1], C=[$2])
+  LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+    LogicalProject(DEPTNO=[$9], $f1=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testKeepsNonRedundantGroupKeys">
     <Resource name="sql">
       <![CDATA[select deptno, job, count(*) as c

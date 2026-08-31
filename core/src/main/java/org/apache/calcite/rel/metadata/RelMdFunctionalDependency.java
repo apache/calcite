@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
@@ -387,7 +388,7 @@ public class RelMdFunctionalDependency
     ArrowSet.Builder fdBuilder = new ArrowSet.Builder();
 
     // Adds equality dependencies from filter conditions.
-    addFDsFromEqualityCondition(rel.getCondition(), fdBuilder);
+    addBidirectionalFDsFromEqualityCondition(rel.getCondition(), fdBuilder);
 
     return fdBuilder.build().union(inputSet);
   }
@@ -407,9 +408,12 @@ public class RelMdFunctionalDependency
     case INNER:
     case LEFT:
     case RIGHT:
-      ArrowSet.Builder joinFdBuilder = new ArrowSet.Builder()
-          .addArrowSet(leftFdSet.union(shiftFdSet(rightFdSet, leftFieldCount)));
-      addFDsFromEqualityCondition(rel.getCondition(), joinFdBuilder);
+      ArrowSet.Builder joinFdBuilder = new ArrowSet.Builder();
+      addJoinInputFDs(leftFdSet, rel.getLeft(), 0,
+          joinType.generatesNullsOnLeft(), joinFdBuilder);
+      addJoinInputFDs(rightFdSet, rel.getRight(), leftFieldCount,
+          joinType.generatesNullsOnRight(), joinFdBuilder);
+      addFDsFromJoinCondition(rel, leftFieldCount, joinFdBuilder);
       return joinFdBuilder.build();
     case SEMI:
     case ANTI:
@@ -417,6 +421,41 @@ public class RelMdFunctionalDependency
     default:
       return ArrowSet.EMPTY;
     }
+  }
+
+  /**
+   * Copies input dependencies into a join, optionally filtering dependencies
+   * that can be invalidated when the input is null-generated.
+   */
+  private static void addJoinInputFDs(ArrowSet inputFdSet, RelNode input,
+      int offset, boolean nullGenerated, ArrowSet.Builder fdBuilder) {
+    for (Arrow inputFd : inputFdSet.getArrows()) {
+      if (nullGenerated && !hasNonNullableDeterminant(inputFd, input)) {
+        continue;
+      }
+      fdBuilder.addArrow(inputFd.getDeterminants().shift(offset),
+          inputFd.getDependents().shift(offset));
+    }
+  }
+
+  /**
+   * Returns whether a dependency's determinant contains a non-nullable input
+   * field. Such a determinant cannot collide with the all-NULL determinant of
+   * a padded outer-join row.
+   */
+  private static boolean hasNonNullableDeterminant(Arrow fd, RelNode input) {
+    final int fieldCount = input.getRowType().getFieldCount();
+    boolean hasNonNullableField = false;
+    for (int determinant : fd.getDeterminants()) {
+      if (determinant >= fieldCount) {
+        return false;
+      }
+      if (!input.getRowType().getFieldList().get(determinant)
+          .getType().isNullable()) {
+        hasNonNullableField = true;
+      }
+    }
+    return hasNonNullableField;
   }
 
   /**
@@ -428,34 +467,52 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Shifts column indices in functional dependencies (for right table in Joins).
-   *
-   * @param fdSet Functional dependency set
-   * @param offset Index offset
-   * @return Shifted functional dependency set
+   * Adds functional dependencies implied by a join condition.
    */
-  private ArrowSet shiftFdSet(ArrowSet fdSet, int offset) {
-    ArrowSet.Builder shiftedFdSetBuilder = new ArrowSet.Builder();
-    for (Arrow fd : fdSet.getArrows()) {
-      ImmutableBitSet shiftedDeterminants = fd.getDeterminants().shift(offset);
-      ImmutableBitSet shiftedDependents = fd.getDependents().shift(offset);
-      shiftedFdSetBuilder.addArrow(shiftedDeterminants, shiftedDependents);
-    }
-    return shiftedFdSetBuilder.build();
-  }
-
-  /**
-   * Extracts functional dependencies from equality and AND conditions.
-   * Handles col1 = col2, col1 IS NOT DISTINCT FROM col2, and AND conditions.
-   */
-  private static void addFDsFromEqualityCondition(RexNode condition, ArrowSet.Builder builder) {
-    if (!(condition instanceof RexCall)) {
+  private static void addFDsFromJoinCondition(Join rel, int leftFieldCount,
+      ArrowSet.Builder builder) {
+    final JoinRelType joinType = rel.getJoinType();
+    if (joinType == JoinRelType.INNER) {
+      addBidirectionalFDsFromEqualityCondition(rel.getCondition(), builder);
       return;
     }
 
-    RexCall call = (RexCall) condition;
-    if (call.getOperator().getKind() == SqlKind.EQUALS
-        || call.getOperator().getKind() == SqlKind.IS_NOT_DISTINCT_FROM) {
+    if (joinType == JoinRelType.LEFT || joinType == JoinRelType.RIGHT) {
+      final JoinInfo joinInfo = rel.analyzeCondition();
+      if (!joinInfo.isEqui() || joinInfo.leftKeys.isEmpty()) {
+        return;
+      }
+
+      final ImmutableBitSet leftKeys = joinInfo.leftSet();
+      final ImmutableBitSet rightKeys = joinInfo.rightSet().shift(leftFieldCount);
+      if (joinType == JoinRelType.LEFT) {
+        builder.addArrow(leftKeys, rightKeys);
+      } else {
+        builder.addArrow(rightKeys, leftKeys);
+      }
+      return;
+    }
+
+    throw new AssertionError("unsupported join type: " + joinType);
+  }
+
+  /**
+   * Adds bidirectional dependencies for input-reference equalities in a
+   * condition. Callers are responsible for ensuring that every output row
+   * satisfies the condition, as is true for Filters and inner joins.
+   */
+  private static void addBidirectionalFDsFromEqualityCondition(
+      RexNode condition, ArrowSet.Builder builder) {
+    for (RexNode conjunct : RelOptUtil.conjunctions(condition)) {
+      if (!(conjunct instanceof RexCall)) {
+        continue;
+      }
+
+      RexCall call = (RexCall) conjunct;
+      if (call.getOperator().getKind() != SqlKind.EQUALS
+          && call.getOperator().getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
+        continue;
+      }
       List<RexNode> operands = call.getOperands();
       if (operands.size() == 2) {
         RexNode left = operands.get(0);
@@ -467,10 +524,6 @@ public class RelMdFunctionalDependency
 
           builder.addBidirectionalArrow(leftRef, rightRef);
         }
-      }
-    } else if (call.getOperator().getKind() == SqlKind.AND) {
-      for (RexNode operand : call.getOperands()) {
-        addFDsFromEqualityCondition(operand, builder);
       }
     }
   }

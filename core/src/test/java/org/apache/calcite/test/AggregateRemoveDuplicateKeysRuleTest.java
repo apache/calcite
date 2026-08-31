@@ -72,6 +72,34 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .check();
   }
 
+  @Test void testKeepsGroupKeyFromPreservedSideOfLeftJoin() {
+    // The null-generating right key cannot determine the preserved left key:
+    // unmatched rows with different e.deptno values all have d.deptno = NULL.
+    final String sql = "select d.deptno, e.deptno, count(*) as c\n"
+        + "from emp e\n"
+        + "left join dept d on e.deptno = d.deptno\n"
+        + "group by d.deptno, e.deptno";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
+  @Test void testKeepsFdFromNullGeneratingInputOfLeftJoin() {
+    // This FD comes from the right input rather than from the join condition.
+    // The right Project has a -> COALESCE(a, 1), but null padding adds a row
+    // with a = NULL and y = NULL alongside the matched a = NULL, y = 1 row.
+    final String sql = "select r.a, r.y, count(*) as c\n"
+        + "from (values (1), (2)) as l(z)\n"
+        + "left join (\n"
+        + "  select z, a, coalesce(a, 1) as y\n"
+        + "  from (values (1, cast(null as integer))) as v(z, a)\n"
+        + ") as r on l.z = r.z\n"
+        + "group by r.a, r.y";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
   @Test void testKeepsNonRedundantGroupKeys() {
     final String sql = "select deptno, job, count(*) as c\n"
         + "from emp\n"
