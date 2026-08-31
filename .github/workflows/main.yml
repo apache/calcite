@@ -64,6 +64,7 @@ jobs:
       with:
         java-version: 8
         distribution: 'zulu'
+        cache: 'gradle'
     - uses: burrunan/gradle-cache-action@v1
       name: Test
       with:
@@ -96,6 +97,7 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -128,6 +130,7 @@ jobs:
         with:
           java-version: 21
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -162,6 +165,7 @@ jobs:
         with:
           java-version: 8
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -184,6 +188,7 @@ jobs:
         with:
           java-version: 8
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -206,6 +211,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -226,6 +232,7 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -246,6 +253,7 @@ jobs:
         with:
           java-version: 21
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -266,6 +274,7 @@ jobs:
         with:
           java-version: 24
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -323,6 +332,7 @@ jobs:
         with:
           java-version: 21
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -354,6 +364,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
@@ -374,6 +385,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
+          cache: 'gradle'
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
         with:
@@ -393,6 +405,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'zulu'
+          cache: 'gradle'
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
         with:
@@ -415,6 +428,7 @@ jobs:
         with:
           java-version: 8
           distribution: 'zulu'
+          cache: 'gradle'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
