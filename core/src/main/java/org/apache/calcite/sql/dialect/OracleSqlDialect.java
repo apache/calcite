@@ -179,6 +179,16 @@ public class OracleSqlDialect extends SqlDialect {
       return;
     }
 
+    if (call.getOperator() == SqlLibraryOperators.UUIDV4) {
+      // UUIDV4() → UUID() in Oracle 23ai+.
+      // Oracle's UUID() returns RAW(16) and is RFC 4122 v4 compliant.
+      // UUIDV7 has no Oracle equivalent and is left untranslated.
+      super.unparseCall(writer,
+          SqlLibraryOperators.ORACLE_UUID.createCall(call.getParserPosition()),
+          leftPrec, rightPrec);
+      return;
+    }
+
     if (call.getOperator().getSyntax() == SqlSyntax.FUNCTION_ID_CONSTANT) {
       writer.sep(call.getOperator().getName());
       return;

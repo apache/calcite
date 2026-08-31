@@ -13413,4 +13413,47 @@ class RelToSqlConverterTest {
                 + "FROM \"SCOTT\".\"EMP\"\n"
                 + "WHERE \"DEPTNO\" = \"t1\".\"DEPTNO\")");
   }
+
+  /** Tests that {@code UUIDV4()} is translated to the correct dialect-specific
+   * function name when generating SQL for different databases.
+   *
+   * <p>{@code UUIDV4()} is a Calcite extension ({@link SqlLibrary#CALCITE});
+   * {@code withLibrary(CALCITE)} is required so the parser recognises it.
+   * PostgreSQL 17+ passes through unchanged; SQL Server maps to
+   * {@code NEWID()}; Oracle 23ai+ maps to {@code UUID()}. */
+  @Test void testUuidv4Func() {
+    final String query = "SELECT uuidv4() FROM \"employee\"";
+    final String expectedDefault = "SELECT UUIDV4()\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedMssql = "SELECT NEWID()\n"
+        + "FROM [foodmart].[employee]";
+    final String expectedOracle = "SELECT UUID()\n"
+        + "FROM \"foodmart\".\"employee\"";
+    // withLibrary(CALCITE) is required so that the parser recognises UUIDV4().
+    sql(query).withLibrary(SqlLibrary.CALCITE)
+        .ok(expectedDefault)
+        .withMssql().ok(expectedMssql)
+        // PostgreSQL 17+ has native uuidv4(); name passes through unchanged.
+        .withPostgresql().ok(expectedDefault)
+        .withOracle().ok(expectedOracle);
+  }
+
+  /** Tests that {@code UUIDV7()} is translated to the correct dialect-specific
+   * function name when generating SQL for different databases.
+   *
+   * <p>{@code UUIDV7()} is a Calcite extension ({@link SqlLibrary#CALCITE});
+   * {@code withLibrary(CALCITE)} is required so the parser recognises it.
+   * PostgreSQL 17+ has native {@code uuidv7()}; MSSQL and Oracle have no
+   * native UUID v7 equivalent and emit {@code UUIDV7()} unchanged. */
+  @Test void testUuidv7Func() {
+    final String query = "SELECT uuidv7() FROM \"employee\"";
+    final String expectedDefault = "SELECT UUIDV7()\n"
+        + "FROM \"foodmart\".\"employee\"";
+    // withLibrary(CALCITE) is required so that the parser recognises UUIDV7().
+    // PostgreSQL 17+ has native uuidv7(). MSSQL and Oracle have no equivalent.
+    sql(query).withLibrary(SqlLibrary.CALCITE)
+        .ok(expectedDefault)
+        .withPostgresql().ok(expectedDefault)
+        .withMssql().ok("SELECT UUIDV7()\nFROM [foodmart].[employee]");
+  }
 }
