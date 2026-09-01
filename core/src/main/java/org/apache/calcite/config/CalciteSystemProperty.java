@@ -525,6 +525,10 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Integer> MAX_DECIMAL_LITERAL_PLAIN_DIGITS =
       intProperty("calcite.parser.maxDecimalLiteralPlainDigits", 10_000, v -> v > 0);
 
+  /** Whether the Spark engine is enabled, making the {@code spark} connection property honored. */
+  public static final CalciteSystemProperty<Boolean> ENABLE_SPARK_ENGINE =
+      booleanProperty("calcite.enable.spark", false);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
