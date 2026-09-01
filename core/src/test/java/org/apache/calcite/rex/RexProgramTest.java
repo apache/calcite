@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -3030,20 +3031,34 @@ class RexProgramTest extends RexProgramTestBase {
    * RexSimplify does not absorb redundant IS NOT NULL on non-input-ref sub-expressions
    * in AND simplification</a>.
    */
-  @Test void testSimplifyIsNotNullAndStrongExpressionWithCast() {
-    // "unsafe" cast
+  @Test void testSimplifyIsNotNullAndStrongExpression() {
+    // "unsafe" cast: (CAST(a) + 1) < 10 AND IS_NOT_NULL(CAST(a)) ==> (CAST(a) + 1) < 10
     checkSimplifyFilter(
         and(
             lt(plus(cast(vVarchar(), tDouble(true)), literal(1)), literal(10)),
             isNotNull(cast(vVarchar(), tDouble(true)))),
         "<(+(CAST(?0.varchar0):DOUBLE, 1), 10)");
 
-    // safe cast
+    // safe cast: (CAST(a) + 1) < 10 AND IS_NOT_NULL(CAST(a)) ==> (CAST(a) + 1) < 10
     checkSimplifyFilter(
         and(
             lt(plus(cast(vInt(), tDouble(true)), literal(1)), literal(10)),
             isNotNull(cast(vInt(), tDouble(true)))),
         "<(+(CAST(?0.int0):DOUBLE, 1), 10)");
+
+    // op that can return NULL on non-NULL args:
+    // IS_NOT_NULL(REGEXP_SUBSTR(myField, '[xw]yz')) AND REGEXP_SUBSTR(myField, '[xw]yz') = 'xyz'
+    // ==> REGEXP_SUBSTR(myField, '[xw]yz') = 'xyz'
+    checkSimplifyFilter(
+        and(
+            isNotNull(
+                rexBuilder.makeCall(
+                SqlLibraryOperators.REGEXP_SUBSTR, vVarchar(), literal("[xw]yz"))),
+            eq(
+                rexBuilder.makeCall(
+                    SqlLibraryOperators.REGEXP_SUBSTR, vVarchar(), literal("[xw]yz")),
+                literal("xyz"))),
+        "=(REGEXP_SUBSTR(?0.varchar0, '[xw]yz'), 'xyz')");
   }
 
   /**
