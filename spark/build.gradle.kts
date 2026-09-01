@@ -45,6 +45,10 @@ dependencies {
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 
     tasks.withType<Test>().configureEach {
+        // The Spark engine requires an operator-level opt-in (see
+        // CalciteSystemProperty.ENABLE_SPARK_ENGINE); these tests exercise
+        // the engine deliberately
+        systemProperty("calcite.enable.spark", "true")
         if (JavaVersion.current() >= JavaVersion.VERSION_17) {
             jvmArgs("--add-exports=java.base/sun.nio.ch=ALL-UNNAMED")
         }

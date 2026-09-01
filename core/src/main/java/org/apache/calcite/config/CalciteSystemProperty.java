@@ -473,6 +473,43 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<String> MODEL_CLASSES_DENIED =
       stringProperty("calcite.model.classes.denied", "");
 
+  /**
+   * Base directory that file-based connection models
+   * ({@code model=<path>}) must reside in.
+   *
+   * <p>The {@code model} connection property is settable by a query
+   * author, and a non-{@code inline:} value is read from the local
+   * filesystem before any schema is created. When this property is empty
+   * (the default), any local path is accepted. When it is set, relative
+   * model paths resolve under the configured directory and any model path
+   * that resolves outside it is rejected. The check is lexical and does
+   * not follow symbolic links.
+   *
+   * @see org.apache.calcite.model.ModelHandler
+   */
+  public static final CalciteSystemProperty<String> MODEL_BASE_DIRECTORY =
+      stringProperty("calcite.model.baseDirectory", "");
+
+  /**
+   * Maximum number of decimal digits that the plain-notation expansion of a {@code DECIMAL}
+   * literal may contain.
+   *
+   * <p>{@link java.math.BigDecimal} accepts any {@code int} exponent, so without a bound
+   * a ~15-character literal such as {@code DECIMAL '1E2147483647'} would ask
+   * {@link java.math.BigDecimal#toPlainString()} to materialize one character per digit,
+   * i.e. a multi-gigabyte allocation that would end in {@link OutOfMemoryError} inside the parser.
+   *
+   * <p>Default {@code 10000} is well beyond any dialect's realistic maximum {@code DECIMAL}
+   * precision while still bounding worst-case allocation to ~20 KB. Raise if a dialect
+   * legitimately needs more.
+   */
+  public static final CalciteSystemProperty<Integer> MAX_DECIMAL_LITERAL_PLAIN_DIGITS =
+      intProperty("calcite.parser.maxDecimalLiteralPlainDigits", 10_000, v -> v > 0);
+
+  /** Whether the Spark engine is enabled, making the {@code spark} connection property honored. */
+  public static final CalciteSystemProperty<Boolean> ENABLE_SPARK_ENGINE =
+      booleanProperty("calcite.enable.spark", false);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
