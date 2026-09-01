@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Queryable;
@@ -167,8 +168,17 @@ public interface CalcitePrepare {
     /** Returns a spark handler. Returns a trivial handler, for which
      * {@link SparkHandler#enabled()} returns {@code false}, if {@code enable}
      * is {@code false} or if Spark is not on the class path. Never returns
-     * null. */
+     * null.
+     *
+     * <p>If {@code enable=true} this method requires the
+     * {@link CalciteSystemProperty#ENABLE_SPARK_ENGINE} to be active,
+     * otherwise an exception will be thrown. */
     public static synchronized SparkHandler getSparkHandler(boolean enable) {
+      if (enable && !CalciteSystemProperty.ENABLE_SPARK_ENGINE.value()) {
+        throw new SecurityException("The 'spark' property was set on a"
+            + " connection, but the Spark engine has not been enabled; set the JVM"
+            + " system property 'calcite.enable.spark' to 'true' to enable it");
+      }
       if (sparkHandler == null) {
         sparkHandler = enable ? createHandler() : new TrivialSparkHandler();
       }

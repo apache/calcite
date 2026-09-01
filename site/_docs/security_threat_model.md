@@ -120,6 +120,14 @@ carve-out below. A report that reaches a sink not covered here is a model gap
   must add it on purpose.
 * A file, CSV, or JSON adapter reading the local path it was configured
   with. Opt-in, by the same reasoning as the os-adapter.
+* The Spark engine and its side effects: a local `JavaSparkContext`, a
+  local HTTP class server that serves compiled query classes, and setting
+  the `spark.repl.class.uri` JVM system property. The `spark` connection
+  property alone does not activate the engine; it additionally requires
+  the operator-set JVM system property `calcite.enable.spark=true`, a
+  capability a query author does not have (see
+  [Attacker and trust boundary](#attacker-and-trust-boundary)). Opt-in,
+  by the same reasoning as the os-adapter.
 * Reading the file or URL named by `model=<uri>`. The property names a
   resource the model handler reads on connection; letting an untrusted
   principal set connection properties authorises that read.

@@ -82,6 +82,11 @@ check the width of each group, and turned `1-2-3-4-5` into
 requires exactly 16 bytes; a longer value used to be truncated. Blanks are not
 trimmed.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7760">CALCITE-7760</a>]
+The Spark engine now requires the operator-level opt-in system property
+`-Dcalcite.enable.spark=true`. The `spark` connection property alone no longer
+activates it; a connection using `spark=true` without the opt-in will fail.
+
 #### New features
 {: #new-features-1-43-0}
 

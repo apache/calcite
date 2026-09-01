@@ -31,9 +31,11 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -55,13 +57,19 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     private static final SparkHandlerImpl INSTANCE = new SparkHandlerImpl();
   }
 
-  private static final File CLASS_DIR = new File("build/sparkServer/classes");
+  private static final File CLASS_DIR = createClassDir();
+
+  private static File createClassDir() {
+    try {
+      return Files.createTempDirectory("calcite-spark-classes").toFile();
+    } catch (IOException e) {
+      throw new IllegalStateException(
+          "Unable to create temporary folder for the Spark class server", e);
+    }
+  }
 
   /** Creates a SparkHandlerImpl. */
   private SparkHandlerImpl() {
-    if (!CLASS_DIR.isDirectory() && !CLASS_DIR.mkdirs()) {
-      System.err.println("Unable to create temporary folder " + CLASS_DIR);
-    }
     classServer = new HttpServer(CLASS_DIR);
 
     // Start the classServer and store its URI in a spark system property
