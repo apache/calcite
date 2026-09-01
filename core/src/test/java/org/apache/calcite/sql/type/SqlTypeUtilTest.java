@@ -123,26 +123,34 @@ class SqlTypeUtilTest {
   }
 
   @Test void testContainsType() {
-    assertThat(SqlTypeUtil.containsType(f.sqlInt,
+    assertThat(
+        SqlTypeUtil.containsType(f.sqlInt,
         SqlTypeUtil::isApproximateNumeric), is(false));
-    assertThat(SqlTypeUtil.containsType(f.sqlFloat,
+    assertThat(
+        SqlTypeUtil.containsType(f.sqlFloat,
         SqlTypeUtil::isApproximateNumeric), is(true));
-    assertThat(SqlTypeUtil.containsType(struct(f.sqlInt, f.arrayFloat),
+    assertThat(
+        SqlTypeUtil.containsType(struct(f.sqlInt, f.arrayFloat),
         SqlTypeUtil::isApproximateNumeric), is(true));
-    assertThat(SqlTypeUtil.containsType(f.arrayOfArrayFloat,
+    assertThat(
+        SqlTypeUtil.containsType(f.arrayOfArrayFloat,
         SqlTypeUtil::isApproximateNumeric), is(true));
-    assertThat(SqlTypeUtil.containsType(f.multisetFloat,
+    assertThat(
+        SqlTypeUtil.containsType(f.multisetFloat,
         SqlTypeUtil::isApproximateNumeric), is(true));
 
     final RelDataType floatKeyMap =
         f.typeFactory.createMapType(f.sqlFloat, f.sqlInt);
     final RelDataType floatValueMap =
         f.typeFactory.createMapType(f.sqlInt, f.sqlFloat);
-    assertThat(SqlTypeUtil.containsType(floatKeyMap,
+    assertThat(
+        SqlTypeUtil.containsType(floatKeyMap,
         SqlTypeUtil::isApproximateNumeric), is(true));
-    assertThat(SqlTypeUtil.containsType(floatValueMap,
+    assertThat(
+        SqlTypeUtil.containsType(floatValueMap,
         SqlTypeUtil::isApproximateNumeric), is(true));
-    assertThat(SqlTypeUtil.containsType(struct(f.arrayBigInt, f.mapOfInt),
+    assertThat(
+        SqlTypeUtil.containsType(struct(f.arrayBigInt, f.mapOfInt),
         SqlTypeUtil::isApproximateNumeric), is(false));
   }
 
