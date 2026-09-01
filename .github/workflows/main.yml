@@ -55,11 +55,11 @@ jobs:
     name: 'Windows (JDK 8)'
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 50
     - name: 'Set up JDK 8'
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version: 8
         distribution: 'zulu'
@@ -86,11 +86,11 @@ jobs:
     name: 'Windows (JDK 17)'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 17'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 17
           distribution: 'zulu'
@@ -117,11 +117,11 @@ jobs:
     name: 'Windows (JDK 21)'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 21
           distribution: 'zulu'
@@ -150,11 +150,11 @@ jobs:
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 8'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 8
           distribution: 'zulu'
@@ -171,11 +171,11 @@ jobs:
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 8'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 8
           distribution: 'zulu'
@@ -192,11 +192,11 @@ jobs:
     env:
       TZ: 'Pacific/Chatham' # flips between +12:45 and +13:45
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 11
           distribution: 'zulu'
@@ -211,11 +211,11 @@ jobs:
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 17'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 17
           distribution: 'zulu'
@@ -230,11 +230,11 @@ jobs:
     name: 'Linux (JDK 21)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 21
           distribution: 'zulu'
@@ -249,11 +249,11 @@ jobs:
     name: 'Linux (JDK 24)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 24'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 24
           distribution: 'zulu'
@@ -269,7 +269,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 'Set up JDK 11'
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version: 11
         distribution: 'zulu'
@@ -286,7 +286,7 @@ jobs:
         properties: |
           calcite.avatica.version=1.0.0-dev-main
           skipJavadoc=
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 50
     - uses: burrunan/gradle-cache-action@v1
@@ -304,11 +304,11 @@ jobs:
     name: 'macOS (JDK 21)'
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 21
           distribution: 'zulu'
@@ -334,11 +334,11 @@ jobs:
     name: 'ErrorProne (JDK 11, latest Guava)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 11
           distribution: 'zulu'
@@ -354,11 +354,11 @@ jobs:
     name: 'CheckerFramework (JDK 11)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 11
           distribution: 'zulu'
@@ -373,11 +373,11 @@ jobs:
     name: 'CheckerFramework (JDK 11, oldest Guava)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 11
           distribution: 'zulu'
@@ -393,12 +393,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 'Set up JDK 17'
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version: 17
         distribution: 'zulu'
     - name: 'Checkout Druid dataset'
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
       with:
         repository: zabetak/calcite-druid-dataset
         fetch-depth: 1
@@ -418,7 +418,7 @@ jobs:
     - name: 'Index Foodmart/Wikipedia datasets'
       working-directory: ./druid-dataset
       run: ./index.sh 30s
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 1
         path: calcite
