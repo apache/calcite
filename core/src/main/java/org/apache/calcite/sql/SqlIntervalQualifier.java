@@ -95,6 +95,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
   private static final BigDecimal ZERO = BigDecimal.ZERO;
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
+  private static final BigDecimal NANOS_PER_MILLI = BigDecimal.valueOf(1000_000);
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
 
@@ -595,7 +596,7 @@ public class SqlIntervalQualifier extends SqlNode {
       BigDecimal minute,
       BigDecimal second,
       BigDecimal secondFrac) {
-    int[] ret = new int[6];
+    int[] ret = new int[7];
 
     ret[0] = sign;
     ret[1] = day.intValue();
@@ -603,6 +604,14 @@ public class SqlIntervalQualifier extends SqlNode {
     ret[3] = minute.intValue();
     ret[4] = second.intValue();
     ret[5] = secondFrac.intValue();
+    // secondFrac is expressed in milliseconds and, for a qualifier whose
+    // fractional second precision is greater than 3, carries digits that
+    // element 5 cannot hold. Keep those digits as a number of nanoseconds
+    // below the millisecond, so that element 5 keeps its meaning and a
+    // caller that needs the exact value can reconstruct it.
+    ret[6] =
+        secondFrac.subtract(BigDecimal.valueOf(ret[5]))
+            .multiply(NANOS_PER_MILLI).intValue();
 
     return ret;
   }

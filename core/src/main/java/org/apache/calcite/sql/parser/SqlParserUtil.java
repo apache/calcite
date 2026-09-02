@@ -527,17 +527,56 @@ public final class SqlParserUtil {
   public static long intervalToMillis(
       String literal,
       SqlIntervalQualifier intervalQualifier) {
+    final int[] ret = evaluateDayTimeLiteral(literal, intervalQualifier);
+    return ret[0] * dayTimeToMillis(ret);
+  }
+
+  /**
+   * Converts the interval value into a millisecond representation that keeps
+   * the digits below the millisecond.
+   *
+   * <p>{@link #intervalToMillis(SqlIntervalLiteral.IntervalValue)} rounds
+   * towards zero, so a literal whose qualifier declares a fractional second
+   * precision greater than 3 loses the digits it was allowed to declare. This
+   * method reports them.
+   *
+   * @param interval Interval
+   * @return a value that represents the millisecond equivalent of the
+   * interval value, with a fraction if the literal has one
+   */
+  public static BigDecimal intervalToExactMillis(
+      SqlIntervalLiteral.IntervalValue interval) {
+    return intervalToExactMillis(
+        interval.getIntervalLiteral(),
+        interval.getIntervalQualifier());
+  }
+
+  public static BigDecimal intervalToExactMillis(
+      String literal,
+      SqlIntervalQualifier intervalQualifier) {
+    final int[] ret = evaluateDayTimeLiteral(literal, intervalQualifier);
+    final BigDecimal wholeMillis = BigDecimal.valueOf(dayTimeToMillis(ret));
+    // Keep the scale at 0 unless the literal really has digits below the
+    // millisecond, so that a plan for an ordinary interval is unchanged.
+    final BigDecimal millis =
+        ret[6] == 0 ? wholeMillis : wholeMillis.add(BigDecimal.valueOf(ret[6], 6));
+    return ret[0] < 0 ? millis.negate() : millis;
+  }
+
+  private static int[] evaluateDayTimeLiteral(String literal,
+      SqlIntervalQualifier intervalQualifier) {
     checkArgument(!intervalQualifier.isYearMonth(),
         "interval must be day time");
-    int[] ret;
     try {
-      ret =
-          intervalQualifier.evaluateIntervalLiteral(literal,
-              intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
+      return intervalQualifier.evaluateIntervalLiteral(literal,
+          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
     } catch (CalciteContextException e) {
       throw new RuntimeException("while parsing day-to-second interval "
           + literal, e);
     }
+  }
+
+  private static long dayTimeToMillis(int[] ret) {
     long l = 0;
     long[] conv = new long[5];
     conv[4] = 1; // millisecond
@@ -545,10 +584,10 @@ public final class SqlParserUtil {
     conv[2] = conv[3] * 60; // minute
     conv[1] = conv[2] * 60; // hour
     conv[0] = conv[1] * 24; // day
-    for (int i = 1; i < ret.length; i++) {
+    for (int i = 1; i <= conv.length; i++) {
       l += conv[i - 1] * ret[i];
     }
-    return ret[0] * l;
+    return l;
   }
 
   /**

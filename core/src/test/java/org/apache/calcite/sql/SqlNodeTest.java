@@ -29,6 +29,7 @@ import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -94,6 +95,35 @@ class SqlNodeTest {
         assertThrows(IllegalArgumentException.class, literal::toValue);
     assertThat(e.getMessage(),
         containsString("exceeds the configured plain-notation bound"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4543">[CALCITE-4543]
+   * Interval literal loses a fractional second when it has scale greater
+   * than 3</a>. */
+  @Test void testIntervalLiteralKeepsSubMillisecondFraction()
+      throws SqlParseException {
+    final SqlLiteral second9 =
+        (SqlLiteral) parseExpression("INTERVAL '1.123456789' SECOND(1,9)");
+    assertThat(second9.getValueAs(BigDecimal.class),
+        is(new BigDecimal("1123.456789")));
+
+    final SqlLiteral negative =
+        (SqlLiteral) parseExpression("INTERVAL -'1.123456789' SECOND(1,9)");
+    assertThat(negative.getValueAs(BigDecimal.class),
+        is(new BigDecimal("-1123.456789")));
+
+    final SqlLiteral dayToSecond9 =
+        (SqlLiteral) parseExpression(
+            "INTERVAL '1 02:03:04.123456789' DAY(2) TO SECOND(9)");
+    assertThat(dayToSecond9.getValueAs(BigDecimal.class),
+        is(new BigDecimal("93784123.456789")));
+
+    // A qualifier that declares nothing below the millisecond is unaffected
+    final SqlLiteral second3 =
+        (SqlLiteral) parseExpression("INTERVAL '1.123' SECOND(1,3)");
+    assertThat(second3.getValueAs(BigDecimal.class),
+        is(new BigDecimal("1123")));
   }
 
   private static Matcher<String> isEqualsDeep(String sqlExpected) {
