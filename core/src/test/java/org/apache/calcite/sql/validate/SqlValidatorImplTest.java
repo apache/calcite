@@ -28,7 +28,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.test.Fixtures;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -64,8 +63,8 @@ class SqlValidatorImplTest {
   }
 
   private static SqlWith createWith(SqlSelect body) {
-    final SqlWithItem withItem = new SqlWithItem(POS,
-        new SqlIdentifier("w", POS), null, createSelect(null, null),
+    final SqlWithItem withItem =
+        new SqlWithItem(POS, new SqlIdentifier("w", POS), null, createSelect(null, null),
         SqlLiteral.createBoolean(false, POS));
     return new SqlWith(POS, SqlNodeList.of(withItem), body);
   }
@@ -76,8 +75,8 @@ class SqlValidatorImplTest {
     final @Nullable SqlNode innerFetch = innerSelect.getFetch();
     final SqlNode outerOffset = exactNumeric("4");
     final SqlNode outerFetch = exactNumeric("5");
-    final SqlOrderBy orderBy = new SqlOrderBy(POS, query,
-        SqlNodeList.of(exactNumeric("1")), outerOffset, outerFetch);
+    final SqlOrderBy orderBy =
+        new SqlOrderBy(POS, query, SqlNodeList.of(exactNumeric("1")), outerOffset, outerFetch);
     final SqlValidatorImpl validator =
         (SqlValidatorImpl) Fixtures.forValidator().factory.createValidator();
 
