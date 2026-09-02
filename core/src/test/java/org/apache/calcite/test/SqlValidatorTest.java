@@ -7561,6 +7561,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp as e, dept as d order by e.empno").ok();
   }
 
+  @Test void testOrderByPreservesFetchAddedByRewrite() {
+    final SqlValidatorFixture fixture = fixture()
+        .withFactory(f -> f.withValidator(RownumRewritingValidator::new));
+
+    fixture.withSql("select empno from emp where rownum <= 5 order by empno")
+        .rewritesTo("SELECT *\n"
+            + "FROM (SELECT `EMPNO`\n"
+            + "FROM `EMP`\n"
+            + "FETCH NEXT 5 ROWS ONLY)\n"
+            + "ORDER BY `EXPR$0`.`EMPNO`");
+
+    fixture.withSql("with e as (select deptno as empno from dept)\n"
+        + "select empno from e where rownum <= 5 order by empno")
+        .rewritesTo("SELECT *\n"
+            + "FROM (WITH `E` AS (SELECT `DEPTNO` AS `EMPNO`\n"
+            + "FROM `DEPT`) SELECT `EMPNO`\n"
+            + "FROM `E`\n"
+            + "FETCH NEXT 5 ROWS ONLY)\n"
+            + "ORDER BY `EXPR$0`.`EMPNO`");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-633">[CALCITE-633]
    * WITH ... ORDER BY cannot find table</a>. */
@@ -15259,6 +15280,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       } else {
         return sqlIdentifier;
       }
+    }
+  }
+
+  /** Validator that simulates rewriting a ROWNUM predicate to FETCH. */
+  private static class RownumRewritingValidator extends SqlValidatorImpl {
+    RownumRewritingValidator(SqlOperatorTable opTab,
+        SqlValidatorCatalogReader catalogReader,
+        RelDataTypeFactory typeFactory, Config config) {
+      super(opTab, catalogReader, typeFactory, config);
+    }
+
+    @Override protected SqlNode performUnconditionalRewrites(SqlNode node,
+        boolean underFrom) {
+      node = super.performUnconditionalRewrites(node, underFrom);
+      if (node instanceof SqlSelect) {
+        final SqlSelect select = (SqlSelect) node;
+        final SqlNode where = select.getWhere();
+        if (where instanceof SqlCall
+            && where.getKind() == SqlKind.LESS_THAN_OR_EQUAL) {
+          final SqlCall call = (SqlCall) where;
+          final SqlNode left = call.operand(0);
+          if (left instanceof SqlIdentifier
+              && ((SqlIdentifier) left).isSimple()
+              && ((SqlIdentifier) left).getSimple().equalsIgnoreCase("ROWNUM")) {
+            select.setWhere(null);
+            select.setFetch(call.operand(1));
+          }
+        }
+      }
+      return node;
     }
   }
 
