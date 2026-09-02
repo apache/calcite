@@ -1904,9 +1904,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (orderBy.query instanceof SqlSelect) {
         SqlSelect select = (SqlSelect) orderBy.query;
 
-        // Don't clobber existing ORDER BY.  It may be needed for
-        // an order-sensitive function like RANK.
-        if (select.getOrderList() == null) {
+        // Don't clobber existing ORDER BY, OFFSET, or FETCH. ORDER BY may be
+        // needed for an order-sensitive function like RANK; OFFSET and FETCH
+        // establish a separate pagination level.
+        if (select.getOrderList() == null
+            && select.getOffset() == null
+            && select.getFetch() == null) {
           // push ORDER BY into existing select
           select.setOrderBy(orderBy.orderList);
           select.setOffset(orderBy.offset);
@@ -1919,9 +1922,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlWith with = (SqlWith) orderBy.query;
         SqlSelect select = (SqlSelect) with.body;
 
-        // Don't clobber existing ORDER BY.  It may be needed for
-        // an order-sensitive function like RANK.
-        if (select.getOrderList() == null) {
+        // Don't clobber existing ORDER BY, OFFSET, or FETCH. ORDER BY may be
+        // needed for an order-sensitive function like RANK; OFFSET and FETCH
+        // establish a separate pagination level.
+        if (select.getOrderList() == null
+            && select.getOffset() == null
+            && select.getFetch() == null) {
           // push ORDER BY into existing select
           select.setOrderBy(orderBy.orderList);
           select.setOffset(orderBy.offset);
