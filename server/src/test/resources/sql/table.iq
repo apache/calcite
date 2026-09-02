@@ -323,7 +323,8 @@ insert into t (i, k) values ('abcde', 'de ');
 
 !update
 EnumerableTableModify(table=[[T]], operation=[INSERT], flattened=[false])
-  EnumerableValues(tuples=[[{ 'abcde', 'de ' }]])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHAR_LENGTH($t0)], expr#3=[5], expr#4=[<=($t2, $t3)], expr#5=['Value exceeds precision 5 of VARCHAR(5)'], expr#6=[$THROW_UNLESS($t4, $t5)], expr#7=[CHAR_LENGTH($t1)], expr#8=[3], expr#9=[<=($t7, $t8)], expr#10=['Value exceeds precision 3 of VARCHAR(3)'], expr#11=[$THROW_UNLESS($t9, $t10)], expr#12=[AND($t6, $t11)], proj#0..1=[{exprs}], $condition=[$t12])
+    EnumerableValues(tuples=[[{ 'abcde', 'de ' }]])
 !plan
 
 insert into t (k, i) values ('de ', 'abcde');
@@ -331,7 +332,7 @@ insert into t (k, i) values ('de ', 'abcde');
 
 !update
 EnumerableTableModify(table=[[T]], operation=[INSERT], flattened=[false])
-  EnumerableCalc(expr#0..1=[{inputs}], I=[$t1], K=[$t0])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHAR_LENGTH($t1)], expr#3=[5], expr#4=[<=($t2, $t3)], expr#5=['Value exceeds precision 5 of VARCHAR(5)'], expr#6=[$THROW_UNLESS($t4, $t5)], expr#7=[CHAR_LENGTH($t0)], expr#8=[3], expr#9=[<=($t7, $t8)], expr#10=['Value exceeds precision 3 of VARCHAR(3)'], expr#11=[$THROW_UNLESS($t9, $t10)], expr#12=[AND($t6, $t11)], I=[$t1], K=[$t0], $condition=[$t12])
     EnumerableValues(tuples=[[{ 'de ', 'abcde' }]])
 !plan
 
