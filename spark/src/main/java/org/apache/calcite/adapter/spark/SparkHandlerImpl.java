@@ -35,7 +35,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,7 +64,16 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
 
   private static File createClassDir() {
     try {
-      return Files.createTempDirectory("calcite-spark-classes").toFile();
+      // Explicitly create the directory owner-readable/writable only
+      // (on POSIX filesystems java.io.tmpdir, typically /tmp, is world-writable)
+      final FileAttribute<?>[] attrs =
+          FileSystems.getDefault().supportedFileAttributeViews().contains("posix")
+              ? new FileAttribute<?>[] {
+                  PosixFilePermissions.asFileAttribute(
+                      PosixFilePermissions.fromString("rwx------"))
+              }
+              : new FileAttribute<?>[0];
+      return Files.createTempDirectory("calcite-spark-classes", attrs).toFile();
     } catch (IOException e) {
       throw new IllegalStateException(
           "Unable to create temporary folder for the Spark class server", e);
