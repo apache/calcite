@@ -395,7 +395,12 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(valTime.getSign()
             * SqlParserUtil.intervalToMillis(valTime));
       } else if (clazz == BigDecimal.class) {
-        return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
+        // Not via Long: a qualifier may declare a fractional second precision
+        // greater than 3, and those digits do not survive a whole number of
+        // milliseconds.
+        return clazz.cast(
+            SqlParserUtil.intervalToExactMillis(valTime)
+                .multiply(BigDecimal.valueOf(valTime.getSign())));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(qualifier.timeUnitRange);
       } else if (clazz == TimeUnit.class) {

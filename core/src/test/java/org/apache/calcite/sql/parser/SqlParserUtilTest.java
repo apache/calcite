@@ -24,6 +24,8 @@ import org.apache.calcite.sql.SqlTimestampTzLiteral;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -41,6 +43,37 @@ public class SqlParserUtilTest {
     final SqlIntervalQualifier qualifier =
         new SqlIntervalQualifier(TimeUnit.SECOND, null, POSITION);
     assertThat(SqlParserUtil.intervalToMillis("2.1", qualifier), equalTo(2_100L));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4543">[CALCITE-4543]
+   * Interval literal loses a fractional second when it has scale greater
+   * than 3</a>. */
+  @Test void testSecondIntervalToExactMillis() {
+    final SqlIntervalQualifier qualifier =
+        new SqlIntervalQualifier(TimeUnit.SECOND, 1, TimeUnit.SECOND, 9,
+            POSITION);
+    assertThat(SqlParserUtil.intervalToMillis("1.123456789", qualifier),
+        equalTo(1_123L));
+    assertThat(SqlParserUtil.intervalToExactMillis("1.123456789", qualifier),
+        equalTo(new BigDecimal("1123.456789")));
+    assertThat(SqlParserUtil.intervalToExactMillis("-1.123456789", qualifier),
+        equalTo(new BigDecimal("-1123.456789")));
+  }
+
+  @Test void testDayToSecondIntervalToExactMillis() {
+    final SqlIntervalQualifier qualifier =
+        new SqlIntervalQualifier(TimeUnit.DAY, 2, TimeUnit.SECOND, 9, POSITION);
+    assertThat(
+        SqlParserUtil.intervalToExactMillis("1 02:03:04.123456789", qualifier),
+        equalTo(new BigDecimal("93784123.456789")));
+  }
+
+  @Test void testIntervalToExactMillisWithoutFraction() {
+    final SqlIntervalQualifier qualifier =
+        new SqlIntervalQualifier(TimeUnit.SECOND, null, POSITION);
+    assertThat(SqlParserUtil.intervalToExactMillis("2", qualifier),
+        equalTo(new BigDecimal("2000")));
   }
 
   @Test void testMinuteIntervalToMillis() {
