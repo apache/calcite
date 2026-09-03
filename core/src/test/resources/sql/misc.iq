@@ -1005,6 +1005,36 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[NOT($t5)], expr#8=[NOT($t6)], expr#
 !plan
 !}
 
+# [CALCITE-7816] SEMI join simplification duplicates a singleton left row
+# Multiple right matches must emit the singleton left row only once.
+select l.v
+from (values (1)) as l(v)
+where exists (
+  select 1 from (values (1), (1)) as r(v) where r.v = l.v);
++---+
+| V |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# A multi-set on the left keeps its duplicates without multiplying them.
+select l.v
+from (values (1), (1), (2)) as l(v)
+where exists (
+  select 1 from (values (1), (1)) as r(v) where r.v = l.v);
++---+
+| V |
++---+
+| 1 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+
 # Left join to a relation with one row is recognized as a trivial semi-join
 # and eliminated.
 select e."deptno"
