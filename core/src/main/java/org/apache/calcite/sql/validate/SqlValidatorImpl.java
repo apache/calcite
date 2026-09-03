@@ -1906,7 +1906,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
         // Don't clobber existing ORDER BY, OFFSET, or FETCH. ORDER BY may be
         // needed for an order-sensitive function like RANK; OFFSET and FETCH
-        // establish a separate pagination level.
+        // must remain on the query where they were introduced.
         if (select.getOrderList() == null
             && select.getOffset() == null
             && select.getFetch() == null) {
@@ -1924,7 +1924,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
         // Don't clobber existing ORDER BY, OFFSET, or FETCH. ORDER BY may be
         // needed for an order-sensitive function like RANK; OFFSET and FETCH
-        // establish a separate pagination level.
+        // must remain on the query where they were introduced.
         if (select.getOrderList() == null
             && select.getOffset() == null
             && select.getFetch() == null) {
