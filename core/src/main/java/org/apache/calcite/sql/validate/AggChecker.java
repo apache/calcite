@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -85,6 +86,14 @@ class AggChecker extends SqlBasicVisitor<Void> {
   boolean isGroupExpr(SqlNode e) {
     for (SqlNode expr : Iterables.concat(extraExprs, measureExprs, groupExprs)) {
       if (expr.equalsDeep(e, Litmus.IGNORE)) {
+        return true;
+      }
+      // A GROUP BY item may be a common column of a NATURAL/USING join that
+      // was expanded with an AS wrapper (e.g. "EMP.DEPTNO AS DEPTNO"); an
+      // ORDER BY reference to the underlying expression should match.
+      if (expr instanceof SqlCall
+          && ((SqlCall) expr).getOperator() instanceof SqlAsOperator
+          && ((SqlCall) expr).operand(0).equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }
     }

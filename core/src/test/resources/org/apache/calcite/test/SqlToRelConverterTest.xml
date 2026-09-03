@@ -2682,6 +2682,23 @@ LogicalProject(F=[*(/INT(CASE(>=(11045000:INTERVAL HOUR TO SECOND, 0), 11045000:
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFullJoinUsingWithUnqualifiedCommonColumnInOrderBy">
+    <Resource name="sql">
+      <![CDATA[SELECT name
+FROM emp FULL JOIN dept using (deptno)
+ORDER BY deptno DESC]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(NAME=[$10], EXPR$1=[COALESCE($7, $9)])
+      LogicalJoin(condition=[=($7, $9)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFunctionExprInOver">
     <Resource name="sql">
       <![CDATA[select ename, row_number() over(partition by char_length(ename)
@@ -4328,6 +4345,40 @@ LogicalProject(DEPTNO=[$7], NAME=[$10])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinNaturalWithUnqualifiedCommonColumnInGroupByAndOrderBy">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, count(*)
+FROM emp NATURAL JOIN dept
+GROUP BY deptno ORDER BY deptno DESC]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[DESC])
+  LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinNaturalWithUnqualifiedCommonColumnInOrderBy">
+    <Resource name="sql">
+      <![CDATA[SELECT name
+FROM emp NATURAL JOIN dept
+ORDER BY deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(NAME=[$10], DEPTNO=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinNaturalWithUnqualifiedNestedCommonColumn">
     <Resource name="sql">
       <![CDATA[select (coord).x
@@ -4762,6 +4813,40 @@ LogicalProject(DEPTNO=[$7], NAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinUsingWithUnqualifiedCommonColumnInGroupByAndOrderBy">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, count(*)
+FROM emp JOIN dept using (deptno)
+GROUP BY deptno ORDER BY deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinUsingWithUnqualifiedCommonColumnInOrderBy">
+    <Resource name="sql">
+      <![CDATA[SELECT name
+FROM emp JOIN dept using (deptno)
+ORDER BY deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(NAME=[$10], DEPTNO=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

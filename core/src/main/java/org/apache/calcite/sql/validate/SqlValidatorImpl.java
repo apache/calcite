@@ -638,6 +638,107 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         getNamespaceOrThrow(join.getRight()).getRowType());
   }
 
+  /** Expands an identifier that refers to a common column of a NATURAL or
+   * USING join into a qualified reference or, for FULL JOIN, a COALESCE
+   * expression. */
+  SqlNode expandCommonColumn(SqlSelect sqlSelect, SqlNode selectItem,
+      SelectScope scope) {
+    return expandCommonColumn(sqlSelect, selectItem, scope, true);
+  }
+
+  /** As {@link #expandCommonColumn(SqlSelect, SqlNode, SelectScope)}, but
+   * allows control over whether the result is wrapped with an {@code AS}
+   * operator to preserve the column alias. */
+  SqlNode expandCommonColumn(SqlSelect sqlSelect, SqlNode selectItem,
+      SelectScope scope, boolean wrapAlias) {
+    if (!(selectItem instanceof SqlIdentifier)) {
+      return selectItem;
+    }
+
+    final SqlNode from = sqlSelect.getFrom();
+    if (!(from instanceof SqlJoin)) {
+      return selectItem;
+    }
+
+    final SqlIdentifier identifier = (SqlIdentifier) selectItem;
+    if (!identifier.isSimple()) {
+      // Qualified identifiers (e.g. t1.col) are returned unchanged.
+      // Validation of qualified common columns is performed before expansion,
+      // in validateSelectCommonColumns, where the original user-written
+      // identifier (with its source position) is still available.
+      return selectItem;
+    }
+
+    return expandExprFromJoin((SqlJoin) from, identifier, scope, wrapAlias);
+  }
+
+  private SqlNode expandExprFromJoin(SqlJoin join, SqlIdentifier identifier,
+      SelectScope scope, boolean wrapAlias) {
+    final List<String> commonColumnNames;
+    // must be NATURAL or USING here, and cannot specify NATURAL keyword with USING clause
+    if (join.isNatural()) {
+      commonColumnNames = deriveNaturalJoinColumnList(join);
+    } else if (join.getConditionType() == JoinConditionType.USING) {
+      commonColumnNames = SqlIdentifier.simpleNames((SqlNodeList) getCondition(join));
+    } else {
+      return identifier;
+    }
+
+    final SqlNameMatcher matcher = catalogReader.nameMatcher();
+    final Set<String> fieldAliases = getFieldsAliased(scope);
+
+    for (String name : commonColumnNames) {
+      if (matcher.matches(identifier.getSimple(), name)) {
+        final List<SqlNode> qualifiedNode = new ArrayList<>();
+        for (ScopeChild child : requireNonNull(scope, "scope").children) {
+          if (matcher.indexOf(child.namespace.getRowType().getFieldNames(), name) >= 0) {
+            final SqlIdentifier exp =
+                new SqlIdentifier(
+                    ImmutableList.of(child.name, name),
+                    identifier.getParserPosition());
+            qualifiedNode.add(exp);
+          }
+        }
+
+        assert qualifiedNode.size() == 2;
+
+        // COALESCE is only needed for FULL JOIN; for RIGHT JOIN use the right
+        // column (always non-null), and for INNER/LEFT JOIN use the left column.
+        final JoinType joinType = join.getJoinType();
+        final SqlNode colRef;
+        if (joinType.generatesNullsOnLeft() && joinType.generatesNullsOnRight()) {
+          colRef =
+              SqlStdOperatorTable.COALESCE.createCall(
+                  qualifiedNode.get(0).getParserPosition()
+                  .plus(qualifiedNode.get(1).getParserPosition()),
+                  qualifiedNode.get(0), qualifiedNode.get(1));
+        } else if (joinType.generatesNullsOnLeft()) {
+          colRef = qualifiedNode.get(1);
+        } else {
+          colRef = qualifiedNode.get(0);
+        }
+
+        // If there is an alias for the column, no need to wrap with an AS operator
+        boolean haveAlias = fieldAliases.contains(name);
+        if (haveAlias || !wrapAlias) {
+          return colRef;
+        } else {
+          return SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, colRef,
+              new SqlIdentifier(identifier.getSimple(), identifier.getParserPosition()));
+        }
+      }
+    }
+
+    // Only need to try to expand the expr from the left input of join
+    // since it is always left-deep join.
+    final SqlNode node = join.getLeft();
+    if (node instanceof SqlJoin) {
+      return expandExprFromJoin((SqlJoin) node, identifier, scope, wrapAlias);
+    } else {
+      return identifier;
+    }
+  }
+
   private static void validateQualifiedCommonColumn(SqlJoin join,
       SqlIdentifier identifier, SelectScope scope, SqlValidatorImpl validator) {
     List<String> names = validator.usingNames(join);
@@ -5325,9 +5426,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope orderScope = getOrderScope(select);
     requireNonNull(orderScope, "orderScope");
 
+    // Expand unqualified common columns of NATURAL or USING joins before
+    // regular expansion, which would fail with an ambiguity error.
+    final SelectScope selectScope = getRawSelectScopeNonNull(select);
     List<SqlNode> expandList = new ArrayList<>();
     for (SqlNode orderItem : orderList) {
-      SqlNode expandedOrderItem = expand(orderItem, orderScope);
+      SqlNode expandedCommon =
+          expandCommonColumnInOrderBy(orderItem, select, selectScope);
+      final SqlNode expandedOrderItem;
+      if (expandedCommon != orderItem) {
+        expandedOrderItem = expand(expandedCommon, orderScope);
+      } else {
+        expandedOrderItem = expand(orderItem, orderScope);
+      }
       expandList.add(expandedOrderItem);
     }
 
@@ -5338,6 +5449,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode orderItem : expandedOrderList) {
       validateOrderItem(select, orderItem);
     }
+  }
+
+  /** Expands an unqualified reference to a common column of a NATURAL or
+   * USING join that appears in an ORDER BY item, including inside a
+   * DESCENDING, NULLS FIRST, or NULLS LAST wrapper. */
+  private SqlNode expandCommonColumnInOrderBy(SqlNode orderItem,
+      SqlSelect select, SelectScope selectScope) {
+    if (orderItem instanceof SqlIdentifier) {
+      return expandCommonColumn(select, orderItem, selectScope, false);
+    }
+    if (orderItem instanceof SqlCall) {
+      final SqlCall call = (SqlCall) orderItem;
+      switch (call.getKind()) {
+      case DESCENDING:
+      case NULLS_FIRST:
+      case NULLS_LAST:
+        final List<SqlNode> operands = call.getOperandList();
+        final SqlNode expanded =
+            expandCommonColumnInOrderBy(operands.get(0), select, selectScope);
+        if (expanded != operands.get(0)) {
+          return call.getOperator().createCall(call.getParserPosition(), expanded);
+        }
+        return orderItem;
+      default:
+        return orderItem;
+      }
+    }
+    return orderItem;
   }
 
   /** Expands a single "*" or "t.*" select item into its underlying columns,
@@ -8393,94 +8532,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return fqId;
     }
 
-    protected SqlNode expandCommonColumn(SqlSelect sqlSelect, SqlNode selectItem,
-        SelectScope scope) {
-      if (!(selectItem instanceof SqlIdentifier)) {
-        return selectItem;
-      }
-
-      final SqlNode from = sqlSelect.getFrom();
-      if (!(from instanceof SqlJoin)) {
-        return selectItem;
-      }
-
-      final SqlIdentifier identifier = (SqlIdentifier) selectItem;
-      if (!identifier.isSimple()) {
-        // Qualified identifiers (e.g. t1.col) are returned unchanged.
-        // Validation of qualified common columns is performed before expansion,
-        // in validateSelectCommonColumns, where the original user-written
-        // identifier (with its source position) is still available.
-        return selectItem;
-      }
-
-      return expandExprFromJoin((SqlJoin) from, identifier, scope);
-    }
-
-    private SqlNode expandExprFromJoin(SqlJoin join, SqlIdentifier identifier, SelectScope scope) {
-      List<String> commonColumnNames;
-      // must be NATURAL or USING here, and cannot specify NATURAL keyword with USING clause
-      if (join.isNatural()) {
-        commonColumnNames = validator.deriveNaturalJoinColumnList(join);
-      } else if (join.getConditionType() == JoinConditionType.USING) {
-        commonColumnNames = SqlIdentifier.simpleNames((SqlNodeList) getCondition(join));
-      } else {
-        return identifier;
-      }
-
-      final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
-      final Set<String> fieldAliases = getFieldsAliased(scope);
-
-      for (String name : commonColumnNames) {
-        if (matcher.matches(identifier.getSimple(), name)) {
-          final List<SqlNode> qualifiedNode = new ArrayList<>();
-          for (ScopeChild child : requireNonNull(scope, "scope").children) {
-            if (matcher.indexOf(child.namespace.getRowType().getFieldNames(), name) >= 0) {
-              final SqlIdentifier exp =
-                  new SqlIdentifier(
-                      ImmutableList.of(child.name, name),
-                      identifier.getParserPosition());
-              qualifiedNode.add(exp);
-            }
-          }
-
-          assert qualifiedNode.size() == 2;
-
-          // COALESCE is only needed for FULL JOIN; for RIGHT JOIN use the right
-          // column (always non-null), and for INNER/LEFT JOIN use the left column.
-          final JoinType joinType = join.getJoinType();
-          final SqlNode colRef;
-          if (joinType.generatesNullsOnLeft() && joinType.generatesNullsOnRight()) {
-            colRef =
-                SqlStdOperatorTable.COALESCE.createCall(
-                    qualifiedNode.get(0).getParserPosition()
-                    .plus(qualifiedNode.get(1).getParserPosition()),
-                qualifiedNode.get(0), qualifiedNode.get(1));
-          } else if (joinType.generatesNullsOnLeft()) {
-            colRef = qualifiedNode.get(1);
-          } else {
-            colRef = qualifiedNode.get(0);
-          }
-
-          // If there is an alias for the column, no need to wrap with an AS operator
-          boolean haveAlias = fieldAliases.contains(name);
-          if (haveAlias) {
-            return colRef;
-          } else {
-            return SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, colRef,
-                new SqlIdentifier(identifier.getSimple(), identifier.getParserPosition()));
-          }
-        }
-      }
-
-      // Only need to try to expand the expr from the left input of join
-      // since it is always left-deep join.
-      final SqlNode node = join.getLeft();
-      if (node instanceof SqlJoin) {
-        return expandExprFromJoin((SqlJoin) node, identifier, scope);
-      } else {
-        return identifier;
-      }
-    }
   }
 
   /**
@@ -8573,6 +8624,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
 
+      // Expand unqualified common columns of NATURAL or USING joins,
+      // e.g. 'select name from emp join dept using (deptno) order by deptno'.
+      // Otherwise, name resolution would fail with an ambiguity error.
+      if (id.isSimple()) {
+        final SelectScope selectScope = getRawSelectScopeNonNull(select);
+        final SqlNode common =
+            expandCommonColumn(select, id, selectScope, false);
+        if (common != id) {
+          return common;
+        }
+      }
+
       // No match. Return identifier unchanged.
       return getScope().fullyQualify(id).identifier;
     }
@@ -8641,7 +8704,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
-      final SqlNode node = expandCommonColumn(select, id, (SelectScope) getScope());
+      final SqlNode node =
+          validator.expandCommonColumn(select, id, (SelectScope) getScope());
       if (node != id) {
         return node;
       } else {
@@ -8759,7 +8823,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       try {
         // First try a standard expansion
         if (clause == Clause.GROUP_BY) {
-          SqlNode node = expandCommonColumn(select, id, selectScope);
+          SqlNode node = validator.expandCommonColumn(select, id, selectScope);
           if (node != id) {
             return node;
           }
