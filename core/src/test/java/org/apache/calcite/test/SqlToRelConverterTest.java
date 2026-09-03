@@ -819,6 +819,46 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but with an unqualified common column in ORDER BY. */
+  @Test void testJoinUsingWithUnqualifiedCommonColumnInOrderBy() {
+    sql("SELECT name\n"
+        + "FROM emp JOIN dept using (deptno)\n"
+        + "ORDER BY deptno").ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but NATURAL JOIN and an unqualified common column in ORDER BY. */
+  @Test void testJoinNaturalWithUnqualifiedCommonColumnInOrderBy() {
+    sql("SELECT name\n"
+        + "FROM emp NATURAL JOIN dept\n"
+        + "ORDER BY deptno").ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but FULL JOIN and an unqualified common column in ORDER BY. */
+  @Test void testFullJoinUsingWithUnqualifiedCommonColumnInOrderBy() {
+    sql("SELECT name\n"
+        + "FROM emp FULL JOIN dept using (deptno)\n"
+        + "ORDER BY deptno DESC").ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithAggregate()},
+   * but with GROUP BY and an unqualified common column in ORDER BY. */
+  @Test void testJoinUsingWithUnqualifiedCommonColumnInGroupByAndOrderBy() {
+    sql("SELECT deptno, count(*)\n"
+        + "FROM emp JOIN dept using (deptno)\n"
+        + "GROUP BY deptno ORDER BY deptno").ok();
+  }
+
+  /** Similar to {@link #testJoinNaturalWithAggregate()},
+   * but with GROUP BY and an unqualified common column in ORDER BY. */
+  @Test void testJoinNaturalWithUnqualifiedCommonColumnInGroupByAndOrderBy() {
+    sql("SELECT deptno, count(*)\n"
+        + "FROM emp NATURAL JOIN dept\n"
+        + "GROUP BY deptno ORDER BY deptno DESC").ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
    * but with nested common column. */
   @Test void testJoinUsingWithUnqualifiedNestedCommonColumn() {
     final String sql =
