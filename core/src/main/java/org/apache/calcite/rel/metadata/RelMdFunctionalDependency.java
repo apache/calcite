@@ -548,11 +548,11 @@ public class RelMdFunctionalDependency
 
   /**
    * Returns whether a type can safely be used to infer that one grouping key
-   * determines another. Approximate numerics and intervals are unsafe,
-   * including when nested in rows, collections, or maps.
+   * determines another. Approximate numerics are unsafe, including when nested
+   * in rows, collections, or maps.
    */
   private static boolean typeSupportsGroupKeyInference(RelDataType type) {
     return !SqlTypeUtil.containsType(type,
-        t -> SqlTypeUtil.isApproximateNumeric(t) || SqlTypeUtil.isInterval(t));
+        SqlTypeUtil::isApproximateNumeric);
   }
 }
