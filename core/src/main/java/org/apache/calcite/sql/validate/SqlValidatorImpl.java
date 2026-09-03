@@ -5391,13 +5391,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNode expr = SqlUtil.stripAs(selectItem);
       if (expr instanceof SqlIdentifier && ((SqlIdentifier) expr).isStar()) {
         for (SqlNode column : expandStarForAllRewrite(select, expr)) {
-          keys.add(applyOrderByAllDirection(column, desc, nulls, pos));
+          if (dependsOnInput(column)) {
+            keys.add(applyOrderByAllDirection(column, desc, nulls, pos));
+          }
         }
         continue;
       }
-      keys.add(applyOrderByAllDirection(expr, desc, nulls, pos));
+      if (dependsOnInput(expr)) {
+        keys.add(applyOrderByAllDirection(expr, desc, nulls, pos));
+      }
     }
-    select.setOrderBy(new SqlNodeList(keys, pos));
+    // An empty but non-null ORDER BY list would make the select unparse with
+    // redundant parentheses, so remove the clause entirely.
+    select.setOrderBy(keys.isEmpty() ? null : new SqlNodeList(keys, pos));
   }
 
   /** Wraps a single ORDER BY ALL key with the optional descending direction
@@ -5577,8 +5583,71 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /** Returns whether an expression depends on the input row, and is therefore
+   * worth using as an implicit {@code GROUP BY ALL} grouping key or
+   * {@code ORDER BY ALL} sort key.
+   *
+   * <p>An expression that references no column, and all of whose operators are
+   * deterministic, has the same value in every row; grouping by it does not
+   * divide the input into more than one group, and sorting by it does not
+   * reorder rows. Such expressions -- for example {@code 42}, {@code 1 + 1},
+   * {@code upper('x')}, {@code current_date} and {@code ?} -- are therefore
+   * not made keys. This follows BigQuery, which infers keys only from
+   * expressions that reference a name in the FROM clause.
+   *
+   * <p>A call to a non-deterministic operator such as {@code RAND()} does vary
+   * from row to row, and is retained. This is the same rule that
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7697">[CALCITE-7697]</a>
+   * applies to window keys, one phase later. An unresolved function is
+   * retained, because its determinism is not yet known.
+   *
+   * <p>A sub-query is always retained, and is not inspected. Its identifiers
+   * include table names, which are not expressions in this sense, and
+   * resolving them here would be premature. Retaining is conservative, and is
+   * required for a correlated sub-query.
+   *
+   * <p>The rule inherits the limits of
+   * {@link SqlOperator#isDeterministic()}: a user-defined function is
+   * deterministic unless it says otherwise, so a call to one with no column
+   * argument is excluded. */
+  private boolean dependsOnInput(SqlNode node) {
+    try {
+      final SqlVisitor<Void> visitor =
+          new SqlBasicVisitor<Void>() {
+            @Override public Void visit(SqlIdentifier identifier) {
+              // The parser leaves a niladic function such as CURRENT_DATE as an
+              // identifier, and it becomes a call only later, during expansion;
+              // such an identifier does not reference the input.
+              if (!identifier.isStar() && makeNullaryCall(identifier) != null) {
+                return null;
+              }
+              throw new Util.FoundOne(identifier);
+            }
+
+            @Override public Void visit(SqlCall call) {
+              if (call.getKind().belongsTo(SqlKind.QUERY)) {
+                throw new Util.FoundOne(call);
+              }
+              final SqlOperator operator = call.getOperator();
+              if (!operator.isDeterministic()
+                  || operator instanceof SqlUnresolvedFunction) {
+                throw new Util.FoundOne(call);
+              }
+              return super.visit(call);
+            }
+          };
+      node.accept(visitor);
+      return false;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return true;
+    }
+  }
+
   /** If GROUP BY clause is the {@code GROUP BY ALL} placeholder, replaces it
-   * with every non-aggregated expression from the SELECT clause. */
+   * with every non-aggregated expression from the SELECT clause that depends on
+   * the input. If no such expression remains, the query becomes a single-group
+   * aggregation, {@code GROUP BY ()}. */
   private void rewriteGroupByAll(SqlSelect select) {
     final SqlNodeList groupList = select.getGroup();
     if (groupList == null
@@ -5594,13 +5663,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNode expr = SqlUtil.stripAs(selectItem);
       if (expr instanceof SqlIdentifier && ((SqlIdentifier) expr).isStar()) {
         for (SqlNode column : expandStarForAllRewrite(select, expr)) {
-          if (aggOrOverFinder.findAgg(column) == null) {
+          if (aggOrOverFinder.findAgg(column) == null
+              && dependsOnInput(column)) {
             keys.add(column);
           }
         }
         continue;
       }
-      if (aggOrOverFinder.findAgg(expr) == null) {
+      if (aggOrOverFinder.findAgg(expr) == null && dependsOnInput(expr)) {
         keys.add(expr);
       }
     }

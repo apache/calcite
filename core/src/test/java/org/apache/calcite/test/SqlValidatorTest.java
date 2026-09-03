@@ -7452,6 +7452,55 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  /** Tests that {@code ORDER BY ALL} makes a sort key only of a SELECT item
+   * that depends on the input row. See
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7675">[CALCITE-7675]</a>. */
+  @Test void testOrderByAllExcludesExpressionsNotDependingOnInput() {
+    // A constant cannot reorder rows, so it is not a sort key. Before
+    // [CALCITE-7675] the synthesized "ORDER BY 42" was read as a sort ordinal
+    // and failed with "Ordinal out of range", in the default conformance.
+    sql("select sal, 42 from emp order by all")
+        .rewritesTo("SELECT `SAL`, 42\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `SAL`");
+
+    // The dangerous case: an in-range value silently resolved to a different
+    // SELECT item, so this query sorted on DEPTNO twice rather than on the
+    // constant and then DEPTNO.
+    sql("select 2, deptno from emp order by all")
+        .rewritesTo("SELECT 2, `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `DEPTNO`");
+
+    // Constant expressions and deterministic niladic functions are excluded
+    // too; a non-deterministic call is retained.
+    sql("select sal, 1 + 1, current_date from emp order by all")
+        .rewritesTo("SELECT `SAL`, 1 + 1, CURRENT_DATE\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `SAL`");
+    sql("select sal, rand() from emp order by all")
+        .rewritesTo("SELECT `SAL`, RAND()\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `SAL`, RAND()");
+
+    // If no sort key remains, no ORDER BY is emitted at all.
+    sql("select 42 from emp order by all")
+        .rewritesTo("SELECT 42\n"
+            + "FROM `EMP`");
+
+    // The trailing direction still applies to every remaining key.
+    sql("select sal, deptno, 42 from emp order by all desc")
+        .rewritesTo("SELECT `SAL`, `DEPTNO`, 42\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `SAL` DESC, `DEPTNO` DESC");
+
+    // A sort ordinal the user writes is still resolved, and still rejected
+    // when out of range.
+    sql("select sal, deptno from emp order by 2").ok();
+    sql("select sal, deptno from emp order by ^42^")
+        .fails("Ordinal out of range");
+  }
+
   @Test void testOrder() {
     final SqlConformance conformance = fixture().conformance();
     sql("select empno as x from emp order by empno").ok();
@@ -7918,6 +7967,125 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // GROUP BY ALL is unaffected by isGroupByAlias
     sql("select deptno as d, count(*) from emp group by all")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  /** Tests that {@code GROUP BY ALL} makes a grouping key only of a SELECT item
+   * that depends on the input row. See
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7675">[CALCITE-7675]</a>. */
+  @Test void testGroupByAllExcludesExpressionsNotDependingOnInput() {
+    // A constant is not a grouping key.
+    sql("select deptno, 42, count(*) from emp group by all")
+        .rewritesTo("SELECT `DEPTNO`, 42, COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `EMP`.`DEPTNO`");
+
+    // Nor is a constant expression, nor a deterministic niladic function.
+    sql("select deptno, 1 + 1, upper('x'), current_date, count(*)\n"
+        + "from emp group by all")
+        .rewritesTo("SELECT `DEPTNO`, 1 + 1, UPPER('x'), CURRENT_DATE, COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `EMP`.`DEPTNO`");
+
+    // If no grouping key remains the query is a single-group aggregation.
+    sql("select 42, count(*) from emp group by all")
+        .rewritesTo("SELECT 42, COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY ()");
+
+    // An expression over a column is a grouping key, as always.
+    sql("select deptno + 1, count(*) from emp group by all")
+        .rewritesTo("SELECT `DEPTNO` + 1, COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `EMP`.`DEPTNO` + 1");
+    sql("select case when sal > 100 then 'high' else 'low' end, count(*)\n"
+        + "from emp group by all")
+        .rewritesTo("SELECT CASE WHEN `SAL` > 100 THEN 'high' ELSE 'low' END, COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY CASE WHEN `EMP`.`SAL` > 100 THEN 'high' ELSE 'low' END");
+
+    // A non-deterministic call varies from row to row, so it is a grouping key.
+    sql("select rand(), count(*) from emp group by all")
+        .rewritesTo("SELECT RAND(), COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY RAND()");
+
+    // Excluding the constant also means the expansion never emits a bare
+    // integer, which a conformance that groups by ordinal would otherwise read
+    // as a select-list position. Before [CALCITE-7675] this failed with
+    // "Ordinal out of range".
+    sql("select deptno, 42, count(*) from emp group by all")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+
+    // An ordinal the user writes is still resolved, and still rejected when out
+    // of range.
+    sql("select deptno, count(*) from emp group by 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+    sql("select deptno, count(*) from emp group by ^42^")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("Ordinal out of range");
+
+    // A sub-query is retained without being inspected. Its identifiers include
+    // table names and aliases, which are not expressions; treating one as a
+    // possible niladic function would wrongly reject a query whose alias
+    // happens to name one, under a conformance that requires parentheses.
+    sql("select (select 1 from (values (1)) as pi), count(*) from emp group by all")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok();
+    sql("select (select 1 from (values (1)) as pi), count(*) from emp group by all")
+        .rewritesTo("SELECT (SELECT 1\n"
+            + "FROM (VALUES ROW(1)) AS PI), COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY (SELECT 1\n"
+            + "FROM (VALUES ROW(1)) AS PI)");
+  }
+
+  /** Tests that the expansion of {@code GROUP BY ALL} can be re-parsed with
+   * the same meaning under a conformance that reads an integer in GROUP BY as
+   * a select-list ordinal.
+   *
+   * <p>The expanded form is what is stored as a view or materialized-table
+   * definition, so it is read back by a validator that cannot know which keys
+   * the user wrote and which the expansion synthesized. Before
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7675">[CALCITE-7675]</a>
+   * a constant SELECT item became a grouping key and the definition contained
+   * a bare integer literal, which the re-parse resolved as an ordinal: out of
+   * range it failed to validate, and in range it silently designated a
+   * different SELECT item. */
+  @Test void testGroupByAllExpansionSurvivesReparseAsOrdinal() {
+    // Sergey Nuyanzin's query from the FLIP-606 discussion. This expanded to
+    // "GROUP BY 42", which is not a valid definition: 42 exceeds the size of
+    // the select list.
+    sql("select count(*) as cnt, sum(sal) as sm, 42 as just_a_constant\n"
+        + "from emp group by all")
+        .rewritesTo("SELECT COUNT(*) AS `CNT`, SUM(`SAL`) AS `SM`, 42 AS `JUST_A_CONSTANT`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY ()");
+
+    // The expansion above, fed back in where GROUP BY ordinals are enabled.
+    sql("select count(*) as cnt, sum(sal) as sm, 42 as just_a_constant\n"
+        + "from emp group by ()")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+
+    // The quieter case: an in-range value. This expanded to
+    // "GROUP BY `EMP`.`DEPTNO`, 2", whose re-parse read 2 as the second
+    // SELECT item -- an aggregate, and so not a legal grouping key.
+    sql("select deptno, count(*) as c, 2 as k from emp group by all")
+        .rewritesTo("SELECT `DEPTNO`, COUNT(*) AS `C`, 2 AS `K`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `EMP`.`DEPTNO`");
+
+    sql("select deptno, count(*) as c, 2 as k from emp\n"
+        + "group by emp.deptno")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+
+    // A grouping key the user writes as an ordinal is still resolved as one.
+    sql("select deptno, count(*) from emp group by 1")
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok();
   }
