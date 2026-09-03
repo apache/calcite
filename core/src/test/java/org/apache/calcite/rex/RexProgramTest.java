@@ -2262,6 +2262,27 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7747">[CALCITE-7747]
+   * RexSimplify.simplifySearch does not simplify SEARCH(literal, Sarg) when
+   * pointCount >= 2</a>. */
+  @Test void testSimplifySearchWithLiteralOperandAndMultiPointSargNotFolded() {
+    final RangeSet<BigDecimal> rangeSet =
+        ImmutableRangeSet.<BigDecimal>builder()
+            .add(Range.singleton(BigDecimal.valueOf(1)))
+            .add(Range.singleton(BigDecimal.valueOf(2)))
+            .build();
+    final Sarg<BigDecimal> sarg = Sarg.of(RexUnknownAs.UNKNOWN, rangeSet);
+    final RexLiteral searchLiteral =
+        rexBuilder.makeSearchArgumentLiteral(sarg, tInt());
+    final RexNode literalOperand = literal(5);
+    final RexNode searchCall =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, literalOperand, searchLiteral);
+    // Expected (and true pre-Sarg, when this was OR(=(5,1), =(5,2))): folds to "false".
+    // Actual: simplifySearch returns the SEARCH call unchanged.
+    checkSimplify(searchCall, "false");
+  }
+
+  /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
    * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
   @Test void testSimplifySearchWithSpecialSargIsNotNull() {
