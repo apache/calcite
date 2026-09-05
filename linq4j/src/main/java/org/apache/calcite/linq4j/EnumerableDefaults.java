@@ -2534,6 +2534,34 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Joins pairs that satisfy two inequality predicates.
+   *
+   * <p>Each operator compares a left key with a right key using the
+   * corresponding comparator. Null keys do not match. Both inputs are
+   * materialized and sorted before the first result is returned.
+   */
+  public static <TLeft, TRight, TKey1, TKey2, TResult>
+      Enumerable<TResult> ieJoin(Enumerable<TLeft> left,
+      Enumerable<TRight> right,
+      Function1<? super TLeft, TKey1> leftKeySelector1,
+      Function1<? super TRight, TKey1> rightKeySelector1,
+      Function1<? super TLeft, TKey2> leftKeySelector2,
+      Function1<? super TRight, TKey2> rightKeySelector2,
+      Comparator<? super TKey1> comparator1,
+      Comparator<? super TKey2> comparator2,
+      InequalityOperator operator1, InequalityOperator operator2,
+      Function2<? super TLeft, ? super TRight, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      @Override public Enumerator<TResult> enumerator() {
+        return new IEJoinEnumerator<>(left, right,
+            leftKeySelector1, rightKeySelector1,
+            leftKeySelector2, rightKeySelector2,
+            comparator1, comparator2, operator1, operator2, resultSelector);
+      }
+    };
+  }
+
+  /**
    * Correlates the elements of two sequences based on a predicate.
    */
   public static <TSource, TInner, TResult> Enumerable<TResult> nestedLoopJoin(

@@ -38,6 +38,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.ExtendedEnumerable;
+import org.apache.calcite.linq4j.InequalityOperator;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.MemoryFactory;
@@ -255,6 +256,10 @@ public enum BuiltInMethod {
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class, Predicate2.class, Function2.class,
       JoinType.class, Comparator.class, EqualityComparer.class),
+  IE_JOIN(EnumerableDefaults.class, "ieJoin", Enumerable.class,
+      Enumerable.class, Function1.class, Function1.class, Function1.class,
+      Function1.class, Comparator.class, Comparator.class,
+      InequalityOperator.class, InequalityOperator.class, Function2.class),
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(EnumerableDefaults.class, "semiJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class,
