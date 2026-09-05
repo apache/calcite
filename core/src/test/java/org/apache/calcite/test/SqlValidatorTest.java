@@ -6237,6 +6237,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok()
         .withConformance(SqlConformanceEnum.ORACLE_12)
         .ok();
+
+    // Unqualified common column in SELECT should succeed even when
+    // identifier expansion is disabled.
+    sql("select deptno from emp join dept using (deptno)")
+        .withValidatorIdentifierExpansion(true)
+        .ok();
+
+    sql("select deptno from emp join dept using (deptno)")
+        .withValidatorIdentifierExpansion(false)
+        .ok();
+
+    sql("select deptno from emp natural join dept")
+        .withValidatorIdentifierExpansion(false)
+        .ok();
   }
 
   /** Test case for

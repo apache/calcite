@@ -405,6 +405,38 @@ right join dept using (deptno);
 
 !ok
 
+# [CALCITE-7084] JOINs with USING when validator identifier expansion is disabled
+# Unqualified common column in SELECT with USING and NATURAL JOIN
+select distinct deptno
+from emp
+join dept using (deptno)
+order by deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+select distinct deptno
+from emp
+natural join dept
+order by deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
 # Push aggregate through join
 select distinct dept.deptno, emp.deptno
 from "scott".emp join "scott".dept using (deptno);
