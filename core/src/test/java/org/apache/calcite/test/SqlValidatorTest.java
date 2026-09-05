@@ -6239,6 +6239,53 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  /** Tests that an unqualified common column in ORDER BY is valid for
+   * JOINs with USING and for NATURAL JOINs. */
+  @Test void testOrderByUnqualifiedCommonColumn() {
+    sql("select name from emp join dept using (deptno) order by deptno").ok();
+    sql("select name from emp natural join dept order by deptno").ok();
+    sql("select name from emp full join dept using (deptno) order by deptno").ok();
+    sql("select name from emp left join dept using (deptno) order by deptno").ok();
+    sql("select name from emp right join dept using (deptno) order by deptno").ok();
+    sql("select name from emp join dept using (deptno) order by deptno desc").ok();
+    sql("select name from emp join dept using (deptno)"
+        + " order by deptno nulls first").ok();
+    sql("select count(*) from emp join dept using (deptno)"
+        + " group by deptno").ok();
+    sql("select count(*) from emp join dept using (deptno)"
+        + " group by deptno order by deptno").ok();
+    sql("select deptno from emp join dept using (deptno)")
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .ok();
+    sql("select deptno from emp join dept using (deptno)"
+        + " order by deptno")
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .ok();
+    sql("select deptno as d from emp join dept using (deptno)"
+        + " order by deptno")
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .ok();
+
+    final String sql = "select name from emp join dept using (deptno) order by deptno";
+    final String expected = "SELECT `DEPT`.`NAME`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`\n"
+        + "INNER JOIN `CATALOG`.`SALES`.`DEPT` AS `DEPT` USING (`DEPTNO`)\n"
+        + "ORDER BY `EMP`.`DEPTNO`";
+    sql(sql)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected);
+
+    final String fullSql =
+        "select name from emp full join dept using (deptno) order by deptno";
+    final String fullExpected = "SELECT `DEPT`.`NAME`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`\n"
+        + "FULL JOIN `CATALOG`.`SALES`.`DEPT` AS `DEPT` USING (`DEPTNO`)\n"
+        + "ORDER BY COALESCE(`EMP`.`DEPTNO`, `DEPT`.`DEPTNO`)";
+    sql(fullSql)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(fullExpected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7051">[CALCITE-7051]
    * JOIN with USING does not match the appropriate columns when caseSensitive is false</a>. */

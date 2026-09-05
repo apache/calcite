@@ -405,6 +405,91 @@ right join dept using (deptno);
 
 !ok
 
+# [CALCITE-4922] Unqualified common column in ORDER BY fails for JOINs
+# with USING and for NATURAL JOINs. A second sort key (ename) makes the
+# result deterministic, so it matches PostgreSQL and other engines.
+select ename
+from emp
+join dept using (deptno)
+order by deptno, ename;
++--------+
+| ENAME  |
++--------+
+| CLARK  |
+| KING   |
+| MILLER |
+| ADAMS  |
+| FORD   |
+| JONES  |
+| SCOTT  |
+| SMITH  |
+| ALLEN  |
+| BLAKE  |
+| JAMES  |
+| MARTIN |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+
+# Same, but NATURAL JOIN and descending
+select ename
+from emp
+natural join dept
+order by deptno desc, ename;
++--------+
+| ENAME  |
++--------+
+| ALLEN  |
+| BLAKE  |
+| JAMES  |
+| MARTIN |
+| TURNER |
+| WARD   |
+| ADAMS  |
+| FORD   |
+| JONES  |
+| SCOTT  |
+| SMITH  |
+| CLARK  |
+| KING   |
+| MILLER |
++--------+
+(14 rows)
+
+!ok
+
+# Same, but FULL JOIN: the unqualified common column in ORDER BY sorts
+# on the coalesced column, so dept 40 (with no employees) comes last
+select deptno, dname
+from emp
+full join dept using (deptno)
+order by deptno, ename;
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     10 | ACCOUNTING |
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     40 | OPERATIONS |
++--------+------------+
+(15 rows)
+
+!ok
+
 # Push aggregate through join
 select distinct dept.deptno, emp.deptno
 from "scott".emp join "scott".dept using (deptno);
