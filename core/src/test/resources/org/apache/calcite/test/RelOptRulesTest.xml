@@ -18938,6 +18938,25 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSemiJoinWithConstantRowOnLeft">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $1)], joinType=[semi])
+  LogicalValues(tuples=[[{ 1 }]])
+  LogicalValues(tuples=[[{ 1 }, { 1 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSemiJoinWithProjectOnConstantRowOnLeft">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+  LogicalProject(l=[$0], $f1=[CURRENT_TIMESTAMP])
+    LogicalValues(tuples=[[{ 1 }]])
+  LogicalValues(tuples=[[{ 1 }, { 1 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSimplifyFilter">
     <Resource name="sql">
       <![CDATA[select * from (select * from sales.emp where deptno > 10)
