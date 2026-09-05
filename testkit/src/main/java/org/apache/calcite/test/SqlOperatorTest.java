@@ -2757,7 +2757,8 @@ public class SqlOperatorTest {
     f.checkFails("^concat('a', x'0a')^",
         "Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<CHAR\\(1\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'CONCAT\\(<STRING>, <STRING>\\)'",
+            + "form\\(s\\): 'CONCAT\\(<CHARACTER>, <CHARACTER>\\)'\n"
+            + "'CONCAT\\(<BINARY>, <BINARY>\\)'",
         false);
   }
 
@@ -11878,7 +11879,8 @@ public class SqlOperatorTest {
       f.checkFails("^" + fn + "('aabbcc', x'aa')^",
           "Cannot apply '" + fn + "' to arguments of type "
               + "'" + fn + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): '" + fn + "\\(<STRING>, <STRING>\\)'",
+              + "form\\(s\\): '" + fn + "\\(<CHARACTER>, <CHARACTER>\\)'\\n"
+              + "'" + fn + "\\(<BINARY>, <BINARY>\\)'",
           false);
       f.checkNull(fn + "(null, null)");
       f.checkNull(fn + "('12345', null)");
@@ -11918,7 +11920,8 @@ public class SqlOperatorTest {
       f.checkFails("^" + fn + "('aabbcc', x'aa')^",
           "Cannot apply '" + fn + "' to arguments of type "
               + "'" + fn + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): '" + fn + "\\(<STRING>, <STRING>\\)'",
+              + "form\\(s\\): '" + fn + "\\(<CHARACTER>, <CHARACTER>\\)'\\s*"
+              + "'" + fn + "\\(<BINARY>, <BINARY>\\)'",
           false);
       f.checkNull(fn + "(null, null)");
       f.checkNull(fn + "('12345', null)");
