@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -33,6 +32,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
+import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -84,16 +84,22 @@ class AggChecker extends SqlBasicVisitor<Void> {
   //~ Methods ----------------------------------------------------------------
 
   boolean isGroupExpr(SqlNode e) {
-    for (SqlNode expr : Iterables.concat(extraExprs, measureExprs, groupExprs)) {
+    // Measures are compared exactly (without stripping an AS wrapper from
+    // 'e'): a select item such as "count_plus_100 AS x" is not itself a
+    // measure expression, and stripping its alias would bypass the
+    // naked-measure check in visit(SqlIdentifier).
+    for (SqlNode expr : measureExprs) {
       if (expr.equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }
-      // A GROUP BY item may be a common column of a NATURAL/USING join that
-      // was expanded with an AS wrapper (e.g. "EMP.DEPTNO AS DEPTNO"); an
-      // ORDER BY reference to the underlying expression should match.
-      if (expr instanceof SqlCall
-          && ((SqlCall) expr).getOperator() instanceof SqlAsOperator
-          && ((SqlCall) expr).operand(0).equalsDeep(e, Litmus.IGNORE)) {
+    }
+    // A GROUP BY item may be a common column of a NATURAL/USING join that
+    // was expanded with an AS wrapper (e.g. "EMP.DEPTNO AS DEPTNO"); an
+    // ORDER BY reference to the underlying expression should match, so
+    // strip the AS wrapper from both sides before comparing.
+    final SqlNode e2 = stripAs(e);
+    for (SqlNode expr : Iterables.concat(extraExprs, groupExprs)) {
+      if (stripAs(expr).equalsDeep(e2, Litmus.IGNORE)) {
         return true;
       }
     }
