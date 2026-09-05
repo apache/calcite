@@ -889,6 +889,19 @@ class RexProgramTest extends RexProgramTestBase {
             + " 'MED PKG':CHAR(8)]:CHAR(8))), AND(=(?0.j, 'Brand#14'), "
             + ">=(?0.h, 20), <=(?0.h, 30), SEARCH(?0.k, Sarg['LG BOX':CHAR(7),"
             + " 'LG CASE', 'LG PACK', 'LG PKG':CHAR(7)]:CHAR(7)))))");
+
+    final RexNode ref3 = rexBuilder.makeInputRef(intType, 3);
+    final RexNode ref6 = rexBuilder.makeInputRef(intType, 6);
+    final RexNode bool0 = rexBuilder.makeInputRef(booleanType, 0);
+    final RexNode bool1 = rexBuilder.makeInputRef(booleanType, 1);
+    final RexNode seven = literal(7);
+    checkPullFactors(eq(ref6, ref3), "=($3, $6)");
+    checkPullFactors(gt(ref6, ref3), "<($3, $6)");
+    checkPullFactors(le(seven, ref3), ">=($3, 7)");
+    checkPullFactors(
+        or(and(eq(ref6, ref3), bool0),
+            and(eq(ref3, ref6), bool1)),
+        "AND(=($3, $6), OR($0, $1))");
   }
 
   @Test void testSimplify() {
@@ -2340,6 +2353,28 @@ class RexProgramTest extends RexProgramTestBase {
           and(params),
           "SEARCH(?0.int0, Sarg[(0..10)])");
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-739">[CALCITE-739]
+   * Extend RexUtil.pullFactors to recognize additional common factors</a>. */
+  @Test void testSimplifyComparisonSymmetry() {
+    final RexNode ref3 = rexBuilder.makeInputRef(tInt(), 3);
+    final RexNode ref6 = rexBuilder.makeInputRef(tInt(), 6);
+    final RexNode bool0 = rexBuilder.makeInputRef(tBool(), 0);
+
+    // Contradiction detection: "$6 = $3 AND $3 != $6" is not satisfiable.
+    checkSimplifyFilter(and(eq(ref6, ref3), ne(ref3, ref6)), "false");
+
+    // Absorption law: "a AND (a OR b) => a" where "a" is written once as
+    // "$6 = $3" and once as "$3 = $6". The result keeps the first form.
+    checkSimplify(and(eq(ref6, ref3), or(eq(ref3, ref6), bool0)),
+        "=($6, $3)");
+
+    // Same, but with an order-sensitive operator: "a" is "$6 > $3",
+    // written inside the OR as "$3 < $6".
+    checkSimplify(and(gt(ref6, ref3), or(lt(ref3, ref6), bool0)),
+        ">($6, $3)");
   }
 
   @Test void testSimplifyComparisonWithPredicates() {
