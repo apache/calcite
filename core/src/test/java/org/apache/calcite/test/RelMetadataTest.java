@@ -237,10 +237,9 @@ public class RelMetadataTest {
         .assertPercentageOriginalRows(isAlmost(1.0));
   }
 
-  @Disabled
   @Test void testPercentageOriginalRowsOneFilter() {
     sql("select * from dept where deptno = 20")
-        .assertPercentageOriginalRows(isAlmost(DEFAULT_EQUAL_SELECTIVITY));
+        .assertPercentageOriginalRows(isAlmost(1.0 / DEPT_SIZE));
   }
 
   @Disabled
