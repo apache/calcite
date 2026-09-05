@@ -657,6 +657,52 @@ public class RexSimplify {
     return simplifyMixedWildcards(builder.toString(), escape);
   }
 
+  /** Returns whether two nodes are the same comparison, considering the
+   * symmetry of comparison operators: "{@code a = b}" is equivalent to
+   * "{@code b = a}", and "{@code a < b}" is equivalent to
+   * "{@code b > a}".
+   *
+   * <p>This allows digest-based rewrites such as the absorption law
+   * ("{@code a AND (a OR b) => a}") to recognize comparison terms that
+   * differ only in the order of their operands.
+   * See <a href="https://issues.apache.org/jira/browse/CALCITE-739">[CALCITE-739]
+   * Extend RexUtil.pullFactors to recognize additional common factors</a>.
+   */
+  private static boolean equivalentComparison(RexNode a, RexNode b) {
+    if (a.equals(b)) {
+      return true;
+    }
+    if (!(a instanceof RexCall) || !(b instanceof RexCall)) {
+      return false;
+    }
+    final RexCall callA = (RexCall) a;
+    final RexCall callB = (RexCall) b;
+    final SqlKind kindA = callA.getKind();
+    // Comparison operators are the only operators whose semantics is
+    // preserved when operands are reversed and the operator is reversed
+    // (for example, "a < b" becomes "b > a").
+    if (!SqlKind.COMPARISON.contains(kindA)
+        || kindA.reverse() != callB.getKind()
+        || callA.getOperands().size() != 2
+        || callB.getOperands().size() != 2) {
+      return false;
+    }
+    return callA.getOperands().get(0).equals(callB.getOperands().get(1))
+        && callA.getOperands().get(1).equals(callB.getOperands().get(0));
+  }
+
+  /** Returns whether {@code nodes} contains a node that is the same
+   * comparison as {@code target}; see {@link #equivalentComparison}. */
+  private static boolean containsEquivalentComparison(List<RexNode> nodes,
+      RexNode target) {
+    for (RexNode node : nodes) {
+      if (equivalentComparison(node, target)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // e must be a comparison (=, >, >=, <, <=, !=)
   private RexNode simplifyComparison(RexCall e, RexUnknownAs unknownAs) {
     //noinspection unchecked
@@ -2480,8 +2526,8 @@ public class RexSimplify {
             ? RelOptUtil.disjunctions(term)
             : RelOptUtil.conjunctions(term);
         for (RexNode other : terms) {
-          if (other != term && components.contains(other)
-              && RexUtil.isDeterministic(other)) {
+          if (other != term && RexUtil.isDeterministic(other)
+              && containsEquivalentComparison(components, other)) {
             terms.remove(i);
             i--;
             break;
