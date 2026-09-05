@@ -1247,7 +1247,6 @@ public class JdbcTest {
             + "the_year=1998; C=365; M=April\n");
   }
 
-  @Disabled("The test returns expected results. Not sure why it is disabled")
   @Test void testCloneGroupBy2() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1269,21 +1268,24 @@ public class JdbcTest {
   }
 
   /** Tests plan for a query with 4 tables, 3 joins. */
-  @Disabled("The actual and expected plan differ")
   @Test void testCloneGroupBy2Plan() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(
             "explain plan for select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
-        .returns("PLAN=EnumerableAggregate(group=[{0, 1, 2}], m0=[SUM($3)])\n"
-            + "  EnumerableCalc(expr#0..37=[{inputs}], c0=[$t9], c1=[$t13], c2=[$t4], unit_sales=[$t22])\n"
-            + "    EnumerableHashJoin(condition=[=($23, $0)], joinType=[inner])\n"
-            + "      EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-            + "      EnumerableHashJoin(condition=[=($10, $19)], joinType=[inner])\n"
-            + "        EnumerableHashJoin(condition=[=($11, $0)], joinType=[inner])\n"
-            + "          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
+        .returns(
+            "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1997:SMALLINT], expr#4=[CAST($t3):SMALLINT], c0=[$t4], c1=[$t0], c2=[$t1], m0=[$t2])\n"
+            + "  EnumerableAggregate(group=[{2, 7}], m0=[$SUM0($5)])\n"
+            + "    EnumerableHashJoin(condition=[AND(=($3, $9), =($6, $8))], joinType=[semi])\n"
+            + "      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
+            + "        EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])\n"
+            + "          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], quarter=[$t8], $condition=[$t12])\n"
             + "            EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
-            + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
+            + "          EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}], unit_sales=[$t7])\n"
+            + "            EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], product_class_id=[$t0], product_family=[$t4])\n"
+            + "          EnumerableTableScan(table=[[foodmart2, product_class]])\n"
+            + "      EnumerableCalc(expr#0..14=[{inputs}], proj#0..1=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[foodmart2, product]])\n"
             + "\n");
   }
