@@ -4637,11 +4637,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private void checkRollUpInSelectList(SqlSelect select) {
     SqlValidatorScope scope = getSelectScope(select);
+    final SelectScope selectScope = getRawSelectScopeNonNull(select);
+    final Expander expander = new Expander(this, selectScope);
     for (SqlNode item : SqlNonNullableAccessors.getSelectList(select)) {
       if (SqlValidatorUtil.isMeasure(item)) {
         continue;
       }
-      checkRollUp(null, select, item, scope);
+      SqlNode expandedItem = expander.expandCommonColumn(select, item, selectScope);
+      if (expandedItem instanceof SqlCall
+          && ((SqlCall) expandedItem).getOperator() instanceof SqlAsOperator) {
+        expandedItem = ((SqlCall) expandedItem).operand(0);
+      }
+      checkRollUp(null, select, expandedItem, scope);
     }
   }
 
