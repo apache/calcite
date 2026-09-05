@@ -4750,3 +4750,93 @@ order by y;
 !ok
 
 # End agg.iq
+
+# [CALCITE-6537] Add syntax to allow non-aggregated rows to be used in GROUPING SETS
+# non-aggregated (detail) rows. Requires LENIENT conformance.
+
+!use scott-lenient
+
+# GROUPING SETS ((deptno), (*)): department totals (ename NULL) plus one
+# detail row per employee.
+select deptno, ename, sum(sal) as sumsal
+from emp
+group by grouping sets ((deptno), (*))
+order by deptno, ename nulls first;
++--------+--------+----------+
+| DEPTNO | ENAME  | SUMSAL   |
++--------+--------+----------+
+|     10 |        |  8750.00 |
+|     10 | CLARK  |  2450.00 |
+|     10 | KING   |  5000.00 |
+|     10 | MILLER |  1300.00 |
+|     20 |        | 10875.00 |
+|     20 | ADAMS  |  1100.00 |
+|     20 | FORD   |  3000.00 |
+|     20 | JONES  |  2975.00 |
+|     20 | SCOTT  |  3000.00 |
+|     20 | SMITH  |   800.00 |
+|     30 |        |  9400.00 |
+|     30 | ALLEN  |  1600.00 |
+|     30 | BLAKE  |  2850.00 |
+|     30 | JAMES  |   950.00 |
+|     30 | MARTIN |  1250.00 |
+|     30 | TURNER |  1500.00 |
+|     30 | WARD   |  1250.00 |
++--------+--------+----------+
+(17 rows)
+
+!ok
+
+# ROLLUP (deptno, *): detail rows, department totals and a grand total.
+select deptno, ename, sum(sal) as sumsal
+from emp
+group by rollup (deptno, *)
+order by deptno nulls last, ename nulls first;
++--------+--------+----------+
+| DEPTNO | ENAME  | SUMSAL   |
++--------+--------+----------+
+|     10 |        |  8750.00 |
+|     10 | CLARK  |  2450.00 |
+|     10 | KING   |  5000.00 |
+|     10 | MILLER |  1300.00 |
+|     20 |        | 10875.00 |
+|     20 | ADAMS  |  1100.00 |
+|     20 | FORD   |  3000.00 |
+|     20 | JONES  |  2975.00 |
+|     20 | SCOTT  |  3000.00 |
+|     20 | SMITH  |   800.00 |
+|     30 |        |  9400.00 |
+|     30 | ALLEN  |  1600.00 |
+|     30 | BLAKE  |  2850.00 |
+|     30 | JAMES  |   950.00 |
+|     30 | MARTIN |  1250.00 |
+|     30 | TURNER |  1500.00 |
+|     30 | WARD   |  1250.00 |
+|        |        | 29025.00 |
++--------+--------+----------+
+(18 rows)
+
+!ok
+
+# GROUPING distinguishes the detail set (ename grouped, g=0) from the
+# department set (ename not grouped, g=1).
+select g, count(*) as cnt
+from (
+  select grouping(ename) as g
+  from emp
+  group by grouping sets ((deptno), (*)))
+group by g
+order by g;
++---+-----+
+| G | CNT |
++---+-----+
+| 0 |  14 |
+| 1 |   3 |
++---+-----+
+(2 rows)
+
+!ok
+
+# Under DEFAULT conformance, * in GROUPING SETS is a parse error;
+# see SqlValidatorTest.testGroupingSetsStarConformance.
+!use post

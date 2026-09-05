@@ -8214,6 +8214,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  ()").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6537">[CALCITE-6537]
+   * Add syntax to allow non-aggregated rows to be used in GROUPING SETS</a>. */
+  @Test void testGroupingSetsStarConformance() {
+    // Under DEFAULT conformance, "*" is not a valid grouping element.
+    sql("select deptno, ename, sum(sal)\n"
+        + "from emp\n"
+        + "group by grouping sets ((deptno), (^*^))")
+        .fails("(?s).*Encountered.*\\*.*");
+
+    // Under LENIENT conformance, "*" expands to a ROW of every input column,
+    // so the non-aggregated SELECT columns are grouped in the detail set.
+    sql("select deptno, ename, sum(sal)\n"
+        + "from emp\n"
+        + "group by grouping sets ((deptno), (*))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // ROLLUP and CUBE accept "*" too.
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by rollup(deptno, *)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by cube(deptno, *)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
   @Test void testRollup() {
     // DEPTNO is not null in database, but rollup introduces nulls
     sql("select deptno, count(*) as c, sum(sal) as s\n"

@@ -5506,6 +5506,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   protected void validateGroupClause(SqlSelect select) {
     rewriteGroupByAll(select);
+    rewriteGroupingStar(select);
     SqlNodeList groupList = select.getGroup();
     if (groupList == null) {
       return;
@@ -5605,6 +5606,79 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     select.setGroupBy(new SqlNodeList(keys, groupList.getParserPosition()));
+  }
+
+  /** If the conformance allows {@code *} as a grouping element, rewrites every
+   * bare {@code *} in GROUPING SETS / ROLLUP / CUBE (and at the top level of
+   * GROUP BY) into a {@code ROW} of every input column. A grouping set
+   * containing all input columns does not merge any rows (except identical
+   * duplicates), yielding the non-aggregated "detail" rows.
+   *
+   * @see SqlConformance#isGroupingSetsStarAllowed() */
+  private void rewriteGroupingStar(SqlSelect select) {
+    if (!config.conformance().isGroupingSetsStarAllowed()) {
+      return;
+    }
+    final SqlNodeList groupList = select.getGroup();
+    if (groupList == null) {
+      return;
+    }
+    boolean changed = false;
+    final List<SqlNode> newItems = new ArrayList<>();
+    for (SqlNode groupItem : groupList) {
+      final SqlNode newItem = rewriteGroupingStarNode(groupItem, select);
+      if (newItem != groupItem) {
+        changed = true;
+      }
+      newItems.add(newItem);
+    }
+    if (changed) {
+      select.setGroupBy(new SqlNodeList(newItems, groupList.getParserPosition()));
+    }
+  }
+
+  /** Recursively rewrites bare {@code *} grouping elements into a ROW of all
+   * input columns, descending into the operands of GROUPING SETS, ROLLUP, CUBE
+   * and ROW (tuple) calls. */
+  private SqlNode rewriteGroupingStarNode(SqlNode node, SqlSelect select) {
+    if (node instanceof SqlIdentifier) {
+      final SqlIdentifier id = (SqlIdentifier) node;
+      if (id.isStar() && id.names.size() == 1) {
+        return starToRow(select, id.getParserPosition());
+      }
+      return node;
+    }
+    if (node instanceof SqlCall) {
+      final SqlCall call = (SqlCall) node;
+      final List<SqlNode> operands = call.getOperandList();
+      List<SqlNode> newOperands = null;
+      for (int i = 0; i < operands.size(); i++) {
+        final SqlNode operand = operands.get(i);
+        final SqlNode newOperand = rewriteGroupingStarNode(operand, select);
+        if (newOperand != operand) {
+          if (newOperands == null) {
+            newOperands = new ArrayList<>(operands);
+          }
+          newOperands.set(i, newOperand);
+        }
+      }
+      if (newOperands != null) {
+        return call.getOperator().createCall(
+            call.getParserPosition(), newOperands);
+      }
+    }
+    return node;
+  }
+
+  /** Builds a {@code ROW} of every input column of the FROM clause, expanding
+   * a bare grouping {@code *}. */
+  private SqlNode starToRow(SqlSelect select, SqlParserPos pos) {
+    final SqlIdentifier star = SqlIdentifier.star(pos);
+    final List<SqlNode> columns = expandStarForAllRewrite(select, star);
+    if (columns.isEmpty()) {
+      throw newValidationError(star, RESOURCE.selectStarRequiresFrom());
+    }
+    return SqlStdOperatorTable.ROW.createCall(pos, columns);
   }
 
   private void validateGroupItem(SqlValidatorScope groupScope,

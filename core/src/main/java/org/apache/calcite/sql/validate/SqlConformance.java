@@ -747,4 +747,22 @@ public interface SqlConformance {
   default boolean isCorrelatedAggregateAllowed() {
     return false;
   }
+
+  /**
+   * Whether {@code *} is allowed as a grouping element in
+   * {@code GROUPING SETS}, {@code ROLLUP} and {@code CUBE} sub-clauses of
+   * {@code GROUP BY}, to produce non-aggregated (detail) rows.
+   *
+   * <p>By analogy with {@code COUNT(*)}, a grouping set containing {@code *}
+   * groups by every input column, so no rows are merged (except identical
+   * duplicate rows) and each input row appears in the output.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  default boolean isGroupingSetsStarAllowed() {
+    return false;
+  }
 }
