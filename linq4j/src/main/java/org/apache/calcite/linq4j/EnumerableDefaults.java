@@ -34,6 +34,7 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultiset;
@@ -2539,6 +2540,11 @@ public abstract class EnumerableDefaults {
    * <p>Each operator compares a left key with a right key using the
    * corresponding comparator. Null keys do not match. Both inputs are
    * materialized and sorted before the first result is returned.
+   *
+   * @throws IllegalArgumentException if either operator is not
+   *     {@link ExpressionType#LessThan}, {@link ExpressionType#LessThanOrEqual},
+   *     {@link ExpressionType#GreaterThan}, or
+   *     {@link ExpressionType#GreaterThanOrEqual}
    */
   public static <TLeft, TRight, TKey1, TKey2, TResult>
       Enumerable<TResult> ieJoin(Enumerable<TLeft> left,
@@ -2549,8 +2555,19 @@ public abstract class EnumerableDefaults {
       Function1<? super TRight, TKey2> rightKeySelector2,
       Comparator<? super TKey1> comparator1,
       Comparator<? super TKey2> comparator2,
-      InequalityOperator operator1, InequalityOperator operator2,
+      ExpressionType operator1, ExpressionType operator2,
       Function2<? super TLeft, ? super TRight, TResult> resultSelector) {
+    for (ExpressionType operator : Arrays.asList(operator1, operator2)) {
+      switch (operator) {
+      case LessThan:
+      case LessThanOrEqual:
+      case GreaterThan:
+      case GreaterThanOrEqual:
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported IEJoin operator: " + operator);
+      }
+    }
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new IEJoinEnumerator<>(left, right,

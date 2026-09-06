@@ -17,10 +17,10 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.linq4j.InequalityOperator;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
@@ -152,7 +152,8 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
       final RelDataType rightType =
           right.getRowType().getFieldList().get(condition.rightKey).getType();
       final RelDataType keyType =
-          requireNonNull(typeFactory.leastRestrictive(ImmutableList.of(leftType, rightType)));
+          typeFactory.toSql(
+              requireNonNull(typeFactory.leastRestrictive(ImmutableList.of(leftType, rightType))));
       final Type keyClass = typeFactory.getJavaClass(keyType);
       keySelectors.add(
           Expressions.lambda(
@@ -216,19 +217,19 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
     if (firstIsLeft == secondIsLeft) {
       return null;
     }
-    final InequalityOperator operator;
+    final ExpressionType operator;
     switch (firstIsLeft ? call.getKind() : call.getKind().reverse()) {
     case LESS_THAN:
-      operator = InequalityOperator.LESS_THAN;
+      operator = ExpressionType.LessThan;
       break;
     case LESS_THAN_OR_EQUAL:
-      operator = InequalityOperator.LESS_THAN_OR_EQUAL;
+      operator = ExpressionType.LessThanOrEqual;
       break;
     case GREATER_THAN:
-      operator = InequalityOperator.GREATER_THAN;
+      operator = ExpressionType.GreaterThan;
       break;
     case GREATER_THAN_OR_EQUAL:
-      operator = InequalityOperator.GREATER_THAN_OR_EQUAL;
+      operator = ExpressionType.GreaterThanOrEqual;
       break;
     default:
       return null;
@@ -260,10 +261,10 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
   static final class Condition {
     final int leftKey;
     final int rightKey;
-    final InequalityOperator operator;
+    final ExpressionType operator;
 
     private Condition(int leftKey, int rightKey,
-        InequalityOperator operator) {
+        ExpressionType operator) {
       this.leftKey = leftKey;
       this.rightKey = rightKey;
       this.operator = operator;

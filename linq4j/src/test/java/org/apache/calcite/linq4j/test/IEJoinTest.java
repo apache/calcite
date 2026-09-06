@@ -19,8 +19,8 @@ package org.apache.calcite.linq4j.test;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.InequalityOperator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -39,6 +39,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Tests for IEJoin. */
 class IEJoinTest {
+  private static final List<ExpressionType> OPERATORS =
+      Arrays.asList(ExpressionType.LessThan, ExpressionType.LessThanOrEqual,
+          ExpressionType.GreaterThan, ExpressionType.GreaterThanOrEqual);
+
   private static final List<Point> LEFT =
       Arrays.asList(new Point("l0", 2, 8),
       new Point("l1", 5, 4),
@@ -54,8 +58,8 @@ class IEJoinTest {
       new Point("rny", 6, null));
 
   @Test void testAllOperatorCombinationsAgainstNestedLoop() {
-    for (InequalityOperator operator1 : InequalityOperator.values()) {
-      for (InequalityOperator operator2 : InequalityOperator.values()) {
+    for (ExpressionType operator1 : OPERATORS) {
+      for (ExpressionType operator2 : OPERATORS) {
         assertMatches("fixed input", LEFT, RIGHT, operator1, operator2);
       }
     }
@@ -80,8 +84,8 @@ class IEJoinTest {
                 random.nextInt(5) == 0 ? null : random.nextInt(7) - 3,
                 random.nextInt(5) == 0 ? null : random.nextInt(7) - 3));
       }
-      for (InequalityOperator operator1 : InequalityOperator.values()) {
-        for (InequalityOperator operator2 : InequalityOperator.values()) {
+      for (ExpressionType operator1 : OPERATORS) {
+        for (ExpressionType operator2 : OPERATORS) {
           assertMatches("trial " + trial, left, right, operator1, operator2);
         }
       }
@@ -90,18 +94,32 @@ class IEJoinTest {
 
   @Test void testEmptyAndSameInputs() {
     assertMatches("empty left", Collections.emptyList(), RIGHT,
-        InequalityOperator.LESS_THAN, InequalityOperator.GREATER_THAN);
+        ExpressionType.LessThan, ExpressionType.GreaterThan);
     assertMatches("empty right", LEFT, Collections.emptyList(),
-        InequalityOperator.LESS_THAN, InequalityOperator.GREATER_THAN);
+        ExpressionType.LessThan, ExpressionType.GreaterThan);
     assertMatches("same input", LEFT, LEFT,
-        InequalityOperator.LESS_THAN_OR_EQUAL,
-        InequalityOperator.GREATER_THAN_OR_EQUAL);
+        ExpressionType.LessThanOrEqual,
+        ExpressionType.GreaterThanOrEqual);
+  }
+
+  @Test void testUnsupportedOperators() {
+    for (ExpressionType operator : ExpressionType.values()) {
+      if (OPERATORS.contains(operator)) {
+        continue;
+      }
+      assertThrows(IllegalArgumentException.class,
+          () -> ieJoin(Collections.emptyList(), Collections.emptyList(),
+              operator, ExpressionType.LessThan));
+      assertThrows(IllegalArgumentException.class,
+          () -> ieJoin(Collections.emptyList(), Collections.emptyList(),
+              ExpressionType.LessThan, operator));
+    }
   }
 
   @Test void testReset() {
     final Enumerable<String> join =
-        ieJoin(LEFT, RIGHT, InequalityOperator.LESS_THAN,
-            InequalityOperator.GREATER_THAN);
+        ieJoin(LEFT, RIGHT, ExpressionType.LessThan,
+            ExpressionType.GreaterThan);
     final List<String> first = new ArrayList<>();
     final List<String> second = new ArrayList<>();
     try (Enumerator<String> enumerator = join.enumerator()) {
@@ -121,8 +139,8 @@ class IEJoinTest {
   }
 
   private static void assertMatches(String context, List<Point> left,
-      List<Point> right, InequalityOperator operator1,
-      InequalityOperator operator2) {
+      List<Point> right, ExpressionType operator1,
+      ExpressionType operator2) {
     final List<String> expected = nestedLoop(left, right, operator1, operator2);
     final List<String> actual = ieJoin(left, right, operator1, operator2).toList();
     Collections.sort(actual);
@@ -131,8 +149,9 @@ class IEJoinTest {
         actual, is(expected));
   }
 
+  /** Computes the actual row pairs using the IEJoin implementation under test. */
   private static Enumerable<String> ieJoin(List<Point> left, List<Point> right,
-      InequalityOperator operator1, InequalityOperator operator2) {
+      ExpressionType operator1, ExpressionType operator2) {
     return EnumerableDefaults.ieJoin(
         Linq4j.asEnumerable(left), Linq4j.asEnumerable(right),
         point -> point.x, point -> point.x,
@@ -142,9 +161,12 @@ class IEJoinTest {
         (leftPoint, rightPoint) -> leftPoint.name + ":" + rightPoint.name);
   }
 
+  /** Computes the expected row pairs independently using nested loops and
+   * direct comparisons. Null keys do not match. Sorts the result for comparison
+   * with the IEJoin result. */
   private static List<String> nestedLoop(List<Point> leftRows,
-      List<Point> rightRows, InequalityOperator operator1,
-      InequalityOperator operator2) {
+      List<Point> rightRows, ExpressionType operator1,
+      ExpressionType operator2) {
     final List<String> result = new ArrayList<>();
     for (Point left : leftRows) {
       for (Point right : rightRows) {
@@ -159,18 +181,18 @@ class IEJoinTest {
   }
 
   private static boolean test(@Nullable Integer left, @Nullable Integer right,
-      InequalityOperator operator) {
+      ExpressionType operator) {
     if (left == null || right == null) {
       return false;
     }
     switch (operator) {
-    case LESS_THAN:
+    case LessThan:
       return left < right;
-    case LESS_THAN_OR_EQUAL:
+    case LessThanOrEqual:
       return left <= right;
-    case GREATER_THAN:
+    case GreaterThan:
       return left > right;
-    case GREATER_THAN_OR_EQUAL:
+    case GreaterThanOrEqual:
       return left >= right;
     default:
       throw new AssertionError(operator);

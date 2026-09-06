@@ -34,6 +34,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.schemata.hr.Event;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.hr.HrSchemaBig;
 import org.apache.calcite.util.Holder;
@@ -44,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
 import java.text.Collator;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -200,6 +202,17 @@ class EnumerableIEJoinTest {
         .returnsUnordered("left_id=1; right_id=3");
   }
 
+  @Test void ieJoinWithJavaTimestampKeys() {
+    // Java timestamps that differ only within a millisecond compare equal in SQL.
+    tester(new TestSchema())
+        .query("select l.eventid from timestampLefts l join timestampRights r "
+            + "on l.ts > r.ts and l.eventid > r.eventid")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE))
+        .explainHookMatches(containsString("EnumerableIEJoin"))
+        .returnsUnordered("eventid=3");
+  }
+
   @Test void ieJoinWithIntervalKeys() {
     tester(new HrSchema())
         .query("select l.id as left_id, r.id as right_id "
@@ -327,6 +340,14 @@ class EnumerableIEJoinTest {
     };
     public final ResidualPoint[] residualRights = {
         new ResidualPoint("zero", 4, 3, 0D)
+    };
+    public final Event[] timestampLefts = {
+        new Event(2, Timestamp.valueOf("2020-01-01 00:00:00.000002")),
+        new Event(3, Timestamp.valueOf("2020-01-01 00:00:00.001")),
+        new Event(4, null)
+    };
+    public final Event[] timestampRights = {
+        new Event(1, Timestamp.valueOf("2020-01-01 00:00:00.000001"))
     };
   }
 
