@@ -242,22 +242,20 @@ public class RelMetadataTest {
         .assertPercentageOriginalRows(isAlmost(1.0 / DEPT_SIZE));
   }
 
-  @Disabled
   @Test void testPercentageOriginalRowsTwoFilters() {
     sql("select * from (\n"
         + "  select * from dept where name='X')\n"
         + "where deptno = 20")
         .assertPercentageOriginalRows(
-            isAlmost(DEFAULT_EQUAL_SELECTIVITY_SQUARED));
+            isAlmost(1.0 / DEPT_SIZE));
   }
 
-  @Disabled
   @Test void testPercentageOriginalRowsRedundantFilter() {
     sql("select * from (\n"
         + "  select * from dept where deptno=20)\n"
         + "where deptno = 20")
         .assertPercentageOriginalRows(
-            isAlmost(DEFAULT_EQUAL_SELECTIVITY));
+            isAlmost(1.0 / DEPT_SIZE));
   }
 
   @Test void testPercentageOriginalRowsJoin() {
@@ -265,14 +263,13 @@ public class RelMetadataTest {
         .assertPercentageOriginalRows(isAlmost(1.0));
   }
 
-  @Disabled
   @Test void testPercentageOriginalRowsJoinTwoFilters() {
     sql("select * from (\n"
         + "  select * from emp where deptno=10) e\n"
         + "inner join (select * from dept where deptno=10) d\n"
         + "on e.deptno=d.deptno")
         .assertPercentageOriginalRows(
-            isAlmost(DEFAULT_EQUAL_SELECTIVITY_SQUARED));
+            isAlmost(DEFAULT_EQUAL_SELECTIVITY / DEPT_SIZE));
   }
 
   @Test void testPercentageOriginalRowsUnionNoFilter() {
@@ -280,16 +277,14 @@ public class RelMetadataTest {
         .assertPercentageOriginalRows(isAlmost(1.0));
   }
 
-  @Disabled
   @Test void testPercentageOriginalRowsUnionLittleFilter() {
     sql("select name from dept where deptno=20"
         + " union all select ename from emp")
         .assertPercentageOriginalRows(
-            isAlmost(((DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY) + EMP_SIZE)
+            isAlmost((1.0 + EMP_SIZE)
                 / (DEPT_SIZE + EMP_SIZE)));
   }
 
-  @Disabled
   @Test void testPercentageOriginalRowsUnionBigFilter() {
     sql("select name from dept"
         + " union all select ename from emp where deptno=20")
