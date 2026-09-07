@@ -7808,6 +7808,28 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
   }
 
+  /** As {@link #testJoinPushTransitivePredicatesNullabilityIssue()}, but the join is a
+   * RIGHT join, so the predicate is inferred for the left input.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7766">[CALCITE-7766]
+   * Type-mismatch on nullability in JoinPushTransitivePredicatesRule for RIGHT join</a>. */
+  @Test void testJoinPushTransitivePredicatesNullabilityIssueRightJoin() {
+    final String sql = "WITH\n"
+        + "non_null_table AS (\n"
+        + "  SELECT DATE '2023-08-07' AS date_col_non_null FROM dept\n"
+        + "),\n"
+        + "null_table AS (\n"
+        + "  SELECT CAST(null as DATE) AS date_col_null FROM dept\n"
+        + ")\n"
+        + "SELECT *\n"
+        + "FROM null_table\n"
+        + "RIGHT JOIN non_null_table\n"
+        + "ON null_table.date_col_null = non_null_table.date_col_non_null";
+
+    sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
+  }
+
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6432">[CALCITE-6432]
    * Infinite loop for JoinPushTransitivePredicatesRule</a>. */
