@@ -140,8 +140,6 @@ public class RelMdPredicates
   public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
       .reflectiveSource(new RelMdPredicates(), BuiltInMetadata.Predicates.Handler.class);
 
-  private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
-
   @Override public MetadataDef<BuiltInMetadata.Predicates> getDef() {
     return BuiltInMetadata.Predicates.DEF;
   }
@@ -878,7 +876,7 @@ public class RelMdPredicates
       case RIGHT:
         return RelOptPredicateList.of(rexBuilder,
             RelOptUtil.conjunctions(rightChildPredicates),
-            inferredPredicates, EMPTY_LIST);
+            leftInferredPredicates, rightInferredPredicates);
       default:
         assert inferredPredicates.isEmpty();
         return RelOptPredicateList.EMPTY;
