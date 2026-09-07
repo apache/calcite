@@ -185,6 +185,13 @@ public abstract class Bug {
    * is fixed. */
   public static final boolean CALCITE_6611_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7494">[CALCITE-7494]
+   * Avatica conversion to string of TIMESTAMP WITH TIME ZONE does not include
+   * time zone</a> is fixed.
+   * Fix to be available with Avatica 1.29.0. */
+  public static final boolean CALCITE_7494_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */

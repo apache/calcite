@@ -34,9 +34,21 @@
 
 # Test case for [CALCITE-7491] https://issues.apache.org/jira/browse/CALCITE-7491
 # Literals of type TIMESTAMP WITH TIME ZONE cause crashes
-# This will change once we fix [CALCITE-7494]
-# Avatica conversion to string of TIMESTAMP WITH TIME ZONE
-# does not include time zone
+# The rendering depends on [CALCITE-7494] Avatica conversion to string of
+# TIMESTAMP WITH TIME ZONE does not include time zone, fixed in Avatica 1.29.0
+!if (fixed.calcite7494) {
+select TIMESTAMP WITH TIME ZONE '2020-01-01 00:00:00 America/New_York';
++-------------------------+
+| EXPR$0                  |
++-------------------------+
+| 2020-01-01 05:00:00 UTC |
++-------------------------+
+(1 row)
+
+!ok
+!}
+
+!if (not.fixed.calcite7494) {
 select TIMESTAMP WITH TIME ZONE '2020-01-01 00:00:00 America/New_York';
 +---------------------+
 | EXPR$0              |
@@ -46,6 +58,7 @@ select TIMESTAMP WITH TIME ZONE '2020-01-01 00:00:00 America/New_York';
 (1 row)
 
 !ok
+!}
 
 # Two timestamps with time zone are equal if they represent the same UTC time
 SELECT TIMESTAMP WITH TIME ZONE '2020-01-01 08:10:10 America/New_York' = TIMESTAMP WITH TIME ZONE '2020-01-01 05:10:10 America/Los_Angeles';
