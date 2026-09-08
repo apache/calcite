@@ -100,12 +100,16 @@ public abstract class DateRangeRules {
           .as(FilterDateRangeRule.FilterDateRangeRuleConfig.class)
           .toRule();
 
+  /** Default maximum number of matching ranges that may be enumerated while
+   * rewriting lower time-unit {@code EXTRACT} calls in one expression. */
+  public static final int DEFAULT_MAX_RANGE_COUNT = 100;
+
   private static final Map<TimeUnitRange, Integer> TIME_UNIT_CODES =
       ImmutableMap.<TimeUnitRange, Integer>builder()
           .put(TimeUnitRange.YEAR, Calendar.YEAR)
           .put(TimeUnitRange.MONTH, Calendar.MONTH)
           .put(TimeUnitRange.DAY, Calendar.DAY_OF_MONTH)
-          .put(TimeUnitRange.HOUR, Calendar.HOUR)
+          .put(TimeUnitRange.HOUR, Calendar.HOUR_OF_DAY)
           .put(TimeUnitRange.MINUTE, Calendar.MINUTE)
           .put(TimeUnitRange.SECOND, Calendar.SECOND)
           .put(TimeUnitRange.MILLISECOND, Calendar.MILLISECOND)
@@ -149,7 +153,19 @@ public abstract class DateRangeRules {
   @VisibleForTesting
   public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e,
       String timeZone) {
-    e = RexUtil.expandSearch(rexBuilder, null, e);
+    return replaceTimeUnits(rexBuilder, e, timeZone, DEFAULT_MAX_RANGE_COUNT);
+  }
+
+  /** Replaces calls to EXTRACT, FLOOR and CEIL in an expression, limiting the
+   * number of ranges enumerated for lower time units. A limit of -1 allows
+   * unlimited ranges. */
+  @VisibleForTesting
+  static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e,
+      String timeZone, int maxRangeCount) {
+    assert maxRangeCount >= -1;
+    // RexUtil expands a SEARCH only if its complexity is strictly less than
+    // the limit. Add one so maxRangeCount remains inclusive.
+    e = RexUtil.expandSearch(rexBuilder, null, e, maxRangeCount + 1);
     ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
     if (!timeUnits.contains(TimeUnitRange.YEAR)) {
       // Case when we have FLOOR or CEIL but no extract on YEAR.
@@ -159,11 +175,13 @@ public abstract class DateRangeRules {
           .addAll(timeUnits).add(TimeUnitRange.YEAR).build();
     }
     final Map<RexNode, RangeSet<Calendar>> operandRanges = new HashMap<>();
+    final RangeExpansionLimiter rangeExpansionLimiter =
+        new RangeExpansionLimiter(maxRangeCount);
     for (TimeUnitRange timeUnit : timeUnits) {
       e =
           e.accept(
               new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits,
-                  timeZone));
+                  timeZone, rangeExpansionLimiter));
     }
     return e;
   }
@@ -206,7 +224,8 @@ public abstract class DateRangeRules {
       final String timeZone = filter.getCluster().getPlanner().getContext()
           .unwrapOrThrow(CalciteConnectionConfig.class).timeZone();
       final RexNode condition =
-          replaceTimeUnits(rexBuilder, filter.getCondition(), timeZone);
+          replaceTimeUnits(rexBuilder, filter.getCondition(), timeZone,
+              config.maxRangeCount());
       if (condition.equals(filter.getCondition())) {
         return;
       }
@@ -229,6 +248,16 @@ public abstract class DateRangeRules {
       @Override default FilterDateRangeRule toRule() {
         return new FilterDateRangeRule(this);
       }
+
+      /** Maximum number of matching ranges that may be enumerated while
+       * rewriting lower time-unit {@code EXTRACT} calls. A value of -1 allows
+       * unlimited ranges. */
+      @Value.Default default int maxRangeCount() {
+        return DEFAULT_MAX_RANGE_COUNT;
+      }
+
+      /** Sets {@link #maxRangeCount()}. */
+      FilterDateRangeRuleConfig withMaxRangeCount(int maxRangeCount);
     }
   }
 
@@ -274,6 +303,35 @@ public abstract class DateRangeRules {
     }
   }
 
+  /** Tracks the number of ranges generated while rewriting an expression. */
+  private static class RangeExpansionLimiter {
+    private final int maxRangeCount;
+    private int rangeCount;
+
+    RangeExpansionLimiter(int maxRangeCount) {
+      this.maxRangeCount = maxRangeCount;
+    }
+
+    int mark() {
+      return rangeCount;
+    }
+
+    boolean tryAddRange() {
+      if (maxRangeCount == -1) {
+        return true;
+      }
+      if (rangeCount >= maxRangeCount) {
+        return false;
+      }
+      ++rangeCount;
+      return true;
+    }
+
+    void reset(int rangeCount) {
+      this.rangeCount = rangeCount;
+    }
+  }
+
   /** Walks over an expression, replacing calls to
    * {@code EXTRACT}, {@code FLOOR} and {@code CEIL} with date ranges. */
   @VisibleForTesting
@@ -284,16 +342,27 @@ public abstract class DateRangeRules {
     private final Deque<RexCall> calls = new ArrayDeque<>();
     private final ImmutableSortedSet<TimeUnitRange> timeUnitRanges;
     private final String timeZone;
+    private final RangeExpansionLimiter rangeExpansionLimiter;
 
     @VisibleForTesting
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<RexNode, RangeSet<Calendar>> operandRanges,
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
+      this(rexBuilder, timeUnit, operandRanges, timeUnitRanges, timeZone,
+          new RangeExpansionLimiter(DEFAULT_MAX_RANGE_COUNT));
+    }
+
+    private ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
+        Map<RexNode, RangeSet<Calendar>> operandRanges,
+        ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone,
+        RangeExpansionLimiter rangeExpansionLimiter) {
       this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
       this.timeUnit = requireNonNull(timeUnit, "timeUnit");
       this.operandRanges = requireNonNull(operandRanges, "operandRanges");
       this.timeUnitRanges = requireNonNull(timeUnitRanges, "timeUnitRanges");
       this.timeZone = timeZone;
+      this.rangeExpansionLimiter =
+          requireNonNull(rangeExpansionLimiter, "rangeExpansionLimiter");
     }
 
     @Override public RexNode visitCall(RexCall call) {
@@ -314,7 +383,7 @@ public abstract class DateRangeRules {
             RexNode operand = subCall.getOperands().get(1);
             if (canRewriteExtract(operand)) {
               return compareExtract(call.getKind().reverse(), operand,
-                  (RexLiteral) op0);
+                  (RexLiteral) op0, call);
             }
           }
           if (isFloorCeilCall(op1)) {
@@ -341,7 +410,7 @@ public abstract class DateRangeRules {
             RexNode operand = subCall.operands.get(1);
             if (canRewriteExtract(operand)) {
               return compareExtract(call.getKind(),
-                  subCall.operands.get(1), (RexLiteral) op1);
+                  subCall.operands.get(1), (RexLiteral) op1, call);
             }
           }
           if (isFloorCeilCall(op0)) {
@@ -420,7 +489,7 @@ public abstract class DateRangeRules {
             clonedOperand =
                 clonedOperand.accept(
                     new ExtractShuttle(rexBuilder, timeUnit, operandRanges,
-                        timeUnitRanges, timeZone));
+                        timeUnitRanges, timeZone, rangeExpansionLimiter));
           }
           if ((clonedOperand != operand) && (update != null)) {
             update[0] = true;
@@ -449,12 +518,13 @@ public abstract class DateRangeRules {
     }
 
     RexNode compareExtract(SqlKind comparison, RexNode operand,
-        RexLiteral literal) {
+        RexLiteral literal, RexCall originalCall) {
       RangeSet<Calendar> rangeSet = operandRanges.get(operand);
       if (rangeSet == null) {
         rangeSet = ImmutableRangeSet.<Calendar>of().complement();
       }
       final RangeSet<Calendar> s2 = TreeRangeSet.create();
+      final int rangeCountMark = rangeExpansionLimiter.mark();
       // Calendar.MONTH is 0-based
       final int v = RexLiteral.intValue(literal)
           - (timeUnit == TimeUnitRange.MONTH ? 1 : 0);
@@ -482,6 +552,10 @@ public abstract class DateRangeRules {
             c = (Calendar) r.lowerEndpoint().clone();
             int i = 0;
             while (next(c, timeUnit, v, r, i++ > 0)) {
+              if (!rangeExpansionLimiter.tryAddRange()) {
+                rangeExpansionLimiter.reset(rangeCountMark);
+                return originalCall;
+              }
               s2.add(extractRange(timeUnit, comparison, c));
             }
           }
@@ -536,10 +610,10 @@ public abstract class DateRangeRules {
       case DAY:
         return v > 0 && v <= 31;
       case HOUR:
-        return v >= 0 && v <= 24;
+        return v >= 0 && v < 24;
       case MINUTE:
       case SECOND:
-        return v >= 0 && v <= 60;
+        return v >= 0 && v < 60;
       default:
         return false;
       }
