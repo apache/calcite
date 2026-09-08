@@ -58,6 +58,6 @@ public class SqlUuidLiteral extends SqlLiteral {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.literal(this.toString());
+    writer.getDialect().unparseUuidLiteral(writer, this, leftPrec, rightPrec);
   }
 }
