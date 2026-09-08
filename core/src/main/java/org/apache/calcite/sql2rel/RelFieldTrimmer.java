@@ -1030,8 +1030,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Fennel abhors an empty row type, so pretend that the parent rel
     // wants the last field. (The last field is the least likely to be a
-    // system field.)
+    // system field.) But if the input already has zero columns, there is
+    // no field to give; return it unchanged.
     if (fieldsUsed.isEmpty()) {
+      if (fieldCount == 0) {
+        Mapping mapping = Mappings.createIdentity(fieldCount);
+        return result(setOp, mapping);
+      }
       fieldsUsed = ImmutableBitSet.of(rowType.getFieldCount() - 1);
     }
 
@@ -1301,8 +1306,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // If they are asking for no fields, we can't give them what they want,
     // because zero-column records are illegal. Give them the last field,
-    // which is unlikely to be a system field.
+    // which is unlikely to be a system field. But if the input already has
+    // zero columns, there is no field to give; return it unchanged.
     if (fieldsUsed.isEmpty()) {
+      if (fieldCount == 0) {
+        Mapping mapping = Mappings.createIdentity(fieldCount);
+        return result(values, mapping);
+      }
       fieldsUsed = ImmutableBitSet.range(fieldCount - 1, fieldCount);
     }
 

@@ -31,7 +31,9 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
@@ -551,6 +553,23 @@ class RelFieldTrimmerTest {
           + "  LogicalValues(tuples=[[{ 0 }, { 2 }]])\n";
       assertThat(trimmed, hasTree(expected));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4596">[CALCITE-4596]
+   * RelFieldTrimmer#trimFields fails if values row type is empty record</a>. */
+  @Test void testTrimEmptyValues() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType rowType = builder.getTypeFactory().builder().build();
+    final RelNode root = builder.values(rowType).build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+
+    final String expected = ""
+        + "LogicalValues(tuples=[[]])\n";
+    assertThat(trimmed, instanceOf(LogicalValues.class));
+    assertThat(trimmed, hasTree(expected));
   }
 
   @Test void testUnionFieldTrimmer() {
