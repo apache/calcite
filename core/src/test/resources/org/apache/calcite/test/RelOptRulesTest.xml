@@ -2083,6 +2083,27 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCeilDayToRangeAfterNoon">
+    <Resource name="sql">
+      <![CDATA[select ceil(hiredate to day) as d
+from sales.emp_b
+where ceil(hiredate to day) < timestamp '2010-02-04 13:00:00']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(D=[CEIL($4, FLAG(DAY))])
+  LogicalFilter(condition=[<(CEIL($4, FLAG(DAY)), 2010-02-04 13:00:00)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(D=[CEIL($4, FLAG(DAY))])
+  LogicalFilter(condition=[<=($4, 2010-02-04 00:00:00)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testChainJoinDphypJoinReorder">
     <Resource name="sql">
       <![CDATA[select emp.empno from emp, emp_address, dept, dept_nested where emp.deptno + emp_address.empno = dept.deptno + dept_nested.deptno and emp.empno = emp_address.empno and dept.deptno = dept_nested.deptno]]>
@@ -5943,6 +5964,27 @@ LogicalProject(BOOL_COL=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExtractHourRangeExpansionIsBounded">
+    <Resource name="sql">
+      <![CDATA[select extract(hour from hiredate) as h
+from sales.emp_b
+where extract(year from hiredate) = 2010 and extract(hour from hiredate) = 13]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(H=[EXTRACT(FLAG(HOUR), $4)])
+  LogicalFilter(condition=[AND(=(EXTRACT(FLAG(YEAR), $4), 2010), =(EXTRACT(FLAG(HOUR), $4), 13))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(H=[EXTRACT(FLAG(HOUR), $4)])
+  LogicalFilter(condition=[AND(SEARCH($4, Sarg[[2010-01-01 00:00:00..2011-01-01 00:00:00)]), =(EXTRACT(FLAG(HOUR), $4), 13))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExtractJoinFilterRule">
     <Resource name="sql">
       <![CDATA[select 1 from emp inner join dept on emp.deptno=dept.deptno]]>
@@ -6524,6 +6566,27 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             LogicalFilter(condition=[=($cor0.DEPTNO, $9)])
               LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+(*(2, $7), 30)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFloorDayToRangeAfterNoon">
+    <Resource name="sql">
+      <![CDATA[select floor(hiredate to day) as d
+from sales.emp_b
+where floor(hiredate to day) < timestamp '2010-02-04 13:00:00']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(D=[FLOOR($4, FLAG(DAY))])
+  LogicalFilter(condition=[<(FLOOR($4, FLAG(DAY)), 2010-02-04 13:00:00)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(D=[FLOOR($4, FLAG(DAY))])
+  LogicalFilter(condition=[<($4, 2010-02-05 00:00:00)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
     </Resource>
   </TestCase>

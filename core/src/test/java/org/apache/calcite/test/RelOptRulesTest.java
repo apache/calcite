@@ -10110,6 +10110,48 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testFloorDayToRangeAfterNoon() {
+    final String sql = "select floor(hiredate to day) as d\n"
+        + "from sales.emp_b\n"
+        + "where floor(hiredate to day)"
+        + " < timestamp '2010-02-04 13:00:00'";
+    sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
+        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testCeilDayToRangeAfterNoon() {
+    final String sql = "select ceil(hiredate to day) as d\n"
+        + "from sales.emp_b\n"
+        + "where ceil(hiredate to day)"
+        + " < timestamp '2010-02-04 13:00:00'";
+    sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
+        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testExtractHourRangeExpansionIsBounded() {
+    final String sql = "select extract(hour from hiredate) as h\n"
+        + "from sales.emp_b\n"
+        + "where extract(year from hiredate) = 2010"
+        + " and extract(hour from hiredate) = 13";
+    sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
+        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
+        .check();
+  }
+
   @Test void testFilterRemoveIsNotDistinctFromRule() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")

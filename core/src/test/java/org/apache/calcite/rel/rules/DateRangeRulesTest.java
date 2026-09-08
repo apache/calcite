@@ -17,7 +17,9 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerFixtures.Fixture;
 import org.apache.calcite.util.DateString;
@@ -35,6 +37,7 @@ import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.core.IsInstanceOf.any;
 
@@ -353,6 +356,125 @@ class DateRangeRulesTest {
             f.eq(f.exDayTs, f.literal(31))),
         is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
             + " AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00)), false)"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testExtractHourFromTimestampColumn() {
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(2)),
+            f.eq(f.exDayTs, f.literal(4)),
+            f.eq(f.exHourTs, f.literal(13))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00)),"
+            + " AND(>=($9, 2010-02-04 00:00:00), <($9, 2010-02-05 00:00:00)),"
+            + " AND(>=($9, 2010-02-04 13:00:00), <($9, 2010-02-04 14:00:00)))"));
+
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exHourTs, f.literal(24))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " false)"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testExtractInvalidMinuteAndSecond() {
+    final Fixture2 f = new Fixture2();
+    for (RexNode extract : ImmutableList.of(f.exMinuteTs, f.exSecondTs)) {
+      checkDateRange(f,
+          f.and(f.eq(f.exYearTs, f.literal(2010)),
+              f.eq(extract, f.literal(60))),
+          is("AND(AND(>=($9, 2010-01-01 00:00:00),"
+              + " <($9, 2011-01-01 00:00:00)), false)"));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testExtractRangeExpansionLimit() {
+    final Fixture2 f = new Fixture2();
+    final RexNode condition =
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exDayTs, f.literal(31)));
+
+    final RexNode atLimit =
+        DateRangeRules.replaceTimeUnits(f.rexBuilder, condition, "UTC", 7);
+    final RexNode dayRanges = ((RexCall) atLimit).operands.get(1);
+    assertThat(((RexCall) dayRanges).operands, hasSize(7));
+
+    final RexNode overLimit =
+        DateRangeRules.replaceTimeUnits(f.rexBuilder, condition, "UTC", 6);
+    assertThat(overLimit,
+        hasToString("AND(AND(>=($9, 2010-01-01 00:00:00),"
+            + " <($9, 2011-01-01 00:00:00)), =(EXTRACT(FLAG(DAY), $9), 31))"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testSearchExpansionLimit() {
+    final Fixture2 f = new Fixture2();
+    final ImmutableList.Builder<RexNode> yearLiterals = ImmutableList.builder();
+    for (int year = 2000; year < 2100; ++year) {
+      yearLiterals.add(f.literal(year));
+    }
+    final RexNode searchAtLimit =
+        f.rexBuilder.makeIn(f.exYearTs, yearLiterals.build());
+    assertThat(searchAtLimit.getKind(), is(SqlKind.SEARCH));
+    final RexNode rewrittenAtLimit =
+        DateRangeRules.replaceTimeUnits(f.rexBuilder, searchAtLimit, "UTC");
+    assertThat(rewrittenAtLimit.getKind(), is(SqlKind.OR));
+    assertThat(((RexCall) rewrittenAtLimit).operands, hasSize(100));
+
+    yearLiterals.add(f.literal(2100));
+    final RexNode searchOverLimit =
+        f.rexBuilder.makeIn(f.exYearTs, yearLiterals.build());
+    assertThat(searchOverLimit.getKind(), is(SqlKind.SEARCH));
+    final RexNode rewrittenOverLimit =
+        DateRangeRules.replaceTimeUnits(f.rexBuilder, searchOverLimit, "UTC");
+    assertThat(rewrittenOverLimit, is(searchOverLimit));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testExtractRangeExpansionUsesDefaultLimit() {
+    final Fixture2 f = new Fixture2();
+    final RexNode condition =
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exHourTs, f.literal(13)));
+    final RexNode rewritten =
+        DateRangeRules.replaceTimeUnits(f.rexBuilder, condition, "UTC");
+    assertThat(rewritten,
+        hasToString("AND(AND(>=($9, 2010-01-01 00:00:00),"
+            + " <($9, 2011-01-01 00:00:00)), =(EXTRACT(FLAG(HOUR), $9), 13))"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7762">[CALCITE-7762]
+   * DateRangeRules may produce incorrect ranges, hang, or excessively expand
+   * sub-day predicates</a>. */
+  @Test void testExtractSecondRangeExpansionUsesDefaultLimit() {
+    final Fixture2 f = new Fixture2();
+    final RexNode condition =
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exSecondTs, f.literal(15)));
+    final RexNode rewritten =
+        DateRangeRules.replaceTimeUnits(f.rexBuilder, condition, "UTC");
+    assertThat(rewritten,
+        hasToString("AND(AND(>=($9, 2010-01-01 00:00:00),"
+            + " <($9, 2011-01-01 00:00:00)), =(EXTRACT(FLAG(SECOND), $9), 15))"));
   }
 
   @Test void testUnboundYearExtractRewrite() {
@@ -739,6 +861,9 @@ class DateRangeRulesTest {
     private final RexNode exYearTs; // EXTRACT YEAR from TIMESTAMP field
     private final RexNode exMonthTs; // EXTRACT MONTH from TIMESTAMP field
     private final RexNode exDayTs; // EXTRACT DAY from TIMESTAMP field
+    private final RexNode exHourTs; // EXTRACT HOUR from TIMESTAMP field
+    private final RexNode exMinuteTs; // EXTRACT MINUTE from TIMESTAMP field
+    private final RexNode exSecondTs; // EXTRACT SECOND from TIMESTAMP field
     private final RexNode exYearD; // EXTRACT YEAR from DATE field
     private final RexNode exMonthD; // EXTRACT MONTH from DATE field
     private final RexNode exDayD; // EXTRACT DAY from DATE field
@@ -765,6 +890,15 @@ class DateRangeRulesTest {
       exDayTs =
           rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
+      exHourTs =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.HOUR), ts));
+      exMinuteTs =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MINUTE), ts));
+      exSecondTs =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.SECOND), ts));
       exYearD =
           rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), d));
