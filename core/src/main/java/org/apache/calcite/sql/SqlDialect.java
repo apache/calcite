@@ -579,6 +579,15 @@ public class SqlDialect {
       SqlNodeList hints, int leftPrec, int rightPrec) {
   }
 
+  /** Converts a UUID literal to a SQL string. The default implementation
+   * returns strings such as
+   * <code>UUID '123e4567-e89b-12d3-a456-426655440000'</code>. A dialect whose
+   * product spells it differently should override this method. */
+  public void unparseUuidLiteral(SqlWriter writer,
+      SqlUuidLiteral literal, int leftPrec, int rightPrec) {
+    writer.literal(literal.toString());
+  }
+
   /**
    * Returns whether the string contains any characters outside the
    * comfortable 7-bit ASCII range (32 through 127, plus linefeed (10) and
