@@ -16,6 +16,85 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testKeepsDerivedGroupKeyForNestedDouble">
+    <Resource name="sql">
+      <![CDATA[select x, x[1] as y, count(*) as c
+from (values (array[cast(0 as double)]),
+  (array[cast(1 as double)])) as t(x)
+group by x, x[1]]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+  LogicalProject(X=[$0], Y=[ITEM($0, 1)])
+    LogicalUnion(all=[true])
+      LogicalProject(EXPR$0=[ARRAY(0.0E0:DOUBLE)])
+        LogicalValues(tuples=[[{ 0 }]])
+      LogicalProject(EXPR$0=[ARRAY(1.0E0:DOUBLE)])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testKeepsDoubleGroupKeyInferredFromEquality">
+    <Resource name="sql">
+      <![CDATA[select x, y, count(*) as c
+from (values
+  (cast(0 as double), cast(0 as double)),
+  (cast(0 as double), -cast(0 as double))) as t(x, y)
+where x = y
+group by x, y]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+  LogicalFilter(condition=[=($0, $1)])
+    LogicalProject(X=[$0], Y=[$1])
+      LogicalUnion(all=[true])
+        LogicalValues(tuples=[[{ 0.0E0, 0.0E0 }]])
+        LogicalProject(EXPR$0=[0.0E0:DOUBLE], EXPR$1=[-(0.0E0:DOUBLE)])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testKeepsFdFromNullGeneratingInputOfLeftJoin">
+    <Resource name="sql">
+      <![CDATA[select r.a, r.y, count(*) as c
+from (values (1), (2)) as l(z)
+left join (
+  select z, a, coalesce(a, 1) as y
+  from (values (1, cast(null as integer))) as v(z, a)
+) as r on l.z = r.z
+group by r.a, r.y]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+  LogicalProject(A=[$2], Y=[$3])
+    LogicalJoin(condition=[=($0, $1)], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }, { 2 }]])
+      LogicalProject(Z=[$0], A=[$1], Y=[CASE(IS NOT NULL($1), CAST($1):INTEGER NOT NULL, 1)])
+        LogicalValues(tuples=[[{ 1, null }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testKeepsGroupKeyFromPreservedSideOfLeftJoin">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e.deptno, count(*) as c
+from emp e
+left join dept d on e.deptno = d.deptno
+group by d.deptno, e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], DEPTNO0=[$1], C=[$2])
+  LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+    LogicalProject(DEPTNO=[$9], $f1=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testKeepsNonRedundantGroupKeys">
     <Resource name="sql">
       <![CDATA[select deptno, job, count(*) as c
@@ -27,6 +106,30 @@ group by deptno, job]]>
 LogicalAggregate(group=[{0, 1}], C=[COUNT()])
   LogicalProject(DEPTNO=[$7], JOB=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMapsFdForNonContiguousAggregateGroupSet">
+    <Resource name="sql">
+      <![CDATA[select a, b, c, count(*) as n
+from (values (0, 1, 1, 10), (0, 1, 1, 20))
+  as t(z, a, b, c)
+where a = b
+group by a, b, c]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{1, 2, 3}], N=[COUNT()])
+  LogicalFilter(condition=[=($1, $2)])
+    LogicalValues(tuples=[[{ 0, 1, 1, 10 }, { 0, 1, 1, 20 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(A=[$0], B=[$2], C=[$1], N=[$3])
+  LogicalAggregate(group=[{1, 3}], B=[ANY_VALUE($2)], N=[COUNT()])
+    LogicalFilter(condition=[=($1, $2)])
+      LogicalValues(tuples=[[{ 0, 1, 1, 10 }, { 0, 1, 1, 20 }]])
 ]]>
     </Resource>
   </TestCase>
