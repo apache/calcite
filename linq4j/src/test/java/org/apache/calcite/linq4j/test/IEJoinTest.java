@@ -102,6 +102,33 @@ class IEJoinTest {
         ExpressionType.GreaterThanOrEqual);
   }
 
+  @Test void testSameKeyForBothPredicates() {
+    for (ExpressionType operator1 : OPERATORS) {
+      for (ExpressionType operator2 : OPERATORS) {
+        final List<String> expected = new ArrayList<>();
+        for (Point left : LEFT) {
+          for (Point right : RIGHT) {
+            if (test(left.x, right.x, operator1)
+                && test(left.x, right.x, operator2)) {
+              expected.add(left.name + ":" + right.name);
+            }
+          }
+        }
+        final List<String> actual =
+            EnumerableDefaults.ieJoin(
+                Linq4j.asEnumerable(LEFT), Linq4j.asEnumerable(RIGHT),
+                point -> point.x, point -> point.x,
+                point -> point.x, point -> point.x,
+                Comparator.naturalOrder(), Comparator.naturalOrder(),
+                operator1, operator2,
+                (left, right) -> left.name + ":" + right.name).toList();
+        Collections.sort(expected);
+        Collections.sort(actual);
+        assertThat(operator1 + "/" + operator2, actual, is(expected));
+      }
+    }
+  }
+
   @Test void testUnsupportedOperators() {
     for (ExpressionType operator : ExpressionType.values()) {
       if (OPERATORS.contains(operator)) {

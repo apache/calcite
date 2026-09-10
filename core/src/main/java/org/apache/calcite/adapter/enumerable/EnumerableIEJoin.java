@@ -61,9 +61,6 @@ import static java.util.Objects.requireNonNull;
 public class EnumerableIEJoin extends Join implements EnumerableRel {
   private final ImmutableList<Condition> conditions;
 
-  /** Creates an EnumerableIEJoin.
-   *
-   * <p>Use {@link #create} unless you know what you're doing. */
   protected EnumerableIEJoin(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode left, RelNode right, RexNode condition) {
     super(cluster, traitSet, ImmutableList.of(), left, right, condition,
@@ -82,8 +79,8 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
       throw new IllegalArgumentException(
           "condition must contain supported cross-input inequalities");
     }
-    final ImmutableList<Condition> conditions = ImmutableList.of(first, second);
-    for (Condition inequality : conditions) {
+    final ImmutableList<Condition> inequalities = ImmutableList.of(first, second);
+    for (Condition inequality : inequalities) {
       if (!supportsKeyTypes(left, right, inequality)) {
         throw new IllegalArgumentException("unsupported IEJoin key types: left "
             + left.getRowType().getFieldList().get(inequality.leftKey).getType()
@@ -91,7 +88,7 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
             + right.getRowType().getFieldList().get(inequality.rightKey).getType());
       }
     }
-    this.conditions = conditions;
+    this.conditions = inequalities;
   }
 
   /** Creates an EnumerableIEJoin. */
@@ -114,14 +111,18 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    final double leftRows = mq.getRowCount(left);
-    final double rightRows = mq.getRowCount(right);
-    double outputRows = mq.getRowCount(this);
+    final Double leftRows = mq.getRowCount(left);
+    final Double rightRows = mq.getRowCount(right);
+    final Double joinRows = mq.getRowCount(this);
+    if (leftRows == null || rightRows == null || joinRows == null) {
+      return null;
+    }
+    double outputRows = joinRows;
     if (RelNodes.COMPARATOR.compare(left, right) > 0) {
       outputRows = RelMdUtil.addEpsilon(outputRows);
     }
     final double inputRows = leftRows + rightRows;
-    // IEJoin sorts the union twice, scans it once, then emits the result.
+    // Sort the combined inputs by each inequality key, then scan and emit pairs.
     final double cost =
         2D * Util.nLogN(inputRows) + inputRows + outputRows;
     return planner.getCostFactory().makeCost(cost, 0, 0);
@@ -151,10 +152,14 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
           left.getRowType().getFieldList().get(condition.leftKey).getType();
       final RelDataType rightType =
           right.getRowType().getFieldList().get(condition.rightKey).getType();
+      // Use SQL storage types so timestamp comparisons use millisecond precision.
       final RelDataType keyType =
           typeFactory.toSql(
               requireNonNull(typeFactory.leastRestrictive(ImmutableList.of(leftType, rightType))));
       final Type keyClass = typeFactory.getJavaClass(keyType);
+      // For nullable INTEGER keys in array rows:
+      // leftRow -> (Integer) leftRow[leftKey]
+      // rightRow -> (Integer) rightRow[rightKey]
       keySelectors.add(
           Expressions.lambda(
           Function1.class,
@@ -169,6 +174,7 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
               rightParameter, condition.rightKey), keyClass), rightParameter));
       // PhysType generates comparators for row fields, so wrap the key in a
       // scalar row type.
+      // For nullable INTEGER keys: (a, b) -> Utilities.compareNullsLast(a, b)
       final RelDataType keyRowType =
           typeFactory.builder().add("key", keyType).build();
       final PhysType keyPhysType =
@@ -190,10 +196,16 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
     arguments.addAll(comparators);
     arguments.add(Expressions.constant(conditions.get(0).operator));
     arguments.add(Expressions.constant(conditions.get(1).operator));
+    // For two-field array rows, the result selector is:
+    // (leftRow, rightRow) -> new Object[] {
+    //     leftRow[0], leftRow[1], rightRow[0], rightRow[1] }
     arguments.add(
         EnumUtils.joinSelector(joinType, physType,
         ImmutableList.of(leftResult.physType, rightResult.physType)));
 
+    // return EnumerableDefaults.ieJoin(left, right,
+    //     leftKey1, rightKey1, leftKey2, rightKey2,
+    //     comparator1, comparator2, operator1, operator2, resultSelector);
     return implementor.result(physType,
         builder.append(
             Expressions.call(BuiltInMethod.IE_JOIN.method,
@@ -246,6 +258,8 @@ public class EnumerableIEJoin extends Join implements EnumerableRel {
     final RelDataType rightType =
         right.getRowType().getFieldList().get(condition.rightKey).getType();
     final SqlTypeName typeName = leftType.getSqlTypeName();
+    // Floating-point sort order disagrees with <, <=, > and >= for NaN
+    // and signed zero.
     return SqlTypeUtil.equalSansNullability(
         left.getCluster().getTypeFactory(), leftType, rightType)
         && (SqlTypeUtil.isBoolean(leftType)

@@ -34,6 +34,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.Event;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.hr.HrSchemaBig;
@@ -50,22 +51,31 @@ import java.text.Collator;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
 
-/** Unit tests for {@link EnumerableIEJoin}. */
+/** Unit tests for {@link EnumerableIEJoin}.
+ *
+ * <p>Disabling {@code ENUMERABLE_JOIN_RULE} forces execution through IEJoin
+ * for supported conditions, even on small inputs.
+ */
 class EnumerableIEJoinTest {
   private static final SqlCollation PRIMARY_COLLATION =
       new JavaCollation(SqlCollation.Coercibility.IMPLICIT, Locale.US,
           Util.getDefaultCharset(), Collator.PRIMARY);
 
   @Test void ieJoin() {
+    // The first comparison reverses the operands: rx < lx becomes lx > rx.
+    // Equal keys do not match these strict comparisons; null keys never match.
     final Holder<@Nullable RelRoot> root = Holder.empty();
     tester(new HrSchema())
         .withRel(builder -> {
@@ -107,9 +117,24 @@ class EnumerableIEJoinTest {
         () -> join.copy(join.getTraitSet(),
             join.getCluster().getRexBuilder().makeLiteral(true),
             join.getLeft(), join.getRight(), JoinRelType.INNER, false));
+
+    // A missing row count on either input or the join leaves the cost unknown.
+    for (RelNode unknown : ImmutableList.of(join.getLeft(), join.getRight(), join)) {
+      final RelMetadataQuery mq = new RelMetadataQuery() {
+        @Override public Double getRowCount(RelNode rel) {
+          if (rel == unknown) {
+            // The signature is not nullable yet; see CALCITE-4263.
+            return castNonNull(null);
+          }
+          return 10D;
+        }
+      };
+      assertNull(join.computeSelfCost(join.getCluster().getPlanner(), mq));
+    }
   }
 
   @Test void ieJoinDoesNotSupportApproximateNumbers() {
+    // Both signed zeros satisfy >= 0; NaN does not.
     final Holder<@Nullable RelRoot> root = Holder.empty();
     tester(new TestSchema())
         .query("select l.name as left_name, r.name as right_name "
@@ -135,6 +160,7 @@ class EnumerableIEJoinTest {
   }
 
   @Test void ieJoinDoesNotSupportAny() {
+    // ANY keys must be compared according to the values' runtime types.
     final Holder<@Nullable RelNode> root = Holder.empty();
     tester(new TestSchema())
         .query("select l.name as left_name, r.name as right_name "
@@ -149,14 +175,26 @@ class EnumerableIEJoinTest {
   }
 
   @Test void ieJoinCostAndDefaultSelection() {
+    final HrSchemaBig schema = new HrSchemaBig();
+    // Count matching pairs independently of IEJoin.
+    int expectedCount = 0;
+    for (Employee left : schema.emps) {
+      for (Employee right : schema.emps) {
+        if (left.empid < right.empid && left.deptno >= right.deptno) {
+          expectedCount++;
+        }
+      }
+    }
+
+    // Keep all join rules enabled to test cost-based selection.
     final Holder<@Nullable RelRoot> root = Holder.empty();
-    tester(new HrSchemaBig())
+    tester(schema)
         .query("select count(*) from emps l join emps r "
             + "on l.empid < r.empid and l.deptno >= r.deptno")
         .withHook(Hook.PLAN_BEFORE_IMPLEMENTATION,
             (Consumer<RelRoot>) root::set)
         .explainHookMatches(containsString("EnumerableIEJoin"))
-        .returns("EXPR$0=600\n");
+        .returns("EXPR$0=" + expectedCount + "\n");
 
     final Join join = findJoin(requireNonNull(root.get()).rel);
     final EnumerableIEJoin selfJoin =
@@ -175,6 +213,7 @@ class EnumerableIEJoinTest {
   }
 
   @Test void ieJoinWithBooleanAndDecimalKeys() {
+    // Boolean ordering is false < true.
     tester(new HrSchema())
         .query("select l.id as left_id, r.id as right_id "
             + "from (values (1, true, cast(2 as decimal(5, 2))), "
@@ -189,6 +228,7 @@ class EnumerableIEJoinTest {
   }
 
   @Test void ieJoinWithBinaryAndNullableDateKeys() {
+    // A null date prevents a match even when the binary comparison succeeds.
     tester(new HrSchema())
         .query("select l.id as left_id, r.id as right_id "
             + "from (values (1, cast(X'01' as varbinary(2)), date '2020-01-02'), "
@@ -229,6 +269,7 @@ class EnumerableIEJoinTest {
   }
 
   @Test void ieJoinWithCollatedVarcharKeys() {
+    // PRIMARY collation ignores case and accents: "abc" and "ÀBC" compare equal.
     tester(new HrSchema())
         .withRel(builder -> {
           final RelDataType stringType =
@@ -260,6 +301,8 @@ class EnumerableIEJoinTest {
   }
 
   @Test void ieJoinWithApproximateRemainingPredicate() {
+    // EnumerableCalc evaluates the remaining z >= 0 comparison:
+    // both signed zeros match, but NaN does not.
     tester(new TestSchema())
         .query("select l.name as left_name, r.name as right_name "
             + "from residualLefts l join residualRights r "
@@ -293,6 +336,20 @@ class EnumerableIEJoinTest {
             + "on e.empid < d.deptno and e.deptno > d.deptno")
         .explainHookMatches(not(containsString("EnumerableIEJoin")))
         .runs();
+  }
+
+  @Test void ieJoinWithSharedField() {
+    // x = 2 matches both inclusive intervals.
+    tester(new HrSchema())
+        .query("select l.x, r.lo, r.hi "
+            + "from (values (1), (2), (3)) as l(x) "
+            + "join (values (1, 2), (2, 3)) as r(lo, hi) "
+            + "on l.x >= r.lo and l.x <= r.hi")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE))
+        .explainHookMatches(containsString("EnumerableIEJoin"))
+        .returnsUnordered("x=1; lo=1; hi=2", "x=2; lo=1; hi=2",
+            "x=2; lo=2; hi=3", "x=3; lo=2; hi=3");
   }
 
   private CalciteAssert.AssertThat tester(Object schema) {

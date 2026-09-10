@@ -186,12 +186,10 @@ final class IEJoinEnumerator<TLeft, TRight, TKey1, TKey2, TResult>
             || operator == ExpressionType.GreaterThan;
     final boolean leftSideFirst = isFirstOrder != strict;
     return (entry1, entry2) -> {
-      final TKey key1 = isFirstOrder
-          ? castNonNull((TKey) entry1.key1)
-          : castNonNull((TKey) entry1.key2);
-      final TKey key2 = isFirstOrder
-          ? castNonNull((TKey) entry2.key1)
-          : castNonNull((TKey) entry2.key2);
+      final TKey key1 =
+          castNonNull((TKey) (isFirstOrder ? entry1.key1 : entry1.key2));
+      final TKey key2 =
+          castNonNull((TKey) (isFirstOrder ? entry2.key1 : entry2.key2));
       final int c = descending
           ? comparator.compare(key2, key1)
           : comparator.compare(key1, key2);
