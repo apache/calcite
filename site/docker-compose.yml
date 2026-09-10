@@ -16,7 +16,7 @@
 #
 services:
   dev:
-    image: ruby:3.3.7-slim-bullseye
+    image: ruby:3.3.7-slim-bookworm
     working_dir: /root
     command: sh -c "apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler wget && wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && ./download-avatars.sh && bundle install && bundle exec jekyll serve --host=0.0.0.0 --watch --force_polling"
     ports:
@@ -24,7 +24,7 @@ services:
     volumes:
       - .:/root
   build-site:
-    image: ruby:3.3.7-slim-bullseye
+    image: ruby:3.3.7-slim-bookworm
     working_dir: /home/jekyll
     command: sh -c "rm -rf /home/jekyll/.bundle /home/jekyll/Gemfile.lock /home/jekyll/.jekyll-cache /home/target/ && apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler wget && wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && ./download-avatars.sh && bundle install && bundle exec jekyll build && chmod 777 ./*"
     volumes:
