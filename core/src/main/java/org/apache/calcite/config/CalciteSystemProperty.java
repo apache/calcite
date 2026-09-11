@@ -114,6 +114,13 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> STRICT =
       booleanProperty("calcite.strict.sql", false);
 
+  /** Whether to order UUIDs as unsigned 128-bit values, as SQL requires,
+   * rather than using {@link java.util.UUID#compareTo}, which treats each half
+   * as signed; see
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7716">[CALCITE-7716]</a>. */
+  public static final CalciteSystemProperty<Boolean> UUID_UNSIGNED_COMPARISON =
+      booleanProperty("calcite.uuid.unsigned.comparison", true);
+
   /**
    * Whether to include a GraphViz representation when dumping the state of the
    * Volcano planner.

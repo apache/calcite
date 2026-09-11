@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -513,6 +514,39 @@ public class SqlOperatorTest {
         true);
     f.checkBoolean("x'0A00015A' between x'0A0001A0' and x'0A0001B0'",
         false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7716">[CALCITE-7716]
+   * BETWEEN/range predicates on UUID literals give wrong results because
+   * RexSimplify orders bounds using java.util.UUID#compareTo (signed
+   * comparison)</a>. Results depend on
+   * {@link CalciteSystemProperty#UUID_UNSIGNED_COMPARISON}. */
+  @Test void testUuidBetween() {
+    final SqlOperatorFixture f = fixture();
+    final String mid = "UUID '8ba7b810-9dad-11d1-80b4-00c04fd430c8'";
+    final String min = "UUID '00000000-0000-0000-0000-000000000000'";
+    final String max = "UUID 'ffffffff-ffff-ffff-ffff-ffffffffffff'";
+    final boolean unsigned =
+        CalciteSystemProperty.UUID_UNSIGNED_COMPARISON.value();
+
+    // Under signed ordering 'ffffffff-...' compares as less than
+    // '00000000-...', so the range is empty and BETWEEN folds to FALSE.
+    f.checkBoolean(mid + " between " + min + " and " + max, unsigned);
+    f.checkBoolean(min + " between " + min + " and " + max, unsigned);
+    f.checkBoolean(max + " between " + min + " and " + max, unsigned);
+    f.checkBoolean(mid + " not between " + min + " and " + max, !unsigned);
+    f.checkBoolean(mid + " > " + min, unsigned);
+    f.checkBoolean(max + " < " + min, !unsigned);
+
+    // IN, NOT IN and IS DISTINCT FROM also build Sargs, but compare by
+    // equality, so their results do not depend on the ordering.
+    f.checkBoolean(mid + " in (" + min + ", " + max + ")", false);
+    f.checkBoolean(max + " in (" + min + ", " + max + ")", true);
+    f.checkBoolean(mid + " not in (" + min + ", " + max + ")", true);
+    f.checkBoolean(max + " not in (" + min + ", " + max + ")", false);
+    f.checkBoolean(max + " is distinct from " + min, true);
+    f.checkBoolean(max + " is not distinct from " + max, true);
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3522">

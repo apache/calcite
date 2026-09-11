@@ -44,6 +44,7 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.UuidValue;
 
 import com.google.common.collect.ImmutableList;
 
@@ -323,7 +324,7 @@ public class RexLiteral extends RexNode {
     }
     switch (typeName) {
     case UUID:
-      return value instanceof UUID;
+      return value instanceof UuidValue;
     case VARIANT:
       return value instanceof VariantValue;
     case BOOLEAN:
@@ -707,7 +708,7 @@ public class RexLiteral extends RexNode {
           printSarg(sb2, (Sarg) value, type));
       break;
     case UUID:
-      assert value instanceof UUID;
+      assert value instanceof UuidValue;
       sb.append(value);
       break;
     case SYMBOL:
@@ -1079,7 +1080,9 @@ public class RexLiteral extends RexNode {
     switch (typeName) {
     case UUID:
       if (clazz == String.class) {
-        return clazz.cast(((UUID) value).toString());
+        return clazz.cast(value.toString());
+      } else if (clazz == UUID.class) {
+        return clazz.cast(((UuidValue) value).uuid());
       }
       break;
     case BINARY:
