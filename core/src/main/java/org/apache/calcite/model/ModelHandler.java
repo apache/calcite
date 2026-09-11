@@ -227,10 +227,10 @@ public class ModelHandler {
     filter.check(className);
     final Class<?> clazz;
     try {
-      clazz = Class.forName(className);
+      // Defer class initialization until it is checked to be a valid function (see below)
+      clazz = Class.forName(className, false, ModelHandler.class.getClassLoader());
     } catch (ClassNotFoundException e) {
-      throw new RuntimeException("UDF class '"
-          + className + "' not found");
+      throw new RuntimeException("UDF class '" + className + "' not found");
     }
     String methodNameOrDefault = Util.first(methodName, "eval");
     String actualFunctionName;

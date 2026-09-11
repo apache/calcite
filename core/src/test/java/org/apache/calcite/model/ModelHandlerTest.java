@@ -36,6 +36,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -118,6 +119,33 @@ public class ModelHandlerTest {
             ModelHandler.addFunctions(ClassNameFilter.standard(), root,
                 "lookup", "javax.naming.InitialContext", "doLookup", false));
     assertThat(e.getMessage(), containsString("javax.naming."));
+  }
+
+  /** Set by {@link NotAFunction}'s static initializer. */
+  static final AtomicBoolean NOT_A_FUNCTION_INITIALIZED = new AtomicBoolean(false);
+
+  /** Not a valid function class; records whether its static initializer ran. */
+  public static class NotAFunction {
+    static {
+      NOT_A_FUNCTION_INITIALIZED.set(true);
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7772">[CALCITE-7772] ModelHandler
+   * addFunctions should defer UDF class initialization until after shape validation</a>.
+   * A class that passes the name filter but fails the function-shape
+   * checks must be rejected without its static initializer running. */
+  @Test void testRejectedUdfClassIsNotInitialized() {
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    ClassNameFilter permissive = ClassNameFilter.of("", "org.apache.calcite.");
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () ->
+            ModelHandler.addFunctions(permissive, root, "f",
+                NotAFunction.class.getName(), null, false));
+    assertThat(e.getMessage(), containsString("Not a valid function class"));
+    assertThat("static initializer of a rejected UDF class must not run",
+        NOT_A_FUNCTION_INITIALIZED.get(), is(false));
   }
 
   @Test void testDenyFactory() {
