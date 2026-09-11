@@ -230,7 +230,7 @@ public class RexCall extends RexNode {
     switch (getKind()) {
     case IS_NOT_NULL:
       return !operands.get(0).getType().isNullable()
-          && RexSimplify.isSafeExpression(operands.get(0));
+          && RexSimplify.isSafe(operands.get(0));
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
@@ -244,7 +244,7 @@ public class RexCall extends RexNode {
       return requireNonNull(sarg, "sarg").isAll()
           && (sarg.nullAs == RexUnknownAs.TRUE
               || !operands.get(0).getType().isNullable())
-          && RexSimplify.isSafeExpression(operands.get(0));
+          && RexSimplify.isSafe(operands.get(0));
     default:
       return false;
     }
@@ -258,7 +258,7 @@ public class RexCall extends RexNode {
     switch (getKind()) {
     case IS_NULL:
       return !operands.get(0).getType().isNullable()
-          && RexSimplify.isSafeExpression(operands.get(0));
+          && RexSimplify.isSafe(operands.get(0));
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
@@ -272,7 +272,7 @@ public class RexCall extends RexNode {
       return requireNonNull(sarg, "sarg").isNone()
           && (sarg.nullAs == RexUnknownAs.FALSE
               || !operands.get(0).getType().isNullable())
-          && RexSimplify.isSafeExpression(operands.get(0));
+          && RexSimplify.isSafe(operands.get(0));
     default:
       return false;
     }
