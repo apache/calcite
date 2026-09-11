@@ -63,6 +63,17 @@ creation will fail with `IllegalArgumentException: class X is not annotated @Inp
 `KafkaTableFactory` row converter operand now requires the presence of a `public`
 constructor for instantiating the class.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7773">CALCITE-7773</a>]
+`KafkaTableFactory` now validates the `consumer.params` operand at table
+creation. Keys whose values name a class the Kafka client would load and
+initialize (deserializers, interceptors, metric reporters, partition
+assignment strategies, callback handlers, JAAS/security providers, and any
+key ending in `.class` or `.classes`) are rejected with `SecurityException`.
+`key.deserializer` and `value.deserializer` remain accepted after an
+interface check. Set `-Dcalcite.kafka.consumer.params.trusted=true` to
+restore the previous forwarding behavior when models are entirely
+operator-supplied.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7713">CALCITE-7713</a>]
 Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate
