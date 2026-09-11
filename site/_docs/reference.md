@@ -3174,6 +3174,7 @@ In the following:
 | p r | STRING_TO_ARRAY(string, delimiter [, nullString ]) | Returns a one-dimensional string[] array by splitting the input string value into subvalues using the specified string value as the "delimiter". Optionally, allows a specified string value to be interpreted as NULL.
 | b m p r s h | MD5(string)                          | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, for a locale of en, it will return 'February' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10', and for a locale of zh, it will return '二月'
+| q | NEWID()                                        | Generates a random UUID (version 4), as defined by RFC 4122
 | o r s | NVL(value1, value2)                        | Returns *value1* if *value1* is not null, otherwise *value2*
 | o r s | NVL2(value1, value2, value3)               | Returns *value2* if *value1* is not null, otherwise *value3*
 | b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
@@ -3268,6 +3269,9 @@ In the following:
 | b s | UNIX_DATE(date)                              | Returns the number of days since 1970-01-01
 | s | URL_DECODE(string)                             | Decodes a *string* in 'application/x-www-form-urlencoded' format using a specific encoding scheme, returns original *string* when decoded error
 | s | URL_ENCODE(string)                             | Translates a *string* into 'application/x-www-form-urlencoded' format using a specific encoding scheme
+| o | UUID()                                         | Generates a random UUID (version 4), as defined by RFC 4122
+| c | UUIDV4()                                       | Generates a random UUID (version 4), as defined by RFC 4122
+| c | UUIDV7()                                       | Generates a time-ordered UUID (version 7), as defined by RFC 9562; values generated in sequence sort in creation order
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
 
 Note:
