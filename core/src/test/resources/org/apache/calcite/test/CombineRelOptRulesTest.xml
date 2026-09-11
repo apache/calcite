@@ -110,7 +110,7 @@ EnumerableCombine
       EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableTableScan(table=[[scott, EMP]])
   EnumerableProject(ENAME=[$1], GRADE=[$8])
-    EnumerableNestedLoopJoin(condition=[AND(>=($5, $9), <=($5, $10))], joinType=[inner])
+    EnumerableIEJoin(condition=[AND(>=($5, $9), <=($5, $10))], joinType=[inner])
       EnumerableTableScan(table=[[scott, EMP]])
       EnumerableTableScan(table=[[scott, SALGRADE]])
 ]]>
@@ -180,7 +180,7 @@ Combine
 EnumerableCombine
   EnumerableAggregate(group=[{9, 11}], EMP_COUNT=[COUNT()])
     EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[TEMP, spool_0]])
-      EnumerableNestedLoopJoin(condition=[AND(>=($5, $12), <=($5, $13))], joinType=[inner])
+      EnumerableIEJoin(condition=[AND(>=($5, $12), <=($5, $13))], joinType=[inner])
         EnumerableProject(EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], DEPTNO0=[$0], DNAME=[$1], LOC=[$2])
           EnumerableHashJoin(condition=[=($0, $10)], joinType=[inner])
             EnumerableTableScan(table=[[scott, DEPT]])

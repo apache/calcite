@@ -61,6 +61,12 @@ public class EnumerableRules {
       EnumerableMergeJoinRule.DEFAULT_CONFIG
           .toRule(EnumerableMergeJoinRule.class);
 
+  /** Rule that converts a compatible
+   * {@link org.apache.calcite.rel.logical.LogicalJoin} to an
+   * {@link EnumerableIEJoin}. */
+  public static final RelOptRule ENUMERABLE_IE_JOIN_RULE =
+      EnumerableIEJoinRule.DEFAULT_CONFIG.toRule(EnumerableIEJoinRule.class);
+
   public static final RelOptRule ENUMERABLE_CORRELATE_RULE =
       EnumerableCorrelateRule.DEFAULT_CONFIG
           .toRule(EnumerableCorrelateRule.class);
@@ -225,6 +231,7 @@ public class EnumerableRules {
       ImmutableList.of(EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_ASOFJOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_IE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_CONDITIONAL_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
