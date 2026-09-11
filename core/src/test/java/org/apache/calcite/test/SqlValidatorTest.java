@@ -5821,24 +5821,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("GROUPING_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7685">[CALCITE-7685]
+   * Filter unresolved function overloads by argument count during early
+   * resolution</a>.
+   */
+  @Test void testAggregateFunctionWrongNumberOfArguments() {
+    final String invalidArgCount =
+        "Invalid number of arguments to function 'MYAGG'. Was expecting 2 arguments";
+    sql("select myagg(sal, comm) from emp").ok();
+    sql("select deptno from emp order by ^myagg(sal, comm)^")
+        .fails("Aggregate expression is illegal in ORDER BY clause of "
+            + "non-aggregating SELECT");
+    // Before CALCITE-7685 the error was "Aggregate expression is illegal in
+    // ORDER BY clause of non-aggregating SELECT".
+    sql("select deptno from emp order by ^myagg(deptno)^")
+        .fails(invalidArgCount);
+    // Before CALCITE-7685 the error was "Aggregate expression is illegal in
+    // WHERE clause".
+    sql("select deptno from emp where ^myagg(deptno)^ = 1")
+        .fails(invalidArgCount);
+    sql("select ^myagg(deptno)^ from emp")
+        .fails(invalidArgCount);
+  }
+
   @Test void testGroupId() {
     final String groupIdOnlyInAggregate =
         "GROUP_ID operator may only occur in an aggregate query";
     final String groupIdWrongClause =
         "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause";
+    final String groupIdInvalidArgumentNumber =
+        "Invalid number of arguments to function 'GROUP_ID'. Was expecting 0 arguments";
 
     sql("select deptno, group_id() from emp group by deptno").ok();
     sql("select deptno, ^group_id^ as x from emp group by deptno")
         .fails("Column 'GROUP_ID' not found in any table");
     sql("select deptno, ^group_id(deptno)^ from emp group by deptno")
-        .fails("Invalid number of arguments to function 'GROUP_ID'\\. "
-            + "Was expecting 0 arguments");
+        .fails(groupIdInvalidArgumentNumber);
     // Oracle throws "GROUPING function only supported with GROUP BY CUBE or
     // ROLLUP"
     sql("select ^group_id()^ from emp")
         .fails(groupIdOnlyInAggregate);
-    sql("select deptno from emp order by ^group_id(deptno)^")
+    sql("select deptno from emp order by ^group_id()^")
         .fails(groupIdOnlyInAggregate);
+    sql("select deptno from emp order by ^group_id(deptno)^")
+        .fails(groupIdInvalidArgumentNumber);
     // Oracle throws "GROUPING function only supported with GROUP BY CUBE or
     // ROLLUP"
     sql("select 1 from emp order by ^group_id()^")

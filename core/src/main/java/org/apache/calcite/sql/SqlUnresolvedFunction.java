@@ -70,4 +70,9 @@ public class SqlUnresolvedFunction extends SqlFunction {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.ANY), true);
   }
+
+  @Override public boolean argumentMustBeScalar(final int ordinal) {
+    // We don't know whether the argument is scalar or not for an unresolved function
+    return false;
+  }
 }
