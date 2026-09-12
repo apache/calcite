@@ -590,9 +590,13 @@ class RelToSqlConverterTest {
         + "(SELECT TRUE AS \"$f0\") AS \"t\"\nGROUP BY \"t\".\"$f0\"";
     String expectedInformix = "SELECT AVG(employee.salary)\nFROM foodmart.employee,"
         + "\n(SELECT TRUE AS $f0) AS t\nGROUP BY t.$f0";
+    String expectedMssql = "SELECT AVG([employee].[salary])\n"
+        + "FROM [foodmart].[employee],\n"
+        + "(VALUES (1)) AS [t] ([$f0])\nGROUP BY [t].[$f0]";
     sql(query)
         .withRedshift().ok(expectedRedshift)
-        .withInformix().ok(expectedInformix);
+        .withInformix().ok(expectedInformix)
+        .withMssql().ok(expectedMssql);
   }
 
   /** Test case for
@@ -669,9 +673,13 @@ class RelToSqlConverterTest {
         + "(SELECT DATE '2022-01-01' AS \"$f0\") AS \"t\"\nGROUP BY \"t\".\"$f0\"";
     String expectedInformix = "SELECT AVG(employee.salary)\nFROM foodmart.employee,"
         + "\n(SELECT DATE '2022-01-01' AS $f0) AS t\nGROUP BY t.$f0";
+    String expectedMssql = "SELECT AVG([employee].[salary])\n"
+        + "FROM [foodmart].[employee],\n"
+        + "(VALUES ('2022-01-01')) AS [t] ([$f0])\nGROUP BY [t].[$f0]";
     sql(query)
         .withRedshift().ok(expectedRedshift)
-        .withInformix().ok(expectedInformix);
+        .withInformix().ok(expectedInformix)
+        .withMssql().ok(expectedMssql);
   }
 
   @Test void testSimpleSelectStarFromProductTable() {
