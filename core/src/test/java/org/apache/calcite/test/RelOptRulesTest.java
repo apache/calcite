@@ -5625,6 +5625,27 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testSemiJoinWithConstantRowOnLeft() {
+    relFn(builder -> builder
+        .values(new String[]{"l"}, 1)
+        .values(new String[]{"r"}, 1, 1)
+        .semiJoin(builder.equals(builder.field(2, 0, 0), builder.field(2, 1, 0)))
+        .build())
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
+        .checkUnchanged();
+  }
+
+  @Test void testSemiJoinWithProjectOnConstantRowOnLeft() {
+    relFn(builder -> builder
+        .values(new String[]{"l"}, 1)
+        .projectPlus(builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP))
+        .values(new String[]{"r"}, 1, 1)
+        .semiJoin(builder.equals(builder.field(2, 0, 0), builder.field(2, 1, 0)))
+        .build())
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
+        .checkUnchanged();
+  }
+
   @Test void testRightJoinWithConstantRowOnLeft() {
     final String sql = "select e.empno, e.ename, c.*"
         + " from (select 5 as nm) c right join emp e on e.empno = c.nm";
