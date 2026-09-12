@@ -5067,6 +5067,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // various kinds of measure expressions
     sql("select deptno, empno + 1 as measure e1 from emp").ok();
     sql("select *, empno + 1 as measure e1 from emp").ok();
+    sql("select deptno + 1 as d1, d1 + 2 as measure d3\n"
+        + "from emp order by d3").ok();
 
     // an aggregate function in a measure does not make it an aggregate query
     sql("select *, sum(empno) as measure e1 from emp").ok();
