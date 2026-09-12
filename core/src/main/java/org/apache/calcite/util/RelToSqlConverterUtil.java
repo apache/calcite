@@ -31,7 +31,9 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -337,6 +339,26 @@ public abstract class RelToSqlConverterUtil {
     writer.sep(SqlStdOperatorTable.EQUALS.getName());
     writer.literal(value ? "1" : "0");
     writer.endList(frame);
+  }
+
+  /**
+   * Writes a two-operand call with an operator other than its own,
+   * parenthesized as that operator requires.
+   *
+   * <p>{@link SqlCall#unparse} chooses the parentheses from the call's own
+   * operator before the dialect is consulted, so an operator that binds less
+   * tightly needs them added here.
+   */
+  public static void unparseWithOperator(SqlWriter writer, SqlOperator operator,
+      SqlCall call, int leftPrec, int rightPrec) {
+    if (leftPrec > operator.getLeftPrec()
+        || (operator.getRightPrec() <= rightPrec && rightPrec != 0)) {
+      final SqlWriter.Frame frame = writer.startList("(", ")");
+      SqlSyntax.BINARY.unparse(writer, operator, call, 0, 0);
+      writer.endList(frame);
+    } else {
+      SqlSyntax.BINARY.unparse(writer, operator, call, leftPrec, rightPrec);
+    }
   }
 
   /**
