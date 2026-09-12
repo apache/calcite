@@ -227,7 +227,7 @@ public class ModelHandler {
     filter.check(className);
     final Class<?> clazz;
     try {
-      clazz = Class.forName(className);
+      clazz = Class.forName(className, false, ModelHandler.class.getClassLoader());
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("UDF class '"
           + className + "' not found");
