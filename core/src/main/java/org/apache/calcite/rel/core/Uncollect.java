@@ -30,9 +30,11 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,6 +53,13 @@ import static java.util.Objects.requireNonNull;
  * invoked in a nested loop, driven by
  * {@link org.apache.calcite.rel.logical.LogicalCorrelate} or similar.
  *
+ * <p>{@code passthroughFieldIndices} names input fields
+ * that are copied unchanged to the output and {@code collectionFieldIndices}
+ * names a set of input fields to unnest; any input field in neither set is dropped.
+ * If passthroughFieldIndices is empty and collectionFieldIndices is the
+ * full input set, the operator implements a simpler form of Uncollect,
+ * semantically equivalent with the UNNEST SQL operator.
+ *
  * <p>{@code expandStructFields} controls the shape of the element columns:
  * if {@code true} a collection whose element type is a struct produces one
  * output column per struct field; if {@code false} it produces a single
@@ -59,9 +68,9 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>{@code isOuter} controls what happens to an empty or {@code NULL}
  * collection: if {@code true} (LEFT JOIN semantics) one row is emitted with
- * every element column set to {@code NULL}; if {@code false} (INNER
- * semantics) no row is emitted. Every element column is therefore nullable
- * when {@code isOuter}.
+ * every element column set to {@code NULL} and every passthrough field
+ * preserved; if {@code false} (INNER semantics) no row is emitted. Every
+ * element column is therefore nullable when {@code isOuter}.
  */
 public class Uncollect extends SingleRel {
   public final boolean withOrdinality;
@@ -84,6 +93,13 @@ public class Uncollect extends SingleRel {
   // same with element type of "a".
   private final List<String> itemAliases;
 
+  /** 0-based indices of the input fields to pass through unchanged. Empty by default. */
+  private final ImmutableBitSet passthroughFieldIndices;
+
+  /** 0-based indices of the input fields whose values are collections to unnest.
+   * All input fields by default. */
+  private final ImmutableBitSet collectionFieldIndices;
+
   //~ Constructors -----------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
@@ -100,28 +116,45 @@ public class Uncollect extends SingleRel {
     // Non-empty item aliases historically implied that struct elements are not
     // expanded (Presto dialect), so this constructor derives
     // {@code expandStructFields} from their absence.
-    this(cluster, traitSet, input, withOrdinality, itemAliases, itemAliases.isEmpty(),
-        false);
+    this(cluster, traitSet, input, withOrdinality, itemAliases,
+        ImmutableBitSet.of(),
+        ImmutableBitSet.range(input.getRowType().getFieldCount()),
+        itemAliases.isEmpty(), false);
   }
 
-  /** Creates an Uncollect.
+  /** Creates an Uncollect, with explicit control over which input fields are
+   * passed through unchanged and which are unnested.
    *
-   * @param input              Input relational expression
-   * @param withOrdinality     Whether output should contain an ORDINALITY column
-   * @param itemAliases        Aliases for the operand items
-   * @param expandStructFields If true, a collection whose element type is a struct
-   *                           produces one output column per struct field; if false,
-   *                           a single column typed as the whole element
-   * @param isOuter            If true, an empty or NULL collection yields one row of
-   *                           NULLs (LEFT JOIN); if false, it yields no rows (INNER)
+   * @param input                   Input relational expression
+   * @param withOrdinality          Whether output should contain an ORDINALITY column
+   * @param itemAliases             Aliases for the operand items; only meaningful when
+   *                                {@code passthroughFieldIndices} is empty and
+   *                                {@code collectionFieldIndices} covers every input field
+   * @param passthroughFieldIndices 0-based indices of the input fields to pass through
+   *                                unchanged
+   * @param collectionFieldIndices  0-based indices of the input fields whose values are
+   *                                collections to unnest
+   * @param expandStructFields      If true, a collection whose element type is a struct
+   *                                produces one output column per struct field; if false,
+   *                                a single column typed as the whole element
+   * @param isOuter                 If true, preserves input rows with null/empty
+   *                                collections (LEFT JOIN); if false, drops them (INNER)
    */
   @SuppressWarnings("method.invocation.invalid")
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-      boolean withOrdinality, List<String> itemAliases, boolean expandStructFields,
-      boolean isOuter) {
+      boolean withOrdinality, List<String> itemAliases,
+      ImmutableBitSet passthroughFieldIndices, ImmutableBitSet collectionFieldIndices,
+      boolean expandStructFields, boolean isOuter) {
     super(cluster, traitSet, input);
     this.withOrdinality = withOrdinality;
     this.itemAliases = ImmutableList.copyOf(itemAliases);
+    this.passthroughFieldIndices =
+        requireNonNull(passthroughFieldIndices, "passthroughFieldIndices");
+    this.collectionFieldIndices =
+        requireNonNull(collectionFieldIndices, "collectionFieldIndices");
+    if (collectionFieldIndices.isEmpty()) {
+      throw new IllegalArgumentException("collectionFieldIndices must not be empty");
+    }
     this.expandStructFields = expandStructFields;
     this.isOuter = isOuter;
     requireNonNull(deriveRowType(), "invalid child rowType");
@@ -129,12 +162,38 @@ public class Uncollect extends SingleRel {
 
   /**
    * Creates an Uncollect by parsing serialized output.
+   *
+   * <p>Called from {@link org.apache.calcite.rel.externalize.RelJsonReader}
+   * using reflection when deserializing a JSON plan. Reads the attributes that
+   * {@link #explainTerms(RelWriter)} writes.
    */
   public Uncollect(RelInput input) {
+    // note: itemAliases are not serialized, so we do not read them back
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getBoolean("withOrdinality", false), Collections.emptyList(),
+        deserializeIndices(input, "passthrough", ImmutableBitSet.of()),
+        deserializeIndices(input, "collectionFields",
+            ImmutableBitSet.range(input.getInput().getRowType().getFieldCount())),
         input.getBoolean("expandStructFields", true),
         input.getBoolean("isOuter", false));
+  }
+
+  /** Reads the input-field names serialized under {@code tag} (see
+   * as field indices; returns {@code defaultSet} when the attribute is absent. */
+  private static ImmutableBitSet deserializeIndices(RelInput input, String tag,
+      ImmutableBitSet defaultSet) {
+    final List<String> names = input.getStringList(tag);
+    if (names == null) {
+      return defaultSet;
+    }
+    final RelDataType inputRowType = input.getInput().getRowType();
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (String name : names) {
+      builder.set(
+          requireNonNull(inputRowType.getField(name, true, false),
+              () -> "field " + name).getIndex());
+    }
+    return builder.build();
   }
 
   /**
@@ -158,28 +217,38 @@ public class Uncollect extends SingleRel {
   }
 
   /**
-   * Creates an Uncollect.
+   * Creates an Uncollect that unnests the collection-typed fields at
+   * {@code collectionFieldIndices}, and passing through the fields at
+   * {@code passthroughFieldIndices} unchanged.
    *
-   * @param traitSet           Trait set
-   * @param input              Input relational expression
-   * @param withOrdinality     Whether output should contain an ORDINALITY column
-   * @param itemAliases        Aliases for the operand items
-   * @param expandStructFields If true, a collection whose element type is a struct
-   *                           produces one output column per struct field; if false,
-   *                           a single column typed as the whole element
-   * @param isOuter            If true, an empty or NULL collection yields one row of
-   *                           NULLs (LEFT JOIN); if false, it yields no rows (INNER)
+   * @param traitSet                Trait set
+   * @param input                   Input relational expression
+   * @param withOrdinality          Whether output should contain an ORDINALITY column
+   * @param itemAliases             Aliases for the operand items; only meaningful when
+   *                                {@code passthroughFieldIndices} is empty and
+   *                                {@code collectionFieldIndices} covers every input field
+   * @param passthroughFieldIndices 0-based indices of the input fields to pass through
+   *                                unchanged
+   * @param collectionFieldIndices  0-based indices of the input fields whose values are
+   *                                collections to unnest
+   * @param expandStructFields      If true, a collection whose element type is a struct
+   *                                produces one output column per struct field; if false,
+   *                                a single column typed as the whole element
+   * @param isOuter                 If true, preserves input rows with null/empty
+   *                                collections (LEFT JOIN); if false, drops them (INNER)
    */
   public static Uncollect create(
       RelTraitSet traitSet,
       RelNode input,
       boolean withOrdinality,
       List<String> itemAliases,
+      ImmutableBitSet passthroughFieldIndices,
+      ImmutableBitSet collectionFieldIndices,
       boolean expandStructFields,
       boolean isOuter) {
     final RelOptCluster cluster = input.getCluster();
     return new Uncollect(cluster, traitSet, input, withOrdinality, itemAliases,
-        expandStructFields, isOuter);
+        passthroughFieldIndices, collectionFieldIndices, expandStructFields, isOuter);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -189,7 +258,20 @@ public class Uncollect extends SingleRel {
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
+    final List<RelDataTypeField> inputFields = getInput().getRowType().getFieldList();
+    final List<String> passthroughNames = new ArrayList<>();
+    for (int i : passthroughFieldIndices) {
+      passthroughNames.add(inputFields.get(i).getName());
+    }
+    final boolean isPassthroughMode = !passthroughFieldIndices.isEmpty()
+        || collectionFieldIndices.cardinality() != inputFields.size();
+    final List<String> collFieldNames = new ArrayList<>();
+    for (int i : collectionFieldIndices) {
+      collFieldNames.add(inputFields.get(i).getName());
+    }
     return super.explainTerms(pw)
+        .itemIf("passthrough", passthroughNames, !passthroughNames.isEmpty())
+        .itemIf("collectionFields", collFieldNames, isPassthroughMode)
         .itemIf("withOrdinality", withOrdinality, withOrdinality)
         .itemIf("expandStructFields", expandStructFields, !expandStructFields)
         .itemIf("isOuter", isOuter, isOuter);
@@ -203,7 +285,7 @@ public class Uncollect extends SingleRel {
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new Uncollect(getCluster(), traitSet, input, withOrdinality, itemAliases,
-        expandStructFields, isOuter);
+        passthroughFieldIndices, collectionFieldIndices, expandStructFields, isOuter);
   }
 
   /**
@@ -223,9 +305,12 @@ public class Uncollect extends SingleRel {
   /**
    * Returns the row type of the 'UNNEST' operation.
    *
-   * <p>Each column in the input relational expression must be a multiset of
-   * structs or an array. The return type is the combination of expanding
-   * element types from each column, plus an ORDINALITY column if {@code
+   * <p>Pass-through fields (named by {@code passthroughFieldIndices}) are
+   * copied to the output as-is, followed by the expansion of the
+   * collection-typed fields (named by {@code collectionFieldIndices}): each
+   * column in {@code collectionFieldIndices} must have a collection type.
+   * The return type is the combination of expanding element
+   * types from each such column, plus an ORDINALITY column if {@code
    * withOrdinality}.
    *
    * <p>{@code expandStructFields} controls the expansion of struct element
@@ -233,6 +318,12 @@ public class Uncollect extends SingleRel {
    * false}, a single column typed as the whole element. Maps always expand
    * into a key and a value column. {@code itemAliases}, when not empty,
    * names the non-expanded element columns.
+   *
+   * <p>In the result type element columns are nullable when {@code isOuter} is {@code true}
+   * (empty/null collections still emit a null-padded row) or when there is
+   * more than one collection field (shorter collections are padded with
+   * {@code NULL} to align with SQL {@code UNNEST(a, b)} zip semantics).
+   * Pass-through fields preserve their nullability.
    */
   @Override protected RelDataType deriveRowType() {
     RelDataType inputType = input.getRowType();
@@ -256,18 +347,32 @@ public class Uncollect extends SingleRel {
     }
 
     // With multiple collections, zip semantics pads shorter collections with
-    // NULL, so all output columns from a multi-collection UNNEST are nullable.
-    final boolean padNullable = fields.size() > 1;
+    // NULL, so all element columns from a multi-collection UNNEST are
+    // nullable. (isOuter also makes element columns nullable)
+    final boolean elemNullable = collectionFieldIndices.cardinality() > 1;
 
+    // Pass-through fields first (in input-index order).
+    int passthroughCount = 0;
     for (int i = 0; i < fields.size(); i++) {
+      if (passthroughFieldIndices.get(i)) {
+        builder.add(fields.get(i));
+        passthroughCount++;
+      }
+    }
+
+    // Expanded collection fields second (in input-index order).
+    for (int i = 0; i < fields.size(); i++) {
+      if (!collectionFieldIndices.get(i)) {
+        continue;
+      }
       RelDataTypeField field = fields.get(i);
       if (field.getType() instanceof MapSqlType) {
         // This code is similar to SqlUnnestOperator::inferReturnType.
         MapSqlType mapType = (MapSqlType) field.getType();
-        RelDataType keyType = padNullable
+        RelDataType keyType = elemNullable
             ? typeFactory.enforceTypeWithNullability(mapType.getKeyType(), true)
             : mapType.getKeyType();
-        RelDataType valueType = padNullable
+        RelDataType valueType = elemNullable
             ? typeFactory.enforceTypeWithNullability(mapType.getValueType(), true)
             : mapType.getValueType();
         builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, keyType);
@@ -277,7 +382,7 @@ public class Uncollect extends SingleRel {
         if (null == componentType) {
           throw RESOURCE.unnestArgument().ex();
         }
-        boolean isNullable = componentType.isNullable() || padNullable;
+        boolean isNullable = componentType.isNullable() || elemNullable;
         if (expandStructFields && componentType.isStruct()) {
           for (RelDataTypeField fieldInfo : componentType.getFieldList()) {
             RelDataType fieldType = fieldInfo.getType();
@@ -311,12 +416,17 @@ public class Uncollect extends SingleRel {
     if (!isOuter) {
       return rowType;
     }
-    // Under isOuter an empty or NULL collection yields a row of NULLs, so
-    // every output column is nullable, including the ordinality column.
+    // Under isOuter an empty or NULL collection yields a NULL-padded row, so
+    // every element column is nullable, including the ordinality column.
+    // Pass-through fields are preserved from the input row and keep their
+    // nullability.
     final RelDataTypeFactory.Builder outerBuilder = typeFactory.builder();
-    for (RelDataTypeField field : rowType.getFieldList()) {
+    final List<RelDataTypeField> rowFields = rowType.getFieldList();
+    for (int i = 0; i < rowFields.size(); i++) {
+      final RelDataTypeField field = rowFields.get(i);
       outerBuilder.add(field.getName(),
-          typeFactory.createTypeWithNullability(field.getType(), true));
+          i < passthroughCount ? field.getType()
+              : typeFactory.createTypeWithNullability(field.getType(), true));
     }
     return outerBuilder.build();
   }
@@ -324,5 +434,15 @@ public class Uncollect extends SingleRel {
   /** Gets the aliases for the unnest items. */
   public List<String> getItemAliases() {
     return itemAliases;
+  }
+
+  /** Returns the 0-based indices of the input fields passed through unchanged. */
+  public ImmutableBitSet getPassthroughFieldIndices() {
+    return passthroughFieldIndices;
+  }
+
+  /** Returns the 0-based indices of the input fields to be unnested. */
+  public ImmutableBitSet getCollectionFieldIndices() {
+    return collectionFieldIndices;
   }
 }
