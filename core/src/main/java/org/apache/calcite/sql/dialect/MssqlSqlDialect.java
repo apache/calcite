@@ -212,6 +212,11 @@ public class MssqlSqlDialect extends SqlDialect {
       final SqlWriter.Frame frame = writer.startFunCall("CEILING");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(frame);
+    } else if (call.getOperator().equals(SqlStdOperatorTable.CONCAT)) {
+      // MSSQL has no || operator. + concatenates and propagates NULL, as ||
+      // does; the CONCAT function does not, reading a NULL operand as ''.
+      SqlSyntax.BINARY.unparse(writer, SqlStdOperatorTable.PLUS, call, leftPrec,
+          rightPrec);
     } else {
       switch (call.getKind()) {
       case FLOOR:
