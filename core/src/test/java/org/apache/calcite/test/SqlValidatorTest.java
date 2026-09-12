@@ -872,8 +872,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testConcatFails() {
     wholeExpr("'a'||x'ff'")
         .fails("(?s).*Cannot apply '\\|\\|' to arguments of type "
-            + "'<CHAR.1.> \\|\\| <BINARY.1.>'.*Supported form.s.: "
-            + "'<STRING> \\|\\| <STRING>.*'");
+            + "'<CHAR\\(1\\)> \\|\\| <BINARY\\(1\\)>'.*"
+            + "Supported form\\(s\\): "
+            + "'<CHARACTER> \\|\\| <CHARACTER>'\\s*"
+            + "'<BINARY> \\|\\| <BINARY>'\\s*"
+            + "'<EQUIVALENT_TYPE> \\|\\| <EQUIVALENT_TYPE>'.*");
   }
 
   /** Tests the CONCAT function, which unlike the concat operator ('||') is not

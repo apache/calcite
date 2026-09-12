@@ -57,6 +57,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -1133,15 +1134,19 @@ public abstract class OperandTypes {
    * Operand type-checking strategy where two operands must both be in the
    * same string type family.
    */
+  private static final ImmutableList<SqlTypeFamily> STRING_SUB_FAMILIES =
+      ImmutableList.of(SqlTypeFamily.CHARACTER, SqlTypeFamily.BINARY);
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME =
-      STRING_STRING.and(SAME_SAME);
+      withSignatureGenerator(STRING_STRING.and(SAME_SAME),
+          sameSubFamilySignatureGenerator(2, STRING_SUB_FAMILIES));
 
   /**
    * Operand type-checking strategy where three operands must all be in the
    * same string type family.
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_SAME =
-      STRING_STRING_STRING.and(SAME_SAME_SAME);
+      withSignatureGenerator(STRING_STRING_STRING.and(SAME_SAME_SAME),
+          sameSubFamilySignatureGenerator(3, STRING_SUB_FAMILIES));
 
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
@@ -1192,8 +1197,8 @@ public abstract class OperandTypes {
    * same string type family and last type is INTEGER.
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_INTEGER =
-      STRING_STRING_INTEGER.and(SAME_SAME_INTEGER);
-
+      withSignatureGenerator(STRING_STRING_INTEGER.and(SAME_SAME_INTEGER),
+          sameSubFamilySignatureGenerator(2, STRING_SUB_FAMILIES, SqlTypeFamily.INTEGER));
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_OR_ARRAY_SAME_SAME =
       or(STRING_SAME_SAME,
           and(OperandTypes.SAME_SAME, family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
@@ -1498,6 +1503,75 @@ public abstract class OperandTypes {
       }
       return !validationError;
     }
+  }
+  /**
+   * Wraps a {@link SqlSingleOperandTypeChecker}, overriding only its
+   * {@link SqlOperandTypeChecker#getAllowedSignatures}, while delegating
+   * everything else unchanged. Used instead of
+   * {@link CompositeOperandTypeChecker#withGenerator}, which always returns
+   * a plain {@link CompositeOperandTypeChecker} and would lose single-operand
+   * checking.
+   */
+  private static SqlSingleOperandTypeChecker withSignatureGenerator(
+      SqlSingleOperandTypeChecker checker,
+      BiFunction<SqlOperator, String, String> signatureGenerator) {
+    return new SqlSingleOperandTypeChecker() {
+      @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
+          SqlNode operand, int iFormalOperand, boolean throwOnFailure) {
+        // STRING_SAME_SAME-style checkers evaluate family membership AND
+        // cross-operand comparability together; there's no meaningful way to
+        // validate a single operand in isolation, so fall back to the full
+        // multi-operand check.
+        return checker.checkOperandTypes(callBinding, throwOnFailure);
+      }
+
+      @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+          boolean throwOnFailure) {
+        // Explicitly override rather than relying on the interface default
+        // (which would route through checkSingleOperandType(operand(0), 0)
+        // and only ever check the first operand).
+        return checker.checkOperandTypes(callBinding, throwOnFailure);
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return checker.getOperandCountRange();
+      }
+
+      @Override public boolean isOptional(int i) {
+        return checker.isOptional(i);
+      }
+
+      @Override public Consistency getConsistency() {
+        return checker.getConsistency();
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return signatureGenerator.apply(op, opName);
+      }
+    };
+  }
+
+  /**
+   * Builds an error-message generator that lists one candidate signature per
+   * given sub-family, each repeated across the "same" operand positions,
+   * followed by any trailing fixed families (see CALCITE-7749).
+   */
+  private static BiFunction<SqlOperator, String, String> sameSubFamilySignatureGenerator(
+      int sameOperandCount, List<SqlTypeFamily> subFamilies,
+      SqlTypeFamily... trailingFamilies) {
+    return (op, opName) ->
+        subFamilies.stream()
+            .map(subFamily -> {
+              List<String> form = new ArrayList<>();
+              for (int i = 0; i < sameOperandCount; i++) {
+                form.add(subFamily.name());
+              }
+              for (SqlTypeFamily family : trailingFamilies) {
+                form.add(family.name());
+              }
+              return SqlUtil.getAliasedSignature(op, opName, form);
+            })
+            .collect(Collectors.joining(SqlOperator.NL));
   }
 
   /** Checker that returns whether a value is a collection (multiset or array)
