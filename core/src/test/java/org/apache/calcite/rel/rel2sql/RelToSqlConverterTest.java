@@ -11002,6 +11002,15 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7768">[CALCITE-7768]
+   * SqlDialect has no way to unparse a UUID literal</a>. */
+  @Test void testUuidMssql() {
+    final String sql = "SELECT UUID '123e4567-e89b-12d3-a456-426655440000' AS x";
+    final String expected = "SELECT *\n"
+        + "FROM (VALUES ('123e4567-e89b-12d3-a456-426655440000')) AS [t] ([X])";
+    sql(sql).withMssql().ok(expected);
+  }
+
   @Test void testUpdate() {
     final String sql0 = "update \"foodmart\".\"product\"\n"
         + "set \"product_name\" = 'calcite'";
