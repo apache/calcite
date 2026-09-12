@@ -35,8 +35,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -49,6 +47,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseWithOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -222,8 +221,8 @@ public class MssqlSqlDialect extends SqlDialect {
         unparseFloor(writer, call);
         break;
       case MOD:
-        SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
-        SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
+        unparseWithOperator(writer, SqlStdOperatorTable.PERCENT_REMAINDER, call,
+            leftPrec, rightPrec);
         break;
       case SAFE_CAST:
         // MSSQL uses TRY_CAST instead of SAFE_CAST (BigQuery)
