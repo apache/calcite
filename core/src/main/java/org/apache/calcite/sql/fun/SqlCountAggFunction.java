@@ -55,9 +55,14 @@ public class SqlCountAggFunction extends SqlAggFunction {
 
   public SqlCountAggFunction(String name,
       SqlOperandTypeChecker sqlOperandTypeChecker) {
-    super(name, null, SqlKind.COUNT, ReturnTypes.BIGINT, null,
-        sqlOperandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
-        Optionality.FORBIDDEN);
+    this(name, sqlOperandTypeChecker, SqlKind.COUNT);
+  }
+
+  public SqlCountAggFunction(String name,
+      SqlOperandTypeChecker sqlOperandTypeChecker,
+      SqlKind sqlKind) {
+    super(name, null, sqlKind, ReturnTypes.BIGINT, null, sqlOperandTypeChecker,
+        SqlFunctionCategory.NUMERIC, false, false, Optionality.FORBIDDEN);
   }
 
   //~ Methods ----------------------------------------------------------------
