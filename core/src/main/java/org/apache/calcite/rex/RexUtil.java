@@ -2967,7 +2967,7 @@ public class RexUtil {
         }
         return and(Iterables.concat(factors.values(), ImmutableList.of(or(list))));
       default:
-        return rex;
+        return normalizeComparison(rex);
       }
     }
 
@@ -2986,17 +2986,19 @@ public class RexUtil {
       return list;
     }
 
-    private static LinkedHashMap<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
+    private LinkedHashMap<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
       // make sure the result is in deterministic order
       final LinkedHashMap<RexNode, RexNode> map = new LinkedHashMap<>();
       int i = 0;
       for (RexNode node : nodes) {
         if (i++ == 0) {
           for (RexNode conjunction : RelOptUtil.conjunctions(node)) {
-            map.put(conjunction, conjunction);
+            RexNode normalized = normalizeComparison(conjunction);
+            map.put(normalized, normalized);
           }
         } else {
-          map.keySet().retainAll(RelOptUtil.conjunctions(node));
+          map.keySet().retainAll(
+              Util.transform(RelOptUtil.conjunctions(node), this::normalizeComparison));
         }
       }
       return map;
@@ -3005,11 +3007,50 @@ public class RexUtil {
     private RexNode removeFactor(Map<RexNode, RexNode> factors, RexNode node) {
       List<RexNode> list = new ArrayList<>();
       for (RexNode operand : RelOptUtil.conjunctions(node)) {
-        if (!factors.containsKey(operand)) {
+        RexNode normalized = normalizeComparison(operand);
+        if (!factors.containsKey(normalized)) {
           list.add(operand);
         }
       }
       return and(list);
+    }
+
+    /**
+     * Normalizes a comparison expression so that, when possible, an input ref
+     * appears on the left and a literal or higher-index input ref appears on
+     * the right. This exploits the symmetry of comparisons to help
+     * {@link #commonFactors} recognize equivalent terms.
+     */
+    private RexNode normalizeComparison(RexNode rex) {
+      if (rex instanceof RexCall) {
+        RexCall call = (RexCall) rex;
+        switch (call.getKind()) {
+        case EQUALS:
+        case NOT_EQUALS:
+        case LESS_THAN:
+        case GREATER_THAN:
+        case LESS_THAN_OR_EQUAL:
+        case GREATER_THAN_OR_EQUAL:
+          final List<RexNode> operands = call.getOperands();
+          final RexNode op0 = operands.get(0);
+          final RexNode op1 = operands.get(1);
+          final boolean op0IsInputRef = op0 instanceof RexInputRef;
+          final boolean op1IsInputRef = op1 instanceof RexInputRef;
+          if (op0IsInputRef && op1IsInputRef) {
+            final RexInputRef ref0 = (RexInputRef) op0;
+            final RexInputRef ref1 = (RexInputRef) op1;
+            if (ref0.getIndex() > ref1.getIndex()) {
+              return requireNonNull(invert(rexBuilder, call));
+            }
+          } else if (!op0IsInputRef && op1IsInputRef) {
+            return requireNonNull(invert(rexBuilder, call));
+          }
+          break;
+        default:
+          break;
+        }
+      }
+      return rex;
     }
 
     private RexNode and(Iterable<? extends RexNode> nodes) {
