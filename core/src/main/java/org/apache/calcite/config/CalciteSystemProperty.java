@@ -510,6 +510,29 @@ public final class CalciteSystemProperty<T> {
       stringProperty("calcite.model.baseDirectory", "");
 
   /**
+   * Whether the Kafka adapter forwards the {@code consumer.params} model
+   * operand to the Kafka client without filtering it.
+   *
+   * <p>The operand comes from the (query-author-supplied) model, and several
+   * Kafka consumer config keys ({@code key.deserializer},
+   * {@code value.deserializer}, {@code interceptor.classes},
+   * {@code metric.reporters}, {@code partition.assignment.strategy},
+   * {@code sasl.jaas.config}, {@code security.providers}, and any key
+   * ending in {@code .class} or {@code .classes}) cause the Kafka client
+   * to load and initialize classes named in the operand.
+   *
+   * <p>By default (empty / {@code false}) the Kafka adapter rejects those
+   * keys in {@code consumer.params}, and only accepts
+   * {@code key.deserializer}/{@code value.deserializer} after checking that
+   * the named class implements
+   * {@code org.apache.kafka.common.serialization.Deserializer} without
+   * initializing it. Set this property to {@code true} only when models
+   * come exclusively from trusted operators.
+   */
+  public static final CalciteSystemProperty<Boolean> KAFKA_CONSUMER_PARAMS_TRUSTED =
+      booleanProperty("calcite.kafka.consumer.params.trusted", false);
+
+  /**
    * Maximum number of decimal digits that the plain-notation expansion of a {@code DECIMAL}
    * literal may contain.
    *
