@@ -11820,6 +11820,15 @@ class RelToSqlConverterTest {
     sql(query).dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7777">[CALCITE-7777]
+   * JDBC adapter generates || for concatenation, which SQL Server rejects</a>. */
+  @Test void testConcatOperatorEmulationForMSSQL() {
+    final String query = "select \"brand_name\" || \"product_name\" from \"product\"";
+    final String mssqlExpected = "SELECT [brand_name] + [product_name]\n"
+        + "FROM [foodmart].[product]";
+    sql(query).withMssql().ok(mssqlExpected);
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6655">[CALCITE-6655]
