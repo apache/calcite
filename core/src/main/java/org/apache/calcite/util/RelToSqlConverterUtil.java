@@ -346,17 +346,8 @@ public abstract class RelToSqlConverterUtil {
    * parenthesized as that operator requires.
    *
    * <p>{@link SqlCall#unparse} chooses the parentheses from the call's own
-   * operator, before the dialect is consulted. Writing the call with an
-   * operator that binds less tightly therefore drops parentheses that were
-   * holding the grouping, and the target system regroups the expression. Where
-   * the call arrived already parenthesized both precedences are zero and
-   * nothing further is written.
-   *
-   * @param writer current SqlWriter object
-   * @param operator operator to write the call with
-   * @param call call to write
-   * @param leftPrec left precedence the call was given
-   * @param rightPrec right precedence the call was given
+   * operator before the dialect is consulted, so an operator that binds less
+   * tightly needs them added here.
    */
   public static void unparseWithOperator(SqlWriter writer, SqlOperator operator,
       SqlCall call, int leftPrec, int rightPrec) {
