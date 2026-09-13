@@ -15107,6 +15107,58 @@ LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPushFilterPastAggWithGroupingSetsNonLeadingKeys">
+    <Resource name="sql">
+      <![CDATA[select a, b
+from (values (0, 1, 2)) as t(unused, a, b)
+group by grouping sets ((a), (a, b))
+having a = 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[=($0, 1)])
+  LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {1}]])
+    LogicalValues(tuples=[[{ 0, 1, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {1}]])
+  LogicalFilter(condition=[=($1, 1)])
+    LogicalValues(tuples=[[{ 0, 1, 2 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushFilterPastAggWithGroupingSetsNonLeadingKeysEquals">
+    <Resource name="sql">
+      <![CDATA[select a, b
+from (values (0, 1, 2)) as t(unused, a, b)
+group by grouping sets ((a), (a, b))
+having b = 2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[=($1, 2)])
+  LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {1}]])
+    LogicalValues(tuples=[[{ 0, 1, 2 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushFilterPastAggWithGroupingSetsNonLeadingKeysIsNull">
+    <Resource name="sql">
+      <![CDATA[select a, b
+from (values (0, 1, 2)) as t(unused, a, b)
+group by grouping sets ((a), (a, b))
+having b is null]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[IS NULL($1)])
+  LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {1}]])
+    LogicalValues(tuples=[[{ 0, 1, 2 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushFilterPastProject">
     <Resource name="sql">
       <![CDATA[select a.name

@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -149,8 +150,13 @@ public class FilterAggregateTransposeRule
       // If grouping sets are used, the filter can be pushed if
       // the columns referenced in the predicate are present in
       // all the grouping sets.
+      final Mappings.TargetMapping aggregateInputToOutput =
+          Mappings.target(aggregate.getGroupSet().asList(),
+              aggregate.getInput().getRowType().getFieldCount());
       for (ImmutableBitSet groupingSet : aggregate.getGroupSets()) {
-        if (!groupingSet.contains(rCols)) {
+        final ImmutableBitSet groupingSetOutputRefs =
+            groupingSet.permute(aggregateInputToOutput);
+        if (!groupingSetOutputRefs.contains(rCols)) {
           return false;
         }
       }

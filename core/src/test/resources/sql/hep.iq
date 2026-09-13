@@ -353,4 +353,26 @@ EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])
 
 !set hep-rules original
 
+# [CALCITE-7779] Optimization rule FilterAggregateTransposeRule rewrites queries to semantically non-equivalent ones
+!set hep-rules "
++CoreRules.AGGREGATE_PROJECT_MERGE,
++CoreRules.FILTER_AGGREGATE_TRANSPOSE"
+
+select dname, loc
+from dept
+group by grouping sets ((dname), (dname, loc))
+having loc is null;
++------------+-----+
+| DNAME      | LOC |
++------------+-----+
+| ACCOUNTING |     |
+| OPERATIONS |     |
+| RESEARCH   |     |
+| SALES      |     |
++------------+-----+
+(4 rows)
+
+!ok
+!set hep-rules original
+
 # End hep.iq
