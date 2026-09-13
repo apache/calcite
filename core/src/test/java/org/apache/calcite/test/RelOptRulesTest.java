@@ -1364,6 +1364,32 @@ class RelOptRulesTest extends RelOptTestBase {
     basePushFilterPastAggWithGroupingSets().check();
   }
 
+  private RelOptFixture pushFilterPastAggWithNonLeadingGroupingKeys(String condition) {
+    final String sql = "select a, b\n"
+        + "from (values (0, 1, 2)) as t(unused, a, b)\n"
+        + "group by grouping sets ((a), (a, b))\n"
+        + "having " + condition;
+    return sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7779">[CALCITE-7779]
+   * Optimization rule FilterAggregateTransposeRule rewrites queries to
+   * semantically non-equivalent ones</a>. */
+  @Test void testPushFilterPastAggWithGroupingSetsNonLeadingKeysIsNull() {
+    pushFilterPastAggWithNonLeadingGroupingKeys("b is null").checkUnchanged();
+  }
+
+  @Test void testPushFilterPastAggWithGroupingSetsNonLeadingKeysEquals() {
+    pushFilterPastAggWithNonLeadingGroupingKeys("b = 2").checkUnchanged();
+  }
+
+  @Test void testPushFilterPastAggWithGroupingSetsNonLeadingKeys() {
+    pushFilterPastAggWithNonLeadingGroupingKeys("a = 1").check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * FilterAggregateTransposeRule loses conditions that cannot be pushed</a>. */
