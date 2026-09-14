@@ -4814,7 +4814,7 @@ SqlNode AtomicRowExpression() :
         )
     |
         // Parses "*" or "* EXCLUDE (col, ...)" inside a ROW constructor
-        LOOKAHEAD({ allowRowValueStar() })
+        LOOKAHEAD(<STAR>, { allowRowValueStar() })
         <STAR> {
             final SqlIdentifier starId = SqlIdentifier.star(getPos());
         }
