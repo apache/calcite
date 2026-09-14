@@ -370,6 +370,14 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlLibraryOperators.LEAST, nodes);
   }
 
+  protected RexNode rand() {
+    return rexBuilder.makeCall(SqlStdOperatorTable.RAND);
+  }
+
+  protected RexNode rand(RexNode seed) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.RAND, seed);
+  }
+
   protected RexNode m2v(RexNode n) {
     return rexBuilder.makeCall(SqlInternalOperators.M2V, n);
   }
