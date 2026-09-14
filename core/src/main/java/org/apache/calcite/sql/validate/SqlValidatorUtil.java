@@ -1548,6 +1548,7 @@ public class SqlValidatorUtil {
     SqlCall call = sqlCallBinding.getCall();
     List<RelDataType> operandTypes = sqlCallBinding.collectOperandTypes();
     List<SqlNode> operands = call.getOperandList();
+    @Nullable List<SqlNode> adjustedOperands = null;
     RelDataType elementType;
     for (int i = 0; i < operands.size(); i++) {
       if (i % 2 == 0) {
@@ -1556,8 +1557,14 @@ public class SqlValidatorUtil {
         elementType = oddType;
       }
       if (!operandTypes.get(i).equalsSansFieldNames(elementType)) {
-        call.setOperand(i, castTo(operands.get(i), elementType));
+        if (adjustedOperands == null) {
+          adjustedOperands = new ArrayList<>(operands);
+        }
+        adjustedOperands.set(i, castTo(operands.get(i), elementType));
       }
+    }
+    if (adjustedOperands != null) {
+      call.setOperandList(adjustedOperands);
     }
   }
 

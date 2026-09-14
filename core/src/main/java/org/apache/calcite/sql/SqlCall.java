@@ -72,6 +72,25 @@ public abstract class SqlCall extends SqlNode {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Replaces all operands. Allows some rewrite by {@link SqlValidator}; use
+   * sparingly.
+   *
+   * <p>The default implementation delegates to {@link #setOperand(int, SqlNode)}.
+   * Subclasses may override this method to replace all operands more efficiently.
+   *
+   * @param operands New operands
+   */
+  public void setOperandList(
+      List<? extends @Nullable SqlNode> operands) {
+    if (operands.size() != operandCount()) {
+      throw new IllegalArgumentException("operand count must not change");
+    }
+    for (int i = 0; i < operands.size(); i++) {
+      setOperand(i, operands.get(i));
+    }
+  }
+
   @Override public SqlKind getKind() {
     return getOperator().getKind();
   }
