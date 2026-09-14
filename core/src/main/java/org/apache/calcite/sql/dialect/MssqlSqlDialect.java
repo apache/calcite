@@ -47,7 +47,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
-import static org.apache.calcite.util.RelToSqlConverterUtil.unparseWithOperator;
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseWithBinaryOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -221,7 +221,7 @@ public class MssqlSqlDialect extends SqlDialect {
         unparseFloor(writer, call);
         break;
       case MOD:
-        unparseWithOperator(writer, SqlStdOperatorTable.PERCENT_REMAINDER, call,
+        unparseWithBinaryOperator(writer, SqlStdOperatorTable.PERCENT_REMAINDER, call,
             leftPrec, rightPrec);
         break;
       case SAFE_CAST:

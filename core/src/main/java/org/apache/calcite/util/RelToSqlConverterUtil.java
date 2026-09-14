@@ -349,7 +349,7 @@ public abstract class RelToSqlConverterUtil {
    * operator before the dialect is consulted, so an operator that binds less
    * tightly needs them added here.
    */
-  public static void unparseWithOperator(SqlWriter writer, SqlOperator operator,
+  public static void unparseWithBinaryOperator(SqlWriter writer, SqlOperator operator,
       SqlCall call, int leftPrec, int rightPrec) {
     if (leftPrec > operator.getLeftPrec()
         || (operator.getRightPrec() <= rightPrec && rightPrec != 0)) {
