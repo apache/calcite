@@ -97,6 +97,14 @@ public class SqlBasicCall extends SqlCall {
     operandList = set(operandList, i, operand);
   }
 
+  @Override public void setOperandList(
+      List<? extends @Nullable SqlNode> operands) {
+    if (operands.size() != operandList.size()) {
+      throw new IllegalArgumentException("operand count must not change");
+    }
+    operandList = ImmutableNullableList.copyOf(operands);
+  }
+
   /** Sets the operator (or function) that is being called.
    *
    * <p>This method is used by the validator to set a more refined version of

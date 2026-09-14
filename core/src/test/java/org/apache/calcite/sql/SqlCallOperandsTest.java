@@ -23,6 +23,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,6 +37,25 @@ import static org.hamcrest.Matchers.hasSize;
  *
  */
 public class SqlCallOperandsTest {
+  @Test void testSqlBasicCallSetOperandList() {
+    final SqlLiteral one =
+        SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+    final SqlLiteral two =
+        SqlLiteral.createExactNumeric("2", SqlParserPos.ZERO);
+    final SqlLiteral three =
+        SqlLiteral.createExactNumeric("3", SqlParserPos.ZERO);
+    final SqlBasicCall call =
+        (SqlBasicCall) SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(
+            SqlParserPos.ZERO, one, two);
+    final List<SqlNode> originalOperands = call.getOperandList();
+
+    call.setOperandList(Arrays.asList(two, three));
+
+    assertThat(call.getOperandList(), equalTo(Arrays.asList(two, three)));
+    // Bulk replacement preserves the snapshot behavior of setOperand.
+    assertThat(originalOperands, equalTo(Arrays.asList(one, two)));
+  }
+
   @Test void testSqlDeleteGetOperandsMatchWithSetOperand() {
     SqlDelete sqlDelete =
         new SqlDelete(SqlParserPos.ZERO, new SqlIdentifier("table1", SqlParserPos.ZERO),
