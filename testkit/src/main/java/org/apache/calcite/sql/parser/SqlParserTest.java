@@ -2744,6 +2744,14 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7784">[CALCITE-7784]
+   * Parse fails for ROW(CASE ...)</a>. */
+  @Test void testRowCase() {
+    sql("select row(case when x > 0 then 1 end, x) from t")
+        .ok("SELECT (ROW((CASE WHEN (`X` > 0) THEN 1 ELSE NULL END), `X`))\n"
+            + "FROM `T`");
+  }
+
   @Test void testMultipleWithRecursive() {
     final String sql = "WITH RECURSIVE a(x) AS\n"
         + "  (SELECT 1),\n"
