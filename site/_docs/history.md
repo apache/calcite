@@ -119,6 +119,15 @@ The Spark engine now requires the operator-level opt-in system property
 `-Dcalcite.enable.spark=true`. The `spark` connection property alone no longer
 activates it; a connection using `spark=true` without the opt-in will fail.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7781">CALCITE-7781</a>]
+The fallback `SqlDialect` for an unrecognized JDBC product name now doubles
+backslashes when quoting string literals, so a value cannot terminate the
+literal early on a backend that treats `\` as an in-string escape character
+(the MySQL family, among others). Deployments whose unrecognized backend
+follows SQL-standard literal lexing may restore the legacy behavior with
+`-Dcalcite.sql.dialect.unknown.escapes.backslash=false`; the robust fix is
+to add a `SqlDialect` implementation for the product.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7787">CALCITE-7787</a>]
 The Geode schema operand `pdxSerializablePackagePath` (honored by `GeodeSchemaFactory`
 and `GeodeSimpleSchemaFactory`) now requires the operator-level opt-in system property

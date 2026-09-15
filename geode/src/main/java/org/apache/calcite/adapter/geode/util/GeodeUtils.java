@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
@@ -336,6 +337,37 @@ public class GeodeUtils {
 
     final Object entry = region.get(iter.next());
     return createRelDataType(entry);
+  }
+
+  /**
+   * OQL has no way to escape identifiers, so an identifier that is copied
+   * verbatim into the generated query must be a simple alphanumeric name (with
+   * optional dotted path or bracketed integer subscript for nested access).
+   * Anything else could shift the boundaries of the emitted statement.
+   */
+  private static final Pattern SAFE_OQL_IDENTIFIER =
+      Pattern.compile(
+          "[A-Za-z_$][A-Za-z0-9_$]*+(?:\\.[A-Za-z_$][A-Za-z0-9_$]*+|\\[[0-9]++\\])*+");
+
+  /**
+   * Returns whether {@code name} may be emitted verbatim as an OQL identifier
+   * (a field name, alias, or dotted path). Since OQL provides no way to quote
+   * an identifier, callers should refuse to push down when this returns false.
+   */
+  public static boolean isSafeOqlIdentifier(String name) {
+    return name != null && SAFE_OQL_IDENTIFIER.matcher(name).matches();
+  }
+
+  /**
+   * Validates that {@code name} may be emitted verbatim into a generated OQL
+   * statement, throwing a {@link RuntimeException} otherwise.
+   */
+  public static String checkSafeOqlIdentifier(String name) {
+    if (!isSafeOqlIdentifier(name)) {
+      throw new RuntimeException(
+          "Cannot push down expression: not a simple OQL identifier: " + name);
+    }
+    return name;
   }
 
   // Create Relational Type by inferring a Geode entry or response instance.

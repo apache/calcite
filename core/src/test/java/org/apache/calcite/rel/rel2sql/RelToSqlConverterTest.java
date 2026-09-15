@@ -3921,8 +3921,13 @@ class RelToSqlConverterTest {
   @Test void testHiveAndSparkTrimWithBothSpecialCharacter() {
     final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
         + "from \"foodmart\".\"reserve_employee\"";
+    // Hive and Spark recognize backslash escape sequences inside single-quoted
+    // string constants, so each backslash produced by escapeSpecialChar is
+    // doubled by the dialect. The emitted regex therefore contains \\$\\@\\*A
+    // rather than \$\@\*A; when Hive/Spark parse the literal they collapse
+    // it back to \$\@\*A, which is what the REGEXP_REPLACE engine sees.
     final String expected = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
-        + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
+        + " '^(\\\\$\\\\@\\\\*A)*|(\\\\$\\\\@\\\\*A)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withHive().ok(expected)
@@ -9310,6 +9315,20 @@ class RelToSqlConverterTest {
     sql(bitQuery).withClickHouse().ok(clickHouseExpected);
   }
 
+  /** ClickHouse applies the same backslash escape sequences inside
+   * back-tick-quoted identifiers as inside string literals, so
+   * {@link SqlDialect#quoteIdentifier(StringBuilder, String)} must double it. */
+  @Test void testClickHouseQuoteIdentifierWithBackslash() {
+    final SqlDialect dialect = DatabaseProduct.CLICKHOUSE.getDialect();
+    assertThat(dialect.quoteIdentifier("x\\"), is("`x\\\\`"));
+    assertThat(dialect.quoteIdentifier("\\x"), is("`\\\\x`"));
+    assertThat(dialect.quoteIdentifier("x\\y"), is("`x\\\\y`"));
+    assertThat(dialect.quoteIdentifier("x\\\\"), is("`x\\\\\\\\`"));
+    // A back-tick is still escaped as `` after backslashes are doubled
+    assertThat(dialect.quoteIdentifier("x`y"), is("`x``y`"));
+    assertThat(dialect.quoteIdentifier("x\\`y"), is("`x\\\\``y`"));
+  }
+
   @Test void testClickHouseArrayFunctions() {
 
   }
@@ -9905,17 +9924,25 @@ class RelToSqlConverterTest {
     });
   }
 
-  /** Test case for the MySQL-family backslash-escape bypass:
-   * dialects whose backend treats {@code \} as an in-string escape
+  /** Dialects whose backend treats {@code \} as an in-string escape
    * character must double it in
-   * {@link SqlDialect#quoteStringLiteral(StringBuilder, String, String)}. */
+   * {@link SqlDialect#quoteStringLiteral(StringBuilder, String, String)},
+   * so that a value ending in a backslash cannot terminate the emitted
+   * literal early. */
   @Test void testDialectQuoteStringLiteralWithBackslash() {
     dialects().forEach((dialect, databaseProduct) -> {
       final boolean escapesBackslash =
           databaseProduct == DatabaseProduct.BIG_QUERY
               || databaseProduct == DatabaseProduct.MYSQL
               || databaseProduct == DatabaseProduct.STARROCKS
-              || databaseProduct == DatabaseProduct.DORIS;
+              || databaseProduct == DatabaseProduct.DORIS
+              || databaseProduct == DatabaseProduct.HIVE
+              || databaseProduct == DatabaseProduct.SPARK
+              || databaseProduct == DatabaseProduct.SNOWFLAKE
+              || databaseProduct == DatabaseProduct.FIREBOLT
+              || databaseProduct == DatabaseProduct.CLICKHOUSE
+              || databaseProduct == DatabaseProduct.NETEZZA
+              || databaseProduct == DatabaseProduct.INFOBRIGHT;
 
       // Trailing backslash
       assertThat(dialect.quoteStringLiteral("x\\"),
@@ -9933,6 +9960,20 @@ class RelToSqlConverterTest {
       assertThat(dialect.quoteStringLiteral("x\\\\"),
           escapesBackslash ? is("'x\\\\\\\\'") : is("'x\\\\'"));
     });
+  }
+
+  /** BigQuery applies the same backslash escape sequences inside
+   * back-tick-quoted identifiers as inside string literals, so
+   * {@link SqlDialect#quoteIdentifier(StringBuilder, String)} must double it. */
+  @Test void testBigQueryQuoteIdentifierWithBackslash() {
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    assertThat(dialect.quoteIdentifier("x\\"), is("`x\\\\`"));
+    assertThat(dialect.quoteIdentifier("\\x"), is("`\\\\x`"));
+    assertThat(dialect.quoteIdentifier("x\\y"), is("`x\\\\y`"));
+    assertThat(dialect.quoteIdentifier("x\\\\"), is("`x\\\\\\\\`"));
+    // A back-tick is still escaped as \` after backslashes are doubled
+    assertThat(dialect.quoteIdentifier("x`y"), is("`x\\`y`"));
+    assertThat(dialect.quoteIdentifier("x\\`y"), is("`x\\\\\\`y`"));
   }
 
   @Test void testSelectCountStar() {
