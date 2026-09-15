@@ -116,11 +116,8 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     boolean isTrivialCorrelation =
         callsWithCorrelationInRight.stream()
             .allMatch(exp -> isDirectFieldAccess(exp, correlate.getCorrelationId()));
-    // A nested correlate on the right re-binding the same id owns the refs below it.
-    boolean rightRebindsCorrelationId =
-        rebindsCorrelationId(right, correlate.getCorrelationId());
     // Early exit condition
-    if (isTrivialCorrelation || rightRebindsCorrelationId) {
+    if (isTrivialCorrelation) {
       if (correlate.getLeft().equals(left) && correlate.getRight().equals(right)) {
         return correlate;
       } else {
@@ -205,21 +202,6 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     return builder.build();
   }
 
-  /** Returns whether {@code plan} contains a {@link Correlate} that re-binds {@code corrId}. */
-  private static boolean rebindsCorrelationId(RelNode plan, CorrelationId corrId) {
-    final boolean[] found = {false};
-    plan.accept(new RelHomogeneousShuttle() {
-      @Override public RelNode visit(RelNode other) {
-        if (other instanceof Correlate
-            && ((Correlate) other).getCorrelationId().equals(corrId)) {
-          found[0] = true;
-        }
-        return super.visit(other);
-      }
-    });
-    return found[0];
-  }
-
   /**
    * Traverses a plan and finds all simply correlated row expressions with the specified id.
    */
@@ -227,6 +209,11 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     SimpleCorrelationCollector finder = new SimpleCorrelationCollector(corrId);
     plan.accept(new RelHomogeneousShuttle() {
       @Override public RelNode visit(RelNode other) {
+        // Don't descend into a nested correlate that reuses this id: the refs below belong to it.
+        if (other instanceof Correlate
+            && ((Correlate) other).getCorrelationId().equals(corrId)) {
+          return other;
+        }
         if (other instanceof Project || other instanceof Filter) {
           other.accept(finder);
         }
