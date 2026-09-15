@@ -197,23 +197,24 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   public void updateRelInMap(
       SortedSetMultimap<RelNode, CorrelationId> mapRefRelToCorVar) {
     for (RelNode rel : Lists.newArrayList(mapRefRelToCorVar.keySet())) {
-      if (oldToNewRelMap.containsKey(rel)) {
+      RelNode newRel = oldToNewRelMap.get(rel);
+      if (newRel != null) {
         SortedSet<CorrelationId> corVarSet =
             mapRefRelToCorVar.removeAll(rel);
-        mapRefRelToCorVar.putAll(oldToNewRelMap.get(rel), corVarSet);
+        mapRefRelToCorVar.putAll(newRel, corVarSet);
       }
     }
   }
 
-  @SuppressWarnings({"JdkObsolete", "ModifyCollectionInEnhancedForLoop"})
+  @SuppressWarnings("JdkObsolete")
   public void updateRelInMap(
       SortedMap<CorrelationId, LogicalCorrelate> mapCorVarToCorRel) {
-    for (CorrelationId corVar : mapCorVarToCorRel.keySet()) {
-      LogicalCorrelate oldRel = mapCorVarToCorRel.get(corVar);
-      if (oldToNewRelMap.containsKey(oldRel)) {
-        RelNode newRel = oldToNewRelMap.get(oldRel);
+    for (Map.Entry<CorrelationId, LogicalCorrelate> entry
+        : mapCorVarToCorRel.entrySet()) {
+      RelNode newRel = oldToNewRelMap.get(entry.getValue());
+      if (newRel != null) {
         assert newRel instanceof LogicalCorrelate;
-        mapCorVarToCorRel.put(corVar, (LogicalCorrelate) newRel);
+        entry.setValue((LogicalCorrelate) newRel);
       }
     }
   }

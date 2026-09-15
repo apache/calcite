@@ -170,9 +170,8 @@ public class CombineSimpleEquivalenceRule extends RelRule<CombineSimpleEquivalen
       @Override public RelNode visit(RelNode node) {
         // Check if this node's digest matches any of our shared components
         RelDigest nodeDigest = node.getRelDigest();
-        if (digestToSpool.containsKey(nodeDigest)) {
-          LogicalTableSpool spool = digestToSpool.get(nodeDigest);
-
+        LogicalTableSpool spool = digestToSpool.get(nodeDigest);
+        if (spool != null) {
           if (producers.contains(nodeDigest)) {
             // Subsequent occurrence - replace with table scan (consumer)
             return LogicalTableScan.create(

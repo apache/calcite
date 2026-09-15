@@ -1454,8 +1454,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final Pair<RexNode, @Nullable Type> key = Pair.of(inputRef, currentStorageType);
     // If the RexInputRef has been visited under current storage type already,
     // it is not necessary to visit it again, just return the result.
-    if (rexWithStorageTypeResultMap.containsKey(key)) {
-      return rexWithStorageTypeResultMap.get(key);
+    final Result cached = rexWithStorageTypeResultMap.get(key);
+    if (cached != null) {
+      return cached;
     }
     // Generate one line of code to get the input, e.g.,
     // "final Employee current =(Employee) inputEnumerator.current();"
@@ -1519,8 +1520,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    */
   @Override public Result visitLiteral(RexLiteral literal) {
     // If the RexLiteral has been visited already, just return the result
-    if (rexResultMap.containsKey(literal)) {
-      return rexResultMap.get(literal);
+    final Result cached = rexResultMap.get(literal);
+    if (cached != null) {
+      return cached;
     }
     // Generate one line of code for the value of RexLiteral, e.g.,
     // "final int literal_value = 10;"
@@ -1613,8 +1615,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * need to be implemented separately.
    */
   @Override public Result visitCall(RexCall call) {
-    if (rexResultMap.containsKey(call)) {
-      return rexResultMap.get(call);
+    final Result cached = rexResultMap.get(call);
+    if (cached != null) {
+      return cached;
     }
     final SqlOperator operator = call.getOperator();
     if (operator == PREV) {
@@ -1812,8 +1815,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   @Override public Result visitDynamicParam(RexDynamicParam dynamicParam) {
     final Pair<RexNode, @Nullable Type> key =
         Pair.of(dynamicParam, currentStorageType);
-    if (rexWithStorageTypeResultMap.containsKey(key)) {
-      return rexWithStorageTypeResultMap.get(key);
+    final Result cached = rexWithStorageTypeResultMap.get(key);
+    if (cached != null) {
+      return cached;
     }
     final Type valueType = typeFactory.getJavaClass(dynamicParam.getType());
     final Type storageType = currentStorageType != null ? currentStorageType : valueType;
@@ -1857,8 +1861,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   @Override public Result visitFieldAccess(RexFieldAccess fieldAccess) {
     final Pair<RexNode, @Nullable Type> key =
         Pair.of(fieldAccess, currentStorageType);
-    if (rexWithStorageTypeResultMap.containsKey(key)) {
-      return rexWithStorageTypeResultMap.get(key);
+    final Result cached = rexWithStorageTypeResultMap.get(key);
+    if (cached != null) {
+      return cached;
     }
     final RexNode target = deref(fieldAccess.getReferenceExpr());
     int fieldIndex = fieldAccess.getField().getIndex();

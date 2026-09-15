@@ -8793,8 +8793,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (expr instanceof SqlIdentifier) {
         expr = getScope().fullyQualify((SqlIdentifier) expr).identifier;
       }
-      if (!expansions.containsKey(name)) {
-        expansions.put(name, expr);
+      if (expansions.putIfAbsent(name, expr) == null) {
         validator.setOriginal(expr, id);
       }
       return expr;
