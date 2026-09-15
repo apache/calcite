@@ -11820,6 +11820,22 @@ class RelToSqlConverterTest {
     sql(query).dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7778">[CALCITE-7778]
+   * JDBC adapter for MSSQL generates % for MOD without preserving grouping,
+   * giving wrong results</a>. */
+  @Test void testModFunctionGroupingForMSSQL() {
+    final String from = "\nFROM (VALUES (0)) AS [t] ([ZERO])";
+    sql("select 100 / mod(11, 3)").dialect(MssqlSqlDialect.DEFAULT)
+        .ok("SELECT 100 / (11 % 3)" + from);
+    sql("select 100 * mod(11, 3)").dialect(MssqlSqlDialect.DEFAULT)
+        .ok("SELECT 100 * (11 % 3)" + from);
+    sql("select mod(100, mod(11, 3))").dialect(MssqlSqlDialect.DEFAULT)
+        .ok("SELECT 100 % (11 % 3)" + from);
+    // % already binds more tightly than -, so no parentheses are needed
+    sql("select 100 - mod(11, 3)").dialect(MssqlSqlDialect.DEFAULT)
+        .ok("SELECT 100 - 11 % 3" + from);
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6655">[CALCITE-6655]
