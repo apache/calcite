@@ -3197,14 +3197,12 @@ public class RexUtil {
         Map<K, RexNode> baseMap,
         Map<K, RexNode> forMergeMap) {
       for (Map.Entry<K, RexNode> entry : forMergeMap.entrySet()) {
+        final RexNode baseRex = baseMap.get(entry.getKey());
         RexNode mergedRex =
-            relBuilder.and(
-                entry.getValue(),
-                baseMap.getOrDefault(entry.getKey(), relBuilder.literal(true)));
+            relBuilder.and(entry.getValue(),
+                baseRex == null ? relBuilder.literal(true) : baseRex);
         int originalCount = entry.getValue().nodeCount()
-            + (baseMap.containsKey(entry.getKey())
-            ? baseMap.get(entry.getKey()).nodeCount()
-            : 0);
+            + (baseRex == null ? 0 : baseRex.nodeCount());
         checkExpandCount(mergedRex.nodeCount() - originalCount);
         baseMap.put(entry.getKey(), mergedRex);
       }
@@ -3233,23 +3231,17 @@ public class RexUtil {
       Iterator<Map.Entry<K, RexNode>> iterator =
           baseMap.entrySet().iterator();
       while (iterator.hasNext()) {
-        int forMergeNodeCount = 0;
-
         Map.Entry<K, RexNode> entry = iterator.next();
-        if (!forMergeMap.containsKey(entry.getKey())) {
+        final RexNode forMergeRex = forMergeMap.get(entry.getKey());
+        if (forMergeRex == null) {
           checkExpandCount(-entry.getValue().nodeCount());
           iterator.remove();
           continue;
-        } else {
-          forMergeNodeCount = forMergeMap.get(entry.getKey()).nodeCount();
         }
-        RexNode mergedRex =
-            relBuilder.or(
-                entry.getValue(),
-                forMergeMap.get(entry.getKey()));
-        int originalCount = entry.getValue().nodeCount() + forMergeNodeCount;
+        RexNode mergedRex = relBuilder.or(entry.getValue(), forMergeRex);
+        int originalCount = entry.getValue().nodeCount() + forMergeRex.nodeCount();
         checkExpandCount(mergedRex.nodeCount() - originalCount);
-        baseMap.put(entry.getKey(), mergedRex);
+        entry.setValue(mergedRex);
       }
     }
 

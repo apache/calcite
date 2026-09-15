@@ -1080,9 +1080,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       notifyDiscard(vertex.getCurrentRel());
     }
     RelDigest oldKey = vertex.getCurrentRel().getRelDigest();
-    if (mapDigestToVertex.get(oldKey) == vertex) {
-      mapDigestToVertex.remove(oldKey);
-    }
+    mapDigestToVertex.remove(oldKey, vertex);
     // When a transformation happened in one rule apply, support
     // vertex2 replace vertex1, but the current relNode of
     // vertex1 and vertex2 is same,

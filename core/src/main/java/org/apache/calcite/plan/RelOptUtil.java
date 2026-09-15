@@ -2773,8 +2773,9 @@ public abstract class RelOptUtil {
         }
         if (o0 instanceof RexInputRef && o1 instanceof RexLiteral) {
           final int index = ((RexInputRef) o0).getIndex();
-          if (projectMap.get(index) == null) {
-            projectMap.put(index, o1);
+          // The first constraint on a column populates projectMap; a later
+          // constraint on the same column remains in filters.
+          if (projectMap.putIfAbsent(index, o1) == null) {
             continue;
           }
         }

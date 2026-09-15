@@ -382,15 +382,16 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       Row key = builder.build();
 
-      if (!accumulators.containsKey(key)) {
-        AccumulatorList list = new AccumulatorList();
+      AccumulatorList list = accumulators.get(key);
+      if (list == null) {
+        list = new AccumulatorList();
         for (AccumulatorFactory factory : accumulatorFactories) {
           list.add(factory.get());
         }
         accumulators.put(key, list);
       }
 
-      accumulators.get(key).send(row);
+      list.send(row);
     }
 
     public void end(Sink sink) throws InterruptedException {

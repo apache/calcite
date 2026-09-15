@@ -260,13 +260,8 @@ public abstract class Match extends SingleRel {
           pv.add(STAR);
         }
         for (String alpha : pv) {
-          final NavigableSet<RexMRAggCall> set;
-          if (aggregateCallsPerVar.containsKey(alpha)) {
-            set = aggregateCallsPerVar.get(alpha);
-          } else {
-            set = new TreeSet<>();
-            aggregateCallsPerVar.put(alpha, set);
-          }
+          final NavigableSet<RexMRAggCall> set =
+              aggregateCallsPerVar.computeIfAbsent(alpha, k -> new TreeSet<>());
           boolean update = true;
           for (RexMRAggCall rex : set) {
             if (rex.equals(aggCall)) {

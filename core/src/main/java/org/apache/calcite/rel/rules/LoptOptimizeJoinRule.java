@@ -329,8 +329,9 @@ public class LoptOptimizeJoinRule
     // From the candidate self-join pairs, determine if there is
     // the appropriate join condition between the two factors that will
     // allow the join to be removed.
-    for (Integer factor1 : selfJoinPairs.keySet()) {
-      final int factor2 = selfJoinPairs.get(factor1);
+    for (Map.Entry<Integer, Integer> selfJoinPair : selfJoinPairs.entrySet()) {
+      final int factor1 = selfJoinPair.getKey();
+      final int factor2 = selfJoinPair.getValue();
       final List<RexNode> selfJoinFilters = new ArrayList<>();
       for (RexNode filter : multiJoin.getJoinFilters()) {
         ImmutableBitSet joinFactors =

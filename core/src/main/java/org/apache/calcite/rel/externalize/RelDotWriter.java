@@ -31,6 +31,7 @@ import org.immutables.value.Value;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -187,9 +188,10 @@ public class RelDotWriter extends RelWriterImpl {
       pw.println("digraph {");
 
       // print nodes with styles
-      for (RelNode rel : nodeStyles.keySet()) {
-        String style = String.join(",", nodeStyles.get(rel));
-        pw.println(nodeLabels.get(rel) + " [style=\"" + style + "\"]");
+      for (Map.Entry<RelNode, Collection<String>> entry
+          : nodeStyles.asMap().entrySet()) {
+        String style = String.join(",", entry.getValue());
+        pw.println(nodeLabels.get(entry.getKey()) + " [style=\"" + style + "\"]");
       }
 
       // ordinary arcs
