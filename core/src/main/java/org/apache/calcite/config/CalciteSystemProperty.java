@@ -122,6 +122,22 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.uuid.unsigned.comparison", true);
 
   /**
+   * Whether the fallback dialect that
+   * {@link org.apache.calcite.sql.SqlDialectFactory} uses for an
+   * unrecognized database product doubles backslashes when quoting string
+   * literals.
+   *
+   * <p>The unrecognized backend's string-lexing rules are unknown, so the
+   * default is to double backslashes: this keeps a value from terminating a
+   * generated string literal early on a backend that treats backslash as an
+   * in-string escape character (the MySQL family, among others). Set to
+   * "false" to restore the legacy behavior for backends known to follow the
+   * SQL standard.
+   */
+  public static final CalciteSystemProperty<Boolean> UNKNOWN_DIALECT_ESCAPES_BACKSLASH =
+      booleanProperty("calcite.sql.dialect.unknown.escapes.backslash", true);
+
+  /**
    * Whether to include a GraphViz representation when dumping the state of the
    * Volcano planner.
    */

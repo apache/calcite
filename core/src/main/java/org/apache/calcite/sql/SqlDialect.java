@@ -430,6 +430,14 @@ public class SqlDialect {
 
   /** Appends a string literal to a buffer.
    *
+   * <p>The default implementation escapes only the literal quote character
+   * (by doubling it). If the target backend also treats backslash as an
+   * in-string escape character (as MySQL, MariaDB and BigQuery do), the
+   * dialect must override this method and double backslashes as well via
+   * {@link #escapeBackslash(String)}; otherwise a value ending in a
+   * backslash escapes the closing quote, shifts the boundary of the emitted
+   * literal, and changes the structure of the generated statement.
+   *
    * @param buf Buffer
    * @param charsetName Character set name, e.g. "utf16", or null
    * @param val String value
