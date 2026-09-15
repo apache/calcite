@@ -99,6 +99,24 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    // ClickHouse treats backslash as an escape character inside string
+    // literals, so a literal backslash must be doubled before the base method
+    // escapes the enclosing quote. Otherwise a value ending in a backslash
+    // terminates the literal early and the trailing text is parsed as SQL
+    // rather than data.
+    super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
+  }
+
+  @Override public StringBuilder quoteIdentifier(StringBuilder buf, String val) {
+    // ClickHouse applies the same backslash escape sequences inside
+    // back-tick-quoted identifiers as inside string literals, so a backslash
+    // in an identifier must be doubled or it would escape the closing
+    // back-tick and shift the identifier boundary.
+    return super.quoteIdentifier(buf, escapeBackslash(val));
+  }
+
   @Override public boolean supportsNestedAggregations() {
     return false;
   }

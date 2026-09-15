@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
@@ -168,8 +169,38 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     } else if (upperProductName.contains("SPARK")) {
       return new SparkSqlDialect(c);
     } else {
-      return new AnsiSqlDialect(c);
+      return ansiFallback(c);
     }
+  }
+
+  /** Creates the dialect used when the database product name is not
+   * recognized.
+   *
+   * <p>Because the backend's string-literal lexing rules are unknown, the
+   * fallback doubles backslashes when quoting string literals by default:
+   * on a backend that treats {@code \} as an in-string escape character
+   * (the MySQL family, among others), an unescaped backslash at the end of
+   * a value such as {@code "x\"} would otherwise consume the closing quote
+   * and shift the string boundary, so the rest of the value would be parsed
+   * as SQL rather than data. On a backend that lexes string literals per
+   * the SQL standard, the doubled backslash is at worst rendered verbatim;
+   * it cannot change the structure of the generated statement.
+   *
+   * <p>Set the system property
+   * {@code calcite.sql.dialect.unknown.escapes.backslash} to {@code false}
+   * to restore the legacy behavior (no backslash escaping) for a backend
+   * known to follow the SQL standard; the robust fix is to add a proper
+   * {@link SqlDialect} for the product. */
+  static SqlDialect ansiFallback(SqlDialect.Context context) {
+    return new AnsiSqlDialect(context) {
+      @Override public void quoteStringLiteral(StringBuilder buf,
+          @Nullable String charsetName, String val) {
+        super.quoteStringLiteral(buf, charsetName,
+            CalciteSystemProperty.UNKNOWN_DIALECT_ESCAPES_BACKSLASH.value()
+                ? escapeBackslash(val)
+                : val);
+      }
+    };
   }
 
   /** Returns a basic dialect for a given product, or null if none is known. */

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -79,7 +80,11 @@ public class GeodeSort extends Sort implements GeodeRel {
       List<String> orderByFields = new ArrayList<>();
 
       for (RelFieldCollation fieldCollation : sortCollations) {
-        final String name = fieldName(fieldCollation.getFieldIndex());
+        // OQL provides no way to quote identifiers, so the ORDER BY field
+        // name must match a strict allowlist before it can be copied
+        // verbatim into the generated statement.
+        final String name =
+            GeodeUtils.checkSafeOqlIdentifier(fieldName(fieldCollation.getFieldIndex()));
         orderByFields.add(name + " " + direction(fieldCollation.getDirection()));
       }
       geodeImplementContext.addOrderByFields(orderByFields);
