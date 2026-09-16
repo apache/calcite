@@ -375,4 +375,40 @@ having loc is null;
 !ok
 !set hep-rules original
 
+# [CALCITE-7687] Aggregate selectivity estimation uses incorrect column references
+!set hep-rules "
++CoreRules.AGGREGATE_PROJECT_MERGE"
+
+# Display the result of the query explained below.
+with t(n, a, r) as (
+  values (0, 'a', cast(row(10) as row(d integer))),
+         (1, 'b', cast(row(20) as row(d integer)))
+)
+select a, r, sum(n) as s
+from t
+group by a, r
+having (r).d = 10;
++---+------+---+
+| A | R    | S |
++---+------+---+
+| a | {10} | 0 |
++---+------+---+
+(1 row)
+
+!ok
+
+# Verify aggregate selectivity estimation during EXPLAIN preparation does not fail.
+explain plan including all attributes for
+with t(n, a, r) as (
+  values (0, 'a', cast(row(10) as row(d integer))),
+         (1, 'b', cast(row(20) as row(d integer)))
+)
+select a, r, sum(n) as s
+from t
+group by a, r
+having (r).d = 10;
+PLAN VARCHAR NOT NULL
+!type
+!set hep-rules original
+
 # End hep.iq
