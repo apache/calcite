@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.geode.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -66,6 +67,26 @@ public class GeodeUtils {
   private static final JavaTypeFactoryExtImpl JAVA_TYPE_FACTORY = new JavaTypeFactoryExtImpl();
 
   private GeodeUtils() {
+  }
+
+  /** Checks whether the {@code pdxSerializablePackagePath} schema operand is enabled.
+   *
+   * <p>The operand configures Geode's {@link ReflectionBasedAutoSerializer}. It is disabled by
+   * default; deployments that need it can opt back in by setting the system property
+   * {@code calcite.geode.pdxSerializablePackagePath.allowed} to {@code "true"}.
+   *
+   * @param pdxSerializablePackagePath operand value, or null if not set
+   * @see CalciteSystemProperty#GEODE_PDX_PACKAGE_PATH_ALLOWED
+   */
+  public static void checkPdxPackagePathOperand(
+      @Nullable String pdxSerializablePackagePath) {
+    if (pdxSerializablePackagePath == null
+        || CalciteSystemProperty.GEODE_PDX_PACKAGE_PATH_ALLOWED.value()) {
+      return;
+    }
+    throw new IllegalStateException("Operand 'pdxSerializablePackagePath'"
+        + " is disabled by default; set system property"
+        + " 'calcite.geode.pdxSerializablePackagePath.allowed' to 'true' to enable it");
   }
 
   /**
