@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.hint.RelHint;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -90,6 +92,14 @@ public final class LogicalUnion extends Union {
 
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    return deepEquals0(obj);
+  }
+
+  @Override public int deepHashCode() {
+    return deepHashCode0();
   }
 
   @Override public RelNode withHints(List<RelHint> hintList) {

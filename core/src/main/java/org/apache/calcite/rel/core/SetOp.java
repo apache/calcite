@@ -32,6 +32,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -111,6 +115,42 @@ public abstract class SetOp extends AbstractRelNode implements Hintable {
       pw.input("input#" + ord.i, ord.e);
     }
     return pw.item("all", all);
+  }
+
+  @API(since = "1.43", status = API.Status.INTERNAL)
+  @EnsuresNonNullIf(expression = "#1", result = true)
+  protected boolean deepEquals0(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    SetOp o = (SetOp) obj;
+    if (all != o.all
+        || !traitSet.equals(o.traitSet)
+        || !hints.equals(o.hints)
+        || inputs.size() != o.inputs.size()) {
+      return false;
+    }
+    for (int i = 0; i < inputs.size(); i++) {
+      if (!inputs.get(i).deepEquals(o.inputs.get(i))) {
+        return false;
+      }
+    }
+    // A SetOp's row type is derived solely from its inputs' row types, so equal inputs
+    // imply equal row types; there is no need to compare rowType here.
+    return true;
+  }
+
+  @API(since = "1.43", status = API.Status.INTERNAL)
+  protected int deepHashCode0() {
+    int result = 31 + traitSet.hashCode();
+    for (int i = 0; i < inputs.size(); i++) {
+      result = result * 31 + inputs.get(i).deepHashCode();
+    }
+    result = result * 31 + Boolean.hashCode(all);
+    return result * 31 + hints.hashCode();
   }
 
   @Override protected RelDataType deriveRowType() {
