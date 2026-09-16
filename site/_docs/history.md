@@ -91,6 +91,12 @@ The Spark engine now requires the operator-level opt-in system property
 `-Dcalcite.enable.spark=true`. The `spark` connection property alone no longer
 activates it; a connection using `spark=true` without the opt-in will fail.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7787">CALCITE-7787</a>]
+The Geode schema operand `pdxSerializablePackagePath` (honored by `GeodeSchemaFactory`
+and `GeodeSimpleSchemaFactory`) now requires the operator-level opt-in system property
+`-Dcalcite.geode.pdxSerializablePackagePath.allowed=true`. A model that sets the operand
+without the opt-in will fail. Java callers of `GeodeUtils.createClientCache` are unaffected.
+
 #### New features
 {: #new-features-1-43-0}
 
