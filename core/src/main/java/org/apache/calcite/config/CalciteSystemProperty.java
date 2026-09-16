@@ -559,6 +559,15 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> ENABLE_SPARK_ENGINE =
       booleanProperty("calcite.enable.spark", false);
 
+  /**
+   * Whether the Geode schema operand {@code pdxSerializablePackagePath} is enabled.
+   *
+   * <p>The operand configures Geode's {@code ReflectionBasedAutoSerializer} class-name pattern.
+   * It is disabled by default; set this property to {@code "true"} to opt back in.
+   */
+  public static final CalciteSystemProperty<Boolean> GEODE_PDX_PACKAGE_PATH_ALLOWED =
+      booleanProperty("calcite.geode.pdxSerializablePackagePath.allowed", false);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
