@@ -20,6 +20,7 @@ import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -83,6 +84,10 @@ public class LargePlanBenchmark {
   // For large plans, "DEPTH_FIRST", "BOTTOM_UP", and "TOP_DOWN" are slower than ARBITRARY
   @Param({"ARBITRARY"})
   String matchOrder;
+
+  // The set operator used to combine the branches into the plan tree.
+  @Param({"UNION", "INTERSECT"})
+  String setOp;
 
   // Enable validation mode to verify rule application counts across different orders.
   boolean enableValidation = false;
@@ -154,12 +159,19 @@ public class LargePlanBenchmark {
 
   private RelNode makeUnionTree(int unionNum) {
     RelNode union = makeSelectBranch(0);
-    for (int i = 1; i < unionNum; i++) {
+    for (int i = 1; i <= unionNum; i++) {
       RelNode right = makeSelectBranch(i);
-      union = LogicalUnion.create(ImmutableList.of(union, right), true);
+      union = combine(union, right);
     }
-    union = LogicalUnion.create(ImmutableList.of(union, makeSelectBranch(unionNum)), true);
     return union;
+  }
+
+  private RelNode combine(RelNode left, RelNode right) {
+    List<RelNode> inputs = ImmutableList.of(left, right);
+    if ("INTERSECT".equals(setOp)) {
+      return LogicalIntersect.create(inputs, true);
+    }
+    return LogicalUnion.create(inputs, true);
   }
 
   @Benchmark
