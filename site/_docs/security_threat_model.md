@@ -240,9 +240,9 @@ land.
   carries a `CancelFlag` in the planner context, so a deadline can build on it;
   the firing and size caps are new.
 * **Execution.** Catastrophic regex backtracking in `LIKE`, `SIMILAR TO`, or
-  `RLIKE`, or an unbounded join, exhausts resources at run time. Planning bounds
-  do not help here; the mitigation is a match-time limit or a backtracking-free
-  regex engine.
+  `RLIKE`, an unbounded XSLT program in `XMLTRANSFORM`, or an unbounded join,
+  exhausts resources at run time. Planning bounds do not help here; the
+  mitigation is a match-time limit or a backtracking-free regex engine.
 * **Parsing.** Deeply nested expressions can overflow the parser stack. The
   mitigation is a nesting-depth limit.
 
