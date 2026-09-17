@@ -5414,6 +5414,76 @@ public class RelMetadataTest {
         .assertThatDistinctRowCount(bitSetOf(0), is(1d));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7793">[CALCITE-7793]
+   * RelMdDistinctRowCount passes an Aggregate predicate to the Aggregate's
+   * input without translating column references</a>. */
+  @Test void testAggregateDistinctRowCountPredicateIsTranslated() {
+    // select id, sum(sal) from t where id > 1 group by id having id > 1
+    //
+    // LogicalFilter(condition=[>($0, 1)])        <- Aggregate output ordinals;
+    //   LogicalAggregate(group=[{1}], sumsal=[SUM($0)])
+    //     LogicalFilter(condition=[>($1, 1)])    <- Aggregate input ordinals;
+    //       LogicalValues(tuples=[[{ 10, 1 }, { 20, 2 }, { 30, 3 }]])
+    // The HAVING has the same condition as the WHERE:
+    // Thus the Aggregate's output $0 is the same as its input $1:
+    // the two conditions restrict the key column in the same way.
+    //
+    // The plan is built by hand because SqlToRel produces a different plan.
+    final RelNode query = fixture()
+        .withRelFn(b -> {
+          b.values(new String[]{"sal", "id"}, 10, 1, 20, 2, 30, 3);
+          b.filter(b.greaterThan(b.field(1), b.literal(1)));
+          b.aggregate(b.groupKey(1), b.sum(false, "sumsal", b.field(0)));
+          return b.filter(b.greaterThan(b.field(0), b.literal(1))).build();
+        })
+        .toRel();
+
+    // The two plans compared below differ only by the HAVING.
+    final RelNode aggregate = query.getInput(0);
+    assertThat(aggregate, instanceOf(Aggregate.class));
+
+    // A HAVING that restricts nothing new does not change the estimated group count.
+    final RelMetadataQuery mq = query.getCluster().getMetadataQuery();
+    assertThat(mq.getDistinctRowCount(query, bitSetOf(0), null),
+        is(mq.getDistinctRowCount(aggregate, bitSetOf(0), null)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7793">[CALCITE-7793]
+   * RelMdDistinctRowCount passes an Aggregate predicate to the Aggregate's
+   * input without translating column references</a>. */
+  @Test void testAggregateDistinctRowCountStructPredicate() {
+    // select r, sum(sal) from
+    //   (select sal, cast(row(id) as row(d integer)) as r from t)
+    // group by r
+    // having (r).d = 2
+    //
+    // LogicalFilter(condition=[=($0.d, 2)])       <- Aggregate output ordinals;
+    //   LogicalAggregate(group=[{1}], sumsal=[SUM($0)])
+    //     LogicalProject(sal=[$0], r=[ROW($1)])   <- Aggregate input ordinals;
+    //       LogicalValues(tuples=[[{ 10, 1 }, { 20, 2 }, { 30, 3 }]])
+    //
+    // The plan is built by hand because SqlToRel produces a different plan.
+    fixture()
+        .withRelFn(b -> {
+          b.values(new String[]{"sal", "id"}, 10, 1, 20, 2, 30, 3);
+          b.project(
+              ImmutableList.of(b.field(0),
+                  b.getRexBuilder().makeCall(
+                      b.getTypeFactory().builder()
+                          .add("d", b.field(1).getType()).build(),
+                      SqlStdOperatorTable.ROW, ImmutableList.of(b.field(1)))),
+              ImmutableList.of("sal", "r"));
+          b.aggregate(b.groupKey(1), b.sum(false, "sumsal", b.field(0)));
+          return b.filter(
+              b.equals(b.getRexBuilder().makeFieldAccess(b.field(0), 0),
+                  b.literal(2))).build();
+        })
+        // Without the fix the next statement throws.
+        .assertThatDistinctRowCount(bitSetOf(0), notNullValue(Double.class));
+  }
+
   @Test void testAggregateDistinctRowCountLosslessCast() {
     final String sql =
         "select name, sal, cast(sal as varchar(11)) "
