@@ -191,6 +191,21 @@ public class RelMdDistinctRowCount
     RexNode childPreds =
         RexUtil.composeConjunction(rexBuilder, pushable, true);
 
+    if (childPreds != null) {
+      // Convert aggregate-output references to the corresponding input fields.
+      final int[] adjustments = new int[rel.getGroupCount()];
+      int j = 0;
+      for (int i : rel.getGroupSet()) {
+        adjustments[j] = i - j;
+        j++;
+      }
+      childPreds =
+          childPreds.accept(
+              new RelOptUtil.RexInputConverter(rexBuilder,
+              rel.getRowType().getFieldList(),
+              rel.getInput().getRowType().getFieldList(), adjustments));
+    }
+
     // set the bits as they correspond to the child input
     ImmutableBitSet.Builder childKey = ImmutableBitSet.builder();
     RelMdUtil.setAggChildKeys(groupKey, rel, childKey);

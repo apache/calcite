@@ -10200,3 +10200,34 @@ from (select array(select ROW(ROW(1, 2), 3) from (values (0))) as a) as t;
 (1 row)
 
 !ok
+
+!set trimfields false
+
+# [CALCITE-7793] RelMdDistinctRowCount passes an Aggregate predicate to the
+# Aggregate's input without translating column references.
+# PostgreSQL 14.13 returns the same empty result for this query.
+with t(n, r) as (
+  values (1, cast(row(10) as row(d integer))),
+         (2, cast(row(20) as row(d integer)))
+)
+select e.n
+from t e
+where e.n > (
+  select avg(e2.n)
+  from t e2
+  where (e2.r).d = (e.r).d
+  and exists (
+     select 1
+     from (values (1, cast(row(10) as row(d integer)))) as b(k, br)
+     where b.k = e2.n
+     and (b.br).d = (e.r).d
+  )
+);
++---+
+| N |
++---+
++---+
+(0 rows)
+
+!ok
+!set trimfields true
