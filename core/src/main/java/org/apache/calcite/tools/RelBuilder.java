@@ -29,6 +29,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -141,6 +142,7 @@ import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
+import java.util.AbstractQueue;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,10 +152,12 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -195,7 +199,11 @@ import static java.util.Objects.requireNonNull;
 public class RelBuilder {
   protected final RelOptCluster cluster;
   protected final @Nullable RelOptSchema relOptSchema;
-  private final Deque<Frame> stack = new ArrayDeque<>();
+  /** Stack of relational expressions that are being built.
+   *
+   * <p>Checks each relational expression for an empty row type as it is
+   * pushed; see {@link FrameStack}. */
+  private final FrameStack stack = new FrameStack();
   private RexSimplify simplifier;
   private final Config config;
   private final RelOptTable.ViewExpander viewExpander;
@@ -376,6 +384,17 @@ public class RelBuilder {
   private void replaceTop(RelNode node) {
     final Frame frame = stack.pop();
     stack.push(new Frame(node, frame.fields));
+  }
+
+  /** Throws if the row type of {@code rel} is empty and the given
+   * {@code config}'s {@link Config#emptyRowTypePolicy()} is
+   * {@link EmptyRowTypePolicy#FORBIDDEN}. */
+  private static void checkEmptyRowType(Config config, RelNode rel) {
+    if (config.emptyRowTypePolicy() == EmptyRowTypePolicy.FORBIDDEN
+        && rel.getRowType().getFieldCount() == 0) {
+      throw new IllegalArgumentException("empty row type is forbidden by "
+          + "the emptyRowTypePolicy config: " + rel);
+    }
   }
 
   /** Pushes a collection of relational expressions. */
@@ -5351,6 +5370,62 @@ public class RelBuilder {
     }
   }
 
+  /** Stack of {@link Frame}s.
+   *
+   * <p>Extends {@link AbstractQueue} so that it is a {@link Queue}, but also
+   * provides the {@code push}, {@code pop} and {@code peek} methods of
+   * {@link Deque}, so that callers can treat it as a stack.
+   *
+   * <p>When a frame is pushed, its relational expression is checked: an
+   * {@link IllegalArgumentException} is thrown if its row type is empty and
+   * {@link Config#emptyRowTypePolicy()} is
+   * {@link EmptyRowTypePolicy#FORBIDDEN}.
+   */
+  private class FrameStack extends AbstractQueue<Frame> {
+    final Deque<Frame> deque = new ArrayDeque<>();
+
+    @Override public Iterator<Frame> iterator() {
+      return deque.iterator();
+    }
+
+    @Override public int size() {
+      return deque.size();
+    }
+
+    @Override public boolean offer(Frame frame) {
+      checkEmptyRowType(castNonNull(config), frame.rel);
+      deque.push(frame);
+      return true;
+    }
+
+    @Override public @Nullable Frame poll() {
+      return deque.pollFirst();
+    }
+
+    /** Pushes a frame onto the top of the stack. */
+    public void push(Frame frame) {
+      offer(frame);
+    }
+
+    /** Pops the frame at the top of the stack.
+     *
+     * <p>Throws {@link java.util.NoSuchElementException} if the stack is
+     * empty. */
+    public Frame pop() {
+      return deque.pop();
+    }
+
+    /** Returns the frame at the top of the stack, or null if the stack is
+     * empty. */
+    @Override public @Nullable Frame peek() {
+      return deque.peekFirst();
+    }
+
+    @Override public void clear() {
+      deque.clear();
+    }
+  }
+
   /** Shuttle that shifts a predicate's inputs to the left, replacing early
    * ones with references to a
    * {@link RexCorrelVariable}. */
@@ -5459,6 +5534,23 @@ public class RelBuilder {
 
     /** Sets {@link #preventEmptyFieldList()}. */
     Config withPreventEmptyFieldList(boolean preventEmptyFieldList);
+
+    /** The policy that determines whether relational expressions may have an
+     * empty row type (a row type with zero fields); default
+     * {@link EmptyRowTypePolicy#DISCOURAGED}.
+     *
+     * <p>If the policy is {@link EmptyRowTypePolicy#FORBIDDEN}, methods throw
+     * an {@link IllegalArgumentException} if they create or are given a
+     * relational expression whose row type is empty.
+     *
+     * @see EmptyRowTypePolicy
+     */
+    @Value.Default default EmptyRowTypePolicy emptyRowTypePolicy() {
+      return EmptyRowTypePolicy.DISCOURAGED;
+    }
+
+    /** Sets {@link #emptyRowTypePolicy()}. */
+    Config withEmptyRowTypePolicy(EmptyRowTypePolicy emptyRowTypePolicy);
 
     /** Whether to push down join conditions; default false (but
      * {@link SqlToRelConverter#config()} by default sets this to true). */
