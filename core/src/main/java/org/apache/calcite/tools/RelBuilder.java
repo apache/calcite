@@ -29,6 +29,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -367,7 +368,7 @@ public class RelBuilder {
    * you need to use previously built expressions as inputs, call
    * {@link #build()} to pop those inputs. */
   public RelBuilder push(RelNode node) {
-    stack.push(new Frame(node));
+    stackPush(node);
     return this;
   }
 
@@ -375,7 +376,32 @@ public class RelBuilder {
    * and aliases. */
   private void replaceTop(RelNode node) {
     final Frame frame = stack.pop();
-    stack.push(new Frame(node, frame.fields));
+    stackPush(node, frame.fields);
+  }
+
+  /** Adds a relational expression to the stack, checking the
+   * {@link Config#emptyRowTypePolicy()}. */
+  private void stackPush(RelNode rel) {
+    checkEmptyRowType(rel);
+    stack.push(new Frame(rel));
+  }
+
+  /** Adds a relational expression to the stack, checking the
+   * {@link Config#emptyRowTypePolicy()}. */
+  private void stackPush(RelNode rel,
+      PairList<ImmutableSet<String>, RelDataTypeField> fields) {
+    checkEmptyRowType(rel);
+    stack.push(new Frame(rel, fields));
+  }
+
+  /** Throws if the row type of {@code rel} is empty and the current
+   * {@link Config#emptyRowTypePolicy()} is {@link EmptyRowTypePolicy#FORBIDDEN}. */
+  private void checkEmptyRowType(RelNode rel) {
+    if (config.emptyRowTypePolicy() == EmptyRowTypePolicy.FORBIDDEN
+        && rel.getRowType().getFieldCount() == 0) {
+      throw new IllegalArgumentException("empty row type is forbidden by "
+          + "the emptyRowTypePolicy config: " + rel);
+    }
   }
 
   /** Pushes a collection of relational expressions. */
@@ -1831,7 +1857,7 @@ public class RelBuilder {
     final Frame frame = stack.pop();
     final RelNode snapshot =
         struct.snapshotFactory.createSnapshot(frame.rel, period);
-    stack.push(new Frame(snapshot, frame.fields));
+    stackPush(snapshot, frame.fields);
     return this;
   }
 
@@ -1964,7 +1990,7 @@ public class RelBuilder {
     final RelNode filter =
         struct.filterFactory.createFilter(frame.rel,
             conjunctionPredicates, ImmutableSet.copyOf(variablesSet));
-    stack.push(new Frame(filter, frame.fields));
+    stackPush(filter, frame.fields);
     return this;
   }
 
@@ -2177,7 +2203,7 @@ public class RelBuilder {
           break;
         }
       }
-      stack.push(new Frame(project.getInput(), fields));
+      stackPush(project.getInput(), fields);
       final ImmutableSet.Builder<RelHint> mergedHints = ImmutableSet.builder();
       mergedHints.addAll(project.getHints());
       mergedHints.addAll(hints);
@@ -2241,7 +2267,7 @@ public class RelBuilder {
         // create "virtual" row type for project only rename fields
         stack.pop();
         // Ignore the hints.
-        stack.push(new Frame(frame.rel, fields));
+        stackPush(frame.rel, fields);
       }
       return this;
     }
@@ -2270,7 +2296,7 @@ public class RelBuilder {
             fieldNameList,
             variables);
     stack.pop();
-    stack.push(new Frame(project, fields));
+    stackPush(project, fields);
     return this;
   }
 
@@ -2355,7 +2381,7 @@ public class RelBuilder {
         final Project newInput =
             childProject.copy(childProject.getTraitSet(),
                 childProject.getInput(), childProject.getProjects(), rowType);
-        stack.push(new Frame(newInput.attachHints(childProject.getHints()), frame.fields));
+        stackPush(newInput.attachHints(childProject.getHints()), frame.fields);
       }
       if (input instanceof Values && fieldNameList != null) {
         // Rename columns of child values if desired field names are given.
@@ -2369,7 +2395,7 @@ public class RelBuilder {
         final RelNode newValues =
             struct.valuesFactory.createValues(cluster, newRowType,
                 values.tuples);
-        stack.push(new Frame(newValues, frame.fields));
+        stackPush(newValues, frame.fields);
       }
     } else {
       project(nodeList, rowType.getFieldNames(), force, variablesSet);
@@ -2412,16 +2438,15 @@ public class RelBuilder {
   public RelBuilder uncollect(List<String> itemAliases, boolean withOrdinality,
       boolean expandStructFields, boolean isOuter) {
     Frame frame = stack.pop();
-    stack.push(
-        new Frame(
-          new Uncollect(
-              cluster,
-              cluster.traitSetOf(Convention.NONE),
-              frame.rel,
-              withOrdinality,
-              requireNonNull(itemAliases, "itemAliases"),
-              expandStructFields,
-              isOuter)));
+    stackPush(
+        new Uncollect(
+            cluster,
+            cluster.traitSetOf(Convention.NONE),
+            frame.rel,
+            withOrdinality,
+            requireNonNull(itemAliases, "itemAliases"),
+            expandStructFields,
+            isOuter));
     return this;
   }
 
@@ -2851,7 +2876,7 @@ public class RelBuilder {
               call.getType());
       fields.add(ImmutableSet.of(), fieldType);
     }
-    stack.push(new Frame(aggregate, fields));
+    stackPush(aggregate, fields);
     return this;
   }
 
@@ -3311,7 +3336,7 @@ public class RelBuilder {
         PairList.of();
     fields.addAll(left.fields);
     fields.addAll(right.fields);
-    stack.push(new Frame(join, fields));
+    stackPush(join, fields);
     return this;
   }
 
@@ -3403,7 +3428,7 @@ public class RelBuilder {
         PairList.of();
     fields.addAll(left.fields);
     fields.addAll(right.fields);
-    stack.push(new Frame(join, fields));
+    stackPush(join, fields);
     filter(postCondition);
     return this;
   }
@@ -3439,7 +3464,7 @@ public class RelBuilder {
         PairList.of();
     fields.addAll(left.fields);
     fields.addAll(right.fields);
-    stack.push(new Frame(correlate, fields));
+    stackPush(correlate, fields);
 
     return this;
   }
@@ -3551,7 +3576,7 @@ public class RelBuilder {
                   .build();
       newFields.add(aliasList, field);
     });
-    stack.push(new Frame(pair.rel, newFields));
+    stackPush(pair.rel, newFields);
     return this;
   }
 
@@ -3665,7 +3690,7 @@ public class RelBuilder {
     final RelNode values =
         struct.valuesFactory.createValues(cluster, frame.rel.getRowType(),
             ImmutableList.of());
-    stack.push(new Frame(values, frame.fields));
+    stackPush(values, frame.fields);
     return this;
   }
 
@@ -4121,7 +4146,7 @@ public class RelBuilder {
             typeBuilder.build(), strictStart, strictEnd, patternDefinitions,
             measures.build(), after, subsets, allRows,
             partitionBitSet, RelCollations.of(fieldCollations), interval);
-    stack.push(new Frame(match));
+    stackPush(match);
     return this;
   }
 
@@ -5435,6 +5460,23 @@ public class RelBuilder {
 
     /** Sets {@link #preventEmptyFieldList()}. */
     Config withPreventEmptyFieldList(boolean preventEmptyFieldList);
+
+    /** The policy that determines whether relational expressions may have an
+     * empty row type (a row type with zero fields); default
+     * {@link EmptyRowTypePolicy#DISCOURAGED}.
+     *
+     * <p>If the policy is {@link EmptyRowTypePolicy#FORBIDDEN}, methods throw
+     * an {@link IllegalArgumentException} if they create or are given a
+     * relational expression whose row type is empty.
+     *
+     * @see EmptyRowTypePolicy
+     */
+    @Value.Default default EmptyRowTypePolicy emptyRowTypePolicy() {
+      return EmptyRowTypePolicy.DISCOURAGED;
+    }
+
+    /** Sets {@link #emptyRowTypePolicy()}. */
+    Config withEmptyRowTypePolicy(EmptyRowTypePolicy emptyRowTypePolicy);
 
     /** Whether to push down join conditions; default false (but
      * {@link SqlToRelConverter#config()} by default sets this to true). */
