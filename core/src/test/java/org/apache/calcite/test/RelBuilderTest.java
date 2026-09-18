@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -44,6 +45,7 @@ import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -1469,6 +1471,70 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{}], C=[COUNT(DISTINCT $7)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4597">[CALCITE-4597]
+   * Allow RelNodes to have an empty row type (zero fields)</a>.
+   *
+   * <p>Under the default policy, {@link EmptyRowTypePolicy#DISCOURAGED},
+   * {@code RelBuilder} does not throw if it encounters a relational
+   * expression with an empty row type, but tries not to create one: a
+   * {@code GROUP BY ()} with no aggregate calls becomes "VALUES (true)". */
+  @Test void testEmptyRowTypePolicyDiscouraged() {
+    // Equivalent SQL:
+    //   SELECT * FROM emp GROUP BY ()
+    final RelBuilder builder = createBuilder();
+    final RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey())
+            .build();
+    assertThat(root, hasTree("LogicalValues(tuples=[[{ true }]])\n"));
+  }
+
+  /** As {@link #testEmptyRowTypePolicyDiscouraged()}, but under the
+   * {@link EmptyRowTypePolicy#ALLOWED} policy, and therefore a
+   * {@code GROUP BY ()} with no aggregate calls becomes a
+   * {@code VALUES} with an empty row type (zero fields). */
+  @Test void testEmptyRowTypePolicyAllowed() {
+    final RelBuilder builder =
+        createBuilder(c -> c.withPreventEmptyFieldList(false)
+            .withEmptyRowTypePolicy(EmptyRowTypePolicy.ALLOWED));
+    final RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey())
+            .build();
+    assertThat(root.getRowType().getFieldCount(), is(0));
+    assertThat(root, hasTree("LogicalValues(tuples=[[{  }]])\n"));
+  }
+
+  /** As {@link #testEmptyRowTypePolicyDiscouraged()}, but under the
+   * {@link EmptyRowTypePolicy#FORBIDDEN} policy: creating or pushing a
+   * relational expression with an empty row type throws. */
+  @Test void testEmptyRowTypePolicyForbidden() {
+    final RelBuilder builder =
+        createBuilder(c -> c.withPreventEmptyFieldList(false)
+            .withEmptyRowTypePolicy(EmptyRowTypePolicy.FORBIDDEN));
+
+    // Equivalent SQL:
+    //   SELECT * FROM emp GROUP BY ()
+    final RelBuilder scan = builder.scan("EMP");
+    final IllegalArgumentException e0 =
+        assertThrows(IllegalArgumentException.class,
+            () -> scan.aggregate(scan.groupKey()).build(),
+            "expected empty row type to be forbidden");
+    assertThat(e0.getMessage(), containsString("empty row type"));
+
+    // Pushing a relational expression with an empty row type is also
+    // forbidden
+    final RelDataType emptyRowType = builder.getTypeFactory().builder().build();
+    final RelNode emptyValues =
+        LogicalValues.create(builder.getCluster(), emptyRowType,
+            ImmutableList.of(ImmutableList.of()));
+    final IllegalArgumentException e1 =
+        assertThrows(IllegalArgumentException.class, () -> builder.push(emptyValues),
+        "expected empty row type to be forbidden");
+    assertThat(e1.getMessage(), containsString("empty row type"));
   }
 
   @Test void testAggregate2() {
