@@ -4700,6 +4700,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
       Consumer<SqlQualified> consumer) {
     node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall call) {
+        // Do not descend into sub-queries, whose identifiers belong to their
+        // own scope; the outer scope cannot resolve them
+        if (call.getKind().belongsTo(SqlKind.QUERY)) {
+          return null;
+        }
+        return super.visit(call);
+      }
       @Override public Void visit(SqlIdentifier id) {
         final SqlQualified qualified = scope.fullyQualify(id);
         consumer.accept(qualified);
@@ -4714,6 +4722,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds,
       Set<SqlQualified> remnantMustFilterFields) {
     node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall call) {
+        // Do not descend into sub-queries, whose identifiers belong to their
+        // own scope; the outer scope cannot resolve them
+        if (call.getKind().belongsTo(SqlKind.QUERY)) {
+          return null;
+        }
+        return super.visit(call);
+      }
       @Override public Void visit(SqlIdentifier id) {
         final SqlQualified qualified = scope.fullyQualify(id);
         if (bypassQualifieds.contains(qualified)) {
@@ -5821,6 +5837,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!isReturnBooleanType(type)) {
       throw newValidationError(condition, RESOURCE.condMustBeBoolean(clause));
     }
+
+    // Sub-queries used as expressions cannot forward must-filter
+    // requirements to the enclosing query; enforce them here (fail-closed).
+    validateSubQueriesFilterRequirement(condition);
   }
 
   private static boolean isReturnBooleanType(RelDataType relDataType) {
@@ -5863,6 +5883,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw newValidationError(having, RESOURCE.havingMustBeBoolean());
     }
+
+    // Sub-queries used as expressions cannot forward must-filter
+    // requirements to the enclosing query; enforce them here (fail-closed).
+    validateSubQueriesFilterRequirement(having);
   }
 
   /** Validates that SELECT items do not qualify common columns
@@ -6308,6 +6332,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Perform any validation specific to the scope. For example, an
     // aggregating scope requires that expressions are valid aggregations.
     scope.validateExpr(expr);
+
+    // Sub-queries used as expressions cannot forward must-filter
+    // requirements to the enclosing query; enforce them here (fail-closed).
+    validateSubQueriesFilterRequirement(expr);
+  }
+
+  /** Validates that the sub-queries inside an expression have no pending
+   * "must-filter" obligations.
+   *
+   * @param expr Expression, possibly containing sub-queries
+   */
+  private void validateSubQueriesFilterRequirement(SqlNode expr) {
+    expr.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall call) {
+        if (call.getKind().belongsTo(SqlKind.QUERY)) {
+          final SqlValidatorNamespace ns = getNamespace(call);
+          if (ns != null) {
+            ns.getRowType(); // ensure the sub-query has been validated
+            checkFilterRequirementSatisfied(ns, call);
+            return null;
+          }
+        }
+        return super.visit(call);
+      }
+    });
   }
 
   /**

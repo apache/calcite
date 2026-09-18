@@ -15455,6 +15455,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  @Test void testMustFilterColumnsInExpressionSubQueries() {
+    final SqlValidatorFixture fixture = fixture()
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Scalar sub-query in the SELECT list
+    fixture.withSql("select ^(select name from dept)^\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select (select name from dept where name = 'accounting')\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+
+    // Valid because DEPTNO is a bypass field of DEPT
+    fixture.withSql("select (select name from dept where deptno = 1)\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+
+    // Sub-query as an IN operand in the WHERE clause
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno in (^select deptno from dept^) and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno in (select deptno from dept where name = 'accounting')\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Sub-query as an EXISTS operand in the WHERE clause
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno = 1 and exists ^(select name from dept)^\n"
+            + "and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno = 1\n"
+            + "and exists (select name from dept where name = 'accounting')\n"
+            + "and job = 'doctor'")
+        .ok();
+  }
+
   @Test void testAccessingNestedFieldsOfNullableRecord() {
     sql("select ROW_COLUMN_ARRAY[0].NOT_NULL_FIELD from NULLABLEROWS.NR_T1")
         .withExtendedCatalog()
