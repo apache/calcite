@@ -15333,6 +15333,67 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(missingFilters("JOB"));
   }
 
+  /**
+   * Tests that must-filter columns cannot be bypassed by wrapping the
+   * protected table in a construct that transforms its rows (PIVOT,
+   * UNPIVOT, MATCH_RECOGNIZE or a table function) for which the filter
+   * requirement cannot be re-expressed in terms of the output columns.
+   * Validation fails closed: the filters must be applied within the input
+   * query itself.
+   */
+  @Test void testMustFilterColumnsFailClosedForRowTransforms() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // PIVOT
+    fixture.withSql("select * from ^emp^\n"
+            + "pivot (sum(sal) as ss for job in ('CLERK' as c))")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "pivot (sum(sal) as ss for deptno in (10 as d10))")
+        .ok();
+
+    // UNPIVOT
+    fixture.withSql("select * from ^emp^\n"
+            + "unpivot (remuneration\n"
+            + "  for remuneration_type in (comm as 'commission', sal as 'salary'))")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "unpivot (remuneration\n"
+            + "  for remuneration_type in (comm as 'commission', sal as 'salary'))")
+        .ok();
+
+    // MATCH_RECOGNIZE
+    fixture.withSql("select * from ^emp^\n"
+            + "match_recognize (\n"
+            + "  measures A.empno as e\n"
+            + "  pattern (A)\n"
+            + "  define A as A.empno > 0\n"
+            + ") as t")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "match_recognize (\n"
+            + "  measures A.empno as e\n"
+            + "  pattern (A)\n"
+            + "  define A as A.empno > 0\n"
+            + ") as t")
+        .ok();
+
+    // Table functions pass their input tables' rows through (e.g. TUMBLE)
+    fixture.withSql("select * from table(\n"
+            + "^tumble(table emp, descriptor(hiredate), interval '2' hour)^)")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from table(\n"
+            + "tumble((select * from emp where empno = 1 and job = 'doctor'),\n"
+            + "  descriptor(hiredate), interval '2' hour))")
+        .ok();
+  }
+
   /** Returns a message that the particular columns are not filtered. */
   private static String missingFilters(String... args) {
     return "SQL statement did not contain filters on the following fields: \\["
