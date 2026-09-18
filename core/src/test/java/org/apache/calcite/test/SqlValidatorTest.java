@@ -14681,6 +14681,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of must-filter columns when a table is aliased with a
+   * column list, {@code AS t (c1, ..., cN)}, which is implemented by
+   * {@link org.apache.calcite.sql.validate.AliasNamespace}. The renaming is
+   * positional, so filter requirements must be preserved ordinal for
+   * ordinal.
+   */
+  @Test void testMustFilterColumnsWithAliasColumnList() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Aliasing with a column list must not drop the must-filter fields
+    // ("a" renames EMPNO, "c" renames JOB)
+    fixture.withSql("^select * from emp as t(a, b, c, d, e, f, g, h, i)^")
+        .fails(missingFilters("A", "C"));
+    fixture.withSql("^select a, c from emp as t(a, b, c, d, e, f, g, h, i)^")
+        .fails(missingFilters("A", "C"));
+
+    // Filters on the renamed columns are filters on the underlying must-filter columns
+    fixture.withSql("select * from emp as t(a, b, c, d, e, f, g, h, i)\n"
+            + "where a = 1 and c = 'doctor'")
+        .ok();
+
+    // "b" renames the bypass field ENAME; filtering on it defuses the requirement
+    fixture.withSql("select * from emp as t(a, b, c, d, e, f, g, h, i)\n"
+            + "where b = '1'")
+        .ok();
+
+    // An enclosing query can still defuse the propagated requirement
+    fixture.withSql("select * from (\n"
+            + "  select * from emp as t(a, b, c, d, e, f, g, h, i))\n"
+            + "where a = 1 and c = 'doctor'")
+        .ok();
+  }
+
+  /**
    * Tests validation of must-filter columns.
    *
    * <p>If a table that implements
