@@ -84,6 +84,15 @@ public class MustFilterMockCatalogReader extends MockCatalogReader {
     deptTable.addColumn("DEPTNO", integerType, true);
     deptTable.addColumn("NAME", varcharType);
     registerTable(deptTable);
+
+    // Register "BONUS" table. No must-filter or bypass fields.
+    MustFilterMockTable bonusTable =
+        MustFilterMockTable.create(this, salesSchema, "BONUS",
+            false, 14, null, NullInitializerExpressionFactory.INSTANCE,
+            false, ImmutableMap.of(), ImmutableList.of());
+    bonusTable.addColumn("EMPNO", integerType, true);
+    bonusTable.addColumn("NAME", varcharType);
+    registerTable(bonusTable);
     return this;
   }
 }

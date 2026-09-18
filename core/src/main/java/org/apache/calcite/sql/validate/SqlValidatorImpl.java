@@ -1625,39 +1625,44 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType type = namespace.getType();
 
       if (node == top) {
-        final FilterRequirement filterRequirement =
-            namespace.getFilterRequirement();
-
-        // Either of the following two conditions result in an invalid query:
-        // 1) A top-level namespace must not return any must-filter fields.
-        // A non-top-level namespace (e.g. a subquery) may return must-filter
-        // fields; these are neutralized if the consuming query filters on them.
-        // 2) A top-level namespace must not have any remnant-must-filter fields.
-        // Remnant must filter fields are fields that are not selected and cannot
-        // be defused unless a bypass field defuses it.
-        if (!filterRequirement.filterFields.isEmpty()
-            || !filterRequirement.remnantFilterFields.isEmpty()) {
-          Stream<String> mustFilterStream =
-              filterRequirement.filterFields.stream()
-                  .mapToObj(namespace.getRowType().getFieldNames()::get);
-          Stream<String> remnantStream =
-              filterRequirement.remnantFilterFields.stream()
-                  .map(q -> q.suffix().get(0));
-
-          // Set of field names, sorted alphabetically for determinism.
-          Set<String> fieldNameSet =
-              Stream.concat(mustFilterStream, remnantStream)
-                  .collect(Collectors.toCollection(TreeSet::new));
-          throw newValidationError(node,
-              RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
+        // The top-level filter check applies only to namespaces that expose rows to the caller.
+        // A DML statement's target namespace does not: its must-filter fields describe how the
+        // table is read, not how it is written. The source query of a DML statement is checked
+        // separately (see validateDmlSourceFilterRequirement).
+        if (!(namespace instanceof DmlNamespace)) {
+          checkFilterRequirementSatisfied(namespace, node);
         }
-
         if (!config.embeddedQuery()) {
           type = SqlTypeUtil.fromMeasure(typeFactory, type);
         }
       }
       setValidatedNodeType(node, type);
     }
+  }
+
+  /**
+   * Checks that {@code namespace} exposes no unsatisfied must-filter
+   * obligations, and throws otherwise.
+   */
+  private void checkFilterRequirementSatisfied(
+      SqlValidatorNamespace namespace, SqlNode node) {
+    final FilterRequirement filterRequirement = namespace.getFilterRequirement();
+    if (filterRequirement.filterFields.isEmpty()
+        && filterRequirement.remnantFilterFields.isEmpty()) {
+      return;
+    }
+    final Stream<String> mustFilterStream =
+        filterRequirement.filterFields.stream()
+            .mapToObj(namespace.getRowType().getFieldNames()::get);
+    final Stream<String> remnantStream =
+        filterRequirement.remnantFilterFields.stream()
+            .map(q -> q.suffix().get(0));
+
+    // Set of field names, sorted alphabetically for determinism.
+    final Set<String> fieldNameSet =
+        Stream.concat(mustFilterStream, remnantStream)
+            .collect(Collectors.toCollection(TreeSet::new));
+    throw newValidationError(node, RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
   }
 
   @Override public SqlValidatorScope getEmptyScope() {
@@ -6405,6 +6410,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return typeFactory.createStructType(fields);
   }
 
+  /** Throws if {@code source}, the read side of a DML statement, has
+   * outstanding filter requirements. */
+  private void validateDmlSourceFilterRequirement(SqlNode source) {
+    checkFilterRequirementSatisfied(getNamespaceOrThrow(source), source);
+  }
+
   @Override public void validateInsert(SqlInsert insert) {
     final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(insert);
     validateNamespace(targetNamespace, unknownType);
@@ -6434,6 +6445,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       requireNonNull(scope, "scope");
       validateQuery(source, scope, targetRowType);
     }
+
+    validateDmlSourceFilterRequirement(source);
 
     // REVIEW jvs 4-Dec-2008: In FRG-365, this namespace row type is
     // discarding the type inferred by inferUnknownTypes (which was invoked
@@ -6840,6 +6853,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlSelect select = SqlNonNullableAccessors.getSourceSelect(call);
     validateSelect(select, targetRowType);
+    validateDmlSourceFilterRequirement(select);
 
     final RelDataType sourceRowType = getValidatedNodeType(select);
     checkTypeAssignment(scopes.get(select), table, sourceRowType, targetRowType,
@@ -6897,6 +6911,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     validateSelect(sqlSelect, targetRowType);
+    validateDmlSourceFilterRequirement(sqlSelect);
 
     SqlUpdate updateCallAfterValidate = call.getUpdateCall();
     if (updateCallAfterValidate != null) {

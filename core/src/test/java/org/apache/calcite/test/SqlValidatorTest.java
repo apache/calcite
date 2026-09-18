@@ -15401,6 +15401,60 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\\]";
   }
 
+  @Test void testMustFilterColumnsInDml() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // --- INSERT ---
+    fixture.withSql("insert into dept ^select empno, job from emp^")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("insert into dept\n"
+            + "^select empno, ename from emp where empno = 1^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("insert into dept\n"
+            + "select empno, job from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("insert into dept\n"
+            + "select empno, job from emp\n"
+            + "where ename = 'doctor'")
+        .ok();
+
+    // --- UPDATE ---
+    fixture.withSql("update emp set sal = 100")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("update emp set sal = 100 where deptno = 10")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("update emp set sal = 100 where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("update emp set sal = 100\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("update emp set sal = 100 where ename = 'foo'")
+        .ok();
+
+    // --- MERGE ---
+    fixture.withSql("merge into dept d\n"
+            + "using emp e on d.deptno = e.deptno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (deptno, name) values (e.deptno, e.ename)")
+        .fails(missingFilters("EMPNO", "JOB", "NAME"));
+    fixture.withSql("merge into dept d\n"
+            + "using (select * from emp where empno = 1 and job = 'doctor') e\n"
+            + "on d.deptno = e.deptno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (deptno, name) values (e.deptno, e.ename)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("merge into bonus b\n"
+            + "using (select * from emp where empno = 1 and job = 'doctor') e\n"
+            + "on b.empno = e.empno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (empno, name) values (e.empno, e.ename)")
+        .ok();
+  }
+
   @Test void testAccessingNestedFieldsOfNullableRecord() {
     sql("select ROW_COLUMN_ARRAY[0].NOT_NULL_FIELD from NULLABLEROWS.NR_T1")
         .withExtendedCatalog()
