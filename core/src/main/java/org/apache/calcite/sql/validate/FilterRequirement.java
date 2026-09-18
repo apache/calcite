@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Set;
@@ -96,13 +97,22 @@ import java.util.Set;
  * The query is valid because {@link #remnantFilterFields} is now empty.
  * </ol>
  *
+ * <p><b>Notes on groups</b>
+ *
+ * <p>A bypass field only defuses the requirements of the table that it
+ * belongs to. When a query reads several tables, for example a join of
+ * {@code t} and {@code u}, the filter requirement keeps the requirements of
+ * each table instance in a separate {@link Group}, so that a filter on a
+ * bypass field of {@code t} cannot defuse the requirements of {@code u}.
+ * {@link #filterFields}, {@link #bypassFields} and
+ * {@link #remnantFilterFields} are the union of those of the groups.
+ *
  * @see SqlValidatorNamespace#getFilterRequirement()
  */
 public class FilterRequirement {
   /** Empty filter requirement. */
   public static final FilterRequirement EMPTY =
-      new FilterRequirement(ImmutableBitSet.of(), ImmutableBitSet.of(),
-          ImmutableSet.of());
+      new FilterRequirement(ImmutableList.of());
 
   /** Ordinals (in the row type) of the "must-filter" fields,
    * fields that must be filtered in a query. */
@@ -118,8 +128,12 @@ public class FilterRequirement {
    * on a bypass field in the enclosing query. */
   public final ImmutableSet<SqlQualified> remnantFilterFields;
 
+  /** Requirements of each table instance that has not been defused. */
+  public final ImmutableList<Group> groups;
+
   /**
-   * Creates a {@code FilterRequirement}.
+   * Creates a {@code FilterRequirement} with the requirements of a single
+   * table instance.
    *
    * @param filterFields Ordinals of the "must-filter" fields
    * @param bypassFields Ordinals of the "bypass" fields
@@ -128,8 +142,69 @@ public class FilterRequirement {
    */
   FilterRequirement(Iterable<Integer> filterFields,
       Iterable<Integer> bypassFields, Set<SqlQualified> remnantFilterFields) {
-    this.filterFields = ImmutableBitSet.of(filterFields);
-    this.bypassFields = ImmutableBitSet.of(bypassFields);
-    this.remnantFilterFields = ImmutableSet.copyOf(remnantFilterFields);
+    this(
+        ImmutableList.of(
+            new Group(filterFields, bypassFields, remnantFilterFields)));
+  }
+
+  /**
+   * Creates a {@code FilterRequirement} from the requirements of several
+   * table instances.
+   *
+   * <p>Groups without any requirement are discarded: their bypass fields
+   * have nothing left to defuse.
+   *
+   * @param groups Requirements of each table instance
+   */
+  FilterRequirement(Iterable<Group> groups) {
+    final ImmutableList.Builder<Group> groupBuilder = ImmutableList.builder();
+    final ImmutableBitSet.Builder filterFieldBuilder = ImmutableBitSet.builder();
+    final ImmutableBitSet.Builder bypassFieldBuilder = ImmutableBitSet.builder();
+    final ImmutableSet.Builder<SqlQualified> remnantFilterFieldBuilder = ImmutableSet.builder();
+    for (Group group : groups) {
+      if (group.filterFields.isEmpty() && group.remnantFilterFields.isEmpty()) {
+        continue;
+      }
+      groupBuilder.add(group);
+      filterFieldBuilder.addAll(group.filterFields);
+      bypassFieldBuilder.addAll(group.bypassFields);
+      remnantFilterFieldBuilder.addAll(group.remnantFilterFields);
+    }
+    this.groups = groupBuilder.build();
+    this.filterFields = filterFieldBuilder.build();
+    this.bypassFields = bypassFieldBuilder.build();
+    this.remnantFilterFields = remnantFilterFieldBuilder.build();
+  }
+
+  /** Filtering requirements that originate in a single table instance.
+   *
+   * <p>Filtering on any of the {@link #bypassFields} of a group defuses all
+   * of the group's requirements, but not those of other groups. */
+  public static class Group {
+    /** Ordinals (in the row type) of the "must-filter" fields of the table. */
+    public final ImmutableBitSet filterFields;
+
+    /** Ordinals (in the row type) of the "bypass" fields of the table. */
+    public final ImmutableBitSet bypassFields;
+
+    /** Must-filter fields of the table that can no longer be filtered on,
+     * but can still be defused by filtering on one of the
+     * {@link #bypassFields}. */
+    public final ImmutableSet<SqlQualified> remnantFilterFields;
+
+    /**
+     * Creates a {@code Group}.
+     *
+     * @param filterFields Ordinals of the "must-filter" fields
+     * @param bypassFields Ordinals of the "bypass" fields
+     * @param remnantFilterFields Filter fields that can no longer be filtered
+     * on, but can only be defused if a bypass field is filtered on
+     */
+    Group(Iterable<Integer> filterFields, Iterable<Integer> bypassFields,
+        Set<SqlQualified> remnantFilterFields) {
+      this.filterFields = ImmutableBitSet.of(filterFields);
+      this.bypassFields = ImmutableBitSet.of(bypassFields);
+      this.remnantFilterFields = ImmutableSet.copyOf(remnantFilterFields);
+    }
   }
 }
