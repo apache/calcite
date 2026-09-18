@@ -155,6 +155,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -4717,10 +4718,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /** Removes all entries from {@code qualifieds} and
-   * {@code remnantMustFilterFields} if {@code node} is a bypassField. */
+   * {@code remnantMustFilterFields} if {@code node} is a bypassField.
+   *
+   * <p>{@code remnantMustFilterFields} is keyed by the namespace of the FROM
+   * item through which each remnant obligation was imported into this query.
+   * A filter on a bypass field defuses only the remnant obligations that came
+   * through the same FROM item; matching by namespace identity (rather than by
+   * alias string) ensures that a filter on another table instance that happens
+   * to carry the same alias cannot defuse obligations it does not constrain. */
   private static void purgeForBypassFields(SqlNode node, SqlValidatorScope scope,
       Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds,
-      Set<SqlQualified> remnantMustFilterFields) {
+      Map<SqlValidatorNamespace, Set<SqlQualified>> remnantMustFilterFields) {
     node.accept(new SqlBasicVisitor<Void>() {
       @Override public Void visit(SqlCall call) {
         // Do not descend into sub-queries, whose identifiers belong to their
@@ -4740,12 +4748,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                   .collect(Collectors.toList());
           sameIdentifier.forEach(qualifieds::remove);
 
-          // Clear all the remnant must-filter qualifieds from the same table identifier
-          Collection<SqlQualified> sameIdentifier_ =
-              remnantMustFilterFields.stream()
-                  .filter(q -> qualifiedMatchesIdentifier(q, qualified))
-                  .collect(Collectors.toList());
-          sameIdentifier_.forEach(remnantMustFilterFields::remove);
+          // Clear the remnant must-filter qualifieds imported through the
+          // same FROM item (namespace) as the filtered bypass field
+          if (qualified.namespace != null) {
+            remnantMustFilterFields.remove(qualified.namespace);
+          }
         }
         return null;
       }
@@ -5297,7 +5304,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final BitSet projectedNonFilteredBypassField = new BitSet();
       final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
       final Set<SqlQualified> bypassQualifieds = new LinkedHashSet<>();
-      final Set<SqlQualified> remnantQualifieds = new LinkedHashSet<>();
+      // Remnant obligations, keyed by the namespace of the FROM item through which it was imported
+      final Map<SqlValidatorNamespace, Set<SqlQualified>> remnantQualifieds = new LinkedHashMap<>();
       for (ScopeChild child : fromScope.children) {
         final List<String> fieldNames =
             child.namespace.getRowType().getFieldNames();
@@ -5307,9 +5315,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             child, fieldNames);
         toQualifieds(filterRequirement.bypassFields, bypassQualifieds,
             fromScope, child, fieldNames);
-        remnantQualifieds.addAll(filterRequirement.remnantFilterFields);
+        if (!filterRequirement.remnantFilterFields.isEmpty()) {
+          remnantQualifieds
+              .computeIfAbsent(child.namespace, k -> new LinkedHashSet<>())
+              .addAll(filterRequirement.remnantFilterFields);
+        }
       }
-      if (!qualifieds.isEmpty() || !bypassQualifieds.isEmpty()) {
+      if (!qualifieds.isEmpty() || !bypassQualifieds.isEmpty() || !remnantQualifieds.isEmpty()) {
         if (select.getWhere() != null) {
           forEachQualified(select.getWhere(), getWhereScope(select),
               qualifieds::remove);
@@ -5366,8 +5378,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // Remaining must-filter fields can be defused by a bypass-field,
         // so we pass this to the consumer.
         ImmutableSet<SqlQualified> remnantMustFilterFields =
-            Stream.of(remnantQualifieds, qualifieds)
-                .flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
+            Stream.concat(
+                remnantQualifieds.values().stream().flatMap(Set::stream),
+                qualifieds.stream())
+                .collect(ImmutableSet.toImmutableSet());
         ns.filterRequirement =
             new FilterRequirement(ImmutableBitSet.fromBitSet(mustFilterFields),
                 ImmutableBitSet.fromBitSet(mustFilterBypassFields),
