@@ -72,6 +72,77 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .check();
   }
 
+  @Test void testKeepsGroupKeyFromPreservedSideOfLeftJoin() {
+    // The null-generating right key cannot determine the preserved left key:
+    // unmatched rows with different e.deptno values all have d.deptno = NULL.
+    final String sql = "select d.deptno, e.deptno, count(*) as c\n"
+        + "from emp e\n"
+        + "left join dept d on e.deptno = d.deptno\n"
+        + "group by d.deptno, e.deptno";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
+  @Test void testKeepsFdFromNullGeneratingInputOfLeftJoin() {
+    // This FD comes from the right input rather than from the join condition.
+    // The right Project has a -> COALESCE(a, 1), but null padding adds a row
+    // with a = NULL and y = NULL alongside the matched a = NULL, y = 1 row.
+    final String sql = "select r.a, r.y, count(*) as c\n"
+        + "from (values (1), (2)) as l(z)\n"
+        + "left join (\n"
+        + "  select z, a, coalesce(a, 1) as y\n"
+        + "  from (values (1, cast(null as integer))) as v(z, a)\n"
+        + ") as r on l.z = r.z\n"
+        + "group by r.a, r.y";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
+  @Test void testMapsFdForNonContiguousAggregateGroupSet() {
+    // AggregateProjectMergeRule changes the input group set to {1, 2, 3},
+    // whose keys occupy output positions {0, 1, 2}. Map the input FD 1 -> 2
+    // to output FD 0 -> 1, so the rule removes b rather than c.
+    final String sql = "select a, b, c, count(*) as n\n"
+        + "from (values (0, 1, 1, 10), (0, 1, 1, 20))\n"
+        + "  as t(z, a, b, c)\n"
+        + "where a = b\n"
+        + "group by a, b, c";
+
+    sql(sql).withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .check();
+  }
+
+  @Test void testKeepsDoubleGroupKeyInferredFromEquality() {
+    // SQL equality considers 0.0 and -0.0 equal, but Enumerable grouping
+    // distinguishes their Double keys. Therefore x = y does not prove that
+    // x determines y for the purpose of removing y from the GROUP BY.
+    final String sql = "select x, y, count(*) as c\n"
+        + "from (values\n"
+        + "  (cast(0 as double), cast(0 as double)),\n"
+        + "  (cast(0 as double), -cast(0 as double))) as t(x, y)\n"
+        + "where x = y\n"
+        + "group by x, y";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
+  @Test void testKeepsDerivedGroupKeyForNestedDouble() {
+    // Determinism alone is insufficient for approximate values, including
+    // nested occurrences. Keep the derived key unless grouping equality is
+    // known to be congruent with the expression for ARRAY<DOUBLE>.
+    final String sql = "select x, x[1] as y, count(*) as c\n"
+        + "from (values (array[cast(0 as double)]),\n"
+        + "  (array[cast(1 as double)])) as t(x)\n"
+        + "group by x, x[1]";
+
+    sql(sql).withRule(CoreRules.AGGREGATE_REMOVE_DUPLICATE_KEYS)
+        .checkUnchanged();
+  }
+
   @Test void testKeepsNonRedundantGroupKeys() {
     final String sql = "select deptno, job, count(*) as c\n"
         + "from emp\n"
