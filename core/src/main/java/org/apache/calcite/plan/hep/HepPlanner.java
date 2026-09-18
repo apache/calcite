@@ -478,6 +478,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
       boolean forceConversions, int nMatches) {
     while (iter.hasNext()) {
       HepRelVertex vertex = iter.next();
+      // Once per vertex: a match ends the loop below, so membership cannot change in it.
+      if (!graph.vertexSet().contains(vertex)) {
+        continue;
+      }
       for (RelOptRule rule : rules) {
         HepRelVertex newVertex =
             applyRule(rule, vertex, forceConversions);
@@ -514,6 +518,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     LOGGER.trace("Applying rule set {}", rules);
 
+    if (rules.isEmpty()) {
+      // Also skips getGraphIterator's gc for TOP_DOWN and BOTTOM_UP; nothing can transform.
+      return;
+    }
+
     final boolean fullRestartAfterTransformation =
         programState.matchOrder != HepMatchOrder.ARBITRARY
             && programState.matchOrder != HepMatchOrder.DEPTH_FIRST;
@@ -534,6 +543,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
       fixedPoint = true;
       while (iter.hasNext()) {
         HepRelVertex vertex = iter.next();
+        // Once per vertex: a match ends the loop below, so membership cannot change in it.
+        if (!graph.vertexSet().contains(vertex)) {
+          continue;
+        }
         for (RelOptRule rule : rules) {
           HepRelVertex newVertex =
               applyRule(rule, vertex, forceConversions);
@@ -606,13 +619,20 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  /** Applies {@code rule} to {@code vertex}, which the caller must have verified is in
+   * {@link #graph}. */
   private @Nullable HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
-    if (!graph.vertexSet().contains(vertex)) {
+    // The test matchOperands makes first, made before the ConverterRule checks below traverse
+    // parent vertices and before bindings and nodeChildren are allocated.
+    final RelOptRuleOperand operand = rule.getOperand();
+    final RelNode currentRel = vertex.getCurrentRel();
+    if (!operand.matches(currentRel)) {
       return null;
     }
+
     RelTrait parentTrait = null;
     List<RelNode> parents = null;
     if (rule instanceof ConverterRule) {
@@ -641,14 +661,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     final List<RelNode> bindings = new ArrayList<>();
     final Map<RelNode, List<RelNode>> nodeChildren = new HashMap<>();
-    boolean match =
-        matchOperands(
-            rule.getOperand(),
-            vertex.getCurrentRel(),
-            bindings,
-            nodeChildren);
-
-    if (!match) {
+    if (!matchOperandsWithOperandMatched(operand, currentRel, bindings, nodeChildren)) {
       return null;
     }
 
@@ -749,9 +762,19 @@ public class HepPlanner extends AbstractRelOptPlanner {
       RelNode rel,
       List<RelNode> bindings,
       Map<RelNode, List<RelNode>> nodeChildren) {
-    if (!operand.matches(rel)) {
-      return false;
-    }
+    return operand.matches(rel)
+        && matchOperandsWithOperandMatched(operand, rel, bindings, nodeChildren);
+  }
+
+  /**
+   * Matches the children of {@code rel} against those of {@code operand}, for a {@code rel}
+   * that {@code operand} is already known to match.
+   */
+  private static boolean matchOperandsWithOperandMatched(
+      RelOptRuleOperand operand,
+      RelNode rel,
+      List<RelNode> bindings,
+      Map<RelNode, List<RelNode>> nodeChildren) {
     for (RelNode input : rel.getInputs()) {
       if (!(input instanceof HepRelVertex)) {
         // The graph could be partially optimized for materialized view. In that
