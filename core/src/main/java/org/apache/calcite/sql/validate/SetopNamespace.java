@@ -20,9 +20,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -112,6 +116,25 @@ public class SetopNamespace extends AbstractNamespace {
         }
         validator.validateQuery(operand, scope, targetRowType);
       }
+      // Propagate the operands' filter requirements to this namespace.
+      ImmutableBitSet filterFields = ImmutableBitSet.of();
+      @Nullable ImmutableBitSet bypassFields = null;
+      final Set<SqlQualified> remnantFilterFields = new LinkedHashSet<>();
+      for (SqlNode operand : call.getOperandList()) {
+        final SqlValidatorNamespace operandNamespace =
+            requireNonNull(validator.getNamespace(operand),
+                () -> "namespace for " + operand);
+        final FilterRequirement requirement = operandNamespace.getFilterRequirement();
+        filterFields = filterFields.union(requirement.filterFields);
+        bypassFields =
+            bypassFields == null ? requirement.bypassFields
+                : bypassFields.intersect(requirement.bypassFields);
+        remnantFilterFields.addAll(requirement.remnantFilterFields);
+      }
+      filterRequirement =
+          new FilterRequirement(filterFields,
+              bypassFields == null ? ImmutableBitSet.of() : bypassFields,
+              remnantFilterFields);
       return call.getOperator().deriveType(
           validator,
           scope,

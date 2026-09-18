@@ -14894,6 +14894,56 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of must-filter columns in set operations.
+   */
+  @Test void testMustFilterColumnsInSetOp() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    final List<String> ops = Arrays.asList("union", "union all", "intersect", "except");
+    for (String op : ops) {
+      // Wrapping a query in a set operation must not drop the operands'
+      // must-filter requirements
+      fixture.withSql("^select empno, job from emp\n"
+              + op + "\n"
+              + "select empno, job from emp^")
+          .fails(missingFilters("EMPNO", "JOB"));
+
+      // Valid if every operand applies the filters itself
+      fixture.withSql("select empno, job from emp\n"
+              + "where empno = 1 and job = 'doctor'\n"
+              + op + "\n"
+              + "select empno, job from emp\n"
+              + "where empno = 2 and job = 'undertaker'")
+          .ok();
+
+      // Valid because an enclosing query can still defuse the propagated
+      // requirement by filtering on the set operation's columns
+      fixture.withSql("select * from (\n"
+              + "select empno, job from emp\n"
+              + op + "\n"
+              + "select empno, job from emp)\n"
+              + "where empno = 1 and job = 'doctor'")
+          .ok();
+
+      // Valid because ENAME is a bypass field of EMP; filtering on it defuses
+      // the requirement inside each operand
+      fixture.withSql("select empno, job from emp where ename = '1'\n"
+              + op + "\n"
+              + "select empno, job from emp where ename = '2'")
+          .ok();
+
+      // Not valid because bypass field ENAME is not filtered in all operands
+      fixture.withSql("^select empno, job from emp where ename = '1'\n"
+              + op + "\n"
+              + "select empno, job from emp^")
+          .fails(missingFilters("EMPNO", "JOB"));
+    }
+  }
+
+  /**
    * Tests validation of must-filter columns with the inclusion of bypass fields.
    *
    * <p>If a table that implements
