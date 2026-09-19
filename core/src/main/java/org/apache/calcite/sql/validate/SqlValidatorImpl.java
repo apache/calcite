@@ -5602,11 +5602,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     select.setGroupBy(new SqlNodeList(keys, groupList.getParserPosition()));
   }
 
-  /** If the conformance allows {@code *} as a grouping element, rewrites every
-   * bare {@code *} in GROUPING SETS / ROLLUP / CUBE (and at the top level of
-   * GROUP BY) into a {@code ROW} of every input column. A grouping set
-   * containing all input columns does not merge any rows (except identical
-   * duplicates), yielding the non-aggregated "detail" rows.
+  /** If the conformance allows {@code *} as a grouping element, rewrites it
+   * into a {@code ROW} of every input column. A grouping set containing all
+   * input columns does not merge any rows (except identical duplicates),
+   * yielding the non-aggregated "detail" rows.
+   *
+   * <p>A star may appear only in the well-defined positions of this syntax:
+   * as a complete grouping set ({@code GROUPING SETS (*)}), as an element of
+   * a grouping set ({@code GROUPING SETS ((deptno), (*))}), or as an argument
+   * of ROLLUP or CUBE ({@code ROLLUP (deptno, *)}), including grouping
+   * constructs nested within GROUPING SETS. It may not appear at the top
+   * level of GROUP BY, nor inside other expressions.
    *
    * @see SqlConformance#isGroupingSetsStarAllowed() */
   private void rewriteGroupingStar(SqlSelect select) {
@@ -5632,8 +5638,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /** Recursively rewrites bare {@code *} grouping elements into a ROW of all
-   * input columns, descending into the operands of GROUPING SETS, ROLLUP, CUBE
-   * and ROW (tuple) calls. */
+   * input columns. Descends only into the constructs in which the grouping
+   * star syntax is defined: the operands of GROUPING SETS, ROLLUP and CUBE
+   * calls, the elements of the ROW tuples that make up a grouping set, and
+   * the grouping elements wrapped by GROUP BY DISTINCT. A star nested inside
+   * any other expression, say {@code GROUPING SETS (ABS(*))}, is not
+   * expanded; validation of that expression fails because {@code *} is not
+   * a known column. */
   private SqlNode rewriteGroupingStarNode(SqlNode node, SqlSelect select) {
     if (node instanceof SqlIdentifier) {
       final SqlIdentifier id = (SqlIdentifier) node;
@@ -5642,7 +5653,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return node;
     }
-    if (node instanceof SqlCall) {
+    if (node instanceof SqlNodeList) {
+      final SqlNodeList list = (SqlNodeList) node;
+      List<SqlNode> newItems = null;
+      for (int i = 0; i < list.size(); i++) {
+        final SqlNode item = list.get(i);
+        final SqlNode newItem = rewriteGroupingStarNode(item, select);
+        if (newItem != item) {
+          if (newItems == null) {
+            newItems = new ArrayList<>(list.getList());
+          }
+          newItems.set(i, newItem);
+        }
+      }
+      return newItems == null ? node
+          : new SqlNodeList(newItems, list.getParserPosition());
+    }
+    if (node instanceof SqlCall && isGroupingStarContainer((SqlCall) node)) {
       final SqlCall call = (SqlCall) node;
       final List<SqlNode> operands = call.getOperandList();
       List<SqlNode> newOperands = null;
@@ -5662,6 +5689,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     return node;
+  }
+
+  /** Returns whether a call may directly contain a bare {@code *} grouping
+   * element: a GROUPING SETS, ROLLUP or CUBE sub-clause, a ROW tuple within
+   * one of those clauses, or the wrapper that GROUP BY DISTINCT places
+   * around its grouping elements. */
+  private static boolean isGroupingStarContainer(SqlCall call) {
+    switch (call.getKind()) {
+    case GROUPING_SETS:
+    case ROLLUP:
+    case CUBE:
+    case ROW:
+    case GROUP_BY_DISTINCT:
+      return true;
+    default:
+      return false;
+    }
   }
 
   /** Builds a {@code ROW} of every input column of the FROM clause, expanding

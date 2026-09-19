@@ -757,6 +757,14 @@ public interface SqlConformance {
    * groups by every input column, so no rows are merged (except identical
    * duplicate rows) and each input row appears in the output.
    *
+   * <p>The star may appear only in well-defined positions: as a complete
+   * grouping set ({@code GROUPING SETS (*)}), as an element of a grouping
+   * set ({@code GROUPING SETS ((deptno), (*))}), or as an argument of
+   * {@code ROLLUP} or {@code CUBE} ({@code ROLLUP (deptno, *)}), including
+   * grouping constructs nested within {@code GROUPING SETS}. It may not
+   * appear at the top level of {@code GROUP BY}, nor inside other
+   * expressions.
+   *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT};

@@ -191,6 +191,14 @@ public class ${parser.class} extends SqlAbstractParserImpl
      * Whether {@code *} is currently allowed as a bare grouping element in
      * GROUPING SETS / ROLLUP / CUBE. Set while parsing a grouping element
      * when the {@code isGroupingSetsStarAllowed} conformance is on.
+     *
+     * <p>Note that the validator expands such a star only in the
+     * well-defined positions of the syntax: a complete grouping set, an
+     * element of a grouping set, or an argument of ROLLUP or CUBE (including
+     * grouping constructs nested within GROUPING SETS). A star nested inside
+     * other expressions, say {@code ABS(*)}, parses too, but the validator
+     * does not expand it, and validation fails because {@code *} is not a
+     * known column.
      */
     private int groupingStarCount;
 
@@ -4874,7 +4882,9 @@ SqlNode AtomicRowExpression() :
         )
     |
         // Parses a bare "*" grouping element appearing inside a tuple or
-        // argument list of GROUPING SETS / ROLLUP / CUBE.
+        // argument list of GROUPING SETS / ROLLUP / CUBE. (A star nested
+        // inside other expressions, say ABS(*), parses too, but the
+        // validator does not expand it and validation fails.)
         LOOKAHEAD({ allowGroupingStar() && getToken(1).kind == STAR })
         <STAR> {
             return SqlIdentifier.star(getPos());

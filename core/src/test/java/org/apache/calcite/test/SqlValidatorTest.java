@@ -8207,6 +8207,58 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
+  /** More tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6537">[CALCITE-6537]
+   * Add syntax to allow non-aggregated rows to be used in GROUPING SETS</a>.
+   *
+   * <p>Under LENIENT conformance, "*" is allowed as a complete grouping
+   * set, as an element of a grouping set, and as an argument of ROLLUP or
+   * CUBE, including grouping constructs nested within GROUPING SETS. It may
+   * not appear at the top level of GROUP BY, nor inside other expressions.
+   */
+  @Test void testGroupingSetsStarNested() {
+    // "*" as a complete grouping set
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets (*)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" as an element of a grouping set
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ((deptno, *))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" as an argument of ROLLUP nested within GROUPING SETS
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ((deptno), rollup(ename, *))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" inside a tuple that is a ROLLUP argument
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by rollup((deptno, *))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" as a grouping set within GROUP BY DISTINCT
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by distinct grouping sets ((deptno), (*))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" at the top level of GROUP BY is not allowed
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by ^*^")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Encountered.*\\*.*");
+
+    // "*" inside another expression is not expanded; validation fails
+    sql("select sum(sal) from emp\n"
+        + "group by grouping sets (abs(^*^))")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Unknown identifier '\\*'.*");
+    sql("select sum(sal) from emp\n"
+        + "group by grouping sets (deptno + ^*^)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Unknown identifier '\\*'.*");
+  }
+
   @Test void testRollup() {
     // DEPTNO is not null in database, but rollup introduces nulls
     sql("select deptno, count(*) as c, sum(sal) as s\n"
