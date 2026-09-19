@@ -5655,16 +5655,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     if (node instanceof SqlNodeList) {
       final SqlNodeList list = (SqlNodeList) node;
-      List<SqlNode> newItems = null;
-      for (int i = 0; i < list.size(); i++) {
-        final SqlNode item = list.get(i);
+      List<@Nullable SqlNode> newItems = null;
+      int i = 0;
+      for (SqlNode item : list) {
         final SqlNode newItem = rewriteGroupingStarNode(item, select);
         if (newItem != item) {
           if (newItems == null) {
-            newItems = new ArrayList<>(list.getList());
+            newItems = new ArrayList<@Nullable SqlNode>(list.getList());
           }
           newItems.set(i, newItem);
         }
+        i++;
       }
       return newItems == null ? node
           : new SqlNodeList(newItems, list.getParserPosition());
