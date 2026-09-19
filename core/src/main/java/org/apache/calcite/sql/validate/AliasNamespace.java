@@ -111,6 +111,7 @@ public class AliasNamespace extends AbstractNamespace {
                 rowType.getFieldList().get(0).getType())
             .build();
         aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE
+                || (node.getKind() == SqlKind.UNNEST && isUnnestOfStructArray((SqlCall) node))
             ? new SingleColumnAliasRelDataType(rowType, singleColumnAlias) : singleColumnAlias;
         // If the sub-query is UNNEST with ordinality
         // and the sub-query has two columns: data column, ordinality column
@@ -160,6 +161,25 @@ public class AliasNamespace extends AbstractNamespace {
       return validator.getTypeFactory()
           .createTypeWithNullability(aliasedType, rowType.isNullable());
     }
+  }
+
+  /**
+   * Returns whether an UNNEST call's array operand has a struct element type.
+   *
+   * <p>{@link SqlUnnestOperator#inferReturnType} produces a 1-field row for
+   * both struct arrays and scalar arrays. Only the structs have a real field
+   * name worth preserving.
+   */
+  private boolean isUnnestOfStructArray(SqlCall unnestCall) {
+    if (unnestCall.operandCount() != 1) {
+      return false;
+    }
+    if (validator.config().conformance().allowAliasUnnestItems()) {
+      return false;
+    }
+    final RelDataType operandType = validator.getValidatedNodeType(unnestCall.operand(0));
+    final RelDataType componentType = operandType.getComponentType();
+    return componentType != null && componentType.isStruct();
   }
 
   private static String getString(RelDataType rowType) {
