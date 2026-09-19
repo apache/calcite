@@ -109,7 +109,11 @@ public class MongoAggregate
       List<String> keys = new ArrayList<>();
       for (int group : groupSet) {
         final String inName = inNames.get(group);
-        keys.add(inName + ": " + MongoRules.quote("$" + inName));
+        // The $group _id key is emitted verbatim into the BSON document, so
+        // route the key through the same quoting helper as the aggregate
+        // output names to prevent a value containing punctuation from
+        // shifting the document boundaries.
+        keys.add(MongoRules.maybeQuote(inName) + ": " + MongoRules.quote("$" + inName));
         ++i;
       }
       list.add("_id: " + Util.toString(keys, "{", ", ", "}"));

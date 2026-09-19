@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.geode.rel;
 
 import org.apache.calcite.adapter.geode.rel.GeodeRules.RexToGeodeTranslator;
+import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -72,7 +73,10 @@ public class GeodeProject extends Project implements GeodeRel {
             GeodeRules.geodeFieldNames(getInput().getRowType()));
     final Map<String, String> fields = new LinkedHashMap<>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
-      final String name = pair.right;
+      // OQL provides no way to quote identifiers, so the projection alias
+      // must match a strict allowlist before it can be copied verbatim into
+      // the generated statement.
+      final String name = GeodeUtils.checkSafeOqlIdentifier(pair.right);
       final String originalName = pair.left.accept(translator);
       fields.put(originalName, name);
     }

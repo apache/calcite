@@ -18,6 +18,8 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Infobright database.
  */
@@ -31,6 +33,16 @@ public class InfobrightSqlDialect extends SqlDialect {
   /** Creates an InfobrightSqlDialect. */
   public InfobrightSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    // Infobright is MySQL-compatible and treats backslash as an escape
+    // character inside string literals, so a literal backslash must be doubled
+    // before the base method escapes the enclosing quote. Otherwise a value
+    // ending in a backslash terminates the literal early and the trailing text
+    // is parsed as SQL rather than data.
+    super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
   }
 
   @Override public boolean supportsWindowFunctions() {

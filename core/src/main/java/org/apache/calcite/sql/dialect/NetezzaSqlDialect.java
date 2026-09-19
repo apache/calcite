@@ -18,6 +18,8 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Netezza database.
  */
@@ -31,5 +33,16 @@ public class NetezzaSqlDialect extends SqlDialect {
   /** Creates a NetezzaSqlDialect. */
   public NetezzaSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    // Netezza accepts C-style backslash escape sequences inside single-quoted
+    // string literals unless the session's standard-conforming-strings option
+    // is enabled, so a literal backslash must be doubled before the base
+    // method escapes the enclosing quote. Otherwise a value ending in a
+    // backslash terminates the literal early and the trailing text is parsed
+    // as SQL rather than data.
+    super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
   }
 }
