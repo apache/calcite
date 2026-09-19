@@ -221,7 +221,7 @@ public class RelBuilder {
         }
 
         @Override public boolean offer(Frame frame) {
-          checkEmptyRowType(config, frame.rel);
+          checkEmptyRowType(castNonNull(config), frame.rel);
           deque.push(frame);
           return true;
         }
