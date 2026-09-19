@@ -221,16 +221,16 @@ public class RelBuilder {
         }
 
         @Override public boolean offer(Frame frame) {
-          checkEmptyRowType(frame.rel);
+          checkEmptyRowType(config, frame.rel);
           deque.push(frame);
           return true;
         }
 
-        @Override public Frame poll() {
+        @Override public @Nullable Frame poll() {
           return deque.pollFirst();
         }
 
-        @Override public Frame peek() {
+        @Override public @Nullable Frame peek() {
           return deque.peekFirst();
         }
 
@@ -420,9 +420,10 @@ public class RelBuilder {
     stack.add(new Frame(node, frame.fields));
   }
 
-  /** Throws if the row type of {@code rel} is empty and the current
-   * {@link Config#emptyRowTypePolicy()} is {@link EmptyRowTypePolicy#FORBIDDEN}. */
-  private void checkEmptyRowType(RelNode rel) {
+  /** Throws if the row type of {@code rel} is empty and the given
+   * {@code config}'s {@link Config#emptyRowTypePolicy()} is
+   * {@link EmptyRowTypePolicy#FORBIDDEN}. */
+  private static void checkEmptyRowType(Config config, RelNode rel) {
     if (config.emptyRowTypePolicy() == EmptyRowTypePolicy.FORBIDDEN
         && rel.getRowType().getFieldCount() == 0) {
       throw new IllegalArgumentException("empty row type is forbidden by "
