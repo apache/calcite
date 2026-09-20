@@ -126,6 +126,7 @@ import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -521,12 +522,14 @@ public enum BuiltInMethod {
   JSON_VALUE(JsonFunctions.StatefulFunction.class, "jsonValue",
       String.class, String.class,
       SqlJsonValueEmptyOrErrorBehavior.class, Object.class,
-      SqlJsonValueEmptyOrErrorBehavior.class, Object.class),
+      SqlJsonValueEmptyOrErrorBehavior.class, Object.class,
+      SqlTypeName.class, int.class, int.class, RoundingMode.class),
   JSON_QUERY(JsonFunctions.StatefulFunction.class, "jsonQuery", String.class,
       String.class, SqlJsonQueryWrapperBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class,
-      boolean.class),
+      boolean.class, int.class, SqlTypeName.class, int.class, int.class,
+      RoundingMode.class),
   JSON_OBJECT(JsonFunctions.class, "jsonObject",
       SqlJsonConstructorNullClause.class),
   JSON_TYPE(JsonFunctions.class, "jsonType", String.class),

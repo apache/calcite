@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.primitives.Longs;
@@ -35,6 +36,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -710,7 +712,8 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_VALUE, context, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         f.jsonValue(context, emptyBehavior, defaultValueOnEmpty,
-            errorBehavior, defaultValueOnError),
+            errorBehavior, defaultValueOnError, SqlTypeName.ANY,
+            -1, -1, RoundingMode.DOWN),
         matcher);
   }
 
@@ -726,7 +729,8 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_VALUE, input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         () -> f.jsonValue(input, emptyBehavior,
-            defaultValueOnEmpty, errorBehavior, defaultValueOnError),
+            defaultValueOnEmpty, errorBehavior, defaultValueOnError,
+            SqlTypeName.ANY, -1, -1, RoundingMode.DOWN),
         matcher);
   }
 
@@ -750,7 +754,7 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior, jsonize),
+            errorBehavior, jsonize, 0, SqlTypeName.ANY, -1, -1, RoundingMode.DOWN),
         matcher);
   }
 
@@ -765,7 +769,8 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         () -> f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior, true),
+            errorBehavior, true, 0, SqlTypeName.ANY, -1, -1,
+            RoundingMode.DOWN),
         matcher);
   }
 

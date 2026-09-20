@@ -44,6 +44,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -5634,6 +5635,194 @@ public class SqlFunctions {
     }
     return o instanceof Number ? toBigDecimal((Number) o)
         : toBigDecimal(o.toString());
+  }
+
+  /** Converts a value to the SQL type {@code typeName}, as {@code CAST}
+   * does, when the type of the value is not known until run time.
+   *
+   * <p>Throws if the value cannot be converted, and for a target type that
+   * this method does not handle, so that a caller such as
+   * {@code JSON_VALUE} can apply its {@code ON ERROR} clause.
+   *
+   * @param value        Value to convert
+   * @param typeName     Type to convert it to; {@link SqlTypeName#ANY}
+   *                     returns the value unchanged
+   * @param precision    Precision of the target type, or negative
+   * @param scale        Scale of the target type, or negative
+   * @param roundingMode Rounding mode of the type system
+   */
+  static @Nullable Object cast(@Nullable Object value,
+      SqlTypeName typeName, int precision, int scale,
+      RoundingMode roundingMode) {
+    if (value == null || typeName == SqlTypeName.ANY) {
+      return value;
+    }
+    switch (typeName) {
+    case BOOLEAN:
+      return toBoolean(value);
+    case TINYINT:
+      return castToExact(value, Primitive.BYTE, roundingMode);
+    case SMALLINT:
+      return castToExact(value, Primitive.SHORT, roundingMode);
+    case INTEGER:
+      return castToExact(value, Primitive.INT, roundingMode);
+    case BIGINT:
+      return castToExact(value, Primitive.LONG, roundingMode);
+    case REAL:
+      return toFloat(value);
+    case FLOAT:
+    case DOUBLE:
+      return toDouble(value);
+    case DECIMAL:
+      return castToDecimal(value, precision, scale, roundingMode);
+    case CHAR:
+      return precision < 0 ? value.toString()
+          : truncateOrPad(value.toString(), precision);
+    case VARCHAR:
+      return precision < 0 ? value.toString()
+          : truncate(value.toString(), precision);
+    case DATE:
+      return DateTimeUtils.dateStringToUnixDate(charValue(value, typeName));
+    case TIME:
+      return (int) truncateFraction(
+          DateTimeUtils.timeStringToUnixDate(charValue(value, typeName)),
+          precision);
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      return (int) truncateFraction(
+          castNonNull(toTimeWithLocalTimeZone(charValue(value, typeName))),
+          precision);
+    case TIMESTAMP:
+      return truncateFraction(
+          DateTimeUtils.timestampStringToUnixDate(charValue(value, typeName)),
+          precision);
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return truncateFraction(
+          castNonNull(
+              toTimestampWithLocalTimeZone(charValue(value, typeName))),
+          precision);
+    default:
+      return cannotConvert(value, typeName);
+    }
+  }
+
+  /** Converts a value to an array, {@code depth} levels deep, whose
+   * innermost elements have the SQL type {@code elementType}, as a
+   * {@code CAST} to that type does, when the type of the value is not known
+   * until run time.
+   *
+   * <p>The declared type drives the conversion: the value must be an array
+   * at each of the {@code depth} levels, and what lies below them must
+   * convert to {@code elementType}. A value of a different shape, such as a
+   * flat array where an array of arrays is wanted, is an error.
+   *
+   * <p>Throws if the value does not have that shape, so that a caller such
+   * as {@code JSON_QUERY} can apply its {@code ON ERROR} clause.
+   * {@link SqlTypeName#ANY} returns the value unchanged.
+   *
+   * @see #cast(Object, SqlTypeName, int, int, RoundingMode)
+   */
+  static @Nullable Object castArray(@Nullable Object value,
+      SqlTypeName elementType, int precision, int scale,
+      RoundingMode roundingMode, int depth) {
+    if (value == null || elementType == SqlTypeName.ANY) {
+      return value;
+    }
+    if (depth == 0) {
+      return cast(value, elementType, precision, scale, roundingMode);
+    }
+    if (!(value instanceof Collection)) {
+      return cannotConvert(value, SqlTypeName.ARRAY);
+    }
+    final Collection<?> collection = (Collection<?>) value;
+    final List<@Nullable Object> list = new ArrayList<>(collection.size());
+    for (Object element : collection) {
+      list.add(
+          castArray(element, elementType, precision, scale, roundingMode,
+              depth - 1));
+    }
+    return list;
+  }
+
+  /** Converts a value to an exact numeric type, rounding as the type system
+   * requires and throwing {@link ArithmeticException} if it is out of range,
+   * as {@code CAST} does.
+   *
+   * <p>Converts a number to {@link BigDecimal} first:
+   * {@link Primitive#integerCast} does not accept every {@link Number} a
+   * semi-structured value may hold, such as {@link BigInteger}. */
+  private static Object castToExact(Object value, Primitive primitive,
+      RoundingMode roundingMode) {
+    if (!(value instanceof Number)) {
+      // Take the same path as a CAST from a character value.
+      switch (primitive) {
+      case BYTE:
+        return toByte(value);
+      case SHORT:
+        return toShort(value);
+      case INT:
+        return toInt(value);
+      default:
+        return toLong(value);
+      }
+    }
+    return requireNonNull(
+        Primitive.integerCast(primitive, toBigDecimal((Number) value),
+            roundingMode), "integerCast");
+  }
+
+  /** Converts a value to {@code DECIMAL(precision, scale)}. */
+  private static @Nullable Object castToDecimal(Object value, int precision,
+      int scale, RoundingMode roundingMode) {
+    if (precision < 0 || scale < 0) {
+      // The type gives no precision and scale to enforce.
+      return toBigDecimal(value);
+    }
+    if (value instanceof BigDecimal) {
+      return Primitive.decimalDecimalCast((BigDecimal) value, precision, scale,
+          roundingMode);
+    }
+    if (value instanceof BigInteger) {
+      return Primitive.decimalDecimalCast(new BigDecimal((BigInteger) value),
+          precision, scale, roundingMode);
+    }
+    if (value instanceof Float || value instanceof Double) {
+      return Primitive.fpDecimalCast((Number) value, precision, scale,
+          roundingMode);
+    }
+    if (value instanceof Number) {
+      return Primitive.integerDecimalCast((Number) value, precision, scale,
+          roundingMode);
+    }
+    return Primitive.charToDecimalCast(value.toString(), precision, scale,
+        roundingMode);
+  }
+
+  /** Truncates a datetime value, held as a number of milliseconds, to
+   * {@code precision} fractional digits of a second.
+   *
+   * @see org.apache.calcite.util.TimestampString#round(int) */
+  private static long truncateFraction(long millis, int precision) {
+    if (precision < 0 || precision >= 3) {
+      return millis;
+    }
+    long unit = 1;
+    for (int i = precision; i < 3; i++) {
+      unit *= 10;
+    }
+    return truncate(millis, unit);
+  }
+
+  /** Returns {@code value} as a character value, throwing if it is not one;
+   * the datetime types convert only from a character value. */
+  private static String charValue(Object value, SqlTypeName typeName) {
+    if (value instanceof String) {
+      return (String) value;
+    }
+    return (String) cannotConvert(value, typeName);
+  }
+
+  private static Object cannotConvert(Object o, SqlTypeName typeName) {
+    throw RESOURCE.cannotConvert(String.valueOf(o), typeName.getName()).ex();
   }
 
   /**

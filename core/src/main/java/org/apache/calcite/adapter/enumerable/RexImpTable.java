@@ -3364,6 +3364,40 @@ public class RexImpTable implements RexImplementorTable {
     }
   }
 
+  /** Base class for the implementors of {@code JSON_VALUE} and
+   * {@code JSON_QUERY}. */
+  private abstract static class JsonImplementor extends MethodImplementor {
+    JsonImplementor(Method method) {
+      super(method, NullPolicy.ARG0, false);
+    }
+
+    /** Calls the runtime method with {@code operands}, followed by the
+     * {@link SqlTypeName}, precision and scale of {@code returningType} and
+     * the rounding mode that a {@code CAST} to it would use.
+     *
+     * <p>A null {@code returningType} is passed as
+     * {@link SqlTypeName#ANY}, meaning no conversion. */
+    Expression callWithReturningType(RexToLixTranslator translator,
+        List<Expression> operands, @Nullable RelDataType returningType) {
+      operands.add(
+          Expressions.constant(returningType == null ? SqlTypeName.ANY
+              : returningType.getSqlTypeName()));
+      operands.add(
+          Expressions.constant(
+              returningType == null ? -1 : returningType.getPrecision()));
+      operands.add(
+          Expressions.constant(
+              returningType == null ? -1 : returningType.getScale()));
+      operands.add(
+          Expressions.constant(
+              translator.typeFactory.getTypeSystem().roundingMode()));
+      return Expressions.call(
+          Expressions.new_(method.getDeclaringClass()),
+          method,
+          EnumUtils.fromInternal(method.getParameterTypes(), operands));
+    }
+  }
+
   /**
    * Implementor for JSON_VALUE function, convert to solid format
    * "JSON_VALUE(json_doc, path, empty_behavior, empty_default, error_behavior, error default)"
@@ -3372,9 +3406,9 @@ public class RexImpTable implements RexImplementorTable {
    * <p>We should avoid this when we support
    * variable arguments function.
    */
-  private static class JsonValueImplementor extends MethodImplementor {
+  private static class JsonValueImplementor extends JsonImplementor {
     JsonValueImplementor(Method method) {
-      super(method, NullPolicy.ARG0, false);
+      super(method);
     }
 
     @Override Expression implementSafe(RexToLixTranslator translator,
@@ -3421,20 +3455,16 @@ public class RexImpTable implements RexImplementorTable {
       newOperands.add(defaultValueOnEmpty);
       newOperands.add(errorBehavior);
       newOperands.add(defaultValueOnError);
-      List<Expression> argValueList0 =
-          EnumUtils.fromInternal(method.getParameterTypes(), newOperands);
-      final Expression target =
-          Expressions.new_(method.getDeclaringClass());
-      return Expressions.call(target, method, argValueList0);
+      return callWithReturningType(translator, newOperands, call.getType());
     }
   }
 
   /**
    * Implementor for JSON_QUERY function. Passes the jsonize flag depending on the output type.
    */
-  private static class JsonQueryImplementor extends MethodImplementor {
+  private static class JsonQueryImplementor extends JsonImplementor {
     JsonQueryImplementor(Method method) {
-      super(method, NullPolicy.ARG0, false);
+      super(method);
     }
 
     @Override Expression implementSafe(RexToLixTranslator translator,
@@ -3449,11 +3479,18 @@ public class RexImpTable implements RexImplementorTable {
       }
       newOperands.add(jsonize);
 
-      List<Expression> argValueList0 =
-          EnumUtils.fromInternal(method.getParameterTypes(), newOperands);
-      final Expression target =
-          Expressions.new_(method.getDeclaringClass());
-      return Expressions.call(target, method, argValueList0);
+      // How deeply an array RETURNING clause nests, and the type of its
+      // innermost elements. A clause that gives no array type nests zero
+      // deep, and its element type is passed as null, for no conversion.
+      RelDataType elementType = call.getType();
+      int arrayDepth = 0;
+      while (elementType.getSqlTypeName() == SqlTypeName.ARRAY) {
+        elementType = requireNonNull(elementType.getComponentType());
+        ++arrayDepth;
+      }
+      newOperands.add(Expressions.constant(arrayDepth));
+      return callWithReturningType(translator, newOperands,
+          arrayDepth == 0 ? null : elementType);
     }
   }
 
