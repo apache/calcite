@@ -1971,6 +1971,32 @@ class RelToSqlConverterTest {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7756">[CALCITE-7756]
+   * Invalid unparse for VARCHAR without precision in MssqlSqlDialect</a>.
+   */
+  @Test void testCastToVarcharNoPrecisionMssql() {
+    final String query = "select cast(\"full_name\" as varchar)\n"
+        + "from \"employee\"";
+    final String expected = "SELECT CAST([full_name] AS VARCHAR(MAX))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7756">[CALCITE-7756]
+   * Invalid unparse for VARCHAR without precision in MssqlSqlDialect</a>.
+   */
+  @Test void testCastToVarcharWithPrecisionMssql() {
+    final String query = "select cast(\"full_name\" as varchar(100))\n"
+        + "from \"employee\"";
+    final String expected = "SELECT CAST([full_name] AS VARCHAR(100))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4706">[CALCITE-4706]
    * JDBC adapter generates casts exceeding Redshift's data types bounds</a>.
    */
