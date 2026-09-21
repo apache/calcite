@@ -58,10 +58,12 @@ jobs:
     - uses: actions/checkout@v7
       with:
         fetch-depth: 50
-    - name: 'Set up JDK 8'
+    - name: 'Set up JDK 25 for compilation and JDK 8 for tests'
       uses: actions/setup-java@v6
       with:
-        java-version: 8
+        java-version: |
+          25
+          8
         distribution: 'zulu'
     - uses: burrunan/gradle-cache-action@v1
       name: Test
@@ -69,6 +71,8 @@ jobs:
         job-id: jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
         arguments: --scan --no-parallel --no-daemon build javadoc
+        properties: |
+          org.gradle.java.installations.auto-download=false
     - name: 'sqlline and sqllsh'
       env:
         JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
@@ -89,10 +93,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 17'
+      - name: 'Set up JDK 25 for compilation and JDK 17 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 17
+          java-version: |
+            25
+            17
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -100,6 +106,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build
+          properties: |
+            org.gradle.java.installations.auto-download=false
       - name: 'sqlline and sqllsh'
         env:
           JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
@@ -120,10 +128,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 21'
+      - name: 'Set up JDK 25 for compilation and JDK 21 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 21
+          java-version: |
+            25
+            21
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -131,6 +141,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build
+          properties: |
+            org.gradle.java.installations.auto-download=false
       - name: 'sqlline and sqllsh'
         env:
           JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
@@ -153,10 +165,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 8'
+      - name: 'Set up JDK 25 for compilation and JDK 8 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 8
+          java-version: |
+            25
+            8
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -164,6 +178,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} build
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-jdk8-latest-guava-tz:
     name: 'Linux (JDK 8, latest Guava, America/New_York Timezone)'
@@ -174,10 +190,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 8'
+      - name: 'Set up JDK 25 for compilation and JDK 8 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 8
+          java-version: |
+            25
+            8
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -185,6 +203,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} tasks build
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-jdk11-tz:
     name: 'Linux (JDK 11, Pacific/Chatham Timezone)'
@@ -195,10 +215,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 11'
+      - name: 'Set up JDK 25 for compilation and JDK 11 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 11
+          java-version: |
+            25
+            11
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -206,6 +228,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-jdk17:  # LTS JDK version, don't remove until EOL
     name: 'Linux (JDK 17)'
@@ -214,10 +238,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 17'
+      - name: 'Set up JDK 25 for compilation and JDK 17 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 17
+          java-version: |
+            25
+            17
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -225,6 +251,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-jdk121:  # LTS JDK version, don't remove until EOL
     name: 'Linux (JDK 21)'
@@ -233,10 +261,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 21'
+      - name: 'Set up JDK 25 for compilation and JDK 21 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 21
+          java-version: |
+            25
+            21
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -244,6 +274,8 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-jdk24: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
     name: 'Linux (JDK 24)'
@@ -252,10 +284,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 24'
+      - name: 'Set up JDK 25 for compilation and JDK 24 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 24
+          java-version: |
+            25
+            24
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -263,15 +297,19 @@ jobs:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-avatica:
     name: 'Linux (JDK 11, Avatica main)'
     runs-on: ubuntu-latest
     steps:
-    - name: 'Set up JDK 11'
+    - name: 'Set up JDK 25 for compilation and JDK 11 for tests'
       uses: actions/setup-java@v6
       with:
-        java-version: 11
+        java-version: |
+          25
+          11
         distribution: 'zulu'
     - name: 'Clone Avatica to Maven Local repository'
       run: |
@@ -297,6 +335,7 @@ jobs:
         execution-only-caches: true
         arguments: --scan --no-parallel --no-daemon build javadoc
         properties: |
+          org.gradle.java.installations.auto-download=false
           calcite.avatica.version=1.0.0-dev-main-SNAPSHOT
           enableMavenLocal=
 
@@ -307,10 +346,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 21'
+      - name: 'Set up JDK 25 for compilation and JDK 21 for tests'
         uses: actions/setup-java@v6
         with:
-          java-version: 21
+          java-version: |
+            25
+            21
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -318,6 +359,8 @@ jobs:
           job-id: jdk21
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
+          properties: |
+            org.gradle.java.installations.auto-download=false
       - name: 'sqlline and sqllsh'
         env:
           JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
@@ -348,7 +391,9 @@ jobs:
           job-id: errprone
           remote-build-cache-proxy-enabled: false
           # ErrorProne checks for Beta APIs, so use the latest supported Guava version
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes
+          arguments: --scan --no-parallel --no-daemon -PjdkBuildVersion=11 -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-checkerframework:
     name: 'CheckerFramework (JDK 11)'
@@ -367,7 +412,9 @@ jobs:
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes :server:classes
+          arguments: --scan --no-parallel --no-daemon -PjdkBuildVersion=11 -PenableCheckerframework :linq4j:classes :core:classes :server:classes
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-checkerframework-oldest-guava:
     name: 'CheckerFramework (JDK 11, oldest Guava)'
@@ -386,16 +433,20 @@ jobs:
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
+          arguments: --scan --no-parallel --no-daemon -PjdkBuildVersion=11 -Pguava.version=${{ env.GUAVA_MIN }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
+          properties: |
+            org.gradle.java.installations.auto-download=false
 
   linux-druid:
     name: 'Druid Tests'
     runs-on: ubuntu-latest
     steps:
-    - name: 'Set up JDK 17'
+    - name: 'Set up JDK 25 for compilation and JDK 17 for tests'
       uses: actions/setup-java@v6
       with:
-        java-version: 17
+        java-version: |
+          25
+          17
         distribution: 'zulu'
     - name: 'Checkout Druid dataset'
       uses: actions/checkout@v7
@@ -430,3 +481,5 @@ jobs:
         job-id: Druid8
         remote-build-cache-proxy-enabled: false
         arguments: --scan --no-parallel --no-daemon :druid:test -Dcalcite.test.druid=true
+        properties: |
+          org.gradle.java.installations.auto-download=false
