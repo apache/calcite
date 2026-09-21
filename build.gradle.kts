@@ -91,6 +91,8 @@ val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
 val werror by props(true) // treat javac warnings as errors
+// JDK that compiles the code; the bytecode still targets Java 8 via --release 8
+val jdkBuildVersion = props.int("jdkBuildVersion", 25)
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
@@ -872,8 +874,12 @@ allprojects {
             }
 
             configureEach<JavaCompile> {
-                inputs.property("java.version", System.getProperty("java.version"))
-                inputs.property("java.vm.version", System.getProperty("java.vm.version"))
+                javaCompiler.set(
+                    project.the<JavaToolchainService>().compilerFor {
+                        languageVersion.set(JavaLanguageVersion.of(jdkBuildVersion))
+                    }
+                )
+                options.release.set(8)
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
                 // JDK 1.8 is deprecated https://bugs.openjdk.org/browse/JDK-8173605

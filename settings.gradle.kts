@@ -43,6 +43,7 @@ pluginManagement {
             idv("org.owasp.dependencycheck")
         }
         idv("org.sonarqube")
+        idv("org.gradle.toolchains.foojay-resolver-convention")
         kotlin("jvm") version "kotlin".v()
     }
     if (extra.has("enableMavenLocal") && extra["enableMavenLocal"].toString().ifBlank { "true" }.toBoolean()) {
@@ -54,6 +55,7 @@ pluginManagement {
 }
 
 plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention")
     id("com.gradle.develocity")
     id("com.gradle.common-custom-user-data-gradle-plugin")
 }
