@@ -661,7 +661,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     final List<RelNode> bindings = new ArrayList<>();
     final Map<RelNode, List<RelNode>> nodeChildren = new HashMap<>();
-    if (!matchOperandsWithOperandMatched(operand, currentRel, bindings, nodeChildren)) {
+    if (!matchOperandsForMatchedRel(operand, currentRel, bindings, nodeChildren)) {
       return null;
     }
 
@@ -757,20 +757,40 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return parents;
   }
 
+  /**
+   * Returns whether {@code rel} and its descendants match {@code operand} and its child
+   * operands.
+   *
+   * <p>A rel matches an operand if the operand {@link RelOptRuleOperand#matches matches} it
+   * by class, trait and predicate, and each of the operand's child operands matches one of
+   * the rel's children: the child in the same position, or any child for an
+   * {@code UNORDERED} child policy. A rel whose inputs are not all vertices of the graph
+   * never matches, as the graph can be partially optimized for a materialized view.
+   *
+   * <p>Appends each matched rel to {@code bindings}, in operand order, and for an
+   * {@code UNORDERED} child policy records the matched rel's children in
+   * {@code nodeChildren}.
+   */
   private static boolean matchOperands(
       RelOptRuleOperand operand,
       RelNode rel,
       List<RelNode> bindings,
       Map<RelNode, List<RelNode>> nodeChildren) {
     return operand.matches(rel)
-        && matchOperandsWithOperandMatched(operand, rel, bindings, nodeChildren);
+        && matchOperandsForMatchedRel(operand, rel, bindings, nodeChildren);
   }
 
   /**
-   * Matches the children of {@code rel} against those of {@code operand}, for a {@code rel}
-   * that {@code operand} is already known to match.
+   * Returns whether {@code rel} and its descendants match {@code operand} and its child
+   * operands, as {@link #matchOperands} does, given that {@code operand} already
+   * {@link RelOptRuleOperand#matches matches} {@code rel}. A caller that has made that test
+   * need not repeat it; a caller that has not must call {@link #matchOperands} instead.
+   *
+   * <p>Appends each matched rel to {@code bindings}, in operand order, and for an
+   * {@code UNORDERED} child policy records the matched rel's children in
+   * {@code nodeChildren}.
    */
-  private static boolean matchOperandsWithOperandMatched(
+  private static boolean matchOperandsForMatchedRel(
       RelOptRuleOperand operand,
       RelNode rel,
       List<RelNode> bindings,
