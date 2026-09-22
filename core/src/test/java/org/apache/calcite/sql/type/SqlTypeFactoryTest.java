@@ -21,12 +21,14 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.sql.SqlCollation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +39,9 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -45,6 +49,23 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Test for {@link SqlTypeFactoryImpl}.
  */
 class SqlTypeFactoryTest {
+
+  @Test void testReuseUnchangedCharsetAndCollation() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    BasicSqlType type = (BasicSqlType) f.sqlVarchar;
+    BasicSqlType decorated =
+        type.createWithCharsetAndCollation(StandardCharsets.UTF_8, SqlCollation.IMPLICIT);
+    assertSame(
+        decorated, decorated.createWithCharsetAndCollation(
+        StandardCharsets.UTF_8, SqlCollation.IMPLICIT));
+    assertNotSame(
+        decorated, decorated.createWithCharsetAndCollation(
+        StandardCharsets.UTF_16, SqlCollation.IMPLICIT));
+    BasicSqlType coercible =
+        decorated.createWithCharsetAndCollation(StandardCharsets.UTF_8, SqlCollation.COERCIBLE);
+    assertNotSame(decorated, coercible);
+    assertSame(SqlCollation.COERCIBLE, coercible.getCollation());
+  }
 
   @Test void testLeastRestrictiveWithAny() {
     SqlTypeFixture f = new SqlTypeFixture();
