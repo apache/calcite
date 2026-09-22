@@ -30,6 +30,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Basic implementation of {@link SqlVisitor} which returns each leaf node
  * unchanged.
@@ -91,6 +93,12 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
     }
   }
 
+  private static @Nullable SqlNode[] copyOperands(SqlCall call) {
+    final List<@Nullable SqlNode> operands =
+        (List<@Nullable SqlNode>) call.getOperandList();
+    return operands.toArray(new SqlNode[0]);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -100,16 +108,15 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
    */
   protected class CallCopyingArgHandler implements ArgHandler<@Nullable SqlNode> {
     boolean update;
-    final @Nullable SqlNode[] clonedOperands;
+    private @Nullable SqlNode @Nullable [] clonedOperands;
     private final SqlCall call;
     private final boolean alwaysCopy;
 
     public CallCopyingArgHandler(SqlCall call, boolean alwaysCopy) {
       this.call = call;
       this.update = false;
-      final List<@Nullable SqlNode> operands = (List<@Nullable SqlNode>) call.getOperandList();
-      this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
+      this.clonedOperands = alwaysCopy ? copyOperands(call) : null;
     }
 
     @Override public SqlNode result() {
@@ -117,7 +124,7 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
         return call.getOperator().createCall(
             call.getFunctionQuantifier(),
             call.getParserPosition(),
-            clonedOperands);
+            requireNonNull(clonedOperands, "clonedOperands"));
       } else {
         return call;
       }
@@ -134,9 +141,15 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
       SqlNode newOperand = operand.accept(SqlShuttle.this);
       if (newOperand != operand) {
         update = true;
+        if (clonedOperands == null) {
+          clonedOperands = copyOperands(call);
+        }
       }
-      clonedOperands[i] = newOperand;
+      if (clonedOperands != null) {
+        clonedOperands[i] = newOperand;
+      }
       return newOperand;
     }
+
   }
 }
