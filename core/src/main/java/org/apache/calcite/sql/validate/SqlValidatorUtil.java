@@ -1560,7 +1560,12 @@ public class SqlValidatorUtil {
         if (adjustedOperands == null) {
           adjustedOperands = new ArrayList<>(operands);
         }
-        adjustedOperands.set(i, castTo(operands.get(i), elementType));
+        SqlCall cast = (SqlCall) castTo(operands.get(i), elementType);
+        // This CAST was generated with the built-in operator; validate its
+        // operands directly instead of resolving the function again by name.
+        cast.getOperator().validateOperands(
+            sqlCallBinding.getValidator(), sqlCallBinding.getScope(), cast);
+        adjustedOperands.set(i, cast);
       }
     }
     if (adjustedOperands != null) {
