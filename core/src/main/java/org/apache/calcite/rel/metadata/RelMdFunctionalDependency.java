@@ -423,8 +423,18 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Copies input dependencies into a join, optionally filtering dependencies
-   * that can be invalidated when the input is null-generated.
+   * Adds functional dependencies to a builder, translating their column
+   * ordinals from an input row type to a containing row type.
+   *
+   * <p>If {@code nullGenerated} is true, dependencies whose determinants can
+   * coincide with an all-NULL row are omitted.
+   *
+   * @param inputFdSet Functional dependencies expressed in input ordinals
+   * @param input Relational expression that defines the input row type
+   * @param offset Amount added to each input ordinal
+   * @param nullGenerated Whether the containing row may have an all-NULL value
+   *     for the input
+   * @param fdBuilder Builder that receives the translated dependencies
    */
   private static void addJoinInputFDs(ArrowSet inputFdSet, RelNode input,
       int offset, boolean nullGenerated, ArrowSet.Builder fdBuilder) {
@@ -438,9 +448,14 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Returns whether a dependency's determinant contains a non-nullable input
-   * field. Such a determinant cannot collide with the all-NULL determinant of
-   * a padded outer-join row.
+   * Returns whether every determinant ordinal is valid for an input row type
+   * and at least one determinant field is non-nullable.
+   *
+   * <p>Such a determinant cannot have the same values as an all-NULL row.
+   *
+   * @param fd Functional dependency expressed in input ordinals
+   * @param input Relational expression that defines the input row type
+   * @return Whether the determinant is valid and contains a non-nullable field
    */
   private static boolean hasNonNullableDeterminant(Arrow fd, RelNode input) {
     final int fieldCount = input.getRowType().getFieldCount();
@@ -466,13 +481,24 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Adds functional dependencies implied by a join condition.
+   * Adds functional dependencies implied by a join's condition and join type
+   * to a builder.
+   *
+   * <p>Inner joins contribute bidirectional dependencies for supported
+   * equality predicates. Left and right outer equijoins contribute a
+   * dependency from the preserved input's join keys to the null-generating
+   * input's join keys.
+   *
+   * @param rel Join whose condition is analyzed
+   * @param leftFieldCount Number of fields in the left input, and therefore
+   *     the offset of right-input fields in the join output
+   * @param fdBuilder Builder that receives the inferred dependencies
    */
   private static void addFDsFromJoinCondition(Join rel, int leftFieldCount,
-      ArrowSet.Builder builder) {
+      ArrowSet.Builder fdBuilder) {
     final JoinRelType joinType = rel.getJoinType();
     if (joinType == JoinRelType.INNER) {
-      addBidirectionalFDsFromEqualityCondition(rel.getCondition(), builder);
+      addBidirectionalFDsFromEqualityCondition(rel.getCondition(), fdBuilder);
       return;
     }
 
@@ -487,9 +513,9 @@ public class RelMdFunctionalDependency
       final ImmutableBitSet leftKeys = joinInfo.leftSet();
       final ImmutableBitSet rightKeys = joinInfo.rightSet().shift(leftFieldCount);
       if (joinType == JoinRelType.LEFT) {
-        builder.addArrow(leftKeys, rightKeys);
+        fdBuilder.addArrow(leftKeys, rightKeys);
       } else {
-        builder.addArrow(rightKeys, leftKeys);
+        fdBuilder.addArrow(rightKeys, leftKeys);
       }
       return;
     }
@@ -498,12 +524,18 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Adds bidirectional dependencies for input-reference equalities in a
-   * condition. Callers are responsible for ensuring that every output row
-   * satisfies the condition, as is true for Filters and inner joins.
+   * Adds bidirectional functional dependencies for supported input-reference
+   * equalities in a condition.
+   *
+   * <p>The caller must ensure that the condition holds for every row produced
+   * by the relational expression to which the dependencies will apply. This
+   * requirement is satisfied by filter outputs and inner-join outputs.
+   *
+   * @param condition Condition from which to infer dependencies
+   * @param fdBuilder Builder that receives the inferred dependencies
    */
   private static void addBidirectionalFDsFromEqualityCondition(
-      RexNode condition, ArrowSet.Builder builder) {
+      RexNode condition, ArrowSet.Builder fdBuilder) {
     for (RexNode conjunct : RelOptUtil.conjunctions(condition)) {
       if (!(conjunct instanceof RexCall)) {
         continue;
@@ -525,7 +557,7 @@ public class RelMdFunctionalDependency
           int leftRef = ((RexInputRef) left).getIndex();
           int rightRef = ((RexInputRef) right).getIndex();
 
-          builder.addBidirectionalArrow(leftRef, rightRef);
+          fdBuilder.addBidirectionalArrow(leftRef, rightRef);
         }
       }
     }
