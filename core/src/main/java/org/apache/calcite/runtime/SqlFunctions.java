@@ -5712,6 +5712,22 @@ public class SqlFunctions {
           charValue(value, typeName));
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return toTimestampWithLocalTimeZone(charValue(value, typeName));
+    case BINARY: {
+      // A character value is encoded to bytes with the default charset, as a
+      // CAST does; BINARY zero-pads to the precision, VARBINARY truncates.
+      final ByteString b =
+          stringToBinary(charValue(value, typeName), Util.getDefaultCharset());
+      return precision < 0 ? b : truncateOrPad(b, precision);
+    }
+    case VARBINARY: {
+      final ByteString b =
+          stringToBinary(charValue(value, typeName), Util.getDefaultCharset());
+      return precision < 0 ? b : truncate(b, precision);
+    }
+    case GEOMETRY:
+      return SpatialTypeFunctions.ST_GeomFromEWKT(charValue(value, typeName));
+    case UUID:
+      return UuidValue.fromString(charValue(value, typeName));
     default:
       return cannotConvert(value, typeName);
     }

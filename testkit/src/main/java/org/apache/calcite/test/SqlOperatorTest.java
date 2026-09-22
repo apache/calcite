@@ -7175,6 +7175,17 @@ public class SqlOperatorTest {
             + "error on error)",
         "(?s).*Cannot convert 20200101 to DATE.*", true);
 
+    // A UUID is parsed from a JSON string, as CAST parses a character value.
+    f.checkScalar("json_value('{\"c\":"
+            + "\"123e4567-e89b-12d3-a456-426655440000\"}', "
+            + "'$.c' returning uuid)",
+        "123e4567-e89b-12d3-a456-426655440000", "UUID");
+    f.checkScalar("json_value('{\"c\":\"not a uuid\"}', '$.c' returning uuid)",
+        isNullValue(), "UUID");
+    f.checkFails("json_value('{\"c\":\"not a uuid\"}', '$.c' returning uuid "
+            + "error on error)",
+        "(?s).*Invalid UUID string: not a uuid.*", true);
+
     // The precision and scale of the RETURNING type are applied, as by CAST.
     f.checkScalar("json_value('{\"c\":100}', '$.c' returning decimal(5,2))",
         "100.00", "DECIMAL(5, 2)");
@@ -7203,13 +7214,10 @@ public class SqlOperatorTest {
             + "returning timestamp(3))",
         "2020-01-01 10:20:30.987", "TIMESTAMP(3)");
 
-    // A RETURNING type that cannot be converted to is an error, so the
-    // ON ERROR clause applies rather than the failure escaping.
+    // A binary RETURNING type encodes the JSON string's bytes with the
+    // default charset, as CAST does, truncating to the precision.
     f.checkScalar("json_value('{\"c\":\"0102\"}', '$.c' returning varbinary(2))",
-        isNullValue(), "VARBINARY(2)");
-    f.checkFails("json_value('{\"c\":\"0102\"}', '$.c' returning varbinary(2) "
-            + "error on error)",
-        "(?s).*Cannot convert 0102 to VARBINARY.*", true);
+        "3031", "VARBINARY(2)");
 
     // JSON_VALUE returns a scalar, so an array RETURNING type never matches.
     f.checkScalar("json_value('{\"c\":[1,2]}', '$.c' returning integer array)",

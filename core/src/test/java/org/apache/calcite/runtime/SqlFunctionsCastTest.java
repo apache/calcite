@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.UuidValue;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -72,10 +74,12 @@ class SqlFunctionsCastTest {
     assertThrows(NumberFormatException.class,
         () -> cast("abc", SqlTypeName.BIGINT));
 
-    // A target type that is not handled is an error, so that a caller can
-    // apply its own error clause rather than the failure escaping.
+    // A target type that cannot be produced from the value is an error, so
+    // that a caller can apply its own error clause rather than the failure
+    // escaping: a type this method does not handle (ROW), or an array with no
+    // element value.
     assertThrows(CalciteException.class,
-        () -> cast("0102", SqlTypeName.VARBINARY));
+        () -> cast(1, SqlTypeName.ROW));
     assertThrows(CalciteException.class,
         () -> cast(1, SqlTypeName.ARRAY));
   }
@@ -99,6 +103,71 @@ class SqlFunctionsCastTest {
     // Only a character value converts to a datetime.
     assertThrows(CalciteException.class,
         () -> cast(20200101, SqlTypeName.DATE, -1, -1));
+  }
+
+  /** Tests converting a character value, as a JSON string is, to each scalar
+   * type that a {@code CAST} from a character value can target -- the
+   * conversion {@code JSON_VALUE(..., RETURNING <type>)} applies. */
+  @Test void testCastFromStringToEachType() {
+    assertThat(cast("true", SqlTypeName.BOOLEAN), is(true));
+    assertThat(cast("false", SqlTypeName.BOOLEAN), is(false));
+
+    assertThat(cast("42", SqlTypeName.TINYINT), is((byte) 42));
+    assertThat(cast("42", SqlTypeName.SMALLINT), is((short) 42));
+    assertThat(cast("42", SqlTypeName.INTEGER), is(42));
+    assertThat(cast("42", SqlTypeName.BIGINT), is(42L));
+
+    assertThat(cast("1.5", SqlTypeName.REAL), is(1.5f));
+    assertThat(cast("1.5", SqlTypeName.FLOAT), is(1.5d));
+    assertThat(cast("1.5", SqlTypeName.DOUBLE), is(1.5d));
+    assertThat(cast("100.5", SqlTypeName.DECIMAL, 5, 2), hasToString("100.50"));
+
+    assertThat(cast("abc", SqlTypeName.CHAR, 5, -1), is("abc  "));
+    assertThat(cast("abcdef", SqlTypeName.VARCHAR, 3, -1), is("abc"));
+
+    // Datetimes; asserting the internal value (days for DATE, milliseconds of
+    // the day for TIME, milliseconds since the epoch for TIMESTAMP) keeps this
+    // independent of the default time zone.
+    assertThat(cast("2020-01-01", SqlTypeName.DATE), is(18262));
+    assertThat(cast("10:20:30", SqlTypeName.TIME), is(37230000));
+    assertThat(cast("2020-01-01 10:20:30", SqlTypeName.TIMESTAMP),
+        is(1577874030000L));
+
+    // The local-time-zone types read a zone from the value and hold a
+    // normalized value, so assert only that the conversion yields the right
+    // kind of value.
+    assertThat(cast("10:20:30 UTC", SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE),
+        instanceOf(Integer.class));
+    assertThat(
+        cast("2020-01-01 10:20:30 UTC",
+            SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE),
+        instanceOf(Long.class));
+
+    // Binary: the character value's bytes in the default charset
+    // (ISO-8859-1), truncated (VARBINARY) or zero-padded (BINARY) to the
+    // precision.
+    assertThat(cast("0102", SqlTypeName.VARBINARY), hasToString("30313032"));
+    assertThat(cast("0102", SqlTypeName.VARBINARY, 2, -1), hasToString("3031"));
+    assertThat(cast("0102", SqlTypeName.BINARY, 6, -1),
+        hasToString("303130320000"));
+
+    // Geometry, parsed from its EWKT spelling.
+    assertThat(cast("POINT (1 2)", SqlTypeName.GEOMETRY),
+        hasToString("POINT (1 2)"));
+
+    // UUID, with the hyphens that group its digits optional.
+    assertThat(cast("123e4567-e89b-12d3-a456-426655440000", SqlTypeName.UUID),
+        is(UuidValue.fromString("123e4567-e89b-12d3-a456-426655440000")));
+    assertThat(cast("123e4567e89b12d3a456426655440000", SqlTypeName.UUID),
+        hasToString("123e4567-e89b-12d3-a456-426655440000"));
+
+    // A string that is not a valid value for the target type is an error, so
+    // that the caller's ON ERROR clause applies rather than the failure
+    // escaping.
+    assertThrows(NumberFormatException.class,
+        () -> cast("abc", SqlTypeName.INTEGER));
+    assertThrows(IllegalArgumentException.class,
+        () -> cast("not a uuid", SqlTypeName.UUID));
   }
 
   @Test void testCastArray() {
