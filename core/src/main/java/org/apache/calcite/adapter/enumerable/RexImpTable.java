@@ -46,6 +46,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexWindowExclusion;
+import org.apache.calcite.runtime.CastSpec;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -3371,30 +3372,32 @@ public class RexImpTable implements RexImplementorTable {
       super(method, NullPolicy.ARG0, false);
     }
 
-    /** Calls the runtime method with {@code operands}, followed by the
-     * {@link SqlTypeName}, precision and scale of {@code returningType} and
-     * the rounding mode that a {@code CAST} to it would use.
-     *
-     * <p>A null {@code returningType} is passed as
-     * {@link SqlTypeName#ANY}, meaning no conversion. */
-    Expression callWithReturningType(RexToLixTranslator translator,
-        List<Expression> operands, @Nullable RelDataType returningType) {
-      operands.add(
-          Expressions.constant(returningType == null ? SqlTypeName.ANY
-              : returningType.getSqlTypeName()));
-      operands.add(
+    /** Builds an expression that constructs the {@link CastSpec} describing a
+     * conversion to {@code type}, recursing on the component of a collection
+     * type. A null or {@link SqlTypeName#ANY} type gives a spec that leaves
+     * the value unchanged. */
+    static Expression castSpecExpression(RexToLixTranslator translator,
+        @Nullable RelDataType type) {
+      final Expression roundingMode =
           Expressions.constant(
-              returningType == null ? -1 : returningType.getPrecision()));
-      operands.add(
-          Expressions.constant(
-              returningType == null ? -1 : returningType.getScale()));
-      operands.add(
-          Expressions.constant(
-              translator.typeFactory.getTypeSystem().roundingMode()));
-      return Expressions.call(
-          Expressions.new_(method.getDeclaringClass()),
-          method,
-          EnumUtils.fromInternal(method.getParameterTypes(), operands));
+              translator.typeFactory.getTypeSystem().roundingMode());
+      if (type == null || type.getSqlTypeName() == SqlTypeName.ANY) {
+        return Expressions.new_(CastSpec.class,
+            Expressions.constant(SqlTypeName.ANY),
+            Expressions.constant(-1), Expressions.constant(-1), roundingMode);
+      }
+      final SqlTypeName typeName = type.getSqlTypeName();
+      if (typeName == SqlTypeName.ARRAY || typeName == SqlTypeName.MULTISET) {
+        return Expressions.new_(CastSpec.class,
+            Expressions.constant(typeName),
+            castSpecExpression(translator,
+                requireNonNull(type.getComponentType(), "componentType")));
+      }
+      return Expressions.new_(CastSpec.class,
+          Expressions.constant(typeName),
+          Expressions.constant(type.getPrecision()),
+          Expressions.constant(type.getScale()),
+          roundingMode);
     }
   }
 
@@ -3455,7 +3458,11 @@ public class RexImpTable implements RexImplementorTable {
       newOperands.add(defaultValueOnEmpty);
       newOperands.add(errorBehavior);
       newOperands.add(defaultValueOnError);
-      return callWithReturningType(translator, newOperands, call.getType());
+      newOperands.add(castSpecExpression(translator, call.getType()));
+      return Expressions.call(
+          Expressions.new_(method.getDeclaringClass()),
+          method,
+          EnumUtils.fromInternal(method.getParameterTypes(), newOperands));
     }
   }
 
@@ -3479,18 +3486,17 @@ public class RexImpTable implements RexImplementorTable {
       }
       newOperands.add(jsonize);
 
-      // How deeply an array RETURNING clause nests, and the type of its
-      // innermost elements. A clause that gives no array type nests zero
-      // deep, and its element type is passed as null, for no conversion.
-      RelDataType elementType = call.getType();
-      int arrayDepth = 0;
-      while (elementType.getSqlTypeName() == SqlTypeName.ARRAY) {
-        elementType = requireNonNull(elementType.getComponentType());
-        ++arrayDepth;
-      }
-      newOperands.add(Expressions.constant(arrayDepth));
-      return callWithReturningType(translator, newOperands,
-          arrayDepth == 0 ? null : elementType);
+      // Convert only when the RETURNING clause gives an array type; otherwise
+      // (for example a character type produced by jsonize) the value is left
+      // unchanged. cast recurses on the component type for the nesting.
+      final RelDataType returningType =
+          call.getType().getSqlTypeName() == SqlTypeName.ARRAY
+              ? call.getType() : null;
+      newOperands.add(castSpecExpression(translator, returningType));
+      return Expressions.call(
+          Expressions.new_(method.getDeclaringClass()),
+          method,
+          EnumUtils.fromInternal(method.getParameterTypes(), newOperands));
     }
   }
 
