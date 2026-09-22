@@ -96,31 +96,32 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
   /**
    * Implementation of
    * {@link org.apache.calcite.sql.util.SqlBasicVisitor.ArgHandler}
-   * that deep-copies {@link SqlCall}s and their operands.
+   * that copies a {@link SqlCall} when an operand changes or when
+   * {@code alwaysCopy} is true.
    */
   protected class CallCopyingArgHandler implements ArgHandler<@Nullable SqlNode> {
     boolean update;
-    final @Nullable SqlNode[] clonedOperands;
+    @Nullable SqlNode @Nullable [] clonedOperands;
     private final SqlCall call;
     private final boolean alwaysCopy;
 
     public CallCopyingArgHandler(SqlCall call, boolean alwaysCopy) {
       this.call = call;
       this.update = false;
-      final List<@Nullable SqlNode> operands = (List<@Nullable SqlNode>) call.getOperandList();
-      this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
+      this.clonedOperands = null;
     }
 
     @Override public SqlNode result() {
-      if (update || alwaysCopy) {
-        return call.getOperator().createCall(
-            call.getFunctionQuantifier(),
-            call.getParserPosition(),
-            clonedOperands);
-      } else {
+      if (!update && !alwaysCopy) {
         return call;
       }
+      final @Nullable SqlNode[] operands =
+          clonedOperands != null ? clonedOperands : copyOperands();
+      return call.getOperator().createCall(
+          call.getFunctionQuantifier(),
+          call.getParserPosition(),
+          operands);
     }
 
     @Override public @Nullable SqlNode visitChild(
@@ -134,9 +135,19 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
       SqlNode newOperand = operand.accept(SqlShuttle.this);
       if (newOperand != operand) {
         update = true;
+        if (clonedOperands == null) {
+          clonedOperands = copyOperands();
+        }
       }
-      clonedOperands[i] = newOperand;
+      if (clonedOperands != null) {
+        clonedOperands[i] = newOperand;
+      }
       return newOperand;
+    }
+
+    private @Nullable SqlNode[] copyOperands() {
+      final List<@Nullable SqlNode> operands = call.getOperandList();
+      return operands.toArray(SqlNode.EMPTY_ARRAY);
     }
   }
 }

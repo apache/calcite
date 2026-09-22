@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -33,14 +35,132 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link RexShuttle}.
  */
 class RexShuttleTest {
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7809">[CALCITE-7809]
+   * Reduce temporary object allocation in expression shuttles</a>. */
+  @Test void testVisitListReusesUnchangedImmutableList() {
+    final RelDataType type = createIntegerType();
+    final ImmutableList<RexNode> operands = createInputRefs(type, 3);
+    final RexNode absent = new RexInputRef(3, type);
+    final boolean[] update = {false};
+
+    final List<RexNode> result =
+        new ListVisitingShuttle(absent, absent)
+            .visitListForTest(operands, update);
+
+    assertSame(operands, result);
+    assertFalse(update[0]);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {0, 1, 2})
+  void testVisitListCopiesOnFirstChange(int changedIndex) {
+    final RelDataType type = createIntegerType();
+    final ImmutableList<RexNode> operands = createInputRefs(type, 3);
+    final RexNode replacement = new RexInputRef(3, type);
+    final boolean[] update = {false};
+
+    final List<RexNode> result =
+        new ListVisitingShuttle(operands.get(changedIndex), replacement)
+            .visitListForTest(operands, update);
+
+    assertNotSame(operands, result);
+    assertEquals(operands.size(), result.size());
+    assertTrue(update[0]);
+    assertSame(replacement, result.get(changedIndex));
+    for (int i = 0; i < operands.size(); i++) {
+      if (i != changedIndex) {
+        assertSame(operands.get(i), result.get(i));
+      }
+    }
+  }
+
+  @Test void testVisitListCopiesUnchangedMutableInput() {
+    final RelDataType type = createIntegerType();
+    final List<RexNode> operands = new ArrayList<>(createInputRefs(type, 3));
+    final RexNode absent = new RexInputRef(3, type);
+    final boolean[] update = {false};
+
+    final List<RexNode> result =
+        new ListVisitingShuttle(absent, absent)
+            .visitListForTest(operands, update);
+
+    assertNotSame(operands, result);
+    assertEquals(operands, result);
+    assertInstanceOf(ImmutableList.class, result);
+    assertFalse(update[0]);
+  }
+
+  @Test void testVisitListCopiesImmutableListPartialView() {
+    final RelDataType type = createIntegerType();
+    final ImmutableList<RexNode> backingList = createInputRefs(type, 5);
+    final List<RexNode> operands = backingList.subList(1, 4);
+    final RexNode absent = new RexInputRef(5, type);
+    final boolean[] update = {false};
+
+    final List<RexNode> result =
+        new ListVisitingShuttle(absent, absent)
+            .visitListForTest(operands, update);
+
+    assertNotSame(operands, result);
+    assertEquals(operands, result);
+    assertInstanceOf(ImmutableList.class, result);
+    assertFalse(update[0]);
+  }
+
+  private static RelDataType createIntegerType() {
+    return RelBuilder.create(RelBuilderTest.config().build())
+        .getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+  }
+
+  private static ImmutableList<RexNode> createInputRefs(
+      RelDataType type, int count) {
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (int i = 0; i < count; i++) {
+      builder.add(new RexInputRef(i, type));
+    }
+    return builder.build();
+  }
+
+  /** Shuttle that exposes {@link #visitList} for testing. */
+  private static class ListVisitingShuttle extends RexShuttle {
+    private final RexNode target;
+    private final RexNode replacement;
+
+    ListVisitingShuttle(RexNode target, RexNode replacement) {
+      this.target = target;
+      this.replacement = replacement;
+    }
+
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
+      return inputRef == target ? replacement : inputRef;
+    }
+
+    List<RexNode> visitListForTest(
+        List<? extends RexNode> exprs, boolean[] update) {
+      return visitList(exprs, update);
+    }
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3165">[CALCITE-3165]
