@@ -33,8 +33,8 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Tests {@link SqlFunctions#cast} and {@link SqlFunctions#castArray}, the
- * conversions used when the type of a value is not known until run time.
+ * Tests {@link SqlFunctions#cast}, the conversion used when the type of a
+ * value is not known until run time.
  *
  * <p>Test case for
  * <a href="https://issues.apache.org/jira/browse/CALCITE-7801">[CALCITE-7801]
@@ -85,15 +85,16 @@ class SqlFunctionsCastTest {
     assertThat(cast("abcdef", SqlTypeName.VARCHAR, 3, -1), is("abc"));
     assertThat(cast("ab", SqlTypeName.CHAR, 4, -1), is("ab  "));
 
-    // Fractional seconds beyond the precision of the type are truncated.
-    // The value is a number of milliseconds, so the truncation is visible
-    // here in a way that it is not through a result set.
+    // The value keeps its full millisecond precision, exactly as a generated
+    // CAST leaves it: the declared fractional-seconds precision is applied
+    // only when the value is rendered, not to the value itself, so it is not
+    // reduced here regardless of the precision requested.
     assertThat(cast("10:20:30.987", SqlTypeName.TIME, 3, -1), is(37230987));
-    assertThat(cast("10:20:30.987", SqlTypeName.TIME, 0, -1), is(37230000));
+    assertThat(cast("10:20:30.987", SqlTypeName.TIME, 0, -1), is(37230987));
     assertThat(cast("2020-01-01 10:20:30.987", SqlTypeName.TIMESTAMP, 3, -1),
         is(1577874030987L));
     assertThat(cast("2020-01-01 10:20:30.987", SqlTypeName.TIMESTAMP, 0, -1),
-        is(1577874030000L));
+        is(1577874030987L));
 
     // Only a character value converts to a datetime.
     assertThrows(CalciteException.class,
@@ -155,13 +156,16 @@ class SqlFunctionsCastTest {
 
   private static @Nullable Object cast(@Nullable Object value,
       SqlTypeName typeName, int precision, int scale) {
-    return SqlFunctions.cast(value, typeName, precision, scale,
-        RoundingMode.DOWN);
+    return SqlFunctions.cast(value,
+        new CastSpec(typeName, precision, scale, RoundingMode.DOWN));
   }
 
   private static @Nullable Object castArray(@Nullable Object value,
       SqlTypeName elementType, int depth) {
-    return SqlFunctions.castArray(value, elementType, -1, -1,
-        RoundingMode.DOWN, depth);
+    CastSpec spec = new CastSpec(elementType, -1, -1, RoundingMode.DOWN);
+    for (int i = 0; i < depth; i++) {
+      spec = new CastSpec(SqlTypeName.ARRAY, spec);
+    }
+    return SqlFunctions.cast(value, spec);
   }
 }

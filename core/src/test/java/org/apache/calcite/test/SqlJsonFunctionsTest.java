@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.CastSpec;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
@@ -712,8 +713,8 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_VALUE, context, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         f.jsonValue(context, emptyBehavior, defaultValueOnEmpty,
-            errorBehavior, defaultValueOnError, SqlTypeName.ANY,
-            -1, -1, RoundingMode.DOWN),
+            errorBehavior, defaultValueOnError,
+            new CastSpec(SqlTypeName.ANY, -1, -1, RoundingMode.DOWN)),
         matcher);
   }
 
@@ -730,7 +731,7 @@ class SqlJsonFunctionsTest {
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         () -> f.jsonValue(input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError,
-            SqlTypeName.ANY, -1, -1, RoundingMode.DOWN),
+            new CastSpec(SqlTypeName.ANY, -1, -1, RoundingMode.DOWN)),
         matcher);
   }
 
@@ -754,7 +755,8 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior, jsonize, 0, SqlTypeName.ANY, -1, -1, RoundingMode.DOWN),
+            errorBehavior, jsonize,
+            new CastSpec(SqlTypeName.ANY, -1, -1, RoundingMode.DOWN)),
         matcher);
   }
 
@@ -769,8 +771,8 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         () -> f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior, true, 0, SqlTypeName.ANY, -1, -1,
-            RoundingMode.DOWN),
+            errorBehavior, true,
+            new CastSpec(SqlTypeName.ANY, -1, -1, RoundingMode.DOWN)),
         matcher);
   }
 

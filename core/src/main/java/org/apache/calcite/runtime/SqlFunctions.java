@@ -5637,27 +5637,47 @@ public class SqlFunctions {
         : toBigDecimal(o.toString());
   }
 
-  /** Converts a value to the SQL type {@code typeName}, as {@code CAST}
-   * does, when the type of the value is not known until run time.
+  /** Converts a value to the target described by {@code spec}, as
+   * {@code CAST} does, when the type of the value is not known until run
+   * time.
+   *
+   * <p>A collection type is converted element by element, recursing on the
+   * {@link CastSpec#getComponent() component} spec.
    *
    * <p>Throws if the value cannot be converted, and for a target type that
    * this method does not handle, so that a caller such as
    * {@code JSON_VALUE} can apply its {@code ON ERROR} clause.
    *
-   * @param value        Value to convert
-   * @param typeName     Type to convert it to; {@link SqlTypeName#ANY}
-   *                     returns the value unchanged
-   * @param precision    Precision of the target type, or negative
-   * @param scale        Scale of the target type, or negative
-   * @param roundingMode Rounding mode of the type system
+   * @param value Value to convert
+   * @param spec  Description of the conversion target; a target type of
+   *              {@link SqlTypeName#ANY} returns the value unchanged
    */
-  static @Nullable Object cast(@Nullable Object value,
-      SqlTypeName typeName, int precision, int scale,
-      RoundingMode roundingMode) {
+  static @Nullable Object cast(@Nullable Object value, CastSpec spec) {
+    final SqlTypeName typeName = spec.getTypeName();
     if (value == null || typeName == SqlTypeName.ANY) {
       return value;
     }
+    final int precision = spec.getPrecision();
+    final int scale = spec.getScale();
+    final RoundingMode roundingMode = spec.getRoundingMode();
     switch (typeName) {
+    case ARRAY:
+    case MULTISET: {
+      // A collection is converted element by element, as a CAST to a
+      // collection type does. A value of a different shape, such as a scalar
+      // where an array is wanted, is an error, so that a caller such as
+      // JSON_QUERY can apply its ON ERROR clause.
+      final CastSpec component = spec.getComponent();
+      if (component == null || !(value instanceof Collection)) {
+        return cannotConvert(value, typeName);
+      }
+      final Collection<?> collection = (Collection<?>) value;
+      final List<@Nullable Object> list = new ArrayList<>(collection.size());
+      for (Object element : collection) {
+        list.add(cast(element, component));
+      }
+      return list;
+    }
     case BOOLEAN:
       return toBoolean(value);
     case TINYINT:
@@ -5684,63 +5704,17 @@ public class SqlFunctions {
     case DATE:
       return DateTimeUtils.dateStringToUnixDate(charValue(value, typeName));
     case TIME:
-      return (int) truncateFraction(
-          DateTimeUtils.timeStringToUnixDate(charValue(value, typeName)),
-          precision);
+      return DateTimeUtils.timeStringToUnixDate(charValue(value, typeName));
     case TIME_WITH_LOCAL_TIME_ZONE:
-      return (int) truncateFraction(
-          castNonNull(toTimeWithLocalTimeZone(charValue(value, typeName))),
-          precision);
+      return toTimeWithLocalTimeZone(charValue(value, typeName));
     case TIMESTAMP:
-      return truncateFraction(
-          DateTimeUtils.timestampStringToUnixDate(charValue(value, typeName)),
-          precision);
+      return DateTimeUtils.timestampStringToUnixDate(
+          charValue(value, typeName));
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      return truncateFraction(
-          castNonNull(
-              toTimestampWithLocalTimeZone(charValue(value, typeName))),
-          precision);
+      return toTimestampWithLocalTimeZone(charValue(value, typeName));
     default:
       return cannotConvert(value, typeName);
     }
-  }
-
-  /** Converts a value to an array, {@code depth} levels deep, whose
-   * innermost elements have the SQL type {@code elementType}, as a
-   * {@code CAST} to that type does, when the type of the value is not known
-   * until run time.
-   *
-   * <p>The declared type drives the conversion: the value must be an array
-   * at each of the {@code depth} levels, and what lies below them must
-   * convert to {@code elementType}. A value of a different shape, such as a
-   * flat array where an array of arrays is wanted, is an error.
-   *
-   * <p>Throws if the value does not have that shape, so that a caller such
-   * as {@code JSON_QUERY} can apply its {@code ON ERROR} clause.
-   * {@link SqlTypeName#ANY} returns the value unchanged.
-   *
-   * @see #cast(Object, SqlTypeName, int, int, RoundingMode)
-   */
-  static @Nullable Object castArray(@Nullable Object value,
-      SqlTypeName elementType, int precision, int scale,
-      RoundingMode roundingMode, int depth) {
-    if (value == null || elementType == SqlTypeName.ANY) {
-      return value;
-    }
-    if (depth == 0) {
-      return cast(value, elementType, precision, scale, roundingMode);
-    }
-    if (!(value instanceof Collection)) {
-      return cannotConvert(value, SqlTypeName.ARRAY);
-    }
-    final Collection<?> collection = (Collection<?>) value;
-    final List<@Nullable Object> list = new ArrayList<>(collection.size());
-    for (Object element : collection) {
-      list.add(
-          castArray(element, elementType, precision, scale, roundingMode,
-              depth - 1));
-    }
-    return list;
   }
 
   /** Converts a value to an exact numeric type, rounding as the type system
@@ -5795,21 +5769,6 @@ public class SqlFunctions {
     }
     return Primitive.charToDecimalCast(value.toString(), precision, scale,
         roundingMode);
-  }
-
-  /** Truncates a datetime value, held as a number of milliseconds, to
-   * {@code precision} fractional digits of a second.
-   *
-   * @see org.apache.calcite.util.TimestampString#round(int) */
-  private static long truncateFraction(long millis, int precision) {
-    if (precision < 0 || precision >= 3) {
-      return millis;
-    }
-    long unit = 1;
-    for (int i = precision; i < 3; i++) {
-      unit *= 10;
-    }
-    return truncate(millis, unit);
   }
 
   /** Returns {@code value} as a character value, throwing if it is not one;

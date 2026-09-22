@@ -44,7 +44,6 @@ import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -246,20 +245,14 @@ public class JsonFunctions {
         Object defaultValueOnEmpty,
         SqlJsonValueEmptyOrErrorBehavior errorBehavior,
         Object defaultValueOnError,
-        SqlTypeName returningType,
-        int precision,
-        int scale,
-        RoundingMode roundingMode) {
+        CastSpec spec) {
       return jsonValue(
           jsonApiCommonSyntaxWithCache(input, pathSpec),
           emptyBehavior,
           defaultValueOnEmpty,
           errorBehavior,
           defaultValueOnError,
-          returningType,
-          precision,
-          scale,
-          roundingMode);
+          spec);
     }
 
     public @Nullable Object jsonValue(JsonValueContext input,
@@ -268,20 +261,14 @@ public class JsonFunctions {
         Object defaultValueOnEmpty,
         SqlJsonValueEmptyOrErrorBehavior errorBehavior,
         Object defaultValueOnError,
-        SqlTypeName returningType,
-        int precision,
-        int scale,
-        RoundingMode roundingMode) {
+        CastSpec spec) {
       return jsonValue(
           jsonApiCommonSyntax(input, pathSpec),
           emptyBehavior,
           defaultValueOnEmpty,
           errorBehavior,
           defaultValueOnError,
-          returningType,
-          precision,
-          scale,
-          roundingMode);
+          spec);
     }
 
     public @Nullable Object jsonValue(JsonPathContext context,
@@ -289,10 +276,7 @@ public class JsonFunctions {
         Object defaultValueOnEmpty,
         SqlJsonValueEmptyOrErrorBehavior errorBehavior,
         Object defaultValueOnError,
-        SqlTypeName returningType,
-        int precision,
-        int scale,
-        RoundingMode roundingMode) {
+        CastSpec spec) {
       final Exception exc;
       if (context.hasException()) {
         exc = context.exc;
@@ -306,8 +290,7 @@ public class JsonFunctions {
           case NULL:
             return null;
           case DEFAULT:
-            return convertDefaultValue(defaultValueOnEmpty, returningType,
-                precision, scale, roundingMode);
+            return convertDefaultValue(defaultValueOnEmpty, spec);
           default:
             throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
                 emptyBehavior.toString()).ex();
@@ -319,8 +302,7 @@ public class JsonFunctions {
                   value.toString()).ex();
         } else {
           try {
-            return SqlFunctions.cast(value, returningType, precision, scale,
-                roundingMode);
+            return SqlFunctions.cast(value, spec);
           } catch (Exception e) {
             // A failed conversion is an error, so ON ERROR applies.
             exc = e;
@@ -333,8 +315,7 @@ public class JsonFunctions {
       case NULL:
         return null;
       case DEFAULT:
-        return convertDefaultValue(defaultValueOnError, returningType,
-            precision, scale, roundingMode);
+        return convertDefaultValue(defaultValueOnError, spec);
       default:
         throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
             errorBehavior.toString()).ex();
@@ -348,15 +329,10 @@ public class JsonFunctions {
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
         SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
         boolean jsonize,
-        int arrayDepth,
-        SqlTypeName elementType,
-        int precision,
-        int scale,
-        RoundingMode roundingMode) {
+        CastSpec spec) {
       return jsonQuery(
           jsonApiCommonSyntaxWithCache(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior, jsonize, arrayDepth,
-          elementType, precision, scale, roundingMode);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize, spec);
     }
 
     public @Nullable Object jsonQuery(JsonValueContext input,
@@ -365,15 +341,10 @@ public class JsonFunctions {
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
         SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
         boolean jsonize,
-        int arrayDepth,
-        SqlTypeName elementType,
-        int precision,
-        int scale,
-        RoundingMode roundingMode) {
+        CastSpec spec) {
       return jsonQuery(
           jsonApiCommonSyntax(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior, jsonize, arrayDepth,
-          elementType, precision, scale, roundingMode);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize, spec);
     }
 
     public @Nullable Object jsonQuery(
@@ -382,11 +353,7 @@ public class JsonFunctions {
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
         SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
         boolean jsonize,
-        int arrayDepth,
-        SqlTypeName elementType,
-        int precision,
-        int scale,
-        RoundingMode roundingMode) {
+        CastSpec spec) {
       final Exception exc;
       if (context.hasException()) {
         exc = context.exc;
@@ -442,8 +409,7 @@ public class JsonFunctions {
             }
           } else {
             try {
-              return SqlFunctions.castArray(value, elementType, precision,
-                  scale, roundingMode, arrayDepth);
+              return SqlFunctions.cast(value, spec);
             } catch (Exception e) {
               // A failed conversion is an error, so ON ERROR applies.
               exc = e;
@@ -474,10 +440,9 @@ public class JsonFunctions {
      * between numeric types, as in
      * {@code RETURNING DOUBLE DEFAULT 1 ON EMPTY}. */
     private static @Nullable Object convertDefaultValue(@Nullable Object value,
-        SqlTypeName typeName, int precision, int scale,
-        RoundingMode roundingMode) {
-      return SqlTypeName.NUMERIC_TYPES.contains(typeName)
-          ? SqlFunctions.cast(value, typeName, precision, scale, roundingMode)
+        CastSpec spec) {
+      return SqlTypeName.NUMERIC_TYPES.contains(spec.getTypeName())
+          ? SqlFunctions.cast(value, spec)
           : value;
     }
 
