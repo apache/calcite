@@ -3002,6 +3002,13 @@ class UtilTest {
     assertThat(s2, hasToString(s.toString()));
   }
 
+  @Test void testNlsStringAsSqlStringBuilder() {
+    final NlsString s = new NlsString("isn't", "LATIN1", SqlCollation.IMPLICIT);
+    final StringBuilder buf = new StringBuilder("literal: ");
+    s.asSql(buf, true, false);
+    assertThat(buf, hasToString("literal: _LATIN1'isn''t'"));
+  }
+
   /** Tests that {@link NlsString#compareTo} is consistent with
    * {@link NlsString#equals}: {@code x.compareTo(y) == 0} iff
    * {@code x.equals(y)} for values that differ in charset or collation. */
