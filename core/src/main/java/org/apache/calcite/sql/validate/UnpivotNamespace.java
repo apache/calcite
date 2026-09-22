@@ -37,6 +37,14 @@ public class UnpivotNamespace extends AbstractNamespace {
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateUnpivot(unpivot);
+    // UNPIVOT transposes columns and rows, so a must-filter obligation on
+    // its input cannot be re-expressed in terms of this namespace's columns.
+    // Fail closed: require the input to have discharged its obligations
+    // rather than silently dropping them.
+    final SqlValidatorNamespace queryNs = validator.getNamespace(unpivot.query);
+    if (queryNs != null) {
+      requireNoFilterRequirement(queryNs, unpivot.query);
+    }
     return requireNonNull(rowType, "rowType");
   }
 
