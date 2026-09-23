@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class SqlRegrCountAggFunction extends SqlCountAggFunction {
   public SqlRegrCountAggFunction(SqlKind kind) {
-    super("REGR_COUNT", OperandTypes.NUMERIC_NUMERIC);
+    super("REGR_COUNT", OperandTypes.NUMERIC_NUMERIC, kind);
     checkArgument(SqlKind.REGR_COUNT == kind, "unsupported sql kind: " + kind);
   }
 }
