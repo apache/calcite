@@ -2967,7 +2967,7 @@ public class RexUtil {
         }
         return and(Iterables.concat(factors.values(), ImmutableList.of(or(list))));
       default:
-        return normalizeComparison(rex);
+        return rex;
       }
     }
 
@@ -2994,7 +2994,7 @@ public class RexUtil {
         if (i++ == 0) {
           for (RexNode conjunction : RelOptUtil.conjunctions(node)) {
             RexNode normalized = normalizeComparison(conjunction);
-            map.put(normalized, normalized);
+            map.put(normalized, conjunction);
           }
         } else {
           map.keySet().retainAll(
