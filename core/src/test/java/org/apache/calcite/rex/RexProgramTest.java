@@ -896,13 +896,13 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode bool0 = rexBuilder.makeInputRef(booleanType, 0);
     final RexNode bool1 = rexBuilder.makeInputRef(booleanType, 1);
     final RexNode seven = literal(7);
-    checkPullFactors(eq(ref6, ref3), "=($3, $6)");
-    checkPullFactors(gt(ref6, ref3), "<($3, $6)");
-    checkPullFactors(le(seven, ref3), ">=($3, 7)");
+    checkPullFactors(eq(ref6, ref3), "=($6, $3)");
+    checkPullFactors(gt(ref6, ref3), ">($6, $3)");
+    checkPullFactors(le(seven, ref3), "<=(7, $3)");
     checkPullFactors(
         or(and(eq(ref6, ref3), bool0),
             and(eq(ref3, ref6), bool1)),
-        "AND(=($3, $6), OR($0, $1))");
+        "AND(=($6, $3), OR($0, $1))");
   }
 
   @Test void testSimplify() {
