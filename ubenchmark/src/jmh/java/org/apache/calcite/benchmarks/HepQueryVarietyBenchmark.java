@@ -22,7 +22,11 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.rules.CommonRelSubExprRegisterRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.test.Fixtures;
 
 import com.google.common.collect.ImmutableList;
@@ -63,15 +67,15 @@ public class HepQueryVarietyBenchmark {
   private static final int MATCH_LIMIT = 1000;
 
   @Param({"FILTER_PROJECT", "AGGREGATE", "CORRELATED_EXISTS", "JOIN5", "MIXED_DEEP",
-      "UNION_WIDE"})
+      "UNION_WIDE", "COMMON_SUBEXPR", "UNION_PRUNE_EMPTY"})
   String query;
 
   /** Collections the rules are split across, one {@code addRuleCollection} call each. */
-  @Param({"1", "2", "5", "10"})
+  @Param({"1", "5", "10"})
   int ruleCollections;
 
   /** Rules in each collection; one is what {@code addRuleInstance} builds. */
-  @Param({"1", "2", "5", "10", "20", "50"})
+  @Param({"1", "5", "10", "50"})
   int rulesPerCollection;
 
   /** Share of the rule set able to rewrite these queries, not the share of attempts matching. */
@@ -114,6 +118,18 @@ public class HepQueryVarietyBenchmark {
           CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS,
           CoreRules.MATCH);
 
+  /** Rules that reach the common-subexpression path; none calls {@code transformTo}. */
+  private static final List<RelOptRule> COMMON_SUB_EXPR =
+      ImmutableList.of(
+          CommonRelSubExprRegisterRule.Config.FILTER.toRule(),
+          CommonRelSubExprRegisterRule.Config.PROJECT.toRule(),
+          CommonRelSubExprRegisterRule.Config.JOIN.toRule(),
+          CommonRelSubExprRegisterRule.Config.AGGREGATE.toRule());
+
+  /** One of three core rules with an {@code UNORDERED} child policy. */
+  private static final List<RelOptRule> UNORDERED_RULE =
+      ImmutableList.of(PruneEmptyRules.UNION_INSTANCE);
+
   private static String sqlFor(String name) {
     switch (name) {
     case "FILTER_PROJECT":
@@ -143,6 +159,13 @@ public class HepQueryVarietyBenchmark {
           + "where t.c > 1 order by t.c desc";
     case "UNION_WIDE":
       return wideUnion(60);
+    case "COMMON_SUBEXPR":
+      // Identical branches share a vertex, giving it the two parents this path requires.
+      return "select t1.deptno, t1.s, t2.s from\n"
+          + "  (select deptno, sum(sal) as s from emp where sal > 100 group by deptno) t1\n"
+          + "join\n"
+          + "  (select deptno, sum(sal) as s from emp where sal > 100 group by deptno) t2\n"
+          + "on t1.deptno = t2.deptno";
     default:
       throw new IllegalArgumentException("unknown query: " + name);
     }
@@ -164,12 +187,32 @@ public class HepQueryVarietyBenchmark {
     return b.toString();
   }
 
+  /**
+   * Returns a union of 60 real branches plus one empty {@code Values}, built directly with
+   * {@link LogicalUnion#create} since SQL has no way to write a single wide union with a
+   * provably-empty branch.
+   */
+  private static RelNode unionPruneEmptyRoot() {
+    final List<RelNode> branches = new ArrayList<>(61);
+    for (int i = 0; i < 60; i++) {
+      branches.add(
+          Fixtures.forSqlToRel()
+              .withSql("select ename, sal from emp where deptno = " + i + " and sal > " + i)
+              .toRel());
+    }
+    branches.add(
+        LogicalValues.createEmpty(branches.get(0).getCluster(), branches.get(0).getRowType()));
+    return LogicalUnion.create(branches, true);
+  }
+
   private RelNode root;
   private HepProgram program;
 
   @Setup(Level.Trial)
   public void setup() {
-    root = Fixtures.forSqlToRel().withSql(sqlFor(query)).toRel();
+    root = "UNION_PRUNE_EMPTY".equals(query)
+        ? unionPruneEmptyRoot()
+        : Fixtures.forSqlToRel().withSql(sqlFor(query)).toRel();
 
     HepProgramBuilder builder = HepProgram.builder()
         .addMatchLimit(MATCH_LIMIT)
@@ -188,6 +231,17 @@ public class HepQueryVarietyBenchmark {
   private List<List<RelOptRule>> collections() {
     final int total = ruleCollections * rulesPerCollection;
     final int firing = total * firingPercent / 100;
+    final List<RelOptRule> nonFiring;
+    switch (query) {
+    case "COMMON_SUBEXPR":
+      nonFiring = COMMON_SUB_EXPR;
+      break;
+    case "UNION_PRUNE_EMPTY":
+      nonFiring = UNORDERED_RULE;
+      break;
+    default:
+      nonFiring = NON_APPLICABLE;
+    }
     List<RelOptRule> all = new ArrayList<>(total);
     int f = 0;
     int n = 0;
@@ -195,7 +249,7 @@ public class HepQueryVarietyBenchmark {
       if ((i + 1) * firing / total > i * firing / total) {
         all.add(FIRING.get(f++ % FIRING.size()));
       } else {
-        all.add(NON_APPLICABLE.get(n++ % NON_APPLICABLE.size()));
+        all.add(nonFiring.get(n++ % nonFiring.size()));
       }
     }
     List<List<RelOptRule>> split = new ArrayList<>(ruleCollections);
