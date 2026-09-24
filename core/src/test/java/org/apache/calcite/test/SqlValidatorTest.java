@@ -10397,6 +10397,56 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'NONEXISTENT' not found");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7763">[CALCITE-7763]
+   * "TABLE t ORDER BY c" and "(SELECT ... LIMIT n) ORDER BY c" fail with
+   * UnsupportedOperationException</a>.
+   *
+   * <p>{@code SqlOrderBy} lacked a {@code setOperand} override, so
+   * {@code performUnconditionalRewrites} threw when it tried to write a
+   * rewritten child (e.g. {@code EXPLICIT_TABLE} -> {@code SELECT *}) back
+   * into the node's operand slot. */
+  @Test void testExplicitTableWithOrderBy() {
+    final String empRecordType =
+        "RecordType(INTEGER NOT NULL EMPNO,"
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL";
+
+    sql("table emp order by empno")
+        .type(empRecordType)
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMP`.`EMPNO`");
+
+    sql("table emp order by empno desc")
+        .type(empRecordType)
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMP`.`EMPNO` DESC");
+
+    sql("table emp order by empno offset 2 rows fetch next 5 rows only")
+        .type(empRecordType)
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMP`.`EMPNO`\n"
+            + "OFFSET 2 ROWS\n"
+            + "FETCH NEXT 5 ROWS ONLY");
+
+    sql("(select empno from emp fetch next 5 rows only) order by empno")
+        .type("RecordType(INTEGER NOT NULL EMPNO) NOT NULL")
+        .rewritesTo("SELECT *\n"
+            + "FROM (SELECT `EMPNO`\n"
+            + "FROM `EMP`\n"
+            + "FETCH NEXT 5 ROWS ONLY)\n"
+            + "ORDER BY `EXPR$0`.`EMPNO`");
+  }
+
   @Test void testCollectionTable() {
     sql("select * from table(ramp(3))")
         .type("RecordType(INTEGER NOT NULL I) NOT NULL");
