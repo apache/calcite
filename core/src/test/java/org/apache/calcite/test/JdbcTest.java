@@ -6835,6 +6835,13 @@ public class JdbcTest {
     checkJdbcSchemaDirectConnection("schemaType=JDBC");
   }
 
+  @Test void testJdbcSchemaDirectConnectionInitWrapsRuntimeException() {
+    final SQLException e = assertThrows(SQLException.class, () ->
+        DriverManager.getConnection(
+            "jdbc:calcite:schemaType=JDBC;schema.jdbcUrl=jdbc:invalid:"));
+    assertThat(e.getCause(), instanceOf(RuntimeException.class));
+  }
+
   private void checkJdbcSchemaDirectConnection(String s) throws SQLException {
     final StringBuilder b = new StringBuilder("jdbc:calcite:");
     b.append(s);

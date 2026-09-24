@@ -151,6 +151,8 @@ public class Driver extends UnregisteredDriver {
             }
           } catch (IOException e) {
             throw new SQLException(e);
+          } catch (RuntimeException e) {
+            throw new SQLException(e);
           }
         }
         connection.init();
