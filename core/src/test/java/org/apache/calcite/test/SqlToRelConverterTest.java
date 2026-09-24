@@ -2720,6 +2720,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7821">[CALCITE-7821]
+   * Correlated query crashes SqlToRelConverter</a>. */
+  @Test void testNotInCorrelatedNullable() {
+    final String sql = "select * from emp as t where t.mgr not in"
+        + " (select s.mgr from emp as s where s.empno = t.empno)";
+    sql(sql).withExpand(true).ok();
+  }
+
   @Test void testAllValueList() {
     final String sql = "select empno from emp where deptno > all (10, 20)";
     sql(sql).withExpand(false).ok();

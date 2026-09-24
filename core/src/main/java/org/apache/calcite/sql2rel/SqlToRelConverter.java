@@ -30,6 +30,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -47,7 +48,6 @@ import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -1514,9 +1514,10 @@ public class SqlToRelConverter {
                     AggregateCall.create(call.getParserPosition(), SqlStdOperatorTable.COUNT, false,
                         false, false, ImmutableList.of(), args,
                         -1, null, RelCollations.EMPTY, longType, null)));
-        LogicalJoin join =
-            LogicalJoin.create(bb.root(), aggregate, ImmutableList.of(),
-                rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
+        // createJoin will create a Correlate node if a sub-query is correlated
+        final RelNode join =
+            createJoin(bb, bb.root(), aggregate, rexBuilder.makeLiteral(true),
+                JoinRelType.INNER);
         bb.setRoot(join, false);
       }
       final RexNode rex =
@@ -1764,29 +1765,28 @@ public class SqlToRelConverter {
 
   private RexNode translateIn(RelOptUtil.Logic logic, @Nullable RelNode root,
       final RexNode rex) {
+    // RexRangeRef contains the following fields:
+    //   leftKeysForIn,
+    //   rightKeysForIn (the original sub-query select list),
+    //   nullIndicator
+    //
+    // The first two lists contain the same number of fields.
+    assert rex instanceof RexRangeRef;
+    final int fieldCount = rex.getType().getFieldCount();
+    final int keyCount = (fieldCount - 1) / 2;
     switch (logic) {
     case TRUE:
       return rexBuilder.makeLiteral(true);
 
     case TRUE_FALSE:
     case UNKNOWN_AS_FALSE:
-      assert rex instanceof RexRangeRef;
-      final int fieldCount = rex.getType().getFieldCount();
       RexNode rexNode = rexBuilder.makeFieldAccess(rex, fieldCount - 1);
       rexNode = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, rexNode);
 
       // Then append the IS NOT NULL(leftKeysForIn).
-      //
-      // RexRangeRef contains the following fields:
-      //   leftKeysForIn,
-      //   rightKeysForIn (the original sub-query select list),
-      //   nullIndicator
-      //
-      // The first two lists contain the same number of fields.
-      final int k = (fieldCount - 1) / 2;
       ImmutableList.Builder<RexNode> rexNodeBuilder = ImmutableList.builder();
       rexNodeBuilder.add(rexNode);
-      for (int i = 0; i < k; i++) {
+      for (int i = 0; i < keyCount; i++) {
         rexNodeBuilder.add(
             rexBuilder.makeCall(
                 SqlStdOperatorTable.IS_NOT_NULL,
@@ -1811,9 +1811,10 @@ public class SqlToRelConverter {
       // cross join (select count(*) as c, count(deptno) as ck from v) as ct
       // left join (select distinct deptno, true as i from v) as dt
       //   on e.deptno = dt.deptno
-      final Join join = (Join) requireNonNull(root, "root");
+      // The joins may be Correlate nodes if the sub-query is correlated.
+      final BiRel join = (BiRel) requireNonNull(root, "root");
       final Project left = (Project) join.getLeft();
-      final RelNode leftLeft = ((Join) left.getInput()).getLeft();
+      final RelNode leftLeft = ((BiRel) left.getInput()).getLeft();
       final int leftLeftCount = leftLeft.getRowType().getFieldCount();
       final RelDataType longType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
@@ -1834,10 +1835,12 @@ public class SqlToRelConverter {
           falseLiteral,
           rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, iRef),
           trueLiteral);
-      final JoinInfo joinInfo = join.analyzeCondition();
-      for (int leftKey : joinInfo.leftKeys) {
-        final RexNode kRef = rexBuilder.makeInputRef(root, leftKey);
-        args.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, kRef),
+      // Read the left keys from rex; if 'join' is a Correlate
+      // it has no join condition
+      for (int i = 0; i < keyCount; i++) {
+        args.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+                rexBuilder.makeFieldAccess(rex, i)),
             unknownLiteral);
       }
       args.add(rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ckRef, cRef),

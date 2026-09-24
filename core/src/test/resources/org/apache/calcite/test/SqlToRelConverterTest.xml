@@ -6450,6 +6450,33 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNotInCorrelatedNullable">
+    <Resource name="sql">
+      <![CDATA[select * from emp as t where t.mgr not in (select s.mgr from emp as s where s.empno = t.empno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(=($9, 0), AND(IS NULL($14), >=($10, $9), IS NOT NULL($11)))])
+    LogicalJoin(condition=[AND(=($0, $13), =($11, $12))], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$10], $f1=[$11], MGR0=[$3])
+        LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], $f1=[CASE(IS NOT NULL($2), $2, 0)], $f2=[CASE(IS NOT NULL($3), $3, 0)])
+            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(EMPNO=[$0])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{0}], agg#0=[COUNT()], agg#1=[COUNT($1)])
+                LogicalProject(EMPNO=[$0], MGR=[$3], $f1=[true])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[IS NOT NULL($0)])
+        LogicalAggregate(group=[{0, 1}], agg#0=[MIN($2)])
+          LogicalProject(MGR=[$3], EMPNO=[$0], $f1=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotInMultiValue">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno not in (10, 20)]]>

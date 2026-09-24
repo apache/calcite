@@ -10231,3 +10231,55 @@ where e.n > (
 
 !ok
 !set trimfields true
+
+# [CALCITE-7821] Correlated query crashes SqlToRelConverter
+# The results of the following three queries were validated using Postgres.
+!set expand true
+with
+t(k, a) as (select * from (values (1, 10), (2, cast(null as int)), (3, 30), (4, 40), (5, cast(null as int)))),
+s(k, b) as (select * from (values (1, 10), (3, cast(null as int)), (4, 41), (5, 50)))
+select * from t where t.a not in (select s.b from s where s.k = t.k);
++---+----+
+| K | A  |
++---+----+
+| 2 |    |
+| 4 | 40 |
++---+----+
+(2 rows)
+
+!ok
+
+with
+t(k, a) as (select * from (values (1, 10), (2, cast(null as int)), (3, 30), (4, 40), (5, cast(null as int)))),
+s(k, b) as (select * from (values (1, 10), (3, cast(null as int)), (4, 41), (5, 50)))
+select k, a in (select s.b from s where s.k = t.k) as i from t;
++---+-------+
+| K | I     |
++---+-------+
+| 1 | true  |
+| 2 | false |
+| 3 |       |
+| 4 | false |
+| 5 |       |
++---+-------+
+(5 rows)
+
+!ok
+
+with
+t(k, a) as (select * from (values (1, 10), (2, cast(null as int)), (3, 30), (4, 40), (5, cast(null as int)))),
+s(k, b) as (select * from (values (1, 10), (3, cast(null as int)), (4, 41), (5, 50)))
+select k, a not in (select s.b from s where s.k = t.k) as ni from t;
++---+-------+
+| K | NI    |
++---+-------+
+| 1 | false |
+| 2 | true  |
+| 3 |       |
+| 4 | true  |
+| 5 |       |
++---+-------+
+(5 rows)
+
+!ok
+!set expand false
