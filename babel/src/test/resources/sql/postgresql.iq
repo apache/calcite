@@ -526,9 +526,6 @@ EXPR$0
 null
 !ok
 
-# [CALCITE-7494] Avatica 1.29.0 renders TIMESTAMP WITH TIME ZONE with its zone
-!if (fixed.calcite7494) {
-### disabled until Bug.CALCITE_7494_FIXED ###
 select to_timestamp('01', 'HH');
 EXPR$0
 0001-01-01 01:00:00 UTC
@@ -1163,7 +1160,6 @@ select to_timestamp('ix', 'rm');
 EXPR$0
 0001-09-01 00:00:00 UTC
 !ok
-!}
 
 select to_date('2022-06-03', 'YYYY-MM-DD');
 EXPR$0
@@ -1245,9 +1241,6 @@ EXPR$0
 0001-01-01
 !ok
 
-# [CALCITE-7494] Avatica 1.29.0 renders TIMESTAMP WITH TIME ZONE with its zone
-!if (fixed.calcite7494) {
-### disabled until Bug.CALCITE_7494_FIXED ###
 select to_timestamp('18:46:32 2022-06-03', 'HH24:MI:SS YYYY-MM-DD');
 EXPR$0
 2022-06-03 18:46:32 UTC
@@ -1257,7 +1250,6 @@ select to_timestamp('18:46:32 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY');
 EXPR$0
 2022-06-03 18:46:32 UTC
 !ok
-!}
 
 select date_part('microsecond', timestamp '2022-06-03 12:15:48.678');
 EXPR$0
