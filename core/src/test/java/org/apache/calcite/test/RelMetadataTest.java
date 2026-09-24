@@ -98,6 +98,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
@@ -4926,6 +4927,68 @@ public class RelMetadataTest {
     final RelMetadataQuery mq = node.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = mq.getTableReferences(union);
     assertNull(tableReferences);
+  }
+
+  @Test void testTableReferencesTableFunctionScanSameTableInputs() {
+    final RelNode rel = fixture()
+        .withRelFn(builder ->
+            builder.scan("EMP")
+                .scan("EMP")
+                .functionScan(new MockSqlOperatorTable.DedupFunction(), 2,
+                    builder.cursor(2, 0), builder.cursor(2, 1))
+                .build())
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences =
+        Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences,
+        hasToString("[[scott, EMP].#0, [scott, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesTableFunctionScanZeroInputs() {
+    final RelNode rel = fixture()
+        .withRelFn(builder ->
+            builder.functionScan(new MockSqlOperatorTable.RampFunction(), 0,
+                    builder.literal(3))
+                .build())
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences = mq.getTableReferences(rel);
+    assertThat(tableReferences, notNullValue());
+    assertThat(tableReferences, hasSize(0));
+  }
+
+  @Test void testTableReferencesTableFunctionScanInputAndScalarSubQuery() {
+    final RelNode rel = fixture()
+        .withRelFn(builder -> {
+          final RelNode subQuery =
+              builder.scan("EMP").project(builder.field("EMPNO")).build();
+          return builder.scan("EMP")
+              .functionScan(new MockSqlOperatorTable.DedupFunction(), 1,
+                  builder.cursor(1, 0), RexSubQuery.scalar(subQuery))
+              .build();
+        })
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(Sets.newTreeSet(mq.getTableReferences(rel)),
+        hasToString("[[scott, EMP].#0, [scott, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesTableFunctionScanUnknownInput() {
+    final RelNode rel = fixture()
+        .withRelFn(builder -> {
+          final RelNode scan = builder.scan("EMP").build();
+          final RelNode unknown =
+              new DummyRelNode(scan.getCluster(), scan.getTraitSet(), scan);
+          return builder.push(unknown)
+              .push(scan)
+              .functionScan(new MockSqlOperatorTable.DedupFunction(), 2,
+                  builder.cursor(2, 0), builder.cursor(2, 1))
+              .build();
+        })
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertNull(mq.getTableReferences(rel));
   }
 
   @Test void testNodeTypeCountEmp() {

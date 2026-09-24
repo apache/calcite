@@ -27,10 +27,13 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -39,6 +42,7 @@ import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -159,11 +163,32 @@ public class RelMdTableReferences
    * references.
    */
   public @Nullable Set<RelTableRef> getTableReferences(SetOp rel, RelMetadataQuery mq) {
+    return getTableReferences(rel.getInputs(), mq);
+  }
+
+  /**
+   * Table references from TableFunctionScan.
+   */
+  public @Nullable Set<RelTableRef> getTableReferences(TableFunctionScan rel,
+      RelMetadataQuery mq) {
+    final List<RelNode> sources = new ArrayList<>(rel.getInputs());
+    rel.getCall().accept(new RexVisitorImpl<Void>(true) {
+      @Override public Void visitSubQuery(RexSubQuery subQuery) {
+        sources.add(subQuery.rel);
+        return super.visitSubQuery(subQuery);
+      }
+    });
+    return getTableReferences(sources, mq);
+  }
+
+  /** Returns table references from relational inputs and sub-queries. */
+  private static @Nullable Set<RelTableRef> getTableReferences(
+      List<RelNode> inputs, RelMetadataQuery mq) {
     final Set<RelTableRef> result = new HashSet<>();
 
     // Infer column origin expressions for given references
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
-    for (RelNode input : rel.getInputs()) {
+    for (RelNode input : inputs) {
       final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
       final Set<RelTableRef> inputTableRefs = mq.getTableReferences(input);
       if (inputTableRefs == null) {
