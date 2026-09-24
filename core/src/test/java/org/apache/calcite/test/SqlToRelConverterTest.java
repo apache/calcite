@@ -5127,6 +5127,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withDynamicTable().ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7776">[CALCITE-7776]
+   * UNNEST WITH ORDINALITY over a column of type ANY has no ORDINALITY
+   * column</a>. A column of a dynamic table has type ANY; UNNEST WITH
+   * ORDINALITY over such a column must still produce an ORDINALITY
+   * column, so that both it and the unnested value can be aliased. */
+  @Test void testDynamicSchemaUnnestWithOrdinality() {
+    final String sql = "select t1.c_nationkey, t3.fake_col3, t3.o\n"
+        + "from SALES.CUSTOMER as t1,\n"
+        + "unnest(t1.fake_col) with ordinality as t3(fake_col3, o)";
+    sql(sql).withDynamicTable().ok();
+  }
+
   @Test void testStarDynamicSchemaUnnest() {
     final String sql = "select *\n"
         + "from SALES.CUSTOMER as t1,\n"
