@@ -2332,6 +2332,24 @@ LogicalProject(C_NATIONKEY=[$1], FAKE_COL3=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDynamicSchemaUnnestWithOrdinality">
+    <Resource name="sql">
+      <![CDATA[select t1.c_nationkey, t3.fake_col3, t3.o
+from SALES.CUSTOMER as t1,
+unnest(t1.fake_col) with ordinality as t3(fake_col3, o)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(C_NATIONKEY=[$1], FAKE_COL3=[$2], O=[$3])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(FAKE_COL3=[$0], O=[$1])
+      Uncollect(withOrdinality=[true])
+        LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDynamicStarInJoinAndSubQ">
     <Resource name="sql">
       <![CDATA[select * from  (select * from SALES.NATION T1,  SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey)]]>

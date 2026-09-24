@@ -249,10 +249,12 @@ public class Uncollect extends SingleRel {
         && fields.get(0).getType().getSqlTypeName() == SqlTypeName.ANY) {
       // Component type is unknown to Uncollect, build a row type with input column name
       // and Any type.
-      return builder
-          .add(requireAlias ? itemAliases.get(0) : fields.get(0).getName(), SqlTypeName.ANY)
-          .nullable(true)
-          .build();
+      builder.add(requireAlias ? itemAliases.get(0) : fields.get(0).getName(), SqlTypeName.ANY)
+          .nullable(true);
+      if (withOrdinality) {
+        builder.add(SqlUnnestOperator.ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
+      }
+      return builder.build();
     }
 
     // With multiple collections, zip semantics pads shorter collections with

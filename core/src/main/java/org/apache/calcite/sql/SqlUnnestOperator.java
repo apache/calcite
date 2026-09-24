@@ -69,11 +69,12 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       if (type.getSqlTypeName() == SqlTypeName.ANY) {
         // Unnest Operator in schema less systems returns one column as the output
         // $unnest is a placeholder to specify that one column with type ANY is output.
-        return builder
-            .add("$unnest",
-                SqlTypeName.ANY)
-            .nullable(true)
-            .build();
+        builder.add("$unnest", SqlTypeName.ANY)
+            .nullable(true);
+        if (withOrdinality) {
+          builder.add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
+        }
+        return builder.build();
       }
 
       if (type.isStruct()) {
