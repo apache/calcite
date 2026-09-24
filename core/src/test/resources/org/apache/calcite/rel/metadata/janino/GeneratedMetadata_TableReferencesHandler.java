@@ -80,6 +80,8 @@ public final class GeneratedMetadata_TableReferencesHandler
       return provider0.getTableReferences((org.apache.calcite.rel.core.SetOp) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Sort) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Sort) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.TableFunctionScan) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.TableFunctionScan) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableModify) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.TableModify) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
