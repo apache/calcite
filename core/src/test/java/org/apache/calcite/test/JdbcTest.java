@@ -5180,6 +5180,56 @@ public class JdbcTest {
             "EXPR$0=4");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7822">[CALCITE-7822]
+   * AssertionError "type mismatch" in SqlToRelConverter for OVER () in a
+   * GROUP BY query</a>. */
+  @Test void testEmptyOverInAggregateQuery() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, count(*) over () as c from emp group by deptno")
+        .returnsUnordered("DEPTNO=10; C=3",
+            "DEPTNO=20; C=3",
+            "DEPTNO=30; C=3");
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, count(*) over (range between unbounded preceding"
+            + " and unbounded following) as c from emp group by deptno")
+        .returnsUnordered("DEPTNO=10; C=3",
+            "DEPTNO=20; C=3",
+            "DEPTNO=30; C=3");
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select job, max(max(sal)) over () as c from emp group by job")
+        .returnsUnordered("JOB=CLERK; C=5000.00",
+            "JOB=SALESMAN; C=5000.00",
+            "JOB=MANAGER; C=5000.00",
+            "JOB=ANALYST; C=5000.00",
+            "JOB=PRESIDENT; C=5000.00");
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, count(*) over (rows between unbounded preceding"
+            + " and unbounded following) as c from emp group by deptno")
+        .returnsUnordered("DEPTNO=10; C=3",
+            "DEPTNO=20; C=3",
+            "DEPTNO=30; C=3");
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, count(*) over (order by deptno) as c"
+            + " from emp group by deptno")
+        .returnsUnordered("DEPTNO=10; C=1",
+            "DEPTNO=20; C=2",
+            "DEPTNO=30; C=3");
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select empno, count(*) over () as c from emp"
+            + " where empno < 7600 group by empno")
+        .returnsUnordered("EMPNO=7369; C=4",
+            "EMPNO=7499; C=4",
+            "EMPNO=7521; C=4",
+            "EMPNO=7566; C=4");
+  }
+
   /** Tests UNBOUNDED PRECEDING clause. */
   @Test void testOverUnboundedPreceding() {
     CalciteAssert.hr()
