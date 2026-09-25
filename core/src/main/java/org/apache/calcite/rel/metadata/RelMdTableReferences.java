@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
@@ -159,11 +160,31 @@ public class RelMdTableReferences
    * references.
    */
   public @Nullable Set<RelTableRef> getTableReferences(SetOp rel, RelMetadataQuery mq) {
+    return getTableReferences(rel.getInputs(), mq);
+  }
+
+  /**
+   * Table references from the relational inputs of a TableFunctionScan.
+   *
+   * <p>Returns an empty set if there are no inputs, and {@code null} if the table
+   * references of any input cannot be determined. Tables accessed internally
+   * by the table function are not included.
+   */
+  public @Nullable Set<RelTableRef> getTableReferences(TableFunctionScan rel,
+      RelMetadataQuery mq) {
+    return getTableReferences(rel.getInputs(), mq);
+  }
+
+  /** Returns the union of the table references of {@code inputs}, assigning
+   * distinct entity numbers to repeated references to the same table, or {@code null}
+   * if the references of any input cannot be determined. */
+  private static @Nullable Set<RelTableRef> getTableReferences(
+      List<RelNode> inputs, RelMetadataQuery mq) {
     final Set<RelTableRef> result = new HashSet<>();
 
     // Infer column origin expressions for given references
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
-    for (RelNode input : rel.getInputs()) {
+    for (RelNode input : inputs) {
       final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
       final Set<RelTableRef> inputTableRefs = mq.getTableReferences(input);
       if (inputTableRefs == null) {

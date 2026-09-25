@@ -163,6 +163,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -4926,6 +4927,56 @@ public class RelMetadataTest {
     final RelMetadataQuery mq = node.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = mq.getTableReferences(union);
     assertNull(tableReferences);
+  }
+
+  @Test void testTableReferencesTableFunctionScanSameTableInputs() {
+    final RelNode rel = fixture()
+        .withRelFn(builder ->
+            builder.scan("EMP")
+                .scan("EMP")
+                .functionScan(new MockSqlOperatorTable.DedupFunction(), 2,
+                    builder.cursor(2, 0), builder.cursor(2, 1))
+                .build())
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getTableReferences(rel),
+        sortsAs("[[scott, EMP].#0, [scott, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesTumbleTableFunction() {
+    final RelNode rel = sql("select * from table(tumble(table emp, "
+        + "descriptor(hiredate), interval '1' hour))").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesTableFunctionScanZeroInputs() {
+    final RelNode rel = fixture()
+        .withRelFn(builder ->
+            builder.functionScan(new MockSqlOperatorTable.RampFunction(), 0,
+                    builder.literal(3))
+                .build())
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getTableReferences(rel), empty());
+  }
+
+  @Test void testTableReferencesTableFunctionScanUnknownInput() {
+    final RelNode rel = fixture()
+        .withRelFn(builder -> {
+          final RelNode scan = builder.scan("EMP").build();
+          final RelNode unknown =
+              new DummyRelNode(scan.getCluster(), scan.getTraitSet(), scan);
+          return builder.push(unknown)
+              .push(scan)
+              .functionScan(new MockSqlOperatorTable.DedupFunction(), 2,
+                  builder.cursor(2, 0), builder.cursor(2, 1))
+              .build();
+        })
+        .toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertNull(mq.getTableReferences(rel));
   }
 
   @Test void testNodeTypeCountEmp() {
