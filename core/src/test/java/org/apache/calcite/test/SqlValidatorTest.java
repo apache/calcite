@@ -1201,6 +1201,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>. */
+  @Test void testUnnestSingleFieldRow() {
+    sql("select d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .columnType("INTEGER NOT NULL");
+    // The array's real field name ("A") survives star-expansion too, not just
+    // the synthetic alias ("D").
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+    // Trino: struct not expanded; alias renames the ROW column.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .withConformance(SqlConformanceEnum.PRESTO)
+        .type("RecordType(RecordType(INTEGER NOT NULL A) NOT NULL D) NOT NULL");
+  }
+
   @Test void testOverlay() {
     expr("overlay('ABCdef' placing 'abc' from 1)").ok();
     expr("overlay('ABCdef' placing 'abc' from 1 for 3)").ok();
