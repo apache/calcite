@@ -2729,6 +2729,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(true).ok();
   }
 
+  /** As {@link #testNotInCorrelatedNullable()}, but in HAVING, where the
+   * outer query is an aggregate. */
+  @Test void testNotInCorrelatedNullableHaving() {
+    final String sql = "select deptno from emp as e group by deptno\n"
+        + "having deptno not in\n"
+        + " (select s.mgr from emp as s where s.deptno = e.deptno)";
+    sql(sql).withExpand(true).ok();
+  }
+
   @Test void testAllValueList() {
     final String sql = "select empno from emp where deptno > all (10, 20)";
     sql(sql).withExpand(false).ok();

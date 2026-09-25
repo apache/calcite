@@ -10233,7 +10233,7 @@ where e.n > (
 !set trimfields true
 
 # [CALCITE-7821] Correlated query crashes SqlToRelConverter
-# The results of the following three queries were validated using Postgres.
+# The results of the following four queries were validated using Postgres.
 !set expand true
 with
 t(k, a) as (select * from (values (1, 10), (2, cast(null as int)), (3, 30), (4, 40), (5, cast(null as int)))),
@@ -10280,6 +10280,20 @@ select k, a not in (select s.b from s where s.k = t.k) as ni from t;
 | 5 |       |
 +---+-------+
 (5 rows)
+
+!ok
+
+with
+t(a, k) as (select * from (values (10, 1), (cast(null as int), 2), (30, 3), (40, 4), (cast(null as int), 5))),
+s(k, b) as (select * from (values (1, 10), (3, cast(null as int)), (4, 41), (5, 50)))
+select k from t group by k having max(a) not in (select s.b from s where s.k = t.k);
++---+
+| K |
++---+
+| 2 |
+| 4 |
++---+
+(2 rows)
 
 !ok
 !set expand false
