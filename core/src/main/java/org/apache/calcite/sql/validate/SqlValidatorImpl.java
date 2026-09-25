@@ -3756,25 +3756,40 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     scopes.put(with, parentScope);
 
     SqlValidatorScope scope = parentScope;
-    for (SqlNode withItem_ : with.withList) {
-      final SqlWithItem withItem = (SqlWithItem) withItem_;
-
-      final boolean isRecursiveWith = withItem.recursive.booleanValue();
-      final SqlValidatorScope withScope =
-          new WithScope(scope, withItem,
-              isRecursiveWith ? new WithRecursiveScope(scope, withItem) : null);
-      scopes.put(withItem, withScope);
-
-      registerQuery(scope, null, withItem.query,
-          withItem.recursive.booleanValue() ? withItem : with, withItem.name.getSimple(),
-          forceNullable);
-      registerNamespace(null, alias,
-          new WithItemNamespace(this, withItem, enclosingNode),
-          false);
+    for (int i = 0; i < with.withList.size(); i++) {
+      SqlWithItem withItem = (SqlWithItem) with.withList.get(i);
+      if (withItem.cycleClause != null && !withItem.recursive.booleanValue()) {
+        throw newValidationError(withItem.cycleClause, RESOURCE.cycleRequiresRecursive());
+      }
+      SqlValidatorScope withScope =
+          registerWithItem(scope, with, withItem, enclosingNode, alias, forceNullable);
+      if (withItem.cycleClause != null) {
+        // Validate and expand the user's projection before adding the generated
+        // columns. In particular, SELECT * must not pick up the path or mark.
+        validateWithItem(withItem);
+        withItem = CycleRewriter.rewrite(this, scope, withItem);
+        with.withList.set(i, withItem);
+        withScope = registerWithItem(scope, with, withItem, enclosingNode, alias, forceNullable);
+      }
       scope = withScope;
     }
     registerQuery(scope, null, with.body, enclosingNode, alias, forceNullable,
         checkUpdate);
+  }
+
+  private SqlValidatorScope registerWithItem(SqlValidatorScope scope, SqlWith with,
+      SqlWithItem withItem, SqlNode enclosingNode, @Nullable String alias,
+      boolean forceNullable) {
+    final boolean recursive = withItem.recursive.booleanValue();
+    final SqlValidatorScope withScope =
+        new WithScope(scope, withItem,
+            recursive ? new WithRecursiveScope(scope, withItem) : null);
+    scopes.put(withItem, withScope);
+    registerQuery(scope, null, withItem.query,
+        recursive ? withItem : with, withItem.name.getSimple(), forceNullable);
+    registerNamespace(null, alias,
+        new WithItemNamespace(this, withItem, enclosingNode), false);
+    return withScope;
   }
 
   @Override public boolean isAggregate(SqlSelect select) {

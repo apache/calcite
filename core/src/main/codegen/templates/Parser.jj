@@ -106,6 +106,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.SqlCycleClause;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -3929,13 +3930,37 @@ void AddWithItem(List<SqlWithItem> list, SqlLiteral recursive) :
     final SqlIdentifier id;
     final SqlNodeList columnList;
     final SqlNode definition;
+    SqlCycleClause cycle = null;
 }
 {
     id = SimpleIdentifier()
     ( columnList = ParenthesizedSimpleIdentifierList() | { columnList = null; } )
     <AS>
     definition = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
-    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive)); }
+    [ cycle = CycleClause() ]
+    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive, cycle)); }
+}
+
+SqlCycleClause CycleClause() :
+{
+    final Span s;
+    final List<SqlNode> columns = new ArrayList<SqlNode>();
+    SqlIdentifier column;
+    final SqlIdentifier markColumn;
+    final SqlNode markValue;
+    final SqlNode defaultValue;
+    final SqlIdentifier pathColumn;
+}
+{
+    <CYCLE> { s = span(); }
+    column = SimpleIdentifier() { columns.add(column); }
+    ( <COMMA> column = SimpleIdentifier() { columns.add(column); } )*
+    <SET> markColumn = SimpleIdentifier()
+    <TO> markValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+    <DEFAULT_> defaultValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+    <USING> pathColumn = SimpleIdentifier()
+    { return new SqlCycleClause(s.end(this), new SqlNodeList(columns, s.pos()),
+        markColumn, markValue, defaultValue, pathColumn); }
 }
 
 /**

@@ -130,6 +130,8 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.SubtractChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.CYCLE_PATH_APPEND;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.CYCLE_PATH_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.LITERAL_AGG;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOSD;
@@ -1108,6 +1110,8 @@ public class RexImpTable implements RexImplementorTable {
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.SEMI_STRICT);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_APPEND, BuiltInMethod.ARRAY_APPEND.method, NullPolicy.ARG0);
+      defineMethod(CYCLE_PATH_APPEND, BuiltInMethod.ARRAY_APPEND.method, NullPolicy.ARG0);
+      defineMethod(CYCLE_PATH_CONTAINS, BuiltInMethod.CYCLE_PATH_CONTAINS.method, NullPolicy.NONE);
       defineMethod(ARRAY_COMPACT, BuiltInMethod.ARRAY_COMPACT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_CONTAINS, BuiltInMethod.LIST_CONTAINS.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
