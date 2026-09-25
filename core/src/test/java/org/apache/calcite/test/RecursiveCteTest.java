@@ -183,6 +183,13 @@ class RecursiveCteTest {
         .returnsOrdered("N=1; C=N; P=[{1}]", "N=1; C=Y; P=[{1}, {1}]");
   }
 
+  @Test void testCycleUnionDistinctSeedDuplicates() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n) AS (VALUES (1), (1) UNION SELECT n FROM t)\n"
+            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT * FROM t")
+        .returnsOrdered("N=1; C=false; P=[{1}]", "N=1; C=true; P=[{1}, {1}]");
+  }
+
   @Test void testCycleInferredColumnNames() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t AS (SELECT 1 AS n\n"

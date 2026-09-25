@@ -92,7 +92,7 @@ final class CycleRewriter {
     final RelDataType markType = validateMarkType(scope);
 
     final SqlNode query = prepareQuery(reference);
-    final SqlCall union = (SqlCall)queryBody(query);
+    final SqlCall union = (SqlCall) queryBody(query);
     union.setOperand(0, rewriteSeed(union.operand(0), names, keys, markType));
     union.setOperand(1, rewriteStep(union.operand(1), reference, names, keys, markType));
 

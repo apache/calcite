@@ -587,6 +587,11 @@ public class PhysTypeImpl implements PhysType {
   @Override public @Nullable Expression comparer() {
     final Expression comparer = format.comparer();
     if (comparer != null) {
+      // ARRAY compares nested arrays by content, but a List or Map compares
+      // the Object[] values it contains by reference.
+      if (format == JavaRowFormat.ARRAY && containsStructInCollection(rowType)) {
+        return Expressions.call(BuiltInMethod.DEEP_COMPARER.method);
+      }
       return comparer;
     }
     if (anyFieldContainsStruct(rowType)) {
@@ -597,6 +602,17 @@ public class PhysTypeImpl implements PhysType {
       return Expressions.call(BuiltInMethod.DEEP_COMPARER.method);
     }
     return null;
+  }
+
+  /** Returns whether a struct occurs inside a collection or map, including
+   * collections and maps nested in struct fields. Plain nested structs do not
+   * require overriding the ARRAY format's comparer. */
+  private static boolean containsStructInCollection(RelDataType type) {
+    if (type.isStruct()) {
+      return type.getFieldList().stream()
+          .anyMatch(f -> containsStructInCollection(f.getType()));
+    }
+    return containsStruct(type);
   }
 
   /** Returns whether any field of {@code rowType} contains a struct value:
