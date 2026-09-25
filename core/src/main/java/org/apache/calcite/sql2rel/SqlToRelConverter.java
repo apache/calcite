@@ -30,6 +30,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -47,7 +48,6 @@ import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -1514,9 +1514,17 @@ public class SqlToRelConverter {
                     AggregateCall.create(call.getParserPosition(), SqlStdOperatorTable.COUNT, false,
                         false, false, ImmutableList.of(), args,
                         -1, null, RelCollations.EMPTY, longType, null)));
-        LogicalJoin join =
-            LogicalJoin.create(bb.root(), aggregate, ImmutableList.of(),
-                rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
+        // seek may reference the outer query; createJoin then returns
+        // a Correlate that binds the variable.
+        final RelNode join =
+            createJoin(bb, bb.root(), aggregate, rexBuilder.makeLiteral(true),
+                JoinRelType.INNER);
+        // As in Blackboard.register, keep the group by mapping for the new root
+        final Map<Integer, Integer> projection =
+            bb.mapRootRelToFieldProjection.get(bb.root());
+        if (projection != null) {
+          bb.mapRootRelToFieldProjection.put(join, projection);
+        }
         bb.setRoot(join, false);
       }
       final RexNode rex =
@@ -1811,9 +1819,10 @@ public class SqlToRelConverter {
       // cross join (select count(*) as c, count(deptno) as ck from v) as ct
       // left join (select distinct deptno, true as i from v) as dt
       //   on e.deptno = dt.deptno
-      final Join join = (Join) requireNonNull(root, "root");
+      // Either join is a Correlate when the sub-query is correlated.
+      final BiRel join = (BiRel) requireNonNull(root, "root");
       final Project left = (Project) join.getLeft();
-      final RelNode leftLeft = ((Join) left.getInput()).getLeft();
+      final RelNode leftLeft = ((BiRel) left.getInput()).getLeft();
       final int leftLeftCount = leftLeft.getRowType().getFieldCount();
       final RelDataType longType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
@@ -1834,10 +1843,14 @@ public class SqlToRelConverter {
           falseLiteral,
           rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, iRef),
           trueLiteral);
-      final JoinInfo joinInfo = join.analyzeCondition();
-      for (int leftKey : joinInfo.leftKeys) {
-        final RexNode kRef = rexBuilder.makeInputRef(root, leftKey);
-        args.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, kRef),
+      // Take the IN keys from rex rather than from the join condition,
+      // because a Correlate has no condition. rex has the layout described
+      // in TRUE_FALSE.
+      final int keyCount = (rex.getType().getFieldCount() - 1) / 2;
+      for (int i = 0; i < keyCount; i++) {
+        args.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+                rexBuilder.makeFieldAccess(rex, i)),
             unknownLiteral);
       }
       args.add(rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ckRef, cRef),
