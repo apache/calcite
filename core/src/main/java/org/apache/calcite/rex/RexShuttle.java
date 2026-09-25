@@ -163,15 +163,30 @@ public class RexShuttle implements RexVisitor<RexNode> {
    */
   protected List<RexNode> visitList(
       List<? extends RexNode> exprs, boolean @Nullable [] update) {
-    ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
+    ImmutableList.@Nullable Builder<RexNode> clonedOperands = null;
+    int i = 0;
     for (RexNode operand : exprs) {
       RexNode clonedOperand = operand.accept(this);
-      if ((clonedOperand != operand) && (update != null)) {
-        update[0] = true;
+      if (clonedOperand != operand && clonedOperands == null) {
+        clonedOperands = ImmutableList.builder();
+        clonedOperands.addAll(exprs.subList(0, i));
+        if (update != null) {
+          update[0] = true;
+        }
       }
-      clonedOperands.add(clonedOperand);
+      if (clonedOperands != null) {
+        clonedOperands.add(clonedOperand);
+      }
+      i++;
     }
-    return clonedOperands.build();
+    if (clonedOperands != null) {
+      return clonedOperands.build();
+    }
+    if (exprs instanceof ImmutableList) {
+      //noinspection unchecked
+      return (List<RexNode>) exprs;
+    }
+    return ImmutableList.copyOf(exprs);
   }
 
   /**
