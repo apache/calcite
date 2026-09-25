@@ -6477,6 +6477,38 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNotInCorrelatedNullableHaving">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp as e group by deptno
+having deptno not in
+ (select s.mgr from emp as s where s.deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[OR(=($1, 0), AND(IS NULL($6), >=($2, $1)))])
+    LogicalJoin(condition=[AND(=($0, $5), =($3, $4))], joinType=[left])
+      LogicalProject(DEPTNO=[$0], $f0=[$2], $f1=[$3], DEPTNO0=[$0])
+        LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+          LogicalAggregate(group=[{0}])
+            LogicalProject(DEPTNO=[$7])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(DEPTNO=[$0], $f1=[CASE(IS NOT NULL($2), $2, 0)], $f2=[CASE(IS NOT NULL($3), $3, 0)])
+            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+              LogicalAggregate(group=[{0}])
+                LogicalAggregate(group=[{0}])
+                  LogicalProject(DEPTNO=[$7])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{0}], agg#0=[COUNT()], agg#1=[COUNT($1)])
+                LogicalProject(DEPTNO=[$7], MGR=[$3], $f1=[true])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[IS NOT NULL($0)])
+        LogicalAggregate(group=[{0, 1}], agg#0=[MIN($2)])
+          LogicalProject(MGR=[$3], DEPTNO=[$7], $f1=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotInMultiValue">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno not in (10, 20)]]>

@@ -1514,10 +1514,17 @@ public class SqlToRelConverter {
                     AggregateCall.create(call.getParserPosition(), SqlStdOperatorTable.COUNT, false,
                         false, false, ImmutableList.of(), args,
                         -1, null, RelCollations.EMPTY, longType, null)));
-        // createJoin will create a Correlate node if a sub-query is correlated
+        // seek may reference the outer query; createJoin then returns
+        // a Correlate that binds the variable.
         final RelNode join =
             createJoin(bb, bb.root(), aggregate, rexBuilder.makeLiteral(true),
                 JoinRelType.INNER);
+        // As in Blackboard.register, keep the group by mapping for the new root
+        final Map<Integer, Integer> projection =
+            bb.mapRootRelToFieldProjection.get(bb.root());
+        if (projection != null) {
+          bb.mapRootRelToFieldProjection.put(join, projection);
+        }
         bb.setRoot(join, false);
       }
       final RexNode rex =
@@ -1765,28 +1772,29 @@ public class SqlToRelConverter {
 
   private RexNode translateIn(RelOptUtil.Logic logic, @Nullable RelNode root,
       final RexNode rex) {
-    // RexRangeRef contains the following fields:
-    //   leftKeysForIn,
-    //   rightKeysForIn (the original sub-query select list),
-    //   nullIndicator
-    //
-    // The first two lists contain the same number of fields.
-    assert rex instanceof RexRangeRef;
-    final int fieldCount = rex.getType().getFieldCount();
-    final int keyCount = (fieldCount - 1) / 2;
     switch (logic) {
     case TRUE:
       return rexBuilder.makeLiteral(true);
 
     case TRUE_FALSE:
     case UNKNOWN_AS_FALSE:
+      assert rex instanceof RexRangeRef;
+      final int fieldCount = rex.getType().getFieldCount();
       RexNode rexNode = rexBuilder.makeFieldAccess(rex, fieldCount - 1);
       rexNode = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, rexNode);
 
       // Then append the IS NOT NULL(leftKeysForIn).
+      //
+      // RexRangeRef contains the following fields:
+      //   leftKeysForIn,
+      //   rightKeysForIn (the original sub-query select list),
+      //   nullIndicator
+      //
+      // The first two lists contain the same number of fields.
+      final int k = (fieldCount - 1) / 2;
       ImmutableList.Builder<RexNode> rexNodeBuilder = ImmutableList.builder();
       rexNodeBuilder.add(rexNode);
-      for (int i = 0; i < keyCount; i++) {
+      for (int i = 0; i < k; i++) {
         rexNodeBuilder.add(
             rexBuilder.makeCall(
                 SqlStdOperatorTable.IS_NOT_NULL,
@@ -1811,7 +1819,7 @@ public class SqlToRelConverter {
       // cross join (select count(*) as c, count(deptno) as ck from v) as ct
       // left join (select distinct deptno, true as i from v) as dt
       //   on e.deptno = dt.deptno
-      // The joins may be Correlate nodes if the sub-query is correlated.
+      // Either join is a Correlate when the sub-query is correlated.
       final BiRel join = (BiRel) requireNonNull(root, "root");
       final Project left = (Project) join.getLeft();
       final RelNode leftLeft = ((BiRel) left.getInput()).getLeft();
@@ -1835,8 +1843,10 @@ public class SqlToRelConverter {
           falseLiteral,
           rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, iRef),
           trueLiteral);
-      // Read the left keys from rex; if 'join' is a Correlate
-      // it has no join condition
+      // Take the IN keys from rex rather than from the join condition,
+      // because a Correlate has no condition. rex has the layout described
+      // in TRUE_FALSE.
+      final int keyCount = (rex.getType().getFieldCount() - 1) / 2;
       for (int i = 0; i < keyCount; i++) {
         args.add(
             rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
