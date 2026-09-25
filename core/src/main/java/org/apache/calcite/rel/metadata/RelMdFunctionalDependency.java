@@ -24,16 +24,19 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Arrow;
 import org.apache.calcite.util.ArrowSet;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -272,7 +275,8 @@ public class RelMdFunctionalDependency
         ImmutableBitSet bitSet = expr instanceof RexInputRef
             ? ImmutableBitSet.of(((RexInputRef) expr).getIndex())
             : inputBits[i];
-        if (inputFdSet.implies(refIndex, bitSet)) {
+        if (typeSupportsGroupKeyInference(k.getType())
+            && inputFdSet.implies(refIndex, bitSet)) {
           fdBuilder.addArrow(v, i);
         }
       });
@@ -292,7 +296,7 @@ public class RelMdFunctionalDependency
 
       // Map all determinant columns
       ImmutableBitSet mappedDeterminants = mapAllCols(determinants, mapping);
-      if (mappedDeterminants.isEmpty()) {
+      if (mappedDeterminants.isEmpty() && !determinants.isEmpty()) {
         continue;
       }
 
@@ -345,18 +349,13 @@ public class RelMdFunctionalDependency
     ArrowSet inputFdSet = mq.getFDs(rel.getInput());
 
     ImmutableBitSet groupSet = rel.getGroupSet();
+    Mappings.TargetMapping inputToOutputMap =
+        Mappings.target(groupSet::indexOf,
+            rel.getInput().getRowType().getFieldCount(), rel.getGroupCount());
 
     // Preserve input FDs that only involve group columns
     if (Aggregate.isSimple(rel)) {
-      for (Arrow inputFd : inputFdSet.getArrows()) {
-        ImmutableBitSet determinants = inputFd.getDeterminants();
-        ImmutableBitSet dependents = inputFd.getDependents();
-
-        // Only preserve if both determinants and dependents are within group columns
-        if (groupSet.contains(determinants) && groupSet.contains(dependents)) {
-          fdBuilder.addArrow(determinants, dependents);
-        }
-      }
+      mapInputFDs(inputFdSet, inputToOutputMap, fdBuilder);
 
       // Add transitive dependencies within group columns
       for (int groupCol : groupSet) {
@@ -364,7 +363,8 @@ public class RelMdFunctionalDependency
         ImmutableBitSet closure = inputFdSet.dependents(singleton);
         ImmutableBitSet groupDependents = closure.intersect(groupSet).except(singleton);
         if (!groupDependents.isEmpty()) {
-          fdBuilder.addArrow(singleton, groupDependents);
+          fdBuilder.addArrow(mapAllCols(singleton, inputToOutputMap),
+              mapAllCols(groupDependents, inputToOutputMap));
         }
       }
     }
@@ -373,7 +373,7 @@ public class RelMdFunctionalDependency
     if (!groupSet.isEmpty() && !rel.getAggCallList().isEmpty()) {
       ImmutableBitSet aggCols =
           ImmutableBitSet.range(rel.getGroupCount(), rel.getRowType().getFieldCount());
-      fdBuilder.addArrow(groupSet, aggCols);
+      fdBuilder.addArrow(ImmutableBitSet.range(rel.getGroupCount()), aggCols);
     }
 
     return fdBuilder.build();
@@ -387,7 +387,7 @@ public class RelMdFunctionalDependency
     ArrowSet.Builder fdBuilder = new ArrowSet.Builder();
 
     // Adds equality dependencies from filter conditions.
-    addFDsFromEqualityCondition(rel.getCondition(), fdBuilder);
+    addBidirectionalFDsFromEqualityCondition(rel.getCondition(), fdBuilder);
 
     return fdBuilder.build().union(inputSet);
   }
@@ -407,9 +407,12 @@ public class RelMdFunctionalDependency
     case INNER:
     case LEFT:
     case RIGHT:
-      ArrowSet.Builder joinFdBuilder = new ArrowSet.Builder()
-          .addArrowSet(leftFdSet.union(shiftFdSet(rightFdSet, leftFieldCount)));
-      addFDsFromEqualityCondition(rel.getCondition(), joinFdBuilder);
+      ArrowSet.Builder joinFdBuilder = new ArrowSet.Builder();
+      addJoinInputFDs(leftFdSet, rel.getLeft(), 0,
+          joinType.generatesNullsOnLeft(), joinFdBuilder);
+      addJoinInputFDs(rightFdSet, rel.getRight(), leftFieldCount,
+          joinType.generatesNullsOnRight(), joinFdBuilder);
+      addFDsFromJoinCondition(rel, leftFieldCount, joinFdBuilder);
       return joinFdBuilder.build();
     case SEMI:
     case ANTI:
@@ -417,6 +420,56 @@ public class RelMdFunctionalDependency
     default:
       return ArrowSet.EMPTY;
     }
+  }
+
+  /**
+   * Adds functional dependencies to a builder, translating their column
+   * ordinals from an input row type to a containing row type.
+   *
+   * <p>If {@code nullGenerated} is true, dependencies whose determinants can
+   * coincide with an all-NULL row are omitted.
+   *
+   * @param inputFdSet Functional dependencies expressed in input ordinals
+   * @param input Relational expression that defines the input row type
+   * @param offset Amount added to each input ordinal
+   * @param nullGenerated Whether the containing row may have an all-NULL value
+   *     for the input
+   * @param fdBuilder Builder that receives the translated dependencies
+   */
+  private static void addJoinInputFDs(ArrowSet inputFdSet, RelNode input,
+      int offset, boolean nullGenerated, ArrowSet.Builder fdBuilder) {
+    for (Arrow inputFd : inputFdSet.getArrows()) {
+      if (nullGenerated && !hasNonNullableDeterminant(inputFd, input)) {
+        continue;
+      }
+      fdBuilder.addArrow(inputFd.getDeterminants().shift(offset),
+          inputFd.getDependents().shift(offset));
+    }
+  }
+
+  /**
+   * Returns whether every determinant ordinal is valid for an input row type
+   * and at least one determinant field is non-nullable.
+   *
+   * <p>Such a determinant cannot have the same values as an all-NULL row.
+   *
+   * @param fd Functional dependency expressed in input ordinals
+   * @param input Relational expression that defines the input row type
+   * @return Whether the determinant is valid and contains a non-nullable field
+   */
+  private static boolean hasNonNullableDeterminant(Arrow fd, RelNode input) {
+    final int fieldCount = input.getRowType().getFieldCount();
+    boolean hasNonNullableField = false;
+    for (int determinant : fd.getDeterminants()) {
+      if (determinant >= fieldCount) {
+        return false;
+      }
+      if (!input.getRowType().getFieldList().get(determinant)
+          .getType().isNullable()) {
+        hasNonNullableField = true;
+      }
+    }
+    return hasNonNullableField;
   }
 
   /**
@@ -428,50 +481,110 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Shifts column indices in functional dependencies (for right table in Joins).
+   * Adds functional dependencies implied by a join's condition and join type
+   * to a builder.
    *
-   * @param fdSet Functional dependency set
-   * @param offset Index offset
-   * @return Shifted functional dependency set
+   * <p>Inner joins contribute bidirectional dependencies for supported
+   * equality predicates. Left and right outer equijoins contribute a
+   * dependency from the preserved input's join keys to the null-generating
+   * input's join keys.
+   *
+   * @param rel Join whose condition is analyzed
+   * @param leftFieldCount Number of fields in the left input, and therefore
+   *     the offset of right-input fields in the join output
+   * @param fdBuilder Builder that receives the inferred dependencies
    */
-  private ArrowSet shiftFdSet(ArrowSet fdSet, int offset) {
-    ArrowSet.Builder shiftedFdSetBuilder = new ArrowSet.Builder();
-    for (Arrow fd : fdSet.getArrows()) {
-      ImmutableBitSet shiftedDeterminants = fd.getDeterminants().shift(offset);
-      ImmutableBitSet shiftedDependents = fd.getDependents().shift(offset);
-      shiftedFdSetBuilder.addArrow(shiftedDeterminants, shiftedDependents);
-    }
-    return shiftedFdSetBuilder.build();
-  }
-
-  /**
-   * Extracts functional dependencies from equality and AND conditions.
-   * Handles col1 = col2, col1 IS NOT DISTINCT FROM col2, and AND conditions.
-   */
-  private static void addFDsFromEqualityCondition(RexNode condition, ArrowSet.Builder builder) {
-    if (!(condition instanceof RexCall)) {
+  private static void addFDsFromJoinCondition(Join rel, int leftFieldCount,
+      ArrowSet.Builder fdBuilder) {
+    final JoinRelType joinType = rel.getJoinType();
+    if (joinType == JoinRelType.INNER) {
+      addBidirectionalFDsFromEqualityCondition(rel.getCondition(), fdBuilder);
       return;
     }
 
-    RexCall call = (RexCall) condition;
-    if (call.getOperator().getKind() == SqlKind.EQUALS
-        || call.getOperator().getKind() == SqlKind.IS_NOT_DISTINCT_FROM) {
+    if (joinType == JoinRelType.LEFT || joinType == JoinRelType.RIGHT) {
+      final JoinInfo joinInfo = rel.analyzeCondition();
+      if (!joinInfo.isEqui() || joinInfo.leftKeys.isEmpty()
+          || !fieldsSupportEqualityInference(rel.getLeft(), joinInfo.leftSet())
+          || !fieldsSupportEqualityInference(rel.getRight(), joinInfo.rightSet())) {
+        return;
+      }
+
+      final ImmutableBitSet leftKeys = joinInfo.leftSet();
+      final ImmutableBitSet rightKeys = joinInfo.rightSet().shift(leftFieldCount);
+      if (joinType == JoinRelType.LEFT) {
+        fdBuilder.addArrow(leftKeys, rightKeys);
+      } else {
+        fdBuilder.addArrow(rightKeys, leftKeys);
+      }
+      return;
+    }
+
+    throw new AssertionError("unsupported join type: " + joinType);
+  }
+
+  /**
+   * Adds bidirectional functional dependencies for supported input-reference
+   * equalities in a condition.
+   *
+   * <p>The caller must ensure that the condition holds for every row produced
+   * by the relational expression to which the dependencies will apply. This
+   * requirement is satisfied by filter outputs and inner-join outputs.
+   *
+   * @param condition Condition from which to infer dependencies
+   * @param fdBuilder Builder that receives the inferred dependencies
+   */
+  private static void addBidirectionalFDsFromEqualityCondition(
+      RexNode condition, ArrowSet.Builder fdBuilder) {
+    for (RexNode conjunct : RelOptUtil.conjunctions(condition)) {
+      if (!(conjunct instanceof RexCall)) {
+        continue;
+      }
+
+      RexCall call = (RexCall) conjunct;
+      if (call.getOperator().getKind() != SqlKind.EQUALS
+          && call.getOperator().getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
+        continue;
+      }
       List<RexNode> operands = call.getOperands();
       if (operands.size() == 2) {
         RexNode left = operands.get(0);
         RexNode right = operands.get(1);
 
-        if (left instanceof RexInputRef && right instanceof RexInputRef) {
+        if (left instanceof RexInputRef && right instanceof RexInputRef
+            && typeSupportsGroupKeyInference(left.getType())
+            && typeSupportsGroupKeyInference(right.getType())) {
           int leftRef = ((RexInputRef) left).getIndex();
           int rightRef = ((RexInputRef) right).getIndex();
 
-          builder.addBidirectionalArrow(leftRef, rightRef);
+          fdBuilder.addBidirectionalArrow(leftRef, rightRef);
         }
       }
-    } else if (call.getOperator().getKind() == SqlKind.AND) {
-      for (RexNode operand : call.getOperands()) {
-        addFDsFromEqualityCondition(operand, builder);
+    }
+  }
+
+  /**
+   * Returns whether equality on the given fields can safely imply a functional
+   * dependency for grouping purposes.
+   */
+  private static boolean fieldsSupportEqualityInference(RelNode input,
+      ImmutableBitSet fields) {
+    for (int field : fields) {
+      if (!typeSupportsGroupKeyInference(
+          input.getRowType().getFieldList().get(field).getType())) {
+        return false;
       }
     }
+    return true;
+  }
+
+  /**
+   * Returns whether a type can safely be used to infer that one grouping key
+   * determines another. Approximate numerics are unsafe, including when nested
+   * in rows, collections, or maps.
+   */
+  private static boolean typeSupportsGroupKeyInference(RelDataType type) {
+    return !SqlTypeUtil.containsType(type,
+        SqlTypeUtil::isApproximateNumeric);
   }
 }
