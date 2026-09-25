@@ -2623,26 +2623,30 @@ public class SqlToRelConverter {
         bb.convertExpression(requireNonNull(sqlLowerBound, "sqlLowerBound"));
     final RexNode upperBound =
         bb.convertExpression(requireNonNull(sqlUpperBound, "sqlUpperBound"));
-    if (orderList.isEmpty() && !rows) {
-      // A logical range requires an ORDER BY clause. Use the implicit
-      // ordering of this relation. There must be one, otherwise it would
-      // have failed validation.
-      orderList = bb.scope.getOrderList();
-      if (orderList == null) {
-        throw new AssertionError(
-            "Relation should have sort key for implicit ORDER BY");
-      }
-    }
     final RexWindowExclusion exclude = RexWindowExclusion.create(window.getExclude());
 
     final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
-    for (SqlNode order : orderList) {
-      orderKeys.add(
-          bb.convertSortExpression(order,
-              RelFieldCollation.Direction.ASCENDING,
-              RelFieldCollation.NullDirection.UNSPECIFIED,
-              bb::sortToRex));
+    if (orderList.isEmpty() && !rows) {
+      // A logical range requires an ORDER BY clause. Use the implicit
+      // ordering of this relation when those columns are still fields of
+      // the current input. GROUP BY can aggregate the monotonic column
+      // away; binding it by its original FROM ordinal then points at a
+      // different field (CALCITE-7822).
+      final SqlNodeList implicit = bb.scope.getOrderList();
+      if (implicit == null) {
+        throw new AssertionError(
+            "Relation should have sort key for implicit ORDER BY");
+      }
+      addImplicitOrderKeys(bb, implicit, orderKeys);
+    } else {
+      for (SqlNode order : orderList) {
+        orderKeys.add(
+            bb.convertSortExpression(order,
+                RelFieldCollation.Direction.ASCENDING,
+                RelFieldCollation.NullDirection.UNSPECIFIED,
+                bb::sortToRex));
+      }
     }
 
     try {
@@ -2672,6 +2676,79 @@ public class SqlToRelConverter {
     } finally {
       bb.window = null;
     }
+  }
+
+  /**
+   * Adds implicit RANGE order keys that still refer to the current input.
+   * A monotonic column of the FROM item is not an order key once GROUP BY
+   * has removed it; binding it by its original FROM ordinal then points at
+   * a different field (CALCITE-7822).
+   */
+  private void addImplicitOrderKeys(Blackboard bb, SqlNodeList implicit,
+      ImmutableList.Builder<RexNode> orderKeys) {
+    final RelDataType rowType = bb.root().getRowType();
+    final SqlNameMatcher nameMatcher =
+        bb.scope.getValidator().getCatalogReader().nameMatcher();
+    for (SqlNode order : implicit) {
+      final RexNode converted =
+          bb.convertSortExpression(order,
+              RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.UNSPECIFIED,
+              bb::sortToRex);
+      if (orderKeyMatchesInput(rowType, converted)) {
+        orderKeys.add(converted);
+        continue;
+      }
+      final RexNode rebound = rebindImplicitOrderKey(nameMatcher, rowType, order);
+      if (rebound != null) {
+        orderKeys.add(rebound);
+      }
+    }
+  }
+
+  /** Whether every input ref in {@code orderKey} matches the current input. */
+  private static boolean orderKeyMatchesInput(RelDataType rowType, RexNode orderKey) {
+    final List<RexInputRef> refs = new ArrayList<>();
+    orderKey.accept(new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        refs.add(inputRef);
+        return inputRef;
+      }
+    });
+    if (refs.isEmpty()) {
+      return false;
+    }
+    for (RexInputRef ref : refs) {
+      if (ref.getIndex() < 0 || ref.getIndex() >= rowType.getFieldCount()) {
+        return false;
+      }
+      final RelDataTypeField field = rowType.getFieldList().get(ref.getIndex());
+      if (!equalSansNullability(field.getType(), ref.getType())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Rebinds a simple column order key onto the current input, or null. */
+  private @Nullable RexNode rebindImplicitOrderKey(SqlNameMatcher nameMatcher,
+      RelDataType rowType, SqlNode order) {
+    SqlNode expr = order;
+    while (expr.getKind() == SqlKind.DESCENDING
+        || expr.getKind() == SqlKind.NULLS_FIRST
+        || expr.getKind() == SqlKind.NULLS_LAST) {
+      expr = ((SqlCall) expr).operand(0);
+    }
+    if (!(expr instanceof SqlIdentifier)) {
+      return null;
+    }
+    final SqlIdentifier id = (SqlIdentifier) expr;
+    final String name = id.names.get(id.names.size() - 1);
+    final RelDataTypeField field = nameMatcher.field(rowType, name);
+    if (field == null) {
+      return null;
+    }
+    return rexBuilder.makeInputRef(field.getType(), field.getIndex());
   }
 
   /**
