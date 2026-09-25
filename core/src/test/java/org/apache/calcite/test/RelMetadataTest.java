@@ -98,7 +98,6 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
@@ -164,6 +163,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -4939,10 +4939,16 @@ public class RelMetadataTest {
                 .build())
         .toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<RelTableRef> tableReferences =
-        Sets.newTreeSet(mq.getTableReferences(rel));
-    assertThat(tableReferences,
-        hasToString("[[scott, EMP].#0, [scott, EMP].#1]"));
+    assertThat(mq.getTableReferences(rel),
+        sortsAs("[[scott, EMP].#0, [scott, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesTumbleTableFunction() {
+    final RelNode rel = sql("select * from table(tumble(table emp, "
+        + "descriptor(hiredate), interval '1' hour))").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0]"));
   }
 
   @Test void testTableReferencesTableFunctionScanZeroInputs() {
@@ -4953,25 +4959,7 @@ public class RelMetadataTest {
                 .build())
         .toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<RelTableRef> tableReferences = mq.getTableReferences(rel);
-    assertThat(tableReferences, notNullValue());
-    assertThat(tableReferences, hasSize(0));
-  }
-
-  @Test void testTableReferencesTableFunctionScanInputAndScalarSubQuery() {
-    final RelNode rel = fixture()
-        .withRelFn(builder -> {
-          final RelNode subQuery =
-              builder.scan("EMP").project(builder.field("EMPNO")).build();
-          return builder.scan("EMP")
-              .functionScan(new MockSqlOperatorTable.DedupFunction(), 1,
-                  builder.cursor(1, 0), RexSubQuery.scalar(subQuery))
-              .build();
-        })
-        .toRel();
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    assertThat(Sets.newTreeSet(mq.getTableReferences(rel)),
-        hasToString("[[scott, EMP].#0, [scott, EMP].#1]"));
+    assertThat(mq.getTableReferences(rel), empty());
   }
 
   @Test void testTableReferencesTableFunctionScanUnknownInput() {

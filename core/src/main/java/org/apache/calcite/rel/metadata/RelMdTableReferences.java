@@ -31,9 +31,7 @@ import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -42,7 +40,6 @@ import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -167,21 +164,20 @@ public class RelMdTableReferences
   }
 
   /**
-   * Table references from TableFunctionScan.
+   * Table references from the relational inputs of a TableFunctionScan.
+   *
+   * <p>Returns an empty set if there are no inputs, and {@code null} if the table
+   * references of any input cannot be determined. Tables accessed internally
+   * by the table function are not included.
    */
   public @Nullable Set<RelTableRef> getTableReferences(TableFunctionScan rel,
       RelMetadataQuery mq) {
-    final List<RelNode> sources = new ArrayList<>(rel.getInputs());
-    rel.getCall().accept(new RexVisitorImpl<Void>(true) {
-      @Override public Void visitSubQuery(RexSubQuery subQuery) {
-        sources.add(subQuery.rel);
-        return super.visitSubQuery(subQuery);
-      }
-    });
-    return getTableReferences(sources, mq);
+    return getTableReferences(rel.getInputs(), mq);
   }
 
-  /** Returns table references from relational inputs and sub-queries. */
+  /** Returns the union of the table references of {@code inputs}, assigning
+   * distinct entity numbers to repeated references to the same table, or {@code null}
+   * if the references of any input cannot be determined. */
   private static @Nullable Set<RelTableRef> getTableReferences(
       List<RelNode> inputs, RelMetadataQuery mq) {
     final Set<RelTableRef> result = new HashSet<>();
