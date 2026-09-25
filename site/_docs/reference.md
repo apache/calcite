@@ -200,6 +200,8 @@ withItem:
       name
       [ '(' column [, column ]* ')' ]
       AS '(' query ')'
+      [ CYCLE column [, column ]* SET markColumn TO cycleValue
+          DEFAULT nonCycleValue USING pathColumn ]
 
 orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
@@ -521,6 +523,49 @@ FROM left_table LEFT ASOF JOIN right_table
 MATCH_CONDITION left_table.timecol <= right_table.timecol
 ON left_table.col = right_table.col
 ```
+
+### Cycle detection in recursive queries
+
+`CYCLE` tracks the specified columns along each path through a recursive
+common table expression. It adds two columns after the query's original
+columns: a cycle mark and a path, represented as an array of rows containing
+the key values. The path includes the current row. A row that repeats a key
+on its own path receives the cycle mark and is returned, but is not used in
+the next recursive iteration. Reaching the same key through a different
+path does not by itself constitute a cycle.
+
+For example, this graph contains the cycle A, B, C, A:
+
+```sql
+WITH RECURSIVE
+  edges(src, dst) AS (
+    VALUES ('A', 'B'), ('B', 'C'), ('C', 'A')
+  ),
+  walk(node) AS (
+    VALUES ('A')
+    UNION ALL
+    SELECT e.dst
+    FROM walk AS w JOIN edges AS e ON e.src = w.node
+  ) CYCLE node SET is_cycle TO 'Y' DEFAULT 'N' USING cycle_path
+SELECT node, is_cycle, cycle_path
+FROM walk;
+```
+
+The result contains A, B, C, and A again; only the last row is marked `Y`.
+Its path is `[{A}, {B}, {C}, {A}]`.
+
+Cycle columns must be distinct columns of the CTE. The generated mark and
+path names must be distinct from each other and from the original columns;
+they are not included in the CTE's explicit column list. Mark values must
+be distinct, non-null literals with compatible types. Character, Boolean,
+and numeric marks are supported. Key comparisons use SQL row equality:
+a comparison that is UNKNOWN because of a null key does not close a cycle.
+
+`CYCLE` requires `WITH RECURSIVE` and a binary `UNION` or `UNION ALL` whose
+recursive operand is a `SELECT` with exactly one direct reference to the
+CTE. That reference cannot be on the null-generating side of an outer join.
+Aggregation, `DISTINCT`, and window functions in the recursive `SELECT`
+are not supported. Enumerable execution supports both forms of `UNION`.
 
 ## Keywords
 
