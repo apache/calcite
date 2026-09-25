@@ -126,9 +126,11 @@ public class DruidDateTimeUtils {
       for (RexNode child : call.getOperands()) {
         List<Range<Long>> extracted =
             extractRanges(child, withNot);
-        if (extracted != null) {
-          intervals.addAll(extracted);
+        if (extracted == null) {
+          // Every disjunct must be represented to avoid excluding matching rows.
+          return null;
         }
+        intervals.addAll(extracted);
       }
       return intervals;
     }
