@@ -2472,6 +2472,22 @@ class RexProgramTest extends RexProgramTestBase {
         "=(?0.notNullInt0, ?0.int1)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5907">[CALCITE-5907]
+   * Unexpected boolean expression simplification for And expression</a>. */
+  @Test void testSimplifyAndEqualityTrue() {
+    // "=(x, true)" can be simplified to "x" only if x has BOOLEAN type;
+    // there is no implicit cast from VARCHAR or INTEGER, so the equality
+    // must be retained
+    checkSimplifyUnchanged(and(eq(vVarchar(0), trueLiteral),
+        eq(vVarchar(1), trueLiteral)));
+    checkSimplifyUnchanged(and(eq(vInt(0), trueLiteral),
+        eq(vInt(1), trueLiteral)));
+    // "=(x, true)" is simplified to "x" if x has BOOLEAN type
+    checkSimplifyFilter(and(eq(vBool(0), trueLiteral), eq(vBool(1), trueLiteral)),
+        "AND(?0.bool0, ?0.bool1)");
+  }
+
   @Test void testSimplifyEqualityAndNotEqualityWithOverlapping() {
     final RexLiteral literal3 = literal(3);
     final RexLiteral literal5 = literal(5);
