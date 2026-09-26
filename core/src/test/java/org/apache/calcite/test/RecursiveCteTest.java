@@ -345,12 +345,25 @@ class RecursiveCteTest {
   @ParameterizedTest
   @ValueSource(strings = {"TO NULL DEFAULT 'N'", "TO 'Y' DEFAULT NULL",
       "TO TRUE DEFAULT TRUE", "TO 1 DEFAULT 1.0", "TO TRUE DEFAULT 1",
-      "TO n DEFAULT 0", "TO 'Y' DEFAULT 'Y '", "TO 'Y' DEFAULT 'Y'"})
+      "TO n DEFAULT 0", "TO 'Y' DEFAULT 'Y '", "TO 'Y' DEFAULT 'Y'",
+      "TO 1e0 DEFAULT 1.0000000000000001e0",
+      "TO 9007199254740992e0 DEFAULT 9007199254740993",
+      "TO 1 DEFAULT 1.0000000000000001"})
   void testCycleInvalidMark(String values) {
     SqlValidatorTestCase.FIXTURE.withSql(WITH_NUMBERS
         + "^CYCLE n SET c " + values + " USING p^ SELECT * FROM t")
         .fails("CYCLE mark and default must be non-null literals of compatible types"
             + " with distinct values");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"TO 1.0000000000000001 DEFAULT 1.0",
+      "TO 1.0000000000000002e0 DEFAULT 1e0"})
+  void testCycleDistinctNumericMarks(String values) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+            + "CYCLE n SET c " + values + " USING p SELECT n, c = 1.0 AS is_default FROM t")
+        .returnsOrdered("N=1; IS_DEFAULT=true", "N=1; IS_DEFAULT=false");
   }
 
   @Test void testCycleRequiresRecursive() {

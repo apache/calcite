@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
@@ -47,6 +48,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -207,15 +209,28 @@ final class CycleRewriter {
         validator.getTypeFactory().leastRestrictive(
             ImmutableList.of(validator.deriveType(scope, cycle.markValue),
                 validator.deriveType(scope, cycle.defaultValue)));
-    if (mark == null || defaultMark == null || type == null || equalMarks(mark, defaultMark)) {
+    if (mark == null || defaultMark == null || type == null
+        || equalMarks(mark, defaultMark, type)) {
       throw validator.newValidationError(cycle, RESOURCE.cycleInvalidMarkValues());
     }
     return type;
   }
 
-  private static boolean equalMarks(Object mark, Object defaultMark) {
+  private boolean equalMarks(Object mark, Object defaultMark, RelDataType type) {
     if (mark instanceof BigDecimal && defaultMark instanceof BigDecimal) {
-      return ((BigDecimal) mark).compareTo((BigDecimal) defaultMark) == 0;
+      BigDecimal markNumber = (BigDecimal) mark;
+      BigDecimal defaultNumber = (BigDecimal) defaultMark;
+      // Compare the values stored in the generated column, not the original
+      // literals: conversion to DOUBLE or DECIMAL can make them equal.
+      if (SqlTypeUtil.isApproximateNumeric(type)) {
+        return markNumber.doubleValue() == defaultNumber.doubleValue();
+      }
+      if (type.getSqlTypeName() == SqlTypeName.DECIMAL) {
+        final RoundingMode rounding = validator.getTypeFactory().getTypeSystem().roundingMode();
+        markNumber = markNumber.setScale(type.getScale(), rounding);
+        defaultNumber = defaultNumber.setScale(type.getScale(), rounding);
+      }
+      return markNumber.compareTo(defaultNumber) == 0;
     }
     if (mark instanceof NlsString && defaultMark instanceof NlsString) {
       return SqlFunctions.rtrim(((NlsString) mark).getValue())
