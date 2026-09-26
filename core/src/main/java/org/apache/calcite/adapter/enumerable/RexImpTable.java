@@ -5050,9 +5050,25 @@ public class RexImpTable implements RexImplementorTable {
           Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
           Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
               Expressions.condition(
-                  Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
-                      left.valueVariable, right.valueVariable),
+                  equalExpression(left.valueVariable, right.valueVariable),
                   BOXED_TRUE_EXPR, BOXED_FALSE_EXPR)));
+    }
+
+    /** Returns an expression that compares two non-null values for
+     * equality.
+     *
+     * <p>{@link BigDecimal#equals} is sensitive to scale (for example,
+     * {@code 1.10} is not equal to {@code 1.1}), so {@code BigDecimal} values
+     * are compared using {@link SqlFunctions#eq(BigDecimal, BigDecimal)}, as
+     * the {@code =} operator compares them. Other values are compared using
+     * {@link java.util.Objects#equals}. */
+    private static Expression equalExpression(Expression left,
+        Expression right) {
+      if (left.getType() == BigDecimal.class
+          && right.getType() == BigDecimal.class) {
+        return Expressions.call(BuiltInMethod.EQ_DECIMAL.method, left, right);
+      }
+      return Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method, left, right);
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,

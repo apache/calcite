@@ -719,6 +719,7 @@ public enum BuiltInMethod {
       Comparable.class),
   LT(SqlFunctions.class, "lt", boolean.class, boolean.class),
   GT(SqlFunctions.class, "gt", boolean.class, boolean.class),
+  EQ_DECIMAL(SqlFunctions.class, "eq", BigDecimal.class, BigDecimal.class),
   BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
   BITCOUNT(SqlFunctions.class, "bitCount", BigDecimal.class),
   BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),

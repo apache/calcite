@@ -4909,6 +4909,38 @@ public class RelBuilderTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7826">[CALCITE-7826]
+   * IS NOT DISTINCT FROM gives wrong result in Enumerable convention when
+   * applied to DECIMAL values of different scales</a>. */
+  @Test void testIsNotDistinctFromDecimal() throws Exception {
+    // Equivalent SQL:
+    //   SELECT a, b, a = b AS eq, a IS NOT DISTINCT FROM b AS indf,
+    //     a IS DISTINCT FROM b AS idf
+    //   FROM (VALUES (1.10, 1.1)) AS t (a, b)
+    // but SqlToRelConverter and RelBuilder.isNotDistinctFrom expand IS [NOT]
+    // DISTINCT FROM, so we call the operators directly. "a" has type
+    // DECIMAL(3, 2) and "b" has type DECIMAL(2, 1).
+    final RelBuilder b = RelBuilder.create(config().build());
+    final RelNode root =
+        b.values(new String[] {"a", "b"},
+                new BigDecimal("1.10"), new BigDecimal("1.1"))
+            .project(b.field("a"), b.field("b"),
+                b.alias(b.equals(b.field("a"), b.field("b")), "eq"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                        b.field("a"), b.field("b")), "indf"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.IS_DISTINCT_FROM,
+                        b.field("a"), b.field("b")), "idf"))
+            .build();
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
+      String s = CalciteAssert.toString(preparedStatement.executeQuery());
+      final String result = "a=1.10; b=1.1; eq=true; indf=true; idf=false\n";
+      assertThat(s, is(result));
+    }
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1595">[CALCITE-1595]
    * RelBuilder.call throws NullPointerException if argument types are
    * invalid</a>. */
