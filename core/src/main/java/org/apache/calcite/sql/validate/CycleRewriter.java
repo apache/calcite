@@ -341,7 +341,10 @@ final class CycleRewriter {
   }
 
   private static SqlNode cast(SqlNode value, RelDataType type) {
-    return SqlStdOperatorTable.CAST.createCall(POS, value, SqlTypeUtil.convertTypeToSpec(type));
+    final SqlNode typeSpec = SqlTypeUtil.isInterval(type)
+        ? SqlNode.clone(type.getIntervalQualifier())
+        : SqlTypeUtil.convertTypeToSpec(type);
+    return SqlStdOperatorTable.CAST.createCall(POS, value, typeSpec);
   }
 
   private static SqlIdentifier qualified(String table, String column) {

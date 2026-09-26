@@ -190,6 +190,22 @@ class RecursiveCteTest {
         .returnsOrdered("N=1; C=false; P=[{1}]", "N=1; C=true; P=[{1}, {1}]");
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "INTERVAL '1' DAY",
+      "INTERVAL '123-4' YEAR(3) TO MONTH",
+      "INTERVAL '123 04:05:06.789' DAY(3) TO SECOND(3)"
+  })
+  void testCycleIntervalKey(String key) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(k, d) AS (VALUES (" + key + ", 0)\n"
+            + "UNION ALL SELECT k, d + 1 FROM t WHERE d < 2)\n"
+            + "CYCLE k SET c TO TRUE DEFAULT FALSE USING p\n"
+            + "SELECT d, c, k = " + key + " AS key_matches, CARDINALITY(p) AS depth FROM t")
+        .returnsOrdered("D=0; C=false; KEY_MATCHES=true; DEPTH=1",
+            "D=1; C=true; KEY_MATCHES=true; DEPTH=2");
+  }
+
   @Test void testCycleInferredColumnNames() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t AS (SELECT 1 AS n\n"
