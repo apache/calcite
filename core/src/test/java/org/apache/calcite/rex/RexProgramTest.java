@@ -2479,9 +2479,11 @@ class RexProgramTest extends RexProgramTestBase {
     // "=(x, true)" can be simplified to "x" only if x has BOOLEAN type;
     // there is no implicit cast from VARCHAR or INTEGER, so the equality
     // must be retained
-    checkSimplifyUnchanged(and(eq(vVarchar(0), trueLiteral),
+    checkSimplifyUnchanged(
+        and(eq(vVarchar(0), trueLiteral),
         eq(vVarchar(1), trueLiteral)));
-    checkSimplifyUnchanged(and(eq(vInt(0), trueLiteral),
+    checkSimplifyUnchanged(
+        and(eq(vInt(0), trueLiteral),
         eq(vInt(1), trueLiteral)));
     // "=(x, true)" is simplified to "x" if x has BOOLEAN type
     checkSimplifyFilter(and(eq(vBool(0), trueLiteral), eq(vBool(1), trueLiteral)),
