@@ -99,10 +99,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       } else {
         RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
         boolean isNullable = componentType.isNullable() || padNullable;
-        // Whether a struct element expands into one column per field depends
-        // on the SQL conformance; allowAliasUnnestItems describes how
-        // collections of ROW values are expanded.
-        if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
+        if (expandsStructIntoColumns(componentType, allowAliasUnnestItems(opBinding))) {
           for (RelDataTypeField field : componentType.getFieldList()) {
             RelDataType fieldType = field.getType();
             if (isNullable) {
@@ -128,6 +125,15 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       builder.add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
     }
     return builder.build();
+  }
+
+  /**
+   * Returns whether UNNEST expands {@code componentType} into one column
+   * per field, rather than a single column of the struct's own type.
+   */
+  public static boolean expandsStructIntoColumns(RelDataType componentType,
+      boolean allowAliasUnnestItems) {
+    return componentType.isStruct() && !allowAliasUnnestItems;
   }
 
   private static boolean allowAliasUnnestItems(SqlOperatorBinding operatorBinding) {

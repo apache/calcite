@@ -100,30 +100,30 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType aliasedType;
     if (operands.size() == 2) {
       final SqlNode node = operands.get(0);
-      // Alias is 'AS t' (no column list).
-      // If the sub-query is UNNEST or VALUES,
-      // and the sub-query has one column,
-      // then the namespace's sole column is named after the alias.
+      // 'AS t': the sole column is named after the alias, unless it's a
+      // struct-array UNNEST field (isUnnestOfStructArray), which keeps its name.
+      final boolean isStructUnnest = node.getKind() == SqlKind.UNNEST
+          && isUnnestOfStructArray((SqlCall) node);
       if (rowType.getFieldCount() == 1) {
         final RelDataType singleColumnAlias = validator.getTypeFactory().builder()
             .kind(rowType.getStructKind())
             .add(((SqlIdentifier) operands.get(1)).getSimple(),
                 rowType.getFieldList().get(0).getType())
             .build();
-        aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE
-                || (node.getKind() == SqlKind.UNNEST && isUnnestOfStructArray((SqlCall) node))
+        aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE || isStructUnnest
             ? new SingleColumnAliasRelDataType(rowType, singleColumnAlias) : singleColumnAlias;
-        // If the sub-query is UNNEST with ordinality
-        // and the sub-query has two columns: data column, ordinality column
-        // then the namespace's sole column is named after the alias.
+        // WITH ORDINALITY: data column named after the alias, unless it's
+        // a struct-array field, which keeps its name.
       } else if (node.getKind() == SqlKind.UNNEST && rowType.getFieldCount() == 2
           && ((SqlUnnestOperator) ((SqlBasicCall) node).getOperator()).withOrdinality) {
-        aliasedType = validator.getTypeFactory().builder()
-            .kind(rowType.getStructKind())
-            .add(((SqlIdentifier) operands.get(1)).getSimple(),
-                rowType.getFieldList().get(0).getType())
-            .add(rowType.getFieldList().get(1))
-            .build();
+        aliasedType = isStructUnnest
+            ? rowType
+            : validator.getTypeFactory().builder()
+                .kind(rowType.getStructKind())
+                .add(((SqlIdentifier) operands.get(1)).getSimple(),
+                    rowType.getFieldList().get(0).getType())
+                .add(rowType.getFieldList().get(1))
+                .build();
       } else {
         aliasedType = rowType;
       }
@@ -164,22 +164,20 @@ public class AliasNamespace extends AbstractNamespace {
   }
 
   /**
-   * Returns whether an UNNEST call's array operand has a struct element type.
-   *
-   * <p>{@link SqlUnnestOperator#inferReturnType} produces a 1-field row for
-   * both struct arrays and scalar arrays. Only the structs have a real field
-   * name worth preserving.
+   * Returns whether the sole column of an aliased UNNEST is a field of
+   * the collection's ROW element, which keeps its own name, rather than
+   * a scalar column, which the alias renames.
    */
   private boolean isUnnestOfStructArray(SqlCall unnestCall) {
-    if (unnestCall.operandCount() != 1) {
-      return false;
+    RelDataType operandType = validator.getValidatedNodeType(unnestCall.operand(0));
+    if (operandType.isStruct()) {
+      // Sub-query operand: unwrap as SqlUnnestOperator#inferReturnType does.
+      operandType = operandType.getFieldList().get(0).getType();
     }
-    if (validator.config().conformance().allowAliasUnnestItems()) {
-      return false;
-    }
-    final RelDataType operandType = validator.getValidatedNodeType(unnestCall.operand(0));
     final RelDataType componentType = operandType.getComponentType();
-    return componentType != null && componentType.isStruct();
+    return componentType != null
+        && SqlUnnestOperator.expandsStructIntoColumns(componentType,
+            validator.config().conformance().allowAliasUnnestItems());
   }
 
   private static String getString(RelDataType rowType) {

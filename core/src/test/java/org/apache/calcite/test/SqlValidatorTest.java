@@ -1201,25 +1201,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         });
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
-   * UNNEST of a single-field ROW array loses the field name when aliased</a>. */
-  @Test void testUnnestSingleFieldRow() {
-    sql("select d.a\n"
-        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
-        .columnType("INTEGER NOT NULL");
-    // The array's real field name ("A") survives star-expansion too, not just
-    // the synthetic alias ("D").
-    sql("select *\n"
-        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
-        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
-    // Trino: struct not expanded; alias renames the ROW column.
-    sql("select *\n"
-        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
-        .withConformance(SqlConformanceEnum.PRESTO)
-        .type("RecordType(RecordType(INTEGER NOT NULL A) NOT NULL D) NOT NULL");
-  }
-
   @Test void testOverlay() {
     expr("overlay('ABCdef' placing 'abc' from 1)").ok();
     expr("overlay('ABCdef' placing 'abc' from 1 for 3)").ok();
@@ -10120,6 +10101,55 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from (SELECT ARRAY['banana'] as fruits) as t, UNNEST(t.fruits)")
         .type("RecordType(CHAR(6) NOT NULL ARRAY NOT NULL FRUITS, "
             + "CHAR(6) NOT NULL EXPR$0) NOT NULL").ok();
+
+    // Test case for [CALCITE-7791] UNNEST of a single-field ROW array loses
+    // the field name when aliased. The array's field name ("A") survives
+    // star-expansion, and the alias ("D") still works to qualify it.
+    sql("select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A) NOT NULL");
+
+    // UNNEST ROW array in a sub-query.
+    sql("select *\n"
+        + "from unnest(\n"
+        + "  (select cast(array[row(1)] as row(a integer) array)\n"
+        + "   from (values (1)))) as d")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+
+    //  WITH ORDINALITY.
+    sql("select d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d")
+        .columnType("INTEGER NOT NULL");
+
+    // NATURAL JOIN and USING match field name ("A"), not the alias ("D").
+    // A column named after the alias does not count as a match.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "natural join (select 1 as a) as t")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "natural join (select 1 as d) as t")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL D) NOT NULL");
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "join (values (1)) as t (a) using (a)")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>Under {@link SqlConformanceEnum#PRESTO} or {@code BIG_QUERY}, the
+   * struct element is not expanded into columns, so the alias renames the
+   * single ROW column instead of naming one of its fields. */
+  @Test void testUnnestSingleFieldRowUnexpanded() {
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .withConformance(SqlConformanceEnum.PRESTO)
+        .type("RecordType(RecordType(INTEGER NOT NULL A) NOT NULL D) NOT NULL");
   }
 
   @Test void testCorrelationJoin() {

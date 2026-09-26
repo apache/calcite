@@ -10318,6 +10318,20 @@ LogicalProject(EXPR$0=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnnestSingleFieldRowAliasKeepsFieldName">
+    <Resource name="sql">
+      <![CDATA[select d, d.a
+from unnest(cast(array[row(1)] as row(a integer) array)) as d]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$0], A=[$0])
+  Uncollect
+    LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnnestSubQuery">
     <Resource name="plan">
       <![CDATA[
