@@ -52,6 +52,7 @@ import org.apache.calcite.sql.SqlAsofJoin;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCycleClause;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -3758,8 +3759,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlValidatorScope scope = parentScope;
     for (int i = 0; i < with.withList.size(); i++) {
       SqlWithItem withItem = (SqlWithItem) with.withList.get(i);
-      if (withItem.cycleClause != null && !withItem.recursive.booleanValue()) {
-        throw newValidationError(withItem.cycleClause, RESOURCE.cycleRequiresRecursive());
+      final SqlCycleClause cycleClause = withItem.cycleClause;
+      if (cycleClause != null && !withItem.recursive.booleanValue()) {
+        throw newValidationError(cycleClause, RESOURCE.cycleRequiresRecursive());
       }
       SqlValidatorScope withScope =
           registerWithItem(scope, with, withItem, enclosingNode, alias, forceNullable);
