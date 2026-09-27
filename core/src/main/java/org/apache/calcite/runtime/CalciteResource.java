@@ -950,7 +950,7 @@ public interface CalciteResource {
   @BaseMessage("CYCLE generated column ''{0}'' conflicts with another column")
   ExInst<SqlValidatorException> cycleColumnConflict(String column);
 
-  @BaseMessage("CYCLE mark and default must be non-null literals of compatible types with distinct values")
+  @BaseMessage("CYCLE mark and default must be distinct, non-null Boolean or compatible single-character string literals")
   ExInst<SqlValidatorException> cycleInvalidMarkValues();
 
   @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")

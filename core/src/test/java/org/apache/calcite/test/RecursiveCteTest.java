@@ -164,15 +164,15 @@ class RecursiveCteTest {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n, k, depth) AS (VALUES (0, 0, 0)\n"
             + union + " SELECT MOD(n + 1, 2), MOD(k + 1, 3), depth + 1 FROM t\n"
-            + "WHERE depth < 10) CYCLE n, k SET c TO TRUE DEFAULT FALSE USING p\n"
+            + "WHERE depth < 10) CYCLE n, k SET c TO 'Y' DEFAULT 'N' USING p\n"
             + "SELECT n, k, depth, c, CARDINALITY(p) AS len FROM t")
-        .returnsOrdered("N=0; K=0; DEPTH=0; C=false; LEN=1",
-            "N=1; K=1; DEPTH=1; C=false; LEN=2",
-            "N=0; K=2; DEPTH=2; C=false; LEN=3",
-            "N=1; K=0; DEPTH=3; C=false; LEN=4",
-            "N=0; K=1; DEPTH=4; C=false; LEN=5",
-            "N=1; K=2; DEPTH=5; C=false; LEN=6",
-            "N=0; K=0; DEPTH=6; C=true; LEN=7");
+        .returnsOrdered("N=0; K=0; DEPTH=0; C=N; LEN=1",
+            "N=1; K=1; DEPTH=1; C=N; LEN=2",
+            "N=0; K=2; DEPTH=2; C=N; LEN=3",
+            "N=1; K=0; DEPTH=3; C=N; LEN=4",
+            "N=0; K=1; DEPTH=4; C=N; LEN=5",
+            "N=1; K=2; DEPTH=5; C=N; LEN=6",
+            "N=0; K=0; DEPTH=6; C=Y; LEN=7");
   }
 
   @Test void testCyclePath() {
@@ -186,8 +186,8 @@ class RecursiveCteTest {
   @Test void testCycleUnionDistinctSeedDuplicates() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (VALUES (1), (1) UNION SELECT n FROM t)\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT * FROM t")
-        .returnsOrdered("N=1; C=false; P=[{1}]", "N=1; C=true; P=[{1}, {1}]");
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT * FROM t")
+        .returnsOrdered("N=1; C=N; P=[{1}]", "N=1; C=Y; P=[{1}, {1}]");
   }
 
   @ParameterizedTest
@@ -200,76 +200,76 @@ class RecursiveCteTest {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(k, d) AS (VALUES (" + key + ", 0)\n"
             + "UNION ALL SELECT k, d + 1 FROM t WHERE d < 2)\n"
-            + "CYCLE k SET c TO TRUE DEFAULT FALSE USING p\n"
+            + "CYCLE k SET c TO 'Y' DEFAULT 'N' USING p\n"
             + "SELECT d, c, k = " + key + " AS key_matches, CARDINALITY(p) AS depth FROM t")
-        .returnsOrdered("D=0; C=false; KEY_MATCHES=true; DEPTH=1",
-            "D=1; C=true; KEY_MATCHES=true; DEPTH=2");
+        .returnsOrdered("D=0; C=N; KEY_MATCHES=true; DEPTH=1",
+            "D=1; C=Y; KEY_MATCHES=true; DEPTH=2");
   }
 
   @Test void testCycleInferredColumnNames() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t AS (SELECT 1 AS n\n"
-            + "UNION ALL SELECT * FROM t) CYCLE n SET c TO 1 DEFAULT 0 USING p\n"
+            + "UNION ALL SELECT * FROM t) CYCLE n SET c TO 'Y' DEFAULT 'N' USING p\n"
             + "SELECT n, c FROM t")
-        .returnsOrdered("N=1; C=0", "N=1; C=1");
+        .returnsOrdered("N=1; C=N", "N=1; C=Y");
   }
 
   @Test void testCycleColumnAliases() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (VALUES (1)\n"
             + "UNION ALL SELECT w.c FROM t AS w(c))\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT n, c FROM t")
-        .returnsOrdered("N=1; C=false", "N=1; C=true");
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT n, c FROM t")
+        .returnsOrdered("N=1; C=N", "N=1; C=Y");
   }
 
   @Test void testCycleColumnAliasCollisions() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n, k, m) AS (VALUES (1, 2, 3)\n"
             + "UNION ALL SELECT w.c, w.c0, w.p FROM t AS w(c, c0, p))\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p\n"
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p\n"
             + "SELECT n, k, m, c, CARDINALITY(p) AS depth FROM t")
-        .returnsOrdered("N=1; K=2; M=3; C=false; DEPTH=1",
-            "N=1; K=2; M=3; C=true; DEPTH=2");
+        .returnsOrdered("N=1; K=2; M=3; C=N; DEPTH=1",
+            "N=1; K=2; M=3; C=Y; DEPTH=2");
   }
 
   @Test void testCycleWithConjunction() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (VALUES (1), (2), (3)\n"
             + "UNION ALL SELECT n FROM t WHERE n > 1 AND n < 3)\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT n, c FROM t")
-        .returnsUnordered("N=1; C=false", "N=2; C=false", "N=3; C=false",
-            "N=2; C=true");
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT n, c FROM t")
+        .returnsUnordered("N=1; C=N", "N=2; C=N", "N=3; C=N",
+            "N=2; C=Y");
   }
 
   @Test void testCycleNaturalJoin() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (VALUES (1)\n"
             + "UNION ALL SELECT n FROM t NATURAL JOIN (VALUES (1, TRUE)) AS v(n, c))\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT n, c FROM t")
-        .returnsOrdered("N=1; C=false", "N=1; C=true");
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT n, c FROM t")
+        .returnsOrdered("N=1; C=N", "N=1; C=Y");
   }
 
   @Test void testCycleNullKey() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n, depth) AS (VALUES (CAST(NULL AS INTEGER), 0)\n"
             + "UNION ALL SELECT n, depth + 1 FROM t WHERE depth < 3)\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT n, depth, c FROM t")
-        .returnsOrdered("N=null; DEPTH=0; C=false", "N=null; DEPTH=1; C=false",
-            "N=null; DEPTH=2; C=false", "N=null; DEPTH=3; C=false");
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT n, depth, c FROM t")
+        .returnsOrdered("N=null; DEPTH=0; C=N", "N=null; DEPTH=1; C=N",
+            "N=null; DEPTH=2; C=N", "N=null; DEPTH=3; C=N");
   }
 
   @Test void testCycleEmptySeed() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (SELECT n FROM (VALUES (1)) AS v(n) WHERE FALSE\n"
             + "UNION ALL SELECT n FROM t)\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT * FROM t")
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT * FROM t")
         .returnsCount(0);
   }
 
   @Test void testCycleRowType() {
     SqlValidatorTestCase.FIXTURE.withSql(WITH_NUMBERS
-        + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT * FROM t")
-        .type("RecordType(INTEGER NOT NULL N, BOOLEAN NOT NULL C, "
+        + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT * FROM t")
+        .type("RecordType(INTEGER NOT NULL N, CHAR(1) NOT NULL C, "
             + "RecordType(INTEGER NOT NULL EXPR$0) NOT NULL ARRAY NOT NULL P) NOT NULL");
   }
 
@@ -279,7 +279,7 @@ class RecursiveCteTest {
       "SELECT a.n FROM t a WHERE EXISTS (SELECT 1 FROM t b WHERE b.n = a.n)"})
   void testCycleInvalidRecursiveReference(String step) {
     SqlValidatorTestCase.FIXTURE.withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
-        + "UNION ALL " + step + ") ^CYCLE n SET c TO TRUE DEFAULT FALSE USING p^\n"
+        + "UNION ALL " + step + ") ^CYCLE n SET c TO 'Y' DEFAULT 'N' USING p^\n"
         + "SELECT * FROM t")
         .fails("CYCLE requires a UNION \\[ALL\\] with a recursive SELECT containing"
             + " exactly one direct reference to its WITH item");
@@ -290,7 +290,7 @@ class RecursiveCteTest {
       {"SELECT DISTINCT n FROM t", "SELECT MAX(n) FROM t", "SELECT SUM(n) OVER () FROM t"})
   void testCycleInvalidRecursiveSelect(String step) {
     SqlValidatorTestCase.FIXTURE.withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
-        + "UNION ALL " + step + ") ^CYCLE n SET c TO TRUE DEFAULT FALSE USING p^\n"
+        + "UNION ALL " + step + ") ^CYCLE n SET c TO 'Y' DEFAULT 'N' USING p^\n"
         + "SELECT * FROM t")
         .fails("CYCLE is not supported with aggregation, DISTINCT, or window functions"
             + " in the recursive SELECT");
@@ -300,9 +300,9 @@ class RecursiveCteTest {
     CalciteAssert.that()
         .query("WITH RECURSIVE \"Walk\"(\"Node\") AS (VALUES (1)\n"
             + "UNION ALL SELECT w.\"Node\" FROM \"Walk\" AS w)\n"
-            + "CYCLE \"Node\" SET \"Cycle\" TO 'yes' DEFAULT 'no' USING \"Path\"\n"
+            + "CYCLE \"Node\" SET \"Cycle\" TO 'Y' DEFAULT 'N' USING \"Path\"\n"
             + "SELECT \"Node\", \"Cycle\" FROM \"Walk\"")
-        .returnsOrdered("Node=1; Cycle=no ", "Node=1; Cycle=yes");
+        .returnsOrdered("Node=1; Cycle=N", "Node=1; Cycle=Y");
   }
 
   @Test void testCycleNoCycle() {
@@ -321,19 +321,30 @@ class RecursiveCteTest {
             "N=3; C=N; DEPTH=3");
   }
 
-  @Test void testCycleNegativeMark() {
+  @ParameterizedTest
+  @ValueSource(strings = {"Y", " ", "\u00e9"})
+  void testCycleSingleCharacterMarks(String mark) {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
-            + "CYCLE n SET c TO -1 DEFAULT 0 USING p SELECT n, c FROM t")
-        .returnsOrdered("N=1; C=0", "N=1; C=-1");
+            + "CYCLE n SET c TO '" + mark + "' DEFAULT 'N' USING p SELECT n, c FROM t")
+        .returnsOrdered("N=1; C=N", "N=1; C=" + mark);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testCycleBooleanMarks(boolean mark) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+            + "CYCLE n SET c TO " + mark + " DEFAULT " + !mark + " USING p SELECT n, c FROM t")
+        .returnsOrdered("N=1; C=" + !mark, "N=1; C=" + mark);
   }
 
   @Test void testCycleWithLocalWith() {
     CalciteAssert.that()
         .query("WITH RECURSIVE t(n) AS (WITH seed(n) AS (VALUES (1))\n"
             + "SELECT n FROM seed UNION ALL SELECT n FROM t)\n"
-            + "CYCLE n SET c TO TRUE DEFAULT FALSE USING p SELECT n, c FROM t")
-        .returnsOrdered("N=1; C=false", "N=1; C=true");
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT n, c FROM t")
+        .returnsOrdered("N=1; C=N", "N=1; C=Y");
   }
 
   @Test void testCyclePlan() {
@@ -347,11 +358,11 @@ class RecursiveCteTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', value = {
-      "CYCLE ^missing^ SET c TO TRUE DEFAULT FALSE USING p|CYCLE column 'MISSING' is not a column of WITH item 'T'",
-      "CYCLE n, ^n^ SET c TO TRUE DEFAULT FALSE USING p|Duplicate name 'N' in column list",
-      "CYCLE n SET ^n^ TO TRUE DEFAULT FALSE USING p|CYCLE generated column 'N' conflicts with another column",
-      "CYCLE n SET c TO TRUE DEFAULT FALSE USING ^n^|CYCLE generated column 'N' conflicts with another column",
-      "CYCLE n SET c TO TRUE DEFAULT FALSE USING ^c^|CYCLE generated column 'C' conflicts with another column"
+      "CYCLE ^missing^ SET c TO 'Y' DEFAULT 'N' USING p|CYCLE column 'MISSING' is not a column of WITH item 'T'",
+      "CYCLE n, ^n^ SET c TO 'Y' DEFAULT 'N' USING p|Duplicate name 'N' in column list",
+      "CYCLE n SET ^n^ TO 'Y' DEFAULT 'N' USING p|CYCLE generated column 'N' conflicts with another column",
+      "CYCLE n SET c TO 'Y' DEFAULT 'N' USING ^n^|CYCLE generated column 'N' conflicts with another column",
+      "CYCLE n SET c TO 'Y' DEFAULT 'N' USING ^c^|CYCLE generated column 'C' conflicts with another column"
   })
   void testCycleInvalidColumns(String clause, String error) {
     SqlValidatorTestCase.FIXTURE.withSql(WITH_NUMBERS + clause + " SELECT * FROM t")
@@ -360,37 +371,30 @@ class RecursiveCteTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"TO NULL DEFAULT 'N'", "TO 'Y' DEFAULT NULL",
-      "TO TRUE DEFAULT TRUE", "TO 1 DEFAULT 1.0", "TO TRUE DEFAULT 1",
-      "TO n DEFAULT 0", "TO 'Y' DEFAULT 'Y '", "TO 'Y' DEFAULT 'Y'",
-      "TO 1e0 DEFAULT 1.0000000000000001e0",
-      "TO 9007199254740992e0 DEFAULT 9007199254740993",
-      "TO 1 DEFAULT 1.0000000000000001"})
+      "TO 'Y' DEFAULT 'Y'", "TO ' ' DEFAULT ' '",
+      "TO '' DEFAULT 'N'", "TO 'Y' DEFAULT ''",
+      "TO 'YY' DEFAULT 'N'", "TO 'Y' DEFAULT 'NN'",
+      "TO TRUE DEFAULT TRUE", "TO FALSE DEFAULT FALSE", "TO TRUE DEFAULT UNKNOWN",
+      "TO TRUE DEFAULT 'N'", "TO 'Y' DEFAULT FALSE", "TO 1 DEFAULT 0", "TO -1 DEFAULT 0",
+      "TO 1.0 DEFAULT 0.0", "TO 1e0 DEFAULT 0e0",
+      "TO 'Y' DEFAULT 0", "TO n DEFAULT 'N'",
+      "TO X'01' DEFAULT X'0100'", "TO INTERVAL '1' DAY DEFAULT INTERVAL '24' HOUR"})
   void testCycleInvalidMark(String values) {
     SqlValidatorTestCase.FIXTURE.withSql(WITH_NUMBERS
         + "^CYCLE n SET c " + values + " USING p^ SELECT * FROM t")
-        .fails("CYCLE mark and default must be non-null literals of compatible types"
-            + " with distinct values");
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"TO 1.0000000000000001 DEFAULT 1.0",
-      "TO 1.0000000000000002e0 DEFAULT 1e0"})
-  void testCycleDistinctNumericMarks(String values) {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
-            + "CYCLE n SET c " + values + " USING p SELECT n, c = 1.0 AS is_default FROM t")
-        .returnsOrdered("N=1; IS_DEFAULT=true", "N=1; IS_DEFAULT=false");
+        .fails("CYCLE mark and default must be distinct, non-null Boolean"
+            + " or compatible single-character string literals");
   }
 
   @Test void testCycleRequiresRecursive() {
     SqlValidatorTestCase.FIXTURE.withSql("WITH t(n) AS (VALUES (1))\n"
-        + "^CYCLE n SET c TO TRUE DEFAULT FALSE USING p^ SELECT * FROM t")
+        + "^CYCLE n SET c TO 'Y' DEFAULT 'N' USING p^ SELECT * FROM t")
         .fails("CYCLE requires WITH RECURSIVE");
   }
 
   @Test void testCycleRequiresRecursiveReference() {
     SqlValidatorTestCase.FIXTURE.withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
-        + "UNION ALL SELECT 2) ^CYCLE n SET c TO TRUE DEFAULT FALSE USING p^\n"
+        + "UNION ALL SELECT 2) ^CYCLE n SET c TO 'Y' DEFAULT 'N' USING p^\n"
         + "SELECT * FROM t")
         .fails("CYCLE requires a UNION \\[ALL\\] with a recursive SELECT containing"
             + " exactly one direct reference to its WITH item");

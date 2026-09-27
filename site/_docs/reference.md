@@ -557,8 +557,9 @@ Its path is `[{A}, {B}, {C}, {A}]`.
 Cycle columns must be distinct columns of the CTE. The generated mark and
 path names must be distinct from each other and from the original columns;
 they are not included in the CTE's explicit column list. Mark values must
-be distinct, non-null literals with compatible types. Character, Boolean,
-and numeric marks are supported. Key comparisons use SQL row equality:
+be distinct, non-null Boolean literals (`TRUE` and `FALSE`) or compatible
+character string literals of length one, such as `'Y'` and `'N'`.
+Key comparisons use SQL row equality:
 a comparison that is UNKNOWN because of a null key does not close a cycle.
 
 `CYCLE` requires `WITH RECURSIVE` and a binary `UNION` or `UNION ALL` whose
