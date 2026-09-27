@@ -24,11 +24,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import org.junit.jupiter.api.Test;
 
-import static java.util.Objects.requireNonNull;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+
+import static java.util.Objects.requireNonNull;
 
 /** Unit tests for {@link SqlShuttle}. */
 class SqlShuttleTest {
@@ -54,7 +54,8 @@ class SqlShuttleTest {
         SqlLiteral.createExactNumeric("4", SqlParserPos.ZERO);
 
     final SqlCall result =
-        (SqlCall) requireNonNull(call.accept(
+        (SqlCall) requireNonNull(
+            call.accept(
             new ReplacingSqlShuttle(operands[1], replacement)));
 
     assertNotSame(call, result);

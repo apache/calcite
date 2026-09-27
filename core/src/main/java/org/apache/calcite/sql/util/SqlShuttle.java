@@ -146,8 +146,9 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
     }
 
     private @Nullable SqlNode[] copyOperands() {
-      final List<@Nullable SqlNode> operands = call.getOperandList();
-      return operands.toArray(SqlNode.EMPTY_ARRAY);
+      final List<@Nullable SqlNode> operands =
+          (List<@Nullable SqlNode>) call.getOperandList();
+      return operands.toArray(new SqlNode[0]);
     }
   }
 }

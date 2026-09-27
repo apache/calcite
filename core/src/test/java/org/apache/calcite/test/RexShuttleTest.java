@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -33,6 +31,8 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
