@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCycleClause;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
@@ -43,6 +44,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
 
@@ -108,7 +110,8 @@ class RecursiveCteTest {
   @ParameterizedTest
   @ValueSource(strings = {
       "CYCLE n SET is_cycle TO 'Y' DEFAULT 'N' USING cycle_path",
-      "CYCLE n, depth SET is_cycle TO 'Y' DEFAULT 'N' USING cycle_path"
+      "CYCLE n, depth SET is_cycle TO 'Y' DEFAULT 'N' USING cycle_path",
+      "CYCLE n, depth SET is_cycle USING cycle_path"
   })
   void testStandardCycleClause(String cycleClause) throws SqlParseException {
     final String sql = "WITH RECURSIVE t(n, depth) AS (\n"
@@ -141,6 +144,27 @@ class RecursiveCteTest {
             + "SELECT n, c, CARDINALITY(p) AS depth FROM t")
         .returnsOrdered("N=1; C=N; DEPTH=1", "N=2; C=N; DEPTH=2",
             "N=0; C=N; DEPTH=3", "N=1; C=Y; DEPTH=4");
+  }
+
+  @Test void testCycleDefaultMarks() throws SqlParseException {
+    final String sql = "WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+        + "CYCLE n SET c USING p SELECT * FROM t";
+    final SqlWith with = (SqlWith) SqlParser.create(sql).parseQuery();
+    final SqlCycleClause cycle =
+        requireNonNull(((SqlWithItem) with.withList.get(0)).cycleClause);
+    assertThat(((SqlLiteral) cycle.markValue).booleanValue(), is(true));
+    assertThat(((SqlLiteral) cycle.defaultValue).booleanValue(), is(false));
+    assertThat(with.toSqlString(CalciteSqlDialect.DEFAULT).getSql(),
+        containsString("TO TRUE DEFAULT FALSE"));
+    CalciteAssert.that().query(sql)
+        .returnsOrdered("N=1; C=false; P=[{1}]", "N=1; C=true; P=[{1}, {1}]");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"TO TRUE", "DEFAULT FALSE"})
+  void testCycleIncompleteMarks(String values) {
+    final String sql = WITH_NUMBERS + "CYCLE n SET c " + values + " USING p SELECT * FROM t";
+    assertThrows(SqlParseException.class, () -> SqlParser.create(sql).parseQuery());
   }
 
   /** Two paths reach D independently; returning to A closes each path. */

@@ -200,8 +200,8 @@ withItem:
       name
       [ '(' column [, column ]* ')' ]
       AS '(' query ')'
-      [ CYCLE column [, column ]* SET markColumn TO cycleValue
-          DEFAULT nonCycleValue USING pathColumn ]
+      [ CYCLE column [, column ]* SET markColumn
+          [ TO cycleValue DEFAULT nonCycleValue ] USING pathColumn ]
 
 orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
@@ -559,6 +559,8 @@ path names must be distinct from each other and from the original columns;
 they are not included in the CTE's explicit column list. Mark values must
 be distinct, non-null Boolean literals (`TRUE` and `FALSE`) or compatible
 character string literals of length one, such as `'Y'` and `'N'`.
+If `TO cycleValue DEFAULT nonCycleValue` is omitted, the mark values default
+to `TRUE` and `FALSE`, respectively: `CYCLE node SET is_cycle USING cycle_path`.
 Key comparisons use SQL row equality:
 a comparison that is UNKNOWN because of a null key does not close a cycle.
 

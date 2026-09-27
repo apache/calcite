@@ -3956,8 +3956,15 @@ SqlCycleClause CycleClause() :
     column = SimpleIdentifier() { columns.add(column); }
     ( <COMMA> column = SimpleIdentifier() { columns.add(column); } )*
     <SET> markColumn = SimpleIdentifier()
-    <TO> markValue = Expression(ExprContext.ACCEPT_NON_QUERY)
-    <DEFAULT_> defaultValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+    (
+        <TO> markValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+        <DEFAULT_> defaultValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+    |
+        {
+            markValue = SqlLiteral.createBoolean(true, markColumn.getParserPosition());
+            defaultValue = SqlLiteral.createBoolean(false, markColumn.getParserPosition());
+        }
+    )
     <USING> pathColumn = SimpleIdentifier()
     { return new SqlCycleClause(s.end(this), new SqlNodeList(columns, s.pos()),
         markColumn, markValue, defaultValue, pathColumn); }

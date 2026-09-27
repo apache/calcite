@@ -28,7 +28,8 @@ import static java.util.Objects.requireNonNull;
 
 /** SQL-standard cycle detection clause of a recursive common table expression.
  *
- * <p>Syntax: {@code CYCLE columns SET mark TO value DEFAULT default USING path}.
+ * <p>Syntax: {@code CYCLE columns SET mark [TO value DEFAULT default] USING path}.
+ * Omitted mark values are represented by TRUE and FALSE literals.
  * The mark and path columns are generated columns, not members of the WITH
  * item's explicit column list. */
 public class SqlCycleClause extends SqlCall {
