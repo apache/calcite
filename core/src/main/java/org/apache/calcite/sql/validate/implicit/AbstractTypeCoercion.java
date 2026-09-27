@@ -670,11 +670,17 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
 
     if (SqlTypeUtil.isApproximateNumeric(type1) && SqlTypeUtil.isExactNumeric(type2)) {
-      return factory.createTypeWithNullability(type1, anyNullable);
+      final RelDataType result = SqlTypeUtil.isDecimal(type2)
+          ? factory.createSqlType(SqlTypeName.DOUBLE)
+          : type1;
+      return factory.createTypeWithNullability(result, anyNullable);
     }
 
     if (SqlTypeUtil.isApproximateNumeric(type2) && SqlTypeUtil.isExactNumeric(type1)) {
-      return factory.createTypeWithNullability(type2, anyNullable);
+      final RelDataType result = SqlTypeUtil.isDecimal(type1)
+          ? factory.createSqlType(SqlTypeName.DOUBLE)
+          : type2;
+      return factory.createTypeWithNullability(result, anyNullable);
     }
 
     if (SqlTypeUtil.isExactNumeric(type1) && SqlTypeUtil.isExactNumeric(type2)) {

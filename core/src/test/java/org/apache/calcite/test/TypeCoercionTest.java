@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -482,6 +483,25 @@ class TypeCoercionTest {
     f.comparisonCommonType(f.recordType("a", f.arrayType(f.nullableIntType)),
         f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.nullableIntType)));
+  }
+
+  /**
+   * DECIMAL vs. REAL/FLOAT must widen to DOUBLE, not narrow to REAL/FLOAT: a 32-bit float only
+   * holds ~7 significant digits, so e.g. 59999943 and 59999945 round to the same float value.
+   */
+  @Test void testComparisonCoercionDecimalWithApproximateNumeric() {
+    final Fixture f = fixture();
+    RelDataType decimal54 = f.decimalType(5, 4);
+
+    f.comparisonCommonType(decimal54, f.realType, f.doubleType);
+    f.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
+
+    // Plain INTEGER/BIGINT vs. approximate numeric is unaffected.
+    f.comparisonCommonType(f.intType, f.realType, f.realType);
+    f.comparisonCommonType(f.bigintType, f.realType, f.realType);
+
+    assertThat(59999943f, is(59999945f));
+    assertThat(59999943d, is(not(59999945d)));
   }
 
   /**
