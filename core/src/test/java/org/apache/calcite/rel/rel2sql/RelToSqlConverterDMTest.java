@@ -10491,6 +10491,34 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expecteSql));
   }
 
+  @Test public void testSnowflakeJaroWinklerSimilarity() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode jaroWinklerNode =
+        relBuilder.call(SqlLibraryOperators.JAROWINKLER_SIMILARITY,
+            relBuilder.literal("Snowflake"), relBuilder.literal("Oracle"));
+    RelNode root = relBuilder
+        .project(jaroWinklerNode)
+        .build();
+    final String expectedSql = "SELECT JAROWINKLER_SIMILARITY('Snowflake', 'Oracle') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testSnowflakeJaroWinklerSimilarityWithColumns() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode jaroWinklerNode =
+        relBuilder.call(SqlLibraryOperators.JAROWINKLER_SIMILARITY,
+            relBuilder.field("ENAME"), relBuilder.field("JOB"));
+    RelNode root = relBuilder
+        .project(jaroWinklerNode)
+        .build();
+    final String expectedSql = "SELECT JAROWINKLER_SIMILARITY(\"ENAME\", \"JOB\") AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testSnowflakeLastDay() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RexNode lastDayNode =
