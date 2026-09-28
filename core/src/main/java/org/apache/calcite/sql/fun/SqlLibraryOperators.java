@@ -5089,4 +5089,14 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING_STRING),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction CURRENT_REGION =
+      new SqlFunction(
+          "CURRENT_REGION",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
 }
