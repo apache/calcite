@@ -1837,6 +1837,17 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Comparison of DECIMAL and approximate numeric loses precision</a>. */
+  @Test void testJoinOnDecimalEqualsRealDoesNotLosePrecision() {
+    CalciteAssert.that()
+        .query("SELECT *\n"
+            + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+            + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k")
+        .returns("");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-387">[CALCITE-387]
    * CompileException when cast TRUE to nullable boolean</a>. */
   @Test void testTrue() {
