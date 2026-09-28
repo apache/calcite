@@ -3397,22 +3397,40 @@ public class RexUtil {
     }
   }
 
-  /** Visitor that collects all the top level SubQueries {@link RexSubQuery}
-   *  in a projection list of a given {@link Project}.*/
+  /** Visitor that collects {@link RexSubQuery} expressions. */
   public static class SubQueryCollector extends RexVisitorImpl<Void> {
     private final List<RexSubQuery> subQueries;
-    private SubQueryCollector() {
-      super(true);
+
+    /** Creates a collector.
+     *
+     * @param deep Whether to visit expression operands; relational expressions
+     *     inside sub-queries are never visited
+     */
+    public SubQueryCollector(boolean deep) {
+      super(deep);
       this.subQueries = new ArrayList<>();
     }
 
     @Override public Void visitSubQuery(RexSubQuery subQuery) {
       subQueries.add(subQuery);
-      return null;
+      return super.visitSubQuery(subQuery);
     }
 
-    public static List<RexSubQuery> collect(Project project) {
-      SubQueryCollector subQueryCollector = new SubQueryCollector();
+    /** Returns an immutable snapshot of the sub-queries collected so far,
+     * in visitation order. */
+    public List<RexSubQuery> getSubQueries() {
+      return ImmutableList.copyOf(subQueries);
+    }
+
+    /** Collects {@link RexSubQuery} expressions in the projection list
+     * of a given {@link Project}.
+     *
+     * @param project Project whose expressions are visited
+     * @param deep Whether to recursively visit expression operands; if false,
+     *     collects only top-level {@link RexSubQuery} expressions in the projection list
+     */
+    public static List<RexSubQuery> collect(Project project, boolean deep) {
+      SubQueryCollector subQueryCollector = new SubQueryCollector(deep);
       for (RexNode node : project.getProjects()) {
         node.accept(subQueryCollector);
       }
