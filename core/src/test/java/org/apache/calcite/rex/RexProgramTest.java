@@ -2495,7 +2495,8 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(
         and(eq(vIntNotNull(0), trueLiteral),
         eq(vIntNotNull(1), trueLiteral)));
-    checkSimplifyFilter(and(eq(vBoolNotNull(0), trueLiteral),
+    checkSimplifyFilter(
+        and(eq(vBoolNotNull(0), trueLiteral),
         eq(vBoolNotNull(1), trueLiteral)),
         "AND(?0.notNullBool0, ?0.notNullBool1)");
   }
