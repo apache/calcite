@@ -2488,6 +2488,16 @@ class RexProgramTest extends RexProgramTestBase {
     // "=(x, true)" is simplified to "x" if x has BOOLEAN type
     checkSimplifyFilter(and(eq(vBool(0), trueLiteral), eq(vBool(1), trueLiteral)),
         "AND(?0.bool0, ?0.bool1)");
+    // same, with NOT NULL variables
+    checkSimplifyUnchanged(
+        and(eq(vVarcharNotNull(0), trueLiteral),
+        eq(vVarcharNotNull(1), trueLiteral)));
+    checkSimplifyUnchanged(
+        and(eq(vIntNotNull(0), trueLiteral),
+        eq(vIntNotNull(1), trueLiteral)));
+    checkSimplifyFilter(and(eq(vBoolNotNull(0), trueLiteral),
+        eq(vBoolNotNull(1), trueLiteral)),
+        "AND(?0.notNullBool0, ?0.notNullBool1)");
   }
 
   @Test void testSimplifyEqualityAndNotEqualityWithOverlapping() {
