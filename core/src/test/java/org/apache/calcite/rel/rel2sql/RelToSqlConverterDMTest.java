@@ -15577,4 +15577,40 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedQuery));
   }
 
+  @Test public void testOrderByIdenticalTableAndColumnName() {
+    final RelBuilder builder = relBuilder();
+
+    final RelNode emp = builder.scan("EMP").build();
+    final RelNode innerAggregate = builder
+        .push(emp)
+        .aggregate(
+            builder.groupKey("DEPTNO"),
+            builder.count(true, "t", builder.field("EMPNO")))
+        .build();
+
+    final RelNode root = builder
+        .scan("DEPT")
+        .push(innerAggregate).as("t")
+        .join(JoinRelType.LEFT,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .filter(builder.greaterThan(builder.field("t", "t"), builder.literal(0)))
+        .project(
+            builder.field(1, 0, "DEPTNO"),
+            builder.field("t", "t"))
+        .sort(builder.desc(builder.field(1)))
+        .build();
+
+    final String expectedBigQuery = "SELECT DEPT.DEPTNO, t.t\n"
+        + "FROM scott.DEPT\n"
+        + "LEFT JOIN (SELECT DEPTNO, COUNT(DISTINCT EMPNO) AS t\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY DEPTNO) AS t ON DEPT.DEPTNO = t.DEPTNO\n"
+        + "WHERE t.t > 0\n"
+        + "ORDER BY 2 DESC NULLS FIRST";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
 }

@@ -2149,6 +2149,12 @@ public abstract class SqlImplementor {
                   }
                 }
               }
+            } else if (node instanceof SqlIdentifier
+                && ((SqlIdentifier) node).names.size() == 2
+                && hasSameNames(((SqlIdentifier) node).names, false)
+                && !dialect.supportsIdenticalTableAndColumnName()) {
+              return SqlLiteral.createExactNumeric(
+                  Integer.toString(ordinal + 1), SqlParserPos.ZERO);
             }
             return node;
           }
@@ -2216,6 +2222,14 @@ public abstract class SqlImplementor {
         }
       }
       return false;
+    }
+
+    private boolean hasSameNames(List<String> names, boolean caseSensitive) {
+      if (!caseSensitive) {
+        return names.stream()
+            .allMatch(s -> s.equalsIgnoreCase(names.get(0)));
+      }
+      return names.stream().allMatch(s -> s.equals(names.get(0)));
     }
 
     public boolean isQualifyFilter(RelNode relNode) {
