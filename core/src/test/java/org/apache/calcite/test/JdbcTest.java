@@ -9228,18 +9228,39 @@ public class JdbcTest {
         .returns("C1=[1,2]; C2=[1, 2]; C3=[]; C4=[[1, 2]]\n");
   }
 
+  /** Tests that a value that cannot be converted to the type in the
+   * {@code RETURNING} clause is governed by the {@code ON ERROR} clause.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7801">[CALCITE-7801]
+   * JSON_VALUE(..., RETURNING DOUBLE) throws ClassCastException when the JSON
+   * number is an integer</a>. */
   @Test void testJsonValueError() {
+    // NULL ON ERROR is the default.
+    CalciteAssert.that()
+        .query("SELECT JSON_VALUE(v, 'lax $.a' RETURNING INTEGER) AS c1\n"
+            + "FROM (VALUES ('{\"a\": \"abc\"}')) AS t(v)\n"
+            + "LIMIT 10")
+        .returns("C1=null\n");
+
+    CalciteAssert.that()
+        .query("SELECT JSON_VALUE(v, 'lax $.a' RETURNING INTEGER"
+            + " DEFAULT 0 ON ERROR) AS c1\n"
+            + "FROM (VALUES ('{\"a\": \"abc\"}')) AS t(v)\n"
+            + "LIMIT 10")
+        .returns("C1=0\n");
+
     java.sql.SQLException t =
         assertThrows(
             java.sql.SQLException.class,
             () -> CalciteAssert.that()
-                .query("SELECT JSON_VALUE(v, 'lax $.a' RETURNING INTEGER) AS c1\n"
+                .query("SELECT JSON_VALUE(v, 'lax $.a' RETURNING INTEGER"
+                    + " ERROR ON ERROR) AS c1\n"
                     + "FROM (VALUES ('{\"a\": \"abc\"}')) AS t(v)\n"
                     + "LIMIT 10")
                 .returns(""));
 
-    assertThat(
-        t.getMessage(), containsString("java.lang.String cannot be cast to"));
+    assertThat(t.getMessage(), containsString("For input string: \"abc\""));
   }
 
   @Test void testJsonQueryError() {

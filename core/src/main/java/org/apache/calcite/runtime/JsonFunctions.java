@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -243,13 +244,15 @@ public class JsonFunctions {
         SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
         Object defaultValueOnEmpty,
         SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-        Object defaultValueOnError) {
+        Object defaultValueOnError,
+        CastSpec spec) {
       return jsonValue(
           jsonApiCommonSyntaxWithCache(input, pathSpec),
           emptyBehavior,
           defaultValueOnEmpty,
           errorBehavior,
-          defaultValueOnError);
+          defaultValueOnError,
+          spec);
     }
 
     public @Nullable Object jsonValue(JsonValueContext input,
@@ -257,20 +260,23 @@ public class JsonFunctions {
         SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
         Object defaultValueOnEmpty,
         SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-        Object defaultValueOnError) {
+        Object defaultValueOnError,
+        CastSpec spec) {
       return jsonValue(
           jsonApiCommonSyntax(input, pathSpec),
           emptyBehavior,
           defaultValueOnEmpty,
           errorBehavior,
-          defaultValueOnError);
+          defaultValueOnError,
+          spec);
     }
 
     public @Nullable Object jsonValue(JsonPathContext context,
         SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
         Object defaultValueOnEmpty,
         SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-        Object defaultValueOnError) {
+        Object defaultValueOnError,
+        CastSpec spec) {
       final Exception exc;
       if (context.hasException()) {
         exc = context.exc;
@@ -284,7 +290,7 @@ public class JsonFunctions {
           case NULL:
             return null;
           case DEFAULT:
-            return defaultValueOnEmpty;
+            return convertDefaultValue(defaultValueOnEmpty, spec);
           default:
             throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
                 emptyBehavior.toString()).ex();
@@ -295,7 +301,12 @@ public class JsonFunctions {
               RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(
                   value.toString()).ex();
         } else {
-          return value;
+          try {
+            return SqlFunctions.cast(value, spec);
+          } catch (Exception e) {
+            // A failed conversion is an error, so ON ERROR applies.
+            exc = e;
+          }
         }
       }
       switch (errorBehavior) {
@@ -304,7 +315,7 @@ public class JsonFunctions {
       case NULL:
         return null;
       case DEFAULT:
-        return defaultValueOnError;
+        return convertDefaultValue(defaultValueOnError, spec);
       default:
         throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
             errorBehavior.toString()).ex();
@@ -317,10 +328,11 @@ public class JsonFunctions {
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
         SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
-        boolean jsonize) {
+        boolean jsonize,
+        CastSpec spec) {
       return jsonQuery(
           jsonApiCommonSyntaxWithCache(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize, spec);
     }
 
     public @Nullable Object jsonQuery(JsonValueContext input,
@@ -328,10 +340,11 @@ public class JsonFunctions {
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
         SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
-        boolean jsonize) {
+        boolean jsonize,
+        CastSpec spec) {
       return jsonQuery(
           jsonApiCommonSyntax(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize, spec);
     }
 
     public @Nullable Object jsonQuery(
@@ -339,7 +352,8 @@ public class JsonFunctions {
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
         SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
-        boolean jsonize) {
+        boolean jsonize,
+        CastSpec spec) {
       final Exception exc;
       if (context.hasException()) {
         exc = context.exc;
@@ -394,7 +408,12 @@ public class JsonFunctions {
               exc = e;
             }
           } else {
-            return value;
+            try {
+              return SqlFunctions.cast(value, spec);
+            } catch (Exception e) {
+              // A failed conversion is an error, so ON ERROR applies.
+              exc = e;
+            }
           }
         }
       }
@@ -411,6 +430,20 @@ public class JsonFunctions {
         throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
             errorBehavior.toString()).ex();
       }
+    }
+
+    /** Converts the value of a {@code DEFAULT} clause to the type of the
+     * {@code RETURNING} clause.
+     *
+     * <p>The value is a SQL value of the type it was written as, not a
+     * value read from a JSON document, so the only conversion it can need is
+     * between numeric types, as in
+     * {@code RETURNING DOUBLE DEFAULT 1 ON EMPTY}. */
+    private static @Nullable Object convertDefaultValue(@Nullable Object value,
+        CastSpec spec) {
+      return SqlTypeName.NUMERIC_TYPES.contains(spec.getTypeName())
+          ? SqlFunctions.cast(value, spec)
+          : value;
     }
 
     private static Object jsonQueryEmptyArray(boolean jsonize) {

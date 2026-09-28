@@ -44,6 +44,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -5634,6 +5635,169 @@ public class SqlFunctions {
     }
     return o instanceof Number ? toBigDecimal((Number) o)
         : toBigDecimal(o.toString());
+  }
+
+  /** Converts a value to the target described by {@code spec}, as
+   * {@code CAST} does, when the type of the value is not known until run
+   * time.
+   *
+   * <p>A collection type is converted element by element, recursing on the
+   * {@link CastSpec#getComponent() component} spec.
+   *
+   * <p>Throws if the value cannot be converted, and for a target type that
+   * this method does not handle, so that a caller such as
+   * {@code JSON_VALUE} can apply its {@code ON ERROR} clause.
+   *
+   * @param value Value to convert
+   * @param spec  Description of the conversion target; a target type of
+   *              {@link SqlTypeName#ANY} returns the value unchanged
+   */
+  static @Nullable Object cast(@Nullable Object value, CastSpec spec) {
+    final SqlTypeName typeName = spec.getTypeName();
+    if (value == null || typeName == SqlTypeName.ANY) {
+      return value;
+    }
+    final int precision = spec.getPrecision();
+    final int scale = spec.getScale();
+    final RoundingMode roundingMode = spec.getRoundingMode();
+    switch (typeName) {
+    case ARRAY:
+    case MULTISET: {
+      // A collection is converted element by element, as a CAST to a
+      // collection type does. A value of a different shape, such as a scalar
+      // where an array is wanted, is an error, so that a caller such as
+      // JSON_QUERY can apply its ON ERROR clause.
+      final CastSpec component = spec.getComponent();
+      if (component == null || !(value instanceof Collection)) {
+        return cannotConvert(value, typeName);
+      }
+      final Collection<?> collection = (Collection<?>) value;
+      final List<@Nullable Object> list = new ArrayList<>(collection.size());
+      for (Object element : collection) {
+        list.add(cast(element, component));
+      }
+      return list;
+    }
+    case BOOLEAN:
+      return toBoolean(value);
+    case TINYINT:
+      return castToExact(value, Primitive.BYTE, roundingMode);
+    case SMALLINT:
+      return castToExact(value, Primitive.SHORT, roundingMode);
+    case INTEGER:
+      return castToExact(value, Primitive.INT, roundingMode);
+    case BIGINT:
+      return castToExact(value, Primitive.LONG, roundingMode);
+    case REAL:
+      return toFloat(value);
+    case FLOAT:
+    case DOUBLE:
+      return toDouble(value);
+    case DECIMAL:
+      return castToDecimal(value, precision, scale, roundingMode);
+    case CHAR:
+      return precision < 0 ? value.toString()
+          : truncateOrPad(value.toString(), precision);
+    case VARCHAR:
+      return precision < 0 ? value.toString()
+          : truncate(value.toString(), precision);
+    case DATE:
+      return DateTimeUtils.dateStringToUnixDate(charValue(value, typeName));
+    case TIME:
+      return DateTimeUtils.timeStringToUnixDate(charValue(value, typeName));
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      return toTimeWithLocalTimeZone(charValue(value, typeName));
+    case TIMESTAMP:
+      return DateTimeUtils.timestampStringToUnixDate(
+          charValue(value, typeName));
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return toTimestampWithLocalTimeZone(charValue(value, typeName));
+    case BINARY: {
+      // A character value is encoded to bytes with the default charset, as a
+      // CAST does; BINARY zero-pads to the precision, VARBINARY truncates.
+      final ByteString b =
+          stringToBinary(charValue(value, typeName), Util.getDefaultCharset());
+      return precision < 0 ? b : truncateOrPad(b, precision);
+    }
+    case VARBINARY: {
+      final ByteString b =
+          stringToBinary(charValue(value, typeName), Util.getDefaultCharset());
+      return precision < 0 ? b : truncate(b, precision);
+    }
+    case GEOMETRY:
+      return SpatialTypeFunctions.ST_GeomFromEWKT(charValue(value, typeName));
+    case UUID:
+      return UuidValue.fromString(charValue(value, typeName));
+    default:
+      return cannotConvert(value, typeName);
+    }
+  }
+
+  /** Converts a value to an exact numeric type, rounding as the type system
+   * requires and throwing {@link ArithmeticException} if it is out of range,
+   * as {@code CAST} does.
+   *
+   * <p>Converts a number to {@link BigDecimal} first:
+   * {@link Primitive#integerCast} does not accept every {@link Number} a
+   * semi-structured value may hold, such as {@link BigInteger}. */
+  private static Object castToExact(Object value, Primitive primitive,
+      RoundingMode roundingMode) {
+    if (!(value instanceof Number)) {
+      // Take the same path as a CAST from a character value.
+      switch (primitive) {
+      case BYTE:
+        return toByte(value);
+      case SHORT:
+        return toShort(value);
+      case INT:
+        return toInt(value);
+      default:
+        return toLong(value);
+      }
+    }
+    return requireNonNull(
+        Primitive.integerCast(primitive, toBigDecimal((Number) value),
+            roundingMode), "integerCast");
+  }
+
+  /** Converts a value to {@code DECIMAL(precision, scale)}. */
+  private static @Nullable Object castToDecimal(Object value, int precision,
+      int scale, RoundingMode roundingMode) {
+    if (precision < 0 || scale < 0) {
+      // The type gives no precision and scale to enforce.
+      return toBigDecimal(value);
+    }
+    if (value instanceof BigDecimal) {
+      return Primitive.decimalDecimalCast((BigDecimal) value, precision, scale,
+          roundingMode);
+    }
+    if (value instanceof BigInteger) {
+      return Primitive.decimalDecimalCast(new BigDecimal((BigInteger) value),
+          precision, scale, roundingMode);
+    }
+    if (value instanceof Float || value instanceof Double) {
+      return Primitive.fpDecimalCast((Number) value, precision, scale,
+          roundingMode);
+    }
+    if (value instanceof Number) {
+      return Primitive.integerDecimalCast((Number) value, precision, scale,
+          roundingMode);
+    }
+    return Primitive.charToDecimalCast(value.toString(), precision, scale,
+        roundingMode);
+  }
+
+  /** Returns {@code value} as a character value, throwing if it is not one;
+   * the datetime types convert only from a character value. */
+  private static String charValue(Object value, SqlTypeName typeName) {
+    if (value instanceof String) {
+      return (String) value;
+    }
+    return (String) cannotConvert(value, typeName);
+  }
+
+  private static Object cannotConvert(Object o, SqlTypeName typeName) {
+    throw RESOURCE.cannotConvert(String.valueOf(o), typeName.getName()).ex();
   }
 
   /**

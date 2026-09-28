@@ -2878,13 +2878,24 @@ In the following:
 |:---------------------- |:-----------
 | JSON_EXISTS(jsonValue, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR } ON ERROR ] ) | Whether a *jsonValue* satisfies a search criterion described using JSON path expression *path*
 | JSON_VALUE(jsonValue, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a *jsonValue* using JSON path expression *path*
-| JSON_QUERY(jsonValue, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract a JSON object or JSON array from *jsonValue* using the *path* JSON path expression
+| JSON_QUERY(jsonValue, path [ RETURNING type ] [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract a JSON object or JSON array from *jsonValue* using the *path* JSON path expression
 
 Note:
 
 * The `ON ERROR` and `ON EMPTY` clauses define the fallback
   behavior of the function when an error is thrown or a null value
   is about to be returned.
+* The `RETURNING` clause gives the type of the value that the function
+  returns; the default is `VARCHAR(2000)`. The value extracted from the
+  document is converted to that type as if by `CAST`, and a conversion that
+  fails is an error, and is therefore governed by the `ON ERROR` clause. In
+  `JSON_QUERY`, a `RETURNING` type that is an `ARRAY` converts each element.
+  A datetime is parsed from a JSON string, as `CAST` parses a character
+  value; a JSON number is not a datetime, so converting one is an error.
+  The precision and scale of the type are applied: a `DECIMAL(p, s)` is
+  scaled, a `CHAR(n)` or `VARCHAR(n)` is truncated or padded to *n*
+  characters, and fractional seconds beyond the precision of a datetime type
+  are truncated.
 * The `ARRAY WRAPPER` clause defines how to represent a JSON array result
   in `JSON_QUERY` function. The following examples compare the wrapper
   behaviors.
