@@ -15549,6 +15549,15 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedQuery));
   }
 
+  @Test public void testCurrentRegionFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentRegionNode = builder.call(SqlLibraryOperators.CURRENT_REGION);
+    final RelNode root = builder.project(currentRegionNode).build();
+
+    final String expectedQuery = "SELECT CURRENT_REGION() AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedQuery));
+  }
+
   @Test public void testOrderByIdenticalTableAndColumnName() {
     final RelBuilder builder = relBuilder();
 
