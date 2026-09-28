@@ -50,6 +50,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -84,13 +85,18 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.test.schemata.hr.Department;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Bug;
@@ -1839,11 +1845,59 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
    * Comparison of DECIMAL and approximate numeric loses precision</a>. */
-  @Test void testJoinOnDecimalEqualsRealDoesNotLosePrecision() {
+  @Test void testJoinOnDecimalEqualsRealLosesPrecision() {
+    // Default TypeCoercion narrows to REAL, so these compare equal. See
+    // TypeCoercionTest#testComparisonCoercionDecimalWithApproximateNumericOverride
+    // for the opt-in fix.
     CalciteAssert.that()
         .query("SELECT *\n"
             + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
             + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k")
+        .returnsCount(1);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   *
+   * <p>A custom TypeCoercion overriding {@code approximateExactComparisonType}
+   * widens the join to DOUBLE, so it correctly returns no rows. */
+  @Test void testJoinOnDecimalEqualsRealWidenedToDouble() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k";
+    /** Parses and validates {@code sql} with a widening TypeCoercion, then
+     * substitutes the resulting RelNode for the hook's original query. */
+    class Handler {
+      void accept(Pair<FrameworkConfig, Holder<CalcitePrepare.Query>> pair) {
+        final FrameworkConfig config =
+            Frameworks.newConfigBuilder(pair.left)
+                .sqlValidatorConfig(
+                    pair.left.getSqlValidatorConfig()
+                        .withTypeCoercionFactory((t, v) -> new TypeCoercionImpl(t, v) {
+                          @Override protected RelDataType approximateExactComparisonType(
+                              RelDataType approximateType, RelDataType exactType,
+                              boolean anyNullable) {
+                            return SqlTypeUtil.isDecimal(exactType)
+                                ? t.createTypeWithNullability(
+                                    t.createSqlType(SqlTypeName.DOUBLE), anyNullable)
+                                : super.approximateExactComparisonType(
+                                    approximateType, exactType, anyNullable);
+                          }
+                        }))
+                .build();
+        final Planner planner = Frameworks.getPlanner(config);
+        try {
+          final RelRoot root = planner.rel(planner.validate(planner.parse(sql)));
+          pair.right.set(CalcitePrepare.Query.of(root.project()));
+        } catch (Exception e) {
+          throw TestUtil.rethrow(e);
+        }
+      }
+    }
+    CalciteAssert.that()
+        .withHook(Hook.STRING_TO_QUERY, new Handler()::accept)
+        .query(sql)
         .returns("");
   }
 

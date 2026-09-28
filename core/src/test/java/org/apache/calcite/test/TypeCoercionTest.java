@@ -29,6 +29,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -486,19 +487,39 @@ class TypeCoercionTest {
   }
 
   /**
-   * DECIMAL vs. REAL/FLOAT must widen to DOUBLE, not narrow to REAL/FLOAT: a 32-bit float only
-   * holds ~7 significant digits, so e.g. 59999943 and 59999945 round to the same float value.
+   * Default: DECIMAL vs. REAL/FLOAT narrows to REAL/FLOAT, same as
+   * INTEGER/BIGINT vs. approximate numeric.
    */
   @Test void testComparisonCoercionDecimalWithApproximateNumeric() {
     final Fixture f = fixture();
     RelDataType decimal54 = f.decimalType(5, 4);
 
-    f.comparisonCommonType(decimal54, f.realType, f.doubleType);
+    f.comparisonCommonType(decimal54, f.realType, f.realType);
     f.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
-
-    // Plain INTEGER/BIGINT vs. approximate numeric is unaffected.
     f.comparisonCommonType(f.intType, f.realType, f.realType);
     f.comparisonCommonType(f.bigintType, f.realType, f.realType);
+  }
+
+  /**
+   * A custom TypeCoercion can widen DECIMAL vs. REAL/FLOAT to DOUBLE instead
+   * of narrowing, to avoid precision loss.
+   */
+  @Test void testComparisonCoercionDecimalWithApproximateNumericOverride() {
+    final Fixture f = fixture();
+    final SqlValidator validator = SqlTestFactory.INSTANCE.createValidator();
+    final TypeCoercion widening = new TypeCoercionImpl(f.typeFactory, validator) {
+      @Override protected RelDataType approximateExactComparisonType(
+          RelDataType approximateType, RelDataType exactType, boolean anyNullable) {
+        return SqlTypeUtil.isDecimal(exactType)
+            ? f.typeFactory.createTypeWithNullability(f.doubleType, anyNullable)
+            : super.approximateExactComparisonType(approximateType, exactType, anyNullable);
+      }
+    };
+    final Fixture widened = new Fixture(f.typeFactory, widening);
+    RelDataType decimal54 = f.decimalType(5, 4);
+
+    widened.comparisonCommonType(decimal54, f.realType, f.doubleType);
+    widened.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
 
     assertThat(59999943f, is(59999945f));
     assertThat(59999943d, is(not(59999945d)));
