@@ -84,6 +84,9 @@ public class AliasNamespace extends AbstractNamespace {
     final SqlValidatorNamespace childNs =
         validator.getNamespaceOrThrow(operands.get(0));
     final RelDataType rowType0 = childNs.getRowTypeSansSystemColumns();
+    // An alias namespace renames columns positionally (or, without a column
+    // list, not at all), so the child's filter requirement applies unchanged
+    filterRequirement = childNs.getFilterRequirement();
     final RelDataType rowType;
     if (rowType0.isStruct()) {
       rowType = rowType0;
