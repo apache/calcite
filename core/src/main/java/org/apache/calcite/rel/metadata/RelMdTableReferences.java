@@ -20,26 +20,40 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Combine;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RepeatUnion;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -101,6 +115,11 @@ public class RelMdTableReferences
     return ImmutableSet.of(RelTableRef.of(rel.getTable(), 0));
   }
 
+  /** Table references from Values. */
+  public Set<RelTableRef> getTableReferences(Values rel, RelMetadataQuery mq) {
+    return ImmutableSet.of();
+  }
+
   /**
    * Table references from Aggregate.
    */
@@ -112,45 +131,23 @@ public class RelMdTableReferences
    * Table references from Join.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Join rel, RelMetadataQuery mq) {
-    final RelNode leftInput = rel.getLeft();
-    final RelNode rightInput = rel.getRight();
-    final Set<RelTableRef> result = new HashSet<>();
+    return getTableReferences(ImmutableList.of(rel.getLeft(), rel.getRight()),
+        ImmutableList.of(rel.getCondition()), mq);
+  }
 
-    // Gather table references, left input references remain unchanged
-    final Multimap<List<String>, RelTableRef> leftQualifiedNamesToRefs = HashMultimap.create();
-    final Set<RelTableRef> leftTableRefs = mq.getTableReferences(leftInput);
-    if (leftTableRefs == null) {
-      // We could not infer the table refs from left input
-      return null;
-    }
-    for (RelTableRef leftRef : leftTableRefs) {
-      assert !result.contains(leftRef);
-      result.add(leftRef);
-      leftQualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
-    }
+  /** Table references from both inputs of Correlate. */
+  public @Nullable Set<RelTableRef> getTableReferences(Correlate rel, RelMetadataQuery mq) {
+    return getTableReferences(rel.getInputs(), ImmutableList.of(), mq);
+  }
 
-    // Gather table references, right input references might need to be
-    // updated if there are table names clashes with left input
-    final Set<RelTableRef> rightTableRefs = mq.getTableReferences(rightInput);
-    if (rightTableRefs == null) {
-      // We could not infer the table refs from right input
-      return null;
-    }
-    for (RelTableRef rightRef : rightTableRefs) {
-      int shift = 0;
-      Collection<RelTableRef> lRefs =
-          leftQualifiedNamesToRefs.get(rightRef.getQualifiedName());
-      if (lRefs != null) {
-        shift = lRefs.size();
-      }
-      RelTableRef shiftTableRef =
-          RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber());
-      assert !result.contains(shiftTableRef);
-      result.add(shiftTableRef);
-    }
+  /** Table references from RepeatUnion. */
+  public @Nullable Set<RelTableRef> getTableReferences(RepeatUnion rel, RelMetadataQuery mq) {
+    return getTableReferences(rel.getInputs(), ImmutableList.of(), mq);
+  }
 
-    // Return result
-    return result;
+  /** Table references from Combine. */
+  public @Nullable Set<RelTableRef> getTableReferences(Combine rel, RelMetadataQuery mq) {
+    return getTableReferences(rel.getInputs(), ImmutableList.of(), mq);
   }
 
   /**
@@ -160,31 +157,38 @@ public class RelMdTableReferences
    * references.
    */
   public @Nullable Set<RelTableRef> getTableReferences(SetOp rel, RelMetadataQuery mq) {
-    return getTableReferences(rel.getInputs(), mq);
+    return getTableReferences(rel.getInputs(), ImmutableList.of(), mq);
   }
 
   /**
-   * Table references from the relational inputs of a TableFunctionScan.
+   * Table references from TableFunctionScan.
    *
-   * <p>Returns an empty set if there are no inputs, and {@code null} if the table
-   * references of any input cannot be determined. Tables accessed internally
-   * by the table function are not included.
+   * <p>Returns an empty set when its inputs and call reference no tables.
    */
   public @Nullable Set<RelTableRef> getTableReferences(TableFunctionScan rel,
       RelMetadataQuery mq) {
-    return getTableReferences(rel.getInputs(), mq);
+    return getTableReferences(rel.getInputs(), ImmutableList.of(rel.getCall()), mq);
   }
 
-  /** Returns the union of the table references of {@code inputs}, assigning
-   * distinct entity numbers to repeated references to the same table, or {@code null}
-   * if the references of any input cannot be determined. */
+  /** Returns the union of the table references of {@code inputs} and expression
+   * sub-queries, assigning distinct entity numbers to repeated references to
+   * the same table, or {@code null} if the references of any input or sub-query
+   * cannot be determined. */
   private static @Nullable Set<RelTableRef> getTableReferences(
-      List<RelNode> inputs, RelMetadataQuery mq) {
+      List<RelNode> inputs, List<? extends RexNode> expressions, RelMetadataQuery mq) {
+    final List<RelNode> rels = new ArrayList<>(inputs);
+    final RexUtil.SubQueryCollector collector = new RexUtil.SubQueryCollector(true);
+    for (RexNode expression : expressions) {
+      expression.accept(collector);
+    }
+    for (RexSubQuery subQuery : collector.getSubQueries()) {
+      rels.add(subQuery.rel);
+    }
     final Set<RelTableRef> result = new HashSet<>();
 
     // Infer column origin expressions for given references
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
-    for (RelNode input : inputs) {
+    for (RelNode input : rels) {
       final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
       final Set<RelTableRef> inputTableRefs = mq.getTableReferences(input);
       if (inputTableRefs == null) {
@@ -218,35 +222,45 @@ public class RelMdTableReferences
    * Table references from Project.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Project rel, final RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
+    return getTableReferences(ImmutableList.of(rel.getInput()), rel.getProjects(), mq);
   }
 
   /**
    * Table references from Filter.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Filter rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
+    return getTableReferences(ImmutableList.of(rel.getInput()),
+        ImmutableList.of(rel.getCondition()), mq);
   }
 
   /**
    * Table references from Calc.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Calc rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
+    return getTableReferences(ImmutableList.of(rel.getInput()), rel.getProgram().getExprList(), mq);
   }
 
   /**
    * Table references from Sort.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Sort rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
+    final ImmutableList.Builder<RexNode> expressions = ImmutableList.builder();
+    if (rel.offset != null) {
+      expressions.add(rel.offset);
+    }
+    if (rel.fetch != null) {
+      expressions.add(rel.fetch);
+    }
+    return getTableReferences(ImmutableList.of(rel.getInput()), expressions.build(), mq);
   }
 
   /**
    * Table references from TableModify.
    */
   public @Nullable Set<RelTableRef> getTableReferences(TableModify rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
+    final List<RexNode> expressions = rel.getSourceExpressionList();
+    return getTableReferences(ImmutableList.of(rel.getInput()),
+        expressions == null ? ImmutableList.of() : expressions, mq);
   }
 
   /**
@@ -260,13 +274,59 @@ public class RelMdTableReferences
    * Table references from Window.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Window rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
+    final ImmutableList.Builder<RexNode> expressions = ImmutableList.builder();
+    for (Window.Group group : rel.groups) {
+      expressions.addAll(group.aggCalls);
+      final @Nullable RexNode lowerOffset = group.lowerBound.getOffset();
+      if (lowerOffset != null) {
+        expressions.add(lowerOffset);
+      }
+      final @Nullable RexNode upperOffset = group.upperBound.getOffset();
+      if (upperOffset != null) {
+        expressions.add(upperOffset);
+      }
+    }
+    return getTableReferences(ImmutableList.of(rel.getInput()), expressions.build(), mq);
   }
 
   /**
    * Table references from Sample.
    */
   public @Nullable Set<RelTableRef> getTableReferences(Sample rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /** Table references from Snapshot. */
+  public @Nullable Set<RelTableRef> getTableReferences(Snapshot rel, RelMetadataQuery mq) {
+    return getTableReferences(ImmutableList.of(rel.getInput()),
+        ImmutableList.of(rel.getPeriod()), mq);
+  }
+
+  /** Table references from Match. */
+  public @Nullable Set<RelTableRef> getTableReferences(Match rel, RelMetadataQuery mq) {
+    final ImmutableList.Builder<RexNode> expressions = ImmutableList.builder();
+    expressions.add(rel.getPattern(), rel.getAfter());
+    expressions.addAll(rel.getMeasures().values());
+    expressions.addAll(rel.getPatternDefinitions().values());
+    final @Nullable RexNode interval = rel.getInterval();
+    if (interval != null) {
+      expressions.add(interval);
+    }
+    return getTableReferences(ImmutableList.of(rel.getInput()), expressions.build(), mq);
+  }
+
+  /** Table references from Uncollect. */
+  public @Nullable Set<RelTableRef> getTableReferences(Uncollect rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /** Table references from Collect. */
+  public @Nullable Set<RelTableRef> getTableReferences(Collect rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /** Table references from Spool. */
+  public @Nullable Set<RelTableRef> getTableReferences(Spool rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
 

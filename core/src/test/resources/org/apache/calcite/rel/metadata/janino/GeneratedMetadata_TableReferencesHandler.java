@@ -66,26 +66,44 @@ public final class GeneratedMetadata_TableReferencesHandler
       return provider0.getTableReferences((org.apache.calcite.rel.core.Aggregate) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Calc) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Calc) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Collect) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Collect) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Combine) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Combine) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Correlate) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Correlate) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Exchange) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Exchange) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Filter) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Filter) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Join) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Join) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Match) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Match) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Project) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Project) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.RepeatUnion) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.RepeatUnion) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Sample) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Sample) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.SetOp) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.SetOp) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Snapshot) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Snapshot) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Sort) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Sort) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Spool) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Spool) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableFunctionScan) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.TableFunctionScan) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableModify) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.TableModify) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.TableScan) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Uncollect) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Uncollect) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Values) {
+      return provider0.getTableReferences((org.apache.calcite.rel.core.Values) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Window) {
       return provider0.getTableReferences((org.apache.calcite.rel.core.Window) r, mq);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {

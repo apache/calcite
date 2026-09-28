@@ -54,6 +54,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -64,8 +65,10 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTableSpool;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.BuiltInMetadata;
@@ -98,6 +101,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
@@ -4895,6 +4899,141 @@ public class RelMetadataTest {
     assertNull(tableReferences);
   }
 
+  @Test void testTableReferencesValues() {
+    final RelNode values = sql("select 5").toRel();
+    assertThat(values.getCluster().getMetadataQuery().getTableReferences(values), empty());
+
+    final RelNode union = sql("select deptno from dept union all select 5").toRel();
+    assertThat(union.getCluster().getMetadataQuery().getTableReferences(union),
+        sortsAs("[[CATALOG, SALES, DEPT].#0]"));
+  }
+
+  @Test void testTableReferencesSnapshot() {
+    final RelNode rel = sql("select productid from products_temporal "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'").toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, PRODUCTS_TEMPORAL].#0]"));
+  }
+
+  @Test void testTableReferencesMatch() {
+    final RelNode rel = sql("select * from emp match_recognize ("
+        + " measures A.empno as x pattern (A) define A as A.empno > 0) as m")
+        .toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesUncollect() {
+    final RelNode rel = sql("select * from unnest(array[10, 20])").toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel), empty());
+  }
+
+  @Test void testTableReferencesCollect() {
+    final RelNode rel = sql("select array(select empno from emp)")
+        .withConfig(c -> c.withExpand(true)).toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesRepeatUnion() {
+    final RelNode rel = fixture().withRelFn(b -> {
+      final RelNode scan = b.scan("EMP").build();
+      return LogicalRepeatUnion.create(scan, scan, true, null);
+    }).toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[scott, EMP].#0, [scott, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesTableSpool() {
+    final RelNode rel = fixture().withRelFn(b -> {
+      final TableScan scan = (TableScan) b.scan("EMP").build();
+      return LogicalTableSpool.create(scan, Spool.Type.LAZY, Spool.Type.LAZY,
+          scan.getTable());
+    }).toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[scott, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesCombine() {
+    final RelNode rel = fixture().withRelFn(b -> {
+      final RelNode scan = b.scan("EMP").build();
+      return b.combine(scan, scan).build();
+    }).toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[scott, EMP].#0, [scott, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesProjectSubQuery() {
+    final RelNode rel = sql("select (select max(sal) from emp) from dept").toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesFilterSubQuery() {
+    final RelNode rel = sql("select * from dept where deptno in "
+        + "(select deptno from emp)").toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesJoinSubQuery() {
+    final RelNode rel = sql("select * from dept d join emp e "
+        + "on d.deptno = e.deptno and e.sal > (select avg(sal) from emp)").toRel();
+    assertThat(RexUtil.SubQueryFinder.containsSubQuery((Join) rel.getInput(0)), is(true));
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0, "
+            + "[CATALOG, SALES, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesCalcSubQuery() {
+    final RelNode rel = sql("select (select max(sal) from emp) from dept").toRel();
+    final HepPlanner planner = new HepPlanner(new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .build());
+    planner.setRoot(rel);
+    final RelNode calc = planner.findBestExp();
+    assertThat(calc.getCluster().getMetadataQuery().getTableReferences(calc),
+        sortsAs("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesCorrelate() {
+    final RelNode rel = sql("select * from dept d, lateral "
+        + "(select * from emp e where e.deptno = d.deptno)").toRel();
+    assertThat(rel.getInput(0), instanceOf(Correlate.class));
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesCorrelateSameTable() {
+    final RelNode rel = sql("select * from dept d, lateral "
+        + "(select * from dept e where e.deptno = d.deptno)").toRel();
+    assertThat(rel.getInput(0), instanceOf(Correlate.class));
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1]"));
+  }
+
+  @Test void testTableReferencesRepeatedTableInSubQuery() {
+    final RelNode rel = sql("select (select max(e2.sal) from emp e2) "
+        + "from emp e1").toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+  }
+
+  @Test void testTableReferencesNestedSubQueryWithUnknownNode() {
+    final RelNode rel = fixture().withRelFn(b -> {
+      final RelNode left = b.scan("DEPT").build();
+      final RelNode right = b.scan("EMP").project(b.field("SAL")).build();
+      final RelNode unknown =
+          new DummyRelNode(right.getCluster(), right.getTraitSet(), right);
+      return b.push(left)
+          .project(
+              b.call(SqlStdOperatorTable.PLUS,
+              RexSubQuery.scalar(unknown), b.literal(1)))
+          .build();
+    }).toRel();
+    assertNull(rel.getCluster().getMetadataQuery().getTableReferences(rel));
+  }
+
   @Test void testAllPredicatesUnionMultiTable() {
     final String sql = "select x.sal from\n"
         + "(select a.deptno, a.sal from (select * from emp) as a\n"
@@ -4960,6 +5099,20 @@ public class RelMetadataTest {
         .toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getTableReferences(rel), empty());
+  }
+
+  @Test void testTableReferencesTableFunctionScanSubQuery() {
+    final RelNode rel = sql("select * from table(ramp((select count(*) from emp)))")
+        .toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testTableReferencesTableFunctionScanNestedSubQuery() {
+    final RelNode rel = sql("select * from table(ramp(1 + "
+        + "(select count(*) from emp)))").toRel();
+    assertThat(rel.getCluster().getMetadataQuery().getTableReferences(rel),
+        sortsAs("[[CATALOG, SALES, EMP].#0]"));
   }
 
   @Test void testTableReferencesTableFunctionScanUnknownInput() {
