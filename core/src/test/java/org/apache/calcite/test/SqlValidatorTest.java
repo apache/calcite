@@ -5539,6 +5539,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7830">[CALCITE-7830]
+   *  UPDATE fails with IndexOutOfBoundsException when a SET value's
+   *  type doesn't match the column</a>. */
+  @Test void testUpdateTypeMismatchGetNthExprRepro() {
+    sql("UPDATE emp SET deptno = ^true^")
+        .fails("Cannot assign to target field 'DEPTNO' of type INTEGER "
+            + "from source field 'EXPR\\$0' of type BOOLEAN");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6584">[CALCITE-6584]
    * Validate prefixed column identifiers in SET clause of UPDATE
    * statement</a>. */

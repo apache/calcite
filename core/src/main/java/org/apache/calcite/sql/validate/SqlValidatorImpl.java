@@ -6912,8 +6912,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     } else if (query instanceof SqlUpdate) {
       SqlUpdate update = (SqlUpdate) query;
-      if (update.getSourceExpressionList() != null) {
-        return update.getSourceExpressionList().get(ordinal);
+      final SqlNodeList sourceExpressionList = update.getSourceExpressionList();
+      if (sourceExpressionList != null) {
+        // SET expressions occupy the last positions of the row type.
+        final int exprOrdinal =
+            ordinal - (sourceCount - sourceExpressionList.size());
+        if (exprOrdinal < 0 || exprOrdinal >= sourceExpressionList.size()) {
+          return query; // give up
+        }
+        return sourceExpressionList.get(exprOrdinal);
       } else {
         return getNthExpr(SqlNonNullableAccessors.getSourceSelect(update),
             ordinal, sourceCount);
