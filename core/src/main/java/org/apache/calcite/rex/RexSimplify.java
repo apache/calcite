@@ -2013,13 +2013,18 @@ public class RexSimplify {
       // Simplify BOOLEAN expressions if possible
       while (term.getKind() == SqlKind.EQUALS) {
         RexCall call = (RexCall) term;
-        if (call.getOperands().get(0).isAlwaysTrue()
-            && call.getOperands().get(1).getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+        // A well-formed "=" call has operands of the same type. Do not
+        // simplify malformed comparisons such as "x = TRUE" where x is a
+        // VARCHAR or INTEGER column.
+        if (call.getOperands().get(0).getType().getSqlTypeName()
+            != call.getOperands().get(1).getType().getSqlTypeName()) {
+          break;
+        }
+        if (call.getOperands().get(0).isAlwaysTrue()) {
           term = call.getOperands().get(1);
           terms.set(i, term);
           continue;
-        } else if (call.getOperands().get(1).isAlwaysTrue()
-            && call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+        } else if (call.getOperands().get(1).isAlwaysTrue()) {
           term = call.getOperands().get(0);
           terms.set(i, term);
           continue;
