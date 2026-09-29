@@ -100,10 +100,11 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType aliasedType;
     if (operands.size() == 2) {
       final SqlNode node = operands.get(0);
-      // 'AS t': the sole column is named after the alias, unless it's a
-      // struct-array UNNEST field (isUnnestOfStructArray), which keeps its name.
+      // 'AS t': the sole column is named after the alias, unless it is a
+      // field of the collection's ROW element. COLLECTION_TABLE's sole
+      // column keeps its own name the same way.
       final boolean isStructUnnest = node.getKind() == SqlKind.UNNEST
-          && isUnnestOfStructArray((SqlCall) node);
+          && keepsElementFieldName((SqlCall) node);
       if (rowType.getFieldCount() == 1) {
         final RelDataType singleColumnAlias = validator.getTypeFactory().builder()
             .kind(rowType.getStructKind())
@@ -112,12 +113,17 @@ public class AliasNamespace extends AbstractNamespace {
             .build();
         aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE || isStructUnnest
             ? new SingleColumnAliasRelDataType(rowType, singleColumnAlias) : singleColumnAlias;
-        // WITH ORDINALITY: data column named after the alias, unless it's
-        // a struct-array field, which keeps its name.
       } else if (node.getKind() == SqlKind.UNNEST && rowType.getFieldCount() == 2
           && ((SqlUnnestOperator) ((SqlBasicCall) node).getOperator()).withOrdinality) {
+        // WITH ORDINALITY: data column, ordinality column. The data
+        // column is named after the alias, same as the single-column case.
+        final RelDataType dataColumnAlias = validator.getTypeFactory().builder()
+            .kind(rowType.getStructKind())
+            .add(((SqlIdentifier) operands.get(1)).getSimple(),
+                rowType.getFieldList().get(0).getType())
+            .build();
         aliasedType = isStructUnnest
-            ? rowType
+            ? new SingleColumnAliasRelDataType(rowType, dataColumnAlias)
             : validator.getTypeFactory().builder()
                 .kind(rowType.getStructKind())
                 .add(((SqlIdentifier) operands.get(1)).getSimple(),
@@ -164,16 +170,14 @@ public class AliasNamespace extends AbstractNamespace {
   }
 
   /**
-   * Returns whether the sole column of an aliased UNNEST is a field of
+   * Returns whether the data column of an aliased UNNEST is a field of
    * the collection's ROW element, which keeps its own name, rather than
    * a scalar column, which the alias renames.
    */
-  private boolean isUnnestOfStructArray(SqlCall unnestCall) {
-    RelDataType operandType = validator.getValidatedNodeType(unnestCall.operand(0));
-    if (operandType.isStruct()) {
-      // Sub-query operand: unwrap as SqlUnnestOperator#inferReturnType does.
-      operandType = operandType.getFieldList().get(0).getType();
-    }
+  private boolean keepsElementFieldName(SqlCall unnestCall) {
+    final RelDataType operandType =
+        SqlUnnestOperator.unwrapOperandType(
+            validator.getValidatedNodeType(unnestCall.operand(0)));
     final RelDataType componentType = operandType.getComponentType();
     return componentType != null
         && SqlUnnestOperator.expandsStructIntoColumns(componentType,
