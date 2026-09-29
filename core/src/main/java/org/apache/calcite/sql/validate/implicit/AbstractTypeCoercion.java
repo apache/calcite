@@ -757,8 +757,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
 
   /**
    * Returns the common type for comparing an approximate numeric with an
-   * exact numeric. Default: keep the approximate type. Override to widen to
-   * DOUBLE for DECIMAL, e.g. to avoid precision loss (see CALCITE-7827).
+   * exact numeric. Default: keep the approximate type.
+   * Override to widen to DOUBLE for DECIMAL.
    */
   protected RelDataType approximateExactComparisonType(RelDataType approximateType,
       RelDataType exactType, boolean anyNullable) {

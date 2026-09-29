@@ -487,23 +487,10 @@ class TypeCoercionTest {
   }
 
   /**
-   * Default: DECIMAL vs. REAL/FLOAT narrows to REAL/FLOAT, same as
-   * INTEGER/BIGINT vs. approximate numeric.
-   */
-  @Test void testComparisonCoercionDecimalWithApproximateNumeric() {
-    final Fixture f = fixture();
-    RelDataType decimal54 = f.decimalType(5, 4);
-
-    f.comparisonCommonType(decimal54, f.realType, f.realType);
-    f.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
-    f.comparisonCommonType(f.intType, f.realType, f.realType);
-    f.comparisonCommonType(f.bigintType, f.realType, f.realType);
-  }
-
-  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
    * A custom TypeCoercion can widen DECIMAL vs. REAL/FLOAT to DOUBLE instead
-   * of narrowing, to avoid precision loss.
-   */
+   * of narrowing, to avoid precision loss</a>. */
   @Test void testComparisonCoercionDecimalWithApproximateNumericOverride() {
     final Fixture f = fixture();
     final SqlValidator validator = SqlTestFactory.INSTANCE.createValidator();
