@@ -590,6 +590,18 @@ public interface SqlConformance {
   boolean allowExtendedTrim();
 
   /**
+   * Whether array literals may omit the {@code ARRAY} keyword, using
+   * bare square brackets, as in BigQuery, e.g. {@code SELECT [1, 2, 3]}.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowBareBracketArrayLiteral();
+
+  /**
    * Whether interval literals should allow plural time units
    * such as "YEARS" and "DAYS" in interval literals.
    *
