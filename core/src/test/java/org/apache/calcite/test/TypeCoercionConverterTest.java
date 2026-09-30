@@ -222,6 +222,20 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testInsertValuesWithConvertibleTypes() {
+    final String sql = "insert into t3 (t3_int, t3_varchar20, t3_date) values "
+        + "('10', 50, DATE '2001-01-01'), "
+        + "('20', null, '2002-01-01'), "
+        + "(30, 'test', null), "
+        + "(40, DATE '2003-01-01', TIMESTAMP '2004-01-01 01:01:01')";
+    sql(sql).ok();
+  }
+
+  @Test void testInsertValuesCannotCoerceTypes() {
+    final String sql = "insert into t3 (t3_int) values (10), (DATE '2001-01-01')";
+    sql(sql).throws_("Values passed to VALUES operator must have compatible types");
+  }
+
   @Test void testUpdateQuerySourceCoercion() {
     final String sql = "update t1 set t1_varchar20=123, "
         + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
