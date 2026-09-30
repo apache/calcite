@@ -4656,6 +4656,24 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(preProgram).withProgram(program).check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7833">[CALCITE-7833]
+   * MULTI_JOIN_OPTIMIZE_BUSHY may turn an outer join into an inner join</a>. */
+  @Test void testBushyJoinRuleSkipsFullOuterJoin() {
+    sql("select * from emp full join dept on emp.deptno = dept.deptno")
+        .withPreRule(CoreRules.JOIN_TO_MULTI_JOIN)
+        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
+        .checkUnchanged();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7833">[CALCITE-7833]
+   * MULTI_JOIN_OPTIMIZE_BUSHY may turn an outer join into an inner join</a>. */
+  @Test void testBushyJoinRuleSkipsLeftJoinOnTrue() {
+    sql("select * from emp left join dept on true")
+        .withPreRule(CoreRules.JOIN_TO_MULTI_JOIN)
+        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
+        .checkUnchanged();
+  }
+
   @Test void testConvertMultiJoinRule() {
     final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno";
