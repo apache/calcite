@@ -3391,7 +3391,9 @@ public class JdbcTest {
             + "store_id=0; grocery_sqft=null\n");
   }
 
-  @Test void testOrderByAggregateAliasShadowing() {
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7744">[CALCITE-7744]</a>
+   * ORDER BY agg(col) on a query where an alias shadows col fails with nested aggregate error. */
+  @Test void testOrderByAggregateAliasShadowingFailsWithNestedAggError() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.SCOTT)
         .query("SELECT max(sal) AS sal, deptno, job "
