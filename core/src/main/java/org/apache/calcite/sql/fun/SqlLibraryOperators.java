@@ -5099,4 +5099,15 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction OBJECT_KEYS =
+      new SqlFunction(
+          "OBJECT_KEYS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
 }
