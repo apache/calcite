@@ -1897,6 +1897,32 @@ LogicalProject(ENAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testBushyJoinRuleSkipsFullOuterJoin">
+    <Resource name="sql">
+      <![CDATA[select * from emp full join dept on emp.deptno = dept.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  MultiJoin(joinFilter=[=($7, $9)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testBushyJoinRuleSkipsLeftJoinOnTrue">
+    <Resource name="sql">
+      <![CDATA[select * from emp left join dept on true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, true]], projFields=[[ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCallOverCorrelationVariableIsNotFlattened">
     <Resource name="sql">
       <![CDATA[select * from emp e1 where exists (select * from emp e2 where (e1.deptno+30) = e2.deptno)]]>

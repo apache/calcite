@@ -104,16 +104,11 @@ public class MultiJoinOptimizeBushyRule
     final RelMetadataQuery mq = call.getMetadataQuery();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
-    for (int i = 0; i < multiJoin.getNumJoinFactors(); i++) {
-      ImmutableBitSet outerJoinFactors = multiJoin.getOuterJoinFactors(i);
-      if (outerJoinFactors == null) {
-        continue;
-      }
-      if (!outerJoinFactors.isEmpty()) {
-        // Refuse to apply this rule to a multijoin with outer joins,
-        // since this rule cannot handle outer joins.
-        return;
-      }
+
+    if (multiJoinRel.isFullOuterJoin() || multiJoinRel.containsOuter()) {
+      // Refuse to apply this rule to a multijoin with outer joins,
+      // since this rule cannot handle outer joins.
+      return;
     }
 
     final List<Vertex> vertexes = new ArrayList<>();
