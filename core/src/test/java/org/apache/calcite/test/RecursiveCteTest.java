@@ -44,7 +44,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
 
@@ -158,13 +157,6 @@ class RecursiveCteTest {
         containsString("TO TRUE DEFAULT FALSE"));
     CalciteAssert.that().query(sql)
         .returnsOrdered("N=1; C=false; P=[{1}]", "N=1; C=true; P=[{1}, {1}]");
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"TO TRUE", "DEFAULT FALSE"})
-  void testCycleIncompleteMarks(String values) {
-    final String sql = WITH_NUMBERS + "CYCLE n SET c " + values + " USING p SELECT * FROM t";
-    assertThrows(SqlParseException.class, () -> SqlParser.create(sql).parseQuery());
   }
 
   /** Two paths reach D independently; returning to A closes each path. */

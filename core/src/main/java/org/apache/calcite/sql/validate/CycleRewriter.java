@@ -81,6 +81,38 @@ final class CycleRewriter {
     return new CycleRewriter(validator, item).rewrite(scope);
   }
 
+  /** Replaces CYCLE with explicit mark and path columns in both UNION operands.
+   *
+   * <p>For {@code CYCLE k1, k2 SET mark TO cycleValue DEFAULT defaultValue
+   * USING path}, the transformation is schematically:
+   *
+   * <pre>{@code
+   * seed output:
+   *   original columns,
+   *   defaultValue AS mark,
+   *   ARRAY[ROW(k1, k2)] AS path
+   *
+   * recursive branch:
+   *   SELECT original output columns,
+   *          CASE WHEN contains(previousPath, ROW(k1, k2))
+   *               THEN cycleValue ELSE defaultValue END AS mark,
+   *          append(previousPath, ROW(k1, k2)) AS path
+   *   FROM (
+   *     SELECT original projection, previous.path AS previousPath
+   *     FROM original sources
+   *     WHERE (original condition)
+   *       AND previous.mark <> cycleValue
+   *   ) AS step
+   * }</pre>
+   *
+   * <p>Here {@code previous} is the recursive CTE reference in the original
+   * FROM clause; the original condition is TRUE if there was no WHERE clause.
+   * The added WHERE condition stops expanding rows already marked as cycles.
+   * The recursive output keys are taken after the user's projection. A row
+   * closing a cycle is therefore returned with its extended path, but cannot
+   * feed the next recursive step. The original UNION [ALL] is retained.
+   * The returned WITH item declares the two additional columns and no longer
+   * has a CYCLE clause. */
   private SqlWithItem rewrite(SqlValidatorScope scope) {
     final Reference reference = validateRecursiveQuery();
     final RelDataType rowType = validator.getNamespaceOrThrow(item).getRowType();
@@ -295,7 +327,7 @@ final class CycleRewriter {
   private void excludeCompletedPaths(SqlSelect step, Reference reference, RelDataType markType) {
     final SqlNode mark = cast(copy(cycle.markValue), markType);
     final SqlNode live =
-        SqlStdOperatorTable.IS_DISTINCT_FROM.createCall(POS, reference.mark, mark);
+        SqlStdOperatorTable.NOT_EQUALS.createCall(POS, reference.mark, mark);
     step.setWhere(step.getWhere() == null ? live
         : SqlStdOperatorTable.AND.createCall(POS, step.getWhere(), live));
     final List<SqlNode> columns = new ArrayList<>(step.getSelectList());

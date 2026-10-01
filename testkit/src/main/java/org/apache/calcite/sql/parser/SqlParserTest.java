@@ -2744,6 +2744,80 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testWithCycle() {
+    sql("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+        + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT * FROM t")
+        .ok("WITH RECURSIVE `T` (`N`) AS ((VALUES (ROW(1)))\n"
+            + "UNION ALL\n"
+            + "SELECT `N`\n"
+            + "FROM `T`) CYCLE `N` SET `C` TO 'Y' DEFAULT 'N' USING `P` SELECT *\n"
+            + "FROM `T`");
+  }
+
+  @Test void testWithCycleDefaultMarks() {
+    final String expected = "WITH RECURSIVE `T` (`N`) AS ((VALUES (ROW(1)))\n"
+        + "UNION ALL\n"
+        + "SELECT `N`\n"
+        + "FROM `T`) CYCLE `N` SET `C` TO TRUE DEFAULT FALSE USING `P` SELECT *\n"
+        + "FROM `T`";
+    final String prefix = "WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+        + "CYCLE n SET c ";
+    sql(prefix + "TO TRUE DEFAULT FALSE USING p SELECT * FROM t").ok(expected);
+    sql(prefix + "USING p SELECT * FROM t").ok(expected);
+  }
+
+  @Test void testWithCycleCompositeKey() {
+    sql("WITH RECURSIVE t(\"Key\", depth) AS (VALUES (1, 0)\n"
+        + "UNION ALL SELECT \"Key\", depth + 1 FROM t)\n"
+        + "CYCLE \"Key\", depth SET \"Cycle\" USING \"Path\" SELECT * FROM t")
+        .ok("WITH RECURSIVE `T` (`Key`, `DEPTH`) AS ((VALUES (ROW(1, 0)))\n"
+            + "UNION ALL\n"
+            + "SELECT `Key`, (`DEPTH` + 1)\n"
+            + "FROM `T`) CYCLE `Key`, `DEPTH` SET `Cycle` TO TRUE DEFAULT FALSE"
+            + " USING `Path` SELECT *\n"
+            + "FROM `T`");
+  }
+
+  @Test void testWithCycleFollowingWithItem() {
+    sql("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+        + "CYCLE n SET c USING p, u AS (SELECT * FROM t) SELECT * FROM u")
+        .ok("WITH RECURSIVE `T` (`N`) AS ((VALUES (ROW(1)))\n"
+            + "UNION ALL\n"
+            + "SELECT `N`\n"
+            + "FROM `T`) CYCLE `N` SET `C` TO TRUE DEFAULT FALSE USING `P`,"
+            + " `U` AS (SELECT *\n"
+            + "FROM `T`) SELECT *\n"
+            + "FROM `U`");
+  }
+
+  @Test void testWithCycleFails() {
+    final String prefix = "WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n";
+    // A non-empty list of column names is required.
+    sql(prefix + "CYCLE ^SET^ c USING p SELECT * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SET' at .*"
+            + "Was expecting.*<IDENTIFIER>.*");
+    sql(prefix + "CYCLE n, ^SET^ c USING p SELECT * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SET' at .*"
+            + "Was expecting.*<IDENTIFIER>.*");
+    sql(prefix + "CYCLE n ^+^ 1 SET c USING p SELECT * FROM t")
+        .fails("(?s)Encountered \"\\+\" at .*Was expecting.*\"SET\".*");
+    sql(prefix + "CYCLE n ^USING^ p SELECT * FROM t")
+        .fails("(?s)Encountered \"USING\" at .*Was expecting.*\"SET\".*");
+    sql(prefix + "CYCLE n SET ^USING^ p SELECT * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'USING' at .*"
+            + "Was expecting.*<IDENTIFIER>.*");
+    // TO and DEFAULT must either both be present or both be omitted.
+    sql(prefix + "CYCLE n SET c TO TRUE ^USING^ p SELECT * FROM t")
+        .fails("(?s)Encountered \"USING\" at .*Was expecting.*\"DEFAULT\".*");
+    sql(prefix + "CYCLE n SET c ^DEFAULT^ FALSE USING p SELECT * FROM t")
+        .fails("(?s)Encountered \"DEFAULT\" at .*Was expecting.*\"USING\".*");
+    sql(prefix + "CYCLE n SET c TO TRUE DEFAULT FALSE ^SELECT^ * FROM t")
+        .fails("(?s)Encountered \"SELECT\" at .*Was expecting.*\"USING\".*");
+    sql(prefix + "CYCLE n SET c USING ^SELECT^ * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at .*"
+            + "Was expecting.*<IDENTIFIER>.*");
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7784">[CALCITE-7784]
    * Parse fails for ROW(CASE ...)</a>. */
   @Test void testRowCase() {
