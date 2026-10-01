@@ -370,7 +370,9 @@ public class RelMdFunctionalDependency
     }
 
     // Group keys determine all aggregate columns
-    if (!groupSet.isEmpty() && !rel.getAggCallList().isEmpty()) {
+    if (Aggregate.isSimple(rel)
+        && !groupSet.isEmpty()
+        && !rel.getAggCallList().isEmpty()) {
       ImmutableBitSet aggCols =
           ImmutableBitSet.range(rel.getGroupCount(), rel.getRowType().getFieldCount());
       fdBuilder.addArrow(ImmutableBitSet.range(rel.getGroupCount()), aggCols);

@@ -16,7 +16,7 @@
   ~ limitations under the License.
   -->
 <Root>
-  <TestCase name="testKeepsDerivedGroupKeyForNestedDouble">
+  <TestCase name="testArrayOfApproxNumericIsUnchanged">
     <Resource name="sql">
       <![CDATA[select x, x[1] as y, count(*) as c
 from (values (array[cast(0 as double)]),

@@ -375,6 +375,18 @@ public class RelMetadataTest {
     assertThat(mq.determines(relNode, sumSal, count), is(Boolean.FALSE));
   }
 
+  @Test void testFunctionalDependencyRollupAggregate() {
+    final String sql = "select deptno, count(*) as \"count\""
+        + " from emp group by rollup(deptno)";
+
+    final RelNode relNode = sql(sql).toRel();
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    // A detail row for a NULL key and the grand-total row can have the same
+    // output key but different aggregate values.
+    assertThat(mq.determines(relNode, 0, 1), is(Boolean.FALSE));
+  }
+
   @Test void testFunctionalDependencyWithIdenticalExpressions() {
     final String sql = "select deptno, deptno as deptno2, deptno + 1 as deptno3 from emp";
 
