@@ -91,7 +91,6 @@ final class CycleRewriter {
    *   original columns,
    *   defaultValue AS mark,
    *   ARRAY[ROW(k1, k2)] AS path
-   *
    * recursive branch:
    *   SELECT original output columns,
    *          CASE WHEN contains(previousPath, ROW(k1, k2))
