@@ -2013,6 +2013,10 @@ public class RexSimplify {
       // Simplify BOOLEAN expressions if possible
       while (term.getKind() == SqlKind.EQUALS) {
         RexCall call = (RexCall) term;
+        if (call.getOperands().get(0).getType().getSqlTypeName()
+            != call.getOperands().get(1).getType().getSqlTypeName()) {
+          break;
+        }
         if (call.getOperands().get(0).isAlwaysTrue()) {
           term = call.getOperands().get(1);
           terms.set(i, term);
