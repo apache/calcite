@@ -3902,6 +3902,16 @@ public abstract class SqlLibraryOperators {
                   ImmutableList.of(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER))),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction JAROWINKLER_SIMILARITY =
+      new SqlFunction(
+          "JAROWINKLER_SIMILARITY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
   public static final SqlFunction SHIFTLEFT =
       new SqlFunction(
