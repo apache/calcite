@@ -6527,6 +6527,30 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNotInCorrelatedNullableNoDecorrelate">
+    <Resource name="sql">
+      <![CDATA[select * from emp as t where t.mgr not in (select s.mgr from emp as s where s.empno = t.empno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null:BOOLEAN, <($10, $9), null:BOOLEAN, false))])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 11}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9], $f1=[$10], MGR0=[$3])
+        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+            LogicalProject(MGR=[$3], $f1=[true])
+              LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[=($cor0.MGR0, $0)])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(MGR=[$3], $f1=[true])
+            LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotInMultiValue">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno not in (10, 20)]]>

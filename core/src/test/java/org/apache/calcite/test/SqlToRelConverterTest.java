@@ -2729,6 +2729,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(true).ok();
   }
 
+  /** As {@link #testNotInCorrelatedNullable()}, but without decorrelation. */
+  @Test void testNotInCorrelatedNullableNoDecorrelate() {
+    final String sql = "select * from emp as t where t.mgr not in"
+        + " (select s.mgr from emp as s where s.empno = t.empno)";
+    sql(sql).withExpand(true).withDecorrelate(false).ok();
+  }
+
   /** As {@link #testNotInCorrelatedNullable()}, but in HAVING, where the
    * outer query is an aggregate. */
   @Test void testNotInCorrelatedNullableHaving() {
