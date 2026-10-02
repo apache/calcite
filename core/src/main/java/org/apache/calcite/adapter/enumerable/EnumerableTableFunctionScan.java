@@ -18,28 +18,37 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.CursorInputs;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.SqlWindowTableFunction;
+import org.apache.calcite.sql.util.CursorInput;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -122,12 +131,47 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     final PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), format,
             false);
+    final List<Expression> cursors = new ArrayList<>();
+    for (int i = 0; i < getInputs().size(); i++) {
+      final EnumerableRel child = (EnumerableRel) getInputs().get(i);
+      final Result result = implementor.visitChild(this, i, child, Prefer.ARRAY);
+      final Expression rows = bb.append("cursorRows", result.block);
+      cursors.add(
+          bb.append("cursor",
+          Expressions.call(CursorInputs.class, "of",
+              implementor.stash(child.getRowType(), RelDataType.class),
+              result.physType.convertTo(rows, JavaRowFormat.ARRAY))));
+    }
+    final boolean resultSetCursors = !cursors.isEmpty()
+        && ((RexCall) getCall()).getOperator() instanceof SqlUserDefinedTableFunction
+        && ((SqlUserDefinedTableFunction) ((RexCall) getCall()).getOperator())
+            .getFunction() instanceof TableFunctionImpl;
+    final BlockBuilder callBuilder = resultSetCursors ? new BlockBuilder() : bb;
+    final ParameterExpression resultSets = Expressions.parameter(ResultSet[].class, "cursors");
     RexToLixTranslator t =
         RexToLixTranslator.forAggregation(
             (JavaTypeFactory) getCluster().getTypeFactory(),
-            bb, null, implementor.getConformance());
+            callBuilder, (list, index, storageType) -> resultSetCursors
+                ? Expressions.arrayIndex(resultSets, Expressions.constant(index))
+                : cursors.get(index),
+            implementor.getConformance(), implementor.getRexImplementorTable());
     t = t.setCorrelates(implementor.allCorrelateVariables);
-    bb.add(Expressions.return_(null, t.translate(getCall())));
+    callBuilder.add(Expressions.return_(null, t.translate(getCall())));
+    if (resultSetCursors) {
+      final List<List<ColumnMetaData>> columns = new ArrayList<>();
+      for (RelNode input : getInputs()) {
+        columns.add(
+            CalcitePrepareImpl.getColumnMetaDataList(
+            implementor.getTypeFactory(), input.getRowType()));
+      }
+      bb.add(
+          Expressions.return_(null,
+          Expressions.call(CursorInputs.class, "enumerable",
+              Expressions.newArrayInit(CursorInput.class, cursors),
+              implementor.stash(columns, List.class),
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, DataContext.ROOT),
+              Expressions.lambda(Function1.class, callBuilder.toBlock(), resultSets))));
+    }
     return implementor.result(physType, bb.toBlock());
   }
 
