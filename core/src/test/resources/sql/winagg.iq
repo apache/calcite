@@ -1481,14 +1481,30 @@ order by o, v;
 !ok
 
 # [CALCITE-7822] OVER () in a GROUP BY query.
-# A RANGE window with no ORDER BY uses the FROM item's monotonic column
-# (scott.EMP: EMPNO, declared sorted). After GROUP BY that column is gone,
-# so the window must not bind EMPNO's old ordinal.
+# A RANGE window with no ORDER BY must run even when the FROM item has no
+# monotonic column. On scott.EMP the old ordinal of a sorted column must
+# not be reused after GROUP BY removes that column.
 !use scott
 !set outputformat mysql
 
 select deptno, count(*) over () as c
 from emp
+group by deptno
+order by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
+
+# Same shape, FROM item has no monotonic column.
+select deptno, count(*) over () as c
+from (select deptno, sal from emp)
 group by deptno
 order by deptno;
 +--------+---+

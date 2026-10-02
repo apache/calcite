@@ -2628,17 +2628,14 @@ public class SqlToRelConverter {
     final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
     if (orderList.isEmpty() && !rows) {
-      // RANGE with no ORDER BY still needs a logical order. That order is
-      // the first monotonic column of the FROM item (a column the table
-      // declares as sorted, for example EMPNO). After GROUP BY that column
-      // may be gone. Its old ordinal then names a different field, and
-      // Project.isValid fails (CALCITE-7822).
+      // RANGE with no ORDER BY always allows an empty order list.
+      // A monotonic column of the FROM item (a column the table declares
+      // as sorted, or a column sorted on in a subquery) is kept only when
+      // its input refs still name the same fields. Otherwise it is dropped.
       final SqlNodeList implicit = bb.scope.getOrderList();
-      if (implicit == null) {
-        throw new AssertionError(
-            "Relation should have sort key for implicit ORDER BY");
+      if (implicit != null) {
+        addMatchingOrderKeys(bb, implicit, orderKeys);
       }
-      addImplicitOrderKeys(bb, implicit, orderKeys);
     } else {
       for (SqlNode order : orderList) {
         orderKeys.add(
@@ -2679,16 +2676,14 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Adds RANGE order keys taken from the FROM item when the window has no
-   * ORDER BY. Keeps a key whose input refs still name the same fields.
-   * Otherwise looks the column up by name on the current input, or drops
-   * it if GROUP BY removed it (CALCITE-7822).
+   * Adds order keys whose input refs still name the same fields on the
+   * current input. A key that no longer matches is dropped, so a RANGE
+   * window with no ORDER BY also runs when the FROM item has no
+   * monotonic column.
    */
-  private void addImplicitOrderKeys(Blackboard bb, SqlNodeList implicit,
+  private void addMatchingOrderKeys(Blackboard bb, SqlNodeList implicit,
       ImmutableList.Builder<RexNode> orderKeys) {
     final RelDataType rowType = bb.root().getRowType();
-    final SqlNameMatcher nameMatcher =
-        bb.scope.getValidator().getCatalogReader().nameMatcher();
     for (SqlNode order : implicit) {
       final RexNode converted =
           bb.convertSortExpression(order,
@@ -2697,12 +2692,6 @@ public class SqlToRelConverter {
               bb::sortToRex);
       if (orderKeyMatchesInput(rowType, converted)) {
         orderKeys.add(converted);
-        continue;
-      }
-      final RexNode byName =
-          orderKeyByColumnName(nameMatcher, rowType, order);
-      if (byName != null) {
-        orderKeys.add(byName);
       }
     }
   }
@@ -2734,31 +2723,6 @@ public class SqlToRelConverter {
       }
     }
     return true;
-  }
-
-  /**
-   * Builds an order key for a plain column still on the current input.
-   * Returns null if {@code order} is not a column name, or if GROUP BY
-   * removed that column.
-   */
-  private @Nullable RexNode orderKeyByColumnName(SqlNameMatcher nameMatcher,
-      RelDataType rowType, SqlNode order) {
-    SqlNode expr = order;
-    while (expr.getKind() == SqlKind.DESCENDING
-        || expr.getKind() == SqlKind.NULLS_FIRST
-        || expr.getKind() == SqlKind.NULLS_LAST) {
-      expr = ((SqlCall) expr).operand(0);
-    }
-    if (!(expr instanceof SqlIdentifier)) {
-      return null;
-    }
-    final SqlIdentifier id = (SqlIdentifier) expr;
-    final String name = id.names.get(id.names.size() - 1);
-    final RelDataTypeField field = nameMatcher.field(rowType, name);
-    if (field == null) {
-      return null;
-    }
-    return rexBuilder.makeInputRef(field.getType(), field.getIndex());
   }
 
   /**
