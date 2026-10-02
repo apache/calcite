@@ -374,6 +374,18 @@ public class RelMetadataTest {
     assertThat(mq.determines(relNode, sumSal, count), is(Boolean.FALSE));
   }
 
+  @Test void testFunctionalDependencyRollupAggregate() {
+    final String sql = "select deptno, count(*) as \"count\""
+        + " from emp group by rollup(deptno)";
+
+    final RelNode relNode = sql(sql).toRel();
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    // A detail row for a NULL key and the grand-total row can have the same
+    // output key but different aggregate values.
+    assertThat(mq.determines(relNode, 0, 1), is(Boolean.FALSE));
+  }
+
   @Test void testFunctionalDependencyWithIdenticalExpressions() {
     final String sql = "select deptno, deptno as deptno2, deptno + 1 as deptno3 from emp";
 
@@ -707,6 +719,62 @@ public class RelMetadataTest {
 
     // Cross-join dependencies might not hold due to nulls from outer join
     assertThat(mq.determines(relNode, empNo, dname), is(Boolean.FALSE));
+  }
+
+  @Test void testFunctionalDependencyOuterJoinEqualityDirection() {
+    final RelNode leftJoin = sql("SELECT d.deptno AS null_generated_key,"
+        + " e.deptno AS preserved_key\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN dept d ON e.deptno = d.deptno").toRel();
+    final RelMetadataQuery leftMq = leftJoin.getCluster().getMetadataQuery();
+
+    // For a pure LEFT equijoin, the preserved key determines the
+    // null-generated key, but the reverse does not hold for unmatched rows.
+    assertThat(leftMq.determines(leftJoin, 0, 1), is(Boolean.FALSE));
+    assertThat(leftMq.determines(leftJoin, 1, 0), is(Boolean.TRUE));
+
+    final RelNode rightJoin = sql("SELECT d.deptno AS null_generated_key,"
+        + " e.deptno AS preserved_key\n"
+        + "FROM dept d\n"
+        + "RIGHT JOIN emp e ON e.deptno = d.deptno").toRel();
+    final RelMetadataQuery rightMq = rightJoin.getCluster().getMetadataQuery();
+
+    // RIGHT JOIN applies the same rule symmetrically.
+    assertThat(rightMq.determines(rightJoin, 0, 1), is(Boolean.FALSE));
+    assertThat(rightMq.determines(rightJoin, 1, 0), is(Boolean.TRUE));
+
+    final RelNode residualJoin = sql("SELECT d.deptno AS null_generated_key,"
+        + " e.deptno AS preserved_key\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN dept d ON e.deptno = d.deptno"
+        + " AND e.empno > d.deptno").toRel();
+    final RelMetadataQuery residualMq = residualJoin.getCluster().getMetadataQuery();
+
+    // With a residual predicate, the equality key alone does not determine
+    // whether a row is matched or padded.
+    assertThat(residualMq.determines(residualJoin, 1, 0), is(Boolean.FALSE));
+  }
+
+  @Test void testFunctionalDependencyFromNullGeneratingInput() {
+    final String nullableProject = "(SELECT z, a, COALESCE(a, 1) AS y\n"
+        + " FROM (VALUES (1, CAST(NULL AS INTEGER))) AS v(z, a))";
+
+    final RelNode leftJoin = sql("SELECT r.a, r.y\n"
+        + "FROM (VALUES (1), (2)) AS l(z)\n"
+        + "LEFT JOIN " + nullableProject + " AS r ON l.z = r.z").toRel();
+    final RelMetadataQuery leftMq = leftJoin.getCluster().getMetadataQuery();
+
+    // The right Project has a -> COALESCE(a, 1), but LEFT JOIN padding adds
+    // a second a = NULL row whose y is NULL.
+    assertThat(leftMq.determines(leftJoin, 0, 1), is(Boolean.FALSE));
+
+    final RelNode rightJoin = sql("SELECT l.a, l.y\n"
+        + "FROM " + nullableProject + " AS l\n"
+        + "RIGHT JOIN (VALUES (1), (2)) AS r(z) ON l.z = r.z").toRel();
+    final RelMetadataQuery rightMq = rightJoin.getCluster().getMetadataQuery();
+
+    // RIGHT JOIN invalidates the corresponding dependency symmetrically.
+    assertThat(rightMq.determines(rightJoin, 0, 1), is(Boolean.FALSE));
   }
 
   @Test void testFunctionalDependencySort() {
