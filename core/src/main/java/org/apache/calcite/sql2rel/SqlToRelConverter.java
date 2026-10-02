@@ -2628,11 +2628,11 @@ public class SqlToRelConverter {
     final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
     if (orderList.isEmpty() && !rows) {
-      // A logical range requires an ORDER BY clause. Use the implicit
-      // ordering of this relation when those columns are still fields of
-      // the current input. GROUP BY can aggregate the monotonic column
-      // away; binding it by its original FROM ordinal then points at a
-      // different field (CALCITE-7822).
+      // RANGE with no ORDER BY still needs a logical order. That order is
+      // the first monotonic column of the FROM item (a column the table
+      // declares as sorted, for example EMPNO). After GROUP BY that column
+      // may be gone. Its old ordinal then names a different field, and
+      // Project.isValid fails (CALCITE-7822).
       final SqlNodeList implicit = bb.scope.getOrderList();
       if (implicit == null) {
         throw new AssertionError(
@@ -2679,10 +2679,10 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Adds implicit RANGE order keys that still refer to the current input.
-   * A monotonic column of the FROM item is not an order key once GROUP BY
-   * has removed it; binding it by its original FROM ordinal then points at
-   * a different field (CALCITE-7822).
+   * Adds RANGE order keys taken from the FROM item when the window has no
+   * ORDER BY. Keeps a key whose input refs still name the same fields.
+   * Otherwise looks the column up by name on the current input, or drops
+   * it if GROUP BY removed it (CALCITE-7822).
    */
   private void addImplicitOrderKeys(Blackboard bb, SqlNodeList implicit,
       ImmutableList.Builder<RexNode> orderKeys) {
@@ -2699,14 +2699,20 @@ public class SqlToRelConverter {
         orderKeys.add(converted);
         continue;
       }
-      final RexNode rebound = rebindImplicitOrderKey(nameMatcher, rowType, order);
-      if (rebound != null) {
-        orderKeys.add(rebound);
+      final RexNode byName =
+          orderKeyByColumnName(nameMatcher, rowType, order);
+      if (byName != null) {
+        orderKeys.add(byName);
       }
     }
   }
 
-  /** Whether every input ref in {@code orderKey} matches the current input. */
+  /**
+   * Whether each input ref in {@code orderKey} still names the same field.
+   * The index must be in range, and the ref type must equal the field type
+   * at that index (nullability ignored). A type mismatch means the ordinal
+   * now points at a different column than the one the key was built for.
+   */
   private static boolean orderKeyMatchesInput(RelDataType rowType, RexNode orderKey) {
     final List<RexInputRef> refs = new ArrayList<>();
     orderKey.accept(new RexShuttle() {
@@ -2730,8 +2736,12 @@ public class SqlToRelConverter {
     return true;
   }
 
-  /** Rebinds a simple column order key onto the current input, or null. */
-  private @Nullable RexNode rebindImplicitOrderKey(SqlNameMatcher nameMatcher,
+  /**
+   * Builds an order key for a plain column still on the current input.
+   * Returns null if {@code order} is not a column name, or if GROUP BY
+   * removed that column.
+   */
+  private @Nullable RexNode orderKeyByColumnName(SqlNameMatcher nameMatcher,
       RelDataType rowType, SqlNode order) {
     SqlNode expr = order;
     while (expr.getKind() == SqlKind.DESCENDING
