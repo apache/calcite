@@ -1480,4 +1480,105 @@ order by o, v;
 
 !ok
 
+# [CALCITE-7822] OVER () in a GROUP BY query.
+# A RANGE window with no ORDER BY uses the FROM item's monotonic column
+# (scott.EMP: EMPNO, declared sorted). After GROUP BY that column is gone,
+# so the window must not bind EMPNO's old ordinal.
+!use scott
+!set outputformat mysql
+
+select deptno, count(*) over () as c
+from emp
+group by deptno
+order by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
+
+select deptno, count(*) over (range between unbounded preceding and unbounded following) as c
+from emp
+group by deptno
+order by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
+
+select job, max(max(sal)) over () as c
+from emp
+group by job
+order by job;
++-----------+---------+
+| JOB       | C       |
++-----------+---------+
+| ANALYST   | 5000.00 |
+| CLERK     | 5000.00 |
+| MANAGER   | 5000.00 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 5000.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+select deptno, count(*) over (rows between unbounded preceding and unbounded following) as c
+from emp
+group by deptno
+order by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
+
+select deptno, count(*) over (order by deptno) as c
+from emp
+group by deptno
+order by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 1 |
+|     20 | 2 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
+
+select empno, count(*) over () as c
+from emp
+where empno < 7600
+group by empno
+order by empno;
++-------+---+
+| EMPNO | C |
++-------+---+
+|  7369 | 4 |
+|  7499 | 4 |
+|  7521 | 4 |
+|  7566 | 4 |
++-------+---+
+(4 rows)
+
+!ok
+
 # End winagg.iq
