@@ -41,6 +41,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -62,6 +63,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -9832,6 +9834,41 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER ARRAY NOT NULL");
     sql("select array['1',null,'234',''] as a from (values (1))")
         .columnType("CHAR(3) ARRAY NOT NULL");
+  }
+
+  @Test void testValidateOperandsCachesGeneratedCastType()
+      throws SqlParseException {
+    final int[] castLookups = {0};
+    final SqlValidator validator = fixture()
+        .withFactory(
+            factory -> factory.withOperatorTable(operatorTable ->
+            new SqlOperatorTable() {
+              @Override public void lookupOperatorOverloads(SqlIdentifier opName,
+                  SqlFunctionCategory category, SqlSyntax syntax,
+                  List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
+                if (opName.isSimple() && opName.getSimple().equals("CAST")) {
+                  castLookups[0]++;
+                }
+                operatorTable.lookupOperatorOverloads(
+                    opName, category, syntax, operatorList, nameMatcher);
+              }
+
+              @Override public List<SqlOperator> getOperatorList() {
+                return operatorTable.getOperatorList();
+              }
+            }))
+        .factory.createValidator();
+    final SqlCall cast = (SqlCall) SqlParser
+        .create("cast('a' as varchar(2))", SqlParser.config())
+        .parseExpression();
+    final SqlValidatorScope scope = validator.getEmptyScope();
+    validator.deriveType(scope, cast.getOperandList().get(0));
+    // SqlValidatorUtil relies on validateOperands caching the generated CAST
+    // type so a later deriveType call does not resolve the operator by name.
+    cast.getOperator().validateOperands(validator, scope, cast);
+
+    validator.deriveType(scope, cast);
+    assertThat(castLookups[0], is(0));
   }
 
   /**
