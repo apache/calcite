@@ -29,6 +29,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -482,6 +484,32 @@ class TypeCoercionTest {
     f.comparisonCommonType(f.recordType("a", f.arrayType(f.nullableIntType)),
         f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.nullableIntType)));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * A custom TypeCoercion can widen DECIMAL vs. REAL/FLOAT to DOUBLE instead
+   * of narrowing, to avoid precision loss</a>. */
+  @Test void testComparisonCoercionDecimalWithApproximateNumericOverride() {
+    final Fixture f = fixture();
+    final SqlValidator validator = SqlTestFactory.INSTANCE.createValidator();
+    final TypeCoercion widening = new TypeCoercionImpl(f.typeFactory, validator) {
+      @Override protected RelDataType approximateExactComparisonType(
+          RelDataType approximateType, RelDataType exactType, boolean anyNullable) {
+        return SqlTypeUtil.isDecimal(exactType)
+            ? f.typeFactory.createTypeWithNullability(f.doubleType, anyNullable)
+            : super.approximateExactComparisonType(approximateType, exactType, anyNullable);
+      }
+    };
+    final Fixture widened = new Fixture(f.typeFactory, widening);
+    RelDataType decimal54 = f.decimalType(5, 4);
+
+    widened.comparisonCommonType(decimal54, f.realType, f.doubleType);
+    widened.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
+
+    assertThat(59999943f, is(59999945f));
+    assertThat(59999943d, is(not(59999945d)));
   }
 
   /**

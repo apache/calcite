@@ -53,6 +53,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
@@ -5900,6 +5901,34 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testNaturalJoinCastNoCoercion2() {
     final String sql = "select * from emp join dept using(deptno)";
     sql(sql).withTypeCoercion(false).ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   *
+   * <p>A custom TypeCoercion overriding {@code approximateExactComparisonType}
+   * can widen a JOIN condition's DECIMAL/REAL comparison to DOUBLE, instead
+   * of the default narrowing to REAL. */
+  @Test void testJoinOnDecimalEqualsRealWithCustomTypeCoercion() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k";
+    sql(sql)
+        .withFactory(f ->
+            f.withValidator((opTab, catalogReader, typeFactory, config) ->
+                SqlValidatorUtil.newValidator(opTab, catalogReader, typeFactory,
+                    config.withTypeCoercionFactory((t, v) -> new TypeCoercionImpl(t, v) {
+                      @Override protected RelDataType approximateExactComparisonType(
+                          RelDataType approximateType, RelDataType exactType,
+                          boolean anyNullable) {
+                        return SqlTypeUtil.isDecimal(exactType)
+                            ? t.createTypeWithNullability(
+                                t.createSqlType(SqlTypeName.DOUBLE), anyNullable)
+                            : super.approximateExactComparisonType(
+                                approximateType, exactType, anyNullable);
+                      }
+                    }))))
+        .ok();
   }
 
   /** Tests LEFT JOIN LATERAL with multiple columns from outer. */

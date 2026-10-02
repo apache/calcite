@@ -670,11 +670,11 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
 
     if (SqlTypeUtil.isApproximateNumeric(type1) && SqlTypeUtil.isExactNumeric(type2)) {
-      return factory.createTypeWithNullability(type1, anyNullable);
+      return approximateExactComparisonType(type1, type2, anyNullable);
     }
 
     if (SqlTypeUtil.isApproximateNumeric(type2) && SqlTypeUtil.isExactNumeric(type1)) {
-      return factory.createTypeWithNullability(type2, anyNullable);
+      return approximateExactComparisonType(type2, type1, anyNullable);
     }
 
     if (SqlTypeUtil.isExactNumeric(type1) && SqlTypeUtil.isExactNumeric(type2)) {
@@ -753,6 +753,16 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
 
     return null;
+  }
+
+  /**
+   * Returns the common type for comparing an approximate numeric with an
+   * exact numeric. Default: keep the approximate type.
+   * Override to widen to DOUBLE for DECIMAL.
+   */
+  protected RelDataType approximateExactComparisonType(RelDataType approximateType,
+      RelDataType exactType, boolean anyNullable) {
+    return factory.createTypeWithNullability(approximateType, anyNullable);
   }
 
   /**
