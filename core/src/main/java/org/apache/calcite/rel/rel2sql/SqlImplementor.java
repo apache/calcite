@@ -1299,8 +1299,9 @@ public abstract class SqlImplementor {
       default:
         break;
       }
-      if (rfc.getNullDirection()
-              != dialect.defaultNullDirection(rfc.getDirection())) {
+      if (rfc.getNullDirection() != dialect.defaultNullDirection(rfc.getDirection())
+          || (dialect.retainRedundantWindowNullDirection()
+          && rfc.getNullDirection() == RelFieldCollation.NullDirection.LAST)) {
         switch (rfc.getNullDirection()) {
         case FIRST:
           node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);

@@ -1166,6 +1166,19 @@ public class SqlDialect {
     return emulateNullDirection(node, nullsFirst, desc);
   }
 
+  /**
+   * Whether a window ({@code OVER}) {@code ORDER BY} key should keep an explicit
+   * {@code NULLS FIRST} / {@code NULLS LAST} keyword even when the null ordering already
+   * matches this dialect's default for that sort direction.
+   *
+   * <p>By default, Calcite omits the redundant keyword (returns {@code false}). Dialects that
+   * require literal fidelity of the source null ordering inside window frames override this to
+   * return {@code true}.
+   */
+  public boolean retainRedundantWindowNullDirection() {
+    return false;
+  }
+
   public JoinType emulateJoinTypeForCrossJoin() {
     return JoinType.COMMA;
   }
