@@ -192,30 +192,35 @@ class EnumerablesTest {
         newArrayList(1, 3, 4),
         newArrayList(1, 4),
         equalTo("[3]"),
+        equalTo("[3, null]"),
         JoinType.ANTI);
     // Matching key at start and end of right, not of left
     testIntersect(
         newArrayList(0, 1, 3, 4, 5),
         newArrayList(1, 4),
         equalTo("[0, 3, 5]"),
+        equalTo("[0, 3, 5, null]"),
         JoinType.ANTI);
     // Matching key at start and end of left, not right
     testIntersect(
         newArrayList(1, 3, 4),
         newArrayList(0, 1, 4, 5),
         equalTo("[3]"),
+        equalTo("[3, null]"),
         JoinType.ANTI);
     // Matching key not at start or end of left or right
     testIntersect(
         newArrayList(0, 2, 3, 4, 5),
         newArrayList(1, 3, 4, 6),
         equalTo("[0, 2, 5]"),
+        equalTo("[0, 2, 5, null]"),
         JoinType.ANTI);
     // Matching duplicated keys
     testIntersect(
         newArrayList(1, 3, 4),
         newArrayList(1, 1, 4, 4),
         equalTo("[3]"),
+        equalTo("[3, null]"),
         JoinType.ANTI);
 
     // LEFT join tests:
@@ -291,24 +296,28 @@ class EnumerablesTest {
         newArrayList(0, 2, 4),
         newArrayList(1, 3, 5),
         equalTo("[0, 2, 4]"),
+        equalTo("[0, 2, 4, null]"),
         JoinType.ANTI);
     // Left empty
     testIntersect(
         new ArrayList<>(),
         newArrayList(1, 3, 4, 6),
         equalTo("[]"),
+        equalTo("[null]"),
         JoinType.ANTI);
     // Right empty
     testIntersect(
         newArrayList(3, 7),
         new ArrayList<>(),
         equalTo("[3, 7]"),
+        equalTo("[3, 7, null]"),
         JoinType.ANTI);
     // Both empty
     testIntersect(
         new ArrayList<Integer>(),
         new ArrayList<>(),
         equalTo("[]"),
+        equalTo("[null]"),
         JoinType.ANTI);
 
     // LEFT join tests:
@@ -340,6 +349,21 @@ class EnumerablesTest {
         equalTo("[]"),
         equalTo("[null-null]"),
         JoinType.LEFT);
+  }
+
+  @Test void testMergeAntiJoinWithRepeatedNullKeys() {
+    testIntersect(
+        newArrayList(1, 2, null, null),
+        newArrayList(1),
+        equalTo("[2, null, null]"),
+        equalTo("[2, null, null, null]"),
+        JoinType.ANTI);
+    testIntersect(
+        newArrayList(1, null, null),
+        newArrayList(1, 2),
+        equalTo("[null, null]"),
+        equalTo("[null, null, null]"),
+        JoinType.ANTI);
   }
 
   private static <T extends Comparable<T>> void testIntersect(
@@ -636,7 +660,8 @@ class EnumerablesTest {
             (v0, v1) -> v0,
             JoinType.ANTI,
             null, null).toList(),
-        hasToString("[Emp(30, Fred), Emp(20, Sebastian), Emp(20, Zoey)]"));
+        hasToString("[Emp(30, Fred), Emp(20, Sebastian), Emp(20, Zoey), "
+            + "Emp(40, null), Emp(30, null)]"));
   }
 
   @Test void testMergeLeftJoin() {
