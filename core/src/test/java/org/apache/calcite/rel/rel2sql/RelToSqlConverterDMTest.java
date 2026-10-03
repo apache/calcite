@@ -15622,4 +15622,14 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testObjectKeysFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode objectKeysNode =
+        builder.call(SqlLibraryOperators.OBJECT_KEYS, builder.field("ENAME"));
+    final RelNode root = builder.project(builder.alias(objectKeysNode, "keys")).build();
+
+    final String expectedQuery = "SELECT OBJECT_KEYS(\"ENAME\") AS \"keys\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedQuery));
+  }
 }
