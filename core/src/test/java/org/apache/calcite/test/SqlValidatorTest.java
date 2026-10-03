@@ -10127,6 +10127,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
         + "  with ordinality as d")
         .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A) NOT NULL");
+    // Sub-query operand with WITH ORDINALITY: alias names the data column.
+    sql("select d\n"
+        + "from unnest(\n"
+        + "  (select cast(array[row(1)] as row(a integer) array)\n"
+        + "   from (values (1))))\n"
+        + "  with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL D) NOT NULL");
+    // USING (d) with WITH ORDINALITY: alias resolves, output keeps field names.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d\n"
+        + "join (values (1)) as t (d) using (d)")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL ORDINALITY) NOT NULL");
+    // Correlated lateral: d, d.a, and d.ordinality all resolve.
+    sql("select d, d.a, d.ordinality\n"
+        + "from (values (array[row(1)])) as s (x),\n"
+        + "  lateral unnest(cast(s.x as row(a integer) array))\n"
+        + "  with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A,"
+            + " INTEGER NOT NULL ORDINALITY) NOT NULL");
 
     // UNNEST MULTISET gets the same treatment.
     sql("select *\n"

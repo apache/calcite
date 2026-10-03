@@ -2325,6 +2325,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUnnestSingleFieldRowWithOrdinality() {
+    final String sql = "select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d";
+    sql(sql).ok();
+  }
+
+  @Test void testUnnestSingleFieldRowWithOrdinalityAllColumns() {
+    final String sql = "select d, d.a, d.ordinality\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d";
+    sql(sql).ok();
+  }
+
   @Test void testUnnestSubQuery() {
     final String sql = "select*from unnest(multiset(select*from dept))";
     sql(sql).ok();

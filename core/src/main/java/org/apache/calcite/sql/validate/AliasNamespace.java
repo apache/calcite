@@ -100,10 +100,10 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType aliasedType;
     if (operands.size() == 2) {
       final SqlNode node = operands.get(0);
-      // 'AS t': the sole column is named after the alias, unless it is a
-      // field of the collection's ROW element. COLLECTION_TABLE's sole
-      // column keeps its own name the same way.
-      final boolean isStructUnnest = node.getKind() == SqlKind.UNNEST
+      // 'AS t': columns are named after the alias, except that a ROW element's
+      // field keeps its own name for star-expansion while the alias also names
+      // it. COLLECTION_TABLE handles its column the same way.
+      final boolean keepsElementFieldName = node.getKind() == SqlKind.UNNEST
           && keepsElementFieldName((SqlCall) node);
       if (rowType.getFieldCount() == 1) {
         final RelDataType singleColumnAlias = validator.getTypeFactory().builder()
@@ -111,7 +111,7 @@ public class AliasNamespace extends AbstractNamespace {
             .add(((SqlIdentifier) operands.get(1)).getSimple(),
                 rowType.getFieldList().get(0).getType())
             .build();
-        aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE || isStructUnnest
+        aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE || keepsElementFieldName
             ? new SingleColumnAliasRelDataType(rowType, singleColumnAlias) : singleColumnAlias;
       } else if (node.getKind() == SqlKind.UNNEST && rowType.getFieldCount() == 2
           && ((SqlUnnestOperator) ((SqlBasicCall) node).getOperator()).withOrdinality) {
@@ -122,7 +122,7 @@ public class AliasNamespace extends AbstractNamespace {
             .add(((SqlIdentifier) operands.get(1)).getSimple(),
                 rowType.getFieldList().get(0).getType())
             .build();
-        aliasedType = isStructUnnest
+        aliasedType = keepsElementFieldName
             ? new SingleColumnAliasRelDataType(rowType, dataColumnAlias)
             : validator.getTypeFactory().builder()
                 .kind(rowType.getStructKind())

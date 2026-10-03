@@ -33,9 +33,11 @@ import java.util.List;
  * <p>For instance:
  * <blockquote><pre>select rmp, rmp.i from table(ramp(3)) as rmp;</pre></blockquote>
  *
- * <p>{@code original} may have more than one field, for example a
- * struct-array UNNEST WITH ORDINALITY, whose second field is ORDINALITY;
- * only the first field gets the extra alias name.
+ * <p>The wrapped type may have more than one field, for example
+ * UNNEST WITH ORDINALITY of a collection of single-field ROW values, whose
+ * second field is ORDINALITY; only the first field gets the extra alias name.
+ * If the alias equals the name of another field, that field wins (see
+ * {@link #getField}).
  *
  * @see org.apache.calcite.sql.validate.AliasNamespace
  */
@@ -70,6 +72,11 @@ public class SingleColumnAliasRelDataType implements RelDataType {
     return original.getStructKind();
   }
 
+  /**
+   * Looks up {@code fieldName} in the wrapped type first, then in the alias.
+   * A name that matches a wrapped field resolves to that field; the alias is
+   * a fallback for names that match none.
+   */
   @Override public @Nullable RelDataTypeField getField(final String fieldName,
       final boolean caseSensitive, final boolean elideRecord) {
     RelDataTypeField originalField = original.getField(fieldName, caseSensitive, elideRecord);
