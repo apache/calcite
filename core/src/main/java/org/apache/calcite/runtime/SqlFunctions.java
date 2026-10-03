@@ -7145,6 +7145,18 @@ public class SqlFunctions {
     return result;
   }
 
+  /** Tests whether a recursive CTE path contains a key tuple.
+   * Implements the condition of {@code CASE WHEN key IN (path) THEN ...}:
+   * only TRUE comparisons close a cycle; UNKNOWN does not. */
+  public static boolean cyclePathContains(List<?> path, Object key) {
+    for (Object previous : path) {
+      if (Boolean.TRUE.equals(rowEq(previous, key))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Support the ARRAY_APPEND function. */
   public static List arrayAppend(List list, Object element) {
     final List result = new ArrayList(list.size() + 1);
