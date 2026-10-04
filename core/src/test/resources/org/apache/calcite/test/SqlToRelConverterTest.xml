@@ -10334,13 +10334,13 @@ LogicalProject(D=[$0], A=[$0])
   </TestCase>
   <TestCase name="testUnnestSingleFieldRowWithOrdinality">
     <Resource name="sql">
-      <![CDATA[select d, d.a
+      <![CDATA[select ordinality
 from unnest(cast(array[row(1)] as row(a integer) array))
-  with ordinality as d]]>
+  with ordinality as ordinality]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(D=[$0], A=[$0])
+LogicalProject(ORDINALITY=[$1])
   Uncollect(withOrdinality=[true])
     LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
       LogicalValues(tuples=[[{ 0 }]])

@@ -100,9 +100,10 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType aliasedType;
     if (operands.size() == 2) {
       final SqlNode node = operands.get(0);
-      // 'AS t': columns are named after the alias, except that a ROW element's
-      // field keeps its own name for star-expansion while the alias also names
-      // it. COLLECTION_TABLE handles its column the same way.
+      // 'AS t' on a single-column result, or on UNNEST WITH ORDINALITY with one
+      // data column: the data column is named after the alias. A ROW element's
+      // field keeps its own name for star expansion, and the alias names it as
+      // well. COLLECTION_TABLE handles its column the same way.
       final boolean keepsElementFieldName = node.getKind() == SqlKind.UNNEST
           && keepsElementFieldName((SqlCall) node);
       if (rowType.getFieldCount() == 1) {

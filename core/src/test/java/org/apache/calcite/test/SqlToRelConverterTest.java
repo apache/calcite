@@ -2326,9 +2326,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testUnnestSingleFieldRowWithOrdinality() {
-    final String sql = "select d, d.a\n"
+    // Alias equals ORDINALITY: unqualified "ordinality" must project
+    // the ordinality column, not the data column named by the alias.
+    final String sql = "select ordinality\n"
         + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
-        + "  with ordinality as d";
+        + "  with ordinality as ordinality";
     sql(sql).ok();
   }
 

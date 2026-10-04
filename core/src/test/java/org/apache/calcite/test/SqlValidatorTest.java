@@ -10147,13 +10147,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  with ordinality as d")
         .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A,"
             + " INTEGER NOT NULL ORDINALITY) NOT NULL");
+    // Alias equals ORDINALITY: unqualified name resolves to the INTEGER
+    // ordinality column, not the VARCHAR data column. The VARCHAR data field
+    // makes the two columns distinguishable and pins the getField lookup order.
+    sql("select ordinality\n"
+        + "from unnest(cast(array[row('x')] as row(a varchar(1)) array))\n"
+        + "  with ordinality as ordinality")
+        .type("RecordType(INTEGER NOT NULL ORDINALITY) NOT NULL");
 
     // UNNEST MULTISET gets the same treatment.
     sql("select *\n"
         + "from unnest(cast(multiset[row(1)] as row(a integer) multiset)) as d")
         .type("RecordType(INTEGER NOT NULL A) NOT NULL");
 
-    // NATURAL JOIN and USING match the field name "A", not the alias "D".
+    // NATURAL JOIN matches the field name "A", not the alias "D". USING accepts
+    // either name.
     // A column named after the alias does not count as a match.
     sql("select *\n"
         + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
@@ -10167,7 +10175,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
         + "join (values (1)) as t (a) using (a)")
         .type("RecordType(INTEGER NOT NULL A) NOT NULL");
-    // USING also accepts the alias, which resolves through the field.
+    // USING (d) matches the alias, and the output column is named A.
     sql("select *\n"
         + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
         + "join (values (1)) as t (d) using (d)")
