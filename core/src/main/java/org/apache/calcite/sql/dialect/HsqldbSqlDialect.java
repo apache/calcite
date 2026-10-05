@@ -49,6 +49,10 @@ public class HsqldbSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }
