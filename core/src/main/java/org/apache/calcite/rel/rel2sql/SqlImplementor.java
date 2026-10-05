@@ -1236,7 +1236,7 @@ public abstract class SqlImplementor {
       List<SqlNode> orderNodes = Expressions.list();
       if (rexWindow.orderKeys != null) {
         for (RexFieldCollation rfc : rexWindow.orderKeys) {
-          addOrderItem(orderNodes, program, rfc, rexOver.op);
+          addOrderItem(orderNodes, program, rfc, rexOver.op, rexWindow.isRows());
         }
       }
       final SqlNodeList orderList =
@@ -1289,7 +1289,7 @@ public abstract class SqlImplementor {
           window);
     }
 
-    private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc) {
+    private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc, boolean isRows) {
       SqlNode node = toSql(program, rfc.left);
       switch (rfc.getDirection()) {
       case DESCENDING:
@@ -1300,7 +1300,7 @@ public abstract class SqlImplementor {
         break;
       }
       if (rfc.getNullDirection() != dialect.defaultNullDirection(rfc.getDirection())
-          || (dialect.retainRedundantWindowNullDirection()
+          || (dialect.retainRedundantWindowNullDirection(isRows)
           && rfc.getNullDirection() == RelFieldCollation.NullDirection.LAST)) {
         switch (rfc.getNullDirection()) {
         case FIRST:
@@ -1387,7 +1387,8 @@ public abstract class SqlImplementor {
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
     private void addOrderItem(List<SqlNode> orderByList,
-        @Nullable RexProgram program, RexFieldCollation field, @Nullable SqlOperator operator) {
+        @Nullable RexProgram program, RexFieldCollation field, @Nullable SqlOperator operator,
+        boolean isRows) {
       SqlNode node = toSql(program, field.left);
       SqlNode nullDirectionNode = null;
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
@@ -1395,7 +1396,7 @@ public abstract class SqlImplementor {
             field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
         nullDirectionNode =
             dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(node, first,
-                field.getDirection().isDescending(), operator);
+                field.getDirection().isDescending(), operator, isRows);
       }
       if (nullDirectionNode != null) {
         orderByList.add(nullDirectionNode);
@@ -1409,7 +1410,7 @@ public abstract class SqlImplementor {
         }
         orderByList.add(node);
       } else {
-        orderByList.add(toSql(program, field));
+        orderByList.add(toSql(program, field, isRows));
       }
     }
 

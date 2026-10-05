@@ -389,6 +389,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc, operator);
   }
 
+  @Override public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(
+      SqlNode node, boolean nullsFirst, boolean desc, @Nullable SqlOperator operator,
+      boolean isRows) {
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc, operator);
+  }
+
 //  @Override public SqlNode emulateNullDirection(SqlNode node,
 //      boolean nullsFirst, boolean desc) {
 //    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
