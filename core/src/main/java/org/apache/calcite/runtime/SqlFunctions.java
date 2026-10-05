@@ -5308,7 +5308,10 @@ public class SqlFunctions {
     if (number instanceof Float) {
       return ((Float) number).floatValue() != 0f;
     }
-    return !number.equals(0);
+    if (number instanceof BigInteger) {
+      return ((BigInteger) number).signum() != 0;
+    }
+    return number.longValue() != 0;
   }
 
   public static boolean toBoolean(Object o) {
