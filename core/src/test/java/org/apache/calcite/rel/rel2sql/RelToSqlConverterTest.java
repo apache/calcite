@@ -2746,6 +2746,35 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7838">[CALCITE-7838]
+   * HsqldbSqlDialect incorrectly claims to support nested aggregations</a>.
+   *
+   * <p>The inner aggregate is wrapped in an expression, so the outer aggregate
+   * must read it from a sub-SELECT on dialects that do not support nested
+   * aggregate functions. Oracle can do it in a single SELECT. */
+  @Test void testNestedAggregatesOverExpression() {
+    final String query = "select\n"
+        + "    SUM(\"net_weight1\") as \"net_weight_converted\"\n"
+        + "  from ("
+        + "    select\n"
+        + "       SUM(\"net_weight\") + 1 as \"net_weight1\"\n"
+        + "    from \"foodmart\".\"product\"\n"
+        + "    group by \"product_id\")";
+    final String expectedOracle =
+        "SELECT SUM(SUM(\"net_weight\") + 1) \"net_weight_converted\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "GROUP BY \"product_id\"";
+    final String expectedHsqldb =
+        "SELECT SUM(net_weight1) AS net_weight_converted\n"
+            + "FROM (SELECT SUM(net_weight) + 1 AS net_weight1\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_id) AS t1";
+    sql(query)
+        .withOracle().ok(expectedOracle)
+        .withHsqldb().ok(expectedHsqldb);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
    * JDBC adapter throws NullPointerException while generating GROUP BY query
    * for MySQL</a>.

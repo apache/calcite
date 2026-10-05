@@ -90,6 +90,25 @@ class JdbcAdapterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7838">[CALCITE-7838]
+   * HsqldbSqlDialect incorrectly claims to support nested aggregations</a>.
+   *
+   * <p>Runs against a real HSQLDB, which rejects
+   * {@code SELECT SUM(CAST(SUM(x) AS DOUBLE)) ... GROUP BY y}. */
+  @Test void testNestedAggregateUnderCast() {
+    CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
+        .query("select sum(m) from (\n"
+            + "  select cast(sum(sal) as double) as m\n"
+            + "  from scott.emp group by deptno)")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT SUM(\"M\")\n"
+            + "FROM (SELECT CAST(SUM(\"SAL\") AS DOUBLE) AS \"M\"\n"
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "GROUP BY \"DEPTNO\") AS \"t0\"")
+        .returns("EXPR$0=29025.0\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5161">[CALCITE-5161]
    * NPE when inserting a null value into a decimal column</a>. */
   @Test void testInsertNull() {
