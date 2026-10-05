@@ -5142,6 +5142,10 @@ public class RelBuilder {
             }
           };
       final RelDataType type = op.inferReturnType(bind);
+      final RexNode currentRowValue = simplifyZeroOffset(type);
+      if (currentRowValue != null) {
+        return aliasMaybe(currentRowValue, alias);
+      }
       final ImmutableList<RexNode> newPartitionKeys =
           simplifyPartitionKeys(partitionKeys);
       final ImmutableList<RexFieldCollation> newSortKeys =
@@ -5208,6 +5212,26 @@ public class RelBuilder {
         }
       }
       return newSortKeys.build();
+    }
+
+    /** Replaces {@code LAG(x, 0)} and {@code LEAD(x, 0)}, with or without a
+     * default, by {@code x}. Returns null if the call cannot be replaced. */
+    private @Nullable RexNode simplifyZeroOffset(RelDataType type) {
+      if (op.getKind() != SqlKind.LAG && op.getKind() != SqlKind.LEAD) {
+        return null;
+      }
+      // Check if the offset is 0; (the default offset is 1)
+      if (operands.size() < 2
+          || !RexSimplify.checkLiteralValue(operands.get(1), BigDecimal.ZERO)) {
+        return null;
+      }
+      final RexNode value = operands.get(0);
+      // The result must be nullable
+      if (!type.isNullable() && value.getType().isNullable()) {
+        return null;
+      }
+      // Preserve the type of the call
+      return getRexBuilder().ensureType(pos, type, value, false);
     }
   }
 
