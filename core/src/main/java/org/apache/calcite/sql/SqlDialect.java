@@ -1167,6 +1167,20 @@ public class SqlDialect {
   }
 
   /**
+   * Variant that additionally receives whether the enclosing window frame is {@code ROWS}
+   * (as opposed to {@code RANGE} or the default). Dialects can use {@code isRows} to decide
+   * between emitting {@code NULLS FIRST} / {@code NULLS LAST} keywords (ROWS) and synthesizing
+   * an {@code expr IS NULL} emulation key (RANGE/default).
+   *
+   * <p>The old four-argument form delegates here with {@code isRows == false} for back-compat.
+   */
+  public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(SqlNode node,
+      boolean nullsFirst, boolean desc, @Nullable SqlOperator operator, boolean isRows) {
+    return emulateNullDirectionForUnsupportedNullsRangeSortDirection(node, nullsFirst, desc,
+        operator);
+  }
+
+  /**
    * Whether a window ({@code OVER}) {@code ORDER BY} key should keep an explicit
    * {@code NULLS FIRST} / {@code NULLS LAST} keyword even when the null ordering already
    * matches this dialect's default for that sort direction.
@@ -1177,6 +1191,16 @@ public class SqlDialect {
    */
   public boolean retainRedundantWindowNullDirection() {
     return false;
+  }
+
+  /**
+   * Variant of {@link #retainRedundantWindowNullDirection()} that additionally receives whether
+   * the enclosing window frame is {@code ROWS}. The old no-argument form delegates here by
+   * ignoring {@code isRows}; dialects that should only retain the keyword for ROWS frames
+   * override this overload.
+   */
+  public boolean retainRedundantWindowNullDirection(boolean isRows) {
+    return retainRedundantWindowNullDirection();
   }
 
   public JoinType emulateJoinTypeForCrossJoin() {
