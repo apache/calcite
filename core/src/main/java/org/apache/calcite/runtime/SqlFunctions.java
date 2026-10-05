@@ -7163,13 +7163,11 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_MAX function. */
-  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMax(
-      List<? extends T> list) {
-
+  public static @Nullable <T> T arrayMax(List<? extends T> list) {
     T max = null;
     for (int i = 0; i < list.size(); i++) {
       T item = list.get(i);
-      if (item != null && (max == null || item.compareTo(max) > 0)) {
+      if (item != null && (max == null || compareNullable(item, max, "ARRAY_MAX") > 0)) {
         max = item;
       }
     }
@@ -7177,13 +7175,11 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_MIN function. */
-  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMin(
-      List<? extends T> list) {
-
+  public static @Nullable <T> T arrayMin(List<? extends T> list) {
     T min = null;
     for (int i = 0; i < list.size(); i++) {
       T item = list.get(i);
-      if (item != null && (min == null || item.compareTo(min) < 0)) {
+      if (item != null && (min == null || compareNullable(item, min, "ARRAY_MIN") < 0)) {
         min = item;
       }
     }
@@ -7383,9 +7379,11 @@ public class SqlFunctions {
 
   /** Support the SORT_ARRAY function. */
   public static List sortArray(List list, boolean ascending) {
-    Comparator comparator = ascending
-        ? Comparator.nullsFirst(Comparator.naturalOrder())
-        : Comparator.nullsLast(Comparator.reverseOrder());
+    final Comparator<@Nullable Object> naturalComparator =
+        (a, b) -> compareNullable(a, b, "SORT_ARRAY");
+    final Comparator<@Nullable Object> comparator = ascending
+        ? Comparator.nullsFirst(naturalComparator)
+        : Comparator.nullsLast(naturalComparator.reversed());
     list.sort(comparator);
     return list;
   }

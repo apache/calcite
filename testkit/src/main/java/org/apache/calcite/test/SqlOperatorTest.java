@@ -8588,7 +8588,9 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
-  /** Tests {@code ARRAY_MAX} function from Spark, Hive. */
+  /** Tests {@code ARRAY_MAX} function from Spark, Hive, including
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
   @Test void testArrayMaxFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ARRAY_MAX);
     f0.checkFails("^array_max(array[1, 2])^",
@@ -8599,6 +8601,18 @@ public class SqlOperatorTest {
       f.checkScalar("array_max(array[1, 2])", "2", "INTEGER");
       f.checkScalar("array_max(array[1, 2, null])", "2", "INTEGER");
       f.checkScalar("array_max(array[1])", "1", "INTEGER");
+      f.checkScalar("array_max(array[row(1, 'Foo'), row(2, 'Bar')])", "{2, Bar}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_max(array[row(1, 'Bar'), row(1, 'Foo'), null])", "{1, Foo}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_max(array[row(1, row(2, 'Bar')), row(1, row(2, 'Foo'))])",
+          "{1, {2, Foo}}",
+          "RecordType(INTEGER EXPR$0, RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) EXPR$1)");
+      f.checkScalar("array_max(array[row(1, 2), row(1, null)])", "{1, null}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkScalar("array_max(array[row(1, 2)])", "{1, 2}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkNull("array_max(array[cast(null as row(x integer, y integer))])");
       f.checkType("array_max(array())", "UNKNOWN");
       f.checkNull("array_max(array())");
       f.checkNull("array_max(cast(null as integer array))");
@@ -8613,7 +8627,9 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
-  /** Tests {@code ARRAY_MIN} function from Spark, Hive. */
+  /** Tests {@code ARRAY_MIN} function from Spark, Hive, including
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
   @Test void testArrayMinFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ARRAY_MIN);
     f0.checkFails("^array_min(array[1, 2])^",
@@ -8622,6 +8638,18 @@ public class SqlOperatorTest {
         ImmutableList.of(SqlLibrary.HIVE, SqlLibrary.SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalar("array_min(array[1, 2])", "1", "INTEGER");
+      f.checkScalar("array_min(array[row(2, 'Bar'), row(1, 'Foo')])", "{1, Foo}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_min(array[null, row(1, 'Foo'), row(1, 'Bar')])", "{1, Bar}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_min(array[row(1, row(2, 'Foo')), row(1, row(2, 'Bar'))])",
+          "{1, {2, Bar}}",
+          "RecordType(INTEGER EXPR$0, RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) EXPR$1)");
+      f.checkScalar("array_min(array[row(1, null), row(1, 2)])", "{1, 2}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkScalar("array_min(array[row(1, 2)])", "{1, 2}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkNull("array_min(array[cast(null as row(x integer, y integer))])");
       f.checkScalar("array_min(array[1, 2, null])", "1", "INTEGER");
       f.checkType("array_min(array())", "UNKNOWN");
       f.checkNull("array_min(array())");
@@ -9319,6 +9347,31 @@ public class SqlOperatorTest {
     f.checkScalar("sort_array(array())", "[]",
         "UNKNOWN NOT NULL ARRAY NOT NULL");
     f.checkNull("sort_array(null)");
+    f.checkScalar("sort_array(array[row(2, 'Bar'), row(1, 'Foo')])",
+        "[{1, Foo}, {2, Bar}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, CHAR(3) NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, 'Foo'), null, row(1, 'Bar')])",
+        "[null, {1, Bar}, {1, Foo}]",
+        "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, 'Bar'), null, row(1, 'Foo')], false)",
+        "[{1, Foo}, {1, Bar}, null]",
+        "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, row(2, 'Foo')), row(1, row(2, 'Bar'))])",
+        "[{1, {2, Bar}}, {1, {2, Foo}}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, "
+            + "RecordType(INTEGER NOT NULL EXPR$0, CHAR(3) NOT NULL EXPR$1) NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, row(2, 'Bar')), row(1, row(2, 'Foo'))], false)",
+        "[{1, {2, Foo}}, {1, {2, Bar}}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, "
+            + "RecordType(INTEGER NOT NULL EXPR$0, CHAR(3) NOT NULL EXPR$1) NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, null), row(1, 2)])",
+        "[{1, 2}, {1, null}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, 2), row(1, null)], false)",
+        "[{1, null}, {1, 2}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
 
     // elements cast
     f.checkScalar("sort_array(array[cast(1 as tinyint), 2])", "[1, 2]",
