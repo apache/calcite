@@ -2024,6 +2024,18 @@ select cast(mod(deptno, 3) as BOOLEAN), mod(deptno, 3) from emp;
 
 !ok
 
+# Test case for [CALCITE-7839] CAST(CAST(0 AS TINYINT) AS BOOLEAN) should not evaluate to TRUE
+values (cast(cast(0 as tinyint) as boolean), cast(cast(0 as smallint) as boolean),
+  cast(cast(0 as bigint) as boolean), cast(cast(5 as bigint) as boolean));
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| false  | false  | false  | true   |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+
 # Test case for [CALCITE-7653] ARRAY[NULL] produces uncompilable Java code
 values (cast(array[null] as integer array));
 +--------+
