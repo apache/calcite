@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j.function;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -81,6 +83,47 @@ class FunctionTest {
         Functions.all(empty, Functions.falsePredicate1()));
     assertTrue(
         Functions.all(empty, Functions.truePredicate1()));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
+  @Test void testCompareNumbersWithSpecialFloatingPointValues() {
+    final List<List<Number>> types =
+        Arrays.asList(
+            Arrays.asList(Double.NEGATIVE_INFINITY, -1D, 1D, Double.POSITIVE_INFINITY, Double.NaN),
+        Arrays.asList(Float.NEGATIVE_INFINITY, -1F, 1F, Float.POSITIVE_INFINITY, Float.NaN));
+    for (List<Number> values : types) {
+      for (int i = 0; i < values.size(); i++) {
+        for (int j = 0; j < values.size(); j++) {
+          assertThat(values.get(i) + " compared with " + values.get(j),
+              Integer.signum(Functions.compareListItems(values.get(i), values.get(j))),
+              is(Integer.compare(i, j)));
+        }
+      }
+    }
+    assertThat(Functions.compareListItems(-0D, 0D), is(0));
+    assertThat(Functions.compareListItems(0D, -0D), is(0));
+    assertThat(Functions.compareListItems(-0F, 0F), is(0));
+    assertThat(Functions.compareListItems(0F, -0F), is(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
+  @Test void testCompareNumbersOfDifferentTypes() {
+    final List<Number> ones = Arrays.asList(1, 1L, 1F, 1D, BigInteger.ONE, BigDecimal.ONE);
+    for (Number a : ones) {
+      for (Number b : ones) {
+        assertThat(Functions.compareListItems(a, b), is(0));
+      }
+    }
+    // Finite numbers must still be compared without losing decimal precision.
+    assertTrue(Functions.compareListItems(1D, new BigDecimal("1.0000000000000000001")) < 0);
+    assertTrue(Functions.compareListItems(Long.MAX_VALUE, Long.MAX_VALUE - 1) > 0);
+    assertTrue(Functions.compareListItems(Double.MAX_VALUE, new BigDecimal("1E400")) < 0);
+    assertThat(Functions.compareListItems(BigInteger.TEN.pow(400), new BigDecimal("1E400")),
+        is(0));
   }
 
   /** Unit test for {@link Functions#compareMaps}. Maps are unordered, so the

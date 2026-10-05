@@ -117,6 +117,55 @@ class SqlFunctionsTest {
     return ImmutableList.of();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
+  @Test void testArrayComparisonWithSpecialFloatingPointValues() {
+    final List<Double> values =
+        list(Double.NaN, null, Double.NEGATIVE_INFINITY, 1D, Double.POSITIVE_INFINITY);
+    assertThat(SqlFunctions.arrayMax(values), is(Double.NaN));
+    assertThat(SqlFunctions.arrayMin(values), is(Double.NEGATIVE_INFINITY));
+    assertThat(SqlFunctions.sortArray(values, true),
+        is(list(null, Double.NEGATIVE_INFINITY, 1D, Double.POSITIVE_INFINITY, Double.NaN)));
+    assertThat(SqlFunctions.sortArray(values, false),
+        is(list(Double.NaN, Double.POSITIVE_INFINITY, 1D, Double.NEGATIVE_INFINITY, null)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
+  @Test void testArrayRowComparisonWithSpecialFloatingPointValues() {
+    for (double special : new double[] {
+        Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+      final boolean specialFirst = Double.compare(special, 1D) < 0;
+      checkArrayRowComparison(FlatLists.ofComparable(list(special)),
+          FlatLists.ofComparable(list(1D)), specialFirst);
+      checkArrayRowComparison(new Object[] {special}, new Object[] {1D}, specialFirst);
+      checkArrayRowComparison(new Object[] {new Object[] {special}},
+          new Object[] {new Object[] {1D}}, specialFirst);
+    }
+    for (float special : new float[] {
+        Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY}) {
+      final boolean specialFirst = Float.compare(special, 1F) < 0;
+      checkArrayRowComparison(FlatLists.ofComparable(list(special)),
+          FlatLists.ofComparable(list(1F)), specialFirst);
+      checkArrayRowComparison(new Object[] {special}, new Object[] {1F}, specialFirst);
+      checkArrayRowComparison(new Object[] {new Object[] {special}},
+          new Object[] {new Object[] {1F}}, specialFirst);
+    }
+  }
+
+  private static void checkArrayRowComparison(Object specialRow, Object normalRow,
+      boolean specialFirst) {
+    final List<Object> rows = list(specialRow, normalRow, null);
+    final Object min = specialFirst ? specialRow : normalRow;
+    final Object max = specialFirst ? normalRow : specialRow;
+    assertSame(max, SqlFunctions.arrayMax(rows));
+    assertSame(min, SqlFunctions.arrayMin(rows));
+    assertThat(SqlFunctions.sortArray(new ArrayList<>(rows), true), is(list(null, min, max)));
+    assertThat(SqlFunctions.sortArray(new ArrayList<>(rows), false), is(list(max, min, null)));
+  }
+
   @Test void testArraysOverlap() {
     final List<Object> listWithOnlyNull = new ArrayList<>();
     listWithOnlyNull.add(null);

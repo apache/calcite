@@ -784,7 +784,9 @@ public abstract class Functions {
 
   /** Compares two values as elements of a list, array or row: nested
    * collections and arrays are compared element-wise, numbers are compared by
-   * value regardless of their Java type, and nulls sort last. */
+   * value regardless of their Java type, and nulls sort last. Floating-point
+   * values of the same Java type use their natural order, with signed zeros
+   * comparing equal. */
   public static int compareListItems(@Nullable Object item0, @Nullable Object item1) {
     if (item0 == item1) {
       return 0;
@@ -803,6 +805,16 @@ public abstract class Functions {
     } else if (item0 instanceof Object[] && item1 instanceof Object[]) {
       return compareObjectArrays((Object[]) item0, (Object[]) item1);
     } else if (item0 instanceof Number && item1 instanceof Number) {
+      if (item0 instanceof Double && item1 instanceof Double) {
+        final double d0 = (Double) item0;
+        final double d1 = (Double) item1;
+        return d0 == d1 ? 0 : Double.compare(d0, d1);
+      }
+      if (item0 instanceof Float && item1 instanceof Float) {
+        final float f0 = (Float) item0;
+        final float f1 = (Float) item1;
+        return f0 == f1 ? 0 : Float.compare(f0, f1);
+      }
       final BigDecimal d0 = toBigDecimal((Number) item0);
       final BigDecimal d1 = toBigDecimal((Number) item1);
       return d0.compareTo(d1);
