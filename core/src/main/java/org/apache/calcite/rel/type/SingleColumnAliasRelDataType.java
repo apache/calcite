@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Specific type of RelDataType where the first column can also be
  * referenced by an alias.
@@ -46,8 +48,8 @@ public class SingleColumnAliasRelDataType implements RelDataType {
   private final RelDataType alias;
 
   public SingleColumnAliasRelDataType(RelDataType original, RelDataType alias) {
-    assert original.isStruct() && original.getFieldCount() >= 1;
-    assert alias.isStruct() && alias.getFieldCount() == 1;
+    checkArgument(original.isStruct() && original.getFieldCount() >= 1);
+    checkArgument(alias.isStruct() && alias.getFieldCount() == 1);
     this.original = original;
     this.alias = alias;
   }
