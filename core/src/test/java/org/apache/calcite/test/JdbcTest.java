@@ -4760,7 +4760,7 @@ public class JdbcTest {
             + "   \"hr\".\"emps\"\n"
             + " )\n")
         .typeIs(
-            "[LAGX INTEGER NOT NULL]")
+            "[LAGX INTEGER]")
         .returnsUnordered(
             "LAGX=0",
             "LAGX=0",
