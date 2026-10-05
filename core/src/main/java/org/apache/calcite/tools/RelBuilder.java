@@ -2412,16 +2412,60 @@ public class RelBuilder {
   public RelBuilder uncollect(List<String> itemAliases, boolean withOrdinality,
       boolean expandStructFields, boolean isOuter) {
     Frame frame = stack.pop();
+    final RelNode input = frame.rel;
     stack.push(
         new Frame(
           new Uncollect(
               cluster,
               cluster.traitSetOf(Convention.NONE),
-              frame.rel,
+              input,
               withOrdinality,
               requireNonNull(itemAliases, "itemAliases"),
+              ImmutableBitSet.of(),
+              ImmutableBitSet.range(input.getRowType().getFieldCount()),
               expandStructFields,
               isOuter)));
+    return this;
+  }
+
+  /**
+   * Creates an {@link Uncollect} that unnests the collection-typed fields at
+   * the given 0-based indices of the top-of-stack relation, with explicit
+   * control over which other fields pass through to the output.
+   *
+   * <p>Output columns: all passthrough fields first (in ascending input index
+   * order), then all collection-element columns (in ascending input index
+   * order); all other input fields are dropped.
+   *
+   * @param passthroughFieldIndices 0-based indices of the input fields
+   *                                to include in the output unchanged
+   * @param collectionFieldIndices  0-based indices of the collection-typed
+   *                                fields to unnest
+   * @param withOrdinality          whether to append an ORDINALITY column
+   * @param expandStructFields      if true, a collection whose element type is a struct
+   *                                produces one output column per struct field; if false,
+   *                                a single column typed as the whole element
+   * @param isOuter                 if true, preserves input rows with null/empty
+   *                                collections (LEFT JOIN); if false, drops them (INNER)
+   */
+  public RelBuilder uncollect(
+      ImmutableBitSet passthroughFieldIndices,
+      ImmutableBitSet collectionFieldIndices,
+      boolean withOrdinality,
+      boolean expandStructFields,
+      boolean isOuter) {
+    Frame frame = stack.pop();
+    stack.push(
+        new Frame(
+            Uncollect.create(
+                cluster.traitSetOf(Convention.NONE),
+                frame.rel,
+                withOrdinality,
+                Collections.emptyList(),
+                passthroughFieldIndices,
+                collectionFieldIndices,
+                expandStructFields,
+                isOuter)));
     return this;
   }
 

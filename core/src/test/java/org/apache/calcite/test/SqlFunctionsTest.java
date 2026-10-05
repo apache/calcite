@@ -2162,20 +2162,33 @@ class SqlFunctionsTest {
             "2024-01-01 00:00:00", "Asia/Sanghai"));
   }
 
-  // Tests for ZipPaddedEnumerator, accessed via the public SqlFunctions.flatZip API.
+  // Tests for SqlFunctions.flatUncollect, the runtime of the Enumerable
+  // implementation of Uncollect. FIELD_IS_SCALAR marks a collection whose
+  // elements occupy a single output column.
+  static final int FIELD_IS_SCALAR = -1;
 
-  /** Invokes {@link SqlFunctions#flatZip} over scalar collections and collects output rows. */
+  // Tests for ZipPaddedEnumerator, accessed via the public
+  // SqlFunctions.flatUncollect API (no pass-through fields, all
+  // input fields are scalar collections).
+
+  /** Invokes {@link SqlFunctions#flatUncollect} over scalar
+   * collections (no pass-through fields) and collects output rows. */
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static List<List<Object>> zipScalars(
       boolean withOrdinality, List<Comparable>... inputs) {
     final int n = inputs.length;
+    final int[] collectionIndices = new int[n];
     final int[] fieldCounts = new int[n];
-    Arrays.fill(fieldCounts, 1);
     final SqlFunctions.FlatProductInputType[] types =
         new SqlFunctions.FlatProductInputType[n];
-    Arrays.fill(types, SCALAR);
+    for (int i = 0; i < n; i++) {
+      collectionIndices[i] = i;
+      fieldCounts[i] = FIELD_IS_SCALAR;
+      types[i] = SCALAR;
+    }
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(fieldCounts, withOrdinality, types, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, collectionIndices, fieldCounts, types, withOrdinality, n, false);
     final Object arg = n == 1 ? inputs[0] : inputs;
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row : fn.apply(arg)) {
@@ -2185,8 +2198,8 @@ class SqlFunctionsTest {
   }
 
   @Test void testZipPaddedSingleCollectionWithOrdinality() {
-    // Single scalar collection with ordinality uses ZipPaddedEnumerator, not
-    // the LIST_AS_ENUMERABLE shortcut.
+    // Single scalar collection with ordinality: two output columns
+    // (element, ordinality), so no single-column scalar unwrapping applies.
     List<List<Object>> rows = zipScalars(true, Arrays.asList(10, 20, 30));
     assertThat(rows, hasSize(3));
     assertThat(rows.get(0), is(list(10, 1)));
@@ -2248,8 +2261,9 @@ class SqlFunctionsTest {
     // → [1,2,10,20], [3,4,null,null]
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{2, 2}, false,
-            new SqlFunctions.FlatProductInputType[]{LIST, LIST}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1}, new int[]{2, 2},
+            new SqlFunctions.FlatProductInputType[]{LIST, LIST}, false, 2, false);
     final List<List<Comparable>> col1 =
         Arrays.asList(FlatLists.of(1, 2), FlatLists.of(3, 4));
     final List<List<Comparable>> col2 =
@@ -2277,10 +2291,12 @@ class SqlFunctionsTest {
     // the element as an Object[]; the scalar column i zips alongside.
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(
-            new int[]{-1, -1}, // one output column per collection
-            false,             // no ordinality
-            new SqlFunctions.FlatProductInputType[]{STRUCT, SCALAR}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{FIELD_IS_SCALAR, FIELD_IS_SCALAR}, // one output column per collection
+            new SqlFunctions.FlatProductInputType[]{STRUCT, SCALAR},
+            false, // no ordinality
+            2, false);
 
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row
@@ -2301,10 +2317,12 @@ class SqlFunctionsTest {
     // must be expanded to one null per ROW field rather than dereferencing the list.
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(
-            new int[]{2, -1}, // two columns from the struct, one scalar column
-            false,            // no ordinality
-            new SqlFunctions.FlatProductInputType[]{LIST, SCALAR}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{2, FIELD_IS_SCALAR}, // two columns from the struct, one scalar column
+            new SqlFunctions.FlatProductInputType[]{LIST, SCALAR},
+            false, // no ordinality
+            2, false);
 
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row
@@ -2320,16 +2338,16 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipSingleWholeStructCollection() {
+  @Test void testFlatUncollectSingleWholeStructCollection() {
     // Models the Trino semantics of
     //   UNNEST(ARRAY[ROW(1, 'x'), ROW(2, 'y')]) AS t(s):
     // the output has the single ROW-typed column s, which PhysTypeImpl stores
     // in SCALAR row format, so each output row is the bare Object[] struct
     // value rather than a singleton list.
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(
-            new int[]{-1}, false,
-            new SqlFunctions.FlatProductInputType[]{STRUCT}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{STRUCT}, false, 1, false);
 
     final List<Object> rows = new ArrayList<>();
     for (Object row : (Enumerable) fn.apply(rowArray())) {
@@ -2345,15 +2363,16 @@ class SqlFunctionsTest {
     assertThat(((Enumerable) fn.apply(null)).any(), is(false));
   }
 
-  // Tests for the outer mode of flatZip (Uncollect.isOuter): an empty or
-  // NULL collection produces one all-NULL output row instead of none.
+  // Tests for the outer mode of flatUncollect (Uncollect.isOuter): an empty
+  // or NULL collection produces one all-NULL output row instead of none.
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterScalar() {
+  @Test void testFlatUncollectOuterScalar() {
     // Models SELECT u.x FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1}, false,
-            new SqlFunctions.FlatProductInputType[]{SCALAR}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR}, false, 1, true);
 
     // arr = [1, 2]
     assertThat(((Enumerable) fn.apply(Arrays.asList(1, 2))).toList(),
@@ -2367,12 +2386,13 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterWholeStruct() {
+  @Test void testFlatUncollectOuterWholeStruct() {
     // Models, under PRESTO conformance (struct elements kept whole),
     // SELECT u.s FROM t LEFT JOIN UNNEST(t.arr) AS u(s) ON TRUE.
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1}, false,
-            new SqlFunctions.FlatProductInputType[]{STRUCT}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{STRUCT}, false, 1, true);
 
     // arr = [ROW(1, 'x'), ROW(2, 'y')]
     final List<Object> rows = ((Enumerable) fn.apply(rowArray())).toList();
@@ -2387,12 +2407,13 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterWithOrdinality() {
+  @Test void testFlatUncollectOuterWithOrdinality() {
     // Models SELECT u.x, u.o
     //     FROM t LEFT JOIN UNNEST(t.arr) WITH ORDINALITY AS u(x, o) ON TRUE
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1}, true,
-            new SqlFunctions.FlatProductInputType[]{SCALAR}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR}, true, 1, true);
 
     // arr = [7, 8]
     final List<List<Object>> rows = new ArrayList<>();
@@ -2420,11 +2441,13 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterMultipleCollections() {
+  @Test void testFlatUncollectOuterMultipleCollections() {
     // Models SELECT u.x, u.y FROM t LEFT JOIN UNNEST(t.a, t.b) AS u(x, y) ON TRUE
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1, -1}, false,
-            new SqlFunctions.FlatProductInputType[]{SCALAR, SCALAR}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{FIELD_IS_SCALAR, FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR, SCALAR}, false, 2, true);
 
     // (a, b) = ([], [7]): zip pads a
     final List<List<Object>> rows = new ArrayList<>();
@@ -2443,19 +2466,200 @@ class SqlFunctionsTest {
     assertThat(rows, is(Collections.singletonList(Arrays.asList(null, null))));
   }
 
-  @Test void testFlatListOuter() {
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  @Test void testFlatUncollectOuterSingleFieldStruct() {
     // Models SELECT u.x FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
-    // for arr ROW(a INTEGER) ARRAY
-    final Function1<List<Object>, Enumerable<Object>> fn =
-        (Function1) SqlFunctions.flatListOuter();
+    // for arr ROW(a INTEGER) ARRAY: the single struct field expands to the
+    // single output column, so rows are bare values (SCALAR row format).
+    final Function1<Object, Enumerable<Object>> fn =
+        (Function1) SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{1},
+            new SqlFunctions.FlatProductInputType[]{LIST}, false, 1, true);
     // arr = [ROW(1), ROW(2)]
-    assertThat(fn.apply(Arrays.asList(FlatLists.of(1), FlatLists.of(2))).toList(),
+    assertThat(((Enumerable) fn.apply(Arrays.asList(FlatLists.of(1), FlatLists.of(2)))).toList(),
         is(Arrays.asList(1, 2)));
     // arr = []
-    assertThat(fn.apply(Collections.emptyList()).toList(),
+    assertThat(((Enumerable) fn.apply(Collections.emptyList())).toList(),
         is(Collections.singletonList(null)));
     // arr = NULL
-    assertThat(fn.apply(null).toList(),
+    assertThat(((Enumerable) fn.apply(null)).toList(),
         is(Collections.singletonList(null)));
+  }
+
+  // Tests for the pass-through mode of flatUncollect: designated input
+  // fields are copied unchanged into every output row.
+
+  /** Applies {@code fn} to a single input row and collects all output rows. */
+  private static List<List<Object>> collectRows(
+      Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn,
+      Object inputRow) {
+    final List<List<Object>> result = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row : fn.apply(inputRow)) {
+      result.add(new ArrayList<>(row));
+    }
+    return result;
+  }
+
+  /** Like {@link #collectRows}, but for the single-output-column case, where
+   * {@link SqlFunctions#flatUncollect} returns bare scalars
+   * (matching {@link org.apache.calcite.adapter.enumerable.JavaRowFormat#SCALAR})
+   * rather than singleton rows. */
+  @SuppressWarnings("rawtypes")
+  private static List<Object> collectScalarRows(
+      Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn,
+      Object inputRow) {
+    final List<Object> result = new ArrayList<>();
+    for (Object row : (Enumerable) fn.apply(inputRow)) {
+      result.add(row);
+    }
+    return result;
+  }
+
+  @Test void testFlatUncollectPassthroughInner() {
+    // Models SELECT t.name, u.x FROM t, UNNEST(t.arr) AS u(x)
+    //    TABLE t(name VARCHAR, arr INTEGER ARRAY)
+    // name passes through, arr is unnested, INNER semantics.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            2,
+            false);
+
+    // Non-empty collection: one output row per element.
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"a", Arrays.asList(10, 20, 30)});
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list("a", 10)));
+    assertThat(rows.get(1), is(list("a", 20)));
+    assertThat(rows.get(2), is(list("a", 30)));
+    // Empty collection: row dropped.
+    assertThat(collectRows(fn, new Object[]{"b", Collections.emptyList()}), hasSize(0));
+    // Null collection: row dropped (null-safe).
+    assertThat(collectRows(fn, new Object[]{"c", null}), hasSize(0));
+  }
+
+  @Test void testFlatUncollectPassthroughOuter() {
+    // Models SELECT t.name, u.x FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+    // for TABLE t(name VARCHAR, arr INTEGER ARRAY)
+    // name passes through, arr is unnested, OUTER (LEFT JOIN) semantics.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            2,
+            true);
+
+    // Non-empty collection: same behaviour as INNER.
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"a", Arrays.asList(1, 2)});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("a", 1)));
+    assertThat(rows.get(1), is(list("a", 2)));
+
+    // Empty collection: one null row; passthrough field preserved.
+    List<List<Object>> emptyRows =
+        collectRows(fn, new Object[]{"b", Collections.emptyList()});
+    assertThat(emptyRows, hasSize(1));
+    assertThat(emptyRows.get(0), is(Arrays.asList("b", null)));
+
+    // Null collection: one null row; passthrough field preserved.
+    List<List<Object>> nullRows =
+        collectRows(fn, new Object[]{"c", null});
+    assertThat(nullRows, hasSize(1));
+    assertThat(nullRows.get(0), is(Arrays.asList("c", null)));
+  }
+
+  @Test void testFlatUncollectPassthroughOrdinality() {
+    // Models SELECT t.name, u.x, u.o
+    //     FROM t, UNNEST(t.arr) WITH ORDINALITY AS u(x, o)
+    // for TABLE t(name VARCHAR, arr INTEGER ARRAY)
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> innerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            true,
+            2,
+            false);
+
+    List<List<Object>> rows =
+        collectRows(innerFn, new Object[]{"a", Arrays.asList(10, 20)});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("a", 10, 1)));
+    assertThat(rows.get(1), is(list("a", 20, 2)));
+
+    // Models SELECT t.name, u.x, u.o
+    //     FROM t LEFT JOIN UNNEST(t.arr) WITH ORDINALITY AS u(x, o) ON TRUE
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            true,
+            2,
+            true);
+
+    List<List<Object>> outerEmpty =
+        collectRows(outerFn, new Object[]{"b", Collections.emptyList()});
+    assertThat(outerEmpty, hasSize(1));
+    assertThat(outerEmpty.get(0), is(Arrays.asList("b", null, null)));
+  }
+
+  @Test void testFlatUncollectDroppedField() {
+    // Models SELECT t.y, u.x FROM t, UNNEST(t.arr) AS u(x)
+    // for TABLE t(x VARCHAR, arr INTEGER ARRAY, y VARCHAR)
+    // column x is dropped from the output
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{2}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            3,
+            false);
+
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"x", Arrays.asList(10, 20), "y"});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("y", 10)));
+    assertThat(rows.get(1), is(list("y", 20)));
+  }
+
+  @Test void testFlatUncollectScalarRowFormat() {
+    // Models SELECT u.x FROM t, UNNEST(t.arr) AS u(x)
+    // for TABLE t(arr INTEGER ARRAY).
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            1,
+            false);
+
+    List<Object> rows = collectScalarRows(fn, Arrays.asList(10, 20, 30));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(10));
+    assertThat(rows.get(1), is(20));
+    assertThat(rows.get(2), is(30));
+
+    // Empty in OUTER scalar format: one bare null row.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            1,
+            true);
+
+    List<Object> outerEmpty = collectScalarRows(outerFn, Collections.emptyList());
+    assertThat(outerEmpty, hasSize(1));
+    assertThat(outerEmpty.get(0), is(nullValue()));
   }
 }

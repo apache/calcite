@@ -25,11 +25,20 @@ import java.util.Map;
 /**
  * Interpreter node that implements a
  * {@link org.apache.calcite.rel.core.Uncollect}.
+ *
+ * <p>Supports only the default mode, where every input field is a collection
+ * to unnest; pass-through fields are not implemented.
  */
 public class UncollectNode extends AbstractSingleNode<Uncollect> {
 
   public UncollectNode(Compiler compiler, Uncollect uncollect) {
     super(compiler, uncollect);
+    if (!uncollect.getPassthroughFieldIndices().isEmpty()
+        || uncollect.getCollectionFieldIndices().cardinality()
+            != uncollect.getInput().getRowType().getFieldCount()) {
+      throw new UnsupportedOperationException(
+          "Uncollect with pass-through fields not supported by the interpreter");
+    }
   }
 
   @Override public void run() throws InterruptedException {
