@@ -439,7 +439,7 @@ public class RexSimplify {
   }
 
   /** Check whether the operand is a BigDecimal literal of the specified value. */
-  private static boolean checkLiteralValue(RexNode operand, BigDecimal value) {
+  public static boolean checkLiteralValue(RexNode operand, BigDecimal value) {
     if (!operand.isA(SqlKind.LITERAL)) {
       return false;
     }
