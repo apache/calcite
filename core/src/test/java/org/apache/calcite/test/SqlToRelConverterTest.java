@@ -53,7 +53,6 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
@@ -5906,7 +5905,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
    * Comparison of DECIMAL and approximate numeric loses precision</a>.
    *
-   * <p>A custom TypeCoercion overriding {@code approximateExactComparisonType}
+   * <p>A custom TypeCoercion that overrides {@code commonTypeForBinaryComparison}
    * can widen a JOIN condition's DECIMAL/REAL comparison to DOUBLE, instead
    * of the default narrowing to REAL. */
   @Test void testJoinOnDecimalEqualsRealWithCustomTypeCoercion() {
@@ -5917,17 +5916,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withFactory(f ->
             f.withValidator((opTab, catalogReader, typeFactory, config) ->
                 SqlValidatorUtil.newValidator(opTab, catalogReader, typeFactory,
-                    config.withTypeCoercionFactory((t, v) -> new TypeCoercionImpl(t, v) {
-                      @Override protected RelDataType approximateExactComparisonType(
-                          RelDataType approximateType, RelDataType exactType,
-                          boolean anyNullable) {
-                        return SqlTypeUtil.isDecimal(exactType)
-                            ? t.createTypeWithNullability(
-                                t.createSqlType(SqlTypeName.DOUBLE), anyNullable)
-                            : super.approximateExactComparisonType(
-                                approximateType, exactType, anyNullable);
-                      }
-                    }))))
+                    config.withTypeCoercionFactory(
+                        TypeCoercionTest.WideningTypeCoercion::new))))
         .ok();
   }
 

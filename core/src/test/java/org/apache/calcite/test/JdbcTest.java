@@ -85,9 +85,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
@@ -1842,16 +1840,38 @@ public class JdbcTest {
         .returns("C0=5.5; C1=5; C2=1.4; C3=1; C4=0; C5=0\n");
   }
 
+  /** Installs {@link TypeCoercionTest.WideningTypeCoercion} via
+   * {@link Hook#STRING_TO_QUERY} for use in boundary tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]</a>. */
+  private static Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>
+      wideningHook(String sql) {
+    return pair -> {
+      final FrameworkConfig config =
+          Frameworks.newConfigBuilder(pair.left)
+              .sqlValidatorConfig(pair.left.getSqlValidatorConfig()
+                  .withTypeCoercionFactory(TypeCoercionTest.WideningTypeCoercion::new))
+              .build();
+      final Planner planner = Frameworks.getPlanner(config);
+      try {
+        final RelRoot root = planner.rel(planner.validate(planner.parse(sql)));
+        pair.right.set(CalcitePrepare.Query.of(root.project()));
+      } catch (Exception e) {
+        throw TestUtil.rethrow(e);
+      }
+    };
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
-   * Comparison of DECIMAL and approximate numeric loses precision</a>. */
-  @Test void testJoinOnDecimalEqualsRealLosesPrecision() {
-    // Default TypeCoercion narrows to REAL, so these compare equal. See
-    // TypeCoercionTest#testComparisonCoercionDecimalWithApproximateNumericOverride
-    // for the opt-in fix.
+   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   *
+   * <p>Default behavior: DECIMAL(18, 3) compared with REAL narrows to REAL
+   * (24-bit mantissa, about 7 decimal digits). These two values collide in
+   * REAL, so the join incorrectly returns 1 row. */
+  @Test void testDecimalRealComparisonDefaultNarrowsToReal() {
     CalciteAssert.that()
         .query("SELECT *\n"
-            + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+            + "FROM (VALUES (CAST(59999943.000 AS DECIMAL(18, 3)))) AS d(k)\n"
             + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k")
         .returnsCount(1);
   }
@@ -1860,45 +1880,58 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
    * Comparison of DECIMAL and approximate numeric loses precision</a>.
    *
-   * <p>A custom TypeCoercion overriding {@code approximateExactComparisonType}
-   * widens the join to DOUBLE, so it correctly returns no rows. */
-  @Test void testJoinOnDecimalEqualsRealWidenedToDouble() {
+   * <p>With {@link TypeCoercionTest.WideningTypeCoercion}, DECIMAL(15, 3)
+   * compared with REAL widens to DOUBLE (53-bit mantissa, about 15 decimal
+   * digits). These values are distinct in DOUBLE, so the join correctly
+   * returns 0 rows. Values with more than 15 significant digits can still
+   * collide; see {@link #testDecimalRealComparisonWidenedStillCollides}. */
+  @Test void testDecimalRealComparisonWidenedToDoubleHelps() {
     final String sql = "SELECT *\n"
-        + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "FROM (VALUES (CAST(59999943.000 AS DECIMAL(15, 3)))) AS d(k)\n"
         + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k";
-    /** Parses and validates {@code sql} with a widening TypeCoercion, then
-     * substitutes the resulting RelNode for the hook's original query. */
-    class Handler {
-      void accept(Pair<FrameworkConfig, Holder<CalcitePrepare.Query>> pair) {
-        final FrameworkConfig config =
-            Frameworks.newConfigBuilder(pair.left)
-                .sqlValidatorConfig(
-                    pair.left.getSqlValidatorConfig()
-                        .withTypeCoercionFactory((t, v) -> new TypeCoercionImpl(t, v) {
-                          @Override protected RelDataType approximateExactComparisonType(
-                              RelDataType approximateType, RelDataType exactType,
-                              boolean anyNullable) {
-                            return SqlTypeUtil.isDecimal(exactType)
-                                ? t.createTypeWithNullability(
-                                    t.createSqlType(SqlTypeName.DOUBLE), anyNullable)
-                                : super.approximateExactComparisonType(
-                                    approximateType, exactType, anyNullable);
-                          }
-                        }))
-                .build();
-        final Planner planner = Frameworks.getPlanner(config);
-        try {
-          final RelRoot root = planner.rel(planner.validate(planner.parse(sql)));
-          pair.right.set(CalcitePrepare.Query.of(root.project()));
-        } catch (Exception e) {
-          throw TestUtil.rethrow(e);
-        }
-      }
-    }
     CalciteAssert.that()
-        .withHook(Hook.STRING_TO_QUERY, new Handler()::accept)
+        .withHook(Hook.STRING_TO_QUERY, wideningHook(sql))
         .query(sql)
-        .returns("");
+        .returnsCount(0);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   *
+   * <p>With {@link TypeCoercionTest.WideningTypeCoercion}, DECIMAL(18, 3)
+   * compared with REAL widens to DOUBLE, but widening does not recover the
+   * REAL's lost float precision. REAL has 24-bit mantissa; floats near 6e7
+   * are spaced 4 apart, so 59999945 rounds to 59999944.0. After widening,
+   * DECIMAL 59999944.000 and the float-rounded REAL value are both
+   * 59999944.0 in DOUBLE, so the join incorrectly returns 1 row. */
+  @Test void testDecimalRealComparisonWidenedStillCollides() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (CAST(59999944.000 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k";
+    CalciteAssert.that()
+        .withHook(Hook.STRING_TO_QUERY, wideningHook(sql))
+        .query(sql)
+        .returnsCount(1);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   *
+   * <p>{@link TypeCoercionTest.WideningTypeCoercion} widens only when one
+   * operand is DECIMAL. INTEGER vs REAL stays as REAL (24-bit mantissa).
+   * REAL has 24 bits of mantissa: 16777217 and 16777216 are distinct
+   * integers but the same REAL value, so this join incorrectly returns
+   * 1 row. */
+  @Test void testIntegerRealComparisonNotWidened() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (16777217)) AS d(k)\n"
+        + "JOIN (VALUES (CAST(16777216 AS REAL))) AS f(k) ON d.k = f.k";
+    CalciteAssert.that()
+        .withHook(Hook.STRING_TO_QUERY, wideningHook(sql))
+        .query(sql)
+        .returnsCount(1);
   }
 
   /** Test case for

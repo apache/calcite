@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -392,6 +391,7 @@ class TypeCoercionTest {
         f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 14, 4);
     f.comparisonCommonType(decimal54, decimal71, decimal104);
     f.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
+    f.comparisonCommonType(decimal54, f.realType, f.realType);
     f.comparisonCommonType(decimal54, f.intType, decimal144);
     // CHAR/VARCHAR
     f.comparisonCommonType(f.charType, f.varcharType, f.varcharType);
@@ -489,27 +489,68 @@ class TypeCoercionTest {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
-   * A custom TypeCoercion can widen DECIMAL vs. REAL/FLOAT to DOUBLE instead
-   * of narrowing, to avoid precision loss</a>. */
+   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   *
+   * <p>By default, comparing DECIMAL with REAL narrows to REAL. A custom
+   * {@link TypeCoercion} that overrides
+   * {@link TypeCoercion#commonTypeForBinaryComparison} can widen to DOUBLE,
+   * including for the element types of ARRAY and MAP and the fields of ROW. */
   @Test void testComparisonCoercionDecimalWithApproximateNumericOverride() {
     final Fixture f = fixture();
+    final RelDataType decimal54 = f.decimalType(5, 4);
+    final RelDataType nullableDecimal54 =
+        f.typeFactory.createTypeWithNullability(decimal54, true);
+
+    // Default behavior: narrows to REAL.
+    f.comparisonCommonType(decimal54, f.realType, f.realType);
+
     final SqlValidator validator = SqlTestFactory.INSTANCE.createValidator();
-    final TypeCoercion widening = new TypeCoercionImpl(f.typeFactory, validator) {
-      @Override protected RelDataType approximateExactComparisonType(
-          RelDataType approximateType, RelDataType exactType, boolean anyNullable) {
-        return SqlTypeUtil.isDecimal(exactType)
-            ? f.typeFactory.createTypeWithNullability(f.doubleType, anyNullable)
-            : super.approximateExactComparisonType(approximateType, exactType, anyNullable);
+    final Fixture w =
+        new Fixture(f.typeFactory,
+            new WideningTypeCoercion(f.typeFactory, validator));
+    w.comparisonCommonType(decimal54, f.realType, f.doubleType);
+    w.comparisonCommonType(nullableDecimal54, f.realType, f.nullableDoubleType);
+    w.comparisonCommonType(decimal54, f.nullableRealType, f.nullableDoubleType);
+    // No DECIMAL operand: unchanged.
+    w.comparisonCommonType(f.intType, f.realType, f.realType);
+    w.comparisonCommonType(f.realType, f.doubleType, f.doubleType);
+    // Nested types.
+    w.comparisonCommonType(f.arrayType(decimal54), f.arrayType(f.realType),
+        f.arrayType(f.doubleType));
+    w.comparisonCommonType(f.mapType(f.intType, decimal54),
+        f.mapType(f.intType, f.realType), f.mapType(f.intType, f.doubleType));
+    w.comparisonCommonType(f.recordType("a", decimal54),
+        f.recordType("a", f.realType), f.recordType("a", f.doubleType));
+  }
+
+  /**
+   * Type coercion that widens a comparison between {@code DECIMAL} and an
+   * approximate numeric type to {@code DOUBLE}, rather than narrowing to the
+   * approximate type. Install via
+   * {@link org.apache.calcite.sql.validate.SqlValidator.Config#withTypeCoercionFactory}.
+   *
+   * <p>This addresses the common case but does not eliminate precision loss
+   * entirely: {@code DOUBLE} has 53 bits of mantissa (~15 decimal digits), so
+   * {@code DECIMAL} values with more than 15 significant digits can still
+   * collide after widening. It also does not address integer types:
+   * {@code INTEGER} has 31 significant bits and {@code BIGINT} has 63, both
+   * exceeding {@code REAL}'s 24 and {@code DOUBLE}'s 53. */
+  static class WideningTypeCoercion extends TypeCoercionImpl {
+    WideningTypeCoercion(RelDataTypeFactory typeFactory, SqlValidator validator) {
+      super(typeFactory, validator);
+    }
+
+    @Override public @Nullable RelDataType commonTypeForBinaryComparison(
+        @Nullable RelDataType type1, @Nullable RelDataType type2) {
+      final RelDataType type = super.commonTypeForBinaryComparison(type1, type2);
+      if (type != null
+          && SqlTypeUtil.isApproximateNumeric(type)
+          && (SqlTypeUtil.isDecimal(type1) || SqlTypeUtil.isDecimal(type2))) {
+        return factory.createTypeWithNullability(
+            factory.createSqlType(SqlTypeName.DOUBLE), type.isNullable());
       }
-    };
-    final Fixture widened = new Fixture(f.typeFactory, widening);
-    RelDataType decimal54 = f.decimalType(5, 4);
-
-    widened.comparisonCommonType(decimal54, f.realType, f.doubleType);
-    widened.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
-
-    assertThat(59999943f, is(59999945f));
-    assertThat(59999943d, is(not(59999945d)));
+      return type;
+    }
   }
 
   /**
