@@ -2104,4 +2104,17 @@ FROM (VALUES (0)) AS t(zero);
 
 !ok
 
+# Test case for [CALCITE-7840] REAL literals should be represented with reduced precision
+values (cast(0.1e0 as real) = cast(0.1 as real),
+  cast(cast(0.1e0 as real) as double) = cast(cast(0.1 as real) as double),
+  cast(0.1e0 as real) = 0.1e0);
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+| true   | true   | false  |
++--------+--------+--------+
+(1 row)
+
+!ok
+
 # End cast.iq
