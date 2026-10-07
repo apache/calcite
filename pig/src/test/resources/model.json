@@ -40,6 +40,33 @@
             "file": "data2.txt",
             "columns": ["sc0", "sc1"]
           }
+        },
+        {
+          "name": "tq",
+          "type": "custom",
+          "factory": "org.apache.calcite.adapter.pig.PigTableFactory",
+          "operand": {
+            "file": "data'quote.txt",
+            "columns": ["tqc0", "tqc1"]
+          }
+        },
+        {
+          "name": "bad-name",
+          "type": "custom",
+          "factory": "org.apache.calcite.adapter.pig.PigTableFactory",
+          "operand": {
+            "file": "data.txt",
+            "columns": ["bc0"]
+          }
+        },
+        {
+          "name": "badcolumn",
+          "type": "custom",
+          "factory": "org.apache.calcite.adapter.pig.PigTableFactory",
+          "operand": {
+            "file": "data.txt",
+            "columns": ["bad$column"]
+          }
         }
       ]
     }

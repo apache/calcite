@@ -139,7 +139,7 @@ public class PigFilter extends Filter implements PigRel {
     // Escape before wrapping
     return '\''
         + (raw != null
-            ? raw.replace("\\", "\\\\").replace("'", "\\'")
+            ? PigUtils.escapeStringLiteral(raw)
             : null)
         + '\'';
   }

@@ -56,7 +56,11 @@ public interface PigRel extends RelNode {
 
     public String getTableName(RelNode input) {
       final List<String> qualifiedName = input.getTable().getQualifiedName();
-      return qualifiedName.get(qualifiedName.size() - 1);
+      final String tableName = qualifiedName.get(qualifiedName.size() - 1);
+      // The table name is used as a relation alias, which cannot be quoted
+      // or escaped in Pig Latin
+      PigUtils.checkValidIdentifier(tableName);
+      return tableName;
     }
 
     public String getPigRelationAlias(RelNode input) {
@@ -64,7 +68,11 @@ public interface PigRel extends RelNode {
     }
 
     public String getFieldName(RelNode input, int index) {
-      return input.getRowType().getFieldList().get(index).getName();
+      final String fieldName =
+          input.getRowType().getFieldList().get(index).getName();
+      // Field names cannot be quoted or escaped in Pig Latin
+      PigUtils.checkValidIdentifier(fieldName);
+      return fieldName;
     }
 
     public void addStatement(String statement) {
