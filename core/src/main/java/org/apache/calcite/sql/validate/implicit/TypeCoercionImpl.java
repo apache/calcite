@@ -62,8 +62,9 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>In this implementation, {@link #commonTypeForBinaryComparison} is called
  * for {@code =}, {@code <>}, {@code <}, {@code <=}, {@code >}, {@code >=},
- * and {@code BETWEEN} (via {@link #binaryComparisonCoercion}), for {@code IN}
- * (via {@link #inOperationCoercion}), and for quantified comparisons such as
+ * {@code IS [NOT] DISTINCT FROM}, and {@code BETWEEN} (via
+ * {@link #binaryComparisonCoercion}), for {@code IN} (via
+ * {@link #inOperationCoercion}), and for quantified comparisons such as
  * {@code = ANY} and {@code < ALL} (via {@link #quantifyOperationCoercion}).
  */
 public class TypeCoercionImpl extends AbstractTypeCoercion {

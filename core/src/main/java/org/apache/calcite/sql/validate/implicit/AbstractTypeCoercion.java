@@ -499,14 +499,17 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * <p>For date and timestamp operands, uses timestamp as common type,
    * i.e. {@code Timestamp(2017-01-01 00:00 ...) > Date(2018)} evaluates to false.
    *
-   * <p>Comparing {@code REAL} with an exact numeric ({@code DECIMAL} or
-   * integer type) narrows to {@code REAL}. For example, {@code DECIMAL(18, 3)}
-   * compared with {@code REAL} is coerced to {@code REAL}, which has only 24
-   * bits of mantissa (about 7 decimal digits); distinct values such as
-   * 59999943.000 and 59999945.000 may compare as equal after narrowing.
+   * <p>Comparing an approximate numeric ({@code REAL}, {@code DOUBLE}) with
+   * an exact numeric ({@code DECIMAL} or integer type) narrows to the
+   * approximate type. For example, {@code DECIMAL(18, 3)} compared with
+   * {@code REAL} is coerced to {@code REAL}, which has only 24 bits of
+   * mantissa (about 7 decimal digits); distinct values such as 59999943.000
+   * and 59999945.000 may compare as equal after narrowing. {@code DOUBLE} has
+   * 53 bits of mantissa (about 15 decimal digits), so high-precision
+   * {@code DECIMAL} values can still collide after narrowing to {@code DOUBLE}.
    * Similarly, {@code INTEGER} (31 bits) and {@code BIGINT} (63 bits)
    * compared with {@code REAL} lose precision, and {@code BIGINT} compared
-   * with {@code DOUBLE} (53 bits) does too.
+   * with {@code DOUBLE} does too.
    *
    * <p>For {@code ARRAY} and {@code MULTISET} types this method recurses into
    * the element type, for {@code MAP} into both key and value types, and for

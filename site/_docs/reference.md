@@ -1828,7 +1828,7 @@ i: implicit cast / e: explicit cast / x: not allowed
   make `1 = true` and `0 = false` always evaluate to `TRUE`;
   if there is numeric type operand, find common type for both operands;
   if operands are `UUID` and `CHARACTER` or `BINARY`, promote to `UUID`.
-  By default, comparing `DECIMAL` with `REAL` narrows to the
+  By default, comparing `DECIMAL` with `REAL` or `DOUBLE` narrows to the
   approximate type (`REAL` has 24-bit mantissa, about 7 decimal digits),
   so distinct values can compare as equal. The same applies to `BETWEEN`,
   `IN`, quantified comparisons, `NATURAL JOIN`, and `JOIN USING`, and to
@@ -1839,7 +1839,9 @@ i: implicit cast / e: explicit cast / x: not allowed
   subclass and install it via
   `SqlValidator.Config#withTypeCoercionFactory`. This opt-in is available
   to applications using `Frameworks` or `SqlValidatorUtil`; there is no
-  JDBC connection property for it.
+  JDBC connection property for it. `DOUBLE` has a 53-bit mantissa, about
+  15 decimal digits, so `DECIMAL` values with more significant digits can
+  still compare as equal after widening.
 * `IN` sub-query: compare type of LHS and RHS, and find the common type;
   if it is struct type, find wider type for every field;
 * `IN` expression list: compare every expression to find the common type;
