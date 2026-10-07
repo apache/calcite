@@ -8595,6 +8595,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
 
         @Override public @Nullable SqlNode visit(SqlCall call) {
+          if (call.isA(SqlKind.QUERY)
+              || call.getKind() == SqlKind.SCALAR_QUERY) {
+            return call.clone(pos);
+          }
           CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
           call.getOperator().acceptCall(this, call, false, argHandler);
           SqlCall call2 = (SqlCall) argHandler.result();
