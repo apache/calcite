@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.pig.PigUtils;
 import org.apache.calcite.util.Sources;
 
 import java.net.URL;
@@ -31,5 +32,18 @@ public abstract class AbstractPigTest {
     final URL url = getClass().getResource("/" + fileName);
     requireNonNull(url, "url");
     return Sources.of(url).file().getAbsolutePath();
+  }
+
+  /**
+   * Returns the full path of the given test data file, escaped for inclusion
+   * in a Pig Latin string literal, as in the {@code LOAD} statement of an
+   * expected script.
+   *
+   * <p>Paths are platform-dependent (a Windows path contains backslashes), so
+   * expected scripts must build them with the same escaping as
+   * {@link PigUtils} uses when generating scripts.
+   */
+  protected String getEscapedFullPathForTestDataFile(String fileName) {
+    return PigUtils.escapeStringLiteral(getFullPathForTestDataFile(fileName));
   }
 }
