@@ -95,39 +95,9 @@ public interface TypeCoercion {
   /**
    * Determines common type for a comparison operator.
    *
-   * <p>This method governs equality and ordering comparisons
-   * ({@code =}, {@code <>}, {@code <}, {@code <=}, {@code >}, {@code >=}),
-   * {@code BETWEEN} (applied to successive operand pairs),
-   * {@code IN} and quantified comparisons ({@code = ANY}, {@code < ALL},
-   * etc.), {@code NATURAL JOIN} and {@code JOIN USING}, and the element
-   * types of {@code ARRAY}, {@code MAP}, and {@code ROW}. It does not
-   * govern {@code CASE}, {@code COALESCE}, set operations ({@code UNION},
-   * {@code INTERSECT}, {@code EXCEPT}), or multi-row {@code VALUES}; those
-   * use
-   * {@link org.apache.calcite.rel.type.RelDataTypeFactory#leastRestrictive},
-   * which already returns {@code DOUBLE} when one operand is {@code DECIMAL}
-   * and the other is {@code REAL} or {@code FLOAT}.
-   *
-   * <p>By default, comparing an approximate numeric ({@code REAL},
-   * {@code FLOAT}, {@code DOUBLE}) with an exact numeric ({@code DECIMAL})
-   * narrows to the approximate type. For example, {@code DECIMAL(18, 3)}
-   * compared with {@code REAL} is coerced to {@code REAL}, which has only 24
-   * bits of mantissa (about 7 decimal digits); distinct values such as
-   * 59999943.000 and 59999945.000 may compare as equal after narrowing.
-   * Note that integer types have the same defect: {@code INTEGER} has 31
-   * significant bits and {@code BIGINT} has 63, both exceeding {@code REAL}'s
-   * 24 and {@code DOUBLE}'s 53.
-   *
-   * <p>To widen to {@code DOUBLE} when one operand is {@code DECIMAL},
-   * subclass {@link TypeCoercionImpl}, override this method, and install
-   * the subclass via
-   * {@link org.apache.calcite.sql.validate.SqlValidator.Config#withTypeCoercionFactory}.
-   * This opt-in is available to applications that build a validator through
-   * {@link org.apache.calcite.tools.Frameworks} or
-   * {@link org.apache.calcite.sql.validate.SqlValidatorUtil}; there is no
-   * JDBC connection property for it. {@code DOUBLE} has 53 bits of mantissa
-   * (about 15 decimal digits), so {@code DECIMAL} values with more than
-   * 15 significant digits can still collide after widening.
+   * <p>{@code NATURAL JOIN} and {@code JOIN USING} call this method directly
+   * (via {@link org.apache.calcite.sql2rel.SqlToRelConverter}); every
+   * implementation must handle those correctly.
    */
   @Nullable RelDataType commonTypeForBinaryComparison(
       @Nullable RelDataType type1, @Nullable RelDataType type2);

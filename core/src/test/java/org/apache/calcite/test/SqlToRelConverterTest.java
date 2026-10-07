@@ -5903,7 +5903,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
-   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
    *
    * <p>A custom TypeCoercion that overrides {@code commonTypeForBinaryComparison}
    * can widen a JOIN condition's DECIMAL/REAL comparison to DOUBLE, instead

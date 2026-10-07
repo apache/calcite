@@ -1828,7 +1828,7 @@ i: implicit cast / e: explicit cast / x: not allowed
   make `1 = true` and `0 = false` always evaluate to `TRUE`;
   if there is numeric type operand, find common type for both operands;
   if operands are `UUID` and `CHARACTER` or `BINARY`, promote to `UUID`.
-  By default, comparing `DECIMAL` with `REAL` or `FLOAT` narrows to the
+  By default, comparing `DECIMAL` with `REAL` narrows to the
   approximate type (`REAL` has 24-bit mantissa, about 7 decimal digits),
   so distinct values can compare as equal. The same applies to `BETWEEN`,
   `IN`, quantified comparisons, `NATURAL JOIN`, and `JOIN USING`, and to

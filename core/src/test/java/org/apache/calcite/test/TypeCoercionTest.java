@@ -489,7 +489,7 @@ class TypeCoercionTest {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
-   * Comparison of DECIMAL and approximate numeric loses precision</a>.
+   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
    *
    * <p>By default, comparing DECIMAL with REAL narrows to REAL. A custom
    * {@link TypeCoercion} that overrides
@@ -500,9 +500,6 @@ class TypeCoercionTest {
     final RelDataType decimal54 = f.decimalType(5, 4);
     final RelDataType nullableDecimal54 =
         f.typeFactory.createTypeWithNullability(decimal54, true);
-
-    // Default behavior: narrows to REAL.
-    f.comparisonCommonType(decimal54, f.realType, f.realType);
 
     final SqlValidator validator = SqlTestFactory.INSTANCE.createValidator();
     final Fixture w =
@@ -530,11 +527,12 @@ class TypeCoercionTest {
    * {@link org.apache.calcite.sql.validate.SqlValidator.Config#withTypeCoercionFactory}.
    *
    * <p>This addresses the common case but does not eliminate precision loss
-   * entirely: {@code DOUBLE} has 53 bits of mantissa (~15 decimal digits), so
+   * entirely: {@code DOUBLE} has 53 bits of mantissa (about 15 decimal digits), so
    * {@code DECIMAL} values with more than 15 significant digits can still
    * collide after widening. It also does not address integer types:
-   * {@code INTEGER} has 31 significant bits and {@code BIGINT} has 63, both
-   * exceeding {@code REAL}'s 24 and {@code DOUBLE}'s 53. */
+   * {@code INTEGER} (31 bits) and {@code BIGINT} (63 bits) compared with
+   * {@code REAL} (24 bits) lose precision the same way, and {@code BIGINT}
+   * compared with {@code DOUBLE} (53 bits) does too. */
   static class WideningTypeCoercion extends TypeCoercionImpl {
     WideningTypeCoercion(RelDataTypeFactory typeFactory, SqlValidator validator) {
       super(typeFactory, validator);
