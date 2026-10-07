@@ -160,6 +160,61 @@ from emp e join dept d on e.deptno = d.deptno limit 1;
 
 !ok
 
+# [CALCITE-5696] Trailing comma in SELECT list, as in GoogleSQL (BigQuery);
+# the comma is accepted and the query executes normally
+select empno, ename, from emp where deptno = 10 order by empno;
++-------+--------+
+| EMPNO | ENAME  |
++-------+--------+
+|  7782 | CLARK  |
+|  7839 | KING   |
+|  7934 | MILLER |
++-------+--------+
+(3 rows)
+
+!ok
+
+# Trailing comma at the end of a FROM-less query
+select 1 as one, 2 as two,;
++-----+-----+
+| ONE | TWO |
++-----+-----+
+|   1 |   2 |
++-----+-----+
+(1 row)
+
+!ok
+
+# Trailing comma inside a subquery
+select empno from (select empno, from emp where deptno = 10) order by empno;
++-------+
+| EMPNO |
++-------+
+|  7782 |
+|  7839 |
+|  7934 |
++-------+
+(3 rows)
+
+!ok
+
+# Trailing comma before a set operation
+select ename, from emp where deptno = 10
+union
+select dname, from dept where deptno = 20
+order by ename;
++----------+
+| ENAME    |
++----------+
+| CLARK    |
+| KING     |
+| MILLER   |
+| RESEARCH |
++----------+
+(4 rows)
+
+!ok
+
 # Test basic BY clause: SELECT a BY b is sugar for SELECT b, a GROUP BY b ORDER BY b
 select ename, empno by deptno from emp;
 +--------+--------+-------+

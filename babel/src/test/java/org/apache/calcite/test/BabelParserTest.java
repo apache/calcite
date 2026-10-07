@@ -185,6 +185,41 @@ class BabelParserTest extends SqlParserTest {
     sql(sql2).ok(expected2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5696">[CALCITE-5696]
+   * Support trailing comma in SELECT list for Babel parser (like BigQuery)</a>.
+   *
+   * <p>GoogleSQL (BigQuery) allows a trailing comma at the end of the SELECT
+   * list, e.g. {@code SELECT a, b, FROM t}; the trailing comma is accepted and
+   * dropped. */
+  @Test void testTrailingCommaInSelectList() {
+    sql("select some_col, from my_table")
+        .ok("SELECT `SOME_COL`\nFROM `MY_TABLE`");
+    sql("select a, b, from t")
+        .ok("SELECT `A`, `B`\nFROM `T`");
+    sql("select 1 as x, from t")
+        .ok("SELECT 1 AS `X`\nFROM `T`");
+
+    // Trailing comma at the end of a FROM-less query
+    sql("select 1,").ok("SELECT 1");
+
+    // Trailing comma inside a subquery
+    sql("select * from (select a, from t)")
+        .ok("SELECT *\nFROM (SELECT `A`\nFROM `T`)");
+
+    // Trailing comma before a set operation
+    sql("select a, from t union select b, from u")
+        .ok("SELECT `A`\nFROM `T`\nUNION\nSELECT `B`\nFROM `U`");
+
+    // Only a single trailing comma is allowed
+    sql("select a, b, ^,^ from t")
+        .fails("(?s)Encountered \",\" at .*");
+
+    // A comma without a preceding item is not allowed
+    sql("select ^,^ from t")
+        .fails("(?s)Encountered \", from\" at .*");
+  }
+
   /** Tests that there are no reserved keywords. */
   @Disabled
   @Test void testKeywords() {

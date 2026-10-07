@@ -619,6 +619,7 @@ data: {
     includeIntervalWithoutQualifier: true
     includeSelectBy: true
     includeDistinctOn: true
+    includeSelectListTrailingComma: true
   }
 }
 
