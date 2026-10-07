@@ -1094,6 +1094,60 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6068">[CALCITE-6068]
+   * Whitespaces are removed from filter values</a>. */
+  @Test void testSelectWhereInTrailingWhitespace() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("ENAME"), b.literal("value 1 "), b.literal("value 2 ")))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" IN ('value 1 ', 'value 2 ')";
+    relFn(relFn).ok(expected);
+  }
+
+  /** Values of different lengths in the IN list, each with trailing
+   * whitespace, must be preserved as-is. */
+  @Test void testSelectWhereInTrailingWhitespace2() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("ENAME"), b.literal("value 1 "), b.literal("value 2  ")))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" IN ('value 1 ', 'value 2  ')";
+    relFn(relFn).ok(expected);
+  }
+
+  /** End-to-end: IN values with trailing whitespace survive the
+   * SQL → RelNode → SQL round trip. */
+  @Test void testSelectWhereInTrailingWhitespace3() {
+    sql("select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "where \"brand_name\" in ('value 1 ', 'value 2 ')")
+        .ok("SELECT \"product_id\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "WHERE \"brand_name\" = 'value 1 ' OR \"brand_name\" = 'value 2 '");
+  }
+
+  /** The OR form of the same filter (which RelBuilder simplifies to SEARCH)
+   * must also preserve trailing whitespace; this is the workaround mentioned
+   * in CALCITE-6068 that used to be trimmed as well. */
+  @Test void testSelectWhereInTrailingWhitespace4() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.equals(b.field("ENAME"), b.literal("value 1 ")),
+                b.equals(b.field("ENAME"), b.literal("value 2 "))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" IN ('value 1 ', 'value 2 ')";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testUsesSubqueryWhenSortingByIdThenOrdinal() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
