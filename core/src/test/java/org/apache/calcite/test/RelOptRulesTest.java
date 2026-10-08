@@ -7941,6 +7941,23 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7851">[CALCITE-7851]
+   * AggregateJoinTransposeRule references wrong column when an aggregate argument is a group key
+   * of a unique join input</a>.
+   */
+  @Test void testPushAggregateThroughJoinAggArgIsGroupKeyOfUniqueSide() {
+    final String sql = "select d.id1, d.id2, d.age, sum(d.age), min(d.age)\n"
+        + "from sales.double_pk as d\n"
+        + "join sales.emp as e on d.id1 = e.deptno\n"
+        + "group by d.id1, d.id2, d.age";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2278">[CALCITE-2278]
    * AggregateJoinTransposeRule fails to split aggregate call if input contains
