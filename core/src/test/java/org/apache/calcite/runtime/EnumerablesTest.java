@@ -319,6 +319,20 @@ class EnumerablesTest {
         equalTo("[]"),
         equalTo("[null]"),
         JoinType.ANTI);
+    // Left reaches NULL keys after right runs out
+    testIntersect(
+        newArrayList(1, 2, null, null),
+        newArrayList(1),
+        equalTo("[2, null, null]"),
+        equalTo("[2, null, null, null]"),
+        JoinType.ANTI);
+    // Left reaches NULL keys in advanceLeft, immediately after a match
+    testIntersect(
+        newArrayList(1, null, null),
+        newArrayList(1, 2),
+        equalTo("[null, null]"),
+        equalTo("[null, null, null]"),
+        JoinType.ANTI);
 
     // LEFT join tests:
     // No overlap
@@ -349,21 +363,6 @@ class EnumerablesTest {
         equalTo("[]"),
         equalTo("[null-null]"),
         JoinType.LEFT);
-  }
-
-  @Test void testMergeAntiJoinWithRepeatedNullKeys() {
-    testIntersect(
-        newArrayList(1, 2, null, null),
-        newArrayList(1),
-        equalTo("[2, null, null]"),
-        equalTo("[2, null, null, null]"),
-        JoinType.ANTI);
-    testIntersect(
-        newArrayList(1, null, null),
-        newArrayList(1, 2),
-        equalTo("[null, null]"),
-        equalTo("[null, null, null]"),
-        JoinType.ANTI);
   }
 
   private static <T extends Comparable<T>> void testIntersect(

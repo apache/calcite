@@ -5123,7 +5123,7 @@ public abstract class EnumerableDefaults {
         // iterate until finding matching keys (or ANTI join results)
         for (;;) {
           // mergeJoin assumes inputs sorted in ascending order with nulls last,
-          // if we reach a null key, we are done.
+          // if we reach a null key, there are no more matches.
           if (leftKey == null || rightKey == null) {
             if (isLeftOrAntiJoin()) {
               // all remaining items in left are results for left/anti join
@@ -5226,7 +5226,8 @@ public abstract class EnumerableDefaults {
      * is over or a different key is found.
      *
      * @return {@code true} if there are still elements to be processed on the left enumerator,
-     * {@code false} otherwise (left enumerator is over or null key is found).
+     * {@code false} otherwise (left enumerator is over, or null key is found and the join
+     * is not LEFT or ANTI).
      */
     private boolean advanceLeft(TSource left, TKey leftKey) {
       lefts.clear();
