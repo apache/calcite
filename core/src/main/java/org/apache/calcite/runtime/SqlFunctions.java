@@ -7093,12 +7093,12 @@ public class SqlFunctions {
     final List bigger = list2;
     boolean hasNull = false;
     if (!smaller.isEmpty() && !bigger.isEmpty()) {
-      final Set smallestSet = new HashSet(smaller);
+      final Set<@Nullable Object> smallestSet = toDeepEqualitySet(smaller);
       hasNull = smallestSet.remove(null);
       for (Object element : bigger) {
         if (element == null) {
           hasNull = true;
-        } else if (smallestSet.contains(element)) {
+        } else if (smallestSet.contains(wrapForDeepEquality(element))) {
           return true;
         }
       }
@@ -7153,13 +7153,9 @@ public class SqlFunctions {
     return result;
   }
 
-  /** Support the ARRAY_DISTINCT function.
-   *
-   * <p>Note: If the list does not contain null,
-   * {@link Util#distinctList(List)} is probably faster. */
+  /** Support the ARRAY_DISTINCT function. */
   public static List distinct(List list) {
-    Set result = new LinkedHashSet<>(list);
-    return new ArrayList<>(result);
+    return unwrapDeepEqualitySet(toDeepEqualitySet(list));
   }
 
   /** Support the ARRAY_MAX function. */
@@ -7194,11 +7190,24 @@ public class SqlFunctions {
     return result;
   }
 
+  /** Support the ARRAY_CONTAINS function. */
+  public static boolean arrayContains(List list, Object element) {
+    for (Object value : list) {
+      if (Functions.deepEquals(value, element)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Support the ARRAY_POSITION function. */
   public static Long arrayPosition(List list, Object element) {
-    final int index = list.indexOf(element);
-    if (index != -1) {
-      return index + 1L;
+    long position = 1;
+    for (Object value : list) {
+      if (Functions.deepEquals(value, element)) {
+        return position;
+      }
+      position++;
     }
     return 0L;
   }
@@ -7207,7 +7216,7 @@ public class SqlFunctions {
   public static List arrayRemove(List list, Object element) {
     final List result = new ArrayList();
     for (Object obj : list) {
-      if (obj == null || !obj.equals(element)) {
+      if (obj == null || !Functions.deepEquals(obj, element)) {
         result.add(obj);
       }
     }
@@ -7228,9 +7237,9 @@ public class SqlFunctions {
 
   /** Support the ARRAY_EXCEPT function. */
   public static List arrayExcept(List list1, List list2) {
-    final Set result = new LinkedHashSet<>(list1);
-    result.removeAll(list2);
-    return new ArrayList<>(result);
+    final Set<@Nullable Object> result = toDeepEqualitySet(list1);
+    result.removeAll(toDeepEqualitySet(list2));
+    return unwrapDeepEqualitySet(result);
   }
 
   /** Support the ARRAY_INSERT function. */
@@ -7330,17 +7339,82 @@ public class SqlFunctions {
 
   /** Support the ARRAY_INTERSECT function. */
   public static List arrayIntersect(List list1, List list2) {
-    final Set result = new LinkedHashSet<>(list1);
-    result.retainAll(list2);
-    return new ArrayList<>(result);
+    final Set<@Nullable Object> result = toDeepEqualitySet(list1);
+    result.retainAll(toDeepEqualitySet(list2));
+    return unwrapDeepEqualitySet(result);
   }
 
   /** Support the ARRAY_UNION function. */
   public static List arrayUnion(List list1, List list2) {
-    final Set result = new LinkedHashSet<>();
-    result.addAll(list1);
-    result.addAll(list2);
-    return new ArrayList<>(result);
+    final Set<@Nullable Object> result = toDeepEqualitySet(list1);
+    for (Object element : list2) {
+      result.add(wrapForDeepEquality(element));
+    }
+    return unwrapDeepEqualitySet(result);
+  }
+
+  /** Creates a set using deep equality, preserving element encounter order.
+   * This preserves the ordering required by ARRAY_DISTINCT. */
+  private static Set<@Nullable Object> toDeepEqualitySet(List<?> list) {
+    final Set<@Nullable Object> set = new LinkedHashSet<>();
+    for (Object value : list) {
+      set.add(wrapForDeepEquality(value));
+    }
+    return set;
+  }
+
+  /** Wraps composite values, which may contain ROW values, but leaves scalar
+   * values and null unchanged. */
+  private static @Nullable Object wrapForDeepEquality(@Nullable Object value) {
+    if (value == null) {
+      return null;
+    } else if (value instanceof List || value instanceof Map || value.getClass().isArray()) {
+      return new DeepEqualityWrapper(value);
+    }
+    return value;
+  }
+
+  /** Creates a list of the set's elements in iteration order, replacing
+   * deep-equality wrappers with their original values. */
+  private static List<@Nullable Object> unwrapDeepEqualitySet(Set<@Nullable Object> set) {
+    final List<@Nullable Object> values = new ArrayList<>(set.size());
+    for (Object element : set) {
+      values.add(element instanceof DeepEqualityWrapper
+          ? ((DeepEqualityWrapper) element).value : element);
+    }
+    return values;
+  }
+
+  /** A wrapper providing deep equality and hashing for composite values.
+   * Assumes values are immutable. */
+  private static final class DeepEqualityWrapper {
+    private final Object value;
+    // Benign races may compute the same hash more than once.
+    private int hashCode;
+
+    private DeepEqualityWrapper(Object value) {
+      this.value = value;
+    }
+
+    @Override public boolean equals(@Nullable Object obj) {
+      return this == obj
+          || obj instanceof DeepEqualityWrapper
+          && Functions.deepEquals(value, ((DeepEqualityWrapper) obj).value);
+    }
+
+    @Override public int hashCode() {
+      int hash = hashCode;
+      if (hash == 0) {
+        hash = Functions.deepHashCode(value);
+        // Zero means not yet computed; cache a computed zero as 1 to avoid
+        // recomputing it on every call.
+        if (hash == 0) {
+          hash = 1;
+        }
+        hashCode = hash;
+      }
+      return hash;
+    }
   }
 
   /** Transforms a list, applying a function to each element. */

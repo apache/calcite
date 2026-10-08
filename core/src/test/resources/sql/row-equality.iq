@@ -612,4 +612,403 @@ ORDER BY c;
 
 !ok
 
+# Test cases for https://issues.apache.org/jira/browse/CALCITE-7836
+# [CALCITE-7836] Array functions return incorrect results for ROW elements
+# All 32 queries below were checked against Apache Spark 3.5.5 using a custom
+# Python script in Spark Playground. All 64 results matched, including array
+# contents and element order. The script used array(...) for ARRAY[...] and
+# named_struct(...) for ROW(...), with matching field names.
+!use sparkfunc
+
+# Flat ROW values.
+SELECT ARRAY_CONTAINS(ARRAY[ROW(x, y)], ROW(z, w)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_POSITION(ARRAY[ROW(x, y)], ROW(z, w)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++---+
+| R |
++---+
+| 1 |
+| 0 |
++---+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_REMOVE(ARRAY[ROW(x, y), ROW(z, w)], ROW(z, w)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------------+
+| R          |
++------------+
+| []         |
+| [{2, Bar}] |
++------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_DISTINCT(ARRAY[ROW(x, y), ROW(z, w)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++----------------------+
+| R                    |
++----------------------+
+| [{1, Foo}]           |
+| [{2, Bar}, {2, Car}] |
++----------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_UNION(ARRAY[ROW(x, y)], ARRAY[ROW(z, w)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++----------------------+
+| R                    |
++----------------------+
+| [{1, Foo}]           |
+| [{2, Bar}, {2, Car}] |
++----------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_INTERSECT(ARRAY[ROW(x, y)], ARRAY[ROW(z, w)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------------+
+| R          |
++------------+
+| [{1, Foo}] |
+| []         |
++------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_EXCEPT(ARRAY[ROW(x, y)], ARRAY[ROW(z, w)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------------+
+| R          |
++------------+
+| []         |
+| [{2, Bar}] |
++------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAYS_OVERLAP(ARRAY[ROW(x, y)], ARRAY[ROW(z, w)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+# Nested ROW values.
+
+SELECT ARRAY_CONTAINS(ARRAY[ROW(ROW(x, y), 10)], ROW(ROW(z, w), 10)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_POSITION(ARRAY[ROW(ROW(x, y), 10)], ROW(ROW(z, w), 10)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++---+
+| R |
++---+
+| 1 |
+| 0 |
++---+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_REMOVE(ARRAY[ROW(ROW(x, y), 10), ROW(ROW(z, w), 10)], ROW(ROW(z, w), 10)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------------------+
+| R                |
++------------------+
+| []               |
+| [{{2, Bar}, 10}] |
++------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_DISTINCT(ARRAY[ROW(ROW(x, y), 10), ROW(ROW(z, w), 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++----------------------------------+
+| R                                |
++----------------------------------+
+| [{{1, Foo}, 10}]                 |
+| [{{2, Bar}, 10}, {{2, Car}, 10}] |
++----------------------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_UNION(ARRAY[ROW(ROW(x, y), 10)], ARRAY[ROW(ROW(z, w), 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++----------------------------------+
+| R                                |
++----------------------------------+
+| [{{1, Foo}, 10}]                 |
+| [{{2, Bar}, 10}, {{2, Car}, 10}] |
++----------------------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_INTERSECT(ARRAY[ROW(ROW(x, y), 10)], ARRAY[ROW(ROW(z, w), 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------------------+
+| R                |
++------------------+
+| [{{1, Foo}, 10}] |
+| []               |
++------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_EXCEPT(ARRAY[ROW(ROW(x, y), 10)], ARRAY[ROW(ROW(z, w), 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------------------+
+| R                |
++------------------+
+| []               |
+| [{{2, Bar}, 10}] |
++------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAYS_OVERLAP(ARRAY[ROW(ROW(x, y), 10)], ARRAY[ROW(ROW(z, w), 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+# ROW values containing arrays of ROW values.
+
+SELECT ARRAY_CONTAINS(ARRAY[ROW(ARRAY[ROW(x, y)], 10)], ROW(ARRAY[ROW(z, w)], 10)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_POSITION(ARRAY[ROW(ARRAY[ROW(x, y)], 10)], ROW(ARRAY[ROW(z, w)], 10)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++---+
+| R |
++---+
+| 1 |
+| 0 |
++---+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_REMOVE(ARRAY[ROW(ARRAY[ROW(x, y)], 10), ROW(ARRAY[ROW(z, w)], 10)], ROW(ARRAY[ROW(z, w)], 10)) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++--------------------+
+| R                  |
++--------------------+
+| []                 |
+| [{[{2, Bar}], 10}] |
++--------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_DISTINCT(ARRAY[ROW(ARRAY[ROW(x, y)], 10), ROW(ARRAY[ROW(z, w)], 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++--------------------------------------+
+| R                                    |
++--------------------------------------+
+| [{[{1, Foo}], 10}]                   |
+| [{[{2, Bar}], 10}, {[{2, Car}], 10}] |
++--------------------------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_UNION(ARRAY[ROW(ARRAY[ROW(x, y)], 10)], ARRAY[ROW(ARRAY[ROW(z, w)], 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++--------------------------------------+
+| R                                    |
++--------------------------------------+
+| [{[{1, Foo}], 10}]                   |
+| [{[{2, Bar}], 10}, {[{2, Car}], 10}] |
++--------------------------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_INTERSECT(ARRAY[ROW(ARRAY[ROW(x, y)], 10)], ARRAY[ROW(ARRAY[ROW(z, w)], 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++--------------------+
+| R                  |
++--------------------+
+| [{[{1, Foo}], 10}] |
+| []                 |
++--------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_EXCEPT(ARRAY[ROW(ARRAY[ROW(x, y)], 10)], ARRAY[ROW(ARRAY[ROW(z, w)], 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++--------------------+
+| R                  |
++--------------------+
+| []                 |
+| [{[{2, Bar}], 10}] |
++--------------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAYS_OVERLAP(ARRAY[ROW(ARRAY[ROW(x, y)], 10)], ARRAY[ROW(ARRAY[ROW(z, w)], 10)]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+# ROW values with NULL fields.
+
+SELECT ARRAY_CONTAINS(ARRAY[ROW(x, CAST(NULL AS INTEGER))], ROW(z, CAST(NULL AS INTEGER))) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------+
+| R    |
++------+
+| true |
+| true |
++------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_POSITION(ARRAY[ROW(x, CAST(NULL AS INTEGER))], ROW(z, CAST(NULL AS INTEGER))) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++---+
+| R |
++---+
+| 1 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_REMOVE(ARRAY[ROW(x, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER))], ROW(z, CAST(NULL AS INTEGER))) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++----+
+| R  |
++----+
+| [] |
+| [] |
++----+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_DISTINCT(ARRAY[ROW(x, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER))]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------------+
+| R           |
++-------------+
+| [{1, null}] |
+| [{2, null}] |
++-------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_UNION(ARRAY[ROW(x, CAST(NULL AS INTEGER))], ARRAY[ROW(z, CAST(NULL AS INTEGER))]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------------+
+| R           |
++-------------+
+| [{1, null}] |
+| [{2, null}] |
++-------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_INTERSECT(ARRAY[ROW(x, CAST(NULL AS INTEGER))], ARRAY[ROW(z, CAST(NULL AS INTEGER))]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++-------------+
+| R           |
++-------------+
+| [{1, null}] |
+| [{2, null}] |
++-------------+
+(2 rows)
+
+!ok
+
+SELECT ARRAY_EXCEPT(ARRAY[ROW(x, CAST(NULL AS INTEGER))], ARRAY[ROW(z, CAST(NULL AS INTEGER))]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++----+
+| R  |
++----+
+| [] |
+| [] |
++----+
+(2 rows)
+
+!ok
+
+SELECT ARRAYS_OVERLAP(ARRAY[ROW(x, CAST(NULL AS INTEGER))], ARRAY[ROW(z, CAST(NULL AS INTEGER))]) AS r
+FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
++------+
+| R    |
++------+
+| true |
+| true |
++------+
+(2 rows)
+
+!ok
+
 # End row-equality.iq

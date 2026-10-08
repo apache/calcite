@@ -166,6 +166,64 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.sortArray(new ArrayList<>(rows), false), is(list(max, min, null)));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7836">[CALCITE-7836]
+   * Array functions return incorrect results for ROW elements</a>. */
+  @Test void testArrayFunctionsWithRows() {
+    // A custom Python script ran the SQL regression cases in sql/row-equality.iq
+    // against Apache Spark 3.5.5 (adapting ARRAY and ROW syntax) and confirmed
+    // all results. The cases below add Java representation, MAP and hash
+    // collision coverage that was not checked against Spark.
+    final Object[][] rows = {
+        {1, "Foo"},
+        {null, "Foo"},
+        {new Object[] {1, "Foo"}, 10},
+        {list(new Object[] {1, "Foo"}, new Object[] {2, null}), 10},
+        {Collections.singletonMap("key", new Object[] {1, null}), 10},
+        {-31}, // Deep hash code is zero.
+        {-30} // Deep hash code collides with the replacement for zero.
+    };
+    for (Object[] row : rows) {
+      // Copy the outer row; the nested containers are checked separately below.
+      checkArrayFunctionsWithRows(row, row.clone());
+    }
+    checkArrayFunctionsWithRows(new Object[] {new Object[] {1, null}, 10},
+        new Object[] {list(1, null), 10});
+    checkArrayFunctionsWithRows(
+        new Object[] {list(new Object[] {1, "Foo"}, new Object[] {2, null}), 10},
+        new Object[] {list(new Object[] {1, "Foo"}, new Object[] {2, null}), 10});
+    checkArrayFunctionsWithRows(
+        new Object[] {Collections.singletonMap("key", new Object[] {1, null})},
+        new Object[] {Collections.singletonMap("key", new Object[] {1, null})});
+    assertThat(SqlFunctions.distinct(list(new Object[] {-31}, new Object[] {-30})).size(),
+        is(2));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7836">[CALCITE-7836]
+   * Array functions return incorrect results for ROW elements</a>. */
+  @Test void testArrayFunctionsWithMixedValues() {
+    // These Java representation and mixed-type checks are Calcite-specific.
+    // SQL regression cases for all eight functions were checked separately
+    // against Apache Spark 3.5.5 using a custom Python script; see sql/row-equality.iq.
+    checkArrayFunctionsWithRows(1, 1);
+    checkArrayFunctionsWithRows("Foo", "Foo");
+    checkArrayFunctionsWithRows(new byte[] {1, 2}, new byte[] {1, 2});
+    checkArrayFunctionsWithRows(list(1, null), new Object[] {1, null});
+    checkArrayFunctionsWithRows(
+        Collections.singletonMap("key", new Object[] {1, null}),
+        Collections.singletonMap("key", new Object[] {1, null}));
+
+    final Object row = new Object[] {1, "Foo"};
+    final List<Object> input = new ArrayList<>(list(2, row, null, "Foo", 2));
+    final List<?> result = SqlFunctions.distinct(input);
+    input.clear();
+    assertThat(result, is(list(2, row, null, "Foo")));
+    assertThat(result.get(1), is(row));
+    assertThat(result.subList(1, 3), is(list(row, null)));
+    assertThat(Arrays.asList(result.toArray()), is(list(2, row, null, "Foo")));
+  }
+
   @Test void testArraysOverlap() {
     final List<Object> listWithOnlyNull = new ArrayList<>();
     listWithOnlyNull.add(null);
@@ -2506,5 +2564,29 @@ class SqlFunctionsTest {
     // arr = NULL
     assertThat(fn.apply(null).toList(),
         is(Collections.singletonList(null)));
+  }
+
+  private static void checkArrayFunctionsWithRows(Object row, Object equalRow) {
+    // The Spark-validated SQL results are recorded in sql/row-equality.iq.
+    // This helper also exercises Java-specific inputs; its full set of inputs
+    // and assertions was not run against Spark.
+    final Object other = new Object[] {9, "Other"};
+    final List<Object> input = list(row, null, other, equalRow);
+    assertThat(SqlFunctions.arrayContains(input, equalRow), is(true));
+    assertThat(SqlFunctions.arrayContains(list(other), row), is(false));
+    assertThat(SqlFunctions.arrayPosition(input, equalRow), is(1L));
+    assertThat(SqlFunctions.arrayPosition(list(other), row), is(0L));
+    assertThat(SqlFunctions.arrayRemove(input, equalRow), is(list(null, other)));
+    assertThat(SqlFunctions.distinct(input), is(list(row, null, other)));
+    assertThat(SqlFunctions.arrayUnion(input, list(equalRow, other, null)),
+        is(list(row, null, other)));
+    assertThat(SqlFunctions.arrayIntersect(input, list(equalRow, null)),
+        is(list(row, null)));
+    assertThat(SqlFunctions.arrayExcept(input, list(equalRow, null)), is(list(other)));
+    assertThat(arraysOverlap(input, list(equalRow)), is(true));
+    assertThat(arraysOverlap(list(row), list(other)), is(false));
+    assertThat(arraysOverlap(list(row, null), list(other)), is(nullValue()));
+    assertThat(arraysOverlap(list(), input), is(false));
+    assertThat(input, is(list(row, null, other, equalRow)));
   }
 }
