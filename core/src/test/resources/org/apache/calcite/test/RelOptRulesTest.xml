@@ -14133,6 +14133,32 @@ LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPushAggregateThroughJoinAggArgIsGroupKeyOfUniqueSide">
+    <Resource name="sql">
+      <![CDATA[select d.id1, d.id2, d.age, sum(d.age), min(d.age)
+from sales.double_pk as d
+join sales.emp as e on d.id1 = e.deptno
+group by d.id1, d.id2, d.age]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1, 3}], EXPR$3=[SUM($3)], EXPR$4=[MIN($3)])
+  LogicalJoin(condition=[=($0, $11)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DOUBLE_PK]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ID1=[$0], ID2=[$1], AGE=[$2], $f5=[CAST(*($2, $4)):INTEGER NOT NULL], AGE0=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(ID1=[$0], ID2=[$1], AGE=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DOUBLE_PK]])
+    LogicalAggregate(group=[{7}], agg#0=[COUNT()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushAggregateThroughJoinDistinct">
     <Resource name="sql">
       <![CDATA[select d.name,
