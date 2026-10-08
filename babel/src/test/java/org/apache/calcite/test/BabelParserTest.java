@@ -525,6 +525,38 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testCreateTableWithTrailingComma() {
+    final String sql = "create table foo (bar integer not null, baz varchar(30),)";
+    final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
+    sql(sql).ok(expected);
+
+    final String sql2 = "create table foo (bar integer not null,)";
+    final String expected2 = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL)";
+    sql(sql2).ok(expected2);
+
+    // With a table collection type
+    final String sql3 = "create set table foo (bar int not null,)";
+    final String expected3 = "CREATE SET TABLE `FOO` (`BAR` INTEGER NOT NULL)";
+    sql(sql3).ok(expected3);
+
+    // With a query
+    final String sql4 = "create table foo (bar integer,) as select 1";
+    final String expected4 = "CREATE TABLE `FOO` (`BAR` INTEGER) AS\nSELECT 1";
+    sql(sql4).ok(expected4);
+
+    // Only a single trailing comma is allowed
+    sql("create table foo (bar integer,^,^)")
+        .fails("(?s)Encountered \",.*\" at .*");
+
+    // A comma without a preceding column is not allowed
+    sql("create table foo ^(^, bar integer)")
+        .fails("(?s)Encountered \"\\(.*\" at .*");
+
+    // An empty column list is not allowed
+    sql("create table foo ^(^)")
+        .fails("(?s)Encountered \"\\(.*\" at .*");
+  }
+
   @Test void testArrayLiteralFromString() {
     sql("select array '{1,2,3}'")
         .ok("SELECT (ARRAY[1, 2, 3])");
