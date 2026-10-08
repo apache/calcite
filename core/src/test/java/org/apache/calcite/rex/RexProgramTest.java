@@ -2472,6 +2472,64 @@ class RexProgramTest extends RexProgramTestBase {
         "=(?0.notNullInt0, ?0.int1)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5907">[CALCITE-5907]
+   * RexSimplify replaces a comparison with a BOOLEAN literal by a non-BOOLEAN
+   * operand</a>.
+   */
+  @Test void testSimplifyAndEqualityTrue() {
+    // "=(x, true)" simplifies to "x" only if x is BOOLEAN;
+    // otherwise the AND would get a non-BOOLEAN operand
+    //
+    // With paranoid mode on, a wrong simplification of these non-BOOLEAN
+    // inputs fails inside RexSimplify.verify with an exception that hides
+    // the result; turn it off so that checkSimplifyUnchanged prints the
+    // simplified expression
+    simplify = this.simplify.withParanoid(false);
+    checkSimplifyUnchanged(
+        and(eq(vVarchar(0), trueLiteral),
+            eq(vVarchar(1), trueLiteral)));
+    checkSimplifyUnchanged(
+        and(eq(vInt(0), trueLiteral),
+            eq(vInt(1), trueLiteral)));
+    // same, with NOT NULL variables
+    checkSimplifyUnchanged(
+        and(eq(vVarcharNotNull(0), trueLiteral),
+            eq(vVarcharNotNull(1), trueLiteral)));
+    checkSimplifyUnchanged(
+        and(eq(vIntNotNull(0), trueLiteral),
+            eq(vIntNotNull(1), trueLiteral)));
+    // literal on the left (swapped) form
+    checkSimplifyUnchanged(eq(trueLiteral, vVarchar(0)));
+    checkSimplifyUnchanged(
+        and(eq(trueLiteral, vVarchar(0)),
+            eq(trueLiteral, vVarchar(1))));
+    checkSimplifyUnchanged(
+        and(eq(falseLiteral, vVarchar(0)),
+            eq(falseLiteral, vVarchar(1))));
+    checkSimplifyUnchanged(
+        and(ne(falseLiteral, vVarchar(0)),
+            ne(falseLiteral, vVarchar(1))));
+    // "=($0, true)" stays when $0 has type ANY, since its value need not be
+    // BOOLEAN; ITEM on a MAP<VARCHAR, ANY> column, such as MongoDB's _MAP,
+    // has type ANY
+    final RexNode anyRef = input(typeFactory.createSqlType(SqlTypeName.ANY), 0);
+    checkSimplifyUnchanged(
+        and(eq(anyRef, trueLiteral), vBool(1)));
+    simplify = simplify.withParanoid(true);
+
+    // "=(x, true)" is simplified to "x" if x has BOOLEAN type
+    checkSimplifyFilter(
+        and(eq(vBool(0), trueLiteral),
+            eq(vBool(1), trueLiteral)),
+        "AND(?0.bool0, ?0.bool1)");
+    // same, with NOT NULL variables
+    checkSimplifyFilter(
+        and(eq(vBoolNotNull(0), trueLiteral),
+            eq(vBoolNotNull(1), trueLiteral)),
+        "AND(?0.notNullBool0, ?0.notNullBool1)");
+  }
+
   @Test void testSimplifyEqualityAndNotEqualityWithOverlapping() {
     final RexLiteral literal3 = literal(3);
     final RexLiteral literal5 = literal(5);

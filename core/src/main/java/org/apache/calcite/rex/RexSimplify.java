@@ -703,6 +703,12 @@ public class RexSimplify {
     return false;
   }
 
+  /** Returns whether both operands of a comparison have type BOOLEAN. */
+  private static boolean isBooleanComparison(RexNode left, RexNode right) {
+    return left.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+        && right.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
+  }
+
   // e must be a comparison (=, >, >=, <, <=, !=)
   private RexNode simplifyComparison(RexCall e, RexUnknownAs unknownAs) {
     //noinspection unchecked
@@ -748,7 +754,7 @@ public class RexSimplify {
       }
     }
 
-    if (o0.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+    if (isBooleanComparison(o0, o1)) {
       Comparison cmp =
           Comparison.of(
               rexBuilder.makeCall(e.getParserPosition(), e.getOperator(), o0, o1), node -> true);
@@ -2013,6 +2019,9 @@ public class RexSimplify {
       // Simplify BOOLEAN expressions if possible
       while (term.getKind() == SqlKind.EQUALS) {
         RexCall call = (RexCall) term;
+        if (!isBooleanComparison(call.getOperands().get(0), call.getOperands().get(1))) {
+          break;
+        }
         if (call.getOperands().get(0).isAlwaysTrue()) {
           term = call.getOperands().get(1);
           terms.set(i, term);
