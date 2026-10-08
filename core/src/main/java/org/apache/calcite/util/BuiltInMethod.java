@@ -924,6 +924,7 @@ public enum BuiltInMethod {
       Collection.class),
   ARRAY_APPEND(SqlFunctions.class, "arrayAppend", List.class, Object.class),
   ARRAY_COMPACT(SqlFunctions.class, "compact", List.class),
+  ARRAY_CONTAINS(SqlFunctions.class, "arrayContains", List.class, Object.class),
   ARRAY_DISTINCT(SqlFunctions.class, "distinct", List.class),
   ARRAY_MAX(SqlFunctions.class, "arrayMax", List.class),
   ARRAY_MIN(SqlFunctions.class, "arrayMin", List.class),

@@ -527,115 +527,116 @@ public abstract class Functions {
     @Override public int hashCode(@Nullable Object t) {
       return deepHashCode(t);
     }
+  }
 
-    private static boolean deepEquals(@Nullable Object v1, @Nullable Object v2) {
-      if (v1 == v2) {
-        return true;
-      }
-      if (v1 == null || v2 == null) {
-        return false;
-      }
-      // Normalize both to List: an ARRAY of ROW is a List of Object[],
-      // and each element is normalized in turn.
-      final @Nullable List<?> list1 = asListOrNull(v1);
-      final @Nullable List<?> list2 = asListOrNull(v2);
-      if (list1 != null && list2 != null) {
-        final int n = list1.size();
-        if (n != list2.size()) {
-          return false;
-        }
-        for (int i = 0; i < n; i++) {
-          if (!deepEquals(list1.get(i), list2.get(i))) {
-            return false;
-          }
-        }
-        return true;
-      }
-      if (list1 != null || list2 != null) {
-        return false;
-      }
-      if (v1 instanceof Map && v2 instanceof Map) {
-        return mapDeepEquals((Map<?, ?>) v1, (Map<?, ?>) v2);
-      }
-      if (v1.getClass().isArray() && v2.getClass().isArray()) {
-        // Primitive arrays (e.g. byte[] for BINARY values).
-        return Arrays.deepEquals(new Object[] {v1}, new Object[] {v2});
-      }
-      return v1.equals(v2);
+  /** Compares values recursively; see {@link #deepComparer()}. */
+  public static boolean deepEquals(@Nullable Object v1, @Nullable Object v2) {
+    if (v1 == v2) {
+      return true;
     }
-
-    /** Compares two maps as unordered sets of entries, comparing keys and
-     * values deeply.
-     *
-     * <p>Java {@link Map#equals} is already order-independent, but it looks a
-     * key up by that key's own hashCode and equals, which matches a struct key
-     * only by reference; hence the scan. */
-    private static boolean mapDeepEquals(Map<?, ?> m1, Map<?, ?> m2) {
-      if (m1.size() != m2.size()) {
+    if (v1 == null || v2 == null) {
+      return false;
+    }
+    // Normalize both to List: an ARRAY of ROW is a List of Object[],
+    // and each element is normalized in turn.
+    final @Nullable List<?> list1 = asListOrNull(v1);
+    final @Nullable List<?> list2 = asListOrNull(v2);
+    if (list1 != null && list2 != null) {
+      final int n = list1.size();
+      if (n != list2.size()) {
         return false;
       }
-      // Remove on match, so that keys that are deep-equal but distinct to
-      // Java, as two Object[] with the same contents are, pair up one to one.
-      final List<Map.Entry<?, ?>> unmatched = new ArrayList<>(m2.entrySet());
-      for (Map.Entry<?, ?> e1 : m1.entrySet()) {
-        boolean found = false;
-        for (int i = 0; i < unmatched.size(); i++) {
-          final Map.Entry<?, ?> e2 = unmatched.get(i);
-          if (deepEquals(e1.getKey(), e2.getKey())
-              && deepEquals(e1.getValue(), e2.getValue())) {
-            unmatched.remove(i);
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
+      for (int i = 0; i < n; i++) {
+        if (!deepEquals(list1.get(i), list2.get(i))) {
           return false;
         }
       }
       return true;
     }
-
-    /** Computes a hash code that is equal for values that
-     * {@link #deepEquals} considers equal; in particular, an
-     * {@code Object[]} and a {@link List} with equal elements hash alike. */
-    private static int deepHashCode(@Nullable Object o) {
-      if (o == null) {
-        return 0x789d;
-      }
-      final @Nullable List<?> list = asListOrNull(o);
-      if (list != null) {
-        int h = 1;
-        for (Object element : list) {
-          h = 31 * h + deepHashCode(element);
-        }
-        return h;
-      }
-      if (o instanceof Map) {
-        // Sum of per-entry hashes, as Map.hashCode does, so that the hash
-        // ignores entry order just as mapDeepEquals does.
-        int h = 0;
-        for (Map.Entry<?, ?> e : ((Map<?, ?>) o).entrySet()) {
-          h += deepHashCode(e.getKey()) ^ deepHashCode(e.getValue());
-        }
-        return h;
-      }
-      if (o.getClass().isArray()) {
-        return Arrays.deepHashCode(new Object[] {o});
-      }
-      return o.hashCode();
+    if (list1 != null || list2 != null) {
+      return false;
     }
-
-    /** Views {@code o} as a list if it is a {@code List} or an
-     * {@code Object[]}; returns null otherwise. */
-    private static @Nullable List<?> asListOrNull(Object o) {
-      if (o instanceof List) {
-        return (List<?>) o;
-      }
-      if (o instanceof Object[]) {
-        return Arrays.asList((Object[]) o);
-      }
-      return null;
+    if (v1 instanceof Map && v2 instanceof Map) {
+      return mapDeepEquals((Map<?, ?>) v1, (Map<?, ?>) v2);
     }
+    if (v1.getClass().isArray() && v2.getClass().isArray()) {
+      // Primitive arrays (e.g. byte[] for BINARY values).
+      return Arrays.deepEquals(new Object[] {v1}, new Object[] {v2});
+    }
+    return v1.equals(v2);
+  }
+
+  /** Compares two maps as unordered sets of entries, comparing keys and
+   * values deeply.
+   *
+   * <p>Java {@link Map#equals} is already order-independent, but it looks a
+   * key up by that key's own hashCode and equals, which matches a struct key
+   * only by reference; hence the scan. */
+  private static boolean mapDeepEquals(Map<?, ?> m1, Map<?, ?> m2) {
+    if (m1.size() != m2.size()) {
+      return false;
+    }
+    // Remove on match, so that keys that are deep-equal but distinct to
+    // Java, as two Object[] with the same contents are, pair up one to one.
+    final List<Map.Entry<?, ?>> unmatched = new ArrayList<>(m2.entrySet());
+    for (Map.Entry<?, ?> e1 : m1.entrySet()) {
+      boolean found = false;
+      for (int i = 0; i < unmatched.size(); i++) {
+        final Map.Entry<?, ?> e2 = unmatched.get(i);
+        if (deepEquals(e1.getKey(), e2.getKey())
+            && deepEquals(e1.getValue(), e2.getValue())) {
+          unmatched.remove(i);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Computes a hash code that is equal for values that
+   * {@link #deepEquals} considers equal; in particular, an
+   * {@code Object[]} and a {@link List} with equal elements hash alike. */
+  public static int deepHashCode(@Nullable Object o) {
+    if (o == null) {
+      return 0x789d;
+    }
+    final @Nullable List<?> list = asListOrNull(o);
+    if (list != null) {
+      int h = 1;
+      for (Object element : list) {
+        h = 31 * h + deepHashCode(element);
+      }
+      return h;
+    }
+    if (o instanceof Map) {
+      // Sum of per-entry hashes, as Map.hashCode does, so that the hash
+      // ignores entry order just as mapDeepEquals does.
+      int h = 0;
+      for (Map.Entry<?, ?> e : ((Map<?, ?>) o).entrySet()) {
+        h += deepHashCode(e.getKey()) ^ deepHashCode(e.getValue());
+      }
+      return h;
+    }
+    if (o.getClass().isArray()) {
+      return Arrays.deepHashCode(new Object[] {o});
+    }
+    return o.hashCode();
+  }
+
+  /** Views {@code o} as a list if it is a {@code List} or an
+   * {@code Object[]}; returns null otherwise. */
+  private static @Nullable List<?> asListOrNull(Object o) {
+    if (o instanceof List) {
+      return (List<?>) o;
+    }
+    if (o instanceof Object[]) {
+      return Arrays.asList((Object[]) o);
+    }
+    return null;
   }
 
   /** Identity equality comparer. */
