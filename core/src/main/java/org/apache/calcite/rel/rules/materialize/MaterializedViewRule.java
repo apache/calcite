@@ -56,6 +56,9 @@ import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.mapping.IntPair;
 import org.apache.calcite.util.mapping.Mapping;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -76,6 +79,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -92,6 +96,16 @@ import static java.util.Objects.requireNonNull;
 public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config>
     extends RelRule<C> {
 
+  /**
+   * Cache of RelMetadataQuery to MaterializationMetadata.
+   */
+  private final LoadingCache<RelMetadataQuery, MaterializationMetadata>
+      materializationMetadataCache =
+      CacheBuilder.newBuilder()
+          .expireAfterAccess(5, TimeUnit.MINUTES)
+          .maximumSize(1_024)
+          .build(CacheLoader.from(MaterializationMetadata::new));
+
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a MaterializedViewRule. */
@@ -100,7 +114,21 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
   }
 
   @Override public boolean matches(RelOptRuleCall call) {
-    return !call.getPlanner().getMaterializations().isEmpty();
+    final List<RelOptMaterialization> materializations =
+        call.getPlanner().getMaterializations();
+    if (materializations.isEmpty()) {
+      return false;
+    }
+    RelMetadataQuery mq = call.getMetadataQuery();
+    MaterializationMetadata materializationMetadata =
+        materializationMetadataCache.getUnchecked(mq);
+    for (RelOptMaterialization materialization : materializations) {
+      if (materializationMetadata.isValidMaterialization(
+          mq, materialization, this)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -197,7 +225,16 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
       // 3. We iterate through all applicable materializations trying to
       // rewrite the given query
+      MaterializationMetadata materializationMetadata =
+          materializationMetadataCache.getUnchecked(mq);
       for (RelOptMaterialization materialization : materializations) {
+        // 3.1. View checks before proceeding
+        if (!materializationMetadata.isValidMaterialization(
+            mq, materialization, this)) {
+          // Skip it
+          continue;
+        }
+
         RelNode view = materialization.tableRel;
         Project topViewProject;
         RelNode viewNode;
@@ -210,11 +247,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
         }
 
         // Extract view table references
-        final Set<RelTableRef> viewTableRefs = mq.getTableReferences(viewNode);
-        if (viewTableRefs == null) {
-          // Skip it
-          continue;
-        }
+        final Set<RelTableRef> viewTableRefs =
+            materializationMetadata.viewTableRefsMap.get(materialization);
+        assert viewTableRefs != null;
 
         // Filter relevant materializations. Currently, we only check whether
         // the materialization contains any table that is used by the query
@@ -231,21 +266,12 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           continue;
         }
 
-        // 3.1. View checks before proceeding
-        if (!isValidPlan(topViewProject, viewNode, mq)) {
-          // Skip it
-          continue;
-        }
-
         // 3.2. Initialize all query related auxiliary data structures
         // that will be used throughout query rewriting process
         // Extract view predicates
         final RelOptPredicateList viewPredicateList =
-            mq.getAllPredicates(viewNode);
-        if (viewPredicateList == null) {
-          // Skip it
-          continue;
-        }
+            materializationMetadata.viewPredicateListMap.get(materialization);
+        assert viewPredicateList != null;
         final RexNode viewPred =
             simplify.simplifyUnknownAsFalse(
                 RexUtil.composeConjunction(rexBuilder,
@@ -1428,6 +1454,64 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     COMPLETE,
     VIEW_PARTIAL,
     QUERY_PARTIAL
+  }
+
+  /**
+   * Check if the materialization is valid for this rule.
+   * If it does, cache the materialization's RelTableRef and RelOptPredicateList.
+   */
+  protected static class MaterializationMetadata {
+    private final Set<RelOptMaterialization> notValidMaterializations = new HashSet<>();
+    private final Map<RelOptMaterialization, Set<RelTableRef>> viewTableRefsMap = new HashMap<>();
+    private final Map<RelOptMaterialization, RelOptPredicateList>
+        viewPredicateListMap = new HashMap<>();
+
+    protected <C extends MaterializedViewRule.Config> boolean isValidMaterialization(
+        RelMetadataQuery mq,
+        RelOptMaterialization materialization,
+        MaterializedViewRule<C> materializedViewRule) {
+      if (notValidMaterializations.contains(materialization)) {
+        return false;
+      } else if (viewTableRefsMap.containsKey(materialization)
+          && viewPredicateListMap.containsKey(materialization)) {
+        return true;
+      } else {
+        Project topViewProject;
+        RelNode viewNode;
+        if (materialization.queryRel instanceof Project) {
+          topViewProject = (Project) materialization.queryRel;
+          viewNode = topViewProject.getInput();
+        } else {
+          topViewProject = null;
+          viewNode = materialization.queryRel;
+        }
+
+        final Set<RelTableRef> viewTableRefs = mq.getTableReferences(viewNode);
+        if (viewTableRefs == null) {
+          // Skip it
+          notValidMaterializations.add(materialization);
+          return false;
+        }
+
+        if (!materializedViewRule.isValidPlan(topViewProject, viewNode, mq)) {
+          // Skip it
+          notValidMaterializations.add(materialization);
+          return false;
+        }
+
+        final RelOptPredicateList viewPredicateList =
+            mq.getAllPredicates(viewNode);
+        if (viewPredicateList == null) {
+          // Skip it
+          notValidMaterializations.add(materialization);
+          return false;
+        }
+
+        viewTableRefsMap.put(materialization, viewTableRefs);
+        viewPredicateListMap.put(materialization, viewPredicateList);
+        return true;
+      }
+    }
   }
 
   /** Rule configuration. */
