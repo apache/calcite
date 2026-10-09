@@ -1011,4 +1011,846 @@ FROM (VALUES (1, 'Foo', 1, 'Foo'), (2, 'Bar', 2, 'Car')) AS t(x, y, z, w);
 
 !ok
 
+# Test cases for https://issues.apache.org/jira/browse/CALCITE-7842
+# [CALCITE-7842] Multiset operators return incorrect results for ROW elements
+# All 31 queries below were checked against Oracle using OneCompiler.
+# The Oracle adaptation used object types in place of ROW values and nested
+# table types in place of MULTISET literals. Explicit MAP methods compared
+# object fields, treating corresponding NULL fields as equal.
+# All 217 result rows matched after ordering by case id and element fields.
+!use scott
+
+# Original MEMBER OF reproduction.
+SELECT ROW(1, 'Foo') MEMBER OF MULTISET[ROW(x, y)] AS r
+FROM (VALUES (1, 'Foo'), (2, 'Bar')) AS t(x, y);
++-------+
+| R     |
++-------+
+| true  |
+| false |
++-------+
+(2 rows)
+
+!ok
+
+# Flat ROW values.
+
+# MEMBER OF
+SELECT id, ROW(x, y) MEMBER OF MULTISET[ROW(z, w)] AS r
+FROM (VALUES
+    (1, 1, 'Foo', 1, 'Foo'),
+    (2, 2, 'Bar', 2, 'Car'),
+    (3, 3, 'Baz', 4, 'Baz'),
+    (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)
+ORDER BY id;
++----+-------+
+| ID | R     |
++----+-------+
+|  1 | true  |
+|  2 | false |
+|  3 | false |
+|  4 | true  |
++----+-------+
+(4 rows)
+
+!ok
+
+# IS A SET and IS NOT A SET
+SELECT id,
+    MULTISET[ROW(x, y), ROW(z, w)] IS A SET AS r,
+    MULTISET[ROW(x, y), ROW(z, w)] IS NOT A SET AS not_r
+FROM (VALUES
+    (1, 1, 'Foo', 1, 'Foo'),
+    (2, 2, 'Bar', 2, 'Car'),
+    (3, 3, 'Baz', 4, 'Baz'),
+    (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)
+ORDER BY id;
++----+-------+-------+
+| ID | R     | NOT_R |
++----+-------+-------+
+|  1 | false | true  |
+|  2 | true  | false |
+|  3 | true  | false |
+|  4 | false | true  |
++----+-------+-------+
+(4 rows)
+
+!ok
+
+# SUBMULTISET OF and NOT SUBMULTISET OF
+SELECT id,
+    MULTISET[ROW(x, y), ROW(x, y)]
+        SUBMULTISET OF MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(9, 'Zzz')] AS r,
+    MULTISET[ROW(x, y), ROW(x, y)]
+        NOT SUBMULTISET OF MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(9, 'Zzz')] AS not_r
+FROM (VALUES
+    (1, 1, 'Foo', 1, 'Foo'),
+    (2, 2, 'Bar', 2, 'Car'),
+    (3, 3, 'Baz', 4, 'Baz'),
+    (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)
+ORDER BY id;
++----+-------+-------+
+| ID | R     | NOT_R |
++----+-------+-------+
+|  1 | true  | false |
+|  2 | false | true  |
+|  3 | false | true  |
+|  4 | true  | false |
++----+-------+-------+
+(4 rows)
+
+!ok
+
+# Equal input cardinalities, but too few occurrences of the requested row.
+SELECT id, MULTISET[ROW(x, y), ROW(x, y)]
+    SUBMULTISET OF MULTISET[ROW(z, w), ROW(9, 'Zzz')] AS r
+FROM (VALUES
+    (1, 1, 'Foo', 1, 'Foo'),
+    (2, 2, 'Bar', 2, 'Car'),
+    (3, 3, 'Baz', 4, 'Baz'),
+    (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)
+ORDER BY id;
++----+-------+
+| ID | R     |
++----+-------+
+|  1 | false |
+|  2 | false |
+|  3 | false |
+|  4 | false |
++----+-------+
+(4 rows)
+
+!ok
+
+# MULTISET INTERSECT ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, y), ROW(x, y), ROW(9, 'Zzz')]
+        MULTISET INTERSECT ALL
+        MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(8, 'Yyy')] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 1, 'Foo'),
+        (2, 2, 'Bar', 2, 'Car'),
+        (3, 3, 'Baz', 4, 'Baz'),
+        (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, Foo}  |
+|  1 | {1, Foo}  |
+|  4 | {5, null} |
+|  4 | {5, null} |
++----+-----------+
+(4 rows)
+
+!ok
+
+# MULTISET INTERSECT DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, y), ROW(x, y), ROW(9, 'Zzz')]
+        MULTISET INTERSECT DISTINCT
+        MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(8, 'Yyy')] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 1, 'Foo'),
+        (2, 2, 'Bar', 2, 'Car'),
+        (3, 3, 'Baz', 4, 'Baz'),
+        (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, Foo}  |
+|  4 | {5, null} |
++----+-----------+
+(2 rows)
+
+!ok
+
+# MULTISET EXCEPT ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, y), ROW(x, y), ROW(9, 'Zzz')]
+        MULTISET EXCEPT ALL
+        MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(8, 'Yyy')] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 1, 'Foo'),
+        (2, 2, 'Bar', 2, 'Car'),
+        (3, 3, 'Baz', 4, 'Baz'),
+        (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+----------+
+| ID | R        |
++----+----------+
+|  1 | {9, Zzz} |
+|  2 | {2, Bar} |
+|  2 | {2, Bar} |
+|  2 | {9, Zzz} |
+|  3 | {3, Baz} |
+|  3 | {3, Baz} |
+|  3 | {9, Zzz} |
+|  4 | {9, Zzz} |
++----+----------+
+(8 rows)
+
+!ok
+
+# MULTISET EXCEPT DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, y), ROW(x, y), ROW(9, 'Zzz')]
+        MULTISET EXCEPT DISTINCT
+        MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(8, 'Yyy')] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 1, 'Foo'),
+        (2, 2, 'Bar', 2, 'Car'),
+        (3, 3, 'Baz', 4, 'Baz'),
+        (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+----------+
+| ID | R        |
++----+----------+
+|  1 | {9, Zzz} |
+|  2 | {2, Bar} |
+|  2 | {9, Zzz} |
+|  3 | {3, Baz} |
+|  3 | {9, Zzz} |
+|  4 | {9, Zzz} |
++----+----------+
+(6 rows)
+
+!ok
+
+# MULTISET UNION DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, y), ROW(x, y), ROW(9, 'Zzz')]
+        MULTISET UNION DISTINCT
+        MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(8, 'Yyy')] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 1, 'Foo'),
+        (2, 2, 'Bar', 2, 'Car'),
+        (3, 3, 'Baz', 4, 'Baz'),
+        (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, Foo}  |
+|  1 | {8, Yyy}  |
+|  1 | {9, Zzz}  |
+|  2 | {2, Bar}  |
+|  2 | {2, Car}  |
+|  2 | {8, Yyy}  |
+|  2 | {9, Zzz}  |
+|  3 | {3, Baz}  |
+|  3 | {4, Baz}  |
+|  3 | {8, Yyy}  |
+|  3 | {9, Zzz}  |
+|  4 | {5, null} |
+|  4 | {8, Yyy}  |
+|  4 | {9, Zzz}  |
++----+-----------+
+(14 rows)
+
+!ok
+
+# MULTISET UNION ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, y), ROW(x, y), ROW(9, 'Zzz')]
+        MULTISET UNION ALL
+        MULTISET[ROW(z, w), ROW(z, w), ROW(z, w), ROW(8, 'Yyy')] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 1, 'Foo'),
+        (2, 2, 'Bar', 2, 'Car'),
+        (3, 3, 'Baz', 4, 'Baz'),
+        (4, 5, NULL, 5, NULL)) AS t(id, x, y, z, w)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, Foo}  |
+|  1 | {1, Foo}  |
+|  1 | {1, Foo}  |
+|  1 | {1, Foo}  |
+|  1 | {1, Foo}  |
+|  1 | {8, Yyy}  |
+|  1 | {9, Zzz}  |
+|  2 | {2, Bar}  |
+|  2 | {2, Bar}  |
+|  2 | {2, Car}  |
+|  2 | {2, Car}  |
+|  2 | {2, Car}  |
+|  2 | {8, Yyy}  |
+|  2 | {9, Zzz}  |
+|  3 | {3, Baz}  |
+|  3 | {3, Baz}  |
+|  3 | {4, Baz}  |
+|  3 | {4, Baz}  |
+|  3 | {4, Baz}  |
+|  3 | {8, Yyy}  |
+|  3 | {9, Zzz}  |
+|  4 | {5, null} |
+|  4 | {5, null} |
+|  4 | {5, null} |
+|  4 | {5, null} |
+|  4 | {5, null} |
+|  4 | {8, Yyy}  |
+|  4 | {9, Zzz}  |
++----+-----------+
+(28 rows)
+
+!ok
+
+# Nested ROW values.
+
+# MEMBER OF
+SELECT id, ROW(ROW(x, y), p) MEMBER OF MULTISET[ROW(ROW(z, w), q)] AS r
+FROM (VALUES
+    (1, 1, 'Foo', 10, 1, 'Foo', 10),
+    (2, 2, 'Bar', 10, 2, 'Car', 10),
+    (3, 3, 'Baz', 10, 4, 'Baz', 10),
+    (4, 5, NULL, 10, 5, NULL, 10),
+    (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)
+ORDER BY id;
++----+-------+
+| ID | R     |
++----+-------+
+|  1 | true  |
+|  2 | false |
+|  3 | false |
+|  4 | true  |
+|  5 | false |
++----+-------+
+(5 rows)
+
+!ok
+
+# IS A SET and IS NOT A SET
+SELECT id,
+    MULTISET[ROW(ROW(x, y), p), ROW(ROW(z, w), q)] IS A SET AS r,
+    MULTISET[ROW(ROW(x, y), p), ROW(ROW(z, w), q)] IS NOT A SET AS not_r
+FROM (VALUES
+    (1, 1, 'Foo', 10, 1, 'Foo', 10),
+    (2, 2, 'Bar', 10, 2, 'Car', 10),
+    (3, 3, 'Baz', 10, 4, 'Baz', 10),
+    (4, 5, NULL, 10, 5, NULL, 10),
+    (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)
+ORDER BY id;
++----+-------+-------+
+| ID | R     | NOT_R |
++----+-------+-------+
+|  1 | false | true  |
+|  2 | true  | false |
+|  3 | true  | false |
+|  4 | false | true  |
+|  5 | true  | false |
++----+-------+-------+
+(5 rows)
+
+!ok
+
+# SUBMULTISET OF and NOT SUBMULTISET OF
+SELECT id,
+    MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p)]
+        SUBMULTISET OF MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(9, 'Zzz'), 10)] AS r,
+    MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p)]
+        NOT SUBMULTISET OF MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(9, 'Zzz'), 10)] AS not_r
+FROM (VALUES
+    (1, 1, 'Foo', 10, 1, 'Foo', 10),
+    (2, 2, 'Bar', 10, 2, 'Car', 10),
+    (3, 3, 'Baz', 10, 4, 'Baz', 10),
+    (4, 5, NULL, 10, 5, NULL, 10),
+    (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)
+ORDER BY id;
++----+-------+-------+
+| ID | R     | NOT_R |
++----+-------+-------+
+|  1 | true  | false |
+|  2 | false | true  |
+|  3 | false | true  |
+|  4 | true  | false |
+|  5 | false | true  |
++----+-------+-------+
+(5 rows)
+
+!ok
+
+# Equal input cardinalities, but too few occurrences of the requested row.
+SELECT id, MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p)]
+    SUBMULTISET OF MULTISET[ROW(ROW(z, w), q), ROW(ROW(9, 'Zzz'), 10)] AS r
+FROM (VALUES
+    (1, 1, 'Foo', 10, 1, 'Foo', 10),
+    (2, 2, 'Bar', 10, 2, 'Car', 10),
+    (3, 3, 'Baz', 10, 4, 'Baz', 10),
+    (4, 5, NULL, 10, 5, NULL, 10),
+    (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)
+ORDER BY id;
++----+-------+
+| ID | R     |
++----+-------+
+|  1 | false |
+|  2 | false |
+|  3 | false |
+|  4 | false |
+|  5 | false |
++----+-------+
+(5 rows)
+
+!ok
+
+# MULTISET INTERSECT ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p), ROW(ROW(9, 'Zzz'), 10)]
+        MULTISET INTERSECT ALL
+        MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(8, 'Yyy'), 10)] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 10, 1, 'Foo', 10),
+        (2, 2, 'Bar', 10, 2, 'Car', 10),
+        (3, 3, 'Baz', 10, 4, 'Baz', 10),
+        (4, 5, NULL, 10, 5, NULL, 10),
+        (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, u.a."EXPR$0", u.a."EXPR$1", b;
++----+-----------------+
+| ID | R               |
++----+-----------------+
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{1, Foo}, 10}  |
+|  4 | {{5, null}, 10} |
+|  4 | {{5, null}, 10} |
++----+-----------------+
+(4 rows)
+
+!ok
+
+# MULTISET INTERSECT DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p), ROW(ROW(9, 'Zzz'), 10)]
+        MULTISET INTERSECT DISTINCT
+        MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(8, 'Yyy'), 10)] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 10, 1, 'Foo', 10),
+        (2, 2, 'Bar', 10, 2, 'Car', 10),
+        (3, 3, 'Baz', 10, 4, 'Baz', 10),
+        (4, 5, NULL, 10, 5, NULL, 10),
+        (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, u.a."EXPR$0", u.a."EXPR$1", b;
++----+-----------------+
+| ID | R               |
++----+-----------------+
+|  1 | {{1, Foo}, 10}  |
+|  4 | {{5, null}, 10} |
++----+-----------------+
+(2 rows)
+
+!ok
+
+# MULTISET EXCEPT ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p), ROW(ROW(9, 'Zzz'), 10)]
+        MULTISET EXCEPT ALL
+        MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(8, 'Yyy'), 10)] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 10, 1, 'Foo', 10),
+        (2, 2, 'Bar', 10, 2, 'Car', 10),
+        (3, 3, 'Baz', 10, 4, 'Baz', 10),
+        (4, 5, NULL, 10, 5, NULL, 10),
+        (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, u.a."EXPR$0", u.a."EXPR$1", b;
++----+----------------+
+| ID | R              |
++----+----------------+
+|  1 | {{9, Zzz}, 10} |
+|  2 | {{2, Bar}, 10} |
+|  2 | {{2, Bar}, 10} |
+|  2 | {{9, Zzz}, 10} |
+|  3 | {{3, Baz}, 10} |
+|  3 | {{3, Baz}, 10} |
+|  3 | {{9, Zzz}, 10} |
+|  4 | {{9, Zzz}, 10} |
+|  5 | {{6, Qux}, 10} |
+|  5 | {{6, Qux}, 10} |
+|  5 | {{9, Zzz}, 10} |
++----+----------------+
+(11 rows)
+
+!ok
+
+# MULTISET EXCEPT DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p), ROW(ROW(9, 'Zzz'), 10)]
+        MULTISET EXCEPT DISTINCT
+        MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(8, 'Yyy'), 10)] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 10, 1, 'Foo', 10),
+        (2, 2, 'Bar', 10, 2, 'Car', 10),
+        (3, 3, 'Baz', 10, 4, 'Baz', 10),
+        (4, 5, NULL, 10, 5, NULL, 10),
+        (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, u.a."EXPR$0", u.a."EXPR$1", b;
++----+----------------+
+| ID | R              |
++----+----------------+
+|  1 | {{9, Zzz}, 10} |
+|  2 | {{2, Bar}, 10} |
+|  2 | {{9, Zzz}, 10} |
+|  3 | {{3, Baz}, 10} |
+|  3 | {{9, Zzz}, 10} |
+|  4 | {{9, Zzz}, 10} |
+|  5 | {{6, Qux}, 10} |
+|  5 | {{9, Zzz}, 10} |
++----+----------------+
+(8 rows)
+
+!ok
+
+# MULTISET UNION DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p), ROW(ROW(9, 'Zzz'), 10)]
+        MULTISET UNION DISTINCT
+        MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(8, 'Yyy'), 10)] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 10, 1, 'Foo', 10),
+        (2, 2, 'Bar', 10, 2, 'Car', 10),
+        (3, 3, 'Baz', 10, 4, 'Baz', 10),
+        (4, 5, NULL, 10, 5, NULL, 10),
+        (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, u.a."EXPR$0", u.a."EXPR$1", b;
++----+-----------------+
+| ID | R               |
++----+-----------------+
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{8, Yyy}, 10}  |
+|  1 | {{9, Zzz}, 10}  |
+|  2 | {{2, Bar}, 10}  |
+|  2 | {{2, Car}, 10}  |
+|  2 | {{8, Yyy}, 10}  |
+|  2 | {{9, Zzz}, 10}  |
+|  3 | {{3, Baz}, 10}  |
+|  3 | {{4, Baz}, 10}  |
+|  3 | {{8, Yyy}, 10}  |
+|  3 | {{9, Zzz}, 10}  |
+|  4 | {{5, null}, 10} |
+|  4 | {{8, Yyy}, 10}  |
+|  4 | {{9, Zzz}, 10}  |
+|  5 | {{6, Qux}, 10}  |
+|  5 | {{6, Qux}, 11}  |
+|  5 | {{8, Yyy}, 10}  |
+|  5 | {{9, Zzz}, 10}  |
++----+-----------------+
+(18 rows)
+
+!ok
+
+# MULTISET UNION ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(ROW(x, y), p), ROW(ROW(x, y), p), ROW(ROW(9, 'Zzz'), 10)]
+        MULTISET UNION ALL
+        MULTISET[ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(z, w), q), ROW(ROW(8, 'Yyy'), 10)] AS m
+    FROM (VALUES
+        (1, 1, 'Foo', 10, 1, 'Foo', 10),
+        (2, 2, 'Bar', 10, 2, 'Car', 10),
+        (3, 3, 'Baz', 10, 4, 'Baz', 10),
+        (4, 5, NULL, 10, 5, NULL, 10),
+        (5, 6, 'Qux', 10, 6, 'Qux', 11)) AS t(id, x, y, p, z, w, q)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, u.a."EXPR$0", u.a."EXPR$1", b;
++----+-----------------+
+| ID | R               |
++----+-----------------+
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{1, Foo}, 10}  |
+|  1 | {{8, Yyy}, 10}  |
+|  1 | {{9, Zzz}, 10}  |
+|  2 | {{2, Bar}, 10}  |
+|  2 | {{2, Bar}, 10}  |
+|  2 | {{2, Car}, 10}  |
+|  2 | {{2, Car}, 10}  |
+|  2 | {{2, Car}, 10}  |
+|  2 | {{8, Yyy}, 10}  |
+|  2 | {{9, Zzz}, 10}  |
+|  3 | {{3, Baz}, 10}  |
+|  3 | {{3, Baz}, 10}  |
+|  3 | {{4, Baz}, 10}  |
+|  3 | {{4, Baz}, 10}  |
+|  3 | {{4, Baz}, 10}  |
+|  3 | {{8, Yyy}, 10}  |
+|  3 | {{9, Zzz}, 10}  |
+|  4 | {{5, null}, 10} |
+|  4 | {{5, null}, 10} |
+|  4 | {{5, null}, 10} |
+|  4 | {{5, null}, 10} |
+|  4 | {{5, null}, 10} |
+|  4 | {{8, Yyy}, 10}  |
+|  4 | {{9, Zzz}, 10}  |
+|  5 | {{6, Qux}, 10}  |
+|  5 | {{6, Qux}, 10}  |
+|  5 | {{6, Qux}, 11}  |
+|  5 | {{6, Qux}, 11}  |
+|  5 | {{6, Qux}, 11}  |
+|  5 | {{8, Yyy}, 10}  |
+|  5 | {{9, Zzz}, 10}  |
++----+-----------------+
+(35 rows)
+
+!ok
+
+# ROW values with NULL fields.
+
+# MEMBER OF
+SELECT id, ROW(x, CAST(NULL AS INTEGER)) MEMBER OF MULTISET[ROW(z, CAST(NULL AS INTEGER))] AS r
+FROM (VALUES
+    (1, 1, 1),
+    (2, 2, 3)) AS t(id, x, z)
+ORDER BY id;
++----+-------+
+| ID | R     |
++----+-------+
+|  1 | true  |
+|  2 | false |
++----+-------+
+(2 rows)
+
+!ok
+
+# IS A SET and IS NOT A SET
+SELECT id,
+    MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER))] IS A SET AS r,
+    MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER))] IS NOT A SET AS not_r
+FROM (VALUES
+    (1, 1, 1),
+    (2, 2, 3)) AS t(id, x, z)
+ORDER BY id;
++----+-------+-------+
+| ID | R     | NOT_R |
++----+-------+-------+
+|  1 | false | true  |
+|  2 | true  | false |
++----+-------+-------+
+(2 rows)
+
+!ok
+
+# SUBMULTISET OF and NOT SUBMULTISET OF
+SELECT id,
+    MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER))]
+        SUBMULTISET OF MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))] AS r,
+    MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER))]
+        NOT SUBMULTISET OF MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))] AS not_r
+FROM (VALUES
+    (1, 1, 1),
+    (2, 2, 3)) AS t(id, x, z)
+ORDER BY id;
++----+-------+-------+
+| ID | R     | NOT_R |
++----+-------+-------+
+|  1 | true  | false |
+|  2 | false | true  |
++----+-------+-------+
+(2 rows)
+
+!ok
+
+# Equal input cardinalities, but too few occurrences of the requested row.
+SELECT id, MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER))]
+    SUBMULTISET OF MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))] AS r
+FROM (VALUES
+    (1, 1, 1),
+    (2, 2, 3)) AS t(id, x, z)
+ORDER BY id;
++----+-------+
+| ID | R     |
++----+-------+
+|  1 | false |
+|  2 | false |
++----+-------+
+(2 rows)
+
+!ok
+
+# MULTISET INTERSECT ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))]
+        MULTISET INTERSECT ALL
+        MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(8, CAST(NULL AS INTEGER))] AS m
+    FROM (VALUES
+        (1, 1, 1),
+        (2, 2, 3)) AS t(id, x, z)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, null} |
+|  1 | {1, null} |
++----+-----------+
+(2 rows)
+
+!ok
+
+# MULTISET INTERSECT DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))]
+        MULTISET INTERSECT DISTINCT
+        MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(8, CAST(NULL AS INTEGER))] AS m
+    FROM (VALUES
+        (1, 1, 1),
+        (2, 2, 3)) AS t(id, x, z)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, null} |
++----+-----------+
+(1 row)
+
+!ok
+
+# MULTISET EXCEPT ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))]
+        MULTISET EXCEPT ALL
+        MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(8, CAST(NULL AS INTEGER))] AS m
+    FROM (VALUES
+        (1, 1, 1),
+        (2, 2, 3)) AS t(id, x, z)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {9, null} |
+|  2 | {2, null} |
+|  2 | {2, null} |
+|  2 | {9, null} |
++----+-----------+
+(4 rows)
+
+!ok
+
+# MULTISET EXCEPT DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))]
+        MULTISET EXCEPT DISTINCT
+        MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(8, CAST(NULL AS INTEGER))] AS m
+    FROM (VALUES
+        (1, 1, 1),
+        (2, 2, 3)) AS t(id, x, z)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {9, null} |
+|  2 | {2, null} |
+|  2 | {9, null} |
++----+-----------+
+(3 rows)
+
+!ok
+
+# MULTISET UNION DISTINCT
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))]
+        MULTISET UNION DISTINCT
+        MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(8, CAST(NULL AS INTEGER))] AS m
+    FROM (VALUES
+        (1, 1, 1),
+        (2, 2, 3)) AS t(id, x, z)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, null} |
+|  1 | {8, null} |
+|  1 | {9, null} |
+|  2 | {2, null} |
+|  2 | {3, null} |
+|  2 | {8, null} |
+|  2 | {9, null} |
++----+-----------+
+(7 rows)
+
+!ok
+
+# MULTISET UNION ALL
+SELECT id, ROW(a, b) AS r
+FROM (
+    SELECT id,
+        MULTISET[ROW(x, CAST(NULL AS INTEGER)), ROW(x, CAST(NULL AS INTEGER)), ROW(9, CAST(NULL AS INTEGER))]
+        MULTISET UNION ALL
+        MULTISET[ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(z, CAST(NULL AS INTEGER)), ROW(8, CAST(NULL AS INTEGER))] AS m
+    FROM (VALUES
+        (1, 1, 1),
+        (2, 2, 3)) AS t(id, x, z)) AS t
+CROSS JOIN UNNEST(m) AS u(a, b)
+ORDER BY id, a, b;
++----+-----------+
+| ID | R         |
++----+-----------+
+|  1 | {1, null} |
+|  1 | {1, null} |
+|  1 | {1, null} |
+|  1 | {1, null} |
+|  1 | {1, null} |
+|  1 | {8, null} |
+|  1 | {9, null} |
+|  2 | {2, null} |
+|  2 | {2, null} |
+|  2 | {3, null} |
+|  2 | {3, null} |
+|  2 | {3, null} |
+|  2 | {8, null} |
+|  2 | {9, null} |
++----+-----------+
+(14 rows)
+
+!ok
+
 # End row-equality.iq

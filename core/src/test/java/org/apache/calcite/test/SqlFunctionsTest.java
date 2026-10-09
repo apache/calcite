@@ -1649,6 +1649,117 @@ class SqlFunctionsTest {
         isListOf("a", "c", "d"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testMultisetWithRows() {
+    final Object row = new Object[] {1, "Foo"};
+    final Object equalRow = new Object[] {1, "Foo"};
+    final Object otherRow = new Object[] {2, "Bar"};
+    final List<Object> left = list(row, equalRow, otherRow);
+    final List<Object> right = list(equalRow);
+    assertThat(SqlFunctions.memberOf(row, right), is(true));
+    assertThat(SqlFunctions.memberOf(otherRow, right), is(false));
+    assertThat(SqlFunctions.isASet(left), is(false));
+    assertThat(SqlFunctions.isASet(list(row, otherRow)), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(row, otherRow), left), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(row, equalRow), right), is(false));
+    assertThat(SqlFunctions.multisetIntersectAll(left, right), is(list(row)));
+    assertThat(SqlFunctions.multisetIntersectDistinct(left, right), is(list(row)));
+    assertThat(SqlFunctions.multisetExceptAll(left, right), is(list(equalRow, otherRow)));
+    assertThat(SqlFunctions.multisetExceptDistinct(left, right), is(list(otherRow)));
+    final List<?> union = SqlFunctions.multisetUnionDistinct(list(row, equalRow), right);
+    assertThat(union, hasSize(1));
+    assertSame(row, union.get(0));
+    assertThat(SqlFunctions.multisetUnionAll(left, right),
+        is(list(row, equalRow, otherRow, equalRow)));
+    assertThat(left, is(list(row, equalRow, otherRow)));
+    assertThat(right, is(list(equalRow)));
+
+    final List<?> distinct =
+        SqlFunctions.multisetUnionDistinct(Collections.singletonList(new Object[] {-31}),
+        Collections.singletonList(new Object[] {-30}));
+    assertThat(distinct, hasSize(2));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testMultisetIntersectAllCounts() {
+    final Object a1 = new Object[] {1, null};
+    final Object a2 = new Object[] {1, null};
+    final Object b = new Object[] {2, "Bar"};
+    final Object equalB = new Object[] {2, "Bar"};
+    final List<Object> left = list(a1, b, a2, null, new Object[] {1, null}, b, null);
+    final List<Object> right = list(equalB, a2, null, a1, null, null, "other");
+    assertThat(SqlFunctions.multisetIntersectAll(left, right), is(list(a1, b, a2, null, null)));
+    assertThat(SqlFunctions.multisetIntersectAll(right, left),
+        is(list(right.get(0), right.get(1), null, right.get(3), null)));
+
+    // Deep hash zero and its replacement collide, but represent different rows.
+    final Object zeroHash = new Object[] {-31};
+    final Object collision = new Object[] {-30};
+    assertThat(
+        SqlFunctions.multisetIntersectAll(list(zeroHash, collision, zeroHash),
+        list(new Object[] {-31}, new Object[] {-30}, new Object[] {-30})),
+        is(list(zeroHash, collision)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testMultisetExceptAllCounts() {
+    final Object a1 = new Object[] {1, null};
+    final Object a2 = new Object[] {1, null};
+    final Object a3 = new Object[] {1, null};
+    final Object b = new Object[] {2, "Bar"};
+    final Object equalB = new Object[] {2, "Bar"};
+    final List<Object> left = list(a1, b, a2, null, a3, b, null);
+    final List<Object> right = list(equalB, a2, null, a1, null, null, "other");
+    assertThat(SqlFunctions.multisetExceptAll(left, right), is(list(a3, b)));
+    assertThat(SqlFunctions.multisetExceptAll(right, left), is(list(null, "other")));
+    assertThat(SqlFunctions.multisetExceptAll(left, list()), is(left));
+    assertThat(SqlFunctions.multisetExceptAll(left, left), is(list()));
+    assertThat(left, is(list(a1, b, a2, null, a3, b, null)));
+    assertThat(right, is(list(equalB, a2, null, a1, null, null, "other")));
+
+    // Deep hash zero and its replacement collide, but represent different rows.
+    final Object zeroHash = new Object[] {-31};
+    final Object collision = new Object[] {-30};
+    assertThat(
+        SqlFunctions.multisetExceptAll(list(zeroHash, collision, zeroHash),
+        list(new Object[] {-31}, new Object[] {-30}, new Object[] {-30})),
+        is(Collections.singletonList(zeroHash)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testSubmultisetOfCounts() {
+    final Object row = new Object[] {1, null};
+    final Object equalRow = new Object[] {1, null};
+    final Object other = new Object[] {2, null};
+    final List<Object> sub = list(row, equalRow, null);
+    final List<Object> multiset = list(equalRow, other, null);
+    assertThat(SqlFunctions.submultisetOf(sub, multiset), is(false));
+    assertThat(SqlFunctions.submultisetOf(sub, list(equalRow, row, null, other)), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(null, null), list(null, other)), is(false));
+    assertThat(SqlFunctions.submultisetOf(list(null, null), list(null, null)), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(), list()), is(true));
+    assertThat(sub, is(list(row, equalRow, null)));
+    assertThat(multiset, is(list(equalRow, other, null)));
+
+    // Deep hash zero and its replacement collide, but represent different rows.
+    final Object zeroHash = new Object[] {-31};
+    final Object collision = new Object[] {-30};
+    assertThat(
+        SqlFunctions.submultisetOf(list(zeroHash, zeroHash),
+        list(new Object[] {-31}, collision)), is(false));
+    assertThat(
+        SqlFunctions.submultisetOf(list(zeroHash, collision),
+        list(new Object[] {-30}, new Object[] {-31})), is(true));
+  }
+
   @Test void testMd5() {
     assertThat("d41d8cd98f00b204e9800998ecf8427e", is(md5("")));
     assertThat("d41d8cd98f00b204e9800998ecf8427e", is(md5(ByteString.of("", 16))));
@@ -2581,6 +2692,8 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.arrayUnion(input, list(equalRow, other, null)),
         is(list(row, null, other)));
     assertThat(SqlFunctions.arrayIntersect(input, list(equalRow, null)),
+        is(list(row, null)));
+    assertThat(SqlFunctions.arrayIntersect(input, list(null, equalRow, null, equalRow)),
         is(list(row, null)));
     assertThat(SqlFunctions.arrayExcept(input, list(equalRow, null)), is(list(other)));
     assertThat(arraysOverlap(input, list(equalRow)), is(true));
