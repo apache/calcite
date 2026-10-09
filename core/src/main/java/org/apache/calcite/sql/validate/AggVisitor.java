@@ -23,12 +23,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlAbstractGroupFunction;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -89,12 +89,12 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     if (operator instanceof SqlFunction) {
       final SqlFunction sqlFunction = (SqlFunction) operator;
       if (sqlFunction.getFunctionType().isUserDefinedNotSpecificFunction()) {
-        final List<SqlOperator> list = new ArrayList<>();
         final SqlIdentifier identifier = sqlFunction.getSqlIdentifier();
         if (identifier != null) {
-          opTab.lookupOperatorOverloads(identifier,
-              sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list,
-              nameMatcher);
+          final List<SqlOperator> list =
+              SqlUtil.lookupOperatorsByParameterCount(opTab,
+                  sqlFunction.getFunctionType(), SqlSyntax.FUNCTION,
+                  identifier, nameMatcher, call.operandCount());
           for (SqlOperator operator2 : list) {
             if (operator2.isAggregator() && !operator2.requiresOver()) {
               // If nested aggregates disallowed or found aggregate at invalid
