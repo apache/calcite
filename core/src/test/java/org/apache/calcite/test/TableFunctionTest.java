@@ -16,19 +16,27 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -193,6 +201,60 @@ class TableFunctionTest {
         + "S=xyz\n"
         + "S=generate(w=5, h=3, s=1)\n";
     assertThat(CalciteAssert.toString(resultSet), is(result));
+  }
+
+  /** Tests set operations between one-column table functions and tables. */
+  @Test void testOneColumnTableFunctionSetOperations() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+         Statement statement = connection.createStatement()) {
+      final SchemaPlus schema = connection.unwrap(CalciteConnection.class)
+          .getRootSchema().add("s", new AbstractSchema());
+      schema.add("numbers_fn", TableFunctionImpl.create(NumbersTable.class, "numbers"));
+      schema.add("numbers_table", new NumbersTable(2, 3));
+
+      final String function = "SELECT n FROM TABLE(\"s\".\"numbers_fn\"())";
+      final String table = "SELECT n FROM \"s\".\"numbers_table\"";
+      assertThat(CalciteAssert.toString(statement.executeQuery(function + " EXCEPT " + table)),
+          is("N=1\n"));
+      assertThat(CalciteAssert.toString(statement.executeQuery(table + " EXCEPT " + function)),
+          is("N=3\n"));
+      assertThat(
+          CalciteAssert.toString(
+              statement.executeQuery(function + " UNION " + table + " ORDER BY n")),
+          is("N=1\nN=2\nN=3\n"));
+      assertThat(
+          CalciteAssert.toString(
+              statement.executeQuery(table + " UNION " + function + " ORDER BY n")),
+          is("N=1\nN=2\nN=3\n"));
+      assertThat(CalciteAssert.toString(statement.executeQuery(function + " INTERSECT " + table)),
+          is("N=2\n"));
+      assertThat(CalciteAssert.toString(statement.executeQuery(table + " INTERSECT " + function)),
+          is("N=2\n"));
+    }
+  }
+
+  /** A one-column table whose rows are arrays, used as a table and a function. */
+  public static class NumbersTable extends AbstractTable implements ScannableTable {
+    private final Object[][] rows;
+
+    NumbersTable(int... values) {
+      rows = new Object[values.length][1];
+      for (int i = 0; i < values.length; i++) {
+        rows[i][0] = values[i];
+      }
+    }
+
+    public static ScannableTable numbers() {
+      return new NumbersTable(1, 2);
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder().add("N", SqlTypeName.INTEGER).build();
+    }
+
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(rows);
+    }
   }
 
   /** As {@link #testScannableTableFunction()} but with named parameters. */
