@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -311,8 +312,10 @@ public class EnumerableTableModify extends TableModify
 
     // Build sink key extractor by reading table fields from each sink row.
     final ParameterExpression sinkRow = Expressions.parameter(Object.class, "sinkRow");
+    // Box, because Janino cannot cast Object to a primitive.
     final Expression typedSinkRow =
-        Expressions.convert_(sinkRow, tablePhysType.getJavaRowType());
+        Expressions.convert_(sinkRow,
+            Primitive.box(tablePhysType.getJavaRowType()));
     final List<Expression> sinkValues = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
       sinkValues.add(tablePhysType.fieldReference(typedSinkRow, i, Object.class));
