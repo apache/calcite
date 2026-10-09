@@ -127,6 +127,9 @@ limitations under the License.
             <button id="next-button" disabled>▶</button>
             <div id="current-step" style="display: inline-block"></div>
         </div>
+        <div>
+            <button id="animate-button">Play Animated Plan</button>
+        </div>
         <svg id="svg-canvas" width="100%" height="100%" ></svg>
     </div>
     <div id="step-list-column" class="column1">
@@ -416,6 +419,23 @@ limitations under the License.
     parseLocation();
     setCurrentStep(currentStepIndex);
     fitContent();
+    
+     function animatePlanningSequence(stepCount, stepSpeedMs = 1500) {
+        let stepIndex = 0;
+        const interval = setInterval(() => {
+            if (stepIndex < stepCount) {
+                setCurrentStep(stepIndex);
+                fitContent();
+                stepIndex++;
+            } else {
+                clearInterval(interval);
+            }
+        }, stepSpeedMs);
+      }
+
+    document.getElementById("animate-button").addEventListener("click", () => {
+        animatePlanningSequence(data?.steps?.length);
+    });
 </script>
 
 </html>
