@@ -19,11 +19,13 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -71,6 +73,25 @@ public class ProcedureNamespace extends AbstractNamespace {
     }
     final SqlReturnTypeInference rowTypeInference =
         tableFunction.getRowTypeInference();
+    // A table function transforms the rows of its table arguments (e.g.
+    // "TABLE t" passed to TUMBLE), so a must-filter obligation recorded on
+    // an input cannot be re-expressed in terms of this namespace's columns.
+    // Fail closed: require every table argument to have discharged its
+    // obligations rather than silently dropping them.
+    call.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall queryCall) {
+        if (queryCall.getKind().belongsTo(SqlKind.QUERY)) {
+          final SqlValidatorNamespace inputNs = validator.getNamespace(queryCall);
+          if (inputNs != null) {
+            requireNoFilterRequirement(inputNs, call);
+            // The requirements of the input's own children have already
+            // been aggregated into its namespace; do not descend further.
+            return null;
+          }
+        }
+        return super.visit(queryCall);
+      }
+    });
     return requireNonNull(
         rowTypeInference.inferReturnType(callBinding),
         () -> "got null from inferReturnType for call " + callBinding.getCall());

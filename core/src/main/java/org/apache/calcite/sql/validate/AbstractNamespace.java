@@ -28,8 +28,12 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -168,6 +172,38 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   @Override public FilterRequirement getFilterRequirement() {
     return requireNonNull(filterRequirement,
         "filterRequirement (maybe validation is not complete?)");
+  }
+
+  /** Requires that a source namespace has no pending "must-filter" obligations.
+   *
+   * <p>Namespaces such as PIVOT, UNPIVOT, MATCH_RECOGNIZE and table function
+   * calls transform the rows of their source in a way that does not preserve
+   * column positions, and therefore cannot re-express the source's
+   * {@link FilterRequirement} in terms of their own output columns. Rather
+   * than silently dropping the requirement (which would let a query read a
+   * {@link SemanticTable}'s rows with the must-filter enforcement bypassed),
+   * such namespaces fail closed: the source's must-filter fields have to be
+   * filtered (or defused by a bypass field) within the source query itself.
+   *
+   * @param sourceNs Namespace whose rows this namespace transforms
+   * @param node     Node to which a validation error should be attached
+   */
+  protected void requireNoFilterRequirement(SqlValidatorNamespace sourceNs, SqlNode node) {
+    sourceNs.getRowType(); // ensure the source namespace has been validated
+    final FilterRequirement requirement = sourceNs.getFilterRequirement();
+    if (requirement.filterFields.isEmpty() && requirement.remnantFilterFields.isEmpty()) {
+      return;
+    }
+    // Set of field names, sorted alphabetically for determinism.
+    final Set<String> fieldNameSet = new TreeSet<>();
+    for (int field : requirement.filterFields) {
+      fieldNameSet.add(sourceNs.getRowType().getFieldNames().get(field));
+    }
+    for (SqlQualified qualified : requirement.remnantFilterFields) {
+      fieldNameSet.add(qualified.suffix().get(0));
+    }
+    throw validator.newValidationError(node,
+        RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
