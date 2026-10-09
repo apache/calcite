@@ -554,7 +554,6 @@ class TopDownRuleDriver implements RuleDriver {
       final RelNode finalPassThroughRel = passThroughRel;
       applyGenerator(null, () ->
           planner.register(finalPassThroughRel, group));
-      rel = passThroughRel;
     }
     boolean unProcess = false;
     for (RelNode input : rel.getInputs()) {
