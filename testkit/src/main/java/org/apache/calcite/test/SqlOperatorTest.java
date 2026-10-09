@@ -2968,7 +2968,7 @@ public class SqlOperatorTest {
   @Test void testDivideOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DIVIDE, VmName.EXPAND);
-    f.checkScalarExact("95.0 / 100", "DECIMAL(14, 6) NOT NULL", "0.95");
+    f.checkScalarExact("95.0 / 100", "DECIMAL(14, 12) NOT NULL", "0.95");
     f.checkScalarExact("95 / 100.0", "DECIMAL(17, 6) NOT NULL", "0.95");
     f.checkScalarExact("10 / 5", "INTEGER NOT NULL", "2");
     f.checkScalarExact("-10 / 5", "INTEGER NOT NULL", "-2");
@@ -2981,9 +2981,9 @@ public class SqlOperatorTest {
         isExactly("0.6"));
     f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2");
     f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.3333333333333333");
-    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 6) NOT NULL",
+    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
         "1.001E+6");
-    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 6) NOT NULL",
+    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
         "1.001E+10");
     f.checkNull("1e1 / cast(null as float)");
     f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 6) NOT NULL",
@@ -11056,7 +11056,7 @@ public class SqlOperatorTest {
     f.checkScalar("safe_divide(cast(15 as bigint), cast(1.2 as decimal(2,1)))",
         "12.5", "DECIMAL(19, 6)");
     f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), cast(3 as bigint))",
-        "1.5", "DECIMAL(19, 6)");
+        "1.5", "DECIMAL(19, 18)");
     f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), "
         + "cast(1.5 as decimal(2, 1)))", "3", "DECIMAL(8, 6)");
     f.checkScalar("safe_divide(cast(3 as double), cast(3 as bigint))",

@@ -246,7 +246,7 @@ class RelDataTypeSystemTest {
         SqlStdOperatorTable.DIVIDE.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
     assertThat(dataType.getPrecision(), is(15));
-    assertThat(dataType.getScale(), is(6));
+    assertThat(dataType.getScale(), is(9));
   }
 
   /**
@@ -289,6 +289,37 @@ class RelDataTypeSystemTest {
     assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
     assertThat(dataType.getPrecision(), is(28));
     assertThat(dataType.getScale(), is(6));
+  }
+
+  @Test void testDecimalDivideScaleUsesIntegralDigits() {
+    final RelDataTypeSystem typeSystem = new RelDataTypeSystemImpl() {
+      @Override public int getMaxPrecision(SqlTypeName typeName) {
+        return typeName == SqlTypeName.DECIMAL ? 38 : super.getMaxPrecision(typeName);
+      }
+
+      @Override public int getMaxScale(SqlTypeName typeName) {
+        return typeName == SqlTypeName.DECIMAL ? 38 : super.getMaxScale(typeName);
+      }
+    };
+    final SqlTypeFactoryImpl factory = new SqlTypeFactoryImpl(typeSystem);
+    // Operand precisions/scales, followed by expected result precision/scale.
+    final int[][] cases = {
+        {18, 6, 18, 6, 38, 20},
+        {18, 0, 18, 0, 37, 19},
+        {32, 0, 1, 0, 38, 6},
+        {33, 0, 1, 0, 38, 6},
+        {38, 20, 38, 20, 38, 6}
+    };
+    for (int[] values : cases) {
+      final RelDataType left =
+          factory.createSqlType(SqlTypeName.DECIMAL, values[0], values[1]);
+      final RelDataType right =
+          factory.createSqlType(SqlTypeName.DECIMAL, values[2], values[3]);
+      final RelDataType result =
+          SqlStdOperatorTable.DIVIDE.inferReturnType(factory, Lists.newArrayList(left, right));
+      assertThat(result.getPrecision(), is(values[4]));
+      assertThat(result.getScale(), is(values[5]));
+    }
   }
 
   @Test void testDecimalModReturnTypeInference() {
