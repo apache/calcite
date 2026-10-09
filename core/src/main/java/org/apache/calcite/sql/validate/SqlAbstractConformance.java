@@ -145,6 +145,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowExtendedTrim();
   }
 
+  @Override public boolean allowBareBracketArrayLiteral() {
+    return SqlConformanceEnum.DEFAULT.allowBareBracketArrayLiteral();
+  }
+
   @Override public boolean allowPluralTimeUnits() {
     return SqlConformanceEnum.DEFAULT.allowPluralTimeUnits();
   }
