@@ -107,6 +107,7 @@ dependencies {
         apiv("org.apache.commons:commons-dbcp2")
         apiv("org.apache.commons:commons-math3")
         apiv("org.apache.commons:commons-pool2")
+        apiv("org.apache.commons:commons-secure-xml")
         apiv("org.apache.commons:commons-collections4")
         apiv("org.apache.commons:commons-text")
         apiv("org.apache.geode:geode-core")
