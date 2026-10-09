@@ -54,11 +54,49 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Test cases for
+ * Tests for collection types, including
  * <a href="https://issues.apache.org/jira/browse/CALCITE-1386">[CALCITE-1386]
  * ITEM operator seems to ignore the value type of collection and assign the value to Object</a>.
  */
 class CollectionTypeTest {
+  // Use a table scan so multi-column results are represented as Object[].
+  // VALUES can produce a different physical format and hide comparator bugs.
+  private static final String ARRAY_OF_ROWS_QUERY =
+      "SELECT ARRAY[ROW(MOD(\"ID\", 2), CAST(NULL AS INTEGER))] AS a,\n"
+          + "\"ARRAYFIELD\"[1] AS n FROM \"T\"";
+
+  @Test void testDistinctArrayOfRows() {
+    withNestedTable()
+        .query("SELECT DISTINCT a, n FROM (" + ARRAY_OF_ROWS_QUERY + ")")
+        .returnsUnordered("A=[{0, null}]; N=100", "A=[{1, null}]; N=100");
+  }
+
+  @Test void testUnionArrayOfRows() {
+    withNestedTable()
+        .query(ARRAY_OF_ROWS_QUERY + " UNION " + ARRAY_OF_ROWS_QUERY)
+        .returnsUnordered("A=[{0, null}]; N=100", "A=[{1, null}]; N=100");
+  }
+
+  @Test void testIntersectArrayOfRows() {
+    withNestedTable()
+        .query(ARRAY_OF_ROWS_QUERY + " INTERSECT " + ARRAY_OF_ROWS_QUERY + " WHERE \"ID\" = 1")
+        .returnsUnordered("A=[{1, null}]; N=100");
+  }
+
+  @Test void testExceptArrayOfRows() {
+    withNestedTable()
+        .query(ARRAY_OF_ROWS_QUERY + " EXCEPT " + ARRAY_OF_ROWS_QUERY + " WHERE \"ID\" = 1")
+        .returnsUnordered("A=[{0, null}]; N=100");
+  }
+
+  private static CalciteAssert.AssertThat withNestedTable() {
+    return CalciteAssert.that().with(connection -> {
+      connection.unwrap(CalciteConnection.class).getRootSchema()
+          .add("T", new NestedCollectionTable());
+      return connection;
+    });
+  }
+
   @Test void testAccessNestedMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 

@@ -49,6 +49,16 @@ public abstract class SqlInternalOperators {
   private SqlInternalOperators() {
   }
 
+  /** Appends a key tuple to the path of a recursive CTE. */
+  public static final SqlInternalOperator CYCLE_PATH_APPEND =
+      new SqlInternalOperator("$CYCLE_PATH_APPEND", SqlKind.OTHER_FUNCTION,
+          2, true, ReturnTypes.ARG0, null, OperandTypes.ANY_ANY);
+
+  /** Tests whether a key tuple occurs in a recursive CTE's path. */
+  public static final SqlInternalOperator CYCLE_PATH_CONTAINS =
+      new SqlInternalOperator("$CYCLE_PATH_CONTAINS", SqlKind.OTHER_FUNCTION,
+          2, true, ReturnTypes.BOOLEAN_NOT_NULL, null, OperandTypes.ANY_ANY);
+
   /** Similar to {@link SqlStdOperatorTable#ROW}, but does not print "ROW".
    *
    * <p>For arguments [1, TRUE], ROW would print "{@code ROW (1, TRUE)}",
