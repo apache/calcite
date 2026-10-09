@@ -179,13 +179,17 @@ public class SqlParser {
    * Parses a <code>SELECT</code> statement and reuses parser.
    *
    * @param sql sql to parse
+   * @param config define the configuration for a SQL parser
    * @return A {@link org.apache.calcite.sql.SqlSelect} for a regular <code>
    * SELECT</code> statement; a {@link org.apache.calcite.sql.SqlBinaryOperator}
    * for a <code>UNION</code>, <code>INTERSECT</code>, or <code>EXCEPT</code>.
    * @throws SqlParseException if there is a parse error
    */
-  public SqlNode parseQuery(String sql) throws SqlParseException {
+  public SqlNode parseQuery(String sql, Config config) throws SqlParseException {
+    SqlAbstractParserImpl.LexicalState state = SqlAbstractParserImpl.LexicalState.forConfig(
+        config);
     parser.ReInit(new StringReader(sql));
+    parser.switchTo(state);
     return parseQuery();
   }
 
