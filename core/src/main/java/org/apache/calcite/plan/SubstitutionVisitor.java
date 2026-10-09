@@ -17,6 +17,8 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -35,6 +37,7 @@ import org.apache.calcite.rel.mutable.MutableRelVisitor;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.mutable.MutableSetOp;
+import org.apache.calcite.rel.mutable.MutableSort;
 import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -72,6 +75,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -85,6 +89,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -150,7 +155,8 @@ public class SubstitutionVisitor {
           UnionToUnionUnifyRule.INSTANCE,
           UnionOnCalcsToUnionUnifyRule.INSTANCE,
           IntersectToIntersectUnifyRule.INSTANCE,
-          IntersectOnCalcsToIntersectUnifyRule.INSTANCE);
+          IntersectOnCalcsToIntersectUnifyRule.INSTANCE,
+          SortToSortUnifyRule.INSTANCE);
 
   /**
    * Factory for a builder for relational expressions.
@@ -1674,6 +1680,104 @@ public class SubstitutionVisitor {
     @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       return setOpApply(call);
     }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableSort} to a {@link MutableSort} where the query and target
+   * have the same inputs but might not have the same order.
+   */
+  private static class SortToSortUnifyRule extends AbstractUnifyRule {
+
+    public static final SortToSortUnifyRule INSTANCE = new SortToSortUnifyRule();
+
+    private SortToSortUnifyRule() {
+      super(any(MutableSort.class), any(MutableSort.class), 0);
+    }
+
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
+      final MutableSort query = (MutableSort) call.query;
+      final MutableSort target = (MutableSort) call.target;
+      final RelCollation queryCollation = query.collation;
+      final RelCollation targetCollation = target.collation;
+
+      final Range<Integer> queryRange = calcSortRange(query.offset, query.fetch);
+      final Range<Integer> targetRange = calcSortRange(target.offset, target.fetch);
+      if (!targetRange.encloses(queryRange)) {
+        // abort it, if target's range is smaller than query's.
+        return null;
+      }
+
+      final MutableRel equalRel;
+      if (targetCollation.equals(queryCollation)) {
+        // same field's collation info, we just compensate the info of offset and fetch.
+        final RexNode newOffset = calcNewOffset(query, target, queryRange, targetRange);
+        if (newOffset == null && Objects.equals(query.fetch, target.fetch)) {
+          // if new offset is null and query's fetch is equal to target's, it return target.
+          // eg:
+          // target: select * from tbl fetch next 3 rows only
+          // query: select * from tbl fetch next 3 rows only
+          equalRel = target;
+        } else {
+          equalRel = MutableSort.of(target, RelCollations.EMPTY, newOffset, query.fetch);
+        }
+      } else {
+        // query and mv has different field's collation info.
+        if (target.offset == null && target.fetch == null) {
+          // rebuild field's collation info
+          // 1. copy query's collation info into new equal rel
+          // 2. build offset and fetch with query's info
+          equalRel = MutableSort.of(target, queryCollation, query.offset, query.fetch);
+        } else {
+          // mv has the info of offset and fetch, eg:
+          // query: select * from tbl order by id limit 10
+          // mv: select * from tbl order by id desc limit 10
+          equalRel = null;
+        }
+      }
+      if (equalRel == null) {
+        return null;
+      } else {
+        return call.result(equalRel);
+      }
+    }
+  }
+
+  /** Calculate new compensated offset in query from target's. */
+  private static @Nullable RexNode calcNewOffset(MutableSort query, MutableSort target,
+      Range<Integer> queryRange, Range<Integer> targetRange) {
+    if (query.offset == null) {
+      return null;
+    } else {
+      final int newOffset = queryRange.lowerEndpoint() - targetRange.lowerEndpoint();
+      if (newOffset == 0 && Objects.equals(query.fetch, target.fetch)) {
+        return null;
+      } else {
+        final RexLiteral newOffsetNode = query.cluster.getRexBuilder()
+            .makeLiteral(newOffset, query.offset.getType());
+        return newOffsetNode;
+      }
+    }
+  }
+
+  /** Analyze info of offset and fetch in {@link MutableSort}. */
+  private static Range<Integer> calcSortRange(@Nullable RexNode offset, @Nullable RexNode fetch) {
+    final Integer offsetValue;
+    if (offset == null) {
+      offsetValue = 0;
+    } else {
+      offsetValue = ((RexLiteral) offset).getValueAs(Integer.class);
+    }
+    assert offsetValue != null;
+    final Range<Integer> range;
+    if (fetch == null) {
+      range = Range.atLeast(offsetValue);
+    } else {
+      final Integer fetchValue = ((RexLiteral) fetch).getValueAs(Integer.class);
+      assert fetchValue != null;
+      range = Range.closed(offsetValue, offsetValue + fetchValue - 1);
+    }
+    return range;
   }
 
   /**
