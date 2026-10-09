@@ -25,13 +25,14 @@ import java.util.List;
 
 /**
  * An item in a WITH clause of a query.
- * It has a name, an optional column list, and a query.
+ * It has a name, an optional column list, a query, and an optional CYCLE clause.
  */
 public class SqlWithItem extends SqlCall {
   public SqlIdentifier name;
   public @Nullable SqlNodeList columnList; // may be null
   public SqlLiteral recursive;
   public SqlNode query;
+  public @Nullable SqlCycleClause cycleClause;
 
   @Deprecated // to be removed before 2.0
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
@@ -43,11 +44,18 @@ public class SqlWithItem extends SqlCall {
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query,
       SqlLiteral recursive) {
+    this(pos, name, columnList, query, recursive, null);
+  }
+
+  public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
+      @Nullable SqlNodeList columnList, SqlNode query,
+      SqlLiteral recursive, @Nullable SqlCycleClause cycleClause) {
     super(pos);
     this.name = name;
     this.columnList = columnList;
     this.recursive = recursive;
     this.query = query;
+    this.cycleClause = cycleClause;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -58,7 +66,7 @@ public class SqlWithItem extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query, recursive);
+    return ImmutableNullableList.of(name, columnList, query, recursive, cycleClause);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -75,6 +83,9 @@ public class SqlWithItem extends SqlCall {
       break;
     case 3:
       recursive = (SqlLiteral) operand;
+      break;
+    case 4:
+      cycleClause = (SqlCycleClause) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -111,15 +122,19 @@ public class SqlWithItem extends SqlCall {
       }
       writer.keyword("AS");
       withItem.query.unparse(writer, MDX_PRECEDENCE, MDX_PRECEDENCE);
+      if (withItem.cycleClause != null) {
+        withItem.cycleClause.unparse(writer, 0, 0);
+      }
     }
 
     @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 4;
+      assert operands.length == 4 || operands.length == 5;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
-          (SqlNodeList) operands[1], operands[2], (SqlLiteral) operands[3]);
+          (SqlNodeList) operands[1], operands[2], (SqlLiteral) operands[3],
+          operands.length == 5 ? (SqlCycleClause) operands[4] : null);
     }
   }
 }

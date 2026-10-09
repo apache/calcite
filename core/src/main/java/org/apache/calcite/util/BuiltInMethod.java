@@ -922,6 +922,7 @@ public enum BuiltInMethod {
   SUBMULTISET_OF(SqlFunctions.class, "submultisetOf", Collection.class,
       Collection.class),
   ARRAY_APPEND(SqlFunctions.class, "arrayAppend", List.class, Object.class),
+  CYCLE_PATH_CONTAINS(SqlFunctions.class, "cyclePathContains", List.class, Object.class),
   ARRAY_COMPACT(SqlFunctions.class, "compact", List.class),
   ARRAY_DISTINCT(SqlFunctions.class, "distinct", List.class),
   ARRAY_MAX(SqlFunctions.class, "arrayMax", List.class),
