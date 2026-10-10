@@ -504,4 +504,91 @@ FROM a,
 !ok
 
 
+WITH RECURSIVE graph(src, dst) AS (
+    VALUES ('A', 'B'), ('B', 'C'), ('C', 'A'), ('B', 'D')
+),
+walk(node) AS (
+    VALUES ('A')
+    UNION ALL
+    SELECT g.dst FROM walk w JOIN graph g ON g.src = w.node
+)
+CYCLE node SET is_cycle TO 'Y' DEFAULT 'N' USING cycle_path
+SELECT node, is_cycle, cycle_path FROM walk
+ORDER BY CARDINALITY(cycle_path), node;
++------+----------+----------------------+
+| NODE | IS_CYCLE | CYCLE_PATH           |
++------+----------+----------------------+
+| A    | N        | [{A}]                |
+| B    | N        | [{A}, {B}]           |
+| C    | N        | [{A}, {B}, {C}]      |
+| D    | N        | [{A}, {B}, {D}]      |
+| A    | Y        | [{A}, {B}, {C}, {A}] |
++------+----------+----------------------+
+(5 rows)
+
+!ok
+
+WITH RECURSIVE pairs(n, k) AS (
+    VALUES (1, 1)
+    UNION ALL
+    SELECT n, 3 - k FROM pairs
+)
+CYCLE n, k SET is_cycle USING cycle_path
+SELECT n, k, is_cycle, CARDINALITY(cycle_path) AS depth FROM pairs
+ORDER BY depth;
++---+---+----------+-------+
+| N | K | IS_CYCLE | DEPTH |
++---+---+----------+-------+
+| 1 | 1 | false    |     1 |
+| 1 | 2 | false    |     2 |
+| 1 | 1 | true     |     3 |
++---+---+----------+-------+
+(3 rows)
+
+!ok
+
+WITH RECURSIVE t(n) AS (
+    VALUES (1), (1)
+    UNION DISTINCT
+    SELECT n FROM t
+)
+CYCLE n SET is_cycle USING cycle_path
+SELECT n, is_cycle, cycle_path FROM t
+ORDER BY CARDINALITY(cycle_path);
++---+----------+------------+
+| N | IS_CYCLE | CYCLE_PATH |
++---+----------+------------+
+| 1 | false    | [{1}]      |
+| 1 | true     | [{1}, {1}] |
++---+----------+------------+
+(2 rows)
+
+!ok
+
+WITH RECURSIVE t("nodeId", k) AS (
+    VALUES (1, 2)
+    UNION ALL
+    SELECT "nodeId" + 1, k FROM t WHERE "nodeId" < 2
+)
+CYCLE k, "nodeId" SET is_cycle USING cycle_path
+SELECT u.k, u."nodeId"
+FROM t, UNNEST(t.cycle_path) AS u
+WHERE t."nodeId" = 2
+ORDER BY u."nodeId";
++---+--------+
+| K | nodeId |
++---+--------+
+| 2 |      1 |
+| 2 |      2 |
++---+--------+
+(2 rows)
+
+!ok
+
+WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)
+CYCLE n SET is_cycle TO 'Y' DEFAULT 'Y' USING cycle_path
+SELECT * FROM t;
+CYCLE mark and default must be distinct, non-null Boolean or compatible single-character string literals
+!error
+
 # End recursive_queries.iq
