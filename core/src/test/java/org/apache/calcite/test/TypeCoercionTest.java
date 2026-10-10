@@ -312,9 +312,9 @@ class TypeCoercionTest {
     expr("'12.3'/cast(5 as double)")
         .columnType("DOUBLE NOT NULL");
     expr("'12.3'/5.1")
-        .columnType("DECIMAL(19, 6) NOT NULL");
+        .columnType("DECIMAL(19, 8) NOT NULL");
     expr("12.3/'5.1'")
-        .columnType("DECIMAL(19, 6) NOT NULL");
+        .columnType("DECIMAL(19, 8) NOT NULL");
     // test binary arithmetic with two strings.
     expr("'12.3' + '5'")
         .columnType("DECIMAL(19, 9) NOT NULL");

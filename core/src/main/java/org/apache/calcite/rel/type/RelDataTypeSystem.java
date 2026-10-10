@@ -393,10 +393,10 @@ public interface RelDataTypeSystem {
         //   can't fit into 32 digits.
         final int maxPrecision = getMaxNumericPrecision();
         int bound = maxPrecision - six;  // This was '32' in the MS documentation
-        if (precision <= bound) {
+        if (d <= bound) {
           scale = Math.min(scale, maxPrecision - (precision - scale));
         } else {
-          // precision > bound
+          // Integral digits exceed the bound.
           scale = Math.min(six, scale);
         }
 
