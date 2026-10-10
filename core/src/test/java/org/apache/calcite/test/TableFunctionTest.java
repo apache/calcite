@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -29,6 +30,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +41,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,6 +118,41 @@ class TableFunctionTest {
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
       assertThat(CalciteAssert.toString(resultSet),
           equalTo("N=4; C=abcd\n"));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7845">[CALCITE-7845]
+   * Fix UDF/UDTF overload resolution with generic parameter types</a>. */
+  @Test void testTableFunctionOverloadedWithObject() {
+    final ImmutableList<Class<?>> types =
+        ImmutableList.of(Object.class, String.class, Timestamp.class);
+    for (List<Class<?>> order : ImmutableList.of(types, types.reverse())) {
+      final CalciteAssert.AssertThat with = CalciteAssert.that().with(connection -> {
+        final SchemaPlus schema = connection.unwrap(CalciteConnection.class).getRootSchema()
+            .add("s", new AbstractSchema());
+        for (Class<?> type : order) {
+          schema.add(
+              "F", TableFunctionImpl.create(
+              Types.lookupMethod(Smalls.GenericOverloadFunction.class,
+                  "table", String.class, type)));
+        }
+        return connection;
+      });
+      with.query("select count(*) from table(\"s\".f('x', 'text'))").returnsValue("1");
+      with.query("select count(*) from table(\"s\".f('x', localtimestamp))")
+          .returnsValue("2");
+      with.query("select count(*) from table(\"s\".f('x', true))").returnsValue("3");
+      with.query("select count(*) from table(\"s\".f('x', cast(null as timestamp)))")
+          .returnsValue("2");
+      with.query("select count(*) from table(\"s\".f(\n"
+          + "\"value\" => localtimestamp, \"label\" => 'x'))")
+          .returnsValue("2");
+      with.query("select count(*) from table(\"s\".f('x', cast(? as timestamp)))")
+          .consumesPreparedStatement(
+              p -> p.setTimestamp(1,
+              Timestamp.valueOf("2024-01-02 03:04:05")))
+          .returnsValue("2");
     }
   }
 

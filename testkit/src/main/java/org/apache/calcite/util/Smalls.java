@@ -1468,6 +1468,43 @@ public class Smalls {
     }
   }
 
+  /** Scalar and table functions with concrete and generic parameter types. */
+  public static class GenericOverloadFunction {
+    public static Object objectValue() {
+      return "text";
+    }
+
+    public static String eval(@Parameter(name = "label") String label,
+        @Parameter(name = "value") String value) {
+      return label + ":String";
+    }
+
+    public static String eval(@Parameter(name = "label") String label,
+        @Parameter(name = "value") Timestamp value) {
+      return label + ":Timestamp";
+    }
+
+    public static String eval(@Parameter(name = "label") String label,
+        @Parameter(name = "value") Object value) {
+      return label + ":Object";
+    }
+
+    public static QueryableTable table(@Parameter(name = "label") String label,
+        @Parameter(name = "value") String value) {
+      return generateStrings(1);
+    }
+
+    public static QueryableTable table(@Parameter(name = "label") String label,
+        @Parameter(name = "value") Timestamp value) {
+      return generateStrings(2);
+    }
+
+    public static QueryableTable table(@Parameter(name = "label") String label,
+        @Parameter(name = "value") Object value) {
+      return generateStrings(3);
+    }
+  }
+
   /** Table with columns (A, B). */
   public static class SimpleTable extends AbstractQueryableTable
       implements TranslatableTable {
