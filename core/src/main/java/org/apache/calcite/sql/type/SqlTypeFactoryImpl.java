@@ -30,6 +30,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -42,6 +44,11 @@ import static java.util.Objects.requireNonNull;
  * {@link RelDataTypeFactory} which supports SQL types.
  */
 public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
+  private final AtomicReferenceArray<SqlTypeWithPrecision> sqlTypesWithPrecision =
+      new AtomicReferenceArray<>(SqlTypeName.values().length);
+  private final AtomicReferenceArray<DecoratedSqlType> decoratedSqlTypes =
+      new AtomicReferenceArray<>(SqlTypeName.values().length);
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlTypeFactoryImpl(RelDataTypeSystem typeSystem) {
@@ -72,12 +79,25 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
+    final int typeIndex = typeName.ordinal();
+    final @Nullable Charset defaultCharset =
+        SqlTypeName.CHAR_TYPES.contains(typeName) ? getDefaultCharset() : null;
+    final @Nullable SqlTypeWithPrecision lastType =
+        sqlTypesWithPrecision.get(typeIndex);
+    if (lastType != null
+        && lastType.precision == precision
+        && Objects.equals(lastType.defaultCharset, defaultCharset)) {
+      return lastType.type;
+    }
     // Does not check precision when typeName is SqlTypeName#NULL.
     RelDataType newType = precision == RelDataType.PRECISION_NOT_SPECIFIED
         ? new BasicSqlType(typeSystem, typeName)
         : new BasicSqlType(typeSystem, typeName, precision);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
-    return canonize(newType);
+    newType = canonize(newType);
+    sqlTypesWithPrecision.set(typeIndex,
+        new SqlTypeWithPrecision(precision, defaultCharset, newType));
+    return newType;
   }
 
   @SuppressWarnings("deprecation") // [CALCITE-6598]
@@ -168,7 +188,17 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     RelDataType newType;
     if (type instanceof BasicSqlType) {
       BasicSqlType sqlType = (BasicSqlType) type;
+      int index = sqlType.getSqlTypeName().ordinal();
+      @Nullable DecoratedSqlType cached = decoratedSqlTypes.get(index);
+      if (cached != null && cached.source == type
+          && cached.charset.equals(charset) && cached.collation == collation) {
+        return cached.result;
+      }
       newType = sqlType.createWithCharsetAndCollation(charset, collation);
+      newType = canonize(newType);
+      decoratedSqlTypes.set(index,
+          new DecoratedSqlType(sqlType, charset, collation, newType));
+      return newType;
     } else if (type instanceof JavaType) {
       JavaType javaType = (JavaType) type;
       newType =
@@ -310,6 +340,36 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createStructType() instead";
     assert !SqlTypeName.INTERVAL_TYPES.contains(typeName)
         : "use createSqlIntervalType() instead";
+  }
+
+  /** Most recently created precision for a SQL type that has no scale. */
+  private static class SqlTypeWithPrecision {
+    private final int precision;
+    private final @Nullable Charset defaultCharset;
+    private final RelDataType type;
+
+    private SqlTypeWithPrecision(int precision, @Nullable Charset defaultCharset,
+        RelDataType type) {
+      this.precision = precision;
+      this.defaultCharset = defaultCharset;
+      this.type = type;
+    }
+  }
+
+  /** Most recent charset/collation decoration for a SQL type name. */
+  private static class DecoratedSqlType {
+    private final BasicSqlType source;
+    private final Charset charset;
+    private final SqlCollation collation;
+    private final RelDataType result;
+
+    DecoratedSqlType(BasicSqlType source, Charset charset, SqlCollation collation,
+        RelDataType result) {
+      this.source = source;
+      this.charset = charset;
+      this.collation = collation;
+      this.result = result;
+    }
   }
 
   @SuppressWarnings("deprecation") // [CALCITE-6598]
