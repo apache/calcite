@@ -2623,26 +2623,27 @@ public class SqlToRelConverter {
         bb.convertExpression(requireNonNull(sqlLowerBound, "sqlLowerBound"));
     final RexNode upperBound =
         bb.convertExpression(requireNonNull(sqlUpperBound, "sqlUpperBound"));
-    if (orderList.isEmpty() && !rows) {
-      // A logical range requires an ORDER BY clause. Use the implicit
-      // ordering of this relation. There must be one, otherwise it would
-      // have failed validation.
-      orderList = bb.scope.getOrderList();
-      if (orderList == null) {
-        throw new AssertionError(
-            "Relation should have sort key for implicit ORDER BY");
-      }
-    }
     final RexWindowExclusion exclude = RexWindowExclusion.create(window.getExclude());
 
     final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
-    for (SqlNode order : orderList) {
-      orderKeys.add(
-          bb.convertSortExpression(order,
-              RelFieldCollation.Direction.ASCENDING,
-              RelFieldCollation.NullDirection.UNSPECIFIED,
-              bb::sortToRex));
+    if (orderList.isEmpty() && !rows) {
+      // RANGE with no ORDER BY always allows an empty order list.
+      // A monotonic column of the FROM item (a column the table declares
+      // as sorted, or a column sorted on in a subquery) is kept only when
+      // its input refs still name the same fields. Otherwise it is dropped.
+      final SqlNodeList implicit = bb.scope.getOrderList();
+      if (implicit != null) {
+        addMatchingOrderKeys(bb, implicit, orderKeys);
+      }
+    } else {
+      for (SqlNode order : orderList) {
+        orderKeys.add(
+            bb.convertSortExpression(order,
+                RelFieldCollation.Direction.ASCENDING,
+                RelFieldCollation.NullDirection.UNSPECIFIED,
+                bb::sortToRex));
+      }
     }
 
     try {
@@ -2672,6 +2673,56 @@ public class SqlToRelConverter {
     } finally {
       bb.window = null;
     }
+  }
+
+  /**
+   * Adds order keys whose input refs still name the same fields on the
+   * current input. A key that no longer matches is dropped, so a RANGE
+   * window with no ORDER BY also runs when the FROM item has no
+   * monotonic column.
+   */
+  private void addMatchingOrderKeys(Blackboard bb, SqlNodeList implicit,
+      ImmutableList.Builder<RexNode> orderKeys) {
+    final RelDataType rowType = bb.root().getRowType();
+    for (SqlNode order : implicit) {
+      final RexNode converted =
+          bb.convertSortExpression(order,
+              RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.UNSPECIFIED,
+              bb::sortToRex);
+      if (orderKeyMatchesInput(rowType, converted)) {
+        orderKeys.add(converted);
+      }
+    }
+  }
+
+  /**
+   * Whether each input ref in {@code orderKey} still names the same field.
+   * The index must be in range, and the ref type must equal the field type
+   * at that index (nullability ignored). A type mismatch means the ordinal
+   * now points at a different column than the one the key was built for.
+   */
+  private static boolean orderKeyMatchesInput(RelDataType rowType, RexNode orderKey) {
+    final List<RexInputRef> refs = new ArrayList<>();
+    orderKey.accept(new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        refs.add(inputRef);
+        return inputRef;
+      }
+    });
+    if (refs.isEmpty()) {
+      return false;
+    }
+    for (RexInputRef ref : refs) {
+      if (ref.getIndex() < 0 || ref.getIndex() >= rowType.getFieldCount()) {
+        return false;
+      }
+      final RelDataTypeField field = rowType.getFieldList().get(ref.getIndex());
+      if (!equalSansNullability(field.getType(), ref.getType())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
