@@ -284,8 +284,10 @@ public abstract class SingleValuesOptimizationRules {
           || jn.getJoinType() == JoinRelType.FULL;
 
       if (isLeft) {
+        // A semi join must emit the left row only once, even if several right rows match.
         return jn -> !(jn.getJoinType() == JoinRelType.LEFT
             || jn.getJoinType() == JoinRelType.LEFT_MARK
+            || jn.getJoinType() == JoinRelType.SEMI
             || isFullOrAntiJoin.test(jn));
       } else {
         return jn -> !(jn.getJoinType() == JoinRelType.RIGHT || isFullOrAntiJoin.test(jn));
