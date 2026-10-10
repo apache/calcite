@@ -21,12 +21,15 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.sql.SqlCollation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,15 +39,56 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Test for {@link SqlTypeFactoryImpl}.
  */
 class SqlTypeFactoryTest {
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7807">[CALCITE-7807]
+   * Reuse unchanged SQL types during least-restrictive inference</a>. */
+  @Test void testUnchangedCharsetAndCollationReturnsSameType() {
+    final BasicSqlType type = (BasicSqlType) new SqlTypeFixture().sqlVarchar;
+    final Charset charset = requireNonNull(type.getCharset());
+    final SqlCollation collation = requireNonNull(type.getCollation());
+
+    assertSame(type,
+        type.createWithCharsetAndCollation(charset, collation),
+        "createWithCharsetAndCollation(" + charset + ", " + collation + ")");
+  }
+
+  @Test void testDifferentCharsetIsAppliedToNewType() {
+    final BasicSqlType type = (BasicSqlType) new SqlTypeFixture().sqlVarchar;
+    final BasicSqlType utf16Type =
+        type.createWithCharsetAndCollation(StandardCharsets.UTF_16, SqlCollation.IMPLICIT);
+
+    assertNotSame(type, utf16Type, "a different charset must produce a new type");
+    assertEquals(StandardCharsets.UTF_16, utf16Type.getCharset());
+    assertSame(SqlCollation.IMPLICIT, utf16Type.getCollation());
+  }
+
+  /** {@link SqlCollation#equals} ignores coercibility, so COERCIBLE equals
+   * IMPLICIT; the type must still be rebuilt. */
+  @Test void testCollationDifferingOnlyInCoercibilityIsNotReused() {
+    final BasicSqlType type = (BasicSqlType) new SqlTypeFixture().sqlVarchar;
+    final Charset charset = requireNonNull(type.getCharset());
+    final BasicSqlType coercible =
+        type.createWithCharsetAndCollation(charset, SqlCollation.COERCIBLE);
+
+    assertNotSame(type, coercible, "a different coercibility must produce a new type");
+    assertSame(SqlCollation.COERCIBLE, coercible.getCollation());
+    assertEquals(type.getCharset(), coercible.getCharset());
+  }
 
   @Test void testLeastRestrictiveWithAny() {
     SqlTypeFixture f = new SqlTypeFixture();
