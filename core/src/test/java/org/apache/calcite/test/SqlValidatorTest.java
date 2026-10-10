@@ -5070,6 +5070,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // various kinds of measure expressions
     sql("select deptno, empno + 1 as measure e1 from emp").ok();
     sql("select *, empno + 1 as measure e1 from emp").ok();
+    // Guards against validating measure expressions in the SELECT scope when expanding ORDER BY,
+    // which would fail because measures can reference aliases (e.g. d1) defined in SELECT.
+    sql("select deptno + 1 as d1, d1 + 2 as measure d3\n"
+        + "from emp order by d3").ok();
 
     // an aggregate function in a measure does not make it an aggregate query
     sql("select *, sum(empno) as measure e1 from emp").ok();
@@ -8567,6 +8571,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // causes us to flag the intermediate level
     sql("select sum(^max(min(empno))^) from emp")
         .fails(ERR_NESTED_AGG);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7744">[CALCITE-7744]</a>
+   * ORDER BY agg(col) on a query where an alias shadows col produces an invalid plan. */
+  @Test void testOrderByAggregateAliasShadowing() {
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by ^max(sal)^")
+        .fails(ERR_NESTED_AGG);
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by ^max(sal)^ desc")
+        .fails(ERR_NESTED_AGG);
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by sal + ^max(sal)^")
+        .fails(ERR_NESTED_AGG);
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by count(*) filter (where ^sal > 1000^)")
+        .fails("FILTER must not contain aggregate expression");
+    sql("select max(sal) as m, deptno, job from emp\n"
+        + "group by deptno, job order by max(sal)").ok();
   }
 
   @Test void testNestedAggOver() {
