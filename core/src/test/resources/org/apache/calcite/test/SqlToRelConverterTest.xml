@@ -4478,6 +4478,23 @@ LogicalFilter(condition=[=($7, $cor0.DEPTNO0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinOnDecimalEqualsRealWithCustomTypeCoercion">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)
+JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(K=[$0], K0=[$2])
+  LogicalJoin(condition=[=($1, $3)], joinType=[inner])
+    LogicalProject(K=[$0], K0=[CAST($0):DOUBLE NOT NULL])
+      LogicalValues(tuples=[[{ 59999943.000 }]])
+    LogicalProject(K=[$0], K0=[CAST($0):DOUBLE NOT NULL])
+      LogicalValues(tuples=[[{ 5.9999944E7 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinOnExists">
     <Resource name="sql">
       <![CDATA[select * from emp left join dept
