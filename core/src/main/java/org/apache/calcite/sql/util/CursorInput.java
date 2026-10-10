@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.sql.util;
 
-import org.checkerframework.checker.nullness.qual.*;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.rel.type.RelDataType;
 
-class AvaticaResultSetMetaData {
-  AvaticaResultSetMetaData(
-    @Nullable AvaticaStatement statement,
-    @Nullable Object query,
-    Meta.Signature signature);
+/** A cursor input with a known row type and supplied rows. */
+public interface CursorInput {
+  /** Returns the row type. */
+  RelDataType getRowType();
+
+  /** Returns rows in Calcite's internal representation. */
+  Enumerable<Object[]> rows();
 }

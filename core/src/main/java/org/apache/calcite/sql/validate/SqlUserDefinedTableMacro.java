@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.runtime.CursorInputs;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.TableMacro;
@@ -33,12 +37,16 @@ import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * User-defined table macro.
@@ -108,7 +116,15 @@ public class SqlUserDefinedTableMacro extends SqlFunction
     Ord.forEach(function.getParameters(), (parameter, i) -> {
       final RelDataType type = parameter.getType(typeFactory);
       final Object value;
-      if (callBinding.isOperandLiteral(i, true)) {
+      if (!failOnNonLiteral && type.getSqlTypeName() == SqlTypeName.CURSOR
+          && type instanceof RelDataTypeFactoryImpl.JavaType
+          && ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass() == ResultSet.class) {
+        final RelDataType rowType =
+            requireNonNull(callBinding.getCursorOperand(i), "cursor row type");
+        value =
+            CursorInputs.metadataOnly(
+                CalcitePrepareImpl.getColumnMetaDataList((JavaTypeFactory) typeFactory, rowType));
+      } else if (callBinding.isOperandLiteral(i, true)) {
         value = callBinding.getOperandLiteralValue(i, type);
       } else {
         if (failOnNonLiteral) {

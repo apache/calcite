@@ -265,10 +265,18 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
       BlockBuilder list, @Nullable InputGetter inputGetter,
       SqlConformance conformance) {
+    return forAggregation(typeFactory, list, inputGetter, conformance,
+        RexImpTable.INSTANCE);
+  }
+
+  /** Creates a translator with a custom table of call implementors. */
+  public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
+      BlockBuilder list, @Nullable InputGetter inputGetter,
+      SqlConformance conformance, RexImplementorTable implementorTable) {
     final ParameterExpression root = DataContext.ROOT;
     return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
         null, new RexBuilder(typeFactory), conformance, null,
-        RexImpTable.INSTANCE);
+        implementorTable);
   }
 
   Expression translate(RexNode expr) {
