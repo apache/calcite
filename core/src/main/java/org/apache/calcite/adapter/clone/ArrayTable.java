@@ -433,7 +433,6 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
           valueSet.map.keySet().toArray(new Comparable[n + extra]);
       // codeValues[0..n] is non-null since valueSet.map.keySet is non-null
       // There might be null at the very end, however, it won't participate in Arrays.sort
-      @SuppressWarnings("NullAway")
       Comparable[] nonNullCodeValues = codeValues;
       Arrays.sort(nonNullCodeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =

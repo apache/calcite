@@ -168,7 +168,6 @@ public class RelOptRuleOperand {
    *
    * @param rule containing rule
    */
-  @SuppressWarnings("NullAway")
   public void setRule(RelOptRule rule) {
     this.rule = rule;
   }

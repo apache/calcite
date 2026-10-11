@@ -2576,7 +2576,6 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
-      @SuppressWarnings("NullAway")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -3006,7 +3005,6 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      @SuppressWarnings("NullAway")
       T current = moveNext();
       this.current = current;
     }

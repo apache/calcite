@@ -93,7 +93,6 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   @API(since = "1.26", status = API.Status.EXPERIMENTAL)
   protected final VertexInfo<V, E> getVertex(V vertex) {
-    @SuppressWarnings("NullAway")
     final VertexInfo<V, E> info = vertexMap.get(vertex);
     if (info == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
@@ -188,7 +187,6 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
    * if {@code collection} is a small fraction of the set of vertices. */
   private void removeMinorityVertices(Collection<V> collection) {
     for (V v : collection) {
-      @SuppressWarnings("NullAway") // nullable keys are supported by .get
       final VertexInfo<V, E> info = vertexMap.get(v);
       if (info == null) {
         continue;

@@ -53,7 +53,6 @@ public class TimeString implements Comparable<TimeString> {
   }
 
   /** Creates a TimeString. */
-  @SuppressWarnings("NullAway")
   public TimeString(String v) {
     this(v, false);
     checkArgument(INPUT_PATTERN.matcher(v).matches(),

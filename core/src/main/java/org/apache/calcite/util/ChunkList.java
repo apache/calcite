@@ -63,7 +63,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
    * Creates a ChunkList whose contents are a given Collection.
    */
   public ChunkList(Collection<E> collection) {
-    @SuppressWarnings({"NullAway", "unused"})
+    @SuppressWarnings("unused")
     boolean ignore = addAll(collection);
   }
 

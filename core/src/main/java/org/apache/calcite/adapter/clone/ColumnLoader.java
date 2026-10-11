@@ -67,7 +67,6 @@ class ColumnLoader<T> {
    * @param sourceTable Source data
    * @param protoRowType Logical row type
    * @param repList Physical row types, or null if not known */
-  @SuppressWarnings("NullAway")
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
@@ -202,7 +201,6 @@ class ColumnLoader<T> {
         // We have discovered a the first unique key in the table.
         sort[0] = pair.i;
         // map.keySet().size() == list.size() above implies list contains only non-null elements
-        @SuppressWarnings("NullAway")
         final Comparable[] values =
             valueSet.values.toArray(new Comparable[0]);
         final Kev[] kevs = new Kev[list.size()];

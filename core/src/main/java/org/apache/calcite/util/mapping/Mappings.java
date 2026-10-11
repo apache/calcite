@@ -1716,7 +1716,6 @@ public abstract class Mappings {
       return size;
     }
 
-    @SuppressWarnings("NullAway")
     @Override public Iterator<IntPair> iterator() {
       return new Iterator<IntPair>() {
         int i = -1;

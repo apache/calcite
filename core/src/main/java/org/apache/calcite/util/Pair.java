@@ -43,7 +43,6 @@ import static java.util.Objects.requireNonNull;
  * @param <T1> Left-hand type
  * @param <T2> Right-hand type
  */
-@SuppressWarnings("NullAway")
 public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 

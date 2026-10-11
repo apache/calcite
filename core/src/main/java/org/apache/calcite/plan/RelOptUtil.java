@@ -5023,7 +5023,6 @@ public abstract class RelOptUtil {
    * expression, including those that are inside
    * {@link RexSubQuery sub-queries}. */
   private static class CorrelationCollector extends RelHomogeneousShuttle {
-    @SuppressWarnings("NullAway")
     private final VariableUsedVisitor vuv = new VariableUsedVisitor(this);
 
     @Override public RelNode visit(RelNode other) {

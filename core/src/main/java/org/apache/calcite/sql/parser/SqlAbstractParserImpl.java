@@ -431,7 +431,6 @@ public abstract class SqlAbstractParserImpl {
    * @param operands          Operands to call
    * @return Call
    */
-  @SuppressWarnings("NullAway")
   protected SqlCall createCall(
       SqlIdentifier funName,
       SqlParserPos pos,
