@@ -467,7 +467,6 @@ public class LatticeSuggester {
           final ImmutableNullableList.Builder<@Nullable ColRef> columnBuilder =
               ImmutableNullableList.builder();
           for (Pair<RexNode, String> p : project.getNamedProjects()) {
-            @SuppressWarnings("NullAway")
             ColRef colRef = toColRef(p.left, p.right);
             columnBuilder.add(colRef);
           }

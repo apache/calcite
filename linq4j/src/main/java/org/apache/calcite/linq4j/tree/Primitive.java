@@ -1024,7 +1024,6 @@ public enum Primitive {
   /**
    * Reads value from a source into an array.
    */
-  @SuppressWarnings("NullAway")
   public void arrayItem(Source source, Object dataSet, int ordinal) {
     switch (this) {
     case DOUBLE:

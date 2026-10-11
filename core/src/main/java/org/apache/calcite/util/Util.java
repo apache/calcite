@@ -113,7 +113,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.lang.Integer.parseInt;
@@ -1866,7 +1865,7 @@ public class Util {
   public static <E extends @Nullable Object> Iterator<E> cast(
       final Iterator<? extends @Nullable Object> iter,
       final Class<E> clazz) {
-    return transform(iter, x -> clazz.cast(castNonNull(x)));
+    return transform(iter, x -> clazz.cast(x));
   }
 
   /**
@@ -2574,7 +2573,6 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
-      @SuppressWarnings("NullAway")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -3004,7 +3002,6 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      @SuppressWarnings("NullAway")
       T current = moveNext();
       this.current = current;
     }

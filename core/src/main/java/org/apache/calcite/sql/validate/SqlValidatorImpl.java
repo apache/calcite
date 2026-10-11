@@ -341,7 +341,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder =
         new AggFinder(opTab, true, true, true, null, nameMatcher);
-    @SuppressWarnings("NullAway")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
 
@@ -6645,7 +6644,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @SuppressWarnings("RedundantCast")
       final ImmutableBitSet constrainedColumns =
           ImmutableBitSet.of((Iterable<Integer>) projectMap.keySet());
-      @SuppressWarnings("NullAway")
       List<Integer> constrainedTargetColumns =
           targetColumns.intersect(constrainedColumns).asList();
 

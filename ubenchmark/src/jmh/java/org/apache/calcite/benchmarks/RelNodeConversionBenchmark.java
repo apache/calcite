@@ -135,7 +135,6 @@ public class RelNodeConversionBenchmark {
    * A state holding information needed to parse.
    */
   @State(Scope.Thread)
-  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class SqlToRelNodeBenchmarkState extends RelNodeConversionBenchmarkState {
     @Param({"10000"})
     int length;

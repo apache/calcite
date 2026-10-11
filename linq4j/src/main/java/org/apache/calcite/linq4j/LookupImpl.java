@@ -83,7 +83,6 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     return map.isEmpty();
   }
 
-  @SuppressWarnings("NullAway")
   @Override public boolean containsKey(@Nullable Object key) {
     return map.containsKey(key);
   }
@@ -99,7 +98,6 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
-  @SuppressWarnings("NullAway")
   @Override public @Nullable Enumerable<V> put(K key, Enumerable<V> value) {
     final List<V> list = map.put(key, value.toList());
     return list == null ? null : Linq4j.asEnumerable(list);
@@ -120,7 +118,6 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     map.clear();
   }
 
-  @SuppressWarnings("NullAway")
   @Override public Set<K> keySet() {
     return map.keySet();
   }
@@ -152,7 +149,6 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     };
   }
 
-  @SuppressWarnings("NullAway")
   @Override public Set<Entry<K, Enumerable<V>>> entrySet() {
     final Set<Entry<K, List<V>>> entries = map.entrySet();
     return new AbstractSet<Entry<K, Enumerable<V>>>() {

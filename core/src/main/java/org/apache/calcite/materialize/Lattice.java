@@ -136,7 +136,6 @@ public class Lattice {
     }
     checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
-    @SuppressWarnings("NullAway")
     LatticeStatisticProvider statisticProvider =
         requireNonNull(statisticProviderFactory.apply(this));
     this.statisticProvider = statisticProvider;

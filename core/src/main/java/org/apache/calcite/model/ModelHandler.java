@@ -106,7 +106,6 @@ public class ModelHandler {
    * by reflection from the model against {@code classNameFilter}. Use
    * this to apply a stricter (or more permissive) filter than the
    * standard one. */
-  @SuppressWarnings("NullAway")
   public ModelHandler(SchemaPlus rootSchema, String uri,
       ClassNameFilter classNameFilter) throws IOException {
     super();

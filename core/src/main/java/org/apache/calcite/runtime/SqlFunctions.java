@@ -274,10 +274,7 @@ public class SqlFunctions {
     }
 
     @Override public Enumerator<@Nullable Object[]> enumerator() {
-      // A List::toArray method reference does not resolve: the JDK model reports one
-      // signature at a call site and requires another in an override.
-      // https://github.com/uber/NullAway/issues/1728
-      return Linq4j.transform(product, list -> list.toArray());
+      return Linq4j.transform(product, List::toArray);
     }
   }
 

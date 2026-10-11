@@ -284,9 +284,6 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return list.toArray(new @Nullable Comparable[0]);
     }
 
-    // Both arrays hold the column's values, nulls included, but an array creation keeps a
-    // non-null component type whatever it is assigned to.
-    @SuppressWarnings("NullAway")
     @Override public Object permute(Object dataSet, int[] sources) {
       final @Nullable Comparable[] list = (@Nullable Comparable[]) dataSet;
       final int size = list.length;
@@ -436,7 +433,6 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
           valueSet.map.keySet().toArray(new Comparable[n + extra]);
       // codeValues[0..n] is non-null since valueSet.map.keySet is non-null
       // There might be null at the very end, however, it won't participate in Arrays.sort
-      @SuppressWarnings("NullAway")
       Comparable[] nonNullCodeValues = codeValues;
       Arrays.sort(nonNullCodeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =
@@ -447,7 +443,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         if (value == null) {
           code = n;
         } else {
-          code = Arrays.binarySearch(codeValues, value);
+          code = Arrays.binarySearch(nonNullCodeValues, value);
           assert code >= 0 : code + ", " + value;
         }
         codeValueSet.add(code);

@@ -187,7 +187,6 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
    * if {@code collection} is a small fraction of the set of vertices. */
   private void removeMinorityVertices(Collection<V> collection) {
     for (V v : collection) {
-      @SuppressWarnings("NullAway") // nullable keys are supported by .get
       final VertexInfo<V, E> info = vertexMap.get(v);
       if (info == null) {
         continue;

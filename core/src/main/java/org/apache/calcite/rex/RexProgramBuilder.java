@@ -66,7 +66,6 @@ public class RexProgramBuilder {
   /**
    * Creates a program-builder.
    */
-  @SuppressWarnings("NullAway")
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
       @Nullable RexSimplify unusedSimplify) {
     this.inputRowType = requireNonNull(inputRowType, "inputRowType");
@@ -94,7 +93,6 @@ public class RexProgramBuilder {
    * @param normalize      Whether to normalize
    * @param simplify       Simplifier, or null to not simplify
    */
-  @SuppressWarnings("NullAway")
   private RexProgramBuilder(
       RexBuilder rexBuilder,
       final RelDataType inputRowType,

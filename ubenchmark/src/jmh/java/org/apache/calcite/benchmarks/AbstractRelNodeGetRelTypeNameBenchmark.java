@@ -59,7 +59,6 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
    * {@link org.apache.calcite.rel.RelNode} interface.
    */
   @State(Scope.Thread)
-  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class ClassNameState {
 
     private final String[] fullNames = new String[]{

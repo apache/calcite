@@ -146,7 +146,6 @@ public class RelToSqlConverter extends SqlImplementor
   /** Creates a RelToSqlConverter; if {@code preserveLiteralTypes}, literals
    * whose type is not implied by their SQL text are wrapped in CASTs;
    * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
-  @SuppressWarnings("NullAway")
   public RelToSqlConverter(SqlDialect dialect, boolean preserveLiteralTypes) {
     super(dialect, preserveLiteralTypes);
     dispatcher =

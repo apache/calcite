@@ -651,7 +651,6 @@ public abstract class OperandTypes {
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
           i -> i == 2) {
-        @SuppressWarnings("NullAway")
         @Override public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {

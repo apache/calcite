@@ -3499,7 +3499,6 @@ public class RexSimplify {
    * <p>Returns whether the value was found.
    */
   private static <E> boolean replaceLast(List<E> list, E oldVal, E newVal) {
-    @SuppressWarnings("NullAway")
     final int index = list.lastIndexOf(oldVal);
     if (index < 0) {
       return false;

@@ -69,7 +69,6 @@ public class StatementTest {
    */
   @State(Scope.Thread)
   @BenchmarkMode(Mode.AverageTime)
-  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class HrConnection {
     final Connection con;
     int id;

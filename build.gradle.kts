@@ -940,6 +940,10 @@ allprojects {
                         // OnlyNullMarked skips a package that forgets @NullMarked rather than
                         // reporting it, so require every class to say which of the two it is
                         error("RequireExplicitNullMarking")
+                        // JSpecify gives no meaning to a nullness annotation on a primitive, on
+                        // the root type of a local variable or a cast, and in the other locations
+                        // it does not recognize, so such an annotation only misleads the reader
+                        error("JSpecifyUnrecognizedAnnotationLocation")
                         // Only @NullMarked code is analyzed, so an unannotated package is skipped
                         // rather than assumed non-null
                         option("NullAway:OnlyNullMarked", "true")

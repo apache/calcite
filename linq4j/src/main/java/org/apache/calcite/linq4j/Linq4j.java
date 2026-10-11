@@ -561,7 +561,6 @@ public abstract class Linq4j {
       return getCollection().size();
     }
 
-    @SuppressWarnings("NullAway")
     @Override public boolean contains(T element) {
       return getCollection().contains(element);
     }

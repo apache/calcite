@@ -924,7 +924,7 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression range(LiteralExpression literal) {
       final Sarg<?> sarg = requireNonNull(literal.literal.getValueAs(Sarg.class), "Sarg");
-      final Set<? extends Range<?>> ranges = sarg.rangeSet.asRanges();
+      final Set<? extends Range<?>> ranges = ranges(sarg);
 
       if (ranges.isEmpty()) {
         throw new PredicateAnalyzerException("Range query expects at least one range");
@@ -943,6 +943,12 @@ class PredicateAnalyzer {
         builder = boolQuery;
       }
       return this;
+    }
+
+    // Reading sarg.rangeSet through Sarg<?> crashes NullAway 0.14.2, see
+    // https://github.com/uber/NullAway/pull/1898
+    private static <C extends Comparable<C>> Set<Range<C>> ranges(Sarg<C> sarg) {
+      return sarg.rangeSet.asRanges();
     }
 
     private RangeQueryBuilder createRangeQuery(Range<?> range, LiteralExpression literal) {

@@ -243,7 +243,6 @@ public class CodeGenerationBenchmark {
    * once at the beginning of each iteration.
    */
   @State(Scope.Thread)
-  @SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
   public static class CacheState {
     @Param({"10", "100", "1000"})
     int cacheSize;
