@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;

@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;

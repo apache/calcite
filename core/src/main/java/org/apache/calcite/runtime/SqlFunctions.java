@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
@@ -28,7 +29,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;

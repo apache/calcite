@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.linq4j.annotations.EnsuresNonNullIf;
+import org.apache.calcite.annotations.EnsuresNonNullIf;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;

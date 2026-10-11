@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.HintStrategyTable;

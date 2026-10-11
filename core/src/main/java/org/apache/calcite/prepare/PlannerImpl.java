@@ -17,13 +17,13 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.annotations.EnsuresNonNull;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;

@@ -17,11 +17,11 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 

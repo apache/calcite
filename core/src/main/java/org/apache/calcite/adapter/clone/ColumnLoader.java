@@ -17,11 +17,11 @@
 package org.apache.calcite.adapter.clone;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;

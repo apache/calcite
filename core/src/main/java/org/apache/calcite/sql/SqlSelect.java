@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.linq4j.annotations.EnsuresNonNullIf;
+import org.apache.calcite.annotations.EnsuresNonNullIf;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;

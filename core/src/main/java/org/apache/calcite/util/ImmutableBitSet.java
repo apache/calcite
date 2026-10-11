@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.mapping.Mappings;
 

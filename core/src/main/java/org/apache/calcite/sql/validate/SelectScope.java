@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;

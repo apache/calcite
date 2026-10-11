@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.linq4j.annotations;
+package org.apache.calcite.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -23,29 +23,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * States how the nullness of a method's result follows from the nullness of its arguments.
+ * States which nullable fields a caller must have checked before calling the method.
  *
- * <p>The value holds one or more clauses separated by {@code ;}. A clause lists one constraint per
- * parameter, then {@code ->}, then what the method guarantees:
- *
- * <blockquote><pre>
- * &#64;Contract("!null, _ -&gt; !null")
- * public static &#64;Nullable Integer plus(&#64;Nullable Integer b0, int b1) { ... }
- * </pre></blockquote>
- *
- * <p>A constraint is {@code null}, {@code !null}, {@code true}, {@code false} or {@code _} for
- * "anything". The guarantee is one of those, or {@code fail} for a method that always throws.
- *
- * <p>This replaces the {@code @PolyNull} qualifier of the Checker Framework, which has no JSpecify
- * equivalent. It cannot describe a receiver parameter, a varargs method, or a type argument such
- * as {@code Enumerable<@Nullable T>}.
+ * <p>Inside the method those fields count as non-null. The caller has to establish that, so this
+ * moves the check to the one place that can do it rather than repeating it in every method that
+ * reads the field.
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.METHOD)
-public @interface Contract {
-  /** Returns the contract clauses.
+public @interface RequiresNonNull {
+  /** Returns the fields that must be non-null on entry.
    *
-   * @return contract clauses, separated by {@code ;} */
-  String value();
+   * @return field names, optionally qualified with {@code this.} */
+  String[] value();
 }

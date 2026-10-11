@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.linq4j.annotations.Contract;
+import org.apache.calcite.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;

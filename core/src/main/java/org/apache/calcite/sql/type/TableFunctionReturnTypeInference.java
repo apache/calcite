@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;

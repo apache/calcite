@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;

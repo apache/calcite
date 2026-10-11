@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;

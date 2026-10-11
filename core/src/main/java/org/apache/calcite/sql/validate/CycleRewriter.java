@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.linq4j.annotations.Contract;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.JoinConditionType;

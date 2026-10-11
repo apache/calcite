@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.annotations.EnsuresNonNull;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;

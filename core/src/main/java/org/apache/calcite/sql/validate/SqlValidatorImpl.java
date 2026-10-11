@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.annotations.Contract;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;

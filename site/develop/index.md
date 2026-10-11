@@ -254,7 +254,7 @@ so it is better to stick with `org.jspecify.annotations.Nullable`.
   type.
 
 * For a method that returns null exactly when an argument is null, annotate it
-  `@Contract("!null, _ -> !null")` from `org.apache.calcite.linq4j.annotations`. The clause lists one entry
+  `@Contract("!null, _ -> !null")` from `org.apache.calcite.annotations`. The clause lists one entry
   per parameter, `!null` for the ones the result depends on and `_` for the rest. NullAway verifies
   the clause against the body, and a caller that passes a non-null argument gets a non-null result.
   The annotation does not apply to a receiver parameter, to a varargs method, or to a type argument
@@ -263,9 +263,10 @@ so it is better to stick with `org.jspecify.annotations.Nullable`.
 * NullAway verifies code method by method. That means, it can't account for method execution order.
   That is why `@Nullable` fields should be verified in each method where they are used.
   If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
-  For fields that start as null and become non-null later, use `org.apache.calcite.linq4j.annotations.MonotonicNonNull`.
-  For fields that have already been checked against null, use `org.apache.calcite.linq4j.annotations.RequiresNonNull`.
-  Those annotations are `compileOnly` dependencies and are not retained at run time.
+  For fields that start as null and become non-null later, use `org.apache.calcite.annotations.MonotonicNonNull`.
+  For fields that have already been checked against null, use `org.apache.calcite.annotations.RequiresNonNull`.
+  Those annotations come from the `calcite-annotations` artifact, which `calcite-linq4j` and `calcite-core` depend on,
+  and they are not retained at run time.
 
 * If you are absolutely sure the value is non-null, you might use `org.apache.calcite.linq4j.Nullness.castNonNull(T)`.
   The intention behind `castNonNull` is like `trustMeThisIsNeverNullHoweverTheVerifierCantTellYet(...)`

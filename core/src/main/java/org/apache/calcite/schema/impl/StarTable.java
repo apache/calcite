@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.schema.impl;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;

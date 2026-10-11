@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 
 import java.util.ArrayList;
