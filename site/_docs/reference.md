@@ -230,6 +230,14 @@ when the Babel parser is enabled. It sets the generated parser configuration fla
 `includeDistinctOn` to `true`. When using `DISTINCT ON`, the expressions in the
 `DISTINCT ON` clause must match the beginning of the `ORDER BY` clause.
 
+A trailing comma at the end of the SELECT list, as in GoogleSQL (BigQuery), is
+accepted for compatibility with programmatically generated queries. This is
+recognized only when the Babel parser is enabled. It sets the generated parser
+configuration flag `includeSelectListTrailingComma` to `true`. The trailing
+comma is not preserved in the parse tree. A trailing comma is likewise accepted
+at the end of the column definition list of a `CREATE TABLE` statement parsed
+by the Babel parser.
+
 For example:
 
 {% highlight sql %}

@@ -462,4 +462,5 @@ parser: {
   includeIntervalWithoutQualifier: false
   includeStarExclude: false
   includeDistinctOn: false
+  includeSelectListTrailingComma: false
 }

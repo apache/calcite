@@ -121,8 +121,9 @@ SqlNodeList ExtendColumnList() :
     <LPAREN> { s = span(); }
     ColumnWithType(list)
     (
-        <COMMA> ColumnWithType(list)
+        LOOKAHEAD(2) <COMMA> ColumnWithType(list)
     )*
+    [ <COMMA> ]
     <RPAREN> {
         return new SqlNodeList(list, s.end(this));
     }

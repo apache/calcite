@@ -1513,7 +1513,16 @@ SqlSelect SqlSelect() :
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
     AddSelectItem(selectList)
+<#if parser.includeSelectListTrailingComma!default.parser.includeSelectListTrailingComma>
+    // GoogleSQL (BigQuery) allows a trailing comma at the end of the SELECT
+    // list, e.g. "SELECT a, b, FROM t". With LOOKAHEAD(2), the loop is exited
+    // when the token after ',' cannot begin a select item; the optional ','
+    // below then consumes the trailing comma.
+    ( LOOKAHEAD(2) <COMMA> AddSelectItem(selectList) )*
+    [ <COMMA> ]
+<#else>
     ( <COMMA> AddSelectItem(selectList) )*
+</#if>
 <#if parser.includeSelectBy!false>
     ( by = SqlSelectBy() | { by = null; } )
 <#else>

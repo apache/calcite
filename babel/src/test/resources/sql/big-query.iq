@@ -104,6 +104,32 @@ from date;
 !ok
 !}
 
+# Test case for [CALCITE-5696] https://issues.apache.org/jira/browse/CALCITE-5696
+# GoogleSQL allows a trailing comma at the end of the SELECT list;
+# the comma is accepted and dropped
+select empno, ename, from emp where deptno = 10 order by empno;
++-------+--------+
+| empno | ename  |
++-------+--------+
+|  7782 | CLARK  |
+|  7839 | KING   |
+|  7934 | MILLER |
++-------+--------+
+(3 rows)
+
+!ok
+
+# Trailing comma in a query without FROM
+select 1 as x, 2 as y,;
++---+---+
+| x | y |
++---+---+
+| 1 | 2 |
++---+---+
+(1 row)
+
+!ok
+
 
 #####################################################################
 # DATE, DATETIME, TIME and TIMESTAMP functions ######################
