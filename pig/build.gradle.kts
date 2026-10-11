@@ -18,6 +18,7 @@ dependencies {
     api(project(":core"))
     api(project(":linq4j"))
     api("com.google.guava:guava")
+    api("org.jspecify:jspecify")
 
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.pig:pig::h2")

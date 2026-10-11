@@ -32,6 +32,7 @@ dependencies {
         exclude("org.slf4j", "slf4j-reload4j")
                 .because("conflicts with log4j-slf4j-impl")
     }
+    api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")
     implementation("org.eclipse.jetty:jetty-server")
