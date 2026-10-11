@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.linq4j.annotations;
+package org.apache.calcite.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -23,14 +23,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * States that a field starts as null and is never assigned null again once it holds a value.
+ * States which nullable fields the method has assigned by the time it returns.
  *
- * <p>The field is exempt from the constructor's initialization check, and a null check on it holds
- * across an intervening method call. Every read still needs that check: the field is null until
- * something assigns it.
+ * <p>Callers may read those fields without a null check afterwards. This is what an
+ * {@code init}-style method needs in order to satisfy the constructor's initialization check.
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.FIELD, ElementType.TYPE_USE})
-public @interface MonotonicNonNull {
+@Target(ElementType.METHOD)
+public @interface EnsuresNonNull {
+  /** Returns the fields that are non-null once the method returns.
+   *
+   * @return field names, optionally qualified with {@code this.} */
+  String[] value();
 }

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.annotations.Contract;
+import org.apache.calcite.annotations.EnsuresNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.linq4j.annotations.Contract;
-import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.linq4j.annotations.Contract;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.sql.SqlAggFunction;
 
 import com.google.common.collect.ImmutableList;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.linq4j.annotations;
+package org.apache.calcite.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

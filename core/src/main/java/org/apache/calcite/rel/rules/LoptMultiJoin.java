@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;

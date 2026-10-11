@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;

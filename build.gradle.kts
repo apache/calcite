@@ -167,7 +167,7 @@ val jdkBuildVersion = props.int("jdkBuildVersion", 25)
 
 // Projects whose main code NullAway verifies. The other projects are not annotated well enough
 // yet, so NullAway would only produce noise there.
-val nullawayProjects = listOf(":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel", ":redis", ":splunk", ":mongodb", ":cassandra", ":pig", ":arrow", ":innodb", ":piglet", ":geode", ":elasticsearch", ":plus", ":example:csv", ":example:function", ":testkit", ":ubenchmark")
+val nullawayProjects = listOf(":annotations", ":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel", ":redis", ":splunk", ":mongodb", ":cassandra", ":pig", ":arrow", ":innodb", ":piglet", ":geode", ":elasticsearch", ":plus", ":example:csv", ":example:function", ":testkit", ":ubenchmark")
 
 val hepLargePlanModeTestIncludes = mapOf(
     ":core" to listOf(

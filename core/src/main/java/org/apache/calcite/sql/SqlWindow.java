@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.annotations.EnsuresNonNullIf;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.EnsuresNonNullIf;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
