@@ -492,8 +492,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Build new project expressions, and populate the mapping.
     final List<RexNode> newProjects = new ArrayList<>();
     final RexVisitor<RexNode> shuttle =
-        new RexPermuteInputsShuttle(
-            inputMapping, newInput);
+        new RexPermuteInputsShuttle(inputMapping, newInput) {
+          @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+            subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+            return trimSubQuery(subQuery);
+          }
+        };
     final Mapping mapping =
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
@@ -577,6 +581,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       shuttle = new RexPermuteInputsShuttle(inputMapping, newInput) {
         @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
           subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+          subQuery = trimSubQuery(subQuery);
 
           return RelOptUtil.remapCorrelatesInSuqQuery(relBuilder.getRexBuilder(),
             subQuery, project.getVariablesSet().iterator().next(),
@@ -584,7 +589,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         }
       };
     } else {
-      shuttle = new RexPermuteInputsShuttle(inputMapping, newInput);
+      shuttle = new RexPermuteInputsShuttle(inputMapping, newInput) {
+        @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+          subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+          return trimSubQuery(subQuery);
+        }
+      };
     }
 
     final Mapping mapping =
@@ -608,6 +618,42 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.project(newProjects, newRowType.getFieldNames(), false, project.getVariablesSet());
     final RelNode newProject = relBuilder.build();
     return result(newProject, mapping, project);
+  }
+
+  /** Trims the fields of the relational expression wrapped by a sub-query.
+   *
+   * <p>Currently, only scalar sub-queries are trimmed: a scalar sub-query
+   * returns exactly one field, and that field is used by its consumer, so
+   * we can trim the sub-query's internal tree asking for its single output
+   * field. Sub-queries of other kinds (IN, EXISTS, ARRAY, MULTISET, MAP) are
+   * returned unchanged; their output fields are either all significant for
+   * the semantics or not distinguishable, so it is not safe to trim them.
+   *
+   * @param subQuery Sub-query
+   * @return Sub-query whose internal relational expression is trimmed,
+   * or the original sub-query if it cannot be trimmed
+   */
+  protected RexSubQuery trimSubQuery(RexSubQuery subQuery) {
+    if (subQuery.getKind() != SqlKind.SCALAR_QUERY) {
+      return subQuery;
+    }
+    final RelNode rel = subQuery.rel;
+    final int fieldCount = rel.getRowType().getFieldCount();
+    if (fieldCount == 0) {
+      // Cannot happen for a well-formed scalar sub-query, which has exactly
+      // one field; be defensive, and leave it unchanged.
+      return subQuery;
+    }
+
+    // The consumer of a scalar sub-query uses its single output field.
+    final ImmutableBitSet fieldsUsed = ImmutableBitSet.of(0);
+    final Set<RelDataTypeField> extraFields = Collections.emptySet();
+    final TrimResult trimResult =
+        dispatchTrimFields(rel, fieldsUsed, extraFields);
+    if (trimResult.left == rel) {
+      return subQuery;
+    }
+    return subQuery.clone(trimResult.left);
   }
 
   /** Creates a project with a dummy column, to protect the parts of the system
@@ -687,7 +733,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Build new project expressions, and populate the mapping.
     final RexVisitor<RexNode> shuttle =
-        new RexPermuteInputsShuttle(inputMapping, newInput);
+        new RexPermuteInputsShuttle(inputMapping, newInput) {
+          @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+            subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+            return trimSubQuery(subQuery);
+          }
+        };
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
@@ -950,7 +1001,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Build new join.
     final RexVisitor<RexNode> shuttle =
         new RexPermuteInputsShuttle(
-            mapping, newInputs.get(0), newInputs.get(1));
+            mapping, newInputs.get(0), newInputs.get(1)) {
+          @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+            subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+            return trimSubQuery(subQuery);
+          }
+        };
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
     RexNode newMatchConditionExpr =
