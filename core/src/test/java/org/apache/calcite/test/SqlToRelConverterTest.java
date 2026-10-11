@@ -2472,6 +2472,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(true).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7847">[CALCITE-7847]
+   * Implicit coercion casts MULTISET operands of a comparison to ARRAY, and
+   * loses the nullability of ROW operands</a>. */
+  @Test void testMultisetComparisonCoercion() {
+    sql("select multiset[deptno] = multiset[cast(deptno as decimal(5, 2))] from dept").ok();
+  }
+
   @Test void testMultisetOfColumnsRex() {
     sql("select 'abc',multiset[deptno,sal] from emp").ok();
   }

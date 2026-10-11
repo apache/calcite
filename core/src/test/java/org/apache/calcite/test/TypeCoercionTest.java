@@ -484,6 +484,36 @@ class TypeCoercionTest {
         f.recordType("a", f.arrayType(f.nullableIntType)));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7847">[CALCITE-7847]
+   * Implicit coercion casts MULTISET operands of a comparison to ARRAY, and
+   * loses the nullability of ROW operands</a>. The comparison common type of
+   * two ROW values is nullable if either of them is nullable. */
+  @Test void testComparisonCommonTypeOfRowIsNullableIfEitherIs() {
+    final Fixture f = fixture();
+    f.comparisonCommonType(f.nullable(f.recordType("a", f.intType)),
+        f.recordType("a", f.charType), f.nullable(f.recordType("a", f.intType)));
+    f.comparisonCommonType(f.nullable(f.recordType("a", f.intType)),
+        f.nullable(f.recordType("a", f.charType)),
+        f.nullable(f.recordType("a", f.intType)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7847">[CALCITE-7847]
+   * Implicit coercion casts MULTISET operands of a comparison to ARRAY, and
+   * loses the nullability of ROW operands</a>. The comparison common type of
+   * two MULTISET values is a MULTISET, and of two ARRAY values an ARRAY. */
+  @Test void testComparisonCommonTypeOfMultisetIsMultiset() {
+    final Fixture f = fixture();
+    f.comparisonCommonType(f.multisetType(f.intType),
+        f.multisetType(f.charType), f.multisetType(f.intType));
+    f.comparisonCommonType(f.nullable(f.multisetType(f.intType)),
+        f.multisetType(f.charType), f.nullable(f.multisetType(f.intType)));
+    f.comparisonCommonType(f.arrayType(f.intType),
+        f.arrayType(f.charType), f.arrayType(f.intType));
+    f.comparisonCommonType(f.multisetType(f.intType), f.arrayType(f.intType), null);
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6631">[CALCITE-6631]
@@ -947,6 +977,14 @@ class TypeCoercionTest {
       return typeFactory.createArrayType(type, -1);
     }
 
+    RelDataType multisetType(RelDataType type) {
+      return typeFactory.createMultisetType(type, -1);
+    }
+
+    RelDataType nullable(RelDataType type) {
+      return typeFactory.createTypeWithNullability(type, true);
+    }
+
     RelDataType mapType(RelDataType keyType, RelDataType valType) {
       return typeFactory.createMapType(keyType, valType);
     }
@@ -1055,18 +1093,24 @@ class TypeCoercionTest {
         RelDataType type2,
         @Nullable RelDataType expected) {
       RelDataType result = typeCoercion.commonTypeForBinaryComparison(type1, type2);
-      assertThat("Expected " + toStringNullable(expected)
-              + " as comparison common type for " + type1
-              + " and " + type2
-              + ", but found " + toStringNullable(result),
+      assertThat("Expected " + fullTypeString(expected)
+              + " as comparison common type for " + fullTypeString(type1)
+              + " and " + fullTypeString(type2)
+              + ", but found " + fullTypeString(result),
           result,
           sameInstance(expected));
       RelDataType result1 = typeCoercion.commonTypeForBinaryComparison(type2, type1);
-      assertThat("Expected " + toStringNullable(expected)
-              + " as common type for " + type2
-              + " and " + type1
-              + ", but found " + toStringNullable(result1),
+      assertThat("Expected " + fullTypeString(expected)
+              + " as common type for " + fullTypeString(type2)
+              + " and " + fullTypeString(type1)
+              + ", but found " + fullTypeString(result1),
           result1, sameInstance(expected));
+    }
+
+    /** Returns the full type string, which, unlike {@link RelDataType#toString},
+     * includes nullability. */
+    private String fullTypeString(@Nullable RelDataType type) {
+      return type == null ? "NULL" : type.getFullTypeString();
     }
 
     /** Decision method for finding a wider type. */

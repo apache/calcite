@@ -706,7 +706,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
         return null;
       }
       // The only maxCardinality that seems to be supported is -1, i.e., unlimited.
-      RelDataType resultType = factory.createArrayType(type, -1);
+      RelDataType resultType = typeName1 == SqlTypeName.ARRAY
+          ? factory.createArrayType(type, -1)
+          : factory.createMultisetType(type, -1);
       return factory.createTypeWithNullability(resultType, anyNullable);
     }
 
@@ -749,7 +751,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
         }
         resultFields.add(new RelDataTypeFieldImpl(leftField.getName(), i, type));
       }
-      return factory.createStructType(resultFields);
+      RelDataType resultType = factory.createStructType(resultFields);
+      return factory.createTypeWithNullability(resultType, anyNullable);
     }
 
     return null;

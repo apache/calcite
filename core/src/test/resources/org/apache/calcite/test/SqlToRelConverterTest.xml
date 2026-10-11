@@ -6114,6 +6114,27 @@ LogicalProject(EXPR$0=['a'], EXPR$1=[$SLICE($2)])
       <![CDATA[select 'a',multiset[10] from dept]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMultisetComparisonCoercion">
+    <Resource name="sql">
+      <![CDATA[select multiset[deptno] = multiset[cast(deptno as decimal(5, 2))] from dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[=(CAST($SLICE($2)):DECIMAL(12, 2) NOT NULL MULTISET NOT NULL, CAST($SLICE($3)):DECIMAL(12, 2) NOT NULL MULTISET NOT NULL)])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2], EXPR$00=[$4])
+    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{3}])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2], DEPTNO0=[CAST($0):DECIMAL(5, 2) NOT NULL])
+        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          Collect(field=[EXPR$0])
+            LogicalProject(EXPR$0=[$cor0.DEPTNO])
+              LogicalValues(tuples=[[{ 0 }]])
+      Collect(field=[EXPR$0])
+        LogicalProject(EXPR$0=[$cor1.DEPTNO0])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultisetOfColumns">
     <Resource name="plan">
       <![CDATA[
