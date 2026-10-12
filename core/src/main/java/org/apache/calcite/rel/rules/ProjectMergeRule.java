@@ -144,6 +144,8 @@ public class ProjectMergeRule
           || input.getRowType().getFieldNames()
               .equals(topProject.getRowType().getFieldNames())) {
         call.transformTo(input);
+        call.getPlanner().prune(topProject);
+        call.getPlanner().prune(bottomProject);
         return;
       }
     }
