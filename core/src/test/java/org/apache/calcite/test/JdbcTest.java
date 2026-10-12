@@ -2492,6 +2492,34 @@ public class JdbcTest {
         .returnsUnordered("A=[10, 20, 10, 10]");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3557">[CALCITE-3557]
+   * ResultSet.getObject throws ClassCastException when accessing a MULTISET or
+   * ARRAY value inside a MULTISET</a>. */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("collectionOrMapInMultisetArguments")
+  void testCollectionOrMapInMultiset(String sql, String expected) {
+    CalciteAssert.that()
+        .query(sql)
+        .returns(expected);
+  }
+
+  static Stream<Arguments> collectionOrMapInMultisetArguments() {
+    return Stream.of(
+        arguments("select multiset[array[1, 2], array[3, 4]]",
+            "EXPR$0=[[1, 2], [3, 4]]\n"),
+        arguments("select multiset[map[1, 2], map[3, 4]]",
+            "EXPR$0=[{1=2}, {3=4}]\n"),
+        arguments("select multiset[multiset[1, 2], multiset[3, 4]]",
+            "EXPR$0=[[1, 2], [3, 4]]\n"),
+        arguments("select multiset[multiset[array[1, 2]]]",
+            "EXPR$0=[[[1, 2]]]\n"),
+        arguments("select multiset[multiset[multiset[1, 2]]]",
+            "EXPR$0=[[[1, 2]]]\n"),
+        arguments("select multiset[multiset[multiset[multiset[1, 2]]]]",
+            "EXPR$0=[[[[1, 2]]]]\n"));
+  }
+
   @Test void testArrayElement() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
