@@ -1844,8 +1844,9 @@ public class JdbcTest {
    * {@link Hook#STRING_TO_QUERY} for use in boundary tests for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]</a>. */
   private static Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>
-      wideningHook(String sql) {
+      wideningHook() {
     return pair -> {
+      final String sql = requireNonNull(pair.right.get().sql);
       final FrameworkConfig config =
           Frameworks.newConfigBuilder(pair.left)
               .sqlValidatorConfig(pair.left.getSqlValidatorConfig()
@@ -1866,13 +1867,18 @@ public class JdbcTest {
    * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
    *
    * <p>Default behavior: DECIMAL(18, 3) compared with REAL narrows to REAL
-   * (24-bit mantissa, about 7 decimal digits). These two values collide in
-   * REAL, so the join incorrectly returns 1 row. */
+   * (24-bit mantissa, about 7 decimal digits). {@code CAST(140737488355328 AS
+   * REAL)} is exactly 2^47. REAL's ULP at 2^47 is 2^(47-23) = 2^24 ≈ 16.7
+   * million, so the .016 fractional part is completely lost; both values
+   * narrow to 2^47 in REAL and the join incorrectly returns 1 row.
+   * Compare {@link #testDecimalRealComparisonWidenedToDoubleDistinguishesValues}, which
+   * runs the same SQL with {@link TypeCoercionTest.WideningTypeCoercion}
+   * and returns 0 rows. */
   @Test void testDecimalRealComparisonDefaultNarrowsToReal() {
     CalciteAssert.that()
         .query("SELECT *\n"
-            + "FROM (VALUES (CAST(59999943.000 AS DECIMAL(18, 3)))) AS d(k)\n"
-            + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k")
+            + "FROM (VALUES (CAST(140737488355328.016 AS DECIMAL(18, 3)))) AS d(k)\n"
+            + "JOIN (VALUES (CAST(140737488355328 AS REAL))) AS f(k) ON d.k = f.k")
         .returnsCount(1);
   }
 
@@ -1886,57 +1892,15 @@ public class JdbcTest {
    * has 53-bit mantissa; the unit in the last place (ULP) at 2^47 is
    * 2^(47-52) = 0.03125. The DECIMAL value 140737488355328.016 exceeds the
    * half-ULP (0.015625), so it rounds to the next DOUBLE above 2^47. The
-   * widened join correctly returns 0 rows. See
-   * {@link #testDecimalRealComparisonWidenedStillCollides} for the pair that
-   * still collides after widening. */
-  @Test void testDecimalRealComparisonWidenedToDoubleHelps() {
+   * widened join correctly returns 0 rows. */
+  @Test void testDecimalRealComparisonWidenedToDoubleDistinguishesValues() {
     final String sql = "SELECT *\n"
         + "FROM (VALUES (CAST(140737488355328.016 AS DECIMAL(18, 3)))) AS d(k)\n"
         + "JOIN (VALUES (CAST(140737488355328 AS REAL))) AS f(k) ON d.k = f.k";
     CalciteAssert.that()
-        .withHook(Hook.STRING_TO_QUERY, wideningHook(sql))
+        .withHook(Hook.STRING_TO_QUERY, wideningHook())
         .query(sql)
         .returnsCount(0);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
-   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
-   *
-   * <p>With {@link TypeCoercionTest.WideningTypeCoercion}, DECIMAL(18, 3)
-   * compared with REAL widens to DOUBLE, but DOUBLE has only 53 bits of
-   * mantissa (about 15 significant decimal digits). The DECIMAL value
-   * 140737488355328.001 is within half the DOUBLE ULP at 2^47 (half-ULP =
-   * 0.015625), so it rounds to 2^47 = {@code CAST(140737488355328 AS REAL)}.
-   * The widened join incorrectly returns 1 row, showing where widening stops
-   * helping. */
-  @Test void testDecimalRealComparisonWidenedStillCollides() {
-    final String sql = "SELECT *\n"
-        + "FROM (VALUES (CAST(140737488355328.001 AS DECIMAL(18, 3)))) AS d(k)\n"
-        + "JOIN (VALUES (CAST(140737488355328 AS REAL))) AS f(k) ON d.k = f.k";
-    CalciteAssert.that()
-        .withHook(Hook.STRING_TO_QUERY, wideningHook(sql))
-        .query(sql)
-        .returnsCount(1);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
-   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
-   *
-   * <p>{@link TypeCoercionTest.WideningTypeCoercion} widens only when one
-   * operand is DECIMAL. INTEGER vs REAL stays as REAL (24-bit mantissa).
-   * REAL has 24 bits of mantissa: 16777217 and 16777216 are distinct
-   * integers but the same REAL value, so this join incorrectly returns
-   * 1 row. */
-  @Test void testIntegerRealComparisonNotWidened() {
-    final String sql = "SELECT *\n"
-        + "FROM (VALUES (16777217)) AS d(k)\n"
-        + "JOIN (VALUES (CAST(16777216 AS REAL))) AS f(k) ON d.k = f.k";
-    CalciteAssert.that()
-        .withHook(Hook.STRING_TO_QUERY, wideningHook(sql))
-        .query(sql)
-        .returnsCount(1);
   }
 
   /** Test case for

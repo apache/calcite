@@ -4721,6 +4721,23 @@ LogicalProject(DEPTNO=[$7], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinUsingDecimalEqualsRealWithCustomTypeCoercion">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)
+JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) USING (k)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(K=[CAST($0):DOUBLE NOT NULL])
+  LogicalJoin(condition=[=($1, $3)], joinType=[inner])
+    LogicalProject(K=[$0], K0=[CAST($0):DOUBLE NOT NULL])
+      LogicalValues(tuples=[[{ 59999943.000 }]])
+    LogicalProject(K=[$0], K0=[CAST($0):DOUBLE NOT NULL])
+      LogicalValues(tuples=[[{ 5.9999944E7 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinUsingDynamicTable">
     <Resource name="sql">
       <![CDATA[select * from SALES.NATION t1

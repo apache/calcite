@@ -1834,14 +1834,22 @@ i: implicit cast / e: explicit cast / x: not allowed
   `IN`, quantified comparisons, `NATURAL JOIN`, and `JOIN USING`, and to
   the element types of `ARRAY`, `MAP`, and `ROW`. (`CASE`, `COALESCE`,
   and set operations are not affected: they already use `DOUBLE` for this
-  combination.) To widen to `DOUBLE` instead, override
+  combination.) Integer types have the same defect: `INTEGER` (31 bits)
+  and `BIGINT` (63 bits) compared with `REAL` lose precision the same
+  way, and `BIGINT` compared with `DOUBLE` does too; the override below
+  leaves those alone.
+  To widen to `DOUBLE` instead, override
   `TypeCoercion#commonTypeForBinaryComparison` in a `TypeCoercionImpl`
   subclass and install it via
-  `SqlValidator.Config#withTypeCoercionFactory`. This opt-in is available
-  to applications using `Frameworks` or `SqlValidatorUtil`; there is no
-  JDBC connection property for it. `DOUBLE` has a 53-bit mantissa, about
-  15 decimal digits, so `DECIMAL` values with more significant digits can
-  still compare as equal after widening.
+  `SqlValidator.Config#withTypeCoercionFactory`. The rule is: call
+  `super`, and replace the result with `DOUBLE` only when `super` returns
+  an approximate type and one operand is `DECIMAL`; this leaves
+  `DECIMAL` vs `VARCHAR`, `DECIMAL` vs `INTEGER`, and non-`DECIMAL` pairs
+  unchanged. This opt-in is available to applications using `Frameworks`
+  or `SqlValidatorUtil`; there is no JDBC connection property for it.
+  `DOUBLE` has a 53-bit mantissa, about 15 decimal digits, so `DECIMAL`
+  values with more significant digits can still compare as equal after
+  widening.
 * `IN` sub-query: compare type of LHS and RHS, and find the common type;
   if it is struct type, find wider type for every field;
 * `IN` expression list: compare every expression to find the common type;

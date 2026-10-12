@@ -491,8 +491,7 @@ class TypeCoercionTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
    * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
    *
-   * <p>By default, comparing DECIMAL with REAL narrows to REAL. A custom
-   * {@link TypeCoercion} that overrides
+   * <p>A custom {@link TypeCoercion} that overrides
    * {@link TypeCoercion#commonTypeForBinaryComparison} can widen to DOUBLE,
    * including for the element types of ARRAY and MAP and the fields of ROW. */
   @Test void testComparisonCoercionDecimalWithApproximateNumericOverride() {
@@ -501,6 +500,9 @@ class TypeCoercionTest {
     final RelDataType nullableDecimal54 =
         f.typeFactory.createTypeWithNullability(decimal54, true);
 
+    final RelDataType decimal144 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 14, 4);
+
     final SqlValidator validator = SqlTestFactory.INSTANCE.createValidator();
     final Fixture w =
         new Fixture(f.typeFactory,
@@ -508,6 +510,8 @@ class TypeCoercionTest {
     w.comparisonCommonType(decimal54, f.realType, f.doubleType);
     w.comparisonCommonType(nullableDecimal54, f.realType, f.nullableDoubleType);
     w.comparisonCommonType(decimal54, f.nullableRealType, f.nullableDoubleType);
+    // DECIMAL operand but exact common type: unchanged.
+    w.comparisonCommonType(decimal54, f.intType, decimal144);
     // No DECIMAL operand: unchanged.
     w.comparisonCommonType(f.intType, f.realType, f.realType);
     w.comparisonCommonType(f.realType, f.doubleType, f.doubleType);
