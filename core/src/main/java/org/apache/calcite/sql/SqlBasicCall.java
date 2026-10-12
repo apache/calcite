@@ -95,6 +95,7 @@ public class SqlBasicCall extends SqlCall {
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     operandList = set(operandList, i, operand);
+    operator.updateOperandsIfNeed(operandList);
   }
 
   @Override public void setOperandList(
