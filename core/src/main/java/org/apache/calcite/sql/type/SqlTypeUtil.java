@@ -1002,7 +1002,7 @@ public abstract class SqlTypeUtil {
     }
 
     // TODO jvs 2-Jan-2005:  handle all the other cases like
-    // rows, collections, UDT's
+    // UDT's
     if (fromType.getSqlTypeName() == SqlTypeName.NULL) {
       // REVIEW jvs 4-Dec-2008: We allow assignment from NULL to any
       // type, including NOT NULL types, since in the case where no
@@ -1013,11 +1013,44 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
-    if (fromType.getSqlTypeName() == SqlTypeName.ARRAY) {
-      if (toType.getSqlTypeName() != SqlTypeName.ARRAY) {
+    if (fromType.getSqlTypeName() == SqlTypeName.ARRAY
+        || fromType.getSqlTypeName() == SqlTypeName.MULTISET) {
+      if (toType.getSqlTypeName() != fromType.getSqlTypeName()) {
         return false;
       }
       return canAssignFrom(getComponentTypeOrThrow(toType), getComponentTypeOrThrow(fromType));
+    } else if (fromType.getSqlTypeName() == SqlTypeName.ROW) {
+      if (toType.getSqlTypeName() != fromType.getSqlTypeName()) {
+        return false;
+      }
+      List<RelDataTypeField> fromFields = fromType.getFieldList();
+      List<RelDataTypeField> toFields = toType.getFieldList();
+      if (fromFields.size() != toFields.size()) {
+        return false;
+      }
+      for (int i = 0; i < fromFields.size(); i++) {
+        RelDataTypeField fromField = fromFields.get(i);
+        RelDataTypeField toField = toFields.get(i);
+        if (!toField.getName().equals(fromField.getName())) {
+          return false;
+        }
+        if (!canAssignFrom(toField.getType(), fromField.getType())) {
+          return false;
+        }
+      }
+      return true;
+    } else if (fromType.getSqlTypeName() == SqlTypeName.MAP) {
+      if (toType.getSqlTypeName() != fromType.getSqlTypeName()) {
+        return false;
+      }
+      return
+          canAssignFrom(
+              requireNonNull(toType.getKeyType()),
+              requireNonNull(fromType.getKeyType())
+          ) && canAssignFrom(
+              requireNonNull(toType.getValueType()),
+              requireNonNull(fromType.getValueType())
+          );
     }
 
     if (areCharacterSetsMismatched(toType, fromType)) {
