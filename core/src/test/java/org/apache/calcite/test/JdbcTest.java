@@ -2520,6 +2520,36 @@ public class JdbcTest {
             "EXPR$0=[[[[1, 2]]]]\n"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7848">[CALCITE-7848]
+   * Array.getArray() throws ClassCastException for an ARRAY or MULTISET of
+   * INTEGER ARRAYs or MULTISETs</a>. */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "select array[array[1, 2], array[3, 4]]",
+      "select array[multiset[1, 2], multiset[3, 4]]",
+      "select multiset[array[1, 2], array[3, 4]]",
+      "select multiset[multiset[1, 2], multiset[3, 4]]",
+  })
+  void testGetArrayOfNestedCollection(String sql) {
+    CalciteAssert.that()
+        .query(sql)
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            final Object[] outer =
+                (Object[]) ((Array) resultSet.getObject(1)).getArray();
+            assertThat(outer, arrayWithSize(2));
+            assertArrayEquals(new int[] {1, 2},
+                (int[]) ((Array) outer[0]).getArray());
+            assertArrayEquals(new int[] {3, 4},
+                (int[]) ((Array) outer[1]).getArray());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
   @Test void testArrayElement() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
