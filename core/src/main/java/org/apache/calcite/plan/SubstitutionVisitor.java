@@ -1499,7 +1499,7 @@ public class SubstitutionVisitor {
 
       final Mapping inverseMapping = mapping.inverse();
       final MutableAggregate aggregate2 =
-          permute(query, qInput.getInput(), inverseMapping);
+          permute(query, qInput.getInput().clone(), inverseMapping);
 
       final Mappings.TargetMapping mappingForQueryCond =
           Mappings.target(target.groupSet::indexOf,
