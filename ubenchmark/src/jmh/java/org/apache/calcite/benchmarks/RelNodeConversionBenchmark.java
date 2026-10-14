@@ -27,9 +27,14 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -81,6 +86,11 @@ public class RelNodeConversionBenchmark {
     Planner p;
 
     public void setup(int length, int columnLength) {
+      setup(length, columnLength, SqlTypeName.INTEGER);
+    }
+
+    public void setup(int length, int columnLength,
+        SqlTypeName columnType) {
       // Create Sql
       StringBuilder sb = new StringBuilder();
       sb.append("select 1 ");
@@ -111,7 +121,7 @@ public class RelNodeConversionBenchmark {
         @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
           RelDataTypeFactory.Builder builder = typeFactory.builder();
           for (int i = 0; i < columnLength; i++) {
-            builder.add(String.format(Locale.ROOT, "c%d", i), SqlTypeName.INTEGER);
+            builder.add(String.format(Locale.ROOT, "c%d", i), columnType);
           }
           return builder.build();
         }
@@ -159,6 +169,94 @@ public class RelNodeConversionBenchmark {
   @Benchmark
   public RelNode parse(SqlToRelNodeBenchmarkState state) throws Exception {
     return state.parse();
+  }
+
+  /**
+   * State for converting SQL that compares a VARCHAR to a large string array.
+   *
+   * <p>This benchmark targets allocation from traversing a large operand list.
+   * Run with {@code -prof gc} and compare {@code gc.alloc.rate.norm}; latency is
+   * not its primary metric.
+   */
+  @State(Scope.Thread)
+  public static class LargeVarcharSomeArraySqlToRelNodeBenchmarkState
+      extends RelNodeConversionBenchmarkState {
+    @Param({"100000"})
+    int length;
+
+    @Setup(Level.Iteration)
+    public void setUp() {
+      super.setup(0, 1, SqlTypeName.VARCHAR);
+
+      final StringBuilder builder = new StringBuilder(length * 8);
+      builder.append("select c0 from test1 where c0 = some (array[");
+      for (int i = 0; i < length; i++) {
+        if (i > 0) {
+          builder.append(", ");
+        }
+        builder.append('\'').append(i).append('\'');
+      }
+      sql = builder.append("])").toString();
+    }
+
+    public RelNode parse() throws Exception {
+      SqlNode node = p.parse(sql);
+      node = p.validate(node);
+      RelNode rel = p.rel(node).project();
+      p.close();
+      p.reset();
+      return rel;
+    }
+  }
+
+  @Benchmark
+  public RelNode parseLargeVarcharSomeArray(
+      LargeVarcharSomeArraySqlToRelNodeBenchmarkState state) throws Exception {
+    return state.parse();
+  }
+
+  /** State for traversing a large string ARRAY with {@link SqlShuttle}. */
+  @State(Scope.Thread)
+  public static class LargeVarcharArraySqlShuttleBenchmarkState {
+    @Param({"100000"})
+    int length;
+
+    SqlCall arrayCall;
+    SqlShuttle unchangedShuttle;
+    SqlShuttle changedShuttle;
+
+    @Setup(Level.Trial)
+    public void setUp() {
+      final SqlNode[] operands = new SqlNode[length];
+      for (int i = 0; i < length; i++) {
+        operands[i] =
+            SqlLiteral.createCharString(Integer.toString(i), SqlParserPos.ZERO);
+      }
+      arrayCall =
+          SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(SqlParserPos.ZERO, operands);
+
+      final SqlNode target = operands[length / 2];
+      final SqlLiteral replacement =
+          SqlLiteral.createCharString("replacement", SqlParserPos.ZERO);
+      unchangedShuttle = new SqlShuttle();
+      changedShuttle = new SqlShuttle() {
+        @Override public SqlNode visit(SqlLiteral literal) {
+          return literal == target ? replacement : literal;
+        }
+      };
+    }
+  }
+
+  @Benchmark
+  public SqlNode visitLargeVarcharArrayUnchanged(
+      LargeVarcharArraySqlShuttleBenchmarkState state) {
+    return state.arrayCall.accept(state.unchangedShuttle);
+  }
+
+  @Benchmark
+  public SqlNode visitLargeVarcharArrayChanged(
+      LargeVarcharArraySqlShuttleBenchmarkState state) {
+    return state.arrayCall.accept(state.changedShuttle);
   }
 
   /**
