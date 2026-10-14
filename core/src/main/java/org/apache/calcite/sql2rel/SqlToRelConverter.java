@@ -4917,8 +4917,11 @@ public class SqlToRelConverter {
           Util.skip(project.getProjects(), nSourceFields));
     }
 
+    // Keep the correlation variables set by the source projection: the SET
+    // expressions may contain correlated sub-queries.
     relBuilder.push(join)
-        .project(projects);
+        .project(projects, ImmutableList.of(), false,
+            ((LogicalProject) mergeSourceRel).getVariablesSet());
 
     return LogicalTableModify.create(targetTable, catalogReader,
         relBuilder.build(), LogicalTableModify.Operation.MERGE,
