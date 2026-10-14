@@ -2128,6 +2128,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /** Shuttle that copies every call and identifier of a tree, so that the copy
+   * shares no mutable node with the original. */
+  private static class DeepCopyShuttle extends SqlShuttle {
+    @Override public @Nullable SqlNode visit(SqlCall call) {
+      final CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
+      call.getOperator().acceptCall(this, call, false, argHandler);
+      return argHandler.result();
+    }
+
+    @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+      return id.clone(id.getParserPosition());
+    }
+  }
+
   private static void rewriteMerge(SqlMerge call) {
     SqlNodeList selectList;
     SqlUpdate updateStmt = call.getUpdateCall();
@@ -2135,9 +2149,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // if we have an update statement, just clone the select list
       // from the update statement's source since it's the same as
       // what we want for the select list of the merge source -- '*'
-      // followed by the update set expressions
+      // followed by the update set expressions. The list must be a deep copy:
+      // a shallow clone would share sub-queries (and their identifiers) with
+      // the update's own source select, and the validator keeps only one
+      // scope per node, so correlated references would be resolved against
+      // the wrong scope.
       SqlSelect sourceSelect = SqlNonNullableAccessors.getSourceSelect(updateStmt);
-      selectList = SqlNode.clone(SqlNonNullableAccessors.getSelectList(sourceSelect));
+      selectList =
+          (SqlNodeList) requireNonNull(
+              SqlNonNullableAccessors.getSelectList(sourceSelect)
+                  .accept(new DeepCopyShuttle()));
     } else {
       // otherwise, just use select *
       selectList = new SqlNodeList(SqlParserPos.ZERO);

@@ -4135,6 +4135,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Tests a MERGE whose UPDATE contains a correlated sub-query referencing a
+   * target column that has the same name as a source column. */
+  @Test void testMergeUpdateCorrelatedSubQuery() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set sal = (select d.deptno from dept d where d.deptno = e.deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testSelectView() {
     // translated condition: deptno = 20 and sal > 1000 and empno > 100
     final String sql = "select * from emp_20 where empno > 100";

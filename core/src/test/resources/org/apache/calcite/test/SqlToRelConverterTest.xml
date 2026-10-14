@@ -5969,6 +5969,29 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], up
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMergeUpdateCorrelatedSubQuery">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables e
+using (select * from emp) t
+on e.empno = t.empno
+when matched then update
+set sal = (select d.deptno from dept d where d.deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
+  LogicalProject(variablesSet=[[$cor0]], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], $f9=[$SCALAR_QUERY({
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($0, $cor0.DEPTNO0)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModeFunction">
     <Resource name="sql">
       <![CDATA[select mode(deptno)
