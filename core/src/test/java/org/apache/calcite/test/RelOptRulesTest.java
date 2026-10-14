@@ -42,6 +42,7 @@ import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -66,6 +67,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
@@ -166,6 +168,7 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -685,6 +688,67 @@ class RelOptRulesTest extends RelOptTestBase {
       assertThat(fieldCollation.getDirection(),
           is(RelFieldCollation.Direction.DESCENDING));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7854">[CALCITE-7854]
+   * FilterProjectTransposeRule throws NullPointerException when the Filter has
+   * a distribution trait and the Project's input has none</a>.
+   *
+   * <p>The pushed Filter gets the default distribution. The rule used to put
+   * a null distribution into the new trait set and failed with
+   * NullPointerException. */
+  @Test void testFilterProjectTransposeRuleInputWithoutDistribution() {
+    assertThat(pushedFilterDistribution(null), is(RelDistributions.ANY));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7854">[CALCITE-7854]
+   * FilterProjectTransposeRule throws NullPointerException when the Filter has
+   * a distribution trait and the Project's input has none</a>.
+   *
+   * <p>The pushed Filter takes the input's distribution, not the one the
+   * original Filter had. */
+  @Test void testFilterProjectTransposeRuleInputWithDistribution() {
+    assertThat(pushedFilterDistribution(RelDistributions.SINGLETON),
+        is(RelDistributions.SINGLETON));
+  }
+
+  /** Applies {@link CoreRules#FILTER_PROJECT_TRANSPOSE} to
+   * Filter(Project(Scan EMP)) and returns the distribution of the pushed
+   * Filter.
+   *
+   * <p>The planner behind {@link RelBuilderTest#config()} does not register
+   * {@link RelDistributionTraitDef}, so distributions are added through
+   * {@link RelTraitSet#plus}: the Filter has {@code hash[0]}, and the scan has
+   * {@code inputDistribution}, or no distribution trait when it is null. */
+  private static @Nullable RelDistribution pushedFilterDistribution(
+      @Nullable RelDistribution inputDistribution) {
+    final RelBuilder b = RelBuilder.create(RelBuilderTest.config().build());
+    final TableScan scan = (TableScan) b.scan("EMP").build();
+    final RelNode input = inputDistribution == null
+        ? scan
+        : new LogicalTableScan(scan.getCluster(),
+            scan.getTraitSet().plus(inputDistribution), scan.getHints(),
+            scan.getTable());
+    final Filter filter = (Filter) b.push(input)
+        .project(b.field("SAL"))
+        .filter(b.equals(b.field(0), b.literal(11500)))
+        .build();
+    final RelNode in =
+        filter.copy(
+            filter.getTraitSet().plus(RelDistributions.hash(ImmutableList.of(0))),
+            filter.getInput(), filter.getCondition());
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(in);
+    final RelNode result = hepPlanner.findBestExp();
+
+    final RelNode pushedFilter = result.getInput(0);
+    assertThat(pushedFilter, instanceOf(Filter.class));
+    return pushedFilter.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE);
   }
 
   /** Test case for

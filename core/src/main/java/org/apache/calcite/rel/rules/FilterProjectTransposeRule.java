@@ -35,7 +35,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -185,9 +184,8 @@ public class FilterProjectTransposeRule
       final RelTraitSet traitSet = filter.getTraitSet()
           .replaceIfs(RelCollationTraitDef.INSTANCE,
               () -> input.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE))
-          .replaceIfs(RelDistributionTraitDef.INSTANCE,
-              () -> Collections.singletonList(
-                  input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE)));
+          .replaceIf(RelDistributionTraitDef.INSTANCE,
+              () -> input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE));
       newCondition = RexUtil.removeNullabilityCast(relBuilder.getTypeFactory(), newCondition);
       newFilterRel = filter.copy(traitSet, input, newCondition);
     } else {
