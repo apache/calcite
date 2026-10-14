@@ -35,10 +35,10 @@ import static java.util.Objects.requireNonNull;
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
-    @SuppressWarnings("NullAway")
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
-      return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
+      return new SqlOrderBy(pos, requireNonNull(operands[0], "query"),
+          requireNonNull((SqlNodeList) operands[1], "orderList"),
           operands[2], operands[3]);
     }
   };
@@ -53,8 +53,8 @@ public class SqlOrderBy extends SqlCall {
   public SqlOrderBy(SqlParserPos pos, SqlNode query, SqlNodeList orderList,
       @Nullable SqlNode offset, @Nullable SqlNode fetch) {
     super(pos);
-    this.query = query;
-    this.orderList = orderList;
+    this.query = requireNonNull(query, "query");
+    this.orderList = requireNonNull(orderList, "orderList");
     this.offset = offset;
     this.fetch = fetch;
   }
