@@ -1244,9 +1244,15 @@ public abstract class OperandTypes {
       new SqlOperandTypeChecker() {
         @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
             boolean throwOnFailure) {
-          getOperandCountRange().isValidCount(callBinding.getOperandCount());
-          RelDataType type = callBinding.getOperandType(1);
-          return type.getComparability() == RelDataTypeComparability.ALL;
+          if (getOperandCountRange().isValidCount(callBinding.getOperandCount())
+              && callBinding.getOperandType(1).getComparability()
+                  == RelDataTypeComparability.ALL) {
+            return true;
+          }
+          if (throwOnFailure) {
+            throw callBinding.newValidationSignatureError();
+          }
+          return false;
         }
 
         @Override public SqlOperandCountRange getOperandCountRange() {
