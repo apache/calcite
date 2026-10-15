@@ -10291,6 +10291,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT ARG_MAX('b', 5) FROM emp").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7858">[CALCITE-7858]
+   * ARG_MIN, ARG_MAX, MIN_BY and MAX_BY should reject a non-comparable
+   * key</a>.
+   *
+   * <p>The type of column {@code HOME_ADDRESS} is a structured type whose
+   * comparability is {@code NONE}. */
+  @Test void testArgMinMaxNonComparableKey() {
+    final String expected = "Cannot apply '%s' to arguments of type "
+        + "'%s\\(<INTEGER>, <>\\)'\\. "
+        + "Supported form\\(s\\): %s\\(<ANY>, <COMPARABLE_TYPE>\\)";
+    sql("select ^arg_min(empno, home_address)^ from emp_address")
+        .fails(String.format(Locale.ROOT, expected, "ARG_MIN", "ARG_MIN", "ARG_MIN"));
+    sql("select ^arg_max(empno, home_address)^ from emp_address")
+        .fails(String.format(Locale.ROOT, expected, "ARG_MAX", "ARG_MAX", "ARG_MAX"));
+    sql("select ^max_by(empno, home_address)^ from emp_address")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .fails(String.format(Locale.ROOT, expected, "MAX_BY", "MAX_BY", "MAX_BY"));
+    sql("select ^min_by(empno, home_address)^ from emp_address")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .fails(String.format(Locale.ROOT, expected, "MIN_BY", "MIN_BY", "MIN_BY"));
+
+    // The value (the first argument) need not be comparable
+    sql("select arg_min(home_address, empno) from emp_address").ok();
+    sql("select max_by(home_address, empno) from emp_address")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .ok();
+  }
+
   @Test void testModeFunction() {
     sql("select MODE(sal) from emp").ok();
     sql("select MODE(sal) over (order by empno) from emp").ok();
