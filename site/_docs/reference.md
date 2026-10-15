@@ -1277,6 +1277,7 @@ UTF8,
 **VARYING**,
 **VAR_POP**,
 **VAR_SAMP**,
+VECTOR,
 VERSION,
 **VERSIONING**,
 VIEW,
@@ -1390,6 +1391,7 @@ Note:
 | CURSOR   | Cursor over the result of executing a query |
 | FUNCTION | A function definition that is not bound to an identifier, it is not fully supported in CAST or DDL | Example FUNCTION(INTEGER, VARCHAR(30)) -> INTEGER
 | VARIANT  | Dynamically-typed value that can have at runtime a value of any other type | VARIANT
+| VECTOR   | List of a fixed number of non-null numbers, such as an embedding; see [below](#the-vector-type) | Example: vector(3), vector(768, tinyint)
 
 Note:
 
@@ -1450,6 +1452,81 @@ the runtime types are represented as follows:
 
 The function VARIANTNULL() can be used to create an instance
 of the `VARIANT` `null` value.
+
+### The `VECTOR` type
+
+A value of type `VECTOR` is a list of a fixed number of numbers, such as an
+embedding produced by a machine-learning model. The type is written
+
+{% highlight sql %}
+VECTOR(dimension [, elementType ])
+{% endhighlight %}
+
+where *dimension*, a positive integer, is the number of elements, and
+*elementType* is `REAL` (4-byte floating point, the default) or `TINYINT`
+(1-byte integer). For example, `VECTOR(3)` is the same type as
+`VECTOR(3, REAL)`.
+
+The elements of a vector are never null, but a vector as a whole may be null.
+
+Vectors can be created and converted by casting:
+
+* An `ARRAY` of numbers can be cast to a `VECTOR`, and a `VECTOR` can be cast
+  to an `ARRAY` of numbers. Each element is cast to the element type, and the
+  array must have exactly *dimension* elements, none of them null.
+  For example, `CAST(ARRAY[1, 2.5, -3] AS VECTOR(3))`.
+* A character string can be cast to a `VECTOR`, and a `VECTOR` can be cast to a
+  character string. The string consists of the elements separated by commas
+  and enclosed in square brackets, for example
+  `CAST('[1, 2.5, -3]' AS VECTOR(3))`; spaces around the brackets and
+  elements are ignored. A vector converts to a string such as
+  `'[1.0, 2.5, -3.0]'`.
+* A `VECTOR` can be cast to a `VECTOR` with the same dimension and a different
+  element type.
+
+If the operand of `CAST` is an array constructor or a character literal
+whose number of elements is not the dimension of the vector, the cast is a
+validation error; for other operands, it is a run-time error. `SAFE_CAST` and
+`TRY_CAST` return `NULL` instead.
+
+A dynamic parameter has a `VECTOR` type if it is cast to one, as in
+`CAST(? AS VECTOR(3))`, or if its context gives it one, as in
+`INSERT INTO t (v) VALUES (?)` where `v` is a `VECTOR(3)` column. Its value is
+a list (for example, a `java.util.List` bound using
+`PreparedStatement.setObject`) whose elements are numbers or strings. When the
+parameter is read, the list must have exactly *dimension* elements, none of
+them null, or there is a run-time error; each element is converted to the
+element type. `ParameterMetaData` reports the parameter's type as `ARRAY`, its
+type name as `VECTOR`, and its dimension as its precision.
+
+These conversions require an explicit `CAST`, except that in an `INSERT` or
+`UPDATE` statement, if type coercion is enabled (as it is by default), an
+`ARRAY`, a character string, or a `VECTOR` with the same dimension and a
+different element type is implicitly cast to the type of a `VECTOR` target
+column. A vector is never implicitly cast to another type.
+
+Vectors are not comparable. A vector cannot be an operand of a comparison
+(`=`, `<>`, `<`, `BETWEEN`, `IN`, `= SOME`, etc.), of `GREATEST` and `LEAST`,
+of `MIN`, `MAX`, `MODE` and `APPROX_COUNT_DISTINCT`, or the first argument or
+a search value of `DECODE`; nor can it be a key of `ORDER BY` (including the
+`ORDER BY` of a window, of an aggregate function such as `ARRAY_AGG`, and of
+`MATCH_RECOGNIZE`), `GROUP BY`, `PARTITION BY`, `SELECT DISTINCT`, an
+aggregate function's `DISTINCT`, `WITHIN DISTINCT` or `WITHIN GROUP`, `UNION`,
+`INTERSECT`, `EXCEPT`, or a `USING` or `NATURAL` join. (A vector inside a
+`ROW`, `ARRAY`, `MAP` or `MULTISET` is not yet checked; for example, an array
+of vectors is accepted by functions that compare the elements of an array,
+such as `ARRAY_CONTAINS` and `ARRAY_DISTINCT`.) `UNION ALL`, `COALESCE` and
+`CASE` accept vectors of the same dimension and element type.
+
+At run time, a vector is represented, like an `ARRAY`, by a `java.util.List`
+of its elements; JDBC returns it as a `java.sql.Array`, and reports its
+dimension as the column size.
+
+When Calcite generates SQL, the Calcite dialect writes `VECTOR(n, type)` and
+the PostgreSQL dialect writes the pgvector extension's `VECTOR(n)` (for `REAL`
+elements only); other dialects do not support vectors. The JDBC adapter does
+not push down to the database an expression whose type is a `VECTOR` that the
+database's dialect does not support; Calcite evaluates it instead.
 
 ### Spatial types
 
@@ -1836,33 +1913,34 @@ Calcite type conversions. The table shows all possible conversions,
 without regard to the context in which it is made. The rules governing
 these details follow the table.
 
-| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | TINYINT UNSIGNED | SMALLINT UNSIGNED | INT UNSIGNED | BIGINT UNSIGNED | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY | MAP | MULTISET | ROW | UUID |
-|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:-----------------|:------------------|:-------------|:----------------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|:----|:---------|:----|:-----|
-| NULL                | i    | i       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     | x   | x        | x   | i    |
-| BOOLEAN             | x    | i       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TINYINT             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| SMALLINT            | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| INT                 | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| BIGINT              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TINYINT UNSIGNED    | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| SMALLINT UNSIGNED   | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| INT UNSIGNED        | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| BIGINT UNSIGNED     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| INTERVAL            | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     | x   | x        | x   | x    |
-| DATE                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TIME                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     | i   | i        | i   | i    |
-| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     | x   | x        | x   | i    |
-| GEOMETRY            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     | x   | x        | x   | x    |
-| ARRAY               | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     | x   | x        | x   | x    |
-| MAP                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | i   | x        | x   | x    |
-| MULTISET            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | i        | x   | x    |
-| ROW                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | i   | x    |
-| UUID                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | x   | i    |
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | TINYINT UNSIGNED | SMALLINT UNSIGNED | INT UNSIGNED | BIGINT UNSIGNED | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY | MAP | MULTISET | ROW | UUID | VECTOR |
+|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:-----------------|:------------------|:-------------|:----------------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|:----|:---------|:----|:-----|:-------|
+| NULL                | i    | i       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     | x   | x        | x   | i    | i      |
+| BOOLEAN             | x    | i       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| TINYINT             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| INT                 | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| BIGINT              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| TINYINT UNSIGNED    | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| SMALLINT UNSIGNED   | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| INT UNSIGNED        | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| BIGINT UNSIGNED     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| DATE                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| TIME                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     | x   | x        | x   | x    | x      |
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     | i   | i        | i   | i    | e      |
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     | x   | x        | x   | i    | x      |
+| GEOMETRY            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     | x   | x        | x   | x    | x      |
+| ARRAY               | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     | x   | x        | x   | x    | e      |
+| MAP                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | i   | x        | x   | x    | x      |
+| MULTISET            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | i        | x   | x    | x      |
+| ROW                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | i   | x    | x      |
+| UUID                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | x   | i    | x      |
+| VECTOR              | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | e               | x                   | x        | e     | x   | x        | x   | x    | i      |
 
 i: implicit cast / e: explicit cast / x: not allowed
 

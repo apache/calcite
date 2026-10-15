@@ -187,8 +187,8 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .addAll(SqlTypeName.UNSIGNED_TYPES)
             .build());
 
-    // VARCHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary, uuid, and
-    // intervals
+    // VARCHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary, uuid,
+    // intervals, and vectors
     coerceRules.add(SqlTypeName.VARCHAR,
         coerceRules.copyValues(SqlTypeName.VARCHAR)
             .add(SqlTypeName.CHAR)
@@ -204,10 +204,11 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .addAll(SqlTypeName.NUMERIC_TYPES)
             .addAll(SqlTypeName.INTERVAL_TYPES)
             .add(SqlTypeName.UUID)
+            .add(SqlTypeName.VECTOR)
             .build());
 
-    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary, uuid, and
-    // intervals
+    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary, uuid,
+    // intervals, and vectors
     coerceRules.add(SqlTypeName.CHAR,
         coerceRules.copyValues(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
@@ -223,6 +224,21 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .addAll(SqlTypeName.NUMERIC_TYPES)
             .addAll(SqlTypeName.INTERVAL_TYPES)
             .add(SqlTypeName.UUID)
+            .add(SqlTypeName.VECTOR)
+            .build());
+
+    // VECTOR is castable from VECTOR (of the same dimension), ARRAY (of
+    // numeric elements), and character strings.
+    coerceRules.add(SqlTypeName.VECTOR,
+        coerceRules.copyValues(SqlTypeName.VECTOR)
+            .add(SqlTypeName.ARRAY)
+            .addAll(SqlTypeName.CHAR_TYPES)
+            .build());
+
+    // ARRAY is castable from VECTOR.
+    coerceRules.add(SqlTypeName.ARRAY,
+        coerceRules.copyValues(SqlTypeName.ARRAY)
+            .add(SqlTypeName.VECTOR)
             .build());
 
     // BOOLEAN is castable from ...

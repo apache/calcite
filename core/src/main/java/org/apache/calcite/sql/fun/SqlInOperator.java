@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.ExplicitOperatorBinding;
@@ -35,6 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
@@ -118,6 +120,19 @@ public class SqlInOperator extends SqlBinaryOperator {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     RelDataType leftType = validator.deriveType(scope, left);
     RelDataType rightType;
+
+    // Values of type VECTOR are not comparable, so cannot be on the left of
+    // IN, whether alone or in a row, as in "(id, v) IN (SELECT ...)".
+    if (left.getKind() == SqlKind.ROW) {
+      for (SqlNode operand : ((SqlCall) left).getOperandList()) {
+        SqlValidatorUtil.checkComparability(validator, operand,
+            validator.deriveType(scope, operand),
+            RelDataTypeComparability.UNORDERED, getName());
+      }
+    } else {
+      SqlValidatorUtil.checkComparability(validator, left, leftType,
+          RelDataTypeComparability.UNORDERED, getName());
+    }
 
     // Derive type for RHS.
     if (right instanceof SqlNodeList) {

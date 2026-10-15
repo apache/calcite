@@ -28,6 +28,7 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
@@ -102,6 +103,36 @@ public class SqlValidatorUtil {
   private SqlValidatorUtil() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Throws a validation error if an expression has a type whose values do not
+   * support the comparisons that a clause requires.
+   *
+   * <p>For example, {@code ORDER BY} requires
+   * {@link RelDataTypeComparability#ALL}, and {@code GROUP BY} requires
+   * {@link RelDataTypeComparability#UNORDERED}; neither allows an expression
+   * of type {@code VECTOR}, whose comparability is
+   * {@link RelDataTypeComparability#NONE}.
+   *
+   * <p>Only {@code VECTOR} types are checked, so that the validator continues
+   * to accept other types (such as user-defined structured types) whose
+   * comparability is {@link RelDataTypeComparability#NONE} in these clauses.
+   *
+   * @param validator Validator
+   * @param node      Expression, for the position of the error
+   * @param type      Type of the expression
+   * @param required  Comparability that the clause requires
+   * @param clause    Name of the clause, for the error message,
+   *                  e.g. "ORDER BY"
+   */
+  public static void checkComparability(SqlValidator validator, SqlNode node,
+      RelDataType type, RelDataTypeComparability required, String clause) {
+    if (SqlTypeUtil.isVector(type)
+        && type.getComparability().ordinal() < required.ordinal()) {
+      throw validator.newValidationError(node,
+          RESOURCE.typeNotComparableInClause(type.toString(), clause));
+    }
+  }
 
   /**
    * Converts a {@link SqlValidatorScope} into a {@link RelOptTable}. This is

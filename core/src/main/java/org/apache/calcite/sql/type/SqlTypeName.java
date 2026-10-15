@@ -141,7 +141,13 @@ public enum SqlTypeName {
   UUID(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.UUID),
   /** VARIANT data type, a dynamically-typed value that can have at runtime
    * any of the other data types in this table. */
-  VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT);
+  VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT),
+  /** VECTOR data type, a list of a fixed number of non-null numeric elements,
+   * such as an embedding. The number of elements (the dimension) and the
+   * element type are part of the type, as in {@code VECTOR(3, REAL)}.
+   *
+   * @see VectorSqlType */
+  VECTOR(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.VECTOR);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 

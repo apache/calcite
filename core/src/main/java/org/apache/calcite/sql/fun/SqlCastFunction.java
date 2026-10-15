@@ -19,8 +19,10 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -58,6 +60,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.isArray;
 import static org.apache.calcite.sql.type.SqlTypeUtil.isCollection;
 import static org.apache.calcite.sql.type.SqlTypeUtil.isMap;
 import static org.apache.calcite.sql.type.SqlTypeUtil.isRow;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isVector;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -155,6 +158,26 @@ public class SqlCastFunction extends SqlFunction {
       return typeFactory.createTypeWithNullability(targetType, true);
     }
 
+    if (isVector(targetType)) {
+      // The elements of a vector are never null, so only the nullability of
+      // the vector itself is derived from the expression.
+      return typeFactory.createTypeWithNullability(targetType, isNullable);
+    }
+
+    if (isVector(expressionType) && isArray(targetType)) {
+      final RelDataType expressionElementType =
+          requireNonNull(expressionType.getComponentType(),
+              () -> "componentType of " + expressionType);
+      final RelDataType targetElementType =
+          requireNonNull(targetType.getComponentType(),
+              () -> "componentType of " + targetType);
+      final RelDataType newElementType =
+          createTypeWithNullabilityFromExpr(
+              typeFactory, expressionElementType, targetElementType, safe);
+      return SqlTypeUtil.createArrayType(typeFactory, newElementType,
+          isNullable);
+    }
+
     if (isCollection(expressionType)) {
       RelDataType expressionElementType = expressionType.getComponentType();
       RelDataType targetElementType = targetType.getComponentType();
@@ -246,6 +269,13 @@ public class SqlCastFunction extends SqlFunction {
       }
       return false;
     }
+    // For SAFE_CAST and TRY_CAST, a wrong number of elements (or a malformed
+    // string) gives NULL at run time rather than a validation error.
+    if (isVector(returnType)
+        && kind != SqlKind.SAFE_CAST
+        && !checkVectorDimension(left, returnType, throwOnFailure)) {
+      return false;
+    }
     if (SqlTypeUtil.areCharacterSetsMismatched(
         validatedNodeType,
         returnType)) {
@@ -262,6 +292,43 @@ public class SqlCastFunction extends SqlFunction {
     // Validate format argument is string type if included
     return SqlUtil.isNullLiteral(format, false)
         || SqlLiteral.valueMatchesType(format.getValue(), SqlTypeName.CHAR);
+  }
+
+  /** Checks that the number of elements of an expression that is being cast
+   * to a {@code VECTOR} matches the dimension of the vector, if the number of
+   * elements is known during validation; that is, if the expression is an
+   * array constructor such as {@code ARRAY[1, 2, 3]} or a character literal
+   * such as {@code '[1, 2, 3]'}. For other expressions, the number of
+   * elements is checked at run time. */
+  private static boolean checkVectorDimension(SqlNode operand,
+      RelDataType vectorType, boolean throwOnFailure) {
+    final int dimension = vectorType.getPrecision();
+    final int elementCount;
+    if (operand.getKind() == SqlKind.ARRAY_VALUE_CONSTRUCTOR) {
+      elementCount = ((SqlCall) operand).operandCount();
+    } else if (operand instanceof SqlCharStringLiteral) {
+      final String value =
+          ((SqlCharStringLiteral) operand).getValueAs(String.class);
+      final List<String> elements = SqlFunctions.parseVector(value);
+      if (elements == null) {
+        if (throwOnFailure) {
+          throw SqlUtil.newContextException(operand.getParserPosition(),
+              RESOURCE.invalidVectorString(value));
+        }
+        return false;
+      }
+      elementCount = elements.size();
+    } else {
+      return true;
+    }
+    if (elementCount != dimension) {
+      if (throwOnFailure) {
+        throw SqlUtil.newContextException(operand.getParserPosition(),
+            RESOURCE.vectorDimensionMismatch(elementCount, dimension));
+      }
+      return false;
+    }
+    return true;
   }
 
   @Override public SqlSyntax getSyntax() {
@@ -301,6 +368,9 @@ public class SqlCastFunction extends SqlFunction {
         : castToType.getCollation().getCollator();
     if (!Objects.equals(castFromCollator, castToCollator)) {
       // Cast between types compared with different collators: not monotonic.
+      return SqlMonotonicity.NOT_MONOTONIC;
+    } else if (isVector(castFromType) || isVector(castToType)) {
+      // Vectors are not ordered.
       return SqlMonotonicity.NOT_MONOTONIC;
     } else if (castFromFamily instanceof SqlTypeFamily
         && castToFamily instanceof SqlTypeFamily

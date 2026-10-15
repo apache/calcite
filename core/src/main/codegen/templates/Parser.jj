@@ -103,6 +103,7 @@ import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlVectorTypeNameSpec;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
@@ -6507,6 +6508,9 @@ SqlTypeNameSpec TypeName() :
         LOOKAHEAD(2)
         typeNameSpec = MapTypeName()
     |
+        LOOKAHEAD(2)
+        typeNameSpec = VectorTypeName()
+    |
         typeName = CompoundIdentifier() {
             typeNameSpec = new SqlUserDefinedTypeNameSpec(typeName, s.end(this));
         }
@@ -6825,6 +6829,32 @@ SqlTypeNameSpec MapTypeName() :
     <GT>
     {
         return new SqlMapTypeNameSpec(keyType, valType, getPos());
+    }
+}
+
+/**
+* Parses a VECTOR type, for example "VECTOR(3)" or "VECTOR(3, TINYINT)".
+* The element type is optional; if not specified, it is REAL.
+* The validator checks the dimension and element type.
+*/
+SqlTypeNameSpec VectorTypeName() :
+{
+    final Span s;
+    final int dimension;
+    SqlTypeNameSpec elementTypeName = null;
+}
+{
+    <VECTOR> { s = span(); }
+    <LPAREN>
+    dimension = UnsignedIntLiteral()
+    [
+        <COMMA>
+        elementTypeName = SqlTypeName(Span.of())
+    ]
+    <RPAREN>
+    {
+        return new SqlVectorTypeNameSpec(dimension, elementTypeName,
+            s.end(this));
     }
 }
 
@@ -9444,6 +9474,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < VARCHAR: "VARCHAR" >
 |   < VARIANT: "VARIANT" >
 |   < VARYING: "VARYING" >
+|   < VECTOR: "VECTOR" >
 |   < VERSION: "VERSION" >
 |   < VERSIONING: "VERSIONING" >
 |   < VIEW: "VIEW" >

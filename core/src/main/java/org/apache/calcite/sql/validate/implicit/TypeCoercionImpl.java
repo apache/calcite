@@ -828,6 +828,11 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         // Returns early if types not equals and can not do type coercion.
         return false;
       }
+      if (SqlTypeUtil.isVector(sourceType) && !SqlTypeUtil.isVector(targetType)) {
+        // A vector is not implicitly converted to another type, such as a
+        // character string or an array; that requires an explicit CAST.
+        return false;
+      }
     }
     boolean coerced = false;
     for (int i = 0; i < sourceFields.size(); i++) {

@@ -81,6 +81,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   FUNCTION,
   VARIANT,
   UUID,
+  VECTOR,
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
   IGNORE;
@@ -236,6 +237,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.UUID);
     case VARIANT:
       return ImmutableList.of(SqlTypeName.VARIANT);
+    case VECTOR:
+      return ImmutableList.of(SqlTypeName.VECTOR);
     default:
       throw new IllegalArgumentException();
     }

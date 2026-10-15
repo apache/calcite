@@ -17,9 +17,12 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -112,10 +115,23 @@ public class SetopNamespace extends AbstractNamespace {
         }
         validator.validateQuery(operand, scope, targetRowType);
       }
-      return call.getOperator().deriveType(
-          validator,
-          scope,
-          call);
+      final RelDataType rowType =
+          call.getOperator().deriveType(
+              validator,
+              scope,
+              call);
+      final boolean all = call.getOperator() instanceof SqlSetOperator
+          && ((SqlSetOperator) call.getOperator()).isAll();
+      if (call.getKind() != SqlKind.UNION || !all) {
+        // UNION (without ALL), INTERSECT and EXCEPT compare rows for
+        // equality.
+        for (RelDataTypeField field : rowType.getFieldList()) {
+          SqlValidatorUtil.checkComparability(validator, call,
+              field.getType(), RelDataTypeComparability.UNORDERED,
+              call.getOperator().getName());
+        }
+      }
+      return rowType;
     default:
       throw new AssertionError("Not a query: " + call.getKind());
     }

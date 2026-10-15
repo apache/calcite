@@ -1023,6 +1023,7 @@ public class RexBuilder {
     if (sqlType == SqlTypeName.MEASURE
         || sqlType == SqlTypeName.VARIANT
         || sqlType == SqlTypeName.UUID
+        || sqlType == SqlTypeName.VECTOR
         || SqlTypeName.UNSIGNED_TYPES.contains(sqlType)) {
       return false;
     }
@@ -2353,6 +2354,21 @@ public class RexBuilder {
             makeLiteral(entry, arrayType.getComponentType(), allowCast));
       }
       return makeCall(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, operands);
+    case VECTOR:
+      // There are no literals of VECTOR type; a constant vector is
+      // represented as a cast of an array constructor, for example
+      // "CAST(ARRAY[1.0E0, 2.0E0] AS VECTOR(2, REAL))".
+      final RelDataType elementType =
+          requireNonNull(type.getComponentType(), "componentType");
+      @SuppressWarnings("unchecked")
+      final List<Object> vectorValue = (List) value;
+      operands = new ArrayList<>();
+      for (Object entry : vectorValue) {
+        operands.add(makeLiteral(entry, elementType, allowCast));
+      }
+      return makeAbstractCast(type,
+          makeCall(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, operands),
+          false);
     case MULTISET:
       final MultisetSqlType multisetType = (MultisetSqlType) type;
       operands = new ArrayList<>();
