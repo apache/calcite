@@ -5992,6 +5992,100 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMergeUpdateCorrelatedSubQueryExpanded">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables e
+using (select * from emp) t
+on e.empno = t.empno
+when matched then update
+set sal = (select d.deptno from dept d where d.deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
+  LogicalProject(EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], $f0=[$18])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], DEPTNO18=[$18])
+      LogicalJoin(condition=[=($18, $16)], joinType=[left])
+        LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeUpdateCorrelatedSubQueryExpandedNoDecorrelate">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables e
+using (select * from emp) t
+on e.empno = t.empno
+when matched then update
+set sal = (select d.deptno from dept d where d.deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[false])
+  LogicalProject(EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], $f0=[$18])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{16}])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalFilter(condition=[=($0, $cor0.DEPTNO0)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeUpdateSubQueryExpandedWithInsert">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables e
+using (select * from emp) t
+on e.empno = t.empno
+when matched then update
+set sal = (select max(d.deptno) from dept d)
+when not matched then insert (empno, ename, sal)
+values (t.empno, t.ename, 10)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[10], $f6=[null:INTEGER], $f7=[null:INTEGER], $f8=[null:BOOLEAN], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], EXPR$0=[$18])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalJoin(condition=[=($9, $0)], joinType=[left])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeUpdateUncorrelatedSubQueryExpanded">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables e
+using (select * from emp) t
+on e.empno = t.empno
+when matched then update
+set sal = (select max(d.deptno) from dept d)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
+  LogicalProject(EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], EXPR$0=[$18])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModeFunction">
     <Resource name="sql">
       <![CDATA[select mode(deptno)

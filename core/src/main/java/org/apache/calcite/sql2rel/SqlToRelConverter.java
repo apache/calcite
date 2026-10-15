@@ -4897,8 +4897,18 @@ public class SqlToRelConverter {
       nLevel1Exprs = level1InsertExprs.size();
     }
 
-    LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
-    int nSourceFields = join.getLeft().getRowType().getFieldCount();
+    // The input of the source projection is the join of the source and the
+    // target, possibly wrapped by the joins or correlates that expand the
+    // sub-queries of the SET expressions. Source fields come first in all of
+    // them.
+    final RelNode mergeInput = mergeSourceRel.getInput(0);
+    final SqlNode sourceFrom =
+        requireNonNull(sourceSelect.getFrom(), () -> "from for " + sourceSelect);
+    final SqlNode sourceRef = ((SqlJoin) sourceFrom).getLeft();
+    final SqlValidatorNamespace sourceNamespace =
+        requireNonNull(validator().getNamespace(sourceRef),
+            () -> "namespace for " + sourceRef);
+    final int nSourceFields = sourceNamespace.getRowType().getFieldCount();
     final List<RexNode> projects = new ArrayList<>();
     for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
       requireNonNull(level1InsertExprs, "level1InsertExprs");
@@ -4919,7 +4929,7 @@ public class SqlToRelConverter {
 
     // Keep the correlation variables set by the source projection: the SET
     // expressions may contain correlated sub-queries.
-    relBuilder.push(join)
+    relBuilder.push(mergeInput)
         .project(projects, ImmutableList.of(), false,
             ((LogicalProject) mergeSourceRel).getVariablesSet());
 
