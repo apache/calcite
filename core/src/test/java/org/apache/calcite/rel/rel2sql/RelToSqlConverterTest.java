@@ -12619,7 +12619,16 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4592">[CALCITE-4592]
    * RelToSqlConverter#visit(Join e) does not populate correlation context</a>.
    * A scalar sub-query in the projection above a join references the
-   * correlation variable ($cor0) set by the join. */
+   * correlation variable ($cor0) set by the join, as in the JIRA use case
+   * {@code SELECT c.id, (SELECT p.amount FROM p WHERE c.id = p.id)
+   * FROM c LEFT JOIN p ON c.id = p.id}.
+   *
+   * <p>The plan is built programmatically because the standard sql-to-rel
+   * conversion attaches the correlation id to the Project above the join,
+   * not to the Join itself; a Join that owns the correlation id (e.g. built
+   * via RelBuilder or produced by planner rules) throws
+   * {@code NullPointerException: variable $cor0 is not found} on Calcite
+   * 1.26, where visit(Join) did not populate the correlation context. */
   @Test void testJoinCorrelate() {
     final RelBuilder relBuilder = relBuilder();
     final CorrelationId correlationId = relBuilder.getCluster().createCorrel();
