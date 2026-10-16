@@ -51,6 +51,12 @@ several important concepts:
 * advanced implementation of Table, using TranslatableTable, that translates
   to relational operators using planner rules.
 
+**Note:** Calcite-example-CSV is pedagogical code. It is intentionally minimal
+and does not carry the security hardening that ships in the production
+[file adapter]({{ site.baseurl }}/docs/file_adapter.html). Do not embed
+it in a service that exposes its `model` or JDBC connection properties to an
+untrusted query author; use `calcite-file` instead.
+
 ## Download and build
 
 You need Java (version 8, 9 or 10) and Git.

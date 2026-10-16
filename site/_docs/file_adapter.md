@@ -27,6 +27,12 @@ limitations under the License.
 The file adapter is able to read files in a variety of formats,
 and can also read files over various protocols, such as HTTP.
 
+The file adapter dereferences only local `file:` sources by default. Table `url`
+operands naming remote protocols (`http`, `https`, `ftp`, `jar`, ...) or remote
+`file:` URLs (`file://host/...`) are
+supported only if the adapter is deployed with the appropriate system
+property, see [Enabling remote fetches](#enabling-remote-fetches).
+
 For example if you define:
 
 * States - https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States
@@ -161,6 +167,9 @@ Now for a more complex example. This time we connect to Wikipedia via
 HTTP, read pages for US states and cities, and extract data from HTML
 tables on those pages. The tables have more complex formats, and the
 file adapter helps us locate and parse data in those tables.
+Note: since remote protocols are disabled by default (see
+[Enabling remote fetches](#enabling-remote-fetches)), run this example with
+`JAVA_OPTS='-Dcalcite.file.urls.allowed=https?://en\.wikipedia\.org/.*' ./sqlline`.
 
 Tables can be simply defined for immediate gratification:
 
@@ -343,6 +352,14 @@ sqlline> select distinct deptno from depts;
 +--------+
 3 rows selected (0.985 seconds)
 {% endhighlight %}
+
+## Enabling remote fetches
+
+From version 1.43.0 onwards, the file adapter dereferences only local `file:` sources by default.
+Table `url` operands naming remote URLs (`http`, `https`, `ftp`, `jar`, `file://host/`, ...) are
+rejected with `IllegalArgumentException` unless they match the regular expression specified by the
+[`calcite.file.urls.allowed`]({{ site.apiRoot }}/org/apache/calcite/config/CalciteSystemProperty.html#FILE_URLS_ALLOWED)
+system property.
 
 ## Future improvements
 
