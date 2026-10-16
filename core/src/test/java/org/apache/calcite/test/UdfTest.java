@@ -48,6 +48,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -487,6 +488,55 @@ class UdfTest {
         + " max(\"adhoc\".count_args(0, 0)) as p2\n"
         + "from \"adhoc\".EMPLOYEES limit 1")
         .returns("P0=0; P1=1; P2=2\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7845">[CALCITE-7845]
+   * Fix UDF/UDTF overload resolution with generic parameter types</a>. */
+  @Test void testUdfOverloadedWithObject() {
+    final ImmutableList<Class<?>> types =
+        ImmutableList.of(Object.class, String.class, Timestamp.class);
+    for (List<Class<?>> order : ImmutableList.of(types, types.reverse())) {
+      final CalciteAssert.AssertThat with = CalciteAssert.that().with(connection -> {
+        final SchemaPlus schema = connection.unwrap(CalciteConnection.class).getRootSchema()
+            .add("s", new AbstractSchema());
+        for (Class<?> type : order) {
+          schema.add(
+              "F", ScalarFunctionImpl.create(
+              Types.lookupMethod(Smalls.GenericOverloadFunction.class,
+                  "eval", String.class, type)));
+        }
+        schema.add(
+            "TS", ScalarFunctionImpl.create(
+            Types.lookupMethod(Smalls.AllTypesFunction.class, "toTimestampFun", Long.class)));
+        schema.add(
+            "O", ScalarFunctionImpl.create(
+            Types.lookupMethod(Smalls.GenericOverloadFunction.class, "objectValue")));
+        return connection;
+      });
+      with.query("values \"s\".f('x', 'text')").returnsValue("x:String");
+      with.query("values \"s\".f('x', timestamp '2024-01-02 03:04:05')")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', true)").returnsValue("x:Object");
+      with.query("values \"s\".f('x', 42)").returnsValue("x:Object");
+      with.query("values \"s\".f('x', cast(null as timestamp))")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', \"s\".ts(0))").returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', \"s\".o())").returnsValue("x:Object");
+      with.query("select \"s\".f('x', coalesce(v, \"s\".ts(0)))\n"
+          + "from (values (cast(null as timestamp))) as t(v)")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f(\"value\" => timestamp '2024-01-02 03:04:05', \"label\" => 'x')")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', cast(? as timestamp))")
+          .consumesPreparedStatement(
+              p -> p.setTimestamp(1,
+              Timestamp.valueOf("2024-01-02 03:04:05")))
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', cast(? as integer))")
+          .consumesPreparedStatement(p -> p.setInt(1, 42))
+          .returnsValue("x:Object");
+    }
   }
 
   @Test void testUdfOverloadedNullable() {

@@ -805,7 +805,8 @@ public abstract class SqlUtil {
                   ? paramNames.indexOf(argNames.get(argType.i))
                   : argType.i;
               final RelDataType paramType = paramTypes.get(index);
-              return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
+              return precList.containsType(paramType)
+                  && precList.compareTypePrecedence(paramType, bestMatch) >= 0;
             })
             .collect(Collectors.toList());
       }
@@ -830,6 +831,12 @@ public abstract class SqlUtil {
       final RelDataType paramType = argNames != null
           ? paramTypes.get(paramNames.indexOf(argNames.get(i)))
           : paramTypes.get(i);
+      // A compatible parameter (for example ANY) need not belong to the
+      // argument's precedence list. Prefer a type in that list if one exists;
+      // otherwise leave the candidates unchanged.
+      if (!precList.containsType(paramType)) {
+        continue;
+      }
       if (bestMatch == null) {
         bestMatch = paramType;
       } else {
