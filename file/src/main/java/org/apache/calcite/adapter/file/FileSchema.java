@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -25,18 +26,30 @@ import org.apache.calcite.util.Util;
 
 import au.com.bytecode.opencsv.CSVParser;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
+ *
+ * <p>By default, only local {@code file} sources are dereferenced. Table operands
+ * naming remote URLs make the host fetch an arbitrary, model-supplied URL and return the
+ * response as rows, so remote URLs must be explicitly allowed by the operator via the
+ * {@link CalciteSystemProperty#FILE_URLS_ALLOWED} system property.
  */
 class FileSchema extends AbstractSchema {
   private final ImmutableList<Map<String, Object>> tables;
@@ -119,10 +132,63 @@ class FileSchema extends AbstractSchema {
     return builder.build();
   }
 
+  // Compile regex pattern for allowed remote urls just once
+  private static final @Nullable Supplier<Pattern> FILE_URLS_ALLOWED_PATTERN =
+      CalciteSystemProperty.FILE_URLS_ALLOWED.value().isEmpty()
+          ? null
+          : Suppliers.memoize(() -> {
+            String allowedUrls = CalciteSystemProperty.FILE_URLS_ALLOWED.value();
+            try {
+              return Pattern.compile(allowedUrls);
+            } catch (PatternSyntaxException e) {
+              throw new IllegalArgumentException("Invalid regular expression '" + allowedUrls
+                  + "' in system property \"calcite.file.urls.allowed\"", e);
+            }
+          });
+
+  /** Checks that a model-supplied table URL may be dereferenced by this
+   * adapter: a local {@code file} URL always, a remote one (any other
+   * protocol, or a {@code file} URL naming a host, such as a Windows UNC path)
+   * only when it matches the regular expression
+   * {@link CalciteSystemProperty#FILE_URLS_ALLOWED}. */
+  static void checkUrlAllowed(String url) {
+    checkUrlAllowed(url, FILE_URLS_ALLOWED_PATTERN);
+  }
+
+  static void checkUrlAllowed(String url, @Nullable Supplier<Pattern> pattern) {
+    final URI uri;
+    try {
+      uri = new URI(url);
+      uri.toURL();
+    } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
+      // Malformed; Sources.url parses the same way and will report the error
+      return;
+    }
+    if (isLocalUri(uri) || (pattern != null && pattern.get().matcher(url).matches())) {
+      return;
+    }
+    throw new IllegalArgumentException("Remote URL '" + url
+        + "' is not allowed, it does not match the \"calcite.file.urls.allowed\" pattern");
+  }
+
+  /**
+   * Returns whether a URI is local: a "file" URL is local unless it names a host,
+   * as an authority ("file://host/share") or, as Windows resolves it to a UNC path, as a path
+   * starting with two slashes or backslashes ("file:////host/share", "file:%5C%5Chost%5Cshare").
+   */
+  static boolean isLocalUri(URI uri) {
+    final String path =
+        Util.first(uri.isOpaque() ? uri.getSchemeSpecificPart() : uri.getPath(), "");
+    return "file".equalsIgnoreCase(uri.getScheme())
+        && Util.isNullOrEmpty(uri.getRawAuthority())
+        && !path.replace('\\', '/').startsWith("//");
+  }
+
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Map<String, Object> tableDef) {
     final String tableName = (String) tableDef.get("name");
     final String url = (String) tableDef.get("url");
+    checkUrlAllowed(url);
     final Source source0 = Sources.url(url);
     final Source source;
     if (baseDirectory == null) {
