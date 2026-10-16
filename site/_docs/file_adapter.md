@@ -27,6 +27,12 @@ limitations under the License.
 The file adapter is able to read files in a variety of formats,
 and can also read files over various protocols, such as HTTP.
 
+The file adapter dereferences only local `file:` sources by default. Table `url`
+operands naming remote protocols (`http`, `https`, `ftp`, `jar`, ...) or remote
+`file:` URLs (`file://host/...`) are
+supported only if the adapter is deployed with the appropriate security
+properties, see [Enabling remote fetches](#enabling-remote-fetches).
+
 For example if you define:
 
 * States - https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States
@@ -161,6 +167,9 @@ Now for a more complex example. This time we connect to Wikipedia via
 HTTP, read pages for US states and cities, and extract data from HTML
 tables on those pages. The tables have more complex formats, and the
 file adapter helps us locate and parse data in those tables.
+Note: since remote protocols are disabled by default (see
+[Enabling remote fetches](#enabling-remote-fetches)), run this example with
+`JAVA_OPTS=-Dcalcite.file.remote.protocols.allowed=http,https ./sqlline`.
 
 Tables can be simply defined for immediate gratification:
 
@@ -343,6 +352,35 @@ sqlline> select distinct deptno from depts;
 +--------+
 3 rows selected (0.985 seconds)
 {% endhighlight %}
+
+## Enabling remote fetches
+
+From version 1.43.0 onwards, the file adapter dereferences only local `file:` sources by default.
+Table `url` operands naming remote protocols (`http`, `https`, `ftp`, `jar`, ...) are
+rejected with `IllegalArgumentException` unless the operator lists them in the
+`calcite.file.remote.protocols.allowed` system property, for example
+`-Dcalcite.file.remote.protocols.allowed=http,https`. A companion property
+`calcite.file.remote.hosts.allowed` may additionally restrict the set of
+hostnames those protocols may reach (case-insensitive, exact match; empty by
+default, meaning any host on an allowed protocol is permitted), for example
+`-Dcalcite.file.remote.hosts.allowed=data.example.com`.
+
+A `file:` URL that names a host (`file://host/share/t.csv`, or a path that
+Windows resolves to a UNC path, such as `file:////host/share/t.csv`) is remote
+too, and is allowed only if `file` is listed in
+`calcite.file.remote.protocols.allowed`.
+
+`jar:` URLs are treated as remote, even when they reference a local file
+(`jar:file:...`). Allowing `jar` admits `jar:` URLs that wrap any URL: the inner
+URL is checked against neither allowlist. And because a `jar:` URL has no host
+of its own, every one is rejected while `calcite.file.remote.hosts.allowed` is
+set.
+
+The host allowlist applies to the URL in the table operand only. HTTP redirects
+are followed without being checked against the list, and the port is not
+restricted. It is therefore a coarse filter, not a network boundary. If you
+need to confine outbound traffic strictly, enforce it at the network level as
+well (egress firewall or proxy).
 
 ## Future improvements
 

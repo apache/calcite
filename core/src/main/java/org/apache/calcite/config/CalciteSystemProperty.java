@@ -533,6 +533,41 @@ public final class CalciteSystemProperty<T> {
       stringProperty("calcite.model.baseDirectory", "");
 
   /**
+   * Comma-separated list of URL protocols other than {@code file} that the
+   * file adapter may dereference in a table {@code url} operand (for example
+   * {@code -Dcalcite.file.remote.protocols.allowed=http,https}). Empty by default:
+   * only local {@code file:} sources are dereferenced.
+   *
+   * <p>A {@code file:} URL that names a host (for example
+   * {@code file://host/share/t.csv}, which Windows resolves to a UNC path) is
+   * remote, and is dereferenced only if {@code file} is in this list.
+   * {@code jar} is considered remote even for {@code jar:file:} URLs.
+   */
+  public static final CalciteSystemProperty<String> FILE_REMOTE_PROTOCOLS_ALLOWED =
+      stringProperty("calcite.file.remote.protocols.allowed", "");
+
+  /**
+   * Comma-separated list of hostnames that the file adapter may dereference in
+   * a table {@code url} operand once its protocol has been allowed via
+   * {@link #FILE_REMOTE_PROTOCOLS_ALLOWED} (for example
+   * {@code -Dcalcite.file.remote.hosts.allowed=data.example.com,ftp.example.com}).
+   *
+   * <p>Empty by default: an allowed protocol may reach any host. When set,
+   * the URL's host must match one of the listed hostnames (case-insensitive,
+   * exact match, no substring or suffix matching, so that {@code example.com}
+   * does not admit {@code bad-example.com}). Additive to
+   * {@link #FILE_REMOTE_PROTOCOLS_ALLOWED}: a host on the list still needs its
+   * protocol on the protocol allowlist.
+   *
+   * <p>The check applies only to the URL named in the operand. Redirects returned
+   * by the server are followed without being re-checked, so a listed host that redirects
+   * can cause the adapter to fetch from a host that is not on the list. The port is not
+   * checked either. List only hosts whose redirect behavior you trust.
+   */
+  public static final CalciteSystemProperty<String> FILE_REMOTE_HOSTS_ALLOWED =
+      stringProperty("calcite.file.remote.hosts.allowed", "");
+
+  /**
    * Whether the Kafka adapter forwards the {@code consumer.params} model
    * operand to the Kafka client without filtering it.
    *
