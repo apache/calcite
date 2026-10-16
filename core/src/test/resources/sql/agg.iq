@@ -3910,6 +3910,43 @@ from emp;
 
 !ok
 
+# [CALCITE-7862] ARG_MIN and ARG_MAX fail with "Unable to implement" when
+# the key is an ARRAY, MAP or ROW.
+# Keys compare as in MIN and MAX; a row whose key is NULL is skipped.
+select arg_min(x, v) as mi, arg_max(x, v) as ma, min(v) as mn, max(v) as mx
+from (values (1, array[3, 1]), (2, array[1, 5]), (3, array[1, 4]),
+    (4, null)) as t(x, v);
++----+----+--------+--------+
+| MI | MA | MN     | MX     |
++----+----+--------+--------+
+|  3 |  1 | [1, 4] | [3, 1] |
++----+----+--------+--------+
+(1 row)
+
+!ok
+
+select arg_min(x, v) as mi, arg_max(x, v) as ma, min(v) as mn, max(v) as mx
+from (values (1, map['a', 2]), (2, map['a', 1]), (3, map['b', 0])) as t(x, v);
++----+----+-------+-------+
+| MI | MA | MN    | MX    |
++----+----+-------+-------+
+|  2 |  3 | {a=1} | {b=0} |
++----+----+-------+-------+
+(1 row)
+
+!ok
+
+select arg_min(x, v) as mi, arg_max(x, v) as ma, min(v) as mn, max(v) as mx
+from (values (1, row(2, 'b')), (2, row(1, 'a')), (3, row(1, 'c'))) as t(x, v);
++----+----+--------+--------+
+| MI | MA | MN     | MX     |
++----+----+--------+--------+
+|  2 |  1 | {1, a} | {2, b} |
++----+----+--------+--------+
+(1 row)
+
+!ok
+
 # DISTINCT query with ORDER BY on aggregate when there is an implicit cast
 select distinct sum(deptno + '1') as deptsum from dept order by 1;
 +---------+
