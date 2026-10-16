@@ -639,7 +639,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
     final RelNode rel = subQuery.rel;
     final int fieldCount = rel.getRowType().getFieldCount();
-    if (fieldCount == 0) {
+    if (fieldCount != 1) {
       // Cannot happen for a well-formed scalar sub-query, which has exactly
       // one field; be defensive, and leave it unchanged.
       return subQuery;
