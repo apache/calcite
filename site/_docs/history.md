@@ -114,6 +114,13 @@ check the width of each group, and turned `1-2-3-4-5` into
 requires exactly 16 bytes; a longer value used to be truncated. Blanks are not
 trimmed.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7860">CALCITE-7860</a>]
+The file adapter now dereferences only local `file:` sources by default. Table
+`url` operands naming remote URLs (`http`, `https`, `ftp`, ...; including `file://localhost/`,
+and `jar:` even when it wraps a local file) are rejected with `IllegalArgumentException`
+unless they match the new `calcite.file.urls.allowed` system property. See
+[Enabling remote fetches]({{ site.baseurl }}/docs/file_adapter.html#enabling-remote-fetches).
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7760">CALCITE-7760</a>]
 The Spark engine now requires the operator-level opt-in system property
 `-Dcalcite.enable.spark=true`. The `spark` connection property alone no longer
