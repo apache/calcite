@@ -40,6 +40,14 @@ public class MatchRecognizeNamespace extends AbstractNamespace {
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateMatchRecognize(matchRecognize);
+    // MATCH_RECOGNIZE computes measures over pattern matches of its input's
+    // rows, so a must-filter obligation on the input cannot be re-expressed
+    // in terms of this namespace's columns. Fail closed: require the input
+    // to have discharged its obligations rather than silently dropping them.
+    final SqlValidatorNamespace inputNs = validator.getNamespace(matchRecognize.getTableRef());
+    if (inputNs != null) {
+      requireNoFilterRequirement(inputNs, matchRecognize.getTableRef());
+    }
     return requireNonNull(rowType, "rowType");
   }
 
