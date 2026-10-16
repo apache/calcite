@@ -411,4 +411,27 @@ PLAN VARCHAR NOT NULL
 !type
 !set hep-rules original
 
+# [CALCITE-7863] AggregateReduceFunctionsOnGroupKeysRule fails for constant aggregates on empty input
+!set hep-rules "
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS"
+
+SELECT
+    MIN(1) AS min_v,
+    MAX(1) AS max_v
+FROM (VALUES (7)) AS t(x)
+WHERE x < 0;
++-------+-------+
+| MIN_V | MAX_V |
++-------+-------+
+|       |       |
++-------+-------+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], MIN_V=[MIN($0)], MAX_V=[MAX($0)])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[0], expr#3=[<($t0, $t2)], $f0=[$t1], $condition=[$t3])
+    EnumerableValues(tuples=[[{ 7 }]])
+!plan
+!set hep-rules original
+
 # End hep.iq
