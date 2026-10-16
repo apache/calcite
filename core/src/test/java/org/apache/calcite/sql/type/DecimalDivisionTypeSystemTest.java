@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.DecimalDivisionTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -108,15 +109,19 @@ class DecimalDivisionTypeSystemTest {
   }
 
   @Test void testConnectionProperty() throws SQLException {
-    final Properties properties = new Properties();
-    checkConnection(properties, 6);
-    properties.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
-        DecimalDivisionTypeSystem.class.getName());
-    checkConnection(properties, 9);
+    for (SqlConformanceEnum conformance : ImmutableList.of(SqlConformanceEnum.DEFAULT,
+        SqlConformanceEnum.PRAGMATIC_2003, SqlConformanceEnum.ORACLE_12)) {
+      final Properties properties = new Properties();
+      properties.setProperty(CalciteConnectionProperty.CONFORMANCE.camelName(), conformance.name());
+      checkConnection(properties, 6);
+      properties.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
+          DecimalDivisionTypeSystem.class.getName());
+      checkConnection(properties, 9);
+    }
   }
 
   private static void checkConnection(Properties properties, int scale) throws SQLException {
-    final String sql = "select cast(1 as decimal(6, 2)) / cast(3 as decimal(6, 2)) as q";
+    final String sql = "values (cast(1 as decimal(6, 2)) / cast(3 as decimal(6, 2)))";
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery(sql)) {

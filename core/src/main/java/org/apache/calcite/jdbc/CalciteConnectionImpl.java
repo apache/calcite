@@ -46,6 +46,8 @@ import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.rel.type.TimeFrames;
@@ -136,8 +138,14 @@ abstract class CalciteConnectionImpl
       RelDataTypeSystem typeSystem =
           cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
       if (cfg.conformance().shouldConvertRaggedUnionTypesToVarying()) {
+        final RelDataTypeSystem originalTypeSystem = typeSystem;
         typeSystem =
-            new DelegatingTypeSystem(typeSystem) {
+            new DelegatingTypeSystem(originalTypeSystem) {
+              @Override public @Nullable RelDataType deriveDecimalDivideType(
+                  RelDataTypeFactory typeFactory, RelDataType type1, RelDataType type2) {
+                return originalTypeSystem.deriveDecimalDivideType(typeFactory, type1, type2);
+              }
+
               @Override public boolean
               shouldConvertRaggedUnionTypesToVarying() {
                 return true;
