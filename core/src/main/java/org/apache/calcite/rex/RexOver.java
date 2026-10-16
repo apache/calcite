@@ -23,7 +23,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -152,11 +152,12 @@ public class RexOver extends RexCall {
     return sb.toString();
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitOver(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitOver(this, arg);
   }
 
@@ -222,7 +223,7 @@ public class RexOver extends RexCall {
    * <p>It is re-entrant (two threads can use an instance at the same time)
    * and it can be re-used for multiple visits.
    */
-  private static class Finder extends RexVisitorImpl<Void> {
+  private static class Finder extends RexVisitorImpl<@Nullable Void> {
     Finder() {
       super(true);
     }

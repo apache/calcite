@@ -43,7 +43,6 @@ import org.apache.calcite.util.TestUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
@@ -345,7 +344,7 @@ class ToLogicalConverterTest {
 
   @Test void testCorrelation() {
     final RelBuilder builder = builder();
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     final RelNode rel = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")

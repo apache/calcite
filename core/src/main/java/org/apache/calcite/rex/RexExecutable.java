@@ -22,10 +22,10 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ClassBodyEvaluator;
 import org.codehaus.janino.Scanner;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -90,7 +90,7 @@ public class RexExecutable {
         assert values.length == constExps.size();
         final List<RexNode> successfullyReduced = new ArrayList<>(constExps.size());
         final List<@Nullable Object> valueList = Arrays.asList(values);
-        for (Pair<RexNode, @Nullable Object> value : Pair.zip(constExps, valueList)) {
+        for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
           successfullyReduced.add(
               rexBuilder.makeLiteral(value.right, value.left.getType(), true));
         }

@@ -34,7 +34,6 @@ import org.apache.calcite.sql.SqlStaticAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -125,7 +124,7 @@ public class AggregateRemoveRule
         // function to SUM0 and COUNT.
         return;
       }
-      final @Nullable SqlStaticAggFunction staticAggFunction =
+      final SqlStaticAggFunction staticAggFunction =
           aggregation.unwrap(SqlStaticAggFunction.class);
       if (staticAggFunction != null) {
         final RexNode constant =

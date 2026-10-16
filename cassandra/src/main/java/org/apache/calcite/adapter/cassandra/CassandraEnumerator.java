@@ -29,7 +29,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -45,7 +45,7 @@ import java.util.stream.IntStream;
 import static java.util.Objects.requireNonNull;
 
 /** Enumerator that reads from a Cassandra column family. */
-class CassandraEnumerator implements Enumerator<Object> {
+class CassandraEnumerator implements Enumerator<@Nullable Object> {
   private final Iterator<Row> iterator;
   private final List<RelDataTypeField> fieldTypes;
   @Nullable private Row current;
@@ -68,13 +68,13 @@ class CassandraEnumerator implements Enumerator<Object> {
    *
    * @return A new row from the results
    */
-  @Override public Object current() {
+  @Override public @Nullable Object current() {
     if (fieldTypes.size() == 1) {
       // If we just have one field, produce it directly
       return currentRowField(0);
     } else {
       // Build an array with all fields in this row
-      Object[] row = new Object[fieldTypes.size()];
+      final @Nullable Object[] row = new Object[fieldTypes.size()];
       for (int i = 0; i < fieldTypes.size(); i++) {
         row[i] = currentRowField(i);
       }
@@ -126,7 +126,7 @@ class CassandraEnumerator implements Enumerator<Object> {
       final TupleValue tupleValue = (TupleValue) obj;
       int numComponents = tupleValue.getType().getComponentTypes().size();
       return IntStream.range(0, numComponents)
-          .mapToObj(i ->
+          .<@Nullable Object>mapToObj(i ->
               tupleValue.get(i,
                   CodecRegistry.DEFAULT.codecFor(
                       tupleValue.getType().getComponentTypes().get(i))))

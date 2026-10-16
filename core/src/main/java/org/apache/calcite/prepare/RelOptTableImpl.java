@@ -61,7 +61,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.Collection;
@@ -187,7 +187,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return new RelOptTableImpl(schema, rowType, names, table, null, null);
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     }
@@ -273,7 +273,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       final RelOptTable relOptTable =
           new RelOptTableImpl(this.schema, b.build(), this.names, this.table,
               this.tableExpressionFactory, this.rowCount) {
-            @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+            @Override public <T> @Nullable T unwrap(Class<T> clazz) {
               if (clazz.isAssignableFrom(InitializerExpressionFactory.class)) {
                 return clazz.cast(NullInitializerExpressionFactory.INSTANCE);
               }
@@ -493,7 +493,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.isMutable();
     }
 
-    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    @Override public <T> @Nullable T unwrap(Class<T> clazz) {
       return null;
     }
 

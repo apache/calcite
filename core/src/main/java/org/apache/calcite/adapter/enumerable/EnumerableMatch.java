@@ -47,7 +47,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -422,7 +422,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   /**
    * Visitor that finds out how much "history" we need in the past and future.
    */
-  private static class MaxHistoryFutureVisitor extends RexVisitorImpl<Void> {
+  private static class MaxHistoryFutureVisitor extends RexVisitorImpl<@Nullable Void> {
     private int history;
     private int future;
 

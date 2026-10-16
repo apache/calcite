@@ -24,7 +24,7 @@ import org.apache.calcite.util.Util;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +68,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final URL url;
   final String username;
   final String password;
-  String sessionKey;
+  @Nullable String sessionKey;
   final Map<String, String> requestHeaders = new HashMap<>();
 
   public SplunkConnectionImpl(String url, String username, String password)
@@ -83,7 +83,10 @@ public class SplunkConnectionImpl implements SplunkConnection {
     connect();
   }
 
-  private static void close(Closeable c) {
+  private static void close(@Nullable Closeable c) {
+    if (c == null) {
+      return;
+    }
     try {
       c.close();
     } catch (Exception ignore) {
@@ -131,17 +134,17 @@ public class SplunkConnectionImpl implements SplunkConnection {
   @Override public void getSearchResults(String search, Map<String, String> otherArgs,
       @Nullable List<String> fieldList, SearchResultListener srl) {
     requireNonNull(srl, "srl");
-    Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
+    Enumerator<@Nullable Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
     assert x == null;
   }
 
-  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
+  @Override public Enumerator<@Nullable Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, @Nullable List<String> fieldList) {
     return requireNonNull(
         getSearchResults_(search, otherArgs, fieldList, null));
   }
 
-  private @Nullable Enumerator<Object> getSearchResults_(
+  private @Nullable Enumerator<@Nullable Object> getSearchResults_(
       String search,
       Map<String, String> otherArgs,
       @Nullable List<String> wantedFields,
@@ -333,8 +336,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * results from a Splunk REST call.
    *
    * <p>The element type is either {@code String} or {@code String[]}, depending
-   * on the value of {@code source}. */
-  public static class SplunkResultEnumerator implements Enumerator<Object> {
+   * on the value of {@code source}. When the caller wants a single field that
+   * the header does not have, every element is null. */
+  public static class SplunkResultEnumerator implements Enumerator<@Nullable Object> {
     private final CSVReader csvReader;
     private String @Nullable [] fieldNames;
     private int @Nullable [] sources;
@@ -391,19 +395,21 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
     }
 
-    @Override public Object current() {
+    @Override public @Nullable Object current() {
       return current;
     }
 
     @Override public boolean moveNext() {
       try {
+        final String[] fieldNames = this.fieldNames;
         String[] line;
-        while ((line = csvReader.readNext()) != null) {
+        while (fieldNames != null && (line = csvReader.readNext()) != null) {
           if (line.length == fieldNames.length) {
             switch (source) {
             case -3:
               // Re-map using sources
-              String[] mapped = new String[sources.length];
+              final int[] sources = requireNonNull(this.sources, "sources");
+              final @Nullable String[] mapped = new String[sources.length];
               for (int i = 0; i < sources.length; i++) {
                 int source1 = sources[i];
                 mapped[i] = source1 < 0 ? null : line[source1];

@@ -22,7 +22,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -133,7 +133,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     RelOptRule toRule();
 
     /** Casts this configuration to another type, usually a sub-class. */
-    default <T extends Object> T as(Class<T> class_) {
+    default <T> T as(Class<T> class_) {
       if (class_.isAssignableFrom(this.getClass())) {
         return class_.cast(this);
       } else {

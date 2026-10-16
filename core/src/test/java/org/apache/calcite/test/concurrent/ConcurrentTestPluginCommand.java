@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test.concurrent;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.Statement;

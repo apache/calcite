@@ -18,4 +18,7 @@
 /**
  * Translates a relational expression to SQL parse tree.
  */
+@NullMarked
 package org.apache.calcite.rel.rel2sql;
+
+import org.jspecify.annotations.NullMarked;

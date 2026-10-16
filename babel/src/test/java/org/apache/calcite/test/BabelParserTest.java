@@ -34,7 +34,7 @@ import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 

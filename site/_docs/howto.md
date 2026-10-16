@@ -102,9 +102,7 @@ Cannot find a Java installation on your machine (...) matching: {languageVersion
 
 * `-PjdkBuildVersion=N` (integer, default `25`) selects the major version of
   the JDK that compiles the code.
-  Error Prone 2.5.1 fails on JDK 25 with
-  `IllegalAccessError: class com.google.errorprone.JavacErrorDescriptionListener ... cannot access class com.sun.tools.javac.tree.JCTree$JCCompilationUnit`,
-  so run it and the Checker Framework with `-PjdkBuildVersion=11`, as CI does.
+  Error Prone and NullAway (`-PenableErrorprone`) need JDK 21 or later here.
 * `-Porg.gradle.java.installations.auto-download=false`, also accepted in
   `gradle.properties`, makes the build fail instead of downloading a JDK.
   The error then ends with `Toolchain auto-provisioning is not enabled.`
@@ -158,7 +156,7 @@ $ ./gradlew check # verify code style, execute tests
 $ ./gradlew test # execute tests
 $ ./gradlew style # update code formatting (for auto-correctable cases) and verify style
 $ ./gradlew autostyleCheck checkstyleAll # report code style violations
-$ ./gradlew -PenableErrorprone -PjdkBuildVersion=11 classes # verify Java code with Error Prone compiler on JDK 11
+$ ./gradlew -PenableErrorprone classes # verify Java code with Error Prone and NullAway
 {% endhighlight %}
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.

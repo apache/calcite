@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -38,7 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -1177,6 +1178,17 @@ public class ExpressionTest {
             .getFunction()
             .apply("1234");
     assertThat(x, is(1234));
+  }
+
+  /** A lambda with no parameters runs through the dynamic proxy, which the JDK
+   * calls with a null argument array. The call used to throw
+   * NullPointerException. */
+  @Test void testLambdaWithoutParametersViaGetFunction() {
+    String x =
+        Expressions.<Function0<String>>lambda(Expressions.constant("abc"))
+            .getFunction()
+            .apply();
+    assertThat(x, is("abc"));
   }
 
   @Test void testBlockBuilder() {

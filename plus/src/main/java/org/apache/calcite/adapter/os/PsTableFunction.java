@@ -30,7 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.Float.parseFloat;
 import static java.lang.Long.parseLong;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table function that executes the OS "ps" command
@@ -87,9 +88,9 @@ public class PsTableFunction {
    * predefined list of parameters.
    */
   @VisibleForTesting
-  protected static class LineParser implements Function1<String, Object[]> {
+  protected static class LineParser implements Function1<String, @Nullable Object[]> {
 
-    @Override public Object[] apply(String line) {
+    @Override public @Nullable Object[] apply(String line) {
       final String[] tokens = line.trim().split(" +");
       final Object[] values = new Object[PS_FIELD_NAMES.size()];
 
@@ -156,17 +157,18 @@ public class PsTableFunction {
         final Matcher m1 =
             MINUTE_SECOND_MILLIS_PATTERN.matcher(value);
         if (m1.matches()) {
-          final long h = parseLong(m1.group(1));
-          final long m = parseLong(m1.group(2));
-          final long s = parseLong(m1.group(3));
+          final long h = parseLong(requireNonNull(m1.group(1), "group"));
+          final long m = parseLong(requireNonNull(m1.group(2), "group"));
+          final long s = parseLong(requireNonNull(m1.group(3), "group"));
           return h * 3600000L + m * 60000L + s * 1000L;
         }
         final Matcher m2 =
             HOUR_MINUTE_SECOND_PATTERN.matcher(value);
         if (m2.matches()) {
-          final long m = parseLong(m2.group(1));
-          final long s = parseLong(m2.group(2));
-          StringBuilder g3 = new StringBuilder(m2.group(3));
+          final long m = parseLong(requireNonNull(m2.group(1), "group"));
+          final long s = parseLong(requireNonNull(m2.group(2), "group"));
+          StringBuilder g3 =
+              new StringBuilder(requireNonNull(m2.group(3), "group"));
           while (g3.length() < 3) {
             g3.append("0");
           }
@@ -190,7 +192,8 @@ public class PsTableFunction {
         final RelDataType rowType = getRowType(root.getTypeFactory());
         final List<String> fieldNames = ImmutableList.copyOf(rowType.getFieldNames());
         final String[] args;
-        final String osName = System.getProperty("os.name");
+        final String osName =
+            requireNonNull(System.getProperty("os.name"), "os.name");
         final String osVersion = System.getProperty("os.version");
         Util.discard(osVersion);
         switch (osName) {

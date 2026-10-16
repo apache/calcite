@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
@@ -33,8 +34,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -118,7 +118,7 @@ public abstract class SetOp extends AbstractRelNode implements Hintable {
   }
 
   @API(since = "1.43", status = API.Status.INTERNAL)
-  @EnsuresNonNullIf(expression = "#1", result = true)
+  @Contract("null -> false")
   protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;

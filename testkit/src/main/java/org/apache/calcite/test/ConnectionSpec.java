@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import com.google.errorprone.annotations.Immutable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Information necessary to create a JDBC connection.
  *

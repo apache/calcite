@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 
@@ -30,12 +30,12 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> Value type
  */
-public abstract class TryThreadLocal<T> extends ThreadLocal<@Nullable T> {
+public abstract class TryThreadLocal<T extends @Nullable Object> extends ThreadLocal<@Nullable T> {
   /** Creates a TryThreadLocal with a fixed initial value.
    *
    * @param initialValue Initial value
    */
-  public static <S> TryThreadLocal<S> of(S initialValue) {
+  public static <S extends @Nullable Object> TryThreadLocal<S> of(S initialValue) {
     return new FixedTryThreadLocal<>(initialValue);
   }
 

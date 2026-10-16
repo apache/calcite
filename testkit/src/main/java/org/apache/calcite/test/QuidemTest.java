@@ -59,7 +59,7 @@ import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -85,6 +85,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.runtime.SqlFunctions.resetThreadSequences;
 import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
 
@@ -162,10 +163,11 @@ public abstract class QuidemTest {
     case "use_new_decorr":
       return useTopDownGeneralDecorrelator();
     case "jdk18":
-      return System.getProperty("java.version").startsWith("1.8");
+      return requireNonNull(System.getProperty("java.version"), "java.version")
+          .startsWith("1.8");
     case "fixed":
       // Quidem requires a Java 8 function
-      return (Function<String, Object>) v -> {
+      return (Function<String, @Nullable Object>) v -> {
         switch (v) {
         case "calcite1045":
           return Bug.CALCITE_1045_FIXED;
@@ -175,7 +177,7 @@ public abstract class QuidemTest {
         return null;
       };
     case "not":
-      return (Function<String, Object>) v -> {
+      return (Function<String, @Nullable Object>) v -> {
         final Object o = getEnv(v);
         if (o instanceof Function) {
           @SuppressWarnings("unchecked") final Function<String, Object> f =
@@ -208,7 +210,8 @@ public abstract class QuidemTest {
     final URL inUrl = QuidemTest.class.getResource("/" + n2u(first));
     final File firstFile = Sources.of(requireNonNull(inUrl, "inUrl")).file();
     final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
-    final File dir = firstFile.getParentFile();
+    final File dir =
+        requireNonNull(firstFile.getParentFile(), "parent of " + firstFile);
     final List<String> paths = new ArrayList<>();
     final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
@@ -257,7 +260,8 @@ public abstract class QuidemTest {
       outFile = replaceDir(inFile, "resources", "quidem/"
           + getClass().getSimpleName());
     }
-    Util.discard(outFile.getParentFile().mkdirs());
+    Util.discard(
+        requireNonNull(outFile.getParentFile(), "parent of " + outFile).mkdirs());
     try (Reader reader = Util.reader(inFile);
          Writer writer = Util.printWriter(outFile);
          Closer closer = new Closer()) {
@@ -317,7 +321,7 @@ public abstract class QuidemTest {
               if (value.equals("original")) {
                 closer.add(
                     Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
-                        holder -> holder.set(null)));
+                        holder -> holder.set(castNonNull(null))));
               } else {
                 closer.add(
                     Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
@@ -384,15 +388,18 @@ public abstract class QuidemTest {
     Matcher matcher = pattern.matcher(value);
 
     while (matcher.find()) {
-      char operation = matcher.group(1).charAt(0);
+      char operation =
+          requireNonNull(matcher.group(1), "operation").charAt(0);
       String ruleSource = matcher.group(3);
-      String ruleName = matcher.group(4);
+      String ruleName = requireNonNull(matcher.group(4), "ruleName");
 
       try {
         if (ruleSource == null || ruleSource.equals("CoreRules")) {
           setRules(operation, getCoreRule(ruleName), rulesAdd, rulesRemove);
         } else if (ruleSource.equals("EnumerableRules")) {
-          Object rule = EnumerableRules.class.getField(ruleName).get(null);
+          Object rule =
+              requireNonNull(EnumerableRules.class.getField(ruleName).get(null),
+                  ruleName);
           setRules(operation, (RelOptRule) rule, rulesAdd, rulesRemove);
         } else {
           throw new RuntimeException("Unknown rule: " + ruleName);
@@ -413,9 +420,10 @@ public abstract class QuidemTest {
     Matcher matcher = pattern.matcher(value);
 
     while (matcher.find()) {
-      char operation = matcher.group(1).charAt(0);
+      char operation =
+          requireNonNull(matcher.group(1), "operation").charAt(0);
       String ruleSource = matcher.group(3);
-      String ruleName = matcher.group(4);
+      String ruleName = requireNonNull(matcher.group(4), "ruleName");
 
       try {
         RelOptRule rule;
@@ -423,7 +431,9 @@ public abstract class QuidemTest {
         if (ruleSource == null || ruleSource.equals("CoreRules")) {
           rule = getCoreRule(ruleName);
         } else if (ruleSource.equals("EnumerableRules")) {
-          Object ruleObj = EnumerableRules.class.getField(ruleName).get(null);
+          Object ruleObj =
+              requireNonNull(EnumerableRules.class.getField(ruleName).get(null),
+                  ruleName);
           rule = (RelOptRule) ruleObj;
           targetVolcano = true;
         } else {
@@ -550,12 +560,12 @@ public abstract class QuidemTest {
   /** Quidem connection factory for Calcite's built-in test schemas. */
   protected class QuidemConnectionFactory
       implements Quidem.ConnectionFactory {
-    public Connection connect(String name) throws Exception {
+    public @Nullable Connection connect(String name) throws Exception {
       return connect(name, false);
     }
 
-    @Override public Connection connect(String name, boolean reference)
-        throws Exception {
+    @Override public @Nullable Connection connect(String name,
+        boolean reference) throws Exception {
       if (reference) {
         if (name.equals("foodmart")) {
           final ConnectionSpec db =
@@ -654,8 +664,9 @@ public abstract class QuidemTest {
         final Connection connection = customize(CalciteAssert.that()
             .withSchema("s", new AbstractSchema()))
             .connect();
-        connection.unwrap(CalciteConnection.class).getRootSchema()
-            .subSchemas().get("s")
+        requireNonNull(
+            connection.unwrap(CalciteConnection.class).getRootSchema()
+                .subSchemas().get("s"), "schema s")
             .add("my_seq",
                 new AbstractTable() {
                   @Override public RelDataType getRowType(

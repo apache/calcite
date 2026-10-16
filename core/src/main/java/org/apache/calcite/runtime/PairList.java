@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,15 +39,16 @@ import static org.apache.calcite.linq4j.Nullness.castNonNullList;
  * @param <T> First type
  * @param <U> Second type
  */
-public interface PairList<T, U> extends List<Map.Entry<T, U>> {
+public interface PairList<T extends @Nullable Object, U extends @Nullable Object>
+    extends List<Map.Entry<T, U>> {
   /** Creates an empty PairList. */
-  static <T, U> PairList<T, U> of() {
+  static <T extends @Nullable Object, U extends @Nullable Object> PairList<T, U> of() {
     return new PairLists.MutablePairList<>(new ArrayList<>());
   }
 
   /** Creates a singleton PairList. */
   @SuppressWarnings("RedundantCast")
-  static <T, U> PairList<T, U> of(T t, U u) {
+  static <T extends @Nullable Object, U extends @Nullable Object> PairList<T, U> of(T t, U u) {
     final List<@Nullable Object> list = new ArrayList<>();
     list.add((Object) t);
     list.add((Object) u);
@@ -55,14 +56,16 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
   }
 
   /** Creates a PairList with one or more entries. */
-  static <T, U> PairList<T, U> copyOf(T t, U u, Object... rest) {
+  static <T extends @Nullable Object, U extends @Nullable Object>
+      PairList<T, U> copyOf(T t, U u, Object... rest) {
     checkArgument(rest.length % 2 == 0, "even number");
     final List<@Nullable Object> list = Lists.asList(t, u, rest);
     return new PairLists.MutablePairList<>(new ArrayList<>(list));
   }
 
   /** Creates an empty PairList with a specified initial capacity. */
-  static <T, U> PairList<T, U> withCapacity(int initialCapacity) {
+  static <T extends @Nullable Object, U extends @Nullable Object>
+      PairList<T, U> withCapacity(int initialCapacity) {
     return backedBy(new ArrayList<>(initialCapacity));
   }
 
@@ -70,13 +73,14 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
    *
    * <p>Changes to the backing list will be reflected in the PairList.
    * If the backing list is immutable, this PairList will be also. */
-  static <T, U> PairList<T, U> backedBy(List<@Nullable Object> list) {
+  static <T extends @Nullable Object, U extends @Nullable Object>
+      PairList<T, U> backedBy(List<@Nullable Object> list) {
     return new PairLists.MutablePairList<>(list);
   }
 
   /** Creates a PairList from a Map. */
   @SuppressWarnings("RedundantCast")
-  static <T, U> PairList<T, U> of(Map<T, U> map) {
+  static <T extends @Nullable Object, U extends @Nullable Object> PairList<T, U> of(Map<T, U> map) {
     final List<@Nullable Object> list = new ArrayList<>(map.size() * 2);
     map.forEach((t, u) -> {
       list.add((Object) t);
@@ -86,7 +90,7 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
   }
 
   /** Creates a Builder. */
-  static <T, U> Builder<T, U> builder() {
+  static <T extends @Nullable Object, U extends @Nullable Object> Builder<T, U> builder() {
     return new Builder<>();
   }
 
@@ -187,6 +191,8 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
    * reversed.
    *
    * <p>Throws {@link NullPointerException} if any keys or values are null. */
+  // On JDK 21 and later this overrides List.reversed(), but Calcite still compiles on JDK 8
+  @SuppressWarnings("MissingOverride")
   ImmutablePairList<T, U> reversed();
 
   /** Action to be taken each step of an indexed iteration over a PairList.

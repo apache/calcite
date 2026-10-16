@@ -25,6 +25,8 @@ import org.apache.calcite.avatica.server.Main;
 
 import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -34,6 +36,8 @@ import java.util.List;
  * between Avatica JDBC transport and Calcite.
  */
 public class ChinookAvaticaServer {
+  /** Set by {@link #startWithCalcite} or {@link #startWithRaw}. */
+  @SuppressWarnings("NullAway.Init")
   private HttpServer server;
 
   public void startWithCalcite() throws Exception {
@@ -62,7 +66,7 @@ public class ChinookAvaticaServer {
     private static final CalciteConnectionProvider CONNECTION_PROVIDER =
         new CalciteConnectionProvider();
 
-    private static volatile JdbcMeta instance = null;
+    private static volatile @Nullable JdbcMeta instance = null;
 
     private static JdbcMeta getInstance() {
       if (instance == null) {
@@ -88,7 +92,7 @@ public class ChinookAvaticaServer {
    * Factory for Chinook Calcite database wrapped in meta for Avatica.
    */
   public static class RawChinookMetaFactory implements Meta.Factory {
-    private static volatile JdbcMeta instance = null;
+    private static volatile @Nullable JdbcMeta instance = null;
 
     private static JdbcMeta getInstance() {
       if (instance == null) {

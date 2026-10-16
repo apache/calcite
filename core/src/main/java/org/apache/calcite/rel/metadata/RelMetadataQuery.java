@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -733,7 +733,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /** As {@link #getAverageColumnSizes(org.apache.calcite.rel.RelNode)} but
    * never returns a null list, only ever a list of nulls. */
   public List<@Nullable Double> getAverageColumnSizesNotNull(RelNode rel) {
-    final @Nullable List<@Nullable Double> averageColumnSizes = getAverageColumnSizes(rel);
+    final List<@Nullable Double> averageColumnSizes = getAverageColumnSizes(rel);
     return averageColumnSizes == null
         ? Collections.nCopies(rel.getRowType().getFieldCount(), null)
         : averageColumnSizes;

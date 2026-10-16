@@ -33,15 +33,15 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Table representing the PRODUCTS relation.
  */
 public class ProductsTable implements ScannableTable {
-  private final ImmutableList<Object[]> rows;
+  private final ImmutableList<@Nullable Object[]> rows;
 
-  public ProductsTable(ImmutableList<Object[]> rows) {
+  public ProductsTable(ImmutableList<@Nullable Object[]> rows) {
     this.rows = rows;
   }
 
@@ -51,7 +51,7 @@ public class ProductsTable implements ScannableTable {
       .build();
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return Linq4j.asEnumerable(rows);
+    return Linq4j.<@Nullable Object[]>asEnumerable(rows);
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {

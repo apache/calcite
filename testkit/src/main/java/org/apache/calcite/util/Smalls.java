@@ -65,7 +65,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -82,6 +82,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -206,17 +208,17 @@ public class Smalls {
       @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
           SchemaPlus schema, String tableName) {
         BaseQueryable<IntString> queryable =
-            new BaseQueryable<IntString>(null, IntString.class, null) {
+            new BaseQueryable<IntString>(queryProvider, IntString.class, null) {
               @Override public Enumerator<IntString> enumerator() {
                 return new Enumerator<IntString>() {
                   static final String Z = "abcdefghijklm";
 
                   int i = 0;
                   int curI;
-                  String curS;
+                  @Nullable String curS;
 
                   @Override public IntString current() {
-                    return new IntString(curI, curS);
+                    return new IntString(curI, requireNonNull(curS, "curS"));
                   }
 
                   @Override public boolean moveNext() {
@@ -294,9 +296,9 @@ public class Smalls {
       final @Nullable Object scalarValue,
       final @Nullable Integer literalValue,
       final @Nullable Integer columnValue) {
-    final @Nullable Integer normalizedScalarValue;
-    final @Nullable Integer rowValue0;
-    final @Nullable Integer rowValue1;
+    final Integer normalizedScalarValue;
+    final Integer rowValue0;
+    final Integer rowValue1;
     if (scalarValue == null) {
       normalizedScalarValue = null;
       rowValue0 = null;
@@ -371,25 +373,7 @@ public class Smalls {
       }
 
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
-            return new Enumerator<Object[]>() {
-              @Override public Object[] current() {
-                return new Object[] {};
-              }
-
-              @Override public boolean moveNext() {
-                return false;
-              }
-
-              @Override public void reset() {
-              }
-
-              @Override public void close() {
-              }
-            };
-          }
-        };
+        return Linq4j.emptyEnumerable();
       }
 
       @Override public Statistic getStatistic() {
@@ -420,13 +404,13 @@ public class Smalls {
       }
 
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
-            return new Enumerator<Object[]>() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
+            return new Enumerator<@Nullable Object[]>() {
               private long prev = 1;
               private long current = 0;
 
-              @Override public Object[] current() {
+              @Override public @Nullable Object[] current() {
                 return new Object[] {current};
               }
 
@@ -622,7 +606,7 @@ public class Smalls {
       }
       THREAD_DIGEST.set(b.toString());
       this.initY = fx.isArgumentConstant(1)
-          ? fx.getArgumentValueAs(1, Integer.class)
+          ? requireNonNull(fx.getArgumentValueAs(1, Integer.class), "y")
           : 100;
     }
 
@@ -641,8 +625,8 @@ public class Smalls {
       INSTANCE_COUNT.get().incrementAndGet();
     }
 
-    public Integer eval(@Parameter(name = "x") Integer x,
-        @Parameter(name = "y") Integer y) {
+    public @Nullable Integer eval(@Parameter(name = "x") @Nullable Integer x,
+        @Parameter(name = "y") @Nullable Integer y) {
       if (x == null || y == null) {
         return null;
       }
@@ -683,7 +667,8 @@ public class Smalls {
   /** Example of a semi-strict UDF.
    * (Returns null if its parameter is null or if its length is 4.) */
   public static class Null4Function {
-    @SemiStrict public static String eval(@Parameter(name = "s") String s) {
+    @SemiStrict public static @Nullable String eval(
+        @Parameter(name = "s") @Nullable String s) {
       if (s == null || s.length() == 4) {
         return null;
       }
@@ -695,7 +680,8 @@ public class Smalls {
    * Throws {@link NullPointerException} if argument is null.
    * Returns null if its argument's length is 8. */
   public static class Null8Function {
-    @SemiStrict public static String eval(@Parameter(name = "s") String s) {
+    @SemiStrict public static @Nullable String eval(
+        @Parameter(name = "s") String s) {
       if (s.length() == 8) {
         return null;
       }
@@ -857,29 +843,30 @@ public class Smalls {
       return SqlFunctions.internalToDate(v);
     }
 
-    public static java.sql.Date toDateFun(Long v) {
+    public static java.sql.@Nullable Date toDateFun(@Nullable Long v) {
       return v == null ? null : SqlFunctions.internalToDate(v.intValue());
     }
     public static java.sql.Timestamp toTimestampFun(Long v) {
       return SqlFunctions.internalToTimestamp(v);
     }
-    public static java.sql.Time toTimeFun(Long v) {
+    public static java.sql.@Nullable Time toTimeFun(@Nullable Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
 
     /** For overloaded user-defined functions that have {@code double} and
      * {@code BigDecimal} arguments will go wrong. */
-    public static double toDouble(BigDecimal var) {
+    public static double toDouble(@Nullable BigDecimal var) {
       return var == null ? 0.0d : var.doubleValue();
     }
-    public static double toDouble(Double var) {
+    public static double toDouble(@Nullable Double var) {
       return var == null ? 0.0d : var;
     }
-    public static double toDouble(Float var) {
+    public static double toDouble(@Nullable Float var) {
       return var == null ? 0.0d : Double.valueOf(var.toString());
     }
 
-    public static List arrayAppendFun(List v, Integer i) {
+    public static @Nullable List arrayAppendFun(@Nullable List v,
+        @Nullable Integer i) {
       if (v == null || i == null) {
         return null;
       } else {
@@ -1473,7 +1460,7 @@ public class Smalls {
       implements TranslatableTable {
     private final String[] columnNames = { "A", "B" };
     private final Class<?>[] columnTypes = { String.class, Integer.class };
-    private final Object[][] rows = new Object[3][];
+    private final @Nullable Object[][] rows = new @Nullable Object[3][];
 
     public SimpleTable() {
       super(Object[].class);
@@ -1495,11 +1482,11 @@ public class Smalls {
       return typeFactory.createStructType(columnDesc);
     }
 
-    public Iterator<Object[]> iterator() {
+    public Iterator<@Nullable Object[]> iterator() {
       return Linq4j.enumeratorIterator(enumerator());
     }
 
-    public Enumerator<Object[]> enumerator() {
+    public Enumerator<@Nullable Object[]> enumerator() {
       return enumeratorImpl(null);
     }
 
@@ -1514,20 +1501,21 @@ public class Smalls {
       };
     }
 
-    private Enumerator<Object[]> enumeratorImpl(final int[] fields) {
-      return new Enumerator<Object[]>() {
-        private Object[] current;
-        private final Iterator<Object[]> iterator = Arrays.asList(rows)
+    private Enumerator<@Nullable Object[]> enumeratorImpl(
+        final int @Nullable [] fields) {
+      return new Enumerator<@Nullable Object[]>() {
+        private @Nullable Object @Nullable [] current;
+        private final Iterator<@Nullable Object[]> iterator = Arrays.asList(rows)
             .iterator();
 
-        @Override public Object[] current() {
-          return current;
+        @Override public @Nullable Object[] current() {
+          return castNonNull(current);
         }
 
         @Override public boolean moveNext() {
           if (iterator.hasNext()) {
-            Object[] full = iterator.next();
-            current = fields != null ? convertRow(full) : full;
+            @Nullable Object[] full = iterator.next();
+            current = fields != null ? convertRow(full, fields) : full;
             return true;
           } else {
             current = null;
@@ -1542,15 +1530,16 @@ public class Smalls {
         @Override public void close() {
           // noop
         }
-
-        private Object[] convertRow(Object[] full) {
-          final Object[] objects = new Object[fields.length];
-          for (int i = 0; i < fields.length; i++) {
-            objects[i] = full[fields[i]];
-          }
-          return objects;
-        }
       };
+    }
+
+    private static @Nullable Object[] convertRow(@Nullable Object[] full,
+        int[] fields) {
+      final @Nullable Object[] objects = new Object[fields.length];
+      for (int i = 0; i < fields.length; i++) {
+        objects[i] = full[fields[i]];
+      }
+      return objects;
     }
 
     @Override public RelNode toRel(
@@ -1573,7 +1562,7 @@ public class Smalls {
 
   /** User-defined function that decodes a Base64 string to bytes. */
   public static class MyUnbase64Function {
-    public static ByteString eval(String s) {
+    public static @Nullable ByteString eval(@Nullable String s) {
       if (s == null) {
         return null;
       }
@@ -1603,7 +1592,7 @@ public class Smalls {
 
   /** User-defined function with return type Character[]. */
   public static class CharacterArrayFunction {
-    public static Character[] eval(String s) {
+    public static Character @Nullable [] eval(@Nullable String s) {
       if (s == null) {
         return null;
       }

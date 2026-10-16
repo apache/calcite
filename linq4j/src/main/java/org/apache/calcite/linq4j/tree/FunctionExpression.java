@@ -22,7 +22,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -78,7 +78,7 @@ public final class FunctionExpression<F extends Function<?>>
     return shuttle.visit(this, body);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -104,7 +104,8 @@ public final class FunctionExpression<F extends Function<?>>
       dynamicFunction =
           (F) Proxy.newProxyInstance(classLoader,
               new Class[]{Types.toClass(type)},
-              (proxy, method, args) -> x.dynamicInvoke(args));
+              (proxy, method, args) ->
+                  x.dynamicInvoke(args == null ? new Object[0] : args));
     }
     return dynamicFunction;
   }

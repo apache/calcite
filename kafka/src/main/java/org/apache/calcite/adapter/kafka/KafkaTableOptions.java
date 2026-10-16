@@ -18,33 +18,38 @@ package org.apache.calcite.adapter.kafka;
 
 import org.apache.kafka.clients.consumer.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Map;
 
 /**
  * Available options for {@link KafkaStreamTable}.
  */
 public final class KafkaTableOptions {
-  private String bootstrapServers;
-  private String topicName;
+  private @Nullable String bootstrapServers;
+  private @Nullable String topicName;
+  /** Set by {@link KafkaTableFactory} right after construction, which is why
+   * it is not initialized here. */
+  @SuppressWarnings("NullAway.Init")
   private KafkaRowConverter rowConverter;
-  private Map<String, String> consumerParams;
+  private @Nullable Map<String, String> consumerParams;
   // added to inject MockConsumer for testing.
-  private Consumer consumer;
+  private @Nullable Consumer consumer;
 
-  public String getBootstrapServers() {
+  public @Nullable String getBootstrapServers() {
     return bootstrapServers;
   }
 
-  public KafkaTableOptions setBootstrapServers(final String bootstrapServers) {
+  public KafkaTableOptions setBootstrapServers(final @Nullable String bootstrapServers) {
     this.bootstrapServers = bootstrapServers;
     return this;
   }
 
-  public String getTopicName() {
+  public @Nullable String getTopicName() {
     return topicName;
   }
 
-  public KafkaTableOptions setTopicName(final String topicName) {
+  public KafkaTableOptions setTopicName(final @Nullable String topicName) {
     this.topicName = topicName;
     return this;
   }
@@ -59,20 +64,21 @@ public final class KafkaTableOptions {
     return this;
   }
 
-  public Map<String, String> getConsumerParams() {
+  public @Nullable Map<String, String> getConsumerParams() {
     return consumerParams;
   }
 
-  public KafkaTableOptions setConsumerParams(final Map<String, String> consumerParams) {
+  public KafkaTableOptions setConsumerParams(
+      final @Nullable Map<String, String> consumerParams) {
     this.consumerParams = consumerParams;
     return this;
   }
 
-  public Consumer getConsumer() {
+  public @Nullable Consumer getConsumer() {
     return consumer;
   }
 
-  public KafkaTableOptions setConsumer(final Consumer consumer) {
+  public KafkaTableOptions setConsumer(final @Nullable Consumer consumer) {
     this.consumer = consumer;
     return this;
   }

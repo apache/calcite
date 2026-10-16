@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -32,7 +34,7 @@ import java.util.function.Supplier;
  */
 public class LazyReference<T> {
 
-  private final AtomicReference<T> value = new AtomicReference<>();
+  private final AtomicReference<@Nullable T> value = new AtomicReference<>();
 
   /**
    * Atomically sets the value to {@code supplier.get()}
@@ -51,7 +53,7 @@ public class LazyReference<T> {
         return result;
       }
       T computed = supplier.get();
-      if (value.compareAndSet((T) null, computed)) {
+      if (value.compareAndSet(null, computed)) {
         return computed;
       }
     }
@@ -61,6 +63,6 @@ public class LazyReference<T> {
    * Resets the current value.
    */
   public void reset() {
-    value.set((T) null);
+    value.set(null);
   }
 }

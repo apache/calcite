@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +37,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -123,7 +125,8 @@ public class Matcher<E> {
           for (DeterministicAutomaton.Transition transition : transitions) {
             // System.out.println("Append new transition to ");
             final PartialMatch<E> newMatch =
-                pm.append(transition.symbol, rows.get(), transition.toState);
+                pm.append(transition.symbol, castNonNull(rows.get()),
+                    transition.toState);
             newMatches.add(newMatch);
           }
         }
@@ -139,7 +142,7 @@ public class Matcher<E> {
         for (DeterministicAutomaton.Transition transition : transitions) {
           final PartialMatch<E> newMatch =
               new PartialMatch<>(-1L, ImmutableList.of(transition.symbol),
-                  ImmutableList.of(rows.get()), transition.toState);
+                  ImmutableList.of(castNonNull(rows.get())), transition.toState);
           newMatches.add(newMatch);
         }
       }

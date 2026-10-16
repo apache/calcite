@@ -29,7 +29,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +46,7 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility methods.
@@ -261,7 +262,8 @@ public abstract class SqlTests {
     int actualEndColumn = 99;
 
     if (ex instanceof ExceptionInInitializerError) {
-      ex = ((ExceptionInInitializerError) ex).getException();
+      final ExceptionInInitializerError error = (ExceptionInInitializerError) ex;
+      ex = requireNonNull(error.getException(), "exception in initializer");
     }
 
     // Search for an CalciteContextException somewhere in the stack.
@@ -338,16 +340,22 @@ public abstract class SqlTests {
         java.util.regex.Matcher matcher =
             LINE_COL_TWICE_PATTERN.matcher(actualMessage);
         if (matcher.matches()) {
-          actualLine = parseInt(matcher.group(1));
-          actualColumn = parseInt(matcher.group(2));
-          actualEndLine = parseInt(matcher.group(3));
-          actualEndColumn = parseInt(matcher.group(4));
+          actualLine =
+              parseInt(requireNonNull(matcher.group(1), "group"));
+          actualColumn =
+              parseInt(requireNonNull(matcher.group(2), "group"));
+          actualEndLine =
+              parseInt(requireNonNull(matcher.group(3), "group"));
+          actualEndColumn =
+              parseInt(requireNonNull(matcher.group(4), "group"));
           actualMessage = matcher.group(5);
         } else {
           matcher = LINE_COL_PATTERN.matcher(actualMessage);
           if (matcher.matches()) {
-            actualLine = parseInt(matcher.group(1));
-            actualColumn = parseInt(matcher.group(2));
+            actualLine =
+              parseInt(requireNonNull(matcher.group(1), "group"));
+            actualColumn =
+              parseInt(requireNonNull(matcher.group(2), "group"));
           } else {
             if (expectedMsgPattern != null
                 && actualMessage.matches(expectedMsgPattern)) {
@@ -360,14 +368,14 @@ public abstract class SqlTests {
 
     if (null == expectedMsgPattern) {
       actualException.printStackTrace();
-      fail(stage.componentName + " threw unexpected exception"
+      throw new AssertionError(stage.componentName + " threw unexpected exception"
           + "; query [" + sap.sql
           + "]; exception [" + actualMessage
           + "]; class [" + actualException.getClass()
           + "]; pos [line " + actualLine
           + " col " + actualColumn
           + " thru line " + actualLine
-          + " col " + actualColumn + "]");
+          + " col " + actualColumn + "]", actualException);
     }
 
     final String sqlWithCarets;

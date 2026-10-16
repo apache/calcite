@@ -21,7 +21,7 @@ import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> Element type
  */
-public class SplunkQuery<T> extends AbstractEnumerable<T> {
+public class SplunkQuery<T extends @Nullable Object> extends AbstractEnumerable<T> {
   private final SplunkConnection splunkConnection;
   private final String search;
   private final @Nullable String earliest;

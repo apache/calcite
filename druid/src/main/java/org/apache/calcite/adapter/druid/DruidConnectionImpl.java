@@ -38,8 +38,8 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -97,7 +97,7 @@ class DruidConnectionImpl implements DruidConnection {
    * @param page Page definition (in/out)
    */
   public void request(QueryType queryType, String data, Sink sink,
-      List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+      List<String> fieldNames, List<ColumnMetaData.@Nullable Rep> fieldTypes,
       Page page) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
@@ -117,7 +117,7 @@ class DruidConnectionImpl implements DruidConnection {
   /** Parses the output of a query, sending the results to a
    * {@link Sink}. */
   private static void parse(QueryType queryType, InputStream in, Sink sink,
-      List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes, Page page) {
+      List<String> fieldNames, List<ColumnMetaData.@Nullable Rep> fieldTypes, Page page) {
     final JsonFactory factory = new JsonFactory();
     final Row.RowBuilder rowBuilder = Row.newBuilder(fieldNames.size());
 
@@ -296,19 +296,22 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private static void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private static void parseFields(List<String> fieldNames,
+      List<ColumnMetaData.@Nullable Rep> fieldTypes,
       Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     parseFields(fieldNames, fieldTypes, -1, rowBuilder, parser);
   }
 
-  private static void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private static void parseFields(List<String> fieldNames,
+      List<ColumnMetaData.@Nullable Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     while (parser.nextToken() == JsonToken.FIELD_NAME) {
       parseField(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
     }
   }
 
-  private static void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private static void parseField(List<String> fieldNames,
+      List<ColumnMetaData.@Nullable Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     final String fieldName = parser.currentName();
     parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
@@ -316,7 +319,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   @SuppressWarnings("JavaUtilDate")
   private static void parseFieldForName(List<String> fieldNames,
-      List<ColumnMetaData.Rep> fieldTypes,
+      List<ColumnMetaData.@Nullable Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser, String fieldName)
       throws IOException {
     // Move to next token, which is name's value
@@ -554,7 +557,7 @@ class DruidConnectionImpl implements DruidConnection {
           @Override public void run() {
             try {
               final Page page = new Page();
-              final List<ColumnMetaData.Rep> fieldTypes =
+              final List<ColumnMetaData.@Nullable Rep> fieldTypes =
                   Collections.nCopies(fieldNames.size(), null);
               request(queryType, request, this, fieldNames, fieldTypes, page);
               enumerator.done.set(true);
@@ -572,7 +575,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, String timestampColumnName,
-      List<Interval> intervals,
+      @Nullable List<Interval> intervals,
       Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder,
       Map<String, List<ComplexMetric>> complexMetrics) {
     final String url = this.url + "/druid/v2/?pretty";
@@ -680,9 +683,9 @@ class DruidConnectionImpl implements DruidConnection {
   private static class BlockingQueueEnumerator<E> implements Enumerator<E> {
     final BlockingQueue<E> queue = new ArrayBlockingQueue<>(1000);
     final AtomicBoolean done = new AtomicBoolean(false);
-    final Holder<Throwable> throwableHolder = Holder.empty();
+    final Holder<@Nullable Throwable> throwableHolder = Holder.empty();
 
-    E next;
+    @Nullable E next;
 
     @Override public E current() {
       if (next == null) {
@@ -727,30 +730,35 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   /** Result of a "segmentMetadata" call, populated by Jackson. */
-  @SuppressWarnings({ "WeakerAccess", "unused" })
+  @SuppressWarnings({ "WeakerAccess", "unused", "NullAway.Init" })
   private static class JsonSegmentMetadata {
     public String id;
     public List<String> intervals;
     public Map<String, JsonColumn> columns;
     public long size;
     public long numRows;
-    public Map<String, JsonAggregator> aggregators;
+    /** Present only when the query asked for the "aggregators" analysis type
+     * and the segment carries aggregator metadata. */
+    public @Nullable Map<String, JsonAggregator> aggregators;
   }
 
   /** Element of the "columns" collection in the result of a
    * "segmentMetadata" call, populated by Jackson. */
-  @SuppressWarnings({ "WeakerAccess", "unused" })
+  @SuppressWarnings({ "WeakerAccess", "unused", "NullAway.Init" })
   private static class JsonColumn {
     public String type;
     public boolean hasMultipleValues;
     public int size;
-    public Integer cardinality;
-    public String errorMessage;
+    /** Present only when the query asked for the "cardinality" analysis
+     * type. */
+    public @Nullable Integer cardinality;
+    /** Present only when Druid could not analyze the column. */
+    public @Nullable String errorMessage;
   }
 
   /** Element of the "aggregators" collection in the result of a
    * "segmentMetadata" call, populated by Jackson. */
-  @SuppressWarnings({ "WeakerAccess", "unused" })
+  @SuppressWarnings({ "WeakerAccess", "unused", "NullAway.Init" })
   private static class JsonAggregator {
     public String type;
     public String name;

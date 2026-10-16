@@ -24,8 +24,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -50,7 +49,6 @@ public interface RelDataType {
    * @return whether this type has fields; examples include rows and
    * user-defined structured types in SQL, and classes in Java
    */
-  @Pure
   boolean isStruct();
 
   // NOTE jvs 17-Dec-2004:  once we move to Java generics, getFieldList()
@@ -116,7 +114,6 @@ public interface RelDataType {
    *
    * @return whether type allows null values
    */
-  @Pure
   boolean isNullable();
 
   /**
@@ -124,7 +121,6 @@ public interface RelDataType {
    *
    * @return canonical type descriptor for components
    */
-  @Pure
   @Nullable RelDataType getComponentType();
 
   /**
@@ -156,7 +152,6 @@ public interface RelDataType {
    *
    * @return charset of type
    */
-  @Pure
   @Nullable Charset getCharset();
 
   /**
@@ -165,7 +160,6 @@ public interface RelDataType {
    *
    * @return collation of type
    */
-  @Pure
   @Nullable SqlCollation getCollation();
 
   /**
@@ -174,7 +168,6 @@ public interface RelDataType {
    *
    * @return interval qualifier
    */
-  @Pure
   @Nullable SqlIntervalQualifier getIntervalQualifier();
 
   /**
@@ -218,7 +211,6 @@ public interface RelDataType {
    *
    * @return SqlIdentifier, or null if this is not an SQL type
    */
-  @Pure
   @Nullable SqlIdentifier getSqlIdentifier();
 
   /**

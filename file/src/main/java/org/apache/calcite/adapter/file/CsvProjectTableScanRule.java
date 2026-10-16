@@ -23,6 +23,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -71,7 +72,7 @@ public class CsvProjectTableScanRule
             scan.condition));
   }
 
-  private static int[] getProjectFields(List<RexNode> exps) {
+  private static int @Nullable [] getProjectFields(List<RexNode> exps) {
     final int[] fields = new int[exps.size()];
     for (int i = 0; i < exps.size(); i++) {
       final RexNode exp = exps.get(i);

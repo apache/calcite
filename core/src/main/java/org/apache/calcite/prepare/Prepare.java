@@ -18,6 +18,7 @@ package org.apache.calcite.prepare;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -69,8 +70,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -116,7 +116,7 @@ public abstract class Prepare {
 
   // temporary. for testing.
   public static final TryThreadLocal<@Nullable Integer> THREAD_INSUBQUERY_THRESHOLD =
-      TryThreadLocal.of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
+      TryThreadLocal.<@Nullable Integer>of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
@@ -189,7 +189,7 @@ public abstract class Prepare {
     // Allow a test to override the default program.
     final Holder<@Nullable Program> holder = Holder.empty();
     Hook.PROGRAM.run(holder);
-    @Nullable Program holderValue = holder.get();
+    Program holderValue = holder.get();
     if (holderValue != null) {
       return holderValue;
     }

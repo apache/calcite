@@ -18,4 +18,7 @@
 /**
  * TPC-H schema.
  */
+@NullMarked
 package org.apache.calcite.adapter.tpch;
+
+import org.jspecify.annotations.NullMarked;

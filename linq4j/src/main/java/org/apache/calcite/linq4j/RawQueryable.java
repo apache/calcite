@@ -18,8 +18,7 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.tree.Expression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 
@@ -32,7 +31,6 @@ import java.lang.reflect.Type;
  *
  * @param <T> Element type
  */
-@Covariant(0)
 public interface RawQueryable<T> extends Enumerable<T> {
   /**
    * Gets the type of the element(s) that are returned when the expression

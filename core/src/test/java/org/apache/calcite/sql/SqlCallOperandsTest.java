@@ -21,15 +21,18 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for SqlCall operands' order and size match with set.
@@ -230,5 +233,60 @@ public class SqlCallOperandsTest {
     assertThat(sql.contains("INTERNAL_MARKER"), equalTo(false));
     assertThat(sql.contains("INTERNAL_SOURCE"), equalTo(false));
     assertThat(sql.contains("SELECT"), equalTo(false));
+  }
+
+  private static SqlCall createOrderBy(@Nullable SqlNode query,
+      @Nullable SqlNodeList orderList) {
+    return SqlOrderBy.OPERATOR.createCall(SqlParserPos.ZERO, query, orderList,
+        null, null);
+  }
+
+  private static SqlOrderBy newOrderBy(@Nullable SqlNode query,
+      @Nullable SqlNodeList orderList) {
+    return new SqlOrderBy(SqlParserPos.ZERO, query, orderList, null, null);
+  }
+
+  private static SqlLiteral one() {
+    return SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7736">[CALCITE-7736]
+   * Replace the Checker Framework with NullAway and JSpecify</a>:
+   * {@link SqlOrderBy} rejects a null query or a null ORDER BY list when it is
+   * created, as {@link SqlOrderBy#setOperand} does. */
+  @Test void testSqlOrderByCreateCallRejectsNullQuery() {
+    final NullPointerException e =
+        assertThrows(NullPointerException.class,
+            () -> createOrderBy(null, SqlNodeList.EMPTY));
+    assertThat(e.getMessage(), equalTo("query"));
+  }
+
+  @Test void testSqlOrderByCreateCallRejectsNullOrderList() {
+    final NullPointerException e =
+        assertThrows(NullPointerException.class,
+            () -> createOrderBy(one(), null));
+    assertThat(e.getMessage(), equalTo("orderList"));
+  }
+
+  @Test void testSqlOrderByConstructorRejectsNullQuery() {
+    final NullPointerException e =
+        assertThrows(NullPointerException.class,
+            () -> newOrderBy(null, SqlNodeList.EMPTY));
+    assertThat(e.getMessage(), equalTo("query"));
+  }
+
+  @Test void testSqlOrderByConstructorRejectsNullOrderList() {
+    final NullPointerException e =
+        assertThrows(NullPointerException.class,
+            () -> newOrderBy(one(), null));
+    assertThat(e.getMessage(), equalTo("orderList"));
+  }
+
+  @Test void testSqlOrderByCreateCallAcceptsNullOffsetAndFetch() {
+    final SqlOrderBy orderBy =
+        (SqlOrderBy) createOrderBy(one(), SqlNodeList.EMPTY);
+    assertThat(orderBy.offset, nullValue());
+    assertThat(orderBy.fetch, nullValue());
   }
 }

@@ -45,8 +45,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -260,9 +260,9 @@ public class AggregateReduceFunctionsRule
         inputExprs.size() - relBuilder.peek().getRowType().getFieldCount();
     if (extraArgCount > 0) {
       relBuilder.project(inputExprs,
-          CompositeList.of(
+          CompositeList.<@Nullable String>of(
               relBuilder.peek().getRowType().getFieldNames(),
-              Collections.nCopies(extraArgCount, null)));
+              Collections.<@Nullable String>nCopies(extraArgCount, null)));
     }
     newAggregateRel(relBuilder, oldAggRel, newCalls);
     newCalcRel(relBuilder, oldAggRel.getRowType(), projList);

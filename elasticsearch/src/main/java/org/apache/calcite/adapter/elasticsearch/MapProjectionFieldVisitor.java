@@ -21,10 +21,12 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Visitor that extracts the actual field name from an item expression.
  */
-class MapProjectionFieldVisitor extends RexVisitorImpl<String> {
+class MapProjectionFieldVisitor extends RexVisitorImpl<@Nullable String> {
 
   static final MapProjectionFieldVisitor INSTANCE = new MapProjectionFieldVisitor();
 
@@ -32,7 +34,7 @@ class MapProjectionFieldVisitor extends RexVisitorImpl<String> {
     super(true);
   }
 
-  @Override public String visitCall(RexCall call) {
+  @Override public @Nullable String visitCall(RexCall call) {
     if (call.op == SqlStdOperatorTable.ITEM) {
       return ((RexLiteral) call.getOperands().get(1)).getValueAs(String.class);
     }

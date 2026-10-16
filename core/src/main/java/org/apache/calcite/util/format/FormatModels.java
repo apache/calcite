@@ -314,7 +314,7 @@ public class FormatModels {
           elements.add(literalElement(literal));
         }
         // add the element match - use literal as default to be safe.
-        String key = matcher.group();
+        String key = requireNonNull(matcher.group(), "matcher.group()");
         elements.add(getElementMap().getOrDefault(key, literalElement(key)));
         i = matcher.end();
       }

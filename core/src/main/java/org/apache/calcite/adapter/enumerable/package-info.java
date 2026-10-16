@@ -18,4 +18,7 @@
 /**
  * Query optimizer rules for Java calling convention.
  */
+@NullMarked
 package org.apache.calcite.adapter.enumerable;
+
+import org.jspecify.annotations.NullMarked;

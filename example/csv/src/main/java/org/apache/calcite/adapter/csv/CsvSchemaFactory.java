@@ -25,6 +25,8 @@ import java.io.File;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates a {@link CsvSchema}.
  *
@@ -41,7 +43,8 @@ public class CsvSchemaFactory implements SchemaFactory {
 
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    final String directory = (String) operand.get("directory");
+    final String directory =
+        requireNonNull((String) operand.get("directory"), "directory");
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     File directoryFile = new File(directory);

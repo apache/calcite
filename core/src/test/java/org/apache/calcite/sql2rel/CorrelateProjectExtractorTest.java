@@ -29,7 +29,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -53,7 +52,7 @@ public class CorrelateProjectExtractorTest {
 
   @Test void testSingleCorrelationCallOverVariableInFilter() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode before = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -88,7 +87,7 @@ public class CorrelateProjectExtractorTest {
    * CorrelateProjectExtractor does not handle nested field accesses cor0.field0.field1</a>. */
   @Test void testNestedCorrelationFieldAccessInFilter() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode before = builder.scan("EMP")
         .project(
             builder.alias(
@@ -125,7 +124,7 @@ public class CorrelateProjectExtractorTest {
    * not prevent extracting the enclosing correlated call. */
   @Test void testCorrelationCallWithConstantCallOperandInFilter() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode before = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -158,7 +157,7 @@ public class CorrelateProjectExtractorTest {
 
   @Test void testDoubleCorrelationCallOverVariableInFilters() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode before = builder
         .scan("EMP")
         .variable(v::set)

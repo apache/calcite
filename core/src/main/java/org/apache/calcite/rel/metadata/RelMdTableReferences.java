@@ -51,7 +51,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -277,11 +277,11 @@ public class RelMdTableReferences
     final ImmutableList.Builder<RexNode> expressions = ImmutableList.builder();
     for (Window.Group group : rel.groups) {
       expressions.addAll(group.aggCalls);
-      final @Nullable RexNode lowerOffset = group.lowerBound.getOffset();
+      final RexNode lowerOffset = group.lowerBound.getOffset();
       if (lowerOffset != null) {
         expressions.add(lowerOffset);
       }
-      final @Nullable RexNode upperOffset = group.upperBound.getOffset();
+      final RexNode upperOffset = group.upperBound.getOffset();
       if (upperOffset != null) {
         expressions.add(upperOffset);
       }
@@ -308,7 +308,7 @@ public class RelMdTableReferences
     expressions.add(rel.getPattern(), rel.getAfter());
     expressions.addAll(rel.getMeasures().values());
     expressions.addAll(rel.getPatternDefinitions().values());
-    final @Nullable RexNode interval = rel.getInterval();
+    final RexNode interval = rel.getInterval();
     if (interval != null) {
       expressions.add(interval);
     }

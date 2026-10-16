@@ -30,7 +30,7 @@ import org.apache.calcite.sql.SqlKind;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -99,9 +99,13 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
         }
       }
       if (disMax) {
-        QueryBuilders.disMaxQueryBuilder(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+        QueryBuilders.disMaxQueryBuilder(
+            requireNonNull(PredicateAnalyzer.analyze(condition), "query"))
+            .writeJson(generator);
       } else {
-        QueryBuilders.constantScoreQuery(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+        QueryBuilders.constantScoreQuery(
+            requireNonNull(PredicateAnalyzer.analyze(condition), "query"))
+            .writeJson(generator);
       }
       generator.flush();
       generator.close();

@@ -22,7 +22,7 @@ import org.apache.calcite.util.format.postgresql.format.compiled.LiteralCompiled
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.text.ParseException;
 import java.text.ParsePosition;

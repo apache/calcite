@@ -26,7 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.alibaba.innodb.java.reader.page.index.GenericRecord;
 import com.alibaba.innodb.java.reader.util.Utils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Date;
 import java.sql.Time;
@@ -39,7 +39,7 @@ import java.util.TimeZone;
 /**
  * Enumerator that reads from InnoDB data file.
  */
-class InnodbEnumerator implements Enumerator<Object> {
+class InnodbEnumerator implements Enumerator<@Nullable Object> {
   private final Iterator<GenericRecord> iterator;
   private @Nullable GenericRecord current;
   private final List<RelDataTypeField> fieldTypes;
@@ -61,13 +61,13 @@ class InnodbEnumerator implements Enumerator<Object> {
    *
    * @return a new row from the results
    */
-  @Override public Object current() {
+  @Override public @Nullable Object current() {
     if (fieldTypes.size() == 1) {
       // If we just have one field, produce it directly
       return currentRowField(fieldTypes.get(0));
     } else {
       // Build an array with all fields in this row
-      Object[] row = new Object[fieldTypes.size()];
+      final @Nullable Object[] row = new Object[fieldTypes.size()];
       for (int i = 0; i < fieldTypes.size(); i++) {
         row[i] = currentRowField(fieldTypes.get(i));
       }

@@ -52,6 +52,8 @@ import org.apache.pig.scripting.jython.JythonFunction;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,7 +90,7 @@ public class PigRelBuilder extends RelBuilder {
     return new PigRelBuilder(
         transform(config.getContext(), c -> c.withBloat(-1)),
         relBuilder.getCluster(),
-        relBuilder.getRelOptSchema());
+        requireNonNull(relBuilder.getRelOptSchema(), "relOptSchema"));
   }
 
   private static Context transform(Context context,
@@ -98,19 +100,19 @@ public class PigRelBuilder extends RelBuilder {
     return Contexts.of(transform.apply(config), context);
   }
 
-  public RelNode getRel(String alias) {
+  public @Nullable RelNode getRel(String alias) {
     return aliasMap.get(alias);
   }
 
-  public RelNode getRel(Operator pig) {
+  public @Nullable RelNode getRel(Operator pig) {
     return pigRelMap.get(pig);
   }
 
-  Operator getPig(RelNode rel)  {
+  @Nullable Operator getPig(RelNode rel)  {
     return relPigMap.get(rel);
   }
 
-  String getAlias(RelNode rel)  {
+  @Nullable String getAlias(RelNode rel)  {
     return reverseAliasMap.get(rel);
   }
 
@@ -123,7 +125,7 @@ public class PigRelBuilder extends RelBuilder {
     return new CorrelationId(nextCorrelId++);
   }
 
-  public String getAlias() {
+  public @Nullable String getAlias() {
     final RelNode input = peek();
     if (reverseAliasMap.containsKey(input)) {
       return reverseAliasMap.get(input);
@@ -161,18 +163,23 @@ public class PigRelBuilder extends RelBuilder {
    * Updates the Pig logical operator and its alias with the top
    * relational algebra node.
    *
-   * @param pigOp the Pig logical operator
-   * @param alias the alias
+   * @param pigOp the Pig logical operator, or null to record none
+   * @param alias the alias, or null to record none
    * @param updatePigRelMap whether to update the PigRelMap
    */
-  public void updateAlias(Operator pigOp, String alias, boolean updatePigRelMap) {
+  public void updateAlias(@Nullable Operator pigOp, @Nullable String alias,
+      boolean updatePigRelMap) {
     final RelNode rel = peek();
-    if (updatePigRelMap) {
-      pigRelMap.put(pigOp, rel);
+    if (pigOp != null) {
+      if (updatePigRelMap) {
+        pigRelMap.put(pigOp, rel);
+      }
+      relPigMap.put(rel, pigOp);
     }
-    relPigMap.put(rel, pigOp);
-    aliasMap.put(alias, rel);
-    reverseAliasMap.put(rel, alias);
+    if (alias != null) {
+      aliasMap.put(alias, rel);
+      reverseAliasMap.put(rel, alias);
+    }
   }
 
   /**
@@ -233,7 +240,7 @@ public class PigRelBuilder extends RelBuilder {
    * @param tableNames The names of the table to scan
    * @return This builder
    */
-  public RelBuilder scan(RelOptTable userSchema, String... tableNames) {
+  public RelBuilder scan(@Nullable RelOptTable userSchema, String... tableNames) {
     // First, look up the database schema to find the table schema with the given names
     final List<String> names = ImmutableList.copyOf(tableNames);
     requireNonNull(relOptSchema, "relOptSchema");
@@ -294,7 +301,9 @@ public class PigRelBuilder extends RelBuilder {
    */
   public RelBuilder scan(RelDataType rowType, List<String> tableNames) {
     final RelOptTable relOptTable =
-        PigTable.createRelOptTable(getRelOptSchema(), rowType, tableNames);
+        PigTable.createRelOptTable(
+            requireNonNull(getRelOptSchema(), "relOptSchema"), rowType,
+            tableNames);
     return scan(relOptTable);
   }
 
@@ -486,7 +495,9 @@ public class PigRelBuilder extends RelBuilder {
     for (int i = 0; i < colCount; i++) {
       if (flattenCols.indexOf(i) >= 0) {
         // The original multiset columns to be flattened, select new flattened columns instead
-        RelDataType componentType = inputFields.get(i).getType().getComponentType();
+        RelDataType componentType =
+            requireNonNull(inputFields.get(i).getType().getComponentType(),
+                "componentType");
         final int numSubFields = componentType.isStruct() ? componentType.getFieldCount() : 1;
         for (int j = 0; j < numSubFields; j++) {
           finnalCols.add(field(colCount + flattenCount));
@@ -609,7 +620,7 @@ public class PigRelBuilder extends RelBuilder {
    * Gets all relational plans corresponding to Pig Store operators.
    *
    */
-  public List<RelNode> getRelsForStores() {
+  public @Nullable List<RelNode> getRelsForStores() {
     if (storeMap.isEmpty()) {
       return null;
     }

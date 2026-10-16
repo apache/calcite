@@ -19,9 +19,11 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree node that represents an {@code ORDER BY} on a query other than a
@@ -33,10 +35,10 @@ import java.util.List;
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
-    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
-      return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
+      return new SqlOrderBy(pos, requireNonNull(operands[0], "query"),
+          requireNonNull((SqlNodeList) operands[1], "orderList"),
           operands[2], operands[3]);
     }
   };
@@ -51,8 +53,8 @@ public class SqlOrderBy extends SqlCall {
   public SqlOrderBy(SqlParserPos pos, SqlNode query, SqlNodeList orderList,
       @Nullable SqlNode offset, @Nullable SqlNode fetch) {
     super(pos);
-    this.query = query;
-    this.orderList = orderList;
+    this.query = requireNonNull(query, "query");
+    this.orderList = requireNonNull(orderList, "orderList");
     this.offset = offset;
     this.fetch = fetch;
   }
@@ -67,19 +69,18 @@ public class SqlOrderBy extends SqlCall {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
-      query = operand;
+      query = requireNonNull(operand, "operand");
       break;
     case 1:
-      orderList = (SqlNodeList) operand;
+      orderList = requireNonNull((SqlNodeList) operand, "orderList");
       break;
     case 2:
       offset = operand;

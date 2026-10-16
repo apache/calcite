@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -30,7 +30,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * @param <E> Element type
  */
-abstract class AbstractImmutableList<E> implements List<E> {
+abstract class AbstractImmutableList<E extends @Nullable Object> implements List<E> {
   protected abstract List<E> toList();
 
   @Override public Iterator<E> iterator() {

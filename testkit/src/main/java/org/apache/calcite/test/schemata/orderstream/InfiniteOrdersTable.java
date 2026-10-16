@@ -22,7 +22,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
 
@@ -32,7 +32,7 @@ import java.util.Iterator;
 public class InfiniteOrdersTable extends BaseOrderStreamTable
     implements StreamableTable {
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
+    return Linq4j.<@Nullable Object[]>asEnumerable(() -> new Iterator<@Nullable Object[]>() {
       private final String[] items = {"paint", "paper", "brush"};
       private int counter = 0;
 
@@ -40,7 +40,7 @@ public class InfiniteOrdersTable extends BaseOrderStreamTable
         return true;
       }
 
-      @Override public Object[] next() {
+      @Override public @Nullable Object[] next() {
         final int index = counter++;
         return new Object[]{
             System.currentTimeMillis(), index, items[index % items.length], 10};

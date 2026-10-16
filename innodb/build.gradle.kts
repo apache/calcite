@@ -29,6 +29,7 @@ dependencies {
                 .because("creates conflict with log4j-slf4j-impl")
     }
     api("com.google.guava:guava")
+    api("org.jspecify:jspecify")
 
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.slf4j:slf4j-api")

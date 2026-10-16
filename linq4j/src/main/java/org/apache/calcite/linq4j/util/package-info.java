@@ -18,4 +18,7 @@
 /**
  * Provides utility classes.
  */
+@NullMarked
 package org.apache.calcite.linq4j.util;
+
+import org.jspecify.annotations.NullMarked;

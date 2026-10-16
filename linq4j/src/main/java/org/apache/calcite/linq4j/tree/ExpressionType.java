@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Analogous to LINQ's System.Linq.Expressions.ExpressionType. */
 public enum ExpressionType {

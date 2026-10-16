@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Bindables;
@@ -114,10 +115,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -2482,8 +2480,9 @@ public abstract class RelOptUtil {
    * returns null if and only if {@code rel} is null,
    * returns expanded detail info for {@code rel} if {@code expand} is true.
    */
-  public static @PolyNull String toString(
-      final @PolyNull RelNode rel,
+  @Contract("!null, _, _ -> !null")
+  public static @Nullable String toString(
+      final @Nullable RelNode rel,
       SqlExplainLevel detailLevel,
       boolean expand) {
     if (rel == null) {
@@ -3585,7 +3584,7 @@ public abstract class RelOptUtil {
       int joinCount;
 
       @Override public void visit(RelNode node, int ordinal,
-          @org.checkerframework.checker.nullness.qual.Nullable RelNode parent) {
+          @org.jspecify.annotations.Nullable RelNode parent) {
         if (node instanceof Join) {
           ++joinCount;
         }
@@ -4058,7 +4057,7 @@ public abstract class RelOptUtil {
   private static boolean containsGet(RexNode node) {
     try {
       node.accept(
-          new RexVisitorImpl<Void>(true) {
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitCall(RexCall call) {
               if (call.getOperator() == RexBuilder.GET_OPERATOR) {
                 throw Util.FoundOne.NULL;
@@ -4542,7 +4541,7 @@ public abstract class RelOptUtil {
     @Override public void visit(
         RelNode p,
         int ordinal,
-        @org.checkerframework.checker.nullness.qual.Nullable RelNode parent) {
+        @org.jspecify.annotations.Nullable RelNode parent) {
       super.visit(p, ordinal, parent);
       p.collectVariablesUsed(variables);
 
@@ -4557,10 +4556,9 @@ public abstract class RelOptUtil {
     public final Set<CorrelationId> variables = new LinkedHashSet<>();
     public final Multimap<CorrelationId, Integer> variableFields =
         LinkedHashMultimap.create();
-    @NotOnlyInitialized
     private final @Nullable RelShuttle relShuttle;
 
-    public VariableUsedVisitor(@UnknownInitialization @Nullable RelShuttle relShuttle) {
+    public VariableUsedVisitor(@Nullable RelShuttle relShuttle) {
       this.relShuttle = relShuttle;
     }
 
@@ -4707,7 +4705,7 @@ public abstract class RelOptUtil {
   /**
    * Visitor which builds a bitmap of the inputs used by an expression.
    */
-  public static class InputFinder extends RexVisitorImpl<Void> {
+  public static class InputFinder extends RexVisitorImpl<@Nullable Void> {
     private final ImmutableBitSet.Builder bitBuilder;
     private final @Nullable Set<RelDataTypeField> extraFields;
     /** Correlation ids whose binder is the current scope. When non-null,
@@ -4989,7 +4987,6 @@ public abstract class RelOptUtil {
    * expression, including those that are inside
    * {@link RexSubQuery sub-queries}. */
   private static class CorrelationCollector extends RelHomogeneousShuttle {
-    @SuppressWarnings("assignment.type.incompatible")
     private final VariableUsedVisitor vuv = new VariableUsedVisitor(this);
 
     @Override public RelNode visit(RelNode other) {

@@ -18,7 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

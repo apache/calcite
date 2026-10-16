@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Exposes the enumerator, which supports a simple iteration over a collection,
@@ -31,8 +31,7 @@ import org.checkerframework.framework.qual.Covariant;
  * @param <T> Element type
  * @see Enumerable
  */
-@Covariant(0)
-public interface RawEnumerable<T> {
+public interface RawEnumerable<T extends @Nullable Object> {
   /**
    * Returns an enumerator that iterates through a collection.
    */

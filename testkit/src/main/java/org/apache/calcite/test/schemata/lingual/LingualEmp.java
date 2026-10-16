@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.schemata.lingual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -30,7 +32,7 @@ public class LingualEmp {
     this.DEPTNO = DEPTNO;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof LingualEmp
         && EMPNO == ((LingualEmp) obj).EMPNO;

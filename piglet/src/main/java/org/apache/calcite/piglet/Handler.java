@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Walks over a Piglet AST and calls the corresponding methods in a
  * {@link PigRelBuilder}.
@@ -47,6 +49,17 @@ public class Handler {
 
   public Handler(PigRelBuilder builder) {
     this.builder = builder;
+  }
+
+  /** Returns the relational expression registered under a name.
+   *
+   * @throws IllegalArgumentException if no relation has that name */
+  private RelNode get(String name) {
+    final RelNode relNode = map.get(name);
+    if (relNode == null) {
+      throw new IllegalArgumentException("unknown relation '" + name + "'");
+    }
+    return relNode;
   }
 
   /** Creates relational expressions for a given AST node. */
@@ -68,7 +81,7 @@ public class Handler {
     case FOREACH:
       final Ast.ForeachStmt foreach = (Ast.ForeachStmt) node;
       builder.clear();
-      input = map.get(foreach.source.value);
+      input = get(foreach.source.value);
       builder.push(input);
       rexNodes = new ArrayList<>();
       for (Ast.Node exp : foreach.expList) {
@@ -80,7 +93,7 @@ public class Handler {
     case FOREACH_NESTED:
       final Ast.ForeachNestedStmt foreachNested = (Ast.ForeachNestedStmt) node;
       builder.clear();
-      input = map.get(foreachNested.source.value);
+      input = get(foreachNested.source.value);
       builder.push(input);
       System.out.println(input.getRowType());
       for (RelDataTypeField field : input.getRowType().getFieldList()) {
@@ -105,7 +118,7 @@ public class Handler {
     case FILTER:
       final Ast.FilterStmt filter = (Ast.FilterStmt) node;
       builder.clear();
-      input = map.get(filter.source.value);
+      input = get(filter.source.value);
       builder.push(input);
       RexNode rexNode = toRex(filter.condition);
       if (rexNode.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
@@ -118,7 +131,7 @@ public class Handler {
     case DISTINCT:
       final Ast.DistinctStmt distinct = (Ast.DistinctStmt) node;
       builder.clear();
-      input = map.get(distinct.source.value);
+      input = get(distinct.source.value);
       builder.push(input);
       builder.distinct(null, -1);
       register(distinct.target.value);
@@ -126,7 +139,7 @@ public class Handler {
     case ORDER:
       final Ast.OrderStmt order = (Ast.OrderStmt) node;
       builder.clear();
-      input = map.get(order.source.value);
+      input = get(order.source.value);
       builder.push(input);
       final List<RexNode> nodes = new ArrayList<>();
       for (Pair<Ast.Identifier, Ast.Direction> field : order.fields) {
@@ -138,7 +151,7 @@ public class Handler {
     case LIMIT:
       final Ast.LimitStmt limit = (Ast.LimitStmt) node;
       builder.clear();
-      input = map.get(limit.source.value);
+      input = get(limit.source.value);
       final int count = ((Number) limit.count.value).intValue();
       builder.push(input);
       builder.limit(0, count);
@@ -147,7 +160,7 @@ public class Handler {
     case GROUP:
       final Ast.GroupStmt group = (Ast.GroupStmt) node;
       builder.clear();
-      input = map.get(group.source.value);
+      input = get(group.source.value);
       builder.push(input).as(group.source.value);
       final List<RelBuilder.GroupKey> groupKeys = new ArrayList<>();
       final List<RexNode> keys = new ArrayList<>();
@@ -168,7 +181,7 @@ public class Handler {
       return this;
     case DUMP:
       final Ast.DumpStmt dump = (Ast.DumpStmt) node;
-      final RelNode relNode = map.get(dump.relation.value);
+      final RelNode relNode = get(dump.relation.value);
       dump(relNode);
       return this; // nothing to do; contains no algebra
     default:
@@ -213,7 +226,8 @@ public class Handler {
     final ImmutableList.Builder<RexLiteral> listBuilder =
         ImmutableList.builder();
     for (Ast.Node node : nodeList) {
-      listBuilder.add(item(node, type.getComponentType()));
+      listBuilder.add(
+          item(node, requireNonNull(type.getComponentType(), "componentType")));
     }
     return listBuilder.build();
   }

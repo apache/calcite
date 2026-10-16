@@ -19,7 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.jspecify.annotations.NonNull;
 
 /** A catalog reader with tables "T1" and "T2" whose schema contains all
  * test data types. */

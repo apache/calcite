@@ -25,7 +25,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableListIterator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -135,7 +135,6 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return Arrays.hashCode(ints);
   }
 
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   @Override public boolean equals(@Nullable Object obj) {
     return ((this == obj)
         || (obj instanceof ImmutableIntList))
@@ -179,9 +178,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return objects;
   }
 
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
     final int size = ints.length;
-    if (castNonNull(a).length < size) {
+    if (a.length < size) {
       // Make a new array of a's runtime type, but my contents:
       a = a.getClass() == Object[].class
           ? (T[]) new Object[size]
@@ -335,8 +334,8 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
       return EMPTY_ARRAY;
     }
 
-    @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
-      if (castNonNull(a).length > 0) {
+    @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
+      if (a.length > 0) {
         a[0] = castNonNull(null);
       }
       return a;

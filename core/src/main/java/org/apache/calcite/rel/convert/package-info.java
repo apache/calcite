@@ -19,4 +19,7 @@
  * Defines relational expressions and rules for converting between calling
  * conventions.
  */
+@NullMarked
 package org.apache.calcite.rel.convert;
+
+import org.jspecify.annotations.NullMarked;

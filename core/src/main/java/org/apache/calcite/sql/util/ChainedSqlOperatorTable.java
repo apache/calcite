@@ -25,7 +25,7 @@ import org.apache.calcite.sql.validate.SqlNameMatcher;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +58,8 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
   @Deprecated // to be removed before 2.0
   public void add(SqlOperatorTable table) {
     if (!tableList.contains(table)) {
-      tableList.add(table);
+      throw new UnsupportedOperationException(
+          "ChainedSqlOperatorTable is immutable; use SqlOperatorTables.chain");
     }
   }
 

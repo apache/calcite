@@ -105,7 +105,8 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
             .map(value ->
                 Arrays.asList(value.jdbcSchemaName, value.jdbcTableName))
             .orElseGet(table::getQualifiedName);
-    return requireNonNull(cardinalityMap.get(qualifiedName.toString()));
+    return requireNonNull(
+        cardinalityMap.get(requireNonNull(qualifiedName, "qualifiedName").toString()));
   }
 
   @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,

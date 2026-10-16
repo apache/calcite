@@ -18,4 +18,7 @@
 /**
  * Classes for testing Catalog.
  */
+@NullMarked
 package org.apache.calcite.test.catalog;
+
+import org.jspecify.annotations.NullMarked;

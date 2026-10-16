@@ -31,4 +31,7 @@
  *
  * </ul>
  */
+@NullMarked
 package org.apache.calcite.rel.mutable;
+
+import org.jspecify.annotations.NullMarked;

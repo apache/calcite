@@ -106,11 +106,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.hamcrest.number.OrderingComparison;
 import org.hsqldb.jdbcDriver;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -281,7 +281,7 @@ public class JdbcTest {
       return this;
     }
 
-    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    @Override public <T> @Nullable T unwrap(Class<T> clazz) {
       if (schema instanceof Wrapper) {
         return ((Wrapper) schema).unwrap(clazz);
       }

@@ -48,8 +48,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -486,16 +485,11 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns whether a type is some kind of INTERVAL. */
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-  @EnsuresNonNullIf(expression = "#1.getIntervalQualifier()", result = true)
   public static boolean isInterval(RelDataType type) {
     return SqlTypeFamily.DATETIME_INTERVAL.contains(type);
   }
 
   /** Returns whether a type is in SqlTypeFamily.Character. */
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-  @EnsuresNonNullIf(expression = "#1.getCharset()", result = true)
-  @EnsuresNonNullIf(expression = "#1.getCollation()", result = true)
   public static boolean inCharFamily(RelDataType type) {
     return type.getFamily() == SqlTypeFamily.CHARACTER;
   }
@@ -1398,7 +1392,10 @@ public abstract class SqlTypeUtil {
    */
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
-    String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
+    String charSetName =
+        inCharFamily(type)
+            ? requireNonNull(type.getCharset(), "charset").name()
+            : null;
     return convertTypeToSpec(type, charSetName,
         RelDataType.PRECISION_NOT_SPECIFIED, RelDataType.SCALE_NOT_SPECIFIED);
   }

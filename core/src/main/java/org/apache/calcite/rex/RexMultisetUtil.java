@@ -22,7 +22,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -177,7 +177,7 @@ public class RexMultisetUtil {
    * <p>totalCount &ge; multisetCount always holds true.
    */
   private static class RexCallMultisetOperatorCounter
-      extends RexVisitorImpl<Void> {
+      extends RexVisitorImpl<@Nullable Void> {
     int totalCount = 0;
     int multisetCount = 0;
 

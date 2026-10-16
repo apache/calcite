@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +32,7 @@ import java.util.List;
  * @param <R> Return type
  * @param <P> Payload type
  */
-public interface RexBiVisitor<R, P> {
+public interface RexBiVisitor<R extends @Nullable Object, P extends @Nullable Object> {
   //~ Methods ----------------------------------------------------------------
 
   R visitInputRef(RexInputRef inputRef, P arg);

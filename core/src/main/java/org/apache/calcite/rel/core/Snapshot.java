@@ -33,7 +33,7 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -80,7 +80,6 @@ public abstract class Snapshot extends SingleRel implements Hintable {
    * @param period    Timestamp expression which as the table was at the given
    *                  time in the past
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Snapshot(RelOptCluster cluster, RelTraitSet traitSet, List<RelHint> hints,
       RelNode input, RexNode period) {
     super(cluster, traitSet, input);
@@ -98,7 +97,6 @@ public abstract class Snapshot extends SingleRel implements Hintable {
    * @param period    Timestamp expression which as the table was at the given
    *                  time in the past
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Snapshot(
       RelOptCluster cluster, RelTraitSet traitSet, RelNode input, RexNode period) {
     this(cluster, traitSet, ImmutableList.of(), input, period);

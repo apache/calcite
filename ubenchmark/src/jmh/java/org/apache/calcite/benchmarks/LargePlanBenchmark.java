@@ -34,6 +34,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -56,6 +57,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Benchmark that constructs a synthetic query plan consisting of a large plan.
  *
@@ -76,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Thread)
 @Threads(1)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class LargePlanBenchmark {
 
   @Param({"100", "1000", "10000", "100000"})
@@ -83,6 +87,7 @@ public class LargePlanBenchmark {
 
   // For large plans, "DEPTH_FIRST", "BOTTOM_UP", and "TOP_DOWN" are slower than ARBITRARY
   @Param({"ARBITRARY"})
+  @SuppressWarnings("NullAway.Init") // set by JMH from the @Param values
   String matchOrder;
 
   // The set operator used to combine the branches into the plan tree.
@@ -94,6 +99,7 @@ public class LargePlanBenchmark {
 
   boolean isLargePlanMode = true; // false is very slow in 10000 unions
   boolean isEnableFiredRulesCache = true;
+  @SuppressWarnings("NullAway.Init") // set by the @Setup method
   private static RelBuilder builder;
 
   // All available match orders for validation
@@ -244,7 +250,8 @@ public class LargePlanBenchmark {
       planner.executeProgram(filterReduce);
       if (collectStats) {
         stats.put("FILTER",
-            subtractRuleAttempts(snapshotRuleAttempts(planner), beforeFilter));
+            subtractRuleAttempts(snapshotRuleAttempts(planner),
+                requireNonNull(beforeFilter, "beforeFilter")));
       }
       planner.clearRules();
 
@@ -254,7 +261,8 @@ public class LargePlanBenchmark {
       planner.executeProgram(projectReduce);
       if (collectStats) {
         stats.put("PROJECT",
-            subtractRuleAttempts(snapshotRuleAttempts(planner), beforeProject));
+            subtractRuleAttempts(snapshotRuleAttempts(planner),
+                requireNonNull(beforeProject, "beforeProject")));
       }
       planner.clearRules();
 
@@ -311,7 +319,7 @@ public class LargePlanBenchmark {
 
     boolean allPassed = true;
     Map<Integer, Map<String, Map<String, Pair<Long, Long>>>> baselineStats =
-        allStats.get("ARBITRARY");
+        requireNonNull(allStats.get("ARBITRARY"), "ARBITRARY");
 
     for (String order : ALL_MATCH_ORDERS) {
       if (order.equals("ARBITRARY")) {
@@ -320,11 +328,13 @@ public class LargePlanBenchmark {
 
       System.out.println("Comparing " + order + " against ARBITRARY:");
       Map<Integer, Map<String, Map<String, Pair<Long, Long>>>> orderStats =
-          allStats.get(order);
+          requireNonNull(allStats.get(order), order);
 
       for (int size : VALIDATION_SIZES) {
         boolean sizePassed =
-            validateSizeStats(order, size, baselineStats.get(size), orderStats.get(size));
+            validateSizeStats(order, size,
+                requireNonNull(baselineStats.get(size), "baseline"),
+                requireNonNull(orderStats.get(size), "order"));
         if (!sizePassed) {
           allPassed = false;
         }
@@ -356,13 +366,15 @@ public class LargePlanBenchmark {
     StringBuilder sb = new StringBuilder();
     sb.append(String.format(Locale.ROOT, "  Size %4d: ", size));
 
-    Map<String, Pair<Long, Long>> baselineFilter = baseline.get("FILTER");
+    Map<String, Pair<Long, Long>> baselineFilter =
+        baseline.get("FILTER");
     Map<String, Pair<Long, Long>> testFilter = test.get("FILTER");
     if (!comparePhaseStats("FILTER", baselineFilter, testFilter, sb)) {
       passed = false;
     }
 
-    Map<String, Pair<Long, Long>> baselineProject = baseline.get("PROJECT");
+    Map<String, Pair<Long, Long>> baselineProject =
+        baseline.get("PROJECT");
     Map<String, Pair<Long, Long>> testProject = test.get("PROJECT");
     if (!comparePhaseStats("PROJECT", baselineProject, testProject, sb)) {
       passed = false;
@@ -378,8 +390,8 @@ public class LargePlanBenchmark {
   }
 
   private boolean comparePhaseStats(String phase,
-      Map<String, Pair<Long, Long>> baseline,
-      Map<String, Pair<Long, Long>> test,
+      @Nullable Map<String, Pair<Long, Long>> baseline,
+      @Nullable Map<String, Pair<Long, Long>> test,
       StringBuilder sb) {
 
     if (baseline == null && test == null) {
@@ -462,7 +474,7 @@ public class LargePlanBenchmark {
 
     for (String order : ALL_MATCH_ORDERS) {
       System.out.println("Testing match order: " + order);
-      int[] sizes = orderSizes.get(order);
+      int[] sizes = requireNonNull(orderSizes.get(order), order);
 
       for (int size : sizes) {
         int nodeCount = 4 * size + 3;

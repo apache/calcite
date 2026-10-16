@@ -49,7 +49,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -150,7 +150,6 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,

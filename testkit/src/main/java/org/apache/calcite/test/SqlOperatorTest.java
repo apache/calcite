@@ -88,7 +88,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16816,13 +16816,13 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
 
-    Function2<String, Boolean, Void> checkBoolean = (sql, result) -> {
+    Function2<String, Boolean, @Nullable Void> checkBoolean = (sql, result) -> {
       f.checkBoolean(sql.replace("COLLECTION", "ARRAY"), result);
       f.checkBoolean(sql.replace("COLLECTION", "MULTISET"), result);
       return null;
     };
 
-    Function1<String, Void> checkNull = sql -> {
+    Function1<String, @Nullable Void> checkNull = sql -> {
       f.checkNull(sql.replace("COLLECTION", "ARRAY"));
       f.checkNull(sql.replace("COLLECTION", "MULTISET"));
       return null;
@@ -18638,11 +18638,11 @@ public class SqlOperatorTest {
    */
   private static class ValueOrExceptionResultChecker
       implements SqlTester.ResultChecker {
-    private final Object expected;
+    private final @Nullable Object expected;
     private final Pattern[] patterns;
 
     ValueOrExceptionResultChecker(
-        Object expected, Pattern... patterns) {
+        @Nullable Object expected, Pattern... patterns) {
       this.expected = expected;
       this.patterns = patterns;
     }
@@ -18719,16 +18719,16 @@ public class SqlOperatorTest {
   /** A type, a value, and its {@link SqlNode} representation. */
   static class ValueType {
     final RelDataType type;
-    final Object value;
+    final @Nullable Object value;
     final SqlNode node;
 
-    ValueType(RelDataType type, Object value) {
+    ValueType(RelDataType type, @Nullable Object value) {
       this.type = type;
       this.value = value;
       this.node = literal(type, value);
     }
 
-    private SqlNode literal(RelDataType type, Object value) {
+    private SqlNode literal(RelDataType type, @Nullable Object value) {
       if (value == null) {
         return SqlStdOperatorTable.CAST.createCall(
             SqlParserPos.ZERO,

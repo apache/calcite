@@ -194,8 +194,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -406,7 +406,7 @@ public class SqlToRelConverter {
 
   @SuppressWarnings("unchecked")
   private <T extends SqlValidatorNamespace> @Nullable T getNamespaceOrNull(SqlNode node) {
-    return (@Nullable T) validator().getNamespace(node);
+    return (T) validator().getNamespace(node);
   }
 
   /** Returns the RelOptCluster in use. */
@@ -859,9 +859,9 @@ public class SqlToRelConverter {
 
     if (select.isDistinctOn()) {
       convertDistinctOn(bb, select, collationList);
-      final @Nullable RexNode offsetExpr = select.getOffset() == null
+      final RexNode offsetExpr = select.getOffset() == null
           ? null : convertExpression(select.getOffset());
-      final @Nullable RexNode fetchExpr = select.getFetch() == null
+      final RexNode fetchExpr = select.getFetch() == null
           ? null : convertExpression(select.getFetch());
       if (offsetExpr != null || fetchExpr != null) {
         bb.setRoot(
@@ -1019,9 +1019,10 @@ public class SqlToRelConverter {
       bottomNames.add(rel.getRowType().getFieldNames().get(i));
     }
 
+    final Project bottomProject = castNonNull(project);
     bb.setRoot(
-        LogicalProject.create(castNonNull(project).getInput(), project.getHints(),
-            bottomExprs, bottomNames, project.getVariablesSet()), false);
+        LogicalProject.create(bottomProject.getInput(), bottomProject.getHints(),
+            bottomExprs, bottomNames, bottomProject.getVariablesSet()), false);
 
     final ImmutableBitSet aggGroupSet = ImmutableBitSet.range(groupSet.cardinality());
     bb.setRoot(
@@ -1044,7 +1045,7 @@ public class SqlToRelConverter {
       if (idx >= 0) {
         topExprs.add(rexBuilder.makeInputRef(aggregate, idx));
       } else {
-        topExprs.add(castNonNull(project).getProjects().get(i).accept(shuttle));
+        topExprs.add(bottomProject.getProjects().get(i).accept(shuttle));
       }
     }
     bb.setRoot(
@@ -2541,7 +2542,7 @@ public class SqlToRelConverter {
     SqlCall call = (SqlCall) node;
     bb.getValidator().deriveType(bb.scope, call);
     SqlCall aggCall = call.operand(0);
-    @Nullable SqlNode filter = null;
+    SqlNode filter = null;
     if (aggCall.getKind() == SqlKind.FILTER) {
       filter = aggCall.operand(1);
       aggCall = aggCall.operand(0);
@@ -2561,7 +2562,7 @@ public class SqlToRelConverter {
     // (used by inverse distribution functions such as PERCENTILE_CONT/DISC) is
     // carried as the window's ORDER BY. Oracle forbids ORDER BY inside the OVER
     // clause for these functions, so the window's own order list is empty here.
-    @Nullable SqlNodeList groupOrderList = null;
+    SqlNodeList groupOrderList = null;
     if (aggCall.getKind() == SqlKind.WITHIN_GROUP) {
       groupOrderList = aggCall.operand(1);
       aggCall = aggCall.operand(0);
@@ -3904,7 +3905,7 @@ public class SqlToRelConverter {
     requireNonNull(bb.root, "bb.root");
     List<SqlNode> groupList = first(select.getGroup(), ImmutableList.of());
     List<SqlNode> selectList = select.getSelectList();
-    @Nullable SqlNode having = select.getHaving();
+    SqlNode having = select.getHaving();
 
     final AggConverter aggConverter =
         AggConverter.create(bb,
@@ -4575,7 +4576,9 @@ public class SqlToRelConverter {
     final SqlValidatorNamespace targetNs = getNamespace(call);
     SqlValidatorNamespace namespace;
     if (targetNs.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
-      namespace = targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class);
+      namespace =
+          requireNonNull(targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class),
+              "DmlNamespace");
     } else {
       namespace = targetNs.resolve();
     }
@@ -4656,7 +4659,7 @@ public class SqlToRelConverter {
     }
 
     // sourceExps should not contain nulls (see the loop above)
-    @SuppressWarnings("assignment.type.incompatible")
+    @SuppressWarnings("NullAway")
     List<RexNode> nonNullExprs = sourceExps;
 
     return relBuilder.push(source)
@@ -4702,7 +4705,7 @@ public class SqlToRelConverter {
     return NullInitializerExpressionFactory.INSTANCE;
   }
 
-  private static <T extends Object> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
+  private static <T> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
     if (o instanceof Wrapper) {
       return ((Wrapper) o).unwrap(clazz);
     }
@@ -4970,7 +4973,7 @@ public class SqlToRelConverter {
       }
     }
 
-    final @Nullable SqlNode measure = bb.lookupMeasure(identifier);
+    final SqlNode measure = bb.lookupMeasure(identifier);
     if (measure != null) {
       return bb.convertExpression(measure);
     }
@@ -6773,13 +6776,13 @@ public class SqlToRelConverter {
   /**
    * Visitor that collects all aggregate functions in a {@link SqlNode} tree.
    */
-  private static class AggregateFinder extends SqlBasicVisitor<Void> {
+  private static class AggregateFinder extends SqlBasicVisitor<@Nullable Void> {
     final List<SqlNode> list = new ArrayList<>();
     final List<SqlNode> filterList = new ArrayList<>();
     final List<SqlNode> distinctList = new ArrayList<>();
     final List<SqlNode> orderList = new ArrayList<>();
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       // ignore window aggregates and ranking functions (associated with OVER operator)
       if (call.getOperator().getKind() == SqlKind.OVER) {
         return null;

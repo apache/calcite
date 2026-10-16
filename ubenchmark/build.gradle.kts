@@ -25,6 +25,7 @@ dependencies {
     jmhImplementation(project(":linq4j"))
     jmhImplementation("com.google.guava:guava")
     jmhImplementation("org.codehaus.janino:commons-compiler")
+    jmhImplementation("org.jspecify:jspecify")
     jmhImplementation("org.openjdk.jmh:jmh-core")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess")
     jmhImplementation(project(":testkit"))

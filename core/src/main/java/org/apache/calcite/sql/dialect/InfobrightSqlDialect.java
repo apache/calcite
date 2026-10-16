@@ -18,7 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A <code>SqlDialect</code> implementation for the Infobright database.

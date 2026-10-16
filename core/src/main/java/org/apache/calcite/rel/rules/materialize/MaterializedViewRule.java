@@ -64,7 +64,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -765,7 +765,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                 RexTableInputRef.of(parentTRef, pair.target, uniqueKeyColumnType);
             if (!foreignKeyColumnType.isNullable()
                 && sourceEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
-                && castNonNull(sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef))
+                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef)
                     .contains(foreignKeyColumnRef)) {
               equiColumns.put(foreignKeyColumnRef, uniqueKeyColumnRef);
             } else {

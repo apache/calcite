@@ -16,16 +16,12 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -63,7 +59,7 @@ public interface ImmutablePairList<T, U> extends PairList<T, U> {
   /** Creates an ImmutablePairList whose contents are a copy of a given
    * collection. */
   @SuppressWarnings("unchecked")
-  static <@NonNull T, @NonNull U> ImmutablePairList<T, U> copyOf(
+  static <T, U> ImmutablePairList<T, U> copyOf(
       Iterable<? extends Map.Entry<T, U>> iterable) {
     // Every PairList - mutable and immutable - knows how to quickly make
     // itself immutable.
@@ -90,8 +86,8 @@ public interface ImmutablePairList<T, U> extends PairList<T, U> {
         Object[] elements = new Object[2 * collection.size()];
         int i = 0;
         for (Map.Entry<T, U> entry2 : iterable) {
-          elements[i++] = castNonNull(entry2.getKey());
-          elements[i++] = castNonNull(entry2.getValue());
+          elements[i++] = entry2.getKey();
+          elements[i++] = entry2.getValue();
         }
         return new PairLists.ArrayImmutablePairList<>(elements);
       }
@@ -100,8 +96,8 @@ public interface ImmutablePairList<T, U> extends PairList<T, U> {
     // Not a collection, so we don't know its size in advance.
     final List<Object> list = new ArrayList<>();
     iterable.forEach(entry -> {
-      list.add(castNonNull(entry.getKey()));
-      list.add(castNonNull(entry.getValue()));
+      list.add(entry.getKey());
+      list.add(entry.getValue());
     });
     return PairLists.immutableBackedBy(list);
   }

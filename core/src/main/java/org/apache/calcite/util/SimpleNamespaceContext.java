@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +36,6 @@ public class SimpleNamespaceContext implements NamespaceContext {
   private final Map<String, String> prefixToNamespaceUri = new HashMap<>();
   private final Map<String, Set<String>> namespaceUriToPrefixes = new HashMap<>();
 
-  @SuppressWarnings({"method.invocation.invalid", "methodref.receiver.bound.invalid"})
   public SimpleNamespaceContext(Map<String, String> bindings) {
     bindNamespaceUri(XMLConstants.XML_NS_PREFIX, XMLConstants.XML_NS_URI);
     bindNamespaceUri(XMLConstants.XMLNS_ATTRIBUTE, XMLConstants.XMLNS_ATTRIBUTE_NS_URI);

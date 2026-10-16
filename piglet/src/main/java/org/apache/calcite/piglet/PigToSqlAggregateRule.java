@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -44,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that converts Pig aggregate UDF calls to built-in SQL
@@ -80,7 +83,7 @@ public class PigToSqlAggregateRule
    * projection called in an expression and also whether a column is
    * referred in that expression.
    */
-  private static class PigAggUdfFinder extends RexVisitorImpl<Void> {
+  private static class PigAggUdfFinder extends RexVisitorImpl<@Nullable Void> {
     // Index of the column
     private final int projectCol;
     // List of all Pig aggregate UDFs found in the expression
@@ -126,10 +129,10 @@ public class PigToSqlAggregateRule
     private final Map<RexNode, RexNode> replacementMap;
     private final RexBuilder builder;
     private final int oldProjectCol;
-    private final RexNode newProjectCol;
+    private final @Nullable RexNode newProjectCol;
 
     RexCallReplacer(RexBuilder builder, Map<RexNode, RexNode> replacementMap,
-        int oldProjectCol, RexNode newProjectCol) {
+        int oldProjectCol, @Nullable RexNode newProjectCol) {
       this.replacementMap = replacementMap;
       this.builder = builder;
       this.oldProjectCol = oldProjectCol;
@@ -268,7 +271,7 @@ public class PigToSqlAggregateRule
     }
     for (RexCall rexCall : pigAggUdfs) {
       final List<RexNode> aggOperands = new ArrayList<>();
-      for (int i : aggCallColumns.get(rexCall)) {
+      for (int i : requireNonNull(aggCallColumns.get(rexCall), "aggCallColumns")) {
         aggOperands.add(relBuilder.field(i));
       }
       if (isMultisetProjection(rexCall)) {
@@ -289,7 +292,8 @@ public class PigToSqlAggregateRule
         }
       } else {
         final SqlAggFunction udf =
-            PigRelUdfConverter.getSqlAggFuncForPigUdf(rexCall);
+            requireNonNull(PigRelUdfConverter.getSqlAggFuncForPigUdf(rexCall),
+                "udf");
         aggCalls.add(relBuilder.aggregateCall(udf, aggOperands));
       }
     }
@@ -402,7 +406,9 @@ public class PigToSqlAggregateRule
     for (int i = 1; i < multisetProjection.getOperands().size(); i++) {
       final RexLiteral indexLiteral =
           (RexLiteral) multisetProjection.getOperands().get(i);
-      columns.add(((BigDecimal) indexLiteral.getValue()).intValue());
+      columns.add(
+          ((BigDecimal) requireNonNull(indexLiteral.getValue(), "index"))
+              .intValue());
     }
     return columns;
   }

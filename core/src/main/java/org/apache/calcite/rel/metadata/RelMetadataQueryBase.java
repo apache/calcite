@@ -21,13 +21,11 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.function.Supplier;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -97,7 +95,8 @@ public class RelMetadataQueryBase {
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
             new Class[] {handlerClass}, (proxy, method, args) -> {
-              final RelNode r = requireNonNull((RelNode) args[0], "(RelNode) args[0]");
+              final RelNode r =
+                  requireNonNull((RelNode) requireNonNull(args, "args")[0], "args[0]");
               throw new JaninoRelMetadataProvider.NoHandler(r.getClass());
             }));
   }
@@ -120,7 +119,7 @@ public class RelMetadataQueryBase {
 
   private MetadataHandlerProvider getMetadataHandlerProvider() {
     requireNonNull(metadataHandlerProvider, "metadataHandlerProvider");
-    return castNonNull(metadataHandlerProvider);
+    return metadataHandlerProvider;
   }
 
   /**

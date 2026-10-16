@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata.janino;
 
 import org.apiguardian.api.API;
+import org.jspecify.annotations.Nullable;
 
 import java.util.stream.IntStream;
 
@@ -30,7 +31,7 @@ public class CacheUtil {
   }
 
   @API(status = API.Status.INTERNAL)
-  public static Object[] generateRange(String description, int min, int max) {
+  public static @Nullable Object[] generateRange(String description, int min, int max) {
     return IntStream.range(min, max)
         .mapToObj(i -> description + "(" + i + ")")
         .map(org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey::new)
@@ -38,7 +39,8 @@ public class CacheUtil {
   }
 
   @API(status = API.Status.INTERNAL)
-  public static <E extends Enum<E>> Object[] generateEnum(String description, E[] values) {
+  public static <E extends Enum<E>> @Nullable Object[] generateEnum(String description,
+      E[] values) {
     return java.util.Arrays.stream(values)
         .map(e -> description + "(" + e + ")")
         .map(org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey::new)

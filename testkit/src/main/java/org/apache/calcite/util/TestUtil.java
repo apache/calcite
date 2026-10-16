@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedSet;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.File;
@@ -59,10 +60,12 @@ public abstract class TestUtil {
       "\\\\n\"" + Util.LINE_SEPARATOR + " + \"";
 
   private static final String JAVA_VERSION =
-      System.getProperties().getProperty("java.version");
+      requireNonNull(System.getProperties().getProperty("java.version"),
+          "java.version");
 
   public static final Version AVATICA_VERSION =
-      Version.of(first(System.getProperty("calcite.avatica.version"), "0"));
+      Version.of(
+          first(System.getProperty("calcite.avatica.version"), "0"));
 
   private static final Supplier<Integer> GUAVA_MAJOR_VERSION =
       Suppliers.memoize(TestUtil::computeGuavaMajorVersion);
@@ -245,11 +248,11 @@ public abstract class TestUtil {
     }
     final Matcher m = TRAILING_ZERO_PATTERN.matcher(s);
     if (m.matches()) {
-      s = s.substring(0, s.length() - m.group(2).length());
+      s = s.substring(0, s.length() - requireNonNull(m.group(2), "group").length());
     }
     final Matcher m2 = TRAILING_NINE_PATTERN.matcher(s);
     if (m2.matches()) {
-      s = s.substring(0, s.length() - m2.group(2).length());
+      s = s.substring(0, s.length() - requireNonNull(m2.group(2), "group").length());
       if (s.length() > 0) {
         final char c = s.charAt(s.length() - 1);
         switch (c) {
@@ -304,7 +307,7 @@ public abstract class TestUtil {
       throw new IllegalArgumentException("Can't parse (detect) JDK version from " + version);
     }
 
-    return parseInt(matcher.group());
+    return parseInt(requireNonNull(matcher.group(), "version"));
   }
 
   /** Returns the Guava major version. */
@@ -328,7 +331,7 @@ public abstract class TestUtil {
   }
 
   /** Returns the JVM vendor. */
-  public static String getJavaVirtualMachineVendor() {
+  public static @Nullable String getJavaVirtualMachineVendor() {
     return System.getProperty("java.vm.vendor");
   }
 
@@ -343,19 +346,18 @@ public abstract class TestUtil {
         Sources.of(requireNonNull(resource, "resource")).file();
 
     File file = classFile.getAbsoluteFile();
-    for (int i = 0; i < 42; i++) {
-      if (isProjectDir(file)) {
-        // Ok, file == BASE/testkit/
-        break;
-      }
-      file = file.getParentFile();
+    for (int i = 0; i < 42 && !isProjectDir(file); i++) {
+      file =
+          requireNonNull(file.getParentFile(),
+              () -> "no project directory above "
+                  + classFile.getAbsolutePath());
     }
     if (!isProjectDir(file)) {
       fail("Could not find pom.xml, build.gradle.kts or gradle.properties. "
           + "Started with " + classFile.getAbsolutePath()
           + ", the current path is " + file.getAbsolutePath());
     }
-    return file.getParentFile();
+    return requireNonNull(file.getParentFile(), "parent of project directory");
   }
 
   private static boolean isProjectDir(File dir) {

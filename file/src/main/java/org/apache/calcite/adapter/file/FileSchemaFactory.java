@@ -50,14 +50,10 @@ public class FileSchemaFactory implements SchemaFactory {
     final File baseDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final String directory = (String) operand.get("directory");
-    File directoryFile = null;
+    File directoryFile = baseDirectory;
     if (directory != null) {
       directoryFile = new File(directory);
-    }
-    if (baseDirectory != null) {
-      if (directoryFile == null) {
-        directoryFile = baseDirectory;
-      } else if (!directoryFile.isAbsolute()) {
+      if (baseDirectory != null && !directoryFile.isAbsolute()) {
         directoryFile = new File(baseDirectory, directory);
       }
     }

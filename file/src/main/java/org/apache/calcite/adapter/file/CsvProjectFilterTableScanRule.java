@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -52,7 +53,7 @@ public class CsvProjectFilterTableScanRule
     // Find all input fields referenced by the project expressions
     final java.util.Set<Integer> projectInputFields = new java.util.HashSet<>();
     for (RexNode proj : project.getProjects()) {
-      proj.accept(new org.apache.calcite.rex.RexVisitorImpl<Void>(true) {
+      proj.accept(new org.apache.calcite.rex.RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitInputRef(RexInputRef inputRef) {
           projectInputFields.add(inputRef.getIndex());
           return null;
@@ -62,7 +63,7 @@ public class CsvProjectFilterTableScanRule
 
     // Find all input fields referenced by the filter condition
     final java.util.Set<Integer> filterInputFields = new java.util.HashSet<>();
-    filter.getCondition().accept(new org.apache.calcite.rex.RexVisitorImpl<Void>(true) {
+    filter.getCondition().accept(new org.apache.calcite.rex.RexVisitorImpl<@Nullable Void>(true) {
       @Override public Void visitInputRef(RexInputRef inputRef) {
         filterInputFields.add(inputRef.getIndex());
         return null;

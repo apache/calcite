@@ -18,7 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.util.Compatible;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -69,7 +69,7 @@ public class ConstantExpression extends Expression {
     return shuttle.visit(this);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -227,7 +227,7 @@ public class ConstantExpression extends Expression {
       writer.append("new ").append(value.getClass());
       list(writer,
           Arrays.stream(classFields)
-              // <@Nullable Object> is needed for CheckerFramework
+              // the witness keeps the element type nullable; getFieldValue may return null
               .<@Nullable Object>map(field -> getFieldValue(value, field))
               .collect(Collectors.toList()),
           "(\n", ",\n", ")");

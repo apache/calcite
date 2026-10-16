@@ -18,8 +18,7 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +33,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * @param <E> Element type
  */
-public class ConsList<E> extends AbstractImmutableList<E> {
+public class ConsList<E extends @Nullable Object> extends AbstractImmutableList<E> {
   private final E first;
   private final List<E> rest;
 
@@ -115,13 +114,13 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().listIterator(index);
   }
 
-  @Override public @PolyNull Object[] toArray(ConsList<@PolyNull E> this) {
+  @Override public @Nullable Object[] toArray() {
     return toList().toArray();
   }
 
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @Override public <T extends @Nullable Object> T[] toArray(T[] a) {
     final int s = size();
-    if (s > castNonNull(a).length) {
+    if (s > a.length) {
       a = (T[]) Arrays.copyOf(a, s, a.getClass());
     } else if (s < a.length) {
       a[s] = castNonNull(null);
@@ -131,7 +130,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
       //noinspection unchecked
       a[i++] = (T) c.first;
       if (!(c.rest instanceof ConsList)) {
-        Object[] a2 = c.rest.toArray();
+        @Nullable Object[] a2 = c.rest.toArray();
         //noinspection SuspiciousSystemArraycopy
         System.arraycopy(a2, 0, a, i, a2.length);
         return a;

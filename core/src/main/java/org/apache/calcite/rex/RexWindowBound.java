@@ -18,9 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Abstracts "XX PRECEDING/FOLLOWING" and "CURRENT ROW" bounds for windowed
@@ -41,9 +39,6 @@ public abstract class RexWindowBound {
    *
    * @return if the bound is unbounded
    */
-  @Pure
-  @EnsuresNonNullIf(expression = "getOffset()", result = false)
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   public boolean isUnbounded() {
     return false;
   }
@@ -81,9 +76,6 @@ public abstract class RexWindowBound {
    *
    * @return if the bound is CURRENT ROW
    */
-  @Pure
-  @EnsuresNonNullIf(expression = "getOffset()", result = false)
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   public boolean isCurrentRow() {
     return false;
   }
@@ -93,7 +85,6 @@ public abstract class RexWindowBound {
    *
    * @return offset from XX PRECEDING/FOLLOWING
    */
-  @Pure
   public @Nullable RexNode getOffset() {
     return null;
   }
@@ -115,7 +106,7 @@ public abstract class RexWindowBound {
    * @param <R> return type of the visitor
    * @return transformed bound
    */
-  public <R> RexWindowBound accept(RexVisitor<R> visitor) {
+  public <R extends @Nullable Object> RexWindowBound accept(RexVisitor<R> visitor) {
     return this;
   }
 

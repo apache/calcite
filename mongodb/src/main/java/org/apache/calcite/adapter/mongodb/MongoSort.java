@@ -30,10 +30,12 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
 * Implementation of {@link org.apache.calcite.rel.core.Sort}
@@ -41,7 +43,8 @@ import java.util.List;
 */
 public class MongoSort extends Sort implements MongoRel {
   public MongoSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, RelCollation collation, RexNode offset, RexNode fetch) {
+      RelNode child, RelCollation collation, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     super(cluster, traitSet, child, collation, offset, fetch);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == child.getConvention();
@@ -49,11 +52,12 @@ public class MongoSort extends Sort implements MongoRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.05);
+    return requireNonNull(super.computeSelfCost(planner, mq)).multiplyBy(0.05);
   }
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
-      RelCollation newCollation, RexNode offset, RexNode fetch) {
+      RelCollation newCollation, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     return new MongoSort(getCluster(), traitSet, input, collation, offset,
         fetch);
   }

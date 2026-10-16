@@ -37,13 +37,14 @@ import org.apache.calcite.test.ConnectionFactory;
 import org.apache.calcite.test.Matchers;
 import org.apache.calcite.util.Bug;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.test.ResultCheckers.isSingle;
 
@@ -226,11 +227,11 @@ public interface SqlOperatorFixture extends AutoCloseable {
    */
   default void checkScalar(
       String expression,
-      Object result,
+      @Nullable Object result,
       String resultType) {
     checkType(expression, resultType);
     checkScalar(expression, SqlTests.ANY_TYPE_CHECKER,
-        ResultCheckers.createChecker(result));
+        ResultCheckers.createChecker(castNonNull(result)));
   }
 
   /**
@@ -330,7 +331,7 @@ public interface SqlOperatorFixture extends AutoCloseable {
    */
   void checkString(
       String expression,
-      String result,
+      @Nullable String result,
       String resultType);
 
   /**

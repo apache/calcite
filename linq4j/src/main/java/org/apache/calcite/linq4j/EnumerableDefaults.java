@@ -42,11 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.dataflow.qual.Pure;
-import org.checkerframework.framework.qual.HasQualifierParameter;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -107,9 +103,14 @@ public abstract class EnumerableDefaults {
    * sequence. The specified seed value is used as the initial
    * accumulator value.
    */
-  public static <TSource, TAccumulate> TAccumulate aggregate(
+  // NullAway treats the result of a call returning `? extends TAccumulate` as @Nullable
+  // once it is assigned to a TAccumulate local, even though TAccumulate is the local's own
+  // type. The wildcard is what lets a reducer with a non-null result feed a nullable seed.
+  // https://github.com/uber/NullAway/issues/1727
+  @SuppressWarnings("NullAway")
+  public static <TSource, TAccumulate extends @Nullable Object> TAccumulate aggregate(
       Enumerable<TSource> source, TAccumulate seed,
-      Function2<TAccumulate, TSource, TAccumulate> func) {
+      Function2<TAccumulate, TSource, ? extends TAccumulate> func) {
     TAccumulate result = seed;
     try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
@@ -126,9 +127,15 @@ public abstract class EnumerableDefaults {
    * accumulator value, and the specified function is used to select
    * the result value.
    */
-  public static <TSource, TAccumulate, TResult> TResult aggregate(
+  // NullAway treats the result of a call returning `? extends TAccumulate` as @Nullable
+  // once it is assigned to a TAccumulate local, even though TAccumulate is the local's own
+  // type. The wildcard is what lets a reducer with a non-null result feed a nullable seed.
+  // https://github.com/uber/NullAway/issues/1727
+  @SuppressWarnings("NullAway")
+  public static <TSource, TAccumulate extends @Nullable Object,
+      TResult extends @Nullable Object> TResult aggregate(
       Enumerable<TSource> source, TAccumulate seed,
-      Function2<TAccumulate, TSource, TAccumulate> func,
+      Function2<TAccumulate, TSource, ? extends TAccumulate> func,
       Function1<TAccumulate, TResult> selector) {
     TAccumulate accumulate = seed;
     try (Enumerator<TSource> os = source.enumerator()) {
@@ -418,10 +425,10 @@ public abstract class EnumerableDefaults {
    *
    * <p>If {@code value} is not null, the result is never null.
    */
-  @SuppressWarnings("return.type.incompatible")
-  public static <TSource> Enumerable<@PolyNull TSource> defaultIfEmpty(
+  @SuppressWarnings("NullAway")
+  public static <TSource> Enumerable<@Nullable TSource> defaultIfEmpty(
       Enumerable<TSource> enumerable,
-      @PolyNull TSource value) {
+      @Nullable TSource value) {
     try (Enumerator<TSource> os = enumerable.enumerator()) {
       if (os.moveNext()) {
         return Linq4j.<TSource>asEnumerable(() -> new Iterator<TSource>() {
@@ -570,7 +577,6 @@ public abstract class EnumerableDefaults {
     try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        @SuppressWarnings("argument.type.incompatible")
         boolean unused = collection.remove(o);
       }
       return Linq4j.asEnumerable(collection);
@@ -948,7 +954,7 @@ public abstract class EnumerableDefaults {
           if (!matches) {
             continue;
           }
-          @Nullable TInner bestElement = best.get(i);
+          TInner bestElement = best.get(i);
           if (bestElement == null) {
             best.set(i, r);
           } else {
@@ -990,7 +996,7 @@ public abstract class EnumerableDefaults {
             }
 
             TSource l = requireNonNull(left, "left").current();
-            @Nullable TInner r = requireNonNull(right, "right").current();
+            TInner r = requireNonNull(right, "right").current();
             return resultSelector.apply(l, r);
           }
 
@@ -1009,7 +1015,7 @@ public abstract class EnumerableDefaults {
                 }
                 if (hasNext) {
                   if (!emitNullsOnRight) {
-                    @Nullable TInner r =
+                    TInner r =
                         requireNonNull(right, "right").current();
                     if (r == null) {
                       continue;
@@ -1026,7 +1032,7 @@ public abstract class EnumerableDefaults {
                   left = new Linq4j.IterableEnumerator<>(value);
                   List<@Nullable TInner> rightList =
                       requireNonNull(rightIndex.get(key));
-                  right = new Linq4j.IterableEnumerator<>(rightList);
+                  right = new Linq4j.IterableEnumerator<@Nullable TInner>(rightList);
                 } else {
                   // Done with the data, start emitting records with null keys
                   emittingNullKeys = true;
@@ -1121,18 +1127,18 @@ public abstract class EnumerableDefaults {
       curResult = null;
       TSource o = enumerator.current();
       TKey prevKey = keySelector.apply(o);
-      curAccumulator = accumulatorAdder.apply(castNonNull(curAccumulator), o);
+      curAccumulator = accumulatorAdder.apply(curAccumulator, o);
       while (enumerator.moveNext()) {
         o = enumerator.current();
         TKey curKey = keySelector.apply(o);
         if (comparator.compare(prevKey, curKey) != 0) {
           // current key is different from previous key, get accumulated results and re-create
           // accumulator for current key.
-          curResult = resultSelector.apply(prevKey, castNonNull(curAccumulator));
+          curResult = resultSelector.apply(prevKey, curAccumulator);
           curAccumulator = accumulatorInitializer.apply();
           break;
         }
-        curAccumulator = accumulatorAdder.apply(castNonNull(curAccumulator), o);
+        curAccumulator = accumulatorAdder.apply(curAccumulator, o);
         prevKey = curKey;
       }
 
@@ -1169,7 +1175,6 @@ public abstract class EnumerableDefaults {
       while (os.moveNext()) {
         TSource o = os.current();
         TKey key = keySelector.apply(o);
-        @SuppressWarnings("argument.type.incompatible")
         TAccumulate accumulator = map.get(key);
         if (accumulator == null) {
           accumulator = accumulatorInitializer.apply();
@@ -1198,7 +1203,6 @@ public abstract class EnumerableDefaults {
         for (Function1<TSource, TKey> keySelector : keySelectors) {
           TSource o = os.current();
           TKey key = keySelector.apply(o);
-          @SuppressWarnings("argument.type.incompatible")
           TAccumulate accumulator = map.get(key);
           if (accumulator == null) {
             accumulator = accumulatorInitializer.apply();
@@ -1252,7 +1256,6 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
-            @SuppressWarnings("argument.type.incompatible")
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
@@ -1294,7 +1297,6 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
-            @SuppressWarnings("argument.type.incompatible")
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
@@ -1339,7 +1341,6 @@ public abstract class EnumerableDefaults {
     try (Enumerator<TSource> os = source0.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        @SuppressWarnings("argument.type.incompatible")
         boolean removed = set1.remove(o);
         if (removed) {
           resultCollection.add(o);
@@ -1530,7 +1531,6 @@ public abstract class EnumerableDefaults {
                   // not the left.
                   List<TInner> list = new ArrayList<>();
                   for (TKey key : unmatchedKeys) {
-                    @SuppressWarnings("argument.type.incompatible")
                     Enumerable<TInner> innerValues = requireNonNull(innerLookup.get(key));
                     for (TInner tInner : innerValues) {
                       list.add(tInner);
@@ -2237,7 +2237,7 @@ public abstract class EnumerableDefaults {
           int i = -1; // outer position
           int j = -1; // inner position
 
-          @SuppressWarnings("argument.type.incompatible")
+          @SuppressWarnings("NullAway")
           @Override public TResult current() {
             return resultSelector.apply(outerValue, innerValue);
           }
@@ -2287,7 +2287,7 @@ public abstract class EnumerableDefaults {
                 outerValue = outerValues.get(i); // get current outer value
                 nextInnerValue();
                 // Compare current block row to current inner value
-                if (predicate.apply(castNonNull(outerValue), castNonNull(innerValue))) {
+                if (predicate.apply(outerValue, castNonNull(innerValue))) {
                   atLeastOneResult = true;
                   // Skip the rest of inner values in case of
                   // ANTI and SEMI when a match is found
@@ -2483,7 +2483,6 @@ public abstract class EnumerableDefaults {
 
         final Predicate1<TSource> predicate = v0 -> {
           TKey key = outerKeySelector.apply(v0);
-          @SuppressWarnings("argument.type.incompatible")
           Enumerable<TInner> innersOfKey = key == null ? null : innerLookup.get().get(key);
           if (innersOfKey == null) {
             return anti;
@@ -2991,7 +2990,7 @@ public abstract class EnumerableDefaults {
    * Returns the maximum value in a generic
    * sequence.
    */
-  public static <TSource extends Comparable<TSource>> TSource max(
+  public static @Nullable <TSource extends Comparable<TSource>> TSource max(
       Enumerable<TSource> source) {
     return aggregate(source, maxFunction());
   }
@@ -3000,7 +2999,7 @@ public abstract class EnumerableDefaults {
    * Invokes a transform function on each element of a
    * sequence and returns the maximum Decimal value.
    */
-  public static <TSource> BigDecimal max(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal max(Enumerable<TSource> source,
       BigDecimalFunction1<TSource> selector) {
     return aggregate(source.select(selector), maxFunction());
   }
@@ -3010,7 +3009,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable Decimal
    * value.
    */
-  public static <TSource> BigDecimal max(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal max(Enumerable<TSource> source,
       NullableBigDecimalFunction1<TSource> selector) {
     return aggregate(source.select(selector), maxFunction());
   }
@@ -3029,7 +3028,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable Double
    * value.
    */
-  public static <TSource> Double max(Enumerable<TSource> source,
+  public static <TSource> @Nullable Double max(Enumerable<TSource> source,
       NullableDoubleFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.DOUBLE_MAX);
   }
@@ -3048,7 +3047,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable int value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Integer max(Enumerable<TSource> source,
+  public static <TSource> @Nullable Integer max(Enumerable<TSource> source,
       NullableIntegerFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.INTEGER_MAX);
   }
@@ -3111,24 +3110,24 @@ public abstract class EnumerableDefaults {
   }
 
   @SuppressWarnings("unchecked")
-  private static <TSource extends Comparable<TSource>> Function2<TSource, TSource, TSource>
-      minFunction() {
-    return (Function2<TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MIN;
+  private static <TSource extends Comparable<TSource>>
+      Function2<@Nullable TSource, TSource, TSource> minFunction() {
+    return (Function2<@Nullable TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MIN;
   }
 
   @SuppressWarnings("unchecked")
-  private static <TSource extends Comparable<TSource>> Function2<TSource, TSource, TSource>
-      maxFunction() {
-    return (Function2<TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MAX;
+  private static <TSource extends Comparable<TSource>>
+      Function2<@Nullable TSource, TSource, TSource> maxFunction() {
+    return (Function2<@Nullable TSource, TSource, TSource>) (Function2) Extensions.COMPARABLE_MAX;
   }
 
   /**
    * Invokes a transform function on each element of a
    * sequence and returns the minimum Decimal value.
    */
-  public static <TSource> BigDecimal min(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal min(Enumerable<TSource> source,
       BigDecimalFunction1<TSource> selector) {
-    Function2<BigDecimal, BigDecimal, BigDecimal> min = minFunction();
+    Function2<@Nullable BigDecimal, BigDecimal, BigDecimal> min = minFunction();
     return aggregate(source.select(selector), null, min);
   }
 
@@ -3137,7 +3136,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable Decimal
    * value.
    */
-  public static <TSource> BigDecimal min(Enumerable<TSource> source,
+  public static <TSource> @Nullable BigDecimal min(Enumerable<TSource> source,
       NullableBigDecimalFunction1<TSource> selector) {
     return aggregate(source.select(selector), minFunction());
   }
@@ -3156,7 +3155,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable Double
    * value.
    */
-  public static <TSource> Double min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Double min(Enumerable<TSource> source,
       NullableDoubleFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.DOUBLE_MIN);
   }
@@ -3175,7 +3174,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable int value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Integer min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Integer min(Enumerable<TSource> source,
       NullableIntegerFunction1<TSource> selector) {
     return aggregate(source.select(selector), null, Extensions.INTEGER_MIN);
   }
@@ -3186,7 +3185,8 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> long min(Enumerable<TSource> source,
       LongFunction1<TSource> selector) {
-    return aggregate(source.select(adapt(selector)), null, Extensions.LONG_MIN);
+    return requireNonNull(
+        aggregate(source.select(adapt(selector)), null, Extensions.LONG_MIN));
   }
 
   /**
@@ -3194,7 +3194,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable long value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Long min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Long min(Enumerable<TSource> source,
       NullableLongFunction1<TSource> selector) {
     return aggregate(source.select(selector), null, Extensions.LONG_MIN);
   }
@@ -3205,8 +3205,8 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> float min(Enumerable<TSource> source,
       FloatFunction1<TSource> selector) {
-    return aggregate(source.select(adapt(selector)), null,
-        Extensions.FLOAT_MIN);
+    return requireNonNull(
+        aggregate(source.select(adapt(selector)), null, Extensions.FLOAT_MIN));
   }
 
   /**
@@ -3214,7 +3214,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the minimum nullable Float
    * value.
    */
-  public static <TSource> Float min(Enumerable<TSource> source,
+  public static <TSource> @Nullable Float min(Enumerable<TSource> source,
       NullableFloatFunction1<TSource> selector) {
     return aggregate(source.select(selector), null, Extensions.FLOAT_MIN);
   }
@@ -3226,7 +3226,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource, TResult extends Comparable<TResult>> @Nullable TResult min(
       Enumerable<TSource> source, Function1<TSource, TResult> selector) {
-    Function2<TResult, TResult, TResult> min = minFunction();
+    Function2<@Nullable TResult, TResult, TResult> min = minFunction();
     return aggregate(source.select(selector), null, min);
   }
 
@@ -3241,7 +3241,7 @@ public abstract class EnumerableDefaults {
    *
    * @return Collection of T2
    */
-  public static <TSource, TResult> Enumerable<TResult> ofType(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> ofType(
       Enumerable<TSource> enumerable, Class<TResult> clazz) {
     //noinspection unchecked
     return (Enumerable) where(enumerable,
@@ -3328,13 +3328,12 @@ public abstract class EnumerableDefaults {
             TKey key = keySelector.apply(o);
             if (needed.signum() >= 0 && size.compareTo(needed) >= 0) {
               // the current row will never appear in the output, so just skip it
-              @KeyFor("map") TKey lastKey = map.lastKey();
+              TKey lastKey = map.lastKey();
               if (comparator.compare(key, lastKey) >= 0) {
                 continue;
               }
               // remove last entry from tree map, so that we keep at most 'needed' rows
-              @SuppressWarnings("argument.type.incompatible")
-              List<TSource> l = map.get(lastKey);
+              List<TSource> l = requireNonNull(map.get(lastKey), "map.get(lastKey)");
               if (l.size() == 1) {
                 map.remove(lastKey);
               } else {
@@ -3439,7 +3438,7 @@ public abstract class EnumerableDefaults {
   /**
    * Projects each element of a sequence into a new form.
    */
-  public static <TSource, TResult> Enumerable<TResult> select(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> select(
       final Enumerable<TSource> source,
       final Function1<TSource, TResult> selector) {
     if (selector == Functions.identitySelector()) {
@@ -3475,7 +3474,7 @@ public abstract class EnumerableDefaults {
    * Projects each element of a sequence into a new
    * form by incorporating the element's index.
    */
-  public static <TSource, TResult> Enumerable<TResult> select(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> select(
       final Enumerable<TSource> source,
       final Function2<TSource, Integer, TResult> selector) {
     return new AbstractEnumerable<TResult>() {
@@ -3514,7 +3513,7 @@ public abstract class EnumerableDefaults {
    * {@code Enumerable<TSource>} and flattens the resulting sequences into one
    * sequence.
    */
-  public static <TSource, TResult> Enumerable<TResult> selectMany(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       final Enumerable<TSource> source,
       final Function1<TSource, Enumerable<TResult>> selector) {
     return new AbstractEnumerable<TResult>() {
@@ -3560,7 +3559,7 @@ public abstract class EnumerableDefaults {
    * sequence. The index of each source element is used in the
    * projected form of that element.
    */
-  public static <TSource, TResult> Enumerable<TResult> selectMany(
+  public static <TSource, TResult extends @Nullable Object> Enumerable<TResult> selectMany(
       final Enumerable<TSource> source,
       final Function2<TSource, Integer, Enumerable<TResult>> selector) {
     return new AbstractEnumerable<TResult>() {
@@ -4851,8 +4850,7 @@ public abstract class EnumerableDefaults {
    * @param <F> source element type
    * @param <T> element type
    */
-  @HasQualifierParameter(Nullable.class)
-  static class CastingEnumerator<F extends @PolyNull Object, @PolyNull T extends @PolyNull Object>
+  static class CastingEnumerator<F extends @Nullable Object, T extends @Nullable Object>
       implements Enumerator<T> {
     private final Enumerator<F> enumerator;
     private final Class<T> clazz;
@@ -4923,13 +4921,12 @@ public abstract class EnumerableDefaults {
       this.comparer = comparer;
     }
 
-    @Override public Set<Entry<@KeyFor("this") K, V>> entrySet() {
+    @Override public Set<Entry<K, V>> entrySet() {
       return new WrapMapEntrySet();
     }
 
     /** EntrySet for {@link WrapMap}. */
-    private class WrapMapEntrySet extends AbstractSet<Entry<@KeyFor("this") K, V>> {
-      @SuppressWarnings("override.return.invalid")
+    private class WrapMapEntrySet extends AbstractSet<Entry<K, V>> {
       @Override public Iterator<Entry<K, V>> iterator() {
         final Iterator<Entry<Wrapped<K>, V>> iterator =
             map.entrySet().iterator();
@@ -4955,25 +4952,27 @@ public abstract class EnumerableDefaults {
       }
     }
 
-    @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+    @SuppressWarnings("NullAway")
     @Override public boolean containsKey(@Nullable Object key) {
       return map.containsKey(wrap((K) key));
     }
 
-    @Pure
     private Wrapped<K> wrap(K key) {
       return Wrapped.upAs(comparer, key);
     }
 
+    // Map.get and Map.remove take a nullable key, and wrapping one throws, which is what
+    // this map did before it was annotated
+    @SuppressWarnings("NullAway")
     @Override public @Nullable V get(@Nullable Object key) {
       return map.get(wrap((K) key));
     }
 
-    @SuppressWarnings("contracts.postcondition.not.satisfied")
     @Override public @Nullable V put(K key, V value) {
       return map.put(wrap(key), value);
     }
 
+    @SuppressWarnings("NullAway")
     @Override public @Nullable V remove(@Nullable Object key) {
       return map.remove(wrap((K) key));
     }
@@ -5055,7 +5054,6 @@ public abstract class EnumerableDefaults {
     private boolean remainingLeft;
     private TResult current = (TResult) DUMMY;
 
-    @SuppressWarnings("method.invocation.invalid")
     MergeJoinEnumerator(Enumerable<TSource> leftEnumerable,
         Enumerable<TInner> rightEnumerable,
         Function1<TSource, TKey> outerKeySelector,
@@ -5198,7 +5196,8 @@ public abstract class EnumerableDefaults {
               results =
                   new CartesianProductJoinEnumerator<>(resultSelector,
                       Linq4j.enumerator(lefts),
-                      Linq4j.enumerator(Collections.singletonList(null)));
+                      Linq4j.<@Nullable TInner>enumerator(
+                          Collections.singletonList(null)));
               return true;
             }
             if (!getLeftEnumerator().moveNext()) {
@@ -5253,9 +5252,10 @@ public abstract class EnumerableDefaults {
               : new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
                   Linq4j.enumerator(rights));
         } else {
-          // we must verify the non equi-join predicate, use nested loop join for that
+          // we must verify the non equi-join predicate, use nested loop join for that.
+          // Merge join generates no nulls on the left, so the optimized variant applies.
           results =
-              nestedLoopJoin(Linq4j.asEnumerable(lefts),
+              nestedLoopJoinOptimized(Linq4j.asEnumerable(lefts),
                   Linq4j.asEnumerable(rights), extraPredicate, resultSelector,
                   joinType).enumerator();
         }
@@ -5418,7 +5418,7 @@ public abstract class EnumerableDefaults {
 
     @SuppressWarnings("unchecked")
     CartesianProductJoinEnumerator(Function2<TOuter, @Nullable TInner, TResult> resultSelector,
-        Enumerator<TOuter> outer, Enumerator<TInner> inner) {
+        Enumerator<TOuter> outer, Enumerator<? extends @Nullable TInner> inner) {
       super(ImmutableList.of((Enumerator<Object>) outer, (Enumerator<Object>) inner));
       this.resultSelector = resultSelector;
     }

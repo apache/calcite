@@ -17,7 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
 
     testImplementation("sqlline:sqlline")
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")

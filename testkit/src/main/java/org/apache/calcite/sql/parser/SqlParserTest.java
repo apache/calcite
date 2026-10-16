@@ -56,11 +56,11 @@ import org.apache.calcite.util.Util;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -7004,7 +7004,7 @@ public class SqlParserTest {
       }
     });
     assertNotSame(sqlNodeVisited, sqlNode);
-    assertThat(sqlNodeVisited.getKind(), is(SqlKind.INSERT));
+    assertThat(requireNonNull(sqlNodeVisited, "sqlNodeVisited").getKind(), is(SqlKind.INSERT));
   }
 
   @Test void testSqlInsertSqlBasicCallToString() {
@@ -7019,7 +7019,8 @@ public class SqlParserTest {
     final String str0 = "INSERT INTO `EMPS`\n"
         + "SELECT *\n"
         + "FROM `EMPS`";
-    assertThat(str0, is(toLinux(sqlNodeVisited0.toString())));
+    assertThat(str0,
+        is(toLinux(requireNonNull(sqlNodeVisited0, "sqlNodeVisited0").toString())));
 
     final String sql1 = "insert into emps select empno from emps";
     final SqlNode sqlNode1 = sql(sql1).node();
@@ -7032,7 +7033,8 @@ public class SqlParserTest {
     final String str1 = "INSERT INTO `EMPS`\n"
         + "SELECT `EMPNO`\n"
         + "FROM `EMPS`";
-    assertThat(str1, is(toLinux(sqlNodeVisited1.toString())));
+    assertThat(str1,
+        is(toLinux(requireNonNull(sqlNodeVisited1, "sqlNodeVisited1").toString())));
   }
 
   @Test void testVisitSqlUpdateWithSqlShuttle() {
@@ -7045,7 +7047,7 @@ public class SqlParserTest {
       }
     });
     assertNotSame(sqlNodeVisited, sqlNode);
-    assertThat(sqlNodeVisited.getKind(), is(SqlKind.UPDATE));
+    assertThat(requireNonNull(sqlNodeVisited, "sqlNodeVisited").getKind(), is(SqlKind.UPDATE));
     final String str1 = "UPDATE `EMPS` AS `E` SET `E`.`SAL` = 0\n"
         + "WHERE `E`.`SAL` < 0";
     assertThat(str1, is(toLinux(sqlNodeVisited.toString())));
@@ -8394,7 +8396,8 @@ public class SqlParserTest {
     SqlPrettyWriter writer = new SqlPrettyWriter();
     assertThat(writer.format(opt.name()), equalTo("\"SCHEMA\""));
     writer = new SqlPrettyWriter();
-    assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
+    assertThat(writer.format(requireNonNull(opt.getValue(), "value")),
+        equalTo("TRUE"));
     writer = new SqlPrettyWriter();
     assertThat(writer.format(opt),
         equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
@@ -8605,7 +8608,8 @@ public class SqlParserTest {
         return argHandler.result();
       }
     });
-    assertThat(toLinux(shuttled.toString()), is(expected));
+    assertThat(toLinux(requireNonNull(shuttled, "shuttled").toString()),
+        is(expected));
   }
 
   @Test void testMatchRecognize1() {
@@ -10025,7 +10029,8 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `EMP`\n"
         + "/*+ `OPTIONS`('key1' = 'val1') */";
-    assertThat(toLinux(shuttled.toString()), is(expected));
+    assertThat(toLinux(requireNonNull(shuttled, "shuttled").toString()),
+        is(expected));
   }
 
   @Test void testInvalidHintFormat() {
@@ -10407,7 +10412,8 @@ public class SqlParserTest {
     }
 
     static <E extends Enum<E>> E nextEnum(Random random, Class<E> enumClass) {
-      final E[] constants = enumClass.getEnumConstants();
+      final E[] constants =
+          requireNonNull(enumClass.getEnumConstants(), "constants");
       return constants[random.nextInt(constants.length)];
     }
 
@@ -10425,7 +10431,7 @@ public class SqlParserTest {
       }
     }
 
-    static SqlNode deepCopy(SqlNode sqlNode) {
+    static @Nullable SqlNode deepCopy(SqlNode sqlNode) {
       return sqlNode.accept(new SqlShuttle() {
         @Override public @Nullable SqlNode visit(final SqlCall call) {
           // Handler always creates a new copy of 'call'
@@ -10467,7 +10473,8 @@ public class SqlParserTest {
       assertThat(sql3, notNullValue());
 
       // Make a deep copy of the SqlNodeList, unparse it.
-      final SqlNodeList sqlNodeList3 = (SqlNodeList) deepCopy(sqlNodeList);
+      final SqlNodeList sqlNodeList3 =
+          (SqlNodeList) requireNonNull(deepCopy(sqlNodeList), "copy");
       final String sql4 = toSqlString(sqlNodeList3, simple());
       // Should be the same as we started with.
       assertThat(sql4, is(sql1));
@@ -10517,7 +10524,7 @@ public class SqlParserTest {
       assertThat(sql4, is(sql1));
 
       // Make a deep copy of the original SqlNode, unparse it.
-      final SqlNode sqlNode5 = deepCopy(sqlNode);
+      final SqlNode sqlNode5 = requireNonNull(deepCopy(sqlNode), "copy");
       final String actual5 = sqlNode5.toSqlString(writerTransform).getSql();
       assertThat(converter.apply(actual5), is(expected));
     }

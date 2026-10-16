@@ -31,7 +31,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -131,7 +131,7 @@ public interface SqlValidatorScope {
       final SqlQualified q = fullyQualify((SqlIdentifier) node);
       if (q.suffix().size() == 1
           && q.namespace != null) {
-        final @Nullable RelDataTypeField f =
+        final RelDataTypeField f =
             q.namespace.field(q.suffix().get(0));
         if (q.namespace instanceof SelectNamespace) {
           final SqlSelect select = ((SelectNamespace) q.namespace).getNode();

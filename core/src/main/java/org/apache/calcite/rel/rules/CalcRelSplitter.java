@@ -48,7 +48,7 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -467,7 +467,7 @@ public abstract class CalcRelSplitter {
         targets = cohort;
       }
       expr.accept(
-          new RexVisitorImpl<Void>(true) {
+          new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitLocalRef(RexLocalRef localRef) {
               for (Integer target : targets) {
                 graph.addEdge(localRef.getIndex(), target);
@@ -899,7 +899,7 @@ public abstract class CalcRelSplitter {
    * Visitor which returns whether an expression can be implemented in a given
    * type of relational expression.
    */
-  private static class ImplementTester extends RexVisitorImpl<Void> {
+  private static class ImplementTester extends RexVisitorImpl<@Nullable Void> {
     private final RelType relType;
 
     ImplementTester(RelType relType) {
@@ -1005,7 +1005,7 @@ public abstract class CalcRelSplitter {
   /**
    * Finds the highest level used by any of the inputs of a given expression.
    */
-  private static class MaxInputFinder extends RexVisitorImpl<Void> {
+  private static class MaxInputFinder extends RexVisitorImpl<@Nullable Void> {
     int level;
     private final int[] exprLevels;
 
@@ -1034,7 +1034,7 @@ public abstract class CalcRelSplitter {
    * Builds an array of the highest level which contains an expression which
    * uses each expression as an input.
    */
-  private static class HighestUsageFinder extends RexVisitorImpl<Void> {
+  private static class HighestUsageFinder extends RexVisitorImpl<@Nullable Void> {
     private final int[] maxUsingLevelOrdinals;
     private int currentLevel;
 
@@ -1051,7 +1051,6 @@ public abstract class CalcRelSplitter {
           continue;
         }
         currentLevel = exprLevels[i];
-        @SuppressWarnings("argument.type.incompatible")
         final Void unused = exprs[i].accept(this);
       }
     }

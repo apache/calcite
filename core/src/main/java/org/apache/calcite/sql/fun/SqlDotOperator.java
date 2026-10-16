@@ -43,6 +43,8 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Static;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Arrays;
 
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
@@ -86,7 +88,7 @@ public class SqlDotOperator extends SqlSpecialOperator {
     return SqlOperandCountRanges.of(2);
   }
 
-  @Override public <R> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
+  @Override public <R extends @Nullable Object> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
       boolean onlyExpressions, SqlBasicVisitor.ArgHandler<R> argHandler) {
     if (onlyExpressions) {
       // Do not visit operands[1] -- it is not an expression.

@@ -16,7 +16,8 @@
  */
 dependencies {
     api("org.apiguardian:apiguardian-api")
-    api("org.checkerframework:checker-qual")
+    api(project(":annotations"))
+    api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")

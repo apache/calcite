@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
 @Threads(1)
+@SuppressWarnings("NullAway.Init") // JMH sets the fields via @Setup and @Param
 public class TypeDigestBenchmark {
 
   @Param({"1", "50", "500", "5000", "50000"})
@@ -68,7 +69,7 @@ public class TypeDigestBenchmark {
     type2 = createType(topN);
   }
 
-  private RelDataType createType(int n) {
+  private static RelDataType createType(int n) {
     RelBuilder builder =
         RelBuilder.create(Frameworks.newConfigBuilder()
             .defaultSchema(Frameworks.createRootSchema(true))

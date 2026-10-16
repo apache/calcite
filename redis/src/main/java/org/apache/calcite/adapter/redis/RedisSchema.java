@@ -25,7 +25,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,13 +52,13 @@ class RedisSchema extends AbstractSchema {
   public final String host;
   public final int port;
   public final int database;
-  public final String password;
+  public final @Nullable String password;
   public final List<Map<String, Object>> tables;
 
   RedisSchema(String host,
       int port,
       int database,
-      String password,
+      @Nullable String password,
       List<Map<String, Object>> tables) {
     this.host = host;
     this.port = port;
@@ -93,21 +93,21 @@ class RedisSchema extends AbstractSchema {
       if (jsonCustomTable.name.equals(tableName)) {
         Map<String, Object> map =
             requireNonNull(jsonCustomTable.operand, OPERAND);
-        if (isEmptyObject(map.get(DATA_FORMAT))) {
+        final Object dataFormatValue = map.get(DATA_FORMAT);
+        if (dataFormatValue == null
+            || isEmptyObject(dataFormatValue)
+            || RedisDataFormat.fromTypeName(dataFormatValue.toString()) == null) {
           throw new RuntimeException("dataFormat is invalid, it must be raw, csv or json");
         }
-        RedisDataFormat dataFormatEnum =
-            RedisDataFormat.fromTypeName(map.get(DATA_FORMAT).toString());
-        if (dataFormatEnum == null) {
-          throw new RuntimeException("dataFormat is invalid, it must be raw, csv or json");
-        }
-        if (isEmptyObject(map.get(FIELDS))) {
+        final Object fieldsValue = map.get(FIELDS);
+        if (fieldsValue == null || isEmptyObject(fieldsValue)) {
           throw new RuntimeException("fields is null");
         }
-        dataFormat = map.get(DATA_FORMAT).toString();
-        fields = (List<LinkedHashMap<String, Object>>) map.get(FIELDS);
-        if (map.get(KEY_DELIMITER) != null) {
-          keyDelimiter = map.get(KEY_DELIMITER).toString();
+        dataFormat = dataFormatValue.toString();
+        fields = (List<LinkedHashMap<String, Object>>) fieldsValue;
+        final Object keyDelimiterValue = map.get(KEY_DELIMITER);
+        if (keyDelimiterValue != null) {
+          keyDelimiter = keyDelimiterValue.toString();
         }
         break;
       }

@@ -31,7 +31,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +88,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     return RelDistributions.BROADCAST_DISTRIBUTED;
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this)
         ? clazz.cast(this)
         : null;

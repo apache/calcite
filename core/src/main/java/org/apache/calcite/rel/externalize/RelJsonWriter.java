@@ -24,7 +24,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -78,7 +78,7 @@ public class RelJsonWriter implements RelWriter {
 
     map.put("id", null); // ensure that id is the first attribute
     map.put("relOp", relJson.classToTypeName(rel.getClass()));
-    for (Pair<String, @Nullable Object> value : values) {
+    for (Pair<String, Object> value : values) {
       if (value.right instanceof RelNode) {
         continue;
       }

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Extension to {@link Bindable} that returns rows that are arrays of objects.

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -43,9 +44,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -114,7 +113,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.lang.Integer.parseInt;
@@ -140,14 +138,12 @@ public class Util {
    * '\n'. Apply {@link Util#toLinux(String)} to Windows actual results, if
    * necessary, to make them look like Linux actual.
    */
-  public static final String LINE_SEPARATOR =
-      System.getProperty("line.separator");
+  public static final String LINE_SEPARATOR = System.lineSeparator();
 
   /**
    * System-dependent file separator, for example, "/" or "\."
    */
-  public static final String FILE_SEPARATOR =
-      System.getProperty("file.separator");
+  public static final String FILE_SEPARATOR = File.separator;
 
   /**
    * Datetime format string for generating a timestamp string to be used as
@@ -684,7 +680,8 @@ public class Util {
    * characters found in {@code search} are replaced by the character in the same position in
    * {@code replacement}; if {@code replacement} is shorter, remaining matches are removed.
    */
-  public static @PolyNull String replaceChars(@PolyNull String s, @Nullable String search,
+  @Contract("!null, _, _ -> !null")
+  public static @Nullable String replaceChars(@Nullable String s, @Nullable String search,
       @Nullable String replacement) {
     if (s == null || s.isEmpty() || search == null || search.isEmpty()) {
       return s;
@@ -753,7 +750,7 @@ public class Util {
     // This is a bunch of weird code that is required to
     // make a valid URL on the Windows platform, due
     // to inconsistencies in what getAbsolutePath returns.
-    String fs = System.getProperty("file.separator");
+    String fs = FILE_SEPARATOR;
     if (fs.length() == 1) {
       char sep = fs.charAt(0);
       if (sep != '/') {
@@ -1865,10 +1862,10 @@ public class Util {
    * @param clazz Class to cast to
    * @return An iterator whose members are of the desired type.
    */
-  public static <E extends @PolyNull Object> Iterator<E> cast(
-      final Iterator<? extends @PolyNull Object> iter,
+  public static <E extends @Nullable Object> Iterator<E> cast(
+      final Iterator<? extends @Nullable Object> iter,
       final Class<E> clazz) {
-    return transform(iter, x -> clazz.cast(castNonNull(x)));
+    return transform(iter, x -> clazz.cast(x));
   }
 
   /**
@@ -2123,11 +2120,11 @@ public class Util {
   /** Returns the first value if it is not null,
    * otherwise the second value.
    *
-   * <p>The result may be null only if the second argument is not null.
+   * <p>The result is null only if both arguments are null.
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  public static <T extends Object> @PolyNull T first(@Nullable T v0, @PolyNull T v1) {
+  public static <T extends @Nullable Object> T first(@Nullable T v0, T v1) {
     return v0 != null ? v0 : v1;
   }
 
@@ -2220,12 +2217,12 @@ public class Util {
   }
 
   /** Returns all but the first element of a list. */
-  public static <E> List<E> skip(List<E> list) {
+  public static <E extends @Nullable Object> List<E> skip(List<E> list) {
     return skip(list, 1);
   }
 
   /** Returns all but the first {@code n} elements of a list. */
-  public static <E> List<E> skip(List<E> list, int fromIndex) {
+  public static <E extends @Nullable Object> List<E> skip(List<E> list, int fromIndex) {
     return fromIndex == 0 ? list : list.subList(fromIndex, list.size());
   }
 
@@ -2271,7 +2268,7 @@ public class Util {
    * @param list List
    * @return Ordinal of first duplicate, or -1 if not found
    */
-  public static <E> int firstDuplicate(List<E> list) {
+  public static <E extends @Nullable Object> int firstDuplicate(List<E> list) {
     final int size = list.size();
     if (size < 2) {
       // Lists of size 0 and 1 are always distinct.
@@ -2292,7 +2289,7 @@ public class Util {
       return -1;
     }
     // we use HashMap here, because it is more efficient than HashSet.
-    final Map<E, Object> set = new HashMap<>(size);
+    final Map<@Nullable E, Object> set = new HashMap<>(size);
     for (E e : list) {
       if (set.put(e, "") != null) {
         return set.size();
@@ -2576,7 +2573,6 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
-      @SuppressWarnings("override.return.invalid")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -2724,14 +2720,14 @@ public class Util {
   }
 
   /** Combines a second immutable list builder into a first. */
-  public static <E> ImmutableList.Builder<E> combine(
+  public static <E extends @Nullable Object> ImmutableList.Builder<E> combine(
       ImmutableList.Builder<E> b0, ImmutableList.Builder<E> b1) {
     b0.addAll(b1.build());
     return b0;
   }
 
   /** Combines a second array list into a first. */
-  public static <E> ArrayList<E> combine(ArrayList<E> list0,
+  public static <E extends @Nullable Object> ArrayList<E> combine(ArrayList<E> list0,
       ArrayList<E> list1) {
     list0.addAll(list1);
     return list0;
@@ -2746,7 +2742,8 @@ public class Util {
   }
 
   /** Transforms a list, applying a function to each element. */
-  public static <F, T> List<T> transform(List<? extends F> list,
+  public static <F extends @Nullable Object, T extends @Nullable Object>
+      List<T> transform(List<? extends F> list,
       java.util.function.Function<? super F, ? extends T> function) {
     if (list.isEmpty() && list instanceof ImmutableList) {
       return ImmutableList.of(); // save ourselves some effort
@@ -2759,7 +2756,8 @@ public class Util {
 
   /** Transforms a list, applying a function to each element, also passing in
    * the element's index in the list. */
-  public static <F, T> List<T> transformIndexed(List<? extends F> list,
+  public static <F extends @Nullable Object, T extends @Nullable Object>
+      List<T> transformIndexed(List<? extends F> list,
       BiFunction<? super F, Integer, ? extends T> function) {
     if (list.isEmpty() && list instanceof ImmutableList) {
       return ImmutableList.of(); // save ourselves some effort
@@ -2772,7 +2770,8 @@ public class Util {
 
   /** Transforms an iterable, applying a function to each element. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <F, T> Iterable<T> transform(Iterable<? extends F> iterable,
+  public static <F extends @Nullable Object, T extends @Nullable Object>
+      Iterable<T> transform(Iterable<? extends F> iterable,
       java.util.function.Function<? super F, ? extends T> function) {
     // FluentIterable provides toString
     return new FluentIterable<T>() {
@@ -2784,7 +2783,8 @@ public class Util {
 
   /** Transforms an iterator. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
-  public static <F, T> Iterator<T> transform(Iterator<? extends F> iterator,
+  public static <F extends @Nullable Object, T extends @Nullable Object>
+      Iterator<T> transform(Iterator<? extends F> iterator,
       java.util.function.Function<? super F, ? extends T> function) {
     return new TransformingIterator<>(iterator, function);
   }
@@ -2883,7 +2883,6 @@ public class Util {
       this.node = node;
     }
 
-    @Pure
     public @Nullable Object getNode() {
       return node;
     }
@@ -2893,10 +2892,10 @@ public class Util {
    * Visitor which looks for an OVER clause inside a tree of
    * {@link SqlNode} objects.
    */
-  public static class OverFinder extends SqlBasicVisitor<Void> {
+  public static class OverFinder extends SqlBasicVisitor<@Nullable Void> {
     public static final OverFinder INSTANCE = new Util.OverFinder();
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       if (call.getKind() == SqlKind.OVER) {
         throw FoundOne.NULL;
       }
@@ -3003,7 +3002,6 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      @SuppressWarnings("method.invocation.invalid")
       T current = moveNext();
       this.current = current;
     }

@@ -20,7 +20,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
 public class SqlStarExclude extends SqlCall {
   public static final SqlOperator OPERATOR =
       new SqlSpecialOperator("STAR_EXCLUDE", SqlKind.OTHER) {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         @Override public SqlCall createCall(
             @Nullable SqlLiteral functionQualifier,
             SqlParserPos pos,
