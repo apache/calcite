@@ -2570,6 +2570,27 @@ public class SqlFunctions {
     return b1 == null || b0 != null && b0.compareTo(b1) < 0;
   }
 
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN} on ARRAY keys. */
+  public static boolean ltNullable(@Nullable List<?> b0,
+      @Nullable List<?> b1) {
+    return b1 == null || b0 != null && lt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN} on MAP keys. */
+  public static boolean ltNullable(@Nullable Map<?, ?> b0,
+      @Nullable Map<?, ?> b1) {
+    return b1 == null || b0 != null && lt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN} on ROW keys. */
+  public static boolean ltNullable(@Nullable Object @Nullable [] b0,
+      @Nullable Object @Nullable [] b1) {
+    return b1 == null || b0 != null && lt(b0, b1);
+  }
+
   public static boolean lt(byte b0, byte b1) {
     return b0 < b1;
   }
@@ -2704,6 +2725,27 @@ public class SqlFunctions {
    * (or {@code b1} is null). Helper for {@code ARG_MAX}. */
   public static <T extends Comparable<T>> boolean gtNullable(T b0, T b1) {
     return b1 == null || b0 != null && b0.compareTo(b1) > 0;
+  }
+
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX} on ARRAY keys. */
+  public static boolean gtNullable(@Nullable List<?> b0,
+      @Nullable List<?> b1) {
+    return b1 == null || b0 != null && gt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX} on MAP keys. */
+  public static boolean gtNullable(@Nullable Map<?, ?> b0,
+      @Nullable Map<?, ?> b1) {
+    return b1 == null || b0 != null && gt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX} on ROW keys. */
+  public static boolean gtNullable(@Nullable Object @Nullable [] b0,
+      @Nullable Object @Nullable [] b1) {
+    return b1 == null || b0 != null && gt(b0, b1);
   }
 
   public static boolean gt(byte b0, byte b1) {

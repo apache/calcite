@@ -18402,6 +18402,10 @@ public class SqlOperatorTest {
       // Nullable without GROUP BY even for non-nullable arguments, since the
       // input may be empty
       f.checkColumnType("select arg_min(1, 2) from (values (1))", "INTEGER");
+      // Test cases for [CALCITE-7862]
+      // ARG_MIN and ARG_MAX fail when the key is an ARRAY, MAP or ROW
+      f.checkAgg("arg_min(x, array[mod(x, 3), x])", xValues, isSingle("3"));
+      f.checkAgg("arg_max(x, array[mod(x, 3), x])", xValues, isSingle("5"));
     };
 
     final Consumer<SqlOperatorFixture> consumer2 = f -> {
@@ -18411,6 +18415,9 @@ public class SqlOperatorTest {
       // ARG_MIN ignores nullability of second argument
       f.checkAggType("min_by(1, cast(null as integer))", "INTEGER");
       f.checkAggType("max_by(1, cast(null as integer))", "INTEGER");
+      // Test cases for [CALCITE-7862]
+      f.checkAgg("min_by(x, array[mod(x, 3), x])", xValues, isSingle("3"));
+      f.checkAgg("max_by(x, array[mod(x, 3), x])", xValues, isSingle("5"));
     };
 
     consumer.accept(f0);
