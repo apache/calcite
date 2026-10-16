@@ -16,15 +16,28 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
@@ -54,6 +67,187 @@ import static org.junit.jupiter.api.Assertions.fail;
  * @see Smalls
  */
 class TableFunctionTest {
+  @Test void testCursorInput() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"echo\"("
+            + "cursor(select * from (values (1), (2)) as t(n))))")
+        .returnsUnordered("N=1", "N=2");
+  }
+
+  private CalciteAssert.AssertThat withCursorFunctions() {
+    return CalciteAssert.that()
+        .withSchema("s", new AbstractSchema())
+        .with(connection -> {
+          final SchemaPlus schema = connection.unwrap(CalciteConnection.class)
+              .getRootSchema().subSchemas().get("s");
+          schema.add("echo", TableFunctionImpl.create(CursorTable.class));
+          schema.add("queryable", TableFunctionImpl.create(CursorTable.class, "queryable"));
+          schema.add("add", TableFunctionImpl.create(CursorTable.class, "add"));
+          schema.add("concat", TableFunctionImpl.create(CursorTable.class, "concat"));
+          return connection;
+        });
+  }
+
+  @Test void testCursorInputMultipleColumns() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"echo\"("
+            + "cursor(select * from (values (1, 'a'), (2, 'b')) as t(n, s))))")
+        .returnsUnordered("N=1; S=a", "N=2; S=b");
+  }
+
+  @Test void testCursorInputQueryableTable() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"queryable\"("
+            + "cursor(select * from (values (1, 'a'), (2, 'b')) as t(n, s))))")
+        .returnsUnordered("N=1; S=a", "N=2; S=b");
+  }
+
+  @Test void testCursorInputEmpty() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"echo\"("
+            + "cursor(select * from (values (1)) as t(n) where n < 0)))")
+        .returnsCount(0);
+  }
+
+  @Test void testCursorInputScalarQuery() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"add\"("
+            + "cursor(select * from (values (1), (2)) as t(n)),"
+            + " (select max(x) from (values (10), (20)) as d(x))))")
+        .returnsUnordered("N=21", "N=22");
+  }
+
+  @Test void testCursorInputMultipleCursors() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"concat\"("
+            + "cursor(select * from (values (1), (2)) as t(n)),"
+            + "cursor(select * from (values (3), (4)) as t(n))))")
+        .returnsUnordered("N=1", "N=2", "N=3", "N=4");
+  }
+
+  @Test void testCursorInputNestedAndNull() {
+    withCursorFunctions()
+        .query("select * from table(\"s\".\"echo\"(cursor("
+            + "select * from table(\"s\".\"echo\"(cursor("
+            + "select * from (values (1), (cast(null as integer))) as t(n)))))))")
+        .returnsUnordered("N=1", "N=null");
+  }
+
+  @Test void testCursorInputPrepared() throws Exception {
+    withCursorFunctions().doWithConnection(connection -> {
+      try (PreparedStatement statement =
+          connection.prepareStatement("select * from table(\"s\".\"echo\"("
+              + "cursor(select * from (values (1), (2)) as t(n) where n > ?)))")) {
+        statement.setInt(1, 0);
+        try (ResultSet result = statement.executeQuery()) {
+          assertThat(CalciteAssert.toString(result), equalTo("N=1\nN=2\n"));
+        }
+        statement.setInt(1, 1);
+        try (ResultSet result = statement.executeQuery()) {
+          assertThat(CalciteAssert.toString(result), equalTo("N=2\n"));
+        }
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+    });
+  }
+
+  /** Java table function that receives its cursor arguments as result sets. */
+  public static class CursorTable extends AbstractTable implements ScannableTable {
+    private final ResultSet input;
+
+    private CursorTable(ResultSet input) {
+      this.input = input;
+    }
+
+    public static ScannableTable eval(ResultSet input) {
+      return new CursorTable(input);
+    }
+
+    public static QueryableTable queryable(ResultSet input) {
+      return new AbstractQueryableTable(Object[].class) {
+        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return new CursorTable(input).getRowType(typeFactory);
+        }
+
+        @Override public <T> Queryable<T> asQueryable(QueryProvider provider,
+            SchemaPlus schema, String tableName) {
+          return (Queryable<T>) new CursorTable(input).scan(DataContexts.EMPTY).asQueryable();
+        }
+      };
+    }
+
+    public static ScannableTable add(ResultSet input, Integer offset) {
+      return new CursorTable(input) {
+        @Override public Enumerable<Object[]> scan(DataContext root) {
+          return super.scan(root).select(row -> new Object[] {(Integer) row[0] + offset});
+        }
+      };
+    }
+
+    public static ScannableTable concat(ResultSet first, ResultSet second) {
+      return new CursorTable(first) {
+        @Override public Enumerable<Object[]> scan(DataContext root) {
+          return super.scan(root).concat(new CursorTable(second).scan(root));
+        }
+      };
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      final RelDataTypeFactory.Builder builder = typeFactory.builder();
+      try {
+        final java.sql.ResultSetMetaData metadata = input.getMetaData();
+        for (int i = 1; i <= metadata.getColumnCount(); i++) {
+          final SqlTypeName type = SqlTypeName.getNameForJdbcType(metadata.getColumnType(i));
+          final RelDataType columnType = type.allowsPrecNoScale()
+              ? typeFactory.createSqlType(type, metadata.getPrecision(i))
+              : typeFactory.createSqlType(type);
+          builder.add(metadata.getColumnLabel(i), columnType)
+              .nullable(metadata.isNullable(i) != java.sql.ResultSetMetaData.columnNoNulls);
+        }
+        return builder.build();
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+    }
+
+    @Override public Enumerable<Object[]> scan(DataContext root) {
+      return new AbstractEnumerable<Object[]>() {
+        @Override public Enumerator<Object[]> enumerator() {
+          return new Enumerator<Object[]>() {
+            @Override public Object[] current() {
+              try {
+                final Object[] row = new Object[input.getMetaData().getColumnCount()];
+                for (int i = 0; i < row.length; i++) {
+                  row[i] = input.getObject(i + 1);
+                }
+                return row;
+              } catch (SQLException e) {
+                throw TestUtil.rethrow(e);
+              }
+            }
+
+            @Override public boolean moveNext() {
+              try {
+                return input.next();
+              } catch (SQLException e) {
+                throw TestUtil.rethrow(e);
+              }
+            }
+
+            @Override public void reset() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override public void close() {
+              // The engine owns and closes the input ResultSet.
+            }
+          };
+        }
+      };
+    }
+  }
+
   private CalciteAssert.AssertThat with() {
     final String c = Smalls.class.getName();
     final String m = Smalls.MULTIPLICATION_TABLE_METHOD.getName();

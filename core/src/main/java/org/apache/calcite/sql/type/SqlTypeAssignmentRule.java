@@ -64,6 +64,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
       rules.add(interval, SqlTypeName.DAY_INTERVAL_TYPES);
     }
 
+    // CURSOR is assignable from...
+    rules.add(SqlTypeName.CURSOR, EnumSet.of(SqlTypeName.CURSOR));
+
     // MULTISET is assignable from...
     rules.add(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
 
