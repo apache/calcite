@@ -52,6 +52,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -4884,61 +4885,105 @@ public class SqlToRelConverter {
             () -> "sourceSelect for " + call);
     RelNode mergeSourceRel = convertSelect(sourceSelect, false);
 
-    // then, convert the insert statement so we can get the insert
-    // values expressions
-    SqlInsert insertCall = call.getInsertCall();
-    int nLevel1Exprs = 0;
-    List<RexNode> level1InsertExprs = null;
-    List<RexNode> level2InsertExprs = null;
-    if (insertCall != null) {
-      RelNode insertRel = convertInsert(insertCall);
+    // The input of the source projection is the join of the source and the
+    // target, possibly wrapped by the joins or correlates that expand the
+    // sub-queries of the SET expressions. Source fields come first in all of
+    // them.
+    RelNode mergeInput = mergeSourceRel.getInput(0);
+    final SqlNode sourceFrom =
+        requireNonNull(sourceSelect.getFrom(), () -> "from for " + sourceSelect);
+    final SqlNode sourceRef = ((SqlJoin) sourceFrom).getLeft();
+    final SqlValidatorNamespace sourceNamespace =
+        requireNonNull(validator().getNamespace(sourceRef),
+            () -> "namespace for " + sourceRef);
+    final int nSourceFields = sourceNamespace.getRowType().getFieldCount();
+    final Set<CorrelationId> variablesSet =
+        new HashSet<>(((LogicalProject) mergeSourceRel).getVariablesSet());
 
-      // if there are 2 level of projections in the insert source, combine
-      // them into a single project; level1 refers to the topmost project;
-      // the level1 projection contains references to the level2
-      // expressions, except in the case where no target expression was
-      // provided, in which case, the expression is the default value for
-      // the column; or if the expressions directly map to the source
-      // table
-      level1InsertExprs =
-          ((LogicalProject) insertRel.getInput(0)).getProjects();
-      if (insertRel.getInput(0).getInput(0) instanceof LogicalProject) {
-        level2InsertExprs =
-            ((LogicalProject) insertRel.getInput(0).getInput(0))
-                .getProjects();
-      }
-      nLevel1Exprs = level1InsertExprs.size();
-    }
-
-    LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
-    int nSourceFields = join.getLeft().getRowType().getFieldCount();
     final List<RexNode> projects = new ArrayList<>();
-    for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
-      requireNonNull(level1InsertExprs, "level1InsertExprs");
-      if ((level2InsertExprs != null)
-          && (level1InsertExprs.get(level1Idx) instanceof RexInputRef)) {
-        int level2Idx =
-            ((RexInputRef) level1InsertExprs.get(level1Idx)).getIndex();
-        projects.add(level2InsertExprs.get(level2Idx));
-      } else {
-        projects.add(level1InsertExprs.get(level1Idx));
-      }
+    final SqlInsert insertCall = call.getInsertCall();
+    if (insertCall != null) {
+      final Project insertProject = convertMergeInsert(insertCall, mergeInput);
+      projects.addAll(insertProject.getProjects());
+      mergeInput = insertProject.getInput();
+      variablesSet.addAll(insertProject.getVariablesSet());
     }
+
     if (updateCall != null) {
       final LogicalProject project = (LogicalProject) mergeSourceRel;
       projects.addAll(
           Util.skip(project.getProjects(), nSourceFields));
     }
 
-    // Keep the correlation variables set by the source projection: the SET
-    // expressions may contain correlated sub-queries.
-    relBuilder.push(join)
-        .project(projects, ImmutableList.of(), false,
-            ((LogicalProject) mergeSourceRel).getVariablesSet());
+    // Keep the correlation variables: the SET expressions and the insert
+    // values may contain correlated sub-queries.
+    relBuilder.push(mergeInput)
+        .project(projects, ImmutableList.of(), false, variablesSet);
+    return createMergeModify(targetTable, relBuilder.build(),
+        targetColumnNameList);
+  }
 
-    return LogicalTableModify.create(targetTable, catalogReader,
-        relBuilder.build(), LogicalTableModify.Operation.MERGE,
-        targetColumnNameList, null, false);
+  /** Converts the values of the INSERT of a MERGE over the input of the MERGE
+   * source projection, whose first fields are the source fields.
+   *
+   * <p>The values are not converted over the source alone, so that their
+   * sub-queries are expanded on top of the merge input and their field
+   * references stay valid.
+   *
+   * @return projection whose expressions are the inserted row, in the order of
+   * the target columns; its input is the merge input, possibly extended by
+   * expanded sub-queries */
+  private Project convertMergeInsert(SqlInsert insertCall, RelNode mergeInput) {
+    final SqlSelect insertSource = (SqlSelect) insertCall.getSource();
+    final Blackboard bb =
+        createBlackboard(validator().getSelectScope(insertSource), null, false);
+    bb.setRoot(mergeInput, true);
+    callStack.push(insertCall);
+    convertSelectList(bb, bb, insertSource, ImmutableList.of(),
+        ImmutableList.of(), null);
+    callStack.pop();
+    final Project valuesProject = (Project) bb.root();
+
+    // Order the values by the target columns and add the defaults. The
+    // projection is built by RelBuilder on top of the values projection, so
+    // it may be the values projection itself (identity), a projection over
+    // it, or a projection merged with it (over its input).
+    final RelNode columns = convertColumnList(insertCall, valuesProject);
+    if (columns == valuesProject) {
+      return valuesProject;
+    }
+    final Project columnsProject = (Project) columns;
+    final List<RexNode> exprs;
+    if (columnsProject.getInput() == valuesProject) {
+      exprs =
+          RelOptUtil.pushPastProject(columnsProject.getProjects(),
+              valuesProject);
+    } else if (columnsProject.getInput() == valuesProject.getInput()) {
+      exprs = columnsProject.getProjects();
+    } else {
+      throw new AssertionError("unexpected input of insert columns: "
+          + columnsProject.getInput());
+    }
+    return LogicalProject.create(valuesProject.getInput(), ImmutableList.of(),
+        exprs, columnsProject.getRowType().getFieldNames(),
+        valuesProject.getVariablesSet());
+  }
+
+  /** Creates the modification of a MERGE. As for INSERT, a modifiable table
+   * creates it itself; for example, a JDBC table registers its convention
+   * there. */
+  private RelNode createMergeModify(RelOptTable targetTable, RelNode source,
+      List<String> updateColumnList) {
+    final ModifiableTable modifiableTable =
+        targetTable.unwrap(ModifiableTable.class);
+    if (modifiableTable != null
+        && modifiableTable == targetTable.unwrap(Table.class)) {
+      return modifiableTable.toModificationRel(cluster, targetTable,
+          catalogReader, source, TableModify.Operation.MERGE,
+          updateColumnList, null, false);
+    }
+    return LogicalTableModify.create(targetTable, catalogReader, source,
+        TableModify.Operation.MERGE, updateColumnList, null, false);
   }
 
   /**
