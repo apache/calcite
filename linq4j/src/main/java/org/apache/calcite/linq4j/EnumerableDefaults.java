@@ -5092,11 +5092,11 @@ public abstract class EnumerableDefaults {
     }
 
     /** Returns whether the left enumerator was successfully advanced to the next
-     * element, and it does not have a null key (except for LEFT join, that needs to process
-     * all elements from left. */
+     * element, and it does not have a null key (except for LEFT and ANTI joins, which need to
+     * process all elements from left). */
     private boolean leftMoveNext() {
       return getLeftEnumerator().moveNext()
-          && (joinType == JoinType.LEFT
+          && (isLeftOrAntiJoin()
               || outerKeySelector.apply(getLeftEnumerator().current()) != null);
     }
 
@@ -5168,9 +5168,9 @@ public abstract class EnumerableDefaults {
         // iterate until finding matching keys (or ANTI join results)
         for (;;) {
           // mergeJoin assumes inputs sorted in ascending order with nulls last,
-          // if we reach a null key, we are done.
+          // if we reach a null key, there are no more matches.
           if (leftKey == null || rightKey == null) {
-            if (joinType == JoinType.LEFT || (joinType == JoinType.ANTI && leftKey != null)) {
+            if (isLeftOrAntiJoin()) {
               // all remaining items in left are results for left/anti join
               remainingLeft = true;
               return true;
@@ -5271,7 +5271,8 @@ public abstract class EnumerableDefaults {
      * is over or a different key is found.
      *
      * @return {@code true} if there are still elements to be processed on the left enumerator,
-     * {@code false} otherwise (left enumerator is over or null key is found).
+     * {@code false} otherwise (left enumerator is over, or null key is found and the join
+     * is not LEFT or ANTI).
      */
     private boolean advanceLeft(TSource left, TKey leftKey) {
       lefts.clear();
@@ -5279,9 +5280,10 @@ public abstract class EnumerableDefaults {
       while (getLeftEnumerator().moveNext()) {
         left = getLeftEnumerator().current();
         TKey leftKey2 = outerKeySelector.apply(left);
-        if (leftKey2 == null && joinType != JoinType.LEFT) {
+        if (leftKey2 == null && !isLeftOrAntiJoin()) {
           // mergeJoin assumes inputs sorted in ascending order with nulls last,
-          // if we reach a null key, we are done (except LEFT join, that needs to process LHS fully)
+          // if we reach a null key, we are done (except LEFT and ANTI joins, which
+          // process LHS fully)
           break;
         }
         if (!compareEquals(leftKey, leftKey2)) {
