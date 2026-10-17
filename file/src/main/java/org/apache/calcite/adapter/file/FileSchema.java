@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -31,12 +32,21 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
+ *
+ * <p>By default, only local {@code file} sources are dereferenced. Table operands
+ * naming remote URLs make the host fetch an arbitrary, model-supplied URL and return the
+ * response as rows, so remote protocols must be explicitly enabled by the operator via the
+ * {@link CalciteSystemProperty#FILE_REMOTE_PROTOCOLS_ALLOWED} system property.
  */
 class FileSchema extends AbstractSchema {
   private final ImmutableList<Map<String, Object>> tables;
@@ -119,10 +129,107 @@ class FileSchema extends AbstractSchema {
     return builder.build();
   }
 
+  /** Checks that a model-supplied table URL may be dereferenced by this
+   * adapter: a local {@code file} URL always, a remote one (any other
+   * protocol, or a {@code file} URL naming a host, such as a Windows UNC path)
+   * only when the operator has listed its protocol in
+   * {@link CalciteSystemProperty#FILE_REMOTE_PROTOCOLS_ALLOWED}, and (if the
+   * host allowlist {@link CalciteSystemProperty#FILE_REMOTE_HOSTS_ALLOWED} is
+   * set) only when the URL's host is on that list. */
+  static void checkUrlAllowed(String url) {
+    checkUrlAllowed(url,
+        CalciteSystemProperty.FILE_REMOTE_PROTOCOLS_ALLOWED.value(),
+        CalciteSystemProperty.FILE_REMOTE_HOSTS_ALLOWED.value());
+  }
+
+  static void checkUrlAllowed(String url, String allowedProtocols, String allowedHosts) {
+    final URI uri;
+    final URL u;
+    try {
+      uri = new URI(url);
+      u = uri.toURL();
+    } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
+      // Malformed; Sources.url parses the same way and will report the error
+      return;
+    }
+    final String protocol = u.getProtocol();
+    final String host;
+    if ("file".equals(protocol)) {
+      final String fileHost = remoteFileHost(uri, u);
+      if (fileHost == null) {
+        return;
+      }
+      host = fileHost;
+    } else {
+      host = u.getHost();
+    }
+    boolean protocolMatch = false;
+    for (String p : allowedProtocols.split(",")) {
+      if (protocol.equalsIgnoreCase(p.trim())) {
+        protocolMatch = true;
+        break;
+      }
+    }
+    if (!protocolMatch) {
+      if ("file".equals(protocol)) {
+        throw new IllegalArgumentException("Remote 'file' URL (host '" + host
+            + "') is not allowed in file adapter table operands (only local"
+            + " 'file' URLs are allowed by default); to allow it, add 'file'"
+            + " to the system property"
+            + " \"calcite.file.remote.protocols.allowed\"");
+      }
+      throw new IllegalArgumentException("Remote URL protocol '" + protocol
+          + "' is not allowed in file adapter table operands (only 'file' is"
+          + " allowed by default); to allow it, add it to the system property"
+          + " \"calcite.file.remote.protocols.allowed\"");
+    }
+    if (allowedHosts.trim().isEmpty()) {
+      return;
+    }
+    for (String h : allowedHosts.split(",")) {
+      final String allowed = h.trim();
+      if (!allowed.isEmpty() && allowed.equalsIgnoreCase(host)) {
+        return;
+      }
+    }
+    throw new IllegalArgumentException("Remote URL host '" + host
+        + "' is not on the file adapter host allowlist; to allow it, add it"
+        + " to the system property \"calcite.file.remote.hosts.allowed\"");
+  }
+
+  /** Returns the host that a {@code file} URL names, or null if the URL is
+   * local. A host may appear as an authority ({@code file://host/share}) or,
+   * as Windows resolves it to a UNC path, as a path starting with two
+   * slashes or backslashes ({@code file:////host/share},
+   * {@code file:%5C%5Chost%5Cshare}). */
+  private static @Nullable String remoteFileHost(URI uri, URL url) {
+    final String host = url.getHost();
+    if (host != null && !host.isEmpty()) {
+      return host;
+    }
+    final String authority = uri.getRawAuthority();
+    if (authority != null && !authority.isEmpty()) {
+      return authority;
+    }
+    final String path =
+        Util.first(uri.isOpaque() ? uri.getSchemeSpecificPart() : uri.getPath(), "")
+            .replace('\\', '/');
+    if (!path.startsWith("//")) {
+      return null;
+    }
+    int start = 0;
+    while (start < path.length() && path.charAt(start) == '/') {
+      ++start;
+    }
+    final int end = path.indexOf('/', start);
+    return end < 0 ? path.substring(start) : path.substring(start, end);
+  }
+
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Map<String, Object> tableDef) {
     final String tableName = (String) tableDef.get("name");
     final String url = (String) tableDef.get("url");
+    checkUrlAllowed(url);
     final Source source0 = Sources.url(url);
     final Source source;
     if (baseDirectory == null) {

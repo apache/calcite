@@ -114,6 +114,20 @@ check the width of each group, and turned `1-2-3-4-5` into
 requires exactly 16 bytes; a longer value used to be truncated. Blanks are not
 trimmed.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7860">CALCITE-7860</a>]
+The file adapter now dereferences only local `file:` sources by default. Table
+`url` operands naming remote protocols (`http`, `https`, `ftp`, ...; including
+`jar:`, even when it wraps a local file) are rejected with
+`IllegalArgumentException` unless the operator lists them in the new
+`calcite.file.remote.protocols.allowed` system property, for example
+`-Dcalcite.file.remote.protocols.allowed=http,https`. A `file:` URL that names
+a host (`file://host/...`, or a Windows UNC path) is remote too, and requires
+`file` in that list. A companion property
+`calcite.file.remote.hosts.allowed` may additionally restrict the set of
+hostnames those protocols may reach (case-insensitive, exact match; empty by
+default, meaning any host on an allowed protocol is permitted), for example
+`-Dcalcite.file.remote.hosts.allowed=data.example.com`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7760">CALCITE-7760</a>]
 The Spark engine now requires the operator-level opt-in system property
 `-Dcalcite.enable.spark=true`. The `spark` connection property alone no longer

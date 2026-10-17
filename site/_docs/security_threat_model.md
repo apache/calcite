@@ -120,6 +120,18 @@ carve-out below. A report that reaches a sink not covered here is a model gap
   must add it on purpose.
 * A file, CSV, or JSON adapter reading the local path it was configured
   with. Opt-in, by the same reasoning as the os-adapter.
+* The file adapter dereferencing a remote URL (`http`, `https`, `ftp`, `jar`,
+  ..., or a `file:` URL naming a host, which Windows opens over SMB) named in a
+  table `url` operand, once the operator has listed the scheme
+  in the JVM system property `calcite.file.remote.protocols.allowed` (and,
+  optionally, the host in `calcite.file.remote.hosts.allowed`). Only
+  local `file:` is dereferenced by default; a query author cannot set either property
+  (see [Attacker and trust boundary](#attacker-and-trust-boundary)), so any
+  fetch through an enabled scheme is operator-authorised behaviour, not a P3
+  violation. This includes any redirect the remote server returns:
+  `calcite.file.remote.hosts.allowed` constrains only the URL in the operand,
+  not where the server redirects the request. Opt-in, by the same reasoning
+  as the os-adapter.
 * The Spark engine and its side effects: a local `JavaSparkContext`, a
   local HTTP class server that serves compiled query classes, and setting
   the `spark.repl.class.uri` JVM system property. The `spark` connection
@@ -167,6 +179,15 @@ vulnerability.
 * **What a `model` points at.** A third-party driver or service a `model`
   references is configured and patched by the operator; its behavior past the
   connection boundary is out of this model.
+
+### Example modules
+
+Modules under `example/` (`example-csv`, `example-function`) are teaching
+artifacts referenced from the [tutorial]({{ site.baseurl }}/docs/tutorial.html),
+not production adapters. They are held to a lower bar than the rest of Calcite:
+a finding whose only reachable path is through an `example/` module, with no
+matching path in a production module, is a documentation issue rather than a
+vulnerability.
 
 ## Surprising vs unsurprising class loading
 
