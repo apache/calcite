@@ -147,6 +147,11 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     if (!Aggregate.isSimple(aggregate)) {
       return null;
     }
+    // A global aggregate may return NULL on empty input even when its
+    // argument is a non-null constant.
+    if (aggregate.getGroupCount() == 0) {
+      return null;
+    }
     if (call.hasFilter()
         || call.distinctKeys != null
         || call.collation != RelCollations.EMPTY) {
