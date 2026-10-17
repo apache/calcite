@@ -31,10 +31,15 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockRelOptPlanner;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -47,6 +52,67 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  * Test for {@link org.apache.calcite.adapter.enumerable.EnumerableWindow}.
  */
 public class EnumerableWindowTest {
+  @ParameterizedTest
+  @MethodSource("rangeNullableOrderKeyCases")
+  void testRangeNullableOrderKey(String type, String nulls, String frame,
+      String sum1, String sum2, String sum4, String sumNull) {
+    CalciteAssert.that()
+        .query("select k, sum(v) over (order by k nulls " + nulls
+            + " range between " + frame + ") as s\n"
+            + "from (values (cast(1 as " + type + "), 10), (2, 20), (4, 40),\n"
+            + "  (cast(null as " + type + "), 100), (null, 200)) as t(k, v)")
+        .explainContains("EnumerableWindow")
+        .returnsUnordered("K=1; S=" + sum1,
+            "K=2; S=" + sum2,
+            "K=4; S=" + sum4,
+            "K=null; S=" + sumNull,
+            "K=null; S=" + sumNull);
+  }
+
+  private static List<Arguments> rangeNullableOrderKeyCases() {
+    // Expected results for all 28 cases were verified on PostgreSQL 14.24
+    // by executing the same SQL and comparing all five result rows,
+    // including duplicate null-key rows, without regard to row order.
+    final List<Arguments> cases = new ArrayList<>();
+    for (String type : new String[] {"integer", "bigint"}) {
+      for (String nulls : new String[] {"first", "last"}) {
+        // Cover PRECEDING and FOLLOWING for both the lower and upper bounds.
+        cases.add(
+            Arguments.of(type, nulls, "1 preceding and current row",
+            "10", "30", "40", "300"));
+        cases.add(
+            Arguments.of(type, nulls, "current row and 1 following",
+            "30", "20", "40", "300"));
+        cases.add(
+            Arguments.of(type, nulls, "1 preceding and 1 following",
+            "30", "30", "40", "300"));
+        cases.add(
+            Arguments.of(type, nulls, "2 preceding and 1 preceding",
+            "null", "10", "20", "300"));
+        cases.add(
+            Arguments.of(type, nulls, "1 following and 2 following",
+            "20", "40", "null", "300"));
+        // An unbounded end can include non-null keys in a null key's frame.
+        if (nulls.equals("first")) {
+          cases.add(
+              Arguments.of(type, nulls, "unbounded preceding and 1 following",
+              "330", "330", "370", "300"));
+          cases.add(
+              Arguments.of(type, nulls, "1 preceding and unbounded following",
+              "70", "70", "40", "370"));
+        } else {
+          cases.add(
+              Arguments.of(type, nulls, "unbounded preceding and 1 following",
+              "30", "30", "70", "370"));
+          cases.add(
+              Arguments.of(type, nulls, "1 preceding and unbounded following",
+              "370", "370", "340", "300"));
+        }
+      }
+    }
+    return cases;
+  }
+
   @Test void testCopyWithConstants() {
     final MockRelOptPlanner planner = new MockRelOptPlanner(Contexts.empty());
     final RelDataTypeFactory typeFactory =
