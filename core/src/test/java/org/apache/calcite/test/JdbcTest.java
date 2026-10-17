@@ -50,6 +50,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -91,6 +92,9 @@ import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.test.schemata.hr.Department;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Bug;
@@ -1834,6 +1838,69 @@ public class JdbcTest {
         .typeIs("[C0 DECIMAL NOT NULL, C1 DECIMAL NOT NULL, C2 DECIMAL NOT NULL, "
             + "C3 DECIMAL NOT NULL, C4 INTEGER NOT NULL, C5 INTEGER NOT NULL]")
         .returns("C0=5.5; C1=5; C2=1.4; C3=1; C4=0; C5=0\n");
+  }
+
+  /** Installs {@link TypeCoercionTest.WideningTypeCoercion} via
+   * {@link Hook#STRING_TO_QUERY} for use in boundary tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]</a>. */
+  private static Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>
+      wideningHook() {
+    return pair -> {
+      final String sql = requireNonNull(pair.right.get().sql);
+      final FrameworkConfig config =
+          Frameworks.newConfigBuilder(pair.left)
+              .sqlValidatorConfig(pair.left.getSqlValidatorConfig()
+                  .withTypeCoercionFactory(TypeCoercionTest.WideningTypeCoercion::new))
+              .build();
+      final Planner planner = Frameworks.getPlanner(config);
+      try {
+        final RelRoot root = planner.rel(planner.validate(planner.parse(sql)));
+        pair.right.set(CalcitePrepare.Query.of(root.project()));
+      } catch (Exception e) {
+        throw TestUtil.rethrow(e);
+      }
+    };
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
+   *
+   * <p>Default behavior: DECIMAL(18, 3) compared with REAL narrows to REAL
+   * (24-bit mantissa, about 7 decimal digits). {@code CAST(140737488355328 AS
+   * REAL)} is exactly 2^47. REAL's ULP at 2^47 is 2^(47-23) = 2^24 ≈ 16.7
+   * million, so the .016 fractional part is completely lost; both values
+   * narrow to 2^47 in REAL and the join incorrectly returns 1 row.
+   * Compare {@link #testDecimalRealComparisonWidenedToDoubleDistinguishesValues}, which
+   * runs the same SQL with {@link TypeCoercionTest.WideningTypeCoercion}
+   * and returns 0 rows. */
+  @Test void testDecimalRealComparisonDefaultNarrowsToReal() {
+    CalciteAssert.that()
+        .query("SELECT *\n"
+            + "FROM (VALUES (CAST(140737488355328.016 AS DECIMAL(18, 3)))) AS d(k)\n"
+            + "JOIN (VALUES (CAST(140737488355328 AS REAL))) AS f(k) ON d.k = f.k")
+        .returnsCount(1);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
+   *
+   * <p>With {@link TypeCoercionTest.WideningTypeCoercion}, DECIMAL(18, 3)
+   * compared with REAL widens to DOUBLE. {@code CAST(140737488355328 AS REAL)}
+   * is exactly 2^47 (a power of two, exactly representable as REAL). DOUBLE
+   * has 53-bit mantissa; the unit in the last place (ULP) at 2^47 is
+   * 2^(47-52) = 0.03125. The DECIMAL value 140737488355328.016 exceeds the
+   * half-ULP (0.015625), so it rounds to the next DOUBLE above 2^47. The
+   * widened join correctly returns 0 rows. */
+  @Test void testDecimalRealComparisonWidenedToDoubleDistinguishesValues() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (CAST(140737488355328.016 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "JOIN (VALUES (CAST(140737488355328 AS REAL))) AS f(k) ON d.k = f.k";
+    CalciteAssert.that()
+        .withHook(Hook.STRING_TO_QUERY, wideningHook())
+        .query(sql)
+        .returnsCount(0);
   }
 
   /** Test case for
