@@ -10189,6 +10189,100 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from (SELECT ARRAY['banana'] as fruits) as t, UNNEST(t.fruits)")
         .type("RecordType(CHAR(6) NOT NULL ARRAY NOT NULL FRUITS, "
             + "CHAR(6) NOT NULL EXPR$0) NOT NULL").ok();
+
+    // Test case for [CALCITE-7791] UNNEST of a single-field ROW array loses
+    // the field name when aliased. The field name "A" survives
+    // star-expansion. The alias "D" still names the column and
+    // qualifies the field.
+    sql("select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A) NOT NULL");
+
+    // A sub-query operand keeps the field name as well.
+    sql("select *\n"
+        + "from unnest(\n"
+        + "  (select cast(array[row(1)] as row(a integer) array)\n"
+        + "   from (values (1)))) as d")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+
+    // WITH ORDINALITY keeps the field name and the alias still
+    // names the data column.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL ORDINALITY) NOT NULL");
+    sql("select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A) NOT NULL");
+    // Sub-query operand with WITH ORDINALITY: alias names the data column.
+    sql("select d\n"
+        + "from unnest(\n"
+        + "  (select cast(array[row(1)] as row(a integer) array)\n"
+        + "   from (values (1))))\n"
+        + "  with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL D) NOT NULL");
+    // USING (d) with WITH ORDINALITY: alias resolves, output keeps field names.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d\n"
+        + "join (values (1)) as t (d) using (d)")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL ORDINALITY) NOT NULL");
+    // Correlated lateral: d, d.a, and d.ordinality all resolve.
+    sql("select d, d.a, d.ordinality\n"
+        + "from (values (array[row(1)])) as s (x),\n"
+        + "  lateral unnest(cast(s.x as row(a integer) array))\n"
+        + "  with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A,"
+            + " INTEGER NOT NULL ORDINALITY) NOT NULL");
+    // Alias equals ORDINALITY: unqualified name resolves to the INTEGER
+    // ordinality column, not the VARCHAR data column. The VARCHAR data field
+    // makes the two columns distinguishable and pins the getField lookup order.
+    sql("select ordinality\n"
+        + "from unnest(cast(array[row('x')] as row(a varchar(1)) array))\n"
+        + "  with ordinality as ordinality")
+        .type("RecordType(INTEGER NOT NULL ORDINALITY) NOT NULL");
+
+    // UNNEST MULTISET gets the same treatment.
+    sql("select *\n"
+        + "from unnest(cast(multiset[row(1)] as row(a integer) multiset)) as d")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+
+    // NATURAL JOIN matches the field name "A", not the alias "D". USING accepts
+    // either name.
+    // A column named after the alias does not count as a match.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "natural join (select 1 as a) as t")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "natural join (select 1 as d) as t")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL D) NOT NULL");
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "join (values (1)) as t (a) using (a)")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+    // USING (d) matches the alias, and the output column is named A.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "join (values (1)) as t (d) using (d)")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>Under {@link SqlConformanceEnum#PRESTO} or
+   * {@link SqlConformanceEnum#BIG_QUERY}, the struct element is not
+   * expanded into columns, so the alias renames the single ROW column
+   * instead of naming one of its fields. */
+  @Test void testUnnestSingleFieldRowUnexpanded() {
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .withConformance(SqlConformanceEnum.PRESTO)
+        .type("RecordType(RecordType(INTEGER NOT NULL A) NOT NULL D) NOT NULL");
   }
 
   @Test void testCorrelationJoin() {
