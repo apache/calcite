@@ -259,6 +259,7 @@ public class JavaTypeFactoryImpl
       return Map.class;
     case ARRAY:
     case MULTISET:
+    case VECTOR:
       return List.class;
     default:
       break;

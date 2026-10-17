@@ -101,6 +101,19 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  /** {@inheritDoc}
+   *
+   * <p>Supports {@code VECTOR} with {@code REAL} elements, which the pgvector
+   * extension calls {@code vector(n)}. */
+  @Override public boolean supportsDataType(RelDataType type) {
+    if (type.getSqlTypeName() == SqlTypeName.VECTOR) {
+      final RelDataType elementType = type.getComponentType();
+      return elementType != null
+          && elementType.getSqlTypeName() == SqlTypeName.REAL;
+    }
+    return super.supportsDataType(type);
+  }
+
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
@@ -111,6 +124,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case DOUBLE:
       // Postgres has a double type but it is named differently
       castSpec = "double precision";
+      break;
+    case VECTOR:
+      if (!supportsDataType(type)) {
+        return super.getCastSpec(type); // throws
+      }
+      // The pgvector extension's type for vectors of 4-byte floats
+      castSpec = "vector(" + type.getPrecision() + ")";
       break;
     default:
       return super.getCastSpec(type);

@@ -354,6 +354,7 @@ parser: {
     "UTF16"
     "UTF32"
     "UTF8"
+    "VECTOR"
     "VERSION"
     "VIEW"
     "WEEK"

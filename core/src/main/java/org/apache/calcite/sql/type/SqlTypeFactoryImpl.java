@@ -140,6 +140,19 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType createVectorType(RelDataType elementType,
+      int dimension) {
+    final SqlTypeName elementTypeName = elementType.getSqlTypeName();
+    checkArgument(VectorSqlType.isValidElementType(elementTypeName),
+        "invalid element type for VECTOR: %s", elementType);
+    // Normalize the element type (which might, for example, be a Java type)
+    // to a NOT NULL SQL type, because the digest of a vector type contains
+    // only the name of its element type.
+    VectorSqlType newType =
+        new VectorSqlType(createSqlType(elementTypeName), dimension, false);
+    return canonize(newType);
+  }
+
   @Override public RelDataType createFunctionSqlType(
       RelDataType parameterType,
       RelDataType returnType) {
@@ -270,6 +283,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       newType = copyIntervalType(type, nullable);
     } else if (type instanceof ObjectSqlType) {
       newType = copyObjectType(type, nullable);
+    } else if (type instanceof VectorSqlType) {
+      newType = copyVectorType(type, nullable);
     } else {
       return super.createTypeWithNullability(type, nullable);
     }
@@ -292,6 +307,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       newType = copyIntervalType(type, nullable);
     } else if (type instanceof ObjectSqlType) {
       newType = copyObjectType(type, nullable);
+    } else if (type instanceof VectorSqlType) {
+      newType = copyVectorType(type, nullable);
     } else {
       return super.enforceTypeWithNullability(type, nullable);
     }
@@ -306,6 +323,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createArrayType() instead";
     assert typeName != SqlTypeName.MAP
         : "use createMapType() instead";
+    assert typeName != SqlTypeName.VECTOR
+        : "use createVectorType() instead";
     assert typeName != SqlTypeName.ROW
         : "use createStructType() instead";
     assert !SqlTypeName.INTERVAL_TYPES.contains(typeName)
@@ -633,6 +652,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     ArraySqlType at = (ArraySqlType) type;
     RelDataType elementType = copyType(at.getComponentType());
     return new ArraySqlType(elementType, nullable);
+  }
+
+  private RelDataType copyVectorType(RelDataType type, boolean nullable) {
+    VectorSqlType vt = (VectorSqlType) type;
+    RelDataType elementType = copyType(vt.getComponentType());
+    return new VectorSqlType(elementType, vt.getDimension(), nullable);
   }
 
   private RelDataType copyMapType(RelDataType type, boolean nullable) {

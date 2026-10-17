@@ -882,9 +882,13 @@ public class SqlDialect {
     return CalendarPolicy.NULL;
   }
 
-  /** Returns whether this dialect supports a given type. */
+  /** Returns whether this dialect supports a given type.
+   *
+   * <p>The default implementation returns true for all types except
+   * {@code VECTOR}, which few databases support; dialects that support it
+   * override this method. */
   public boolean supportsDataType(RelDataType type) {
-    return true;
+    return type.getSqlTypeName() != SqlTypeName.VECTOR;
   }
 
  /** Returns SqlNode for type in "cast(column as type)", which might be
@@ -913,6 +917,12 @@ public class SqlDialect {
           return new SqlDataTypeSpec(
               new SqlBasicTypeNameSpec(type.getSqlTypeName(), SqlParserPos.ZERO),
               SqlParserPos.ZERO);
+        }
+        break;
+      case VECTOR:
+        if (!supportsDataType(type)) {
+          throw new UnsupportedOperationException("Dialect for "
+              + databaseProduct + " does not support type " + type);
         }
         break;
       default:

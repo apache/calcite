@@ -43,12 +43,15 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -148,6 +151,87 @@ class ServerTest {
       count = s.executeUpdate("update t set j = 100 where i = 99");
       assertThat(count, is(0));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>.
+   *
+   * <p>A dynamic parameter whose value goes into a {@code VECTOR} column has
+   * the type of the column. When the parameter is read, the number of
+   * elements of its value is checked, and each element is converted. */
+  @Test void testVectorDynamicParameter() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table tvec (id int not null, v vector(3))");
+      try (PreparedStatement p =
+               c.prepareStatement("insert into tvec values (?, ?)")) {
+        final ParameterMetaData metaData = p.getParameterMetaData();
+        assertThat(metaData.getParameterType(2), is(Types.ARRAY));
+        assertThat(metaData.getParameterTypeName(2), is("VECTOR"));
+        assertThat(metaData.getPrecision(2), is(3));
+
+        // Correct bindings: floats, integers, doubles and strings
+        p.setInt(1, 1);
+        p.setObject(2, Arrays.asList(1f, 2.5f, -3f));
+        assertThat(p.executeUpdate(), is(1));
+        p.setInt(1, 2);
+        p.setObject(2, Arrays.asList(1, 2L, 3.5d));
+        assertThat(p.executeUpdate(), is(1));
+        p.setInt(1, 3);
+        p.setObject(2, Arrays.asList("4", "5", "6.5"));
+        assertThat(p.executeUpdate(), is(1));
+        p.setInt(1, 4);
+        p.setNull(2, Types.ARRAY);
+        assertThat(p.executeUpdate(), is(1));
+
+        // Wrong number of elements, and a null element
+        p.setInt(1, 5);
+        p.setObject(2, Arrays.asList(1.0d, 2.0d));
+        SQLException e = assertThrows(SQLException.class, p::executeUpdate);
+        assertThat(messages(e),
+            containsString("Cannot convert a value with 2 elements "
+                + "to VECTOR of dimension 3"));
+        p.setObject(2, Arrays.asList(1f, null, 3f));
+        e = assertThrows(SQLException.class, p::executeUpdate);
+        assertThat(messages(e),
+            containsString("Elements of a VECTOR must not be NULL"));
+      }
+
+      try (PreparedStatement p =
+               c.prepareStatement("update tvec set v = ? where id = 2")) {
+        p.setObject(1, Arrays.asList("1", "2", "3", "4"));
+        SQLException e = assertThrows(SQLException.class, p::executeUpdate);
+        assertThat(messages(e),
+            containsString("Cannot convert a value with 4 elements "
+                + "to VECTOR of dimension 3"));
+        p.setObject(1, Arrays.asList("7", "8", "9"));
+        assertThat(p.executeUpdate(), is(1));
+      }
+
+      try (ResultSet r =
+               s.executeQuery("select id, cast(v as varchar(30)) from tvec "
+                   + "order by id")) {
+        final StringBuilder b = new StringBuilder();
+        while (r.next()) {
+          b.append(r.getInt(1)).append(':').append(r.getString(2)).append('\n');
+        }
+        assertThat(b.toString(),
+            is("1:[1.0, 2.5, -3.0]\n"
+                + "2:[7.0, 8.0, 9.0]\n"
+                + "3:[4.0, 5.0, 6.5]\n"
+                + "4:null\n"));
+      }
+    }
+  }
+
+  /** Returns the messages of an exception and its causes. */
+  private static String messages(Throwable e) {
+    final StringBuilder b = new StringBuilder();
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      b.append(t.getMessage()).append('\n');
+    }
+    return b.toString();
   }
 
   @Test void testUpdateDuplicateRows() throws Exception {

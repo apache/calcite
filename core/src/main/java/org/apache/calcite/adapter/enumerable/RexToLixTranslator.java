@@ -56,6 +56,7 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.schema.FunctionContext;
@@ -405,6 +406,108 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return Expressions.call(BuiltInMethod.ARRAY.method, fields);
   }
 
+  /** Converts each element of a list (the value of an ARRAY, MULTISET or
+   * VECTOR) from one type to another. */
+  private Expression getElementConvertExpression(
+      RelDataType sourceElementType,
+      RelDataType targetElementType,
+      Expression list,
+      ConstantExpression format) {
+    return Expressions.call(BuiltInMethod.LIST_TRANSFORM.method, list,
+        getElementConverter(sourceElementType, targetElementType, format));
+  }
+
+  /** Returns a function that converts a value from one type to another; used
+   * to convert the elements of a collection. */
+  private Expression getElementConverter(
+      RelDataType sourceElementType,
+      RelDataType targetElementType,
+      ConstantExpression format) {
+    final Type sourceComponentClass = typeFactory.getJavaClass(sourceElementType);
+    final ParameterExpression parameter =
+        Expressions.parameter(sourceComponentClass, "root");
+    // A NULL component type maps to java.lang.Void. Such elements are always null,
+    // so convert to a null constant instead of the parameter.
+    final Expression element =
+        sourceComponentClass == Void.class ? Expressions.constant(null) : parameter;
+    final Expression convert =
+        getConvertExpression(sourceElementType, targetElementType, element,
+            format);
+    return Expressions.lambda(Function1.class, convert, parameter);
+  }
+
+  /** Converts a value of an ARRAY, VECTOR or character string type to a
+   * VECTOR.
+   *
+   * <p>Checks that the number of elements is the dimension of the vector, and
+   * that no element is null, then converts each element to the element type
+   * of the vector. */
+  private Expression getVectorConvertExpression(
+      RelDataType sourceType,
+      RelDataType targetType,
+      Expression operand,
+      ConstantExpression format) {
+    if (valueIsAlwaysNull(sourceType)) {
+      return Expressions.constant(null);
+    }
+    final RelDataType targetElementType =
+        requireNonNull(targetType.getComponentType(),
+            () -> "componentType of " + targetType);
+    final Expression dimension =
+        Expressions.constant(targetType.getPrecision());
+    final Expression list;
+    final RelDataType sourceElementType;
+    if (SqlTypeUtil.isCharacter(sourceType)) {
+      // Split a string such as "[1, 2.5, 3]" into element strings, then
+      // convert each as "CAST(element AS REAL)" would.
+      list =
+          Expressions.call(BuiltInMethod.VECTOR_FROM_STRING.method, operand,
+              dimension);
+      sourceElementType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    } else {
+      list = operand;
+      sourceElementType =
+          requireNonNull(sourceType.getComponentType(),
+              () -> "componentType of " + sourceType);
+    }
+    final Expression converter;
+    if (valueIsAlwaysNull(sourceElementType)) {
+      // Every element is null (or there are no elements), so the conversion
+      // fails at run time before it calls the converter.
+      final ParameterExpression parameter =
+          Expressions.parameter(Object.class, "root");
+      converter = Expressions.lambda(Function1.class, parameter, parameter);
+    } else if (sourceElementType.getSqlTypeName() == SqlTypeName.ANY) {
+      // For example, the value of a dynamic parameter (see
+      // translateVectorDynamicParam), whose elements may be numbers of any
+      // Java type, or strings. Convert a REAL element using
+      // SqlFunctions.toFloat(Object); convert a TINYINT element via DECIMAL,
+      // which checks that the value is in range.
+      final ParameterExpression parameter =
+          Expressions.parameter(Object.class, "root");
+      final Expression convert;
+      if (SqlTypeUtil.isExactNumeric(targetElementType)) {
+        convert =
+            getConvertExpression(
+                typeFactory.createSqlType(SqlTypeName.DECIMAL),
+                targetElementType,
+                Expressions.call(SqlFunctions.class, "toBigDecimal",
+                    parameter),
+                format);
+      } else {
+        convert =
+            getConvertExpression(sourceElementType, targetElementType,
+                parameter, format);
+      }
+      converter = Expressions.lambda(Function1.class, convert, parameter);
+    } else {
+      converter =
+          getElementConverter(sourceElementType, targetElementType, format);
+    }
+    return Expressions.call(BuiltInMethod.TO_VECTOR.method, list, dimension,
+        converter);
+  }
+
   private Expression getConvertExpression(
       RelDataType sourceType,
       RelDataType targetType,
@@ -443,17 +546,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       final RelDataType targetDataType = targetType.getComponentType();
       assert sourceDataType != null;
       assert targetDataType != null;
-      final Type sourceComponentClass = typeFactory.getJavaClass(sourceDataType);
-      final ParameterExpression parameter =
-          Expressions.parameter(sourceComponentClass, "root");
-      // A NULL component type maps to java.lang.Void. Such elements are always null,
-      // so convert to a null constant instead of the parameter.
-      final Expression element =
-          sourceComponentClass == Void.class ? Expressions.constant(null) : parameter;
-      Expression convert =
-          getConvertExpression(sourceDataType, targetDataType, element, format);
-      return Expressions.call(BuiltInMethod.LIST_TRANSFORM.method, operand,
-          Expressions.lambda(Function1.class, convert, parameter));
+      return getElementConvertExpression(sourceDataType, targetDataType,
+          operand, format);
+
+    case VECTOR:
+      return getVectorConvertExpression(sourceType, targetType, operand,
+          format);
 
     case VARIANT:
       // Converting any type to a VARIANT invokes the Variant constructor
@@ -558,6 +656,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       switch (sourceType.getSqlTypeName()) {
       case UUID:
         return Expressions.call(BuiltInMethod.UUID_TO_STRING.method, operand);
+      case VECTOR:
+        // Convert each element to a string, as "CAST(element AS VARCHAR)"
+        // would, then format the strings as "[e0, e1, ...]".
+        return Expressions.call(BuiltInMethod.VECTOR_TO_STRING.method,
+            getElementConvertExpression(
+                requireNonNull(sourceType.getComponentType(),
+                    () -> "componentType of " + sourceType),
+                typeFactory.createSqlType(SqlTypeName.VARCHAR),
+                operand, format));
       // If format string is supplied, return formatted date/time/timestamp
       case DATE:
         return RexImpTable.optimize2(operand, Expressions.isConstantNull(format)
@@ -1822,6 +1929,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final Type valueType = typeFactory.getJavaClass(dynamicParam.getType());
     final Type storageType = currentStorageType != null ? currentStorageType : valueType;
 
+    if (SqlTypeUtil.isVector(dynamicParam.getType())) {
+      return translateVectorDynamicParam(dynamicParam, storageType, key);
+    }
+
     final boolean isNumeric = SqlTypeFamily.NUMERIC.contains(dynamicParam.getType());
 
     // For numeric types, use java.lang.Number to prevent cast exception
@@ -1848,6 +1959,52 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     list.add(
         Expressions.declare(Modifier.FINAL, valueVariable,
             EnumUtils.convert(valueExpression, storageType)));
+    final ParameterExpression isNullVariable =
+        Expressions.parameter(Boolean.TYPE, list.newName("isNull_dynamic_param"));
+    list.add(
+        Expressions.declare(Modifier.FINAL, isNullVariable,
+            checkNull(valueVariable)));
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexWithStorageTypeResultMap.put(key, result);
+    return result;
+  }
+
+  /** Translates a dynamic parameter whose type is {@code VECTOR}.
+   *
+   * <p>The value that the application binds is a list whose elements may be
+   * numbers of any Java type, or strings. Like
+   * {@code CAST(value AS VECTOR(n))}, the translated code checks that the list
+   * has {@code n} elements, none of them null, and converts each element to the
+   * element type of the vector. A null value remains null. The check applies
+   * wherever the parameter occurs; for example, in
+   * {@code INSERT INTO t (v) VALUES (?)}, the parameter has the type of the
+   * column, and there is no cast. */
+  private Result translateVectorDynamicParam(RexDynamicParam dynamicParam,
+      Type storageType, Pair<RexNode, @Nullable Type> key) {
+    final ParameterExpression rawVariable =
+        Expressions.parameter(List.class, list.newName("raw_dynamic_param"));
+    list.add(
+        Expressions.declare(Modifier.FINAL, rawVariable,
+            EnumUtils.convert(
+                Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
+                    Expressions.constant("?" + dynamicParam.getIndex())),
+                List.class)));
+    final RelDataType anyArrayType =
+        typeFactory.createArrayType(
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.ANY), true), -1);
+    final Expression vector =
+        getVectorConvertExpression(anyArrayType, dynamicParam.getType(),
+            rawVariable, RexImpTable.NULL_EXPR);
+    final ParameterExpression valueVariable =
+        Expressions.parameter(storageType, list.newName("value_dynamic_param"));
+    list.add(
+        Expressions.declare(Modifier.FINAL, valueVariable,
+            EnumUtils.convert(
+                Expressions.condition(
+                    Expressions.equal(rawVariable, RexImpTable.NULL_EXPR),
+                    RexImpTable.NULL_EXPR, vector),
+                storageType)));
     final ParameterExpression isNullVariable =
         Expressions.parameter(Boolean.TYPE, list.newName("isNull_dynamic_param"));
     list.add(

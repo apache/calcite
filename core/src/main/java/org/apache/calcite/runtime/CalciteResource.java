@@ -1254,4 +1254,22 @@ public interface CalciteResource {
 
   @BaseMessage("Duplicate name ''{0}'' in MATCH_RECOGNIZE MEASURE alias list")
   ExInst<CalciteException> measureAliasDuplicate(String aliasName);
+
+  @BaseMessage("Dimension of VECTOR must be a positive integer, but was {0,number,#}")
+  ExInst<CalciteException> invalidVectorDimension(int dimension);
+
+  @BaseMessage("Element type of VECTOR must be REAL or TINYINT, but was ''{0}''")
+  ExInst<CalciteException> invalidVectorElementType(String type);
+
+  @BaseMessage("Cannot convert a value with {0,number,#} elements to VECTOR of dimension {1,number,#}")
+  ExInst<CalciteException> vectorDimensionMismatch(int elementCount, int dimension);
+
+  @BaseMessage("Elements of a VECTOR must not be NULL")
+  ExInst<CalciteException> vectorElementNull();
+
+  @BaseMessage("Invalid VECTOR value ''{0}''; expected numbers separated by commas and enclosed in square brackets, such as ''[1.5, -2, 3]''")
+  ExInst<CalciteException> invalidVectorString(String value);
+
+  @BaseMessage("Values of type ''{0}'' are not comparable, so they cannot be used in {1}")
+  ExInst<SqlValidatorException> typeNotComparableInClause(String type, String clause);
 }

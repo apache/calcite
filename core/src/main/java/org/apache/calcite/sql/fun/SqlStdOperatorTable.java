@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
@@ -1111,7 +1112,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction MODE =
       SqlBasicAggFunction
           .create("MODE", SqlKind.MODE, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
-              OperandTypes.ANY)
+              OperandTypes.notVector(OperandTypes.ANY, (i, n) -> true))
           .withGroupOrder(Optionality.FORBIDDEN)
           .withFunctionType(SqlFunctionCategory.SYSTEM);
 
@@ -1119,7 +1120,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>APPROX_COUNT_DISTINCT</code> aggregate function.
    */
   public static final SqlAggFunction APPROX_COUNT_DISTINCT =
-      new SqlCountAggFunction("APPROX_COUNT_DISTINCT");
+      new SqlCountAggFunction("APPROX_COUNT_DISTINCT",
+          OperandTypes.notVector(
+              CalciteSystemProperty.STRICT.value()
+                  ? OperandTypes.ANY
+                  : OperandTypes.ONE_OR_MORE,
+              (i, n) -> true));
 
   /**
    * <code>ARG_MAX</code> aggregate function.

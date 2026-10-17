@@ -1,0 +1,293 @@
+# vector.iq - VECTOR type
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott
+!set outputformat mysql
+
+# Cast an ARRAY to a VECTOR. The default element type is REAL.
+SELECT CAST(ARRAY[1, 2.5, -3] AS VECTOR(3)) AS v;
++------------------+
+| V                |
++------------------+
+| [1.0, 2.5, -3.0] |
++------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(ARRAY[1, 2, 3] AS VECTOR(3, TINYINT)) AS v;
++-----------+
+| V         |
++-----------+
+| [1, 2, 3] |
++-----------+
+(1 row)
+
+!ok
+
+# The dimension is the column size
+SELECT CAST(ARRAY[1, 2, 3] AS VECTOR(3)) AS v;
+V VECTOR(3) NOT NULL
+!type
+
+# Cast a character string to a VECTOR
+SELECT CAST('[1.5, -2, 3e2]' AS VECTOR(3)) AS v;
++--------------------+
+| V                  |
++--------------------+
+| [1.5, -2.0, 300.0] |
++--------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(' [ 1 , 2 , 3 ] ' AS VECTOR(3, TINYINT)) AS v;
++-----------+
+| V         |
++-----------+
+| [1, 2, 3] |
++-----------+
+(1 row)
+
+!ok
+
+# Cast a VECTOR to a character string
+SELECT CAST(CAST(ARRAY[1.5, -2, 300] AS VECTOR(3)) AS VARCHAR) AS s;
++--------------------+
+| S                  |
++--------------------+
+| [1.5, -2.0, 300.0] |
++--------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST('[1, 2, 3]' AS VECTOR(3, TINYINT)) AS VARCHAR(20)) AS s;
++-----------+
+| S         |
++-----------+
+| [1, 2, 3] |
++-----------+
+(1 row)
+
+!ok
+
+# Cast a VECTOR to an ARRAY
+SELECT CAST(CAST(ARRAY[1, 2] AS VECTOR(2)) AS DOUBLE ARRAY) AS a;
++------------+
+| A          |
++------------+
+| [1.0, 2.0] |
++------------+
+(1 row)
+
+!ok
+
+SELECT CARDINALITY(CAST(CAST(ARRAY[1, 2] AS VECTOR(2)) AS REAL ARRAY)) AS c;
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# Cast a VECTOR to a VECTOR with a different element type
+SELECT CAST(CAST(ARRAY[1.25, 2.75] AS VECTOR(2)) AS VECTOR(2, TINYINT)) AS v;
++--------+
+| V      |
++--------+
+| [1, 2] |
++--------+
+(1 row)
+
+!ok
+
+# A NULL vector
+SELECT CAST(NULL AS VECTOR(3)) AS v;
++---+
+| V |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# Vectors in a relation
+WITH t (id, v) AS (
+  VALUES (1, CAST(ARRAY[1, 2, 3] AS VECTOR(3))),
+    (2, CAST('[4, 5, 6]' AS VECTOR(3))),
+    (3, NULL))
+SELECT id, v, v IS NULL AS n
+FROM t
+ORDER BY id;
++----+-----------------+-------+
+| ID | V               | N     |
++----+-----------------+-------+
+|  1 | [1.0, 2.0, 3.0] | false |
+|  2 | [4.0, 5.0, 6.0] | false |
+|  3 |                 | true  |
++----+-----------------+-------+
+(3 rows)
+
+!ok
+
+# Vectors are compatible with vectors of the same dimension in COALESCE,
+# CASE and UNION ALL
+WITH t (id, v) AS (
+  VALUES (1, CAST(ARRAY[1, 2, 3] AS VECTOR(3))),
+    (2, NULL))
+SELECT id, COALESCE(v, CAST('[0, 0, 0]' AS VECTOR(3))) AS v,
+  CASE WHEN id = 1 THEN NULL ELSE v END AS v2
+FROM t
+UNION ALL
+SELECT 3, CAST('[7, 8, 9]' AS VECTOR(3)), NULL;
++----+-----------------+----+
+| ID | V               | V2 |
++----+-----------------+----+
+|  1 | [1.0, 2.0, 3.0] |    |
+|  2 | [0.0, 0.0, 0.0] |    |
+|  3 | [7.0, 8.0, 9.0] |    |
++----+-----------------+----+
+(3 rows)
+
+!ok
+
+# Vectors with different element types have no common type; use CAST
+SELECT COALESCE(CAST(NULL AS VECTOR(2, TINYINT)), CAST(ARRAY[1.5, 2.5] AS VECTOR(2))) AS v;
+java.sql.SQLException: Error while executing SQL "SELECT COALESCE(CAST(NULL AS VECTOR(2, TINYINT)), CAST(ARRAY[1.5, 2.5] AS VECTOR(2))) AS v": From line 1, column 8 to line 1, column 85: Illegal mixing of types in CASE or COALESCE statement
+!error
+
+SELECT CAST(ARRAY[1, 2] AS VECTOR(2, TINYINT)) AS v UNION ALL SELECT CAST(ARRAY[1.5, 2.5] AS VECTOR(2));
+java.sql.SQLException: Error while executing SQL "SELECT CAST(ARRAY[1, 2] AS VECTOR(2, TINYINT)) AS v UNION ALL SELECT CAST(ARRAY[1.5, 2.5] AS VECTOR(2))": From line 1, column 8 to line 1, column 51: Type mismatch in column 1 of UNION ALL
+!error
+
+SELECT CAST(CAST(ARRAY[1, 2] AS VECTOR(2, TINYINT)) AS VECTOR(2)) AS v UNION ALL SELECT CAST(ARRAY[1.5, 2.5] AS VECTOR(2));
++------------+
+| V          |
++------------+
+| [1.0, 2.0] |
+| [1.5, 2.5] |
++------------+
+(2 rows)
+
+!ok
+
+# COUNT accepts a vector argument
+WITH t (v) AS (
+  VALUES (CAST(ARRAY[1, 2] AS VECTOR(2))), (NULL))
+SELECT COUNT(*) AS c, COUNT(v) AS cv
+FROM t;
++---+----+
+| C | CV |
++---+----+
+| 2 |  1 |
++---+----+
+(1 row)
+
+!ok
+
+# The plan casts an array constructor to the vector type
+SELECT CAST(ARRAY[1, 2] AS VECTOR(2)) AS v FROM (VALUES 1);
++------------+
+| V          |
++------------+
+| [1.0, 2.0] |
++------------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ARRAY($t1, $t2)], expr#4=[CAST($t3):VECTOR(2, REAL) NOT NULL], V=[$t4])
+  EnumerableValues(tuples=[[{ 1 }]])
+!plan
+
+# Run-time errors: wrong number of elements, a NULL element,
+# a malformed string, an element out of range
+SELECT CAST(CAST(ARRAY[1, 2, 3] AS INTEGER ARRAY) AS VECTOR(2));
+org.apache.calcite.runtime.CalciteException: Cannot convert a value with 3 elements to VECTOR of dimension 2
+!error
+
+SELECT CAST(ARRAY[1, NULL] AS VECTOR(2));
+org.apache.calcite.runtime.CalciteException: Elements of a VECTOR must not be NULL
+!error
+
+SELECT CAST(x AS VECTOR(2)) FROM (VALUES ('[1, 2')) AS t (x);
+org.apache.calcite.runtime.CalciteException: Invalid VECTOR value '[1, 2'; expected numbers separated by commas and enclosed in square brackets, such as '[1.5, -2, 3]'
+!error
+
+SELECT CAST(x AS VECTOR(2)) FROM (VALUES ('[1, 2, 3]')) AS t (x);
+org.apache.calcite.runtime.CalciteException: Cannot convert a value with 3 elements to VECTOR of dimension 2
+!error
+
+SELECT CAST(x AS VECTOR(2, TINYINT)) FROM (VALUES ('[1, 1000]')) AS t (x);
+java.lang.NumberFormatException: Value out of range. Value:"1000" Radix:10
+!error
+
+SELECT CAST(x AS VECTOR(2, TINYINT)) FROM (VALUES (ARRAY[1, 1000])) AS t (x);
+java.lang.ArithmeticException: Value 1000 out of range
+!error
+
+# Validation errors: wrong number of elements in an array constructor or
+# character literal; vectors of different dimensions
+SELECT CAST(ARRAY[1, 2] AS VECTOR(3));
+java.sql.SQLException: Error while executing SQL "SELECT CAST(ARRAY[1, 2] AS VECTOR(3))": From line 1, column 13 to line 1, column 23: Cannot convert a value with 2 elements to VECTOR of dimension 3
+!error
+
+SELECT CAST('[1, 2]' AS VECTOR(3));
+java.sql.SQLException: Error while executing SQL "SELECT CAST('[1, 2]' AS VECTOR(3))": From line 1, column 13 to line 1, column 20: Cannot convert a value with 2 elements to VECTOR of dimension 3
+!error
+
+SELECT CAST(CAST(ARRAY[1, 2] AS VECTOR(2)) AS VECTOR(3));
+java.sql.SQLException: Error while executing SQL "SELECT CAST(CAST(ARRAY[1, 2] AS VECTOR(2)) AS VECTOR(3))": From line 1, column 8 to line 1, column 56: Cast function cannot convert value of type VECTOR(2, REAL) NOT NULL to type VECTOR(3, REAL) NOT NULL
+!error
+
+# Vectors are not comparable
+SELECT * FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) WHERE v = v;
+java.sql.SQLException: Error while executing SQL "SELECT * FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) WHERE v = v": From line 1, column 70 to line 1, column 74: Cannot apply '=' to arguments of type '<VECTOR(2, REAL)> = <VECTOR(2, REAL)>'. Supported form(s): '<COMPARABLE_TYPE> = <COMPARABLE_TYPE>'
+!error
+
+SELECT * FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) ORDER BY v;
+java.sql.SQLException: Error while executing SQL "SELECT * FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) ORDER BY v": At line 1, column 73: Values of type 'VECTOR(2, REAL)' are not comparable, so they cannot be used in ORDER BY
+!error
+
+SELECT * FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) ORDER BY 1;
+java.sql.SQLException: Error while executing SQL "SELECT * FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) ORDER BY 1": At line 1, column 73: Values of type 'VECTOR(2, REAL)' are not comparable, so they cannot be used in ORDER BY
+!error
+
+SELECT v, COUNT(*) FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) GROUP BY v;
+java.sql.SQLException: Error while executing SQL "SELECT v, COUNT(*) FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v) GROUP BY v": At line 1, column 83: Values of type 'VECTOR(2, REAL)' are not comparable, so they cannot be used in GROUP BY
+!error
+
+SELECT DISTINCT v FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v);
+java.sql.SQLException: Error while executing SQL "SELECT DISTINCT v FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v)": At line 1, column 17: Values of type 'VECTOR(2, REAL)' are not comparable, so they cannot be used in SELECT DISTINCT
+!error
+
+SELECT CAST(ARRAY[1, 2] AS VECTOR(2)) UNION SELECT CAST(ARRAY[3, 4] AS VECTOR(2));
+java.sql.SQLException: Error while executing SQL "SELECT CAST(ARRAY[1, 2] AS VECTOR(2)) UNION SELECT CAST(ARRAY[3, 4] AS VECTOR(2))": From line 1, column 1 to line 1, column 81: Values of type 'VECTOR(2, REAL)' are not comparable, so they cannot be used in UNION
+!error
+
+SELECT MAX(v) FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v);
+java.sql.SQLException: Error while executing SQL "SELECT MAX(v) FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v)": From line 1, column 8 to line 1, column 13: Cannot apply 'MAX' to arguments of type 'MAX(<VECTOR(2, REAL)>)'. Supported form(s): 'MAX(<COMPARABLE_TYPE>)'
+!error
+
+SELECT ROW_NUMBER() OVER (ORDER BY v) FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v);
+java.sql.SQLException: Error while executing SQL "SELECT ROW_NUMBER() OVER (ORDER BY v) FROM (VALUES CAST(ARRAY[1, 2] AS VECTOR(2))) AS t (v)": At line 1, column 36: Values of type 'VECTOR(2, REAL)' are not comparable, so they cannot be used in ORDER BY
+!error
+
+# End vector.iq

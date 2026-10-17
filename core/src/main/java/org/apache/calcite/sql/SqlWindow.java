@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -637,6 +638,9 @@ public class SqlWindow extends SqlCall {
       }
 
       partitionItem.validateExpr(validator, operandScope);
+      SqlValidatorUtil.checkComparability(validator, partitionItem,
+          validator.deriveType(operandScope, partitionItem),
+          RelDataTypeComparability.UNORDERED, "PARTITION BY");
     }
 
     for (SqlNode orderItem : orderList) {
@@ -652,6 +656,10 @@ public class SqlWindow extends SqlCall {
 
       try {
         orderItem.validateExpr(validator, scope);
+        final SqlNode orderExpr = SqlUtil.stripOrderModifiers(orderItem);
+        SqlValidatorUtil.checkComparability(validator, orderExpr,
+            validator.deriveType(scope, orderExpr),
+            RelDataTypeComparability.ALL, "ORDER BY");
       } finally {
         validator.transform(config ->
             config.withColumnReferenceExpansion(savedColumnReferenceExpansion));

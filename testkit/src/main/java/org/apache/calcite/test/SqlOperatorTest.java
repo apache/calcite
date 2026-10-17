@@ -1956,6 +1956,110 @@ public class SqlOperatorTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>. */
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastToVector(CastType castType, SqlOperatorFixture f) {
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+
+    // From an array of numbers
+    f.checkScalar("cast(array[1, 2.5, -3] as vector(3))",
+        "[1.0, 2.5, -3.0]", "VECTOR(3, REAL) NOT NULL");
+    f.checkScalar("cast(array[1e0, 2e0] as vector(2, real))",
+        "[1.0, 2.0]", "VECTOR(2, REAL) NOT NULL");
+    f.checkScalar("cast(array[1, -2, 127] as vector(3, tinyint))",
+        "[1, -2, 127]", "VECTOR(3, TINYINT) NOT NULL");
+
+    // From a character string
+    f.checkScalar("cast('[1.5, -2, 3e2]' as vector(3))",
+        "[1.5, -2.0, 300.0]", "VECTOR(3, REAL) NOT NULL");
+    f.checkScalar("cast(' [ 1 ,2 , 3 ] ' as vector(3, tinyint))",
+        "[1, 2, 3]", "VECTOR(3, TINYINT) NOT NULL");
+
+    // From a vector of the same dimension
+    f.checkScalar("cast(cast(array[1.25, -2.75] as vector(2)) "
+            + "as vector(2, tinyint))",
+        "[1, -2]", "VECTOR(2, TINYINT) NOT NULL");
+
+    // From null values
+    f.checkNull("cast(null as vector(3))");
+    f.checkNull("cast(cast(null as integer array) as vector(3))");
+    f.checkNull("cast(cast(null as varchar(10)) as vector(3))");
+
+    // If the value is not an array constructor or a character literal, the
+    // number of elements is checked at run time
+    final String[] expressions = {
+        "cast(cast(array[1, 2, 3] as integer array) as vector(2))",
+        "cast(cast('[1, 2, 3]' as varchar(10)) as vector(2))",
+        "cast(array[1, null] as vector(2))",
+        "cast(cast('[1, 2' as varchar(10)) as vector(2))",
+    };
+    final String[] errors = {
+        "Cannot convert a value with 3 elements to VECTOR of dimension 2",
+        "Cannot convert a value with 3 elements to VECTOR of dimension 2",
+        "Elements of a VECTOR must not be NULL",
+        "Invalid VECTOR value '\\[1, 2'; expected numbers .*",
+    };
+    for (int i = 0; i < expressions.length; i++) {
+      if (castType == CastType.CAST) {
+        f.checkFails(expressions[i], errors[i], true);
+      } else {
+        f.checkNull(expressions[i]);
+      }
+    }
+
+    // If the operand is an array constructor or a character literal, CAST
+    // checks the number of elements and the format during validation, but
+    // SAFE_CAST and TRY_CAST return NULL
+    if (castType == CastType.CAST) {
+      f.checkFails("cast(^array[1, 2]^ as vector(3))",
+          "Cannot convert a value with 2 elements to VECTOR of dimension 3",
+          false);
+      f.checkFails("cast(^'[1, 2]'^ as vector(3))",
+          "Cannot convert a value with 2 elements to VECTOR of dimension 3",
+          false);
+      f.checkFails("cast(^'junk'^ as vector(3))",
+          "Invalid VECTOR value 'junk'; expected numbers .*", false);
+    } else {
+      f.checkNull("cast(array[1, 2] as vector(3))");
+      f.checkNull("cast('[1, 2]' as vector(3))");
+      f.checkNull("cast('junk' as vector(3))");
+      f.checkNull("cast('[1, 1000]' as vector(2, tinyint))");
+    }
+  }
+
+  /** Tests casts from the {@code VECTOR} type. */
+  @Test void testCastFromVector() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+    final String v = "cast(array[1.5, -2, 300] as vector(3))";
+    f.checkScalar("cast(" + v + " as real array)",
+        "[1.5, -2.0, 300.0]", "REAL NOT NULL ARRAY NOT NULL");
+    f.checkScalar("cast(" + v + " as double array)",
+        "[1.5, -2.0, 300.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("cast(" + v + " as integer array)",
+        "[1, -2, 300]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("cardinality(cast(" + v + " as real array))",
+        3, "INTEGER NOT NULL");
+    f.checkString("cast(" + v + " as varchar)",
+        "[1.5, -2.0, 300.0]", "VARCHAR NOT NULL");
+    f.checkString("cast(" + v + " as varchar(8))",
+        "[1.5, -2", "VARCHAR(8) NOT NULL");
+    f.checkString("cast(cast('[1, 2, 3]' as vector(3, tinyint)) as varchar)",
+        "[1, 2, 3]", "VARCHAR NOT NULL");
+    // A vector converts to a string that converts back to the same vector
+    f.checkScalar("cast(cast(" + v + " as varchar) as vector(3))",
+        "[1.5, -2.0, 300.0]", "VECTOR(3, REAL) NOT NULL");
+    f.checkNull("cast(cast(null as vector(3)) as real array)");
+    f.checkNull("cast(cast(null as vector(3)) as varchar)");
+    f.checkFails("^cast(" + v + " as double)^",
+        "Cast function cannot convert value of type VECTOR\\(3, REAL\\) NOT NULL "
+            + "to type DOUBLE NOT NULL",
+        false);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7658">
    * [CALCITE-7658] Type checker rejects
    * CAST(ARRAY() AS ROW(x INT) ARRAY)</a>.
