@@ -798,7 +798,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         final List<SqlNode> operandList = ((SqlCall) operand).getOperandList();
         String name = ((SqlIdentifier) operandList.get(1)).getSimple();
         final List<String> paramNames = operandMetadata.paramNames();
-        int formalIndex = paramNames.indexOf(name);
+        int formalIndex = SqlUtil.lookupParamNameCaseInsensitive(paramNames, name);
         if (formalIndex < 0) {
           return false;
         }

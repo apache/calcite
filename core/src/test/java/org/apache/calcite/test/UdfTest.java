@@ -247,6 +247,78 @@ class UdfTest {
     assertThat(after, is(before + 1));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6245">[CALCITE-6245]
+   * A ValidationError occurs when a named parameter is used on a
+   * ScalarFunction or AggregateFunction</a>. */
+  @Test void testScalarFunctionWithParameter() {
+    final String sql = "select \"adhoc\".my_det_plus(x => \"deptno\", y => 100) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
+    final int before = c.get();
+    withUdf()
+        .with("caseSensitive", false)
+        .query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 1));
+    // Unquoted argument names in reverse order: the parser upper-cases 'x' and
+    // 'y' to 'X' and 'Y', and the arguments must still be permuted into the
+    // formal parameter order (x first, y second).
+    final String reverseSql = "select \"adhoc\".my_det_plus(y => 100, x => \"deptno\") as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    withUdf()
+        .with("caseSensitive", false)
+        .query(reverseSql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6245">[CALCITE-6245]
+   * A ValidationError occurs when a named parameter is used on a
+   * ScalarFunction or AggregateFunction</a>. */
+  @Test void testAggFunctionWithParameter() {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String sum = Smalls.MyStaticSumFunction.class.getName();
+    final String sum2 = Smalls.MySumFunction.class.getName();
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM',\n"
+        + "           className: '" + sum + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum2 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .withDefaultSchema("adhoc")
+        .with("caseSensitive", false);
+    with.withDefaultSchema(null)
+        .query(
+            "select \"adhoc\".my_sum(arg1  => \"deptno\") as p from \"adhoc\".EMPLOYEES\n")
+        .returns("P=50\n");
+  }
+
   @Test void testUserDefinedFunctionB() {
     final String sql = "select \"adhoc\".my_double(\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
