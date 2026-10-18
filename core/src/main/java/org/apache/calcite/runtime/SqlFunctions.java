@@ -5286,13 +5286,34 @@ public class SqlFunctions {
   /** CAST(VARCHAR AS BOOLEAN). */
   public static boolean toBoolean(String s) {
     s = s.trim();
-    if (s.equalsIgnoreCase("TRUE")) {
+    if (equalsIgnoreAsciiCase(s, "TRUE")) {
       return true;
-    } else if (s.equalsIgnoreCase("FALSE")) {
+    } else if (equalsIgnoreAsciiCase(s, "FALSE")) {
       return false;
     } else {
       throw RESOURCE.invalidCharacterForCast(s).ex();
     }
+  }
+
+  /** Returns 'true' is s equals and upper-case word 'upper', ignoring
+   * only the case of ASCII characters. */
+  private static boolean equalsIgnoreAsciiCase(String s, String upper) {
+    if (s.length() != upper.length()) {
+      return false;
+    }
+    // We restrict the comparison to ASCII characters: for
+    // example, U+017F (long s) upper-cased is 'S', but we do
+    // not want to match it.
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (c >= 'a' && c <= 'z') {
+        c = (char) (c - 'a' + 'A');
+      }
+      if (c != upper.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static boolean toBoolean(Number number) {
@@ -5322,7 +5343,7 @@ public class SqlFunctions {
   }
 
   public static byte toByte(String s) {
-    return parseByte(s.trim());
+    return parseByte(Primitive.checkNumericString(s.trim()));
   }
 
   public static byte toByte(Object o) {
@@ -5344,7 +5365,7 @@ public class SqlFunctions {
   }
 
   public static short toShort(String s) {
-    return parseShort(s.trim());
+    return parseShort(Primitive.checkNumericString(s.trim()));
   }
 
   public static short toShort(Number number) {
@@ -5453,7 +5474,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(String s) {
-    return parseInt(s.trim());
+    return parseInt(Primitive.checkNumericString(s.trim()));
   }
 
   public static int toInt(Number number) {
@@ -5557,7 +5578,7 @@ public class SqlFunctions {
     if (s.startsWith("199") && s.contains(":")) {
       return Timestamp.valueOf(s).getTime();
     }
-    return parseLong(s.trim());
+    return parseLong(Primitive.checkNumericString(s.trim()));
   }
 
   public static long toLong(Number number) {
@@ -5580,7 +5601,7 @@ public class SqlFunctions {
   }
 
   public static float toFloat(String s) {
-    return parseFloat(s.trim());
+    return parseFloat(Primitive.checkApproxNumericString(s.trim()));
   }
 
   public static float toFloat(Number number) {
@@ -5595,7 +5616,7 @@ public class SqlFunctions {
   }
 
   public static double toDouble(String s) {
-    return parseDouble(s.trim());
+    return parseDouble(Primitive.checkApproxNumericString(s.trim()));
   }
 
   public static double toDouble(Number number) {
@@ -5615,7 +5636,7 @@ public class SqlFunctions {
           "Cannot convert null string to BigDecimal");
     }
     try {
-      return new BigDecimal(s.trim());
+      return new BigDecimal(Primitive.checkNumericString(s.trim()));
     } catch (NumberFormatException e) {
       NumberFormatException ex =
           new NumberFormatException("Invalid value for BigDecimal: \"" + s + "\"");
