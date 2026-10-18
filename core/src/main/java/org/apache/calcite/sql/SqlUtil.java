@@ -41,6 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
@@ -754,7 +755,7 @@ public abstract class SqlUtil {
     // parameters of all of these names.
     Map<Integer, Integer> map = new HashMap<>();
     for (Ord<String> argName : Ord.zip(argNames)) {
-      int i = paramNames.indexOf(argName.e);
+      int i = lookupParamNameCaseInsensitive(paramNames, argName.e);
       if (i < 0) {
         return null;
       }
@@ -764,6 +765,24 @@ public abstract class SqlUtil {
       Integer argIndex = map.get(index);
       return argIndex != null ? argTypes.get(argIndex) : null;
     });
+  }
+
+  /** Looks up a parameter name in a list of formal parameter names,
+   * case-insensitively.
+   *
+   * @param paramNames list of formal parameter names
+   * @param argName argument name to look up
+   * @return index of the first matching parameter, or -1 if not found
+   */
+  public static int lookupParamNameCaseInsensitive(List<String> paramNames,
+      String argName) {
+    for (int i = 0; i < paramNames.size(); i++) {
+      if (SqlNameMatchers.withCaseSensitive(false)
+          .matches(paramNames.get(i), argName)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -802,7 +821,7 @@ public abstract class SqlUtil {
               final List<RelDataType> paramTypes =
                   operandMetadata.paramTypes(typeFactory);
               int index = argNames != null
-                  ? paramNames.indexOf(argNames.get(argType.i))
+                  ? lookupParamNameCaseInsensitive(paramNames, argNames.get(argType.i))
                   : argType.i;
               final RelDataType paramType = paramTypes.get(index);
               return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
@@ -828,7 +847,7 @@ public abstract class SqlUtil {
           operandMetadata.paramTypes(typeFactory);
       final List<String> paramNames = operandMetadata.paramNames();
       final RelDataType paramType = argNames != null
-          ? paramTypes.get(paramNames.indexOf(argNames.get(i)))
+          ? paramTypes.get(lookupParamNameCaseInsensitive(paramNames, argNames.get(i)))
           : paramTypes.get(i);
       if (bestMatch == null) {
         bestMatch = paramType;
