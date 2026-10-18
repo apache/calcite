@@ -1894,6 +1894,50 @@ public class SqlOperatorTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7865">[CALCITE-7865]
+   * CASTS from string trim in inconsistent ways</a>. */
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFromStringTrim(CastType castType, SqlOperatorFixture f) {
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+    // Target type, and a valid string for that type
+    final String[][] casts = {
+        {"TINYINT", "1"},
+        {"SMALLINT", "1"},
+        {"INTEGER", "1"},
+        {"BIGINT", "1"},
+        {"TINYINT UNSIGNED", "1"},
+        {"SMALLINT UNSIGNED", "1"},
+        {"INTEGER UNSIGNED", "1"},
+        {"BIGINT UNSIGNED", "1"},
+        {"REAL", "1.5"},
+        {"DOUBLE", "1.5"},
+        {"DECIMAL(5, 2)", "1.5"},
+        {"BOOLEAN", "true"},
+        {"DATE", "2020-01-02"},
+        {"TIME", "10:11:12"},
+        {"TIMESTAMP", "2020-01-02 10:11:12"},
+        {"TIME WITH LOCAL TIME ZONE", "10:11:12 UTC"},
+        {"TIMESTAMP WITH LOCAL TIME ZONE", "2020-01-02 10:11:12 UTC"},
+        {"INTERVAL DAY", "3"},
+    };
+    for (String[] cast : casts) {
+      final String type = cast[0];
+      final String value = cast[1];
+      // Each cast removes leading and trailing characters up to U+0020,
+      // as String.trim does
+      for (String c : new String[] {"\\0009", "\\000A", "\\001F", "\\0020"}) {
+        f.checkBoolean("cast(U&'" + c + value + c + "' as " + type + ")"
+            + " = cast('" + value + "' as " + type + ")", true);
+      }
+      if (castType != CastType.CAST) {
+        // No cast removes U+00A0 (no-break space), which is above U+0020
+        f.checkNull("cast(U&'\\00A0" + value + "' as " + type + ")");
+      }
+    }
+  }
+
   @Test void testCastToDecimal() {
     final SqlOperatorFixture f = fixture();
     // test the minimum scale is 0
