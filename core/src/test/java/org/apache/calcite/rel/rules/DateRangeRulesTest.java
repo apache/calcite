@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableSet;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Set;
 
@@ -356,6 +357,24 @@ class DateRangeRulesTest {
             f.eq(f.exDayTs, f.literal(31))),
         is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
             + " AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00)), false)"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4531">[CALCITE-4531]
+   * Deprecate RexLiteral#intValue since it performs silent truncation</a>.
+   *
+   * <p>EXTRACT returns a BIGINT, so a comparison may involve a value that does
+   * not fit in an {@code int}. The comparison is left unchanged rather than
+   * failing with an overflow.
+   */
+  @Test void testExtractRewriteForHugeValueComparison() {
+    final Fixture2 f = new Fixture2();
+    final RexNode huge =
+        f.rexBuilder.makeBigintLiteral(BigDecimal.valueOf(3_000_000_000L));
+    checkDateRange(f, f.eq(f.exYearD, huge),
+        is("=(EXTRACT(FLAG(YEAR), $8), 3000000000)"));
+    checkDateRange(f, f.lt(f.exYearTs, huge),
+        is("<(EXTRACT(FLAG(YEAR), $9), 3000000000)"));
   }
 
   /** Test case for

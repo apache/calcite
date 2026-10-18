@@ -59,7 +59,7 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
     } else {
       startIndex =
           DruidExpressions.numberLiteral(
-              RexLiteral.intValue(call.getOperands().get(1)) - 1);
+              RexLiteral.longValue(call.getOperands().get(1)) - 1);
     }
 
     if (call.getOperands().size() > 2) {
@@ -76,7 +76,7 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
         // case length is a constant
         length =
             DruidExpressions.numberLiteral(
-                RexLiteral.intValue(call.getOperands().get(2)));
+                RexLiteral.longValue(call.getOperands().get(2)));
       }
 
     } else {

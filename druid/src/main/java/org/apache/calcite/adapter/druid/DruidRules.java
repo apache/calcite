@@ -856,7 +856,8 @@ public class DruidRules {
       // Either it is:
       // - a pure limit above a query of type scan
       // - a sort and limit on a dimension/metric part of the druid group by query
-      if (sort.offset != null && RexLiteral.intValue(sort.offset) != 0) {
+      if (sort.offset != null
+          && RexLiteral.bigDecimalValue(sort.offset).signum() != 0) {
         // offset not supported by Druid
         return;
       }

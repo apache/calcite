@@ -502,7 +502,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
         if (r instanceof Sort) {
           final Sort sort = (Sort) r;
-          if (sort.offset != null && RexLiteral.intValue(sort.offset) != 0) {
+          if (sort.offset != null
+              && RexLiteral.bigDecimalValue(sort.offset).signum() != 0) {
             return litmus.fail("offset not supported");
           }
         }
@@ -712,7 +713,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           numericCollationBitSetBuilder.set(fCol.getFieldIndex());
         }
       }
-      fetch = sort.fetch != null ? RexLiteral.intValue(sort.fetch) : null;
+      fetch = sort.fetch != null
+          ? RexLiteral.bigDecimalValue(sort.fetch).intValueExact() : null;
     }
 
     if (i != rels.size()) {

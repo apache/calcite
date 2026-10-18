@@ -525,8 +525,14 @@ public abstract class DateRangeRules {
       }
       final RangeSet<Calendar> s2 = TreeRangeSet.create();
       final int rangeCountMark = rangeExpansionLimiter.mark();
+      final long longV = RexLiteral.longValue(literal);
+      if (longV > Integer.MAX_VALUE || longV < Integer.MIN_VALUE) {
+        // EXTRACT returns a BIGINT, so the literal may be outside the range
+        // of int; leave the predicate unchanged instead of throwing
+        return originalCall;
+      }
       // Calendar.MONTH is 0-based
-      final int v = RexLiteral.intValue(literal)
+      final int v = (int) longV
           - (timeUnit == TimeUnitRange.MONTH ? 1 : 0);
 
       if (!isValid(v, timeUnit)) {

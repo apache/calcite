@@ -1291,7 +1291,18 @@ public class RexLiteral extends RexNode {
   }
 
   /** Returns the value of a literal, cast, or unary minus, as an int;
-   * never null. */
+   * never null.
+   *
+   * @deprecated Narrowing the value to an {@code int} is error-prone: this
+   *     method throws if the value does not fit in an {@code int}, and
+   *     silently drops fractional digits. Use {@link #longValue},
+   *     {@link #bigDecimalValue} or {@link #numberValue} instead, and narrow
+   *     explicitly (for example, via {@link BigDecimal#intValueExact()}) if
+   *     an {@code int} is required. See
+   *     <a href="https://issues.apache.org/jira/browse/CALCITE-4531">
+   *     [CALCITE-4531]</a>.
+   */
+  @Deprecated // to be removed before 2.0
   public static int intValue(RexNode node) {
     final Number number = numberValue(node);
     long longValue = number.longValue();

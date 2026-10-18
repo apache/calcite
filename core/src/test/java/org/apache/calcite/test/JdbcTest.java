@@ -3920,6 +3920,42 @@ public class JdbcTest {
             + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4531">[CALCITE-4531]
+   * Deprecate RexLiteral#intValue since it performs silent truncation</a>.
+   *
+   * <p>LIMIT greater than the maximum int value used to be silently
+   * truncated, so "limit 2^40" became "limit 0" and the query silently
+   * returned no rows. */
+  @Test void testLimitExceedsMaxInt() {
+    CalciteAssert.hr()
+        .query("select * from \"hr\".\"emps\"\n"
+            + "limit " + (1L << 40))
+        .returns(""
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4531">[CALCITE-4531]
+   * Deprecate RexLiteral#intValue since it performs silent truncation</a>.
+   *
+   * <p>LIMIT of the maximum BIGINT value used to fail with
+   * "AssertionError" as the row count calculation truncated the value
+   * to a negative int. */
+  @Test void testLimitMaxLong() {
+    CalciteAssert.hr()
+        .query("select * from \"hr\".\"emps\"\n"
+            + "limit " + Long.MAX_VALUE)
+        .returns(""
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
+  }
+
   /** Limit implemented using {@link Queryable#take}. Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-96">[CALCITE-96]
    * LIMIT against a table in a clone schema causes
