@@ -735,7 +735,7 @@ public enum BuiltInMethod {
   INTERNAL_TO_DATE(SqlFunctions.class, "internalToDate", int.class),
   INTERNAL_TO_TIME(SqlFunctions.class, "internalToTime", int.class),
   INTERNAL_TO_TIMESTAMP(SqlFunctions.class, "internalToTimestamp", long.class),
-  STRING_TO_DATE(DateTimeUtils.class, "dateStringToUnixDate", String.class),
+  STRING_TO_DATE(SqlFunctions.class, "stringToDate", String.class),
   STRING_TO_TIME(DateTimeUtils.class, "timeStringToUnixDate", String.class),
   STRING_TO_TIMESTAMP(DateTimeUtils.class, "timestampStringToUnixDate", String.class),
   STRING_TO_TIME_WITH_LOCAL_TIME_ZONE(SqlFunctions.class, "toTimeWithLocalTimeZone",
