@@ -413,24 +413,50 @@ PLAN VARCHAR NOT NULL
 
 # [CALCITE-7863] AggregateReduceFunctionsOnGroupKeysRule fails for constant aggregates on empty input
 !set hep-rules "
-+CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS"
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS,
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS"
 
 SELECT
     MIN(1) AS min_v,
-    MAX(1) AS max_v
+    MAX(1) AS max_v,
+    AVG(1) AS avg_v,
+    ANY_VALUE(1) AS any_v
 FROM (VALUES (7)) AS t(x)
 WHERE x < 0;
-+-------+-------+
-| MIN_V | MAX_V |
-+-------+-------+
-|       |       |
-+-------+-------+
++-------+-------+-------+-------+
+| MIN_V | MAX_V | AVG_V | ANY_V |
++-------+-------+-------+-------+
+|       |       |       |       |
++-------+-------+-------+-------+
 (1 row)
 
 !ok
-EnumerableAggregate(group=[{}], MIN_V=[MIN($0)], MAX_V=[MAX($0)])
-  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[0], expr#3=[<($t0, $t2)], $f0=[$t1], $condition=[$t3])
-    EnumerableValues(tuples=[[{ 7 }]])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t3, $t5)], expr#7=[null:INTEGER], expr#8=[CASE($t6, $t7, $t2)], expr#9=[/($t8, $t3)], expr#10=[CAST($t9):INTEGER], proj#0..1=[{exprs}], AVG_V=[$t10], ANY_V=[$t4])
+  EnumerableAggregate(group=[{}], MIN_V=[MIN($0)], MAX_V=[MAX($0)], agg#2=[$SUM0($0)], agg#3=[COUNT()], ANY_V=[ANY_VALUE($0)])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[0], expr#3=[<($t0, $t2)], $f0=[$t1], $condition=[$t3])
+      EnumerableValues(tuples=[[{ 7 }]])
+!plan
+
+# Reduction still applies to group keys, including NULL keys.
+!set hep-rules "
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS"
+
+SELECT x, AVG(x) AS avg_v, ANY_VALUE(x) AS any_v
+FROM (VALUES (7), (7), (CAST(NULL AS INTEGER))) AS t(x)
+GROUP BY x ORDER BY x NULLS LAST;
++---+-------+-------+
+| X | AVG_V | ANY_V |
++---+-------+-------+
+| 7 |     7 |     7 |
+|   |       |       |
++---+-------+-------+
+(2 rows)
+
+!ok
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableCalc(expr#0=[{inputs}], X=[$t0], AVG_V=[$t0], ANY_V=[$t0])
+    EnumerableAggregate(group=[{0}])
+      EnumerableValues(tuples=[[{ 7 }, { 7 }, { null }]])
 !plan
 !set hep-rules original
 
