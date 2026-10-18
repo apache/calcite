@@ -1938,6 +1938,56 @@ public class SqlOperatorTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7866">[CALCITE-7866]
+   * CASTS from string values accept Java idioms which are not legal in
+   * SQL</a>. */
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFromStringJavaIdiom(CastType castType, SqlOperatorFixture f) {
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+    // Negative tests: casts should fail
+    // A string that is legal in Java but not in SQL, and the target type
+    final String[][] casts = {
+        // Type suffix on a Java number
+        {"1.5d", "DOUBLE"},
+        {"1.5f", "REAL"},
+        // Hexadecimal floating-point number
+        {"0x1p3", "DOUBLE"},
+        // Character.digit accepts U+0667, ARABIC-INDIC DIGIT SEVEN
+        {"\\0667", "TINYINT"},
+        {"\\0667", "SMALLINT"},
+        {"\\0667", "INTEGER"},
+        {"\\0667", "BIGINT"},
+        {"\\0667", "INTEGER UNSIGNED"},
+        {"\\0667", "BIGINT UNSIGNED"},
+        {"\\0667", "DECIMAL(5, 2)"},
+        {"\\0667", "INTERVAL DAY"},
+        // equalsIgnoreCase upper-cases U+017F, LATIN SMALL LETTER LONG S, to S
+        {"fal\\017Fe", "BOOLEAN"},
+    };
+    for (String[] cast : casts) {
+      final String value = cast[0];
+      final String type = cast[1];
+      final String expression = "cast(U&'" + value + "' as " + type + ")";
+      if (castType == CastType.CAST) {
+        f.checkFails(expression,
+            type.equals("BOOLEAN")
+                ? "Invalid character for cast.*"
+                : WRONG_FORMAT_MESSAGE,
+            true);
+      } else {
+        f.checkNull(expression);
+      }
+    }
+
+    // Each part of the SQL syntax for a number still converts
+    f.checkBoolean("cast('+1.5E+1' as double) = 15", true);
+    f.checkBoolean("cast('-.25e1' as real) = -2.5e0", true);
+    f.checkBoolean("cast('5.' as decimal(5, 2)) = 5", true);
+    f.checkBoolean("cast('+7' as tinyint) = 7", true);
+  }
+
   @Test void testCastToDecimal() {
     final SqlOperatorFixture f = fixture();
     // test the minimum scale is 0
