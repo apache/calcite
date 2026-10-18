@@ -801,13 +801,40 @@ public abstract class EnumerableDefaults {
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
+    return groupByMultiple(enumerable, keySelectors, accumulatorInitializer,
+        accumulatorAdder, resultSelector, null);
+  }
+
+  /**
+   * Groups the elements of a sequence according to a list of
+   * specified key selector functions, initializing an accumulator for each
+   * group and adding to it each time an element with the same key is seen.
+   * Creates a result value from each accumulator and its key using a
+   * specified function.
+   *
+   * <p>This method exists to support SQL {@code GROUPING SETS}.
+   * It does not correspond to any method in {@link Enumerable}.
+   *
+   * <p>If {@code emptyGroupKey} is not null, it is the key of the empty
+   * grouping set (the one that aggregates over all input rows, like a query
+   * with no GROUP BY). In that case, a single row is produced for that key
+   * even when the input is empty, just as a query with no GROUP BY returns
+   * a row over empty input.
+   */
+  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupByMultiple(
+      Enumerable<TSource> enumerable, List<Function1<TSource, TKey>> keySelectors,
+      Function0<TAccumulate> accumulatorInitializer,
+      Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+      final Function2<TKey, TAccumulate, TResult> resultSelector,
+      @Nullable TKey emptyGroupKey) {
     return groupByMultiple_(
         new HashMap<>(),
         enumerable,
         keySelectors,
         accumulatorInitializer,
         accumulatorAdder,
-        resultSelector);
+        resultSelector,
+        emptyGroupKey);
   }
 
   /**
@@ -1192,9 +1219,12 @@ public abstract class EnumerableDefaults {
       List<Function1<TSource, TKey>> keySelectors,
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
-      final Function2<TKey, TAccumulate, TResult> resultSelector) {
+      final Function2<TKey, TAccumulate, TResult> resultSelector,
+      @Nullable TKey emptyGroupKey) {
+    boolean seenRow = false;
     try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
+        seenRow = true;
         for (Function1<TSource, TKey> keySelector : keySelectors) {
           TSource o = os.current();
           TKey key = keySelector.apply(o);
@@ -1213,6 +1243,12 @@ public abstract class EnumerableDefaults {
           }
         }
       }
+    }
+    if (!seenRow && emptyGroupKey != null) {
+      // The empty grouping set (the grand total) produces a row even when the
+      // input is empty, just as a query with no GROUP BY does
+      // (see CALCITE-1059).
+      map.put(emptyGroupKey, accumulatorInitializer.apply());
     }
     return new LookupResultEnumerable<>(map, resultSelector);
   }

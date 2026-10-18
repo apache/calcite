@@ -497,6 +497,48 @@ group by rollup(gender);
 
 !ok
 
+# [CALCITE-7828] Aggregate whose grouping sets include () returns no rows on empty input
+# The empty grouping set, (), yields one row, as a query with no GROUP BY
+# These sql programs had been validated in PostgreSQL
+
+select gender, count(*) as c
+from emp
+where false
+group by rollup(gender);
++--------+---+
+| GENDER | C |
++--------+---+
+|        | 0 |
++--------+---+
+(1 row)
+
+!ok
+
+select gender, count(*) as c
+from emp
+where false
+group by grouping sets (gender, ());
++--------+---+
+| GENDER | C |
++--------+---+
+|        | 0 |
++--------+---+
+(1 row)
+
+!ok
+
+select gender, count(*) as c
+from emp
+where false
+group by grouping sets (gender, deptno);
++--------+---+
+| GENDER | C |
++--------+---+
++--------+---+
+(0 rows)
+
+!ok
+
 # ROLLUP plus ORDER BY
 select gender, count(*) as c
 from emp
