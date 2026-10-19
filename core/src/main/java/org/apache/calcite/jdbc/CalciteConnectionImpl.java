@@ -141,6 +141,8 @@ abstract class CalciteConnectionImpl
         final RelDataTypeSystem originalTypeSystem = typeSystem;
         typeSystem =
             new DelegatingTypeSystem(originalTypeSystem) {
+              // DelegatingTypeSystem inherits the default division rule. Forward this call
+              // so the conformance wrapper preserves the configured type system's rule.
               @Override public @Nullable RelDataType deriveDecimalDivideType(
                   RelDataTypeFactory typeFactory, RelDataType type1, RelDataType type2) {
                 return originalTypeSystem.deriveDecimalDivideType(typeFactory, type1, type2);
