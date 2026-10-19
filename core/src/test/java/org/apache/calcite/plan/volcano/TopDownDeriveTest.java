@@ -53,8 +53,8 @@ import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+import static org.apache.calcite.test.Matchers.isLinux;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -92,13 +92,13 @@ class TopDownDeriveTest {
    * input rows, while the alternative derived from the hash-distributed
    * input only needs an exchange of the (few) output rows. */
   @Test void testDeriveRelThatPassesThrough() {
-    assertThat(plan(1, 0.01, true), is(DERIVED_PLAN));
+    assertThat(plan(1, 0.01, true), isLinux(DERIVED_PLAN));
   }
 
   /** As {@link #testDeriveRelThatPassesThrough()}, but the rel cannot pass
    * the requirement through; the derived alternative is the only plan. */
   @Test void testDeriveRelThatDoesNotPassThrough() {
-    assertThat(plan(1, 0.01, false), is(DERIVED_PLAN));
+    assertThat(plan(1, 0.01, false), isLinux(DERIVED_PLAN));
   }
 
   /** As {@link #testDeriveRelThatPassesThrough()}, for a rel with two
@@ -109,7 +109,7 @@ class TopDownDeriveTest {
         + "  ScaleRel(distribution=[hash[0]])\n"
         + "    HashLeafRel(label=[t])\n"
         + "    HashLeafRel(label=[u])\n";
-    assertThat(plan(2, 0.01, true), is(expected));
+    assertThat(plan(2, 0.01, true), isLinux(expected));
   }
 
   /** The rel increases the number of rows, so the pass-through alternative,
@@ -119,7 +119,7 @@ class TopDownDeriveTest {
         + "ScaleRel(distribution=[single])\n"
         + "  ExchangeRel(distribution=[single])\n"
         + "    HashLeafRel(label=[t])\n";
-    assertThat(plan(1, 100, true), is(expected));
+    assertThat(plan(1, 100, true), isLinux(expected));
   }
 
   /** Plans a rel with {@code inputCount} leaf inputs that must be SINGLETON.
