@@ -78,7 +78,11 @@ class TopDownRuleDriver implements RuleDriver {
    */
   private final Set<RelNode> passThroughCache = new HashSet<>();
 
-  // Physical nodes that have been scheduled for derivation in their own subset.
+  /**
+   * Physical nodes that satisfy none of the subsets being optimized and that
+   * have been scheduled for trait derivation in their own subset. A node is
+   * scheduled at most once, until its inputs' sets are merged.
+   */
   private final Set<RelNode> derivedRels = new HashSet<>();
 
   //~ Constructors -----------------------------------------------------------
@@ -575,6 +579,7 @@ class TopDownRuleDriver implements RuleDriver {
    * trait derivation in the subset the rel belongs to. */
   private void scheduleDerive(RelNode rel) {
     if (!(rel instanceof PhysicalNode)
+        || rel.isEnforcer()
         || passThroughCache.contains(rel)
         || !derivedRels.add(rel)) {
       return;
@@ -867,7 +872,8 @@ class TopDownRuleDriver implements RuleDriver {
       final RelSubset subset = planner.getSubset(mExpr);
       if (subset != null && VolcanoPlanner.equivRoot(subset.set) != subset.set) {
         // The set was merged into another one after this task was scheduled,
-        // and mExpr was not moved because that set has an equivalent rel.
+        // and mExpr was not moved to it (that set already has an equivalent
+        // rel, or mExpr was pruned).
         return;
       }
       List<RelNode> inputs = mExpr.getInputs();
