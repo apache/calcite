@@ -1906,12 +1906,26 @@ public class RexUtil {
     // NUMERIC -> CHARACTER: allow when target length accommodates sign/scale
     if (sourceSqlTypeName.getFamily() == SqlTypeFamily.NUMERIC
         && targetSqlTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
-      int sourceLength = source.getPrecision() + 1; // include sign
-      if (source.getScale() != -1 && source.getScale() != 0) {
-        sourceLength += source.getScale() + 1; // include decimal mark
-      }
       final int targetPrecision = target.getPrecision();
-      return targetPrecision == PRECISION_NOT_SPECIFIED || targetPrecision >= sourceLength;
+      if (targetPrecision == PRECISION_NOT_SPECIFIED) {
+        return true;
+      }
+      // The precision does not bound the length of the text of an approximate
+      // number, or of a DECIMAL with a negative scale:
+      // CAST(6.666666666666667E0 AS VARCHAR(3)) is '6.6'
+      // CAST(CAST(20000 AS DECIMAL(2, -3)) AS VARCHAR(3)) is '200'
+      // The text of a DOUBLE has at most 24 characters, and that of a REAL at most 15,
+      // but this value depends on the formatting performed by the runtime,
+      // so we are NOT considering such casts as lossless currently.
+      final int sourceScale = source.getScale();
+      if (!SqlTypeUtil.isExactNumeric(source) || sourceScale < 0) {
+        return false;
+      }
+      int sourceLength = source.getPrecision() + 1; // include sign
+      if (sourceScale != 0) {
+        sourceLength += sourceScale + 1; // include decimal mark
+      }
+      return targetPrecision >= sourceLength;
     }
 
     // DECIMAL -> DECIMAL: allow when precision/scale can only expand

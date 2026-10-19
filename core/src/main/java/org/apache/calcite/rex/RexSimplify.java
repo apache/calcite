@@ -2692,44 +2692,29 @@ public class RexSimplify {
     }
     if (RexUtil.isLosslessCast(operand)) {
       // x :: y below means cast(x as y) (which is PostgreSQL-specific cast by the way)
-      // A) Remove lossless casts:
+      // A) Both casts can be removed:
       // A.1) intExpr :: bigint :: int => intExpr
       // A.2) char2Expr :: char(5) :: char(2) => char2Expr
-      // B) There are cases when we can't remove two casts, but we could probably remove inner one
-      // B.1) char2expression :: char(4) :: char(5) -> char2expression :: char(5)
-      // B.2) char2expression :: char(10) :: char(5) -> char2expression :: char(5)
-      // B.3) char2expression :: varchar(10) :: char(5) -> char2expression :: char(5)
-      // B.4) char6expression :: varchar(10) :: char(5) -> char6expression :: char(5)
-      // C) Simplification is not possible:
-      // C.1) char6expression :: char(3) :: char(5) -> must not be changed
+      // B) Simplification is not possible:
+      // B.1) char6expression :: char(3) :: char(5) => must not be changed
       //      the input is truncated to 3 chars, so we can't use char6expression :: char(5)
-      // C.2) varchar2Expr :: char(5) :: varchar(2) -> must not be changed
-      //      the input have to be padded with spaces (up to 2 chars)
-      // C.3) char2expression :: char(4) :: varchar(5) -> must not be changed
+      // B.2) varchar2Expr :: char(5) :: varchar(2) => must not be changed
+      //      the input has to be padded with spaces (up to 2 chars)
+      // B.3) char2expression :: char(4) :: varchar(5) => must not be changed
       //      would not have the padding
 
-      // The approach seems to be:
-      // 1) Ensure inner cast is lossless (see if above)
-      // 2) If operand of the inner cast has the same type as the outer cast,
-      //    remove two casts except C.2 or C.3-like pattern (== inner cast is CHAR)
-      // 3) If outer cast is lossless, remove inner cast (B-like cases)
-
-      // Here we try to remove two casts in one go (A-like cases)
       RexNode intExpr = ((RexCall) operand).operands.get(0);
-      // intExpr == CHAR detects A.1
-      // operand != CHAR detects C.2
       if ((intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
           || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
           && sameTypeOrNarrowsNullability(e.getType(), intExpr.getType())) {
+        // Remove both casts (A-like cases): the outer type is the source type,
+        // so the two casts are a round trip, except through a CHAR type from a
+        // non-CHAR source, as in int :: char(11) :: int: not every runtime
+        // parses the padded text back
         return intExpr;
       }
-      // Here we try to remove inner cast (B-like cases)
       if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
-          && (e.getType().getSqlTypeName() == operand.getType().getSqlTypeName()
-          || e.getType().getSqlTypeName() == SqlTypeName.CHAR
-          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
-          && SqlTypeCoercionRule.instance()
-          .canApplyFrom(intExpr.getType().getSqlTypeName(), e.getType().getSqlTypeName())) {
+          && canRemoveInnerCast(intExpr.getType(), operand.getType(), e.getType())) {
         return rexBuilder.makeCast(e.getParserPosition(), e.getType(), intExpr);
       }
     }
@@ -2737,7 +2722,7 @@ public class RexSimplify {
     switch (operand.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) operand;
-      final Comparable value = literal.getValueAs(Comparable.class);
+      final Comparable<?> value = literal.getValueAs(Comparable.class);
       final SqlTypeName typeName = literal.getTypeName();
 
       // First, try to remove the cast without changing the value.
@@ -2785,6 +2770,73 @@ public class RexSimplify {
             : rexBuilder.makeCast(e.getType(), operand, safe, safe);
       }
     }
+  }
+
+  /** Returns whether {@code CAST(CAST(x AS inner) AS outer)} can be simplified to
+   * {@code CAST(x AS outer)}, where x has type {@code source} and the cast from
+   * {@code source} to {@code inner} is lossless. */
+  private static boolean canRemoveInnerCast(RelDataType source, RelDataType inner,
+      RelDataType outer) {
+    // x :: y below means cast(x as y)
+    // Removing the inner cast changes the type of the operand of the outer cast
+    // from inner to source, but not its value. The result of the outer cast can
+    // still change, because a cast to a character or binary type formats its
+    // operand according to the operand's type, and a cast of a character operand
+    // parses its text.
+    // Cases A and B are in simplifyCast.
+    // C) The inner cast can be removed:
+    // C.1) char2expression :: char(4) :: char(5) => char2expression :: char(5)
+    // C.2) char2expression :: char(10) :: char(5) => char2expression :: char(5)
+    // C.3) char2expression :: varchar(10) :: char(5) => char2expression :: char(5)
+    // C.4) char6expression :: varchar(10) :: char(5) => char6expression :: char(5)
+    // C.5) smallintExpr :: int :: varchar => smallintExpr :: varchar
+    //      20 => '20' in both cases
+    // C.6) intExpr :: varchar :: int => intExpr :: int
+    //      20 => 20 in both cases
+    // C.7) intExpr :: varchar :: bigint => intExpr :: bigint
+    //      7369 => 7369 in both cases; the two casts to tinyint give an error in both cases
+    // D) The inner cast cannot be removed (see also B.2 and B.3 in simplifyCast):
+    // D.1) intExpr :: double :: varchar => must not be changed
+    //      20 => right: '20.0', wrong: '20'
+    //      realExpr :: double :: varchar => must not be changed
+    //      266.66666 => right: '266.6666564941406', wrong: '266.66666'
+    // D.2) intExpr :: decimal(12, 2) :: varchar => must not be changed
+    //      20 => right: '20.00', wrong: '20'
+    // D.3) smallintExpr :: bigint :: varbinary => must not be changed
+    //      20 => right: X'0000000000000014', wrong: X'0014'
+    // D.4) intExpr :: varchar :: timestamp => must not be changed
+    //      7369 => right: error, wrong: 1970-01-01 00:00:07
+    // D.5) tinyintExpr :: smallint :: variant => must not be changed
+    //      a VARIANT keeps the type of its value; TYPEOF gives
+    //      right: SMALLINT, wrong: TINYINT
+    if (SqlTypeUtil.isBinary(outer)) {
+      // D.3
+      return false;
+    }
+    if (outer.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // D.5
+      return false;
+    }
+    if (SqlTypeUtil.inCharFamily(inner)) {
+      if (inner.getSqlTypeName() == SqlTypeName.CHAR
+          && outer.getSqlTypeName() != SqlTypeName.CHAR) {
+        // B.2 and B.3 from simplifyCast
+        return false;
+      }
+      if (!SqlTypeUtil.inCharFamily(source)
+          && !SqlTypeUtil.inCharFamily(outer)
+          && outer.getSqlTypeName() != source.getSqlTypeName()
+          && !(SqlTypeUtil.isIntType(source) && SqlTypeUtil.isNumeric(outer))) {
+        // D.4; C.6 and C.7 are the exceptions
+        return false;
+      }
+    } else if (SqlTypeUtil.inCharFamily(outer)
+        && !(SqlTypeUtil.isIntType(source) && SqlTypeUtil.isIntType(inner))) {
+      // D.1 and D.2; C.5 is the exception
+      return false;
+    }
+    return SqlTypeCoercionRule.instance()
+        .canApplyFrom(outer.getSqlTypeName(), source.getSqlTypeName());
   }
 
   /** Tries to simplify CEIL/FLOOR function on top of CEIL/FLOOR.
