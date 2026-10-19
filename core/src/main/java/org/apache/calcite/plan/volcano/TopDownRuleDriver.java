@@ -139,6 +139,7 @@ class TopDownRuleDriver implements RuleDriver {
     ruleQueue.clear();
     tasks.clear();
     passThroughCache.clear();
+    derivedRels.clear();
     applying = null;
   }
 

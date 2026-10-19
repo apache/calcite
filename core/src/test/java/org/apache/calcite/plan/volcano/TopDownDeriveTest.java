@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.DeriveMode;
@@ -25,6 +26,8 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
@@ -33,7 +36,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -71,6 +76,13 @@ class TopDownDeriveTest {
   private static final RelDistribution HASH_0 =
       RelDistributions.hash(ImmutableList.of(0));
 
+  /** Plan where the exchange is above the rel, whose distribution is derived
+   * from its input. */
+  private static final String DERIVED_PLAN = ""
+      + "ExchangeRel(distribution=[single])\n"
+      + "  ScaleRel(distribution=[hash[0]])\n"
+      + "    HashLeafRel(label=[t])\n";
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4542">[CALCITE-4542]
    * Suboptimal plan is chosen when TopDownRuleDriver is enabled</a>.
@@ -80,21 +92,24 @@ class TopDownDeriveTest {
    * input rows, while the alternative derived from the hash-distributed
    * input only needs an exchange of the (few) output rows. */
   @Test void testDeriveRelThatPassesThrough() {
-    final String expected = ""
-        + "ExchangeRel(distribution=[single])\n"
-        + "  ScaleRel(distribution=[hash[0]])\n"
-        + "    HashLeafRel(label=[t])\n";
-    assertThat(plan(0.01, true), is(expected));
+    assertThat(plan(1, 0.01, true), is(DERIVED_PLAN));
   }
 
   /** As {@link #testDeriveRelThatPassesThrough()}, but the rel cannot pass
    * the requirement through; the derived alternative is the only plan. */
   @Test void testDeriveRelThatDoesNotPassThrough() {
+    assertThat(plan(1, 0.01, false), is(DERIVED_PLAN));
+  }
+
+  /** As {@link #testDeriveRelThatPassesThrough()}, for a rel with two
+   * inputs. */
+  @Test void testDeriveRelWithTwoInputs() {
     final String expected = ""
         + "ExchangeRel(distribution=[single])\n"
         + "  ScaleRel(distribution=[hash[0]])\n"
-        + "    HashLeafRel(label=[t])\n";
-    assertThat(plan(0.01, false), is(expected));
+        + "    HashLeafRel(label=[t])\n"
+        + "    HashLeafRel(label=[u])\n";
+    assertThat(plan(2, 0.01, true), is(expected));
   }
 
   /** The rel increases the number of rows, so the pass-through alternative,
@@ -104,10 +119,16 @@ class TopDownDeriveTest {
         + "ScaleRel(distribution=[single])\n"
         + "  ExchangeRel(distribution=[single])\n"
         + "    HashLeafRel(label=[t])\n";
-    assertThat(plan(100, true), is(expected));
+    assertThat(plan(1, 100, true), is(expected));
   }
 
-  private static String plan(double rowFactor, boolean passThrough) {
+  /** Plans a rel with {@code inputCount} leaf inputs that must be SINGLETON.
+   *
+   * <p>The rule that creates the slow alternative is registered first, so
+   * that the subset with distribution ANY is already optimized when the
+   * {@link ScaleRel} is added to it. The bug only shows up in that order. */
+  private static String plan(int inputCount, double rowFactor,
+      boolean passThrough) {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.setTopDownOpt(true);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -118,29 +139,48 @@ class TopDownDeriveTest {
                 "HashLeafRule")
             .withRuleFactory(LeafRule::new)
             .toRule());
-    // The slow alternative is implemented first, so that the subset with
-    // distribution ANY is optimized before the ScaleRel appears in it.
-    planner.addRule(
-        ConverterRule.Config.INSTANCE
-            .withConversion(NoneSingleRel.class, Convention.NONE, DIST,
-                "SlowScaleRule")
-            .withRuleFactory(c -> new ScaleRule(c, rowFactor, passThrough, true))
-            .toRule());
-    planner.addRule(
-        ConverterRule.Config.INSTANCE
-            .withConversion(NoneSingleRel.class, Convention.NONE, DIST,
-                "ScaleRule")
-            .withRuleFactory(c -> new ScaleRule(c, rowFactor, passThrough, false))
-            .toRule());
+    final Class<? extends RelNode> logicalClass =
+        inputCount == 1 ? NoneSingleRel.class : NoneBiRel.class;
+    for (boolean slow : new boolean[] {true, false}) {
+      planner.addRule(
+          ConverterRule.Config.INSTANCE
+              .withConversion(logicalClass, Convention.NONE, DIST,
+                  slow ? "SlowScaleRule" : "ScaleRule")
+              .withRuleFactory(c ->
+                  new ScaleRule(c, rowFactor, passThrough, slow))
+              .toRule());
+    }
 
     final RelOptCluster cluster = newCluster(planner);
-    final RelNode rel =
-        new NoneSingleRel(cluster, new NoneLeafRel(cluster, "t"));
+    final RelNode leaf = new NoneLeafRel(cluster, "t");
+    final RelNode rel = inputCount == 1
+        ? new NoneSingleRel(cluster, leaf)
+        : new NoneBiRel(cluster, leaf, new NoneLeafRel(cluster, "u"));
     planner.setRoot(
         planner.changeTraits(rel,
             rel.getTraitSet().replace(DIST)
                 .replace(RelDistributions.SINGLETON)));
     return RelOptUtil.toString(planner.findBestExp());
+  }
+
+  /** Relational expression with two inputs and convention NONE. */
+  private static class NoneBiRel extends BiRel {
+    NoneBiRel(RelOptCluster cluster, RelNode left, RelNode right) {
+      super(cluster, cluster.traitSetOf(Convention.NONE), left, right);
+    }
+
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
+
+    @Override protected RelDataType deriveRowType() {
+      return getLeft().getRowType();
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new NoneBiRel(getCluster(), inputs.get(0), inputs.get(1));
+    }
   }
 
   /** Converts {@link NoneLeafRel} to {@link HashLeafRel}. */
@@ -154,8 +194,8 @@ class TopDownDeriveTest {
     }
   }
 
-  /** Converts {@link NoneSingleRel} to {@link ScaleRel} with distribution
-   * ANY. */
+  /** Converts {@link NoneSingleRel} or {@link NoneBiRel} to {@link ScaleRel}
+   * with distribution ANY. */
   private static class ScaleRule extends ConverterRule {
     private final double rowFactor;
     private final boolean passThrough;
@@ -172,7 +212,8 @@ class TopDownDeriveTest {
     @Override public RelNode convert(RelNode rel) {
       final RelTraitSet traitSet = rel.getTraitSet().replace(DIST);
       return new ScaleRel(rel.getCluster(), traitSet,
-          RelOptRule.convert(((NoneSingleRel) rel).getInput(), traitSet),
+          Util.transform(rel.getInputs(),
+              input -> RelOptRule.convert(input, traitSet)),
           rowFactor, passThrough, slow);
     }
   }
@@ -198,25 +239,40 @@ class TopDownDeriveTest {
     }
   }
 
-  /** Physical rel that multiplies the number of input rows by
-   * {@code rowFactor}. It requires its input to have its own distribution,
-   * and cannot be executed with distribution ANY. A slow rel is expensive
-   * and never derives traits. */
-  private static class ScaleRel extends TestSingleRel implements PhysicalNode {
+  /** Physical rel that returns the number of rows of its first input
+   * multiplied by {@code rowFactor}. It requires all its inputs to have its
+   * own distribution, and cannot be executed with distribution ANY. A slow
+   * rel is expensive and never derives traits. */
+  private static class ScaleRel extends AbstractRelNode implements PhysicalNode {
+    private final List<RelNode> inputs;
     private final double rowFactor;
     private final boolean passThrough;
     private final boolean slow;
 
-    ScaleRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+    ScaleRel(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs,
         double rowFactor, boolean passThrough, boolean slow) {
-      super(cluster, traitSet, input);
+      super(cluster, traitSet);
+      this.inputs = new ArrayList<>(inputs);
       this.rowFactor = rowFactor;
       this.passThrough = passThrough;
       this.slow = slow;
     }
 
+    @Override public List<RelNode> getInputs() {
+      return inputs;
+    }
+
+    @Override public void replaceInput(int ordinalInParent, RelNode p) {
+      inputs.set(ordinalInParent, p);
+      recomputeDigest();
+    }
+
+    @Override protected RelDataType deriveRowType() {
+      return inputs.get(0).getRowType();
+    }
+
     @Override public double estimateRowCount(RelMetadataQuery mq) {
-      return mq.getRowCount(getInput()) * rowFactor;
+      return mq.getRowCount(inputs.get(0)) * rowFactor;
     }
 
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -230,13 +286,16 @@ class TopDownDeriveTest {
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new ScaleRel(getCluster(), traitSet, sole(inputs), rowFactor,
+      return new ScaleRel(getCluster(), traitSet, inputs, rowFactor,
           passThrough, slow);
     }
 
     @Override public RelWriter explainTerms(RelWriter pw) {
-      return super.explainTerms(pw)
-          .item("distribution", getTraitSet().getDistribution())
+      super.explainTerms(pw);
+      for (Ord<RelNode> input : Ord.zip(inputs)) {
+        pw.input("input#" + input.i, input.e);
+      }
+      return pw.item("distribution", getTraitSet().getDistribution())
           .itemIf("slow", true, slow);
     }
 
@@ -245,7 +304,7 @@ class TopDownDeriveTest {
       if (!passThrough) {
         return null;
       }
-      return Pair.of(required, ImmutableList.of(required));
+      return Pair.of(required, Util.transform(inputs, input -> required));
     }
 
     @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
@@ -265,9 +324,11 @@ class TopDownDeriveTest {
       for (RelTraitSet traits : inputTraits.get(0)) {
         final RelDistribution distribution = traits.getDistribution();
         if (distribution != null && distribution != RelDistributions.ANY) {
+          final RelTraitSet traitSet = getTraitSet().replace(distribution);
           rels.add(
-              copy(getTraitSet().replace(distribution),
-                  ImmutableList.of(RelOptRule.convert(getInput(), traits))));
+              copy(traitSet,
+                  Util.transform(inputs,
+                      input -> RelOptRule.convert(input, traitSet))));
         }
       }
       return rels;
