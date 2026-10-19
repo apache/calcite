@@ -3559,7 +3559,9 @@ class RelToSqlConverterTest {
             + "CAST(employee_id AS STRING), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-            + "CAST(employee_id AS TIMESTAMP), "
+            // CAST('7369' AS TIMESTAMP) is an error,
+            // but CAST(7369 AS TIMESTAMP) is 1970-01-01 00:00:07
+            + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
             + "CAST(employee_id AS FLOAT64), "
             + "CAST(employee_id AS NUMERIC), "
             + "CAST(CAST(employee_id AS STRING) AS DATE), "

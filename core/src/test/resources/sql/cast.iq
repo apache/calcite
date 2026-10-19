@@ -2129,4 +2129,116 @@ values (cast(0.1e0 as real) = cast(0.1 as real),
 
 !ok
 
+# Test case for [CALCITE-7870] RexSimplify removes some casts which change
+# semantics
+SELECT CAST(CAST(deptno AS DOUBLE) AS VARCHAR) AS d1,
+  CAST(CAST(deptno AS DECIMAL(5, 2)) AS VARCHAR) AS d2,
+  CAST(CAST(sal AS DECIMAL(10, 4)) AS VARCHAR) AS d3,
+  CAST(CAST(deptno AS INTEGER) AS VARCHAR) AS d4
+FROM emp
+WHERE empno = 7369;
++------+-------+----------+----+
+| D1   | D2    | D3       | D4 |
++------+-------+----------+----+
+| 20.0 | 20.00 | 800.0000 | 20 |
++------+-------+----------+----+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST(deptno AS BIGINT) AS VARBINARY) AS b1,
+  CAST(CAST(CAST(deptno AS DOUBLE) / 3e0 AS VARCHAR(3)) AS VARCHAR) AS s1,
+  CAST(CAST(CAST(deptno AS DOUBLE) / 3e0 AS VARCHAR(3)) AS DOUBLE) AS s2
+FROM emp
+WHERE empno = 7369;
++------------------+-----+-----+
+| B1               | S1  | S2  |
++------------------+-----+-----+
+| 0000000000000014 | 6.6 | 6.6 |
++------------------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST(deptno AS VARCHAR) AS BOOLEAN) AS b
+FROM emp
+WHERE empno = 7369;
+Invalid character for cast: 20
+!error
+
+SELECT CAST(CAST(deptno AS VARCHAR) AS TIMESTAMP) AS t
+FROM emp
+WHERE empno = 7369;
+Invalid DATE value, '20'
+!error
+
+SELECT CAST(CAST(deptno AS VARCHAR) AS BIGINT) AS b1,
+  CAST(CAST(deptno AS VARCHAR) AS DOUBLE) AS b2
+FROM emp
+WHERE empno = 7369;
++----+------+
+| B1 | B2   |
++----+------+
+| 20 | 20.0 |
++----+------+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST(sal / 3 AS REAL) AS VARCHAR) AS r1,
+  CAST(CAST(CAST(sal / 3 AS REAL) AS DOUBLE) AS VARCHAR) AS r2
+FROM emp
+WHERE empno = 7369;
++-----------+-------------------+
+| R1        | R2                |
++-----------+-------------------+
+| 266.66666 | 266.6666564941406 |
++-----------+-------------------+
+(1 row)
+
+!ok
+
+# The inner casts to DOUBLE are removed; the results do not change
+SELECT CAST(CAST(CAST(deptno AS REAL) AS DOUBLE) AS BOOLEAN) AS b1,
+  CAST(CAST(CAST(deptno - 20 AS REAL) AS DOUBLE) AS BOOLEAN) AS b2
+FROM emp
+WHERE empno = 7369;
++------+-------+
+| B1   | B2    |
++------+-------+
+| true | false |
++------+-------+
+(1 row)
+
+!ok
+
+# A VARIANT keeps the type of its value, so the inner casts must stay
+SELECT TYPEOF(CAST(CAST(deptno AS SMALLINT) AS VARIANT)) AS t1,
+  TYPEOF(CAST(deptno AS VARIANT)) AS t2,
+  CAST(CAST(deptno AS SMALLINT) AS VARIANT) = CAST(deptno AS VARIANT) AS e,
+  TYPEOF(CAST(CAST(ename AS VARCHAR(20)) AS VARIANT)) AS t3
+FROM emp
+WHERE empno = 7369;
++----------+---------+-------+---------+
+| T1       | T2      | E     | T3      |
++----------+---------+-------+---------+
+| SMALLINT | TINYINT | false | VARCHAR |
++----------+---------+-------+---------+
+(1 row)
+
+!ok
+
+!use scott-negative-scale
+SELECT CAST(CAST(CAST(deptno * 1000 AS DECIMAL(2, -3)) AS VARCHAR(3)) AS VARCHAR) AS n1
+FROM emp
+WHERE empno = 7369;
++-----+
+| N1  |
++-----+
+| 200 |
++-----+
+(1 row)
+
+!ok
+
 # End cast.iq
