@@ -864,6 +864,12 @@ class TopDownRuleDriver implements RuleDriver {
     }
 
     @Override public void perform() {
+      final RelSubset subset = planner.getSubset(mExpr);
+      if (subset != null && VolcanoPlanner.equivRoot(subset.set) != subset.set) {
+        // The set was merged into another one after this task was scheduled,
+        // and mExpr was not moved because that set has an equivalent rel.
+        return;
+      }
       List<RelNode> inputs = mExpr.getInputs();
       for (RelNode input : inputs) {
         if (((RelSubset) input).getWinnerCost() == null) {
