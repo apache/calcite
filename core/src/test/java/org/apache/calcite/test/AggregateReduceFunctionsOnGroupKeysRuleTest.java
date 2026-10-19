@@ -153,7 +153,7 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7493">[CALCITE-7493]
    * Support constant-result aggregates (e.g., STDDEV_POP, STDDEV) over GROUP BY keys</a>. */
   @Test void testStatisticalFunctionStddevSampOfGroupByKey() {
-    // STDDEV_SAMP of a constant (GROUP BY key) is 0.
+    // STDDEV_SAMP needs at least two non-null values to return 0.
     String sql = "select sal, stddev_samp(sal) as sd\n"
         + "from emp group by sal, deptno";
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
@@ -174,8 +174,7 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
   }
 
   @Test void testStatisticalFunctionVarSampOfGroupByKey() {
-    // VAR_SAMP of a constant (GROUP BY key) is 0
-    // (variance of all identical values is 0).
+    // VAR_SAMP needs at least two non-null values to return 0.
     String sql = "select sal, var_samp(sal) as vs\n"
         + "from emp group by sal, deptno";
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
@@ -207,7 +206,7 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
 
   @Test void testStatisticalFunctionWithMultipleGroupByKeys() {
     // Variance of expression combining multiple GROUP BY keys (sal * deptno).
-    // Since all values are constant within each group, variance is 0.
+    // The count also distinguishes single-value groups, whose variance is NULL.
     String sql = "select sal, var_samp(sal * deptno) as vs\n"
         + "from emp group by sal, deptno";
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
@@ -255,12 +254,63 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
   }
 
   @Test void testStatisticalFunctionNullableExpression() {
-    // Test NULL semantics for expressions: when expression is nullable,
-    // STDDEV(expr) should return NULL when expr is NULL.
-    // Optimization wraps result in CASE to preserve NULL semantics
+    // COUNT(expr) handles both NULL expressions and single-value groups.
     String sql = "select comm, stddev_samp(comm + 1) as sd\n"
         + "from empnullables group by comm";
     sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testGlobalConstantAggregates() {
+    String sql = "select min(1), max(1), avg(1), any_value(1),\n"
+        + "stddev_pop(1), stddev_samp(1), var_pop(1), var_samp(1)\n"
+        + "from emp where deptno < 0";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testGlobalConstantAggregatesWithOtherCalls() {
+    String sql = "select sum(sal), min(1), count(*), stddev_samp(1), max(sal)\n"
+        + "from emp";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testGlobalConstantAggregatesReuseCount() {
+    String sql = "select count(*), min(1), stddev_samp(1) from emp";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testGlobalNullAggregates() {
+    String sql = "select min(cast(null as integer)),\n"
+        + "stddev_pop(cast(null as integer)),\n"
+        + "stddev_samp(cast(null as integer)) from emp";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testGlobalDistinctConstantAggregates() {
+    String sql = "select avg(distinct 1), stddev_pop(distinct 1),\n"
+        + "stddev_samp(distinct 1), var_samp(distinct 1) from emp";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testDistinctStatisticalFunctionOfGroupByKey() {
+    String sql = "select comm, stddev_samp(distinct comm), var_samp(distinct comm)\n"
+        + "from empnullables group by comm";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testConstantAggregatesWithGroupBy() {
+    String sql = "select deptno, min(1), stddev_pop(1), stddev_samp(1)\n"
+        + "from emp group by deptno";
+    sql(sql).withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).check();
+  }
+
+  @Test void testGlobalNonConstantAggregateNoChange() {
+    sql("select min(sal), stddev_samp(sal) from emp")
+        .withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
+  }
+
+  @Test void testFilteredConstantAggregateNoChange() {
+    sql("select min(1) filter (where deptno < 0) from emp")
+        .withRule(AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS).checkUnchanged();
   }
 
   @AfterAll static void checkActualAndReferenceFiles() {
