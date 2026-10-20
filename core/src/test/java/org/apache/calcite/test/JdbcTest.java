@@ -9881,6 +9881,74 @@ public class JdbcTest {
         .returnsUnordered("EMPID=aa");
   }
 
+  /** Tests top-level explicit tables ("TABLE t"), which are equivalent to
+   * "SELECT * FROM t". */
+  @Test void testTopLevelExplicitTable() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept")
+        .returnsUnordered(
+            "DEPTNO=10; DNAME=ACCOUNTING; LOC=NEW YORK",
+            "DEPTNO=20; DNAME=RESEARCH; LOC=DALLAS",
+            "DEPTNO=30; DNAME=SALES; LOC=CHICAGO",
+            "DEPTNO=40; DNAME=OPERATIONS; LOC=BOSTON");
+  }
+
+  @Test void testTopLevelExplicitTableOrderBy() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept order by deptno desc")
+        .returnsOrdered(
+            "DEPTNO=40; DNAME=OPERATIONS; LOC=BOSTON",
+            "DEPTNO=30; DNAME=SALES; LOC=CHICAGO",
+            "DEPTNO=20; DNAME=RESEARCH; LOC=DALLAS",
+            "DEPTNO=10; DNAME=ACCOUNTING; LOC=NEW YORK");
+  }
+
+  @Test void testTopLevelExplicitTableOrderByOffsetFetch() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept order by deptno desc\n"
+            + "offset 1 rows fetch next 2 rows only")
+        .returnsOrdered(
+            "DEPTNO=30; DNAME=SALES; LOC=CHICAGO",
+            "DEPTNO=20; DNAME=RESEARCH; LOC=DALLAS");
+  }
+
+  @Test void testTopLevelExplicitTableQualified() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept")
+        .returnsCount(4);
+  }
+
+  /** Control: already worked before the fix. */
+  @Test void testExplicitTableInFrom() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("select * from (table dept)")
+        .returnsCount(4);
+  }
+
+  @Test void testTopLevelExplicitTableUnion() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept union all table dept")
+        .returnsCount(8);
+  }
+
+  @Test void testTopLevelExplicitTableInWith() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("with t as (select * from dept) table t")
+        .returnsCount(4);
+  }
+
+  @Test void testExplainTopLevelExplicitTable() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("explain plan for table dept")
+        .returnsCount(1);
+  }
+
+  @Test void testTopLevelExplicitTableNotFound() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table nonexistent")
+        .throws_("Object 'NONEXISTENT' not found");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
