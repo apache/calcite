@@ -1894,6 +1894,43 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7867">[CALCITE-7867]
+   * RexSimplify takes cubic time on long IN and NOT IN lists</a>. An IN list
+   * on a NOT NULL operand turns into a large OR of equalities. */
+  @Test void testSimplifyLargeOrOfEqualitiesOnNotNullOperand() {
+    final int n = 2_000;
+    final List<RexNode> terms = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      terms.add(eq(vIntNotNull(), literal(i)));
+    }
+    final RexNode simplified = simplify.simplifyPreservingType(or(terms));
+    assertThat(simplified.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> sarg =
+        ((RexLiteral) ((RexCall) simplified).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(sarg.pointCount, is(n));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7867">[CALCITE-7867]
+   * RexSimplify takes cubic time on long IN and NOT IN lists</a>. A NOT IN
+   * list in a filter turns into a large AND of inequalities, even on a
+   * nullable operand. */
+  @Test void testSimplifyLargeAndOfNotEqualsAsFilter() {
+    final int n = 2_000;
+    final List<RexNode> terms = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      terms.add(ne(vInt(), literal(i)));
+    }
+    final RexNode simplified = simplify.simplifyUnknownAsFalse(and(terms));
+    assertThat(simplified.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> sarg =
+        ((RexLiteral) ((RexCall) simplified).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(sarg.isComplementedPoints(), is(true));
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
    * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
