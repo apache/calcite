@@ -28,6 +28,24 @@ github:
     # We prefer linear history, so creating merge commits is disabled in UI
     merge:   false
     rebase:  true
+  rulesets:
+    - name: PR checks
+      target: branch
+      enforcement: active
+      bypass_actors: []
+      conditions:
+        ref_name:
+          include: [refs/heads/main]
+          exclude: []
+      rules:
+        - type: required_status_checks
+          parameters:
+            strict_required_status_checks_policy: false
+            # The gate considers only checks actually reported on the current PR.
+            # Untriggered workflows are not required; Jenkins pr-head is ignored.
+            required_status_checks:
+              - context: PR merge gate
+                integration_id: 15368 # GitHub Actions
 notifications:
     commits:      commits@calcite.apache.org
     issues:       issues@calcite.apache.org
