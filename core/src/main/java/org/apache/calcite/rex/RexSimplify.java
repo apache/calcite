@@ -2305,7 +2305,11 @@ public class RexSimplify {
    */
   private static <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
       RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
-    RangeSet<C> result = r0;
+    // Narrow a single mutable range set in place. Copying the range set for
+    // every predicate is quadratic per call, and cubic over a large OR or AND,
+    // because simplifyOrTerms and simplifyAndTerms pass one predicate per
+    // preceding term.
+    final TreeRangeSet<C> result = TreeRangeSet.create(r0);
     for (RexNode predicate : predicates) {
       switch (predicate.getKind()) {
       case EQUALS:
@@ -2330,23 +2334,21 @@ public class RexSimplify {
             final RangeSet<C> notEqualsRangeSet =
                 ImmutableRangeSet.of(pointRange).complement();
             if (result.enclosesAll(notEqualsRangeSet)) {
-              result = RangeSets.rangeSetAll();
-              continue;
+              return RangeSets.rangeSetAll();
             }
-            result = RangeSets.minus(result, pointRange);
+            result.remove(pointRange);
             break;
           default:
             final Range<C> r1 = range(comparison.kind, c1);
             if (result.encloses(r1)) {
               // Given these predicates, term is always satisfied.
               // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
-              result = RangeSets.rangeSetAll();
-              continue;
+              return RangeSets.rangeSetAll();
             }
-            result = result.subRangeSet(r1);
+            result.removeAll(ImmutableRangeSet.of(r1).complement());
           }
           if (result.isEmpty()) {
-            break; // short-cut
+            return ImmutableRangeSet.of(); // short-cut
           }
         }
         break;
@@ -2354,7 +2356,7 @@ public class RexSimplify {
         break;
       }
     }
-    return result;
+    return ImmutableRangeSet.copyOf(result);
   }
 
   /** Simplifies OR(x, x) into x, and similar.
