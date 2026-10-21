@@ -42,11 +42,26 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class RelCollationImpl implements RelCollation {
   //~ Static fields/initializers ---------------------------------------------
 
-  @Deprecated // to be removed before 2.0
-  public static final RelCollation EMPTY = RelCollations.EMPTY;
+  // The static initializer of RelCollations creates instances of this class,
+  // so the static initializer of this class, including the constructor that
+  // it calls, must not use RelCollations; otherwise two threads that
+  // initialize the two classes at the same time can deadlock.
+  // RelCollations.EMPTY is canonized too, so it is the same object as EMPTY.
 
   @Deprecated // to be removed before 2.0
-  public static final RelCollation PRESERVE = RelCollations.PRESERVE;
+  public static final RelCollation EMPTY =
+      RelCollationTraitDef.INSTANCE.canonize(
+          new RelCollationImpl(ImmutableList.of()));
+
+  @Deprecated // to be removed before 2.0
+  public static final RelCollation PRESERVE =
+      RelCollationTraitDef.INSTANCE.canonize(
+          new RelCollationImpl(
+              ImmutableList.of(new RelFieldCollation(-1))) {
+            @Override public String toString() {
+              return "PRESERVE";
+            }
+          });
 
   //~ Instance fields --------------------------------------------------------
 
@@ -56,7 +71,11 @@ public class RelCollationImpl implements RelCollation {
 
   protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations) {
     this.fieldCollations = fieldCollations;
-    checkArgument(Util.isDistinct(RelCollations.ordinals(fieldCollations)),
+    // Not RelCollations.ordinals: this constructor runs in the static
+    // initializer of this class, which must not use RelCollations (see EMPTY).
+    checkArgument(
+        Util.isDistinct(
+            Util.transform(fieldCollations, RelFieldCollation::getFieldIndex)),
         "fields must be distinct");
   }
 
