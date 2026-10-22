@@ -1342,23 +1342,24 @@ public class SqlToRelConverter {
       return;
     }
 
+    bb.setRoot(createFilterWithVariables(bb, convertedWhere2), false);
+  }
+
+  /** Creates a Filter on the root of a blackboard, with the correlation
+   * variables that its condition uses. */
+  private RelNode createFilterWithVariables(Blackboard bb, RexNode condition) {
     final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
     final RelNode filter =
-        filterFactory.createFilter(bb.root(), convertedWhere2, ImmutableSet.of());
-    final RelNode r;
+        filterFactory.createFilter(bb.root(), condition, ImmutableSet.of());
     final CorrelationUse p = getCorrelationUse(bb, filter);
-    if (p != null) {
-      assert p.r instanceof Filter;
-      Filter f = (Filter) p.r;
-      r =
-          LogicalFilter.create(f.getInput(), f.getCondition(),
-              ImmutableSet.of(p.id));
-    } else {
-      r = filter;
+    if (p == null) {
+      return filter;
     }
-
-    bb.setRoot(r, false);
+    assert p.r instanceof Filter;
+    Filter f = (Filter) p.r;
+    return LogicalFilter.create(f.getInput(), f.getCondition(),
+        ImmutableSet.of(p.id));
   }
 
   private void replaceSubQueries(
@@ -3697,6 +3698,16 @@ public class SqlToRelConverter {
         SqlNode sqlCondition =
             requireNonNull(join.getCondition(),
                 () -> "getCondition for join " + join);
+        findSubQueries(fromBlackboard, sqlCondition,
+            RelOptUtil.Logic.UNKNOWN_AS_FALSE, false);
+        if (config.isExpand()
+            && joinType == JoinType.INNER
+            && !fromBlackboard.subQueryList.isEmpty()) {
+          setRootToJoin(bb,
+              convertInnerJoinWithSubQueries(fromBlackboard, sqlCondition,
+                  leftRel, tempRightRel));
+          return;
+        }
         Pair<RexNode, RelNode> conditionAndRightNode =
             convertOnCondition(fromBlackboard, sqlCondition, leftRel, tempRightRel);
         condition = conditionAndRightNode.left;
@@ -3727,9 +3738,66 @@ public class SqlToRelConverter {
           createJoin(fromBlackboard, leftRel, rightRel, condition,
               convertJoinType(joinType));
     }
+    setRootToJoin(bb, joinRel);
+  }
+
+  /** Sets a converted join as the root of a blackboard. */
+  private void setRootToJoin(Blackboard bb, RelNode joinRel) {
     relBuilder.push(joinRel);
     relBuilder.project(relBuilder.fields());
     bb.setRoot(relBuilder.build(), false);
+  }
+
+  /**
+   * Converts an inner join whose ON condition has sub-queries, when
+   * sub-queries are expanded.
+   *
+   * <p>{@code L JOIN R ON c} is equivalent to
+   * {@code (L CROSS JOIN R) WHERE c}, so the sub-queries are expanded as in
+   * a WHERE clause. For example,
+   *
+   * <blockquote><pre>
+   * SELECT e.ename, d.name
+   * FROM emp AS e JOIN dept AS d
+   * ON e.deptno = d.deptno AND e.sal = (SELECT MAX(s.sal) FROM emp AS s)
+   * </pre></blockquote>
+   *
+   * <p>becomes
+   *
+   * <blockquote><pre>
+   * LogicalProject(ENAME=[$1], NAME=[$10])                    -- drops $11; merged into SELECT
+   *   LogicalFilter(condition=[AND(=($7, $9), =($5, $11))])   -- the ON condition
+   *     LogicalJoin(condition=[true], joinType=[left])        -- joins the sub-query
+   *       LogicalJoin(condition=[true], joinType=[inner])     -- cross join of EMP and DEPT
+   *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+   *         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+   *       LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])      -- the sub-query; MAX is $11
+   *         LogicalProject(SAL=[$5])
+   *           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+   * </pre></blockquote>
+   */
+  private RelNode convertInnerJoinWithSubQueries(Blackboard bb,
+      SqlNode condition, RelNode leftRel, RelNode rightRel) {
+    final RelNode crossJoin =
+        createJoin(bb, leftRel, rightRel, rexBuilder.makeLiteral(true),
+            JoinRelType.INNER);
+    bb.setRoot(crossJoin, false);
+    replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+    final RexNode conditionExp =
+        simplifyPredicate(bb.convertExpression(condition));
+    if (bb.root() == crossJoin) {
+      // No sub-query was joined, for example in "x IN (1, 2)"
+      return createJoin(bb, leftRel, rightRel, conditionExp,
+          JoinRelType.INNER);
+    }
+    final RelNode filter =
+        conditionExp.isAlwaysTrue()
+            ? bb.root()
+            : createFilterWithVariables(bb, conditionExp);
+    final int fieldCount = crossJoin.getRowType().getFieldCount();
+    return relBuilder.push(filter)
+        .project(relBuilder.fields(ImmutableBitSet.range(fieldCount)))
+        .build();
   }
 
   private RexNode convertNaturalCondition(
@@ -5886,9 +5954,19 @@ public class SqlToRelConverter {
         isParent = false;
       }
       if ((inputs != null) && !isParent) {
-        final LookupContext rels =
-            new LookupContext(this, inputs, systemFieldList.size());
-        final RexNode node = lookup(resolve.path.steps().get(0).i, rels);
+        // For a ListScope, use the row types of the scope's children, not the
+        // leaves of the inputs: the leaves can include sub-queries that were
+        // joined to the inputs (see convertInnerJoinWithSubQueries)
+        final RexNode node;
+        if (ancestorScope instanceof ListScope) {
+          node =
+              makeChildReference((ListScope) ancestorScope,
+                  resolve.path.steps().get(0).i);
+        } else {
+          final LookupContext rels =
+              new LookupContext(this, inputs, systemFieldList.size());
+          node = lookup(resolve.path.steps().get(0).i, rels);
+        }
         return Pair.of(node, (e, fieldName) -> {
           final RelDataTypeField field =
               requireNonNull(rowType.getField(fieldName, true, false),
@@ -5953,6 +6031,20 @@ public class SqlToRelConverter {
           pair.getKey().getRowType(),
           pair.getValue(),
           false);
+    }
+
+    /**
+     * Creates an expression referencing child {@code index} of {@code scope}.
+     */
+    RexNode makeChildReference(ListScope scope, int index) {
+      final List<SqlValidatorNamespace> children = scope.getChildren();
+      // Skip the system fields and the children before it, as in getCorrelationUse
+      int offset = systemFieldList.size();
+      for (int j = 0; j < index; j++) {
+        offset += children.get(j).getRowType().getFieldCount();
+      }
+      return rexBuilder.makeRangeReference(
+          children.get(index).getRowType(), offset, false);
     }
 
     @Nullable RelDataTypeField getRootField(RexInputRef inputRef) {

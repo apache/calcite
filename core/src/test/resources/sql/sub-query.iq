@@ -10297,3 +10297,692 @@ select k from t group by k having max(a) not in (select s.b from s where s.k = t
 
 !ok
 !set expand false
+
+# [CALCITE-7873] Correlated subqueries in ON JOIN conditions crash the
+# compiler with expand=true
+# The results of the following queries were validated using Postgres.
+!set expand true
+
+# Scalar and EXISTS sub-queries
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal = (select max(s.sal) from emp as s)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| KING  | ACCOUNTING |
++-------+------------+
+(1 row)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.mgr = (select max(s.mgr) from emp as s)
+order by d.dname;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| SMITH | ACCOUNTING |
+| SMITH | OPERATIONS |
+| SMITH | RESEARCH   |
+| SMITH | SALES      |
++-------+------------+
+(4 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and exists (select 1 from emp as s where s.job = 'NOBODY')
+order by e.ename;
++-------+-------+
+| ENAME | DNAME |
++-------+-------+
++-------+-------+
+(0 rows)
+
+!ok
+
+# IN, key from the left input
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.empno in (select s.empno from emp as s where s.ename = 'SCOTT')
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| SCOTT | RESEARCH |
++-------+----------+
+(1 row)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.empno in (select s.empno from emp as s where s.job = 'ANALYST')
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| FORD  | RESEARCH |
+| SCOTT | RESEARCH |
++-------+----------+
+(2 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.mgr in (select s.mgr from emp as s where s.job = 'ANALYST')
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| FORD  | RESEARCH |
+| SCOTT | RESEARCH |
++-------+----------+
+(2 rows)
+
+!ok
+
+# IN, key from the right input
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and d.deptno in (select s.deptno from emp as s where s.job = 'ANALYST')
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| ADAMS | RESEARCH |
+| FORD  | RESEARCH |
+| JONES | RESEARCH |
+| SCOTT | RESEARCH |
+| SMITH | RESEARCH |
++-------+----------+
+(5 rows)
+
+!ok
+
+# Correlated sub-queries
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal = (select max(s.sal) from emp as s where s.deptno = d.deptno)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| FORD  | RESEARCH   |
+| KING  | ACCOUNTING |
+| SCOTT | RESEARCH   |
++-------+------------+
+(4 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal = (select max(s.sal) from emp as s where s.deptno = e.deptno)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| FORD  | RESEARCH   |
+| KING  | ACCOUNTING |
+| SCOTT | RESEARCH   |
++-------+------------+
+(4 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and exists (select 1 from emp as s where s.job = 'ANALYST' and s.deptno = d.deptno)
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| ADAMS | RESEARCH |
+| FORD  | RESEARCH |
+| JONES | RESEARCH |
+| SCOTT | RESEARCH |
+| SMITH | RESEARCH |
++-------+----------+
+(5 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and exists (select 1 from emp as s where s.mgr = e.empno)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| KING  | ACCOUNTING |
+| SCOTT | RESEARCH   |
++-------+------------+
+(6 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.empno not in (select s.mgr from emp as s where s.deptno = d.deptno)
+order by e.ename;
++--------+----------+
+| ENAME  | DNAME    |
++--------+----------+
+| ADAMS  | RESEARCH |
+| ALLEN  | SALES    |
+| JAMES  | SALES    |
+| MARTIN | SALES    |
+| SMITH  | RESEARCH |
+| TURNER | SALES    |
+| WARD   | SALES    |
++--------+----------+
+(7 rows)
+
+!ok
+
+# Nested joins, two sub-queries, join inside a sub-query
+select e.ename, d.dname, x.loc
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal = (select max(s.sal) from emp as s)
+join dept as x on x.deptno = d.deptno
+order by e.ename;
++-------+------------+----------+
+| ENAME | DNAME      | LOC      |
++-------+------------+----------+
+| KING  | ACCOUNTING | NEW YORK |
++-------+------------+----------+
+(1 row)
+
+!ok
+
+select e.ename, m.ename as mname
+from emp as e join dept as d
+on e.deptno = d.deptno
+join emp as m
+on m.empno = e.mgr
+  and m.sal = (select max(s.sal) from emp as s where s.deptno = d.deptno)
+order by e.ename;
++--------+-------+
+| ENAME  | MNAME |
++--------+-------+
+| ADAMS  | SCOTT |
+| ALLEN  | BLAKE |
+| CLARK  | KING  |
+| JAMES  | BLAKE |
+| MARTIN | BLAKE |
+| SMITH  | FORD  |
+| TURNER | BLAKE |
+| WARD   | BLAKE |
++--------+-------+
+(8 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.mgr in (select s.empno from emp as s where s.job = 'MANAGER')
+  and d.deptno in (select s.deptno from emp as s where s.job = 'ANALYST')
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| FORD  | RESEARCH |
+| SCOTT | RESEARCH |
++-------+----------+
+(2 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and exists (select 1 from emp as s where s.mgr = e.empno and s.deptno = d.deptno)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| KING  | ACCOUNTING |
+| SCOTT | RESEARCH   |
++-------+------------+
+(6 rows)
+
+!ok
+
+select d.dname
+from dept as d
+where exists (
+  select 1 from emp as e join emp as m
+  on m.empno = e.mgr and m.sal = (select max(s.sal) from emp as s)
+  where e.deptno = d.deptno)
+order by d.dname;
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| RESEARCH   |
+| SALES      |
++------------+
+(3 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.mgr not in (select s.mgr from emp as s where s.job = 'CLERK')
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| SCOTT | RESEARCH   |
++-------+------------+
+(5 rows)
+
+!ok
+
+# Several sub-queries in one ON, OR, NOT EXISTS, GROUP BY, IN lists,
+# LATERAL, a sub-query in FROM, composite keys, and correlation with
+# an outer query
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal < (select max(s.sal) from emp as s)
+  and exists (select 1 from emp as s where s.mgr = e.empno)
+  and e.mgr not in (select s.mgr from emp as s where s.job = 'CLERK')
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| SCOTT | RESEARCH   |
++-------+------------+
+(5 rows)
+
+!ok
+
+select e.ename, d.dname, m.ename as mname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and d.deptno in (select s.deptno from emp as s where s.job = 'ANALYST')
+join emp as m
+on m.empno = e.mgr
+  and m.sal > (select avg(s.sal) from emp as s)
+order by e.ename;
++-------+----------+-------+
+| ENAME | DNAME    | MNAME |
++-------+----------+-------+
+| ADAMS | RESEARCH | SCOTT |
+| FORD  | RESEARCH | JONES |
+| JONES | RESEARCH | KING  |
+| SCOTT | RESEARCH | JONES |
+| SMITH | RESEARCH | FORD  |
++-------+----------+-------+
+(5 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and (e.comm > 0 or e.empno in (select s.mgr from emp as s))
+order by e.ename;
++--------+------------+
+| ENAME  | DNAME      |
++--------+------------+
+| ALLEN  | SALES      |
+| BLAKE  | SALES      |
+| CLARK  | ACCOUNTING |
+| FORD   | RESEARCH   |
+| JONES  | RESEARCH   |
+| KING   | ACCOUNTING |
+| MARTIN | SALES      |
+| SCOTT  | RESEARCH   |
+| WARD   | SALES      |
++--------+------------+
+(9 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and not exists (select 1 from emp as s where s.mgr = e.empno)
+order by e.ename;
++--------+------------+
+| ENAME  | DNAME      |
++--------+------------+
+| ADAMS  | RESEARCH   |
+| ALLEN  | SALES      |
+| JAMES  | SALES      |
+| MARTIN | SALES      |
+| MILLER | ACCOUNTING |
+| SMITH  | RESEARCH   |
+| TURNER | SALES      |
+| WARD   | SALES      |
++--------+------------+
+(8 rows)
+
+!ok
+
+select d.dname, count(*) as c
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal > (select avg(s.sal) from emp as s)
+group by d.dname
+order by d.dname;
++------------+---+
+| DNAME      | C |
++------------+---+
+| ACCOUNTING | 2 |
+| RESEARCH   | 3 |
+| SALES      | 1 |
++------------+---+
+(3 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.empno in (7369, 7499, 7521, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    13, 14, 15, 16, 17, 18)
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| ALLEN | SALES    |
+| SMITH | RESEARCH |
+| WARD  | SALES    |
++-------+----------+
+(3 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.empno in (7369, 7499)
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| ALLEN | SALES    |
+| SMITH | RESEARCH |
++-------+----------+
+(2 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e
+join lateral (select * from dept as x where x.deptno = e.deptno) as d
+on d.loc in (select x.loc from dept as x where x.dname <> 'SALES')
+  and e.sal > (select avg(s.sal) from emp as s)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| KING  | ACCOUNTING |
+| SCOTT | RESEARCH   |
++-------+------------+
+(5 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join (select deptno, dname from dept where deptno < 40) as d
+on e.deptno = d.deptno
+  and exists (select 1 from emp as s where s.mgr = e.empno and s.job = 'CLERK')
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| SCOTT | RESEARCH   |
++-------+------------+
+(4 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and (e.deptno, e.job) in (select s.deptno, s.job from emp as s where s.sal > 2900)
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| KING  | ACCOUNTING |
+| SCOTT | RESEARCH   |
++-------+------------+
+(4 rows)
+
+!ok
+
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and (e.deptno, e.job) not in (select s.deptno, s.job from emp as s where s.sal > 2900)
+order by e.ename;
++--------+------------+
+| ENAME  | DNAME      |
++--------+------------+
+| ADAMS  | RESEARCH   |
+| ALLEN  | SALES      |
+| BLAKE  | SALES      |
+| CLARK  | ACCOUNTING |
+| JAMES  | SALES      |
+| MARTIN | SALES      |
+| MILLER | ACCOUNTING |
+| SMITH  | RESEARCH   |
+| TURNER | SALES      |
+| WARD   | SALES      |
++--------+------------+
+(10 rows)
+
+!ok
+
+select count(*) as c
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and d.deptno in (select s.deptno from emp as s);
++----+
+| C  |
++----+
+| 14 |
++----+
+(1 row)
+
+!ok
+
+select d.dname
+from dept as d
+where exists (
+  select 1 from emp as e join emp as m
+  on m.empno = e.mgr
+    and m.job in (select s.job from emp as s
+      where s.deptno = d.deptno and s.job = 'PRESIDENT')
+  where e.deptno = d.deptno)
+order by d.dname;
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
++------------+
+(1 row)
+
+!ok
+
+# Sub-queries in the ON clause and in WHERE, SELECT or HAVING
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal > (select avg(s.sal) from emp as s)
+where exists (select 1 from emp as s where s.deptno = d.deptno and s.job = 'ANALYST')
+order by e.ename;
++-------+----------+
+| ENAME | DNAME    |
++-------+----------+
+| FORD  | RESEARCH |
+| JONES | RESEARCH |
+| SCOTT | RESEARCH |
++-------+----------+
+(3 rows)
+
+!ok
+
+select e.ename, (select count(*) from emp as s where s.deptno = d.deptno) as c
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal = (select max(s.sal) from emp as s where s.job = 'ANALYST')
+order by e.ename;
++-------+---+
+| ENAME | C |
++-------+---+
+| FORD  | 5 |
+| SCOTT | 5 |
++-------+---+
+(2 rows)
+
+!ok
+
+select d.dname, count(*) as c
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.mgr in (select s.empno from emp as s where s.job = 'MANAGER')
+group by d.dname
+having count(*) > (select count(*) from dept as y where y.loc = 'BOSTON')
+order by d.dname;
++----------+---+
+| DNAME    | C |
++----------+---+
+| RESEARCH | 2 |
+| SALES    | 5 |
++----------+---+
+(2 rows)
+
+!ok
+
+select e.ename, x.loc
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal > (select avg(s.sal) from emp as s)
+join dept as x on x.deptno = d.deptno
+where exists (select 1 from emp as s where s.deptno = x.deptno and s.job = 'PRESIDENT')
+order by e.ename;
++-------+----------+
+| ENAME | LOC      |
++-------+----------+
+| CLARK | NEW YORK |
+| KING  | NEW YORK |
++-------+----------+
+(2 rows)
+
+!ok
+
+# A scalar sub-query and a correlated EXISTS, in both orders
+select e.ename
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal < (select max(s.sal) from emp as s)
+  and exists (select 1 from emp as s where s.mgr = e.empno)
+order by e.ename;
++-------+
+| ENAME |
++-------+
+| BLAKE |
+| CLARK |
+| FORD  |
+| JONES |
+| SCOTT |
++-------+
+(5 rows)
+
+!ok
+
+select e.ename
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and exists (select 1 from emp as s where s.mgr = e.empno)
+  and e.sal < (select max(s.sal) from emp as s)
+order by e.ename;
++-------+
+| ENAME |
++-------+
+| BLAKE |
+| CLARK |
+| FORD  |
+| JONES |
+| SCOTT |
++-------+
+(5 rows)
+
+!ok
+
+# A query equivalent to SqlToRelConverterTest.testJoinExpandAndDecorrelation
+select emp.deptno, emp.sal
+from dept
+join emp on emp.deptno = dept.deptno and emp.sal < (
+  select avg(emp.sal)
+  from emp
+  where emp.deptno = dept.deptno)
+order by emp.deptno, emp.sal;
++--------+---------+
+| DEPTNO | SAL     |
++--------+---------+
+|     10 | 1300.00 |
+|     10 | 2450.00 |
+|     20 |  800.00 |
+|     20 | 1100.00 |
+|     30 |  950.00 |
+|     30 | 1250.00 |
+|     30 | 1250.00 |
+|     30 | 1500.00 |
++--------+---------+
+(8 rows)
+
+!ok
+!set expand false
