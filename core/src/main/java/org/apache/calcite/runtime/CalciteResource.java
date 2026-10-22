@@ -51,6 +51,18 @@ public interface CalciteResource {
   @BaseMessage("VALUE is not allowed under the current SQL conformance level")
   ExInst<CalciteException> valueNotAllowed();
 
+  @BaseMessage("Pipe syntax is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> pipeSyntaxNotAllowed();
+
+  @BaseMessage("{0} clause is not allowed after a FROM query; use ''{1}''")
+  ExInst<CalciteException> pipeClauseNotAllowed(String a0, String a1);
+
+  @BaseMessage("{0} clause is not allowed after a FROM query")
+  ExInst<CalciteException> fromQueryClauseNotAllowed(String a0);
+
+  @BaseMessage("A FROM query must be in parentheses to be an operand of UNION, INTERSECT or EXCEPT")
+  ExInst<CalciteException> fromQueryInSetOpNotAllowed();
+
   @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 

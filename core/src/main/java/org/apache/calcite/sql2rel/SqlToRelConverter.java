@@ -132,6 +132,9 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPipeInput;
+import org.apache.calcite.sql.SqlPipeOperator;
+import org.apache.calcite.sql.SqlPipeQuery;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
@@ -165,6 +168,7 @@ import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.MeasureScope;
 import org.apache.calcite.sql.validate.ParameterScope;
+import org.apache.calcite.sql.validate.PipeNamespace;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -639,7 +643,8 @@ public class SqlToRelConverter {
       query = validator().validate(query);
     }
 
-    RelNode result = convertQueryRecursive(query, top, null).rel;
+    final RelRoot root = convertQueryRecursive(query, top, null);
+    RelNode result = root.rel;
     if (top) {
       if (unwrapMeasures) {
         result = unwrapMeasures(result);
@@ -648,12 +653,9 @@ public class SqlToRelConverter {
         result = new LogicalDelta(cluster, result.getTraitSet(), result);
       }
     }
-    RelCollation collation = RelCollations.EMPTY;
-    if (!query.isA(SqlKind.DML)) {
-      if (isOrdered(query)) {
-        collation = requiredCollation(result);
-      }
-    }
+    final RelCollation collation = query.isA(SqlKind.DML)
+        ? RelCollations.EMPTY
+        : collation(query, root, top);
     checkConvertedType(query, result, top && unwrapMeasures);
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
@@ -706,8 +708,25 @@ public class SqlToRelConverter {
   }
 
   private static boolean isStream(SqlNode query) {
+    if (query instanceof SqlPipeOperator) {
+      // A pipeline is a stream if the query it starts from is one. If that is
+      // a WITH, look at its body.
+      SqlNode input = ((SqlPipeOperator) query).getQuery();
+      while (input instanceof SqlWith) {
+        input = ((SqlWith) input).body;
+      }
+      return isStream(input);
+    }
     return query instanceof SqlSelect
         && ((SqlSelect) query).isKeywordPresent(SqlSelectKeyword.STREAM);
+  }
+
+  /** Returns whether {@code scope} is the scope of a pipe operator's
+   * surrogate SELECT, whose children are the tables of the operator's input
+   * (see {@link Blackboard#setPipeInput}). */
+  private static boolean readsPipeInput(@Nullable SqlValidatorScope scope) {
+    return scope instanceof SelectScope
+        && ((SelectScope) scope).getNode().getFrom() instanceof SqlPipeInput;
   }
 
   public static boolean isOrdered(SqlNode query) {
@@ -719,9 +738,26 @@ public class SqlToRelConverter {
       return isOrdered(((SqlWith) query).body);
     case ORDER_BY:
       return !((SqlOrderBy) query).orderList.isEmpty();
+    case PIPE_OPERATOR:
+      // Each pipe operator keeps its input's order.
+      return isOrdered(((SqlPipeOperator) query).getQuery());
     default:
       return false;
     }
+  }
+
+  /** Returns the order of the rows of {@code query}, which has been converted
+   * to {@code root}; empty if it is not ordered or its sort was removed. */
+  private RelCollation collation(SqlNode query, RelRoot root, boolean top) {
+    if (!isOrdered(query) || removeSortInSubQuery(top)) {
+      return RelCollations.EMPTY;
+    }
+    // For SELECT, we need to call requiredCollation to track down its
+    // Sort. In other cases (e.g. WITH, pipe syntax) we can use the
+    // root.collation that was built during conversion.
+    return query.getKind() == SqlKind.SELECT
+        ? requiredCollation(root.rel)
+        : root.collation;
   }
 
   private static RelCollation requiredCollation(RelNode r) {
@@ -2861,8 +2897,29 @@ public class SqlToRelConverter {
     case INTERSECT:
     case EXCEPT:
     case UNION:
+    case FROM_QUERY:
+    case PIPE_OPERATOR:
       final RelNode rel = convertQueryRecursive(from, false, null).project();
       bb.setRoot(rel, true);
+      return;
+
+    case PIPE_INPUT:
+      // The input's order matters only if the operator is at the top of the
+      // statement. Then convert the input as top, so that its sort is kept.
+      final boolean keepOrder = bb.top;
+      SqlNode pipeInput = ((SqlPipeInput) from).getInput();
+      while (pipeInput instanceof SqlWith) {
+        // convertWith would convert the body as the top of the statement.
+        pipeInput = ((SqlWith) pipeInput).body;
+      }
+      final RelRoot pipeInputRoot =
+          convertQueryRecursive(pipeInput, keepOrder, null);
+      if (keepOrder) {
+        bb.setPipeInput(pipeInputRoot.rel,
+            collation(pipeInput, pipeInputRoot, true));
+      } else {
+        bb.setPipeInput(pipeInputRoot.project(), RelCollations.EMPTY);
+      }
       return;
 
     case VALUES:
@@ -3498,6 +3555,7 @@ public class SqlToRelConverter {
     final List<CorrelationId> correlNames = new ArrayList<>();
     // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex for aggregation
     final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping = new HashMap<>();
+    int correlFieldCount = Integer.MAX_VALUE;
 
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
@@ -3542,6 +3600,9 @@ public class SqlToRelConverter {
       while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
         topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
       }
+      correlFieldCount =
+          Math.min(correlFieldCount,
+              topLevelFieldAccess.getReferenceExpr().getType().getFieldCount());
       final int originalFieldIndex = topLevelFieldAccess.getField().getIndex();
       final RelDataTypeField field = rowType.getFieldList()
           .get(originalFieldIndex - namespaceOffset);
@@ -3590,8 +3651,19 @@ public class SqlToRelConverter {
       leaves.put(r, r.getRowType().getFieldCount());
     }
 
-    // If there are field mappings (due to aggregation), rewrite the RelNode tree
-    // to update correlation variable row type and field indices
+    // The rel of a pipe operator's input may also have trailing columns for
+    // sort keys (see convertNonAggregateSelectList), which the correlation
+    // variable lacks. Give it the rel's row type.
+    if (readsPipeInput(bb.scope) && fieldMapping.isEmpty()
+        && correlFieldCount < bb.root().getRowType().getFieldCount()) {
+      for (int i = 0; i < correlFieldCount; i++) {
+        fieldMapping.put(Pair.of(correlNames.get(0), i), i);
+      }
+    }
+
+    // If there are field mappings (due to aggregation or a pipe operator's
+    // input), rewrite the RelNode tree to update correlation variable row
+    // type and field indices
     if (!fieldMapping.isEmpty()) {
       r =
           r.accept(
@@ -4436,6 +4508,9 @@ public class SqlToRelConverter {
       return convertWith((SqlWith) query, top);
     case VALUES:
       return RelRoot.of(convertValues((SqlCall) query, targetRowType), kind);
+    case FROM_QUERY:
+    case PIPE_OPERATOR:
+      return convertPipeQuery((SqlPipeQuery) query, top);
     default:
       throw new AssertionError("not a query: " + query);
     }
@@ -4467,6 +4542,27 @@ public class SqlToRelConverter {
         .push(right)
         .union(all, 2)
         .build();
+  }
+
+  /**
+   * Converts a query written in pipe syntax, by converting its surrogate
+   * {@code SELECT} (see {@link SqlPipeOperator}).
+   */
+  private RelRoot convertPipeQuery(SqlPipeQuery query, boolean top) {
+    final PipeNamespace ns = getNamespace(query);
+    final SqlSelect select = ns.getSelect();
+    final SqlValidatorScope selectScope = validator().getWhereScope(select);
+    final MeasureScope measureScope =
+        (MeasureScope) validator().getMeasureScope(select);
+    final Blackboard bb = createBlackboard(selectScope, null, top);
+    bb.pipeQuery = query;
+    final Blackboard measureBb = new MeasureBlackboard(measureScope, bb);
+    convertSelectImpl(bb, measureBb, select);
+    final RelDataType rowType = validator().getValidatedNodeType(query);
+    final RelRoot root = RelRoot.of(bb.root(), rowType, query.getKind());
+    return top
+        ? root.withCollation(bb.pipeCollation)
+        : RelRoot.of(root.project(), rowType, query.getKind());
   }
 
   /**
@@ -5376,6 +5472,26 @@ public class SqlToRelConverter {
       fieldNames.add(deriveAlias(expr, aliases, i));
     }
 
+    // Project extra fields for the sort keys of a pipe operator's input, if
+    // its order is to be kept (see convertFrom) but the operator does not
+    // output them.
+    if (!bb.pipeInputCollation.getFieldCollations().isEmpty()) {
+      final List<RelFieldCollation> fieldCollations = new ArrayList<>();
+      for (RelFieldCollation fieldCollation
+          : bb.pipeInputCollation.getFieldCollations()) {
+        final int key = fieldCollation.getFieldIndex();
+        final RexInputRef ref = rexBuilder.makeInputRef(bb.root(), key);
+        int target = exprs.indexOf(ref);
+        if (target < 0) {
+          target = exprs.size();
+          exprs.add(ref);
+          fieldNames.add(bb.root().getRowType().getFieldNames().get(key));
+        }
+        fieldCollations.add(fieldCollation.withFieldIndex(target));
+      }
+      bb.pipeCollation = RelCollations.of(fieldCollations);
+    }
+
     final List<String> uniqueFieldNames =
         SqlValidatorUtil.uniquify(fieldNames,
             catalogReader.nameMatcher().isCaseSensitive());
@@ -5396,6 +5512,11 @@ public class SqlToRelConverter {
           .projectNamed(project1.getProjects(), uniqueFieldNames, true,
               ImmutableSet.of(p.id))
           .build();
+    } else if (bb.pipeQuery != null
+        && RexUtil.isIdentity(exprs, bb.root().getRowType())
+        && uniqueFieldNames.equals(bb.root().getRowType().getFieldNames())) {
+      // No need for an identity Project for each step of a pipeline.
+      r = bb.root();
     } else {
       r = relBuilder.push(bb.root()).projectNamed(exprs, uniqueFieldNames, true).build();
     }
@@ -5641,6 +5762,18 @@ public class SqlToRelConverter {
     public final SqlValidatorScope scope;
     private final @Nullable Map<String, RexNode> nameToNodeMap;
     public @Nullable RelNode root;
+
+    /** Query written in pipe syntax whose surrogate SELECT this blackboard
+     * converts, or null. */
+    @Nullable SqlPipeQuery pipeQuery;
+
+    /** Order of the rows of a pipe operator's input, in the input's field
+     * numbering. */
+    RelCollation pipeInputCollation = RelCollations.EMPTY;
+
+    /** Order of the rows of the pipe operator that this blackboard converts,
+     * in the field numbering of {@link #root}. */
+    RelCollation pipeCollation = RelCollations.EMPTY;
     private @Nullable List<RelNode> inputs;
     private final Map<CorrelationId, RexFieldAccess> mapCorrelateToRex =
         new HashMap<>();
@@ -5965,7 +6098,18 @@ public class SqlToRelConverter {
         } else {
           final LookupContext rels =
               new LookupContext(this, inputs, systemFieldList.size());
-          node = lookup(resolve.path.steps().get(0).i, rels);
+          final int i = resolve.path.steps().get(0).i;
+          if (readsPipeInput(ancestorScope)) {
+            // The scope's children are the input's tables.
+            int offset = rels.findRel(0).getValue();
+            for (int j = 0; j < i; j++) {
+              offset += ((ListScope) requireNonNull(ancestorScope, "ancestorScope"))
+                  .getChildren().get(j).getRowType().getFieldCount();
+            }
+            node = rexBuilder.makeRangeReference(rowType, offset, false);
+          } else {
+            node = lookup(i, rels);
+          }
         }
         return Pair.of(node, (e, fieldName) -> {
           final RelDataTypeField field =
@@ -6017,6 +6161,15 @@ public class SqlToRelConverter {
           });
         }
       }
+    }
+
+    /** Sets the root to the rel of a pipe operator's input. The scope's
+     * children are then the input's tables, which all read that one rel; see
+     * {@link #lookupExp}. The rel may also have trailing columns that hold
+     * sort keys of its {@code collation}. */
+    void setPipeInput(RelNode input, RelCollation collation) {
+      setRoot(input, true);
+      pipeInputCollation = collation;
     }
 
     /**

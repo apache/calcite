@@ -1034,4 +1034,19 @@ select
 
 !ok
 
+# ALL over a WITH whose column needs coercion; the left operand is nullable
+# INTEGER and the right is TINYINT.
+select count(*) as c from emp
+where deptno + 0 < all (
+  with w as (select deptno from dept where loc <> 'NEW YORK')
+  select deptno from w);
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
 # End some.iq

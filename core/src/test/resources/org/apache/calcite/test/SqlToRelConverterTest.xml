@@ -2700,6 +2700,16 @@ LogicalProject(F=[*(/INT(CASE(>=(11045000:INTERVAL HOUR TO SECOND, 0), 11045000:
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFromQuery">
+    <Resource name="sql">
+      <![CDATA[from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFullJoinUsingWithUnqualifiedCommonColumnInOrderBy">
     <Resource name="sql">
       <![CDATA[SELECT name
@@ -7749,6 +7759,172 @@ LogicalAggregate(group=[{0}], EXPR$1=[PERCENTILE_DISC($1) WITHIN GROUP ([2])])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPipeQueryAsCorrelatedSubQuery">
+    <Resource name="sql">
+      <![CDATA[from emp as e
+|> where exists (from dept |> where deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], $f1=[CAST($10):BOOLEAN])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], $f0=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhere">
+    <Resource name="sql">
+      <![CDATA[from emp |> where deptno = 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[=($7, 10)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereAfterUnion">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp union all select deptno from dept
+|> where deptno = 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[=($0, 10)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereAfterWith">
+    <Resource name="sql">
+      <![CDATA[with d as (select * from emp)
+select * from d order by empno
+|> where deptno = 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[=($7, 10)])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereAsCursor">
+    <Resource name="sql">
+      <![CDATA[select * from table(dedup(cursor(from emp |> where deptno = 10), 'ENAME'))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalTableFunctionScan(invocation=[DEDUP(CAST($0):CURSOR NOT NULL, 'ENAME')], rowType=[RecordType(VARCHAR(1024) NAME)])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereCorrelatedHiddenSortKey">
+    <Resource name="sql">
+      <![CDATA[select ename, deptno as dno from emp order by sal + 1 desc
+|> where exists (select 1 from dept as d where d.deptno = dno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ENAME=[$0], DNO=[$1])
+  LogicalProject(ENAME=[$0], DNO=[$1], EXPR$2=[$2])
+    LogicalFilter(condition=[IS NOT NULL($3)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+        LogicalSort(sort0=[$2], dir0=[DESC])
+          LogicalProject(ENAME=[$1], DNO=[$7], EXPR$2=[+($5, 1)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject($f0=[true])
+            LogicalFilter(condition=[=($0, $cor0.DNO)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereInSubQueryCoercion">
+    <Resource name="sql">
+      <![CDATA[select * from emp
+where cast(deptno as bigint) in
+  (select deptno from dept |> where deptno > 0)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IN(CAST($7):BIGINT NOT NULL, {
+LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL])
+  LogicalFilter(condition=[>($0, 0)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereKeepsOrder">
+    <Resource name="sql">
+      <![CDATA[select ename, deptno from emp order by sal desc
+|> where deptno = 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ENAME=[$0], DEPTNO=[$1])
+  LogicalFilter(condition=[=($1, 10)])
+    LogicalSort(sort0=[$2], dir0=[DESC])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereOverStream">
+    <Resource name="sql">
+      <![CDATA[select stream * from orders |> where productid = 1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalDelta
+  LogicalFilter(condition=[=($1, 1)])
+    LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereOverStreamingWith">
+    <Resource name="sql">
+      <![CDATA[(with d as (select * from dept)
+  select stream * from orders) |> where productid = 1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalDelta
+  LogicalFilter(condition=[=($1, 1)])
+    LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPipeWhereWrapsSelect">
+    <Resource name="sql">
+      <![CDATA[select ename, sal from emp |> where sal > 100]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[>($1, 100)])
+  LogicalProject(ENAME=[$1], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPivot">
     <Resource name="sql">
       <![CDATA[SELECT *
@@ -11375,6 +11551,23 @@ LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 })], variablesSet=[[$cor1]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testWithInsideWhereInOrderBy">
+    <Resource name="sql">
+      <![CDATA[select * from emp
+where deptno in (
+  with w as (select * from dept) select deptno from w order by deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

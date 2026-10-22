@@ -10555,6 +10555,207 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "ORDER BY `EXPR$0`.`EMPNO`");
   }
 
+  /** Tests that a pipe operator's expressions are checked for rolled-up
+   * columns, as the clauses of the {@code SELECT} they stand for are. */
+  @Test void testPipeRolledUpColumn() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // |> WHERE rejects a rolled-up column of the enclosing query as a
+    // standard sub-query does.
+    sql("select empno from emp_r as e\n"
+        + "where exists (from dept |> where deptno = ^e.slackingmin^)")
+        .withConformance(lenient)
+        .fails("Rolled up column 'SLACKINGMIN' is not allowed in EQUALS");
+    // A column that is not rolled up is fine.
+    sql("select empno from emp_r as e\n"
+        + "where exists (from dept |> where deptno = e.deptno)")
+        .withConformance(lenient)
+        .ok();
+  }
+
+  /** Tests that a pipeline is checked for stream/relation modality. */
+  @Test void testPipeModality() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // "FROM orders" is "SELECT * FROM orders", which cannot read a stream.
+    sql("from ^orders^")
+        .withConformance(lenient)
+        .fails("Cannot convert stream 'ORDERS' to relation");
+    // A pipeline read as a relation cannot read a stream.
+    sql("select * from (select stream * from orders\n"
+        + "^|> where productid = 1^)")
+        .withConformance(lenient)
+        .fails("Cannot convert stream 'EXPR\\$0' to relation");
+  }
+
+  @Test void testPipeSyntaxType() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("from emp")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+    sql("from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+    sql("select ename, sal from emp |> where sal > 100")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, INTEGER NOT NULL SAL)"
+            + " NOT NULL");
+  }
+
+  @Test void testPipeSyntaxScope() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // |> WHERE cannot see table aliases in SELECT.
+    sql("select * from emp as e |> where ^e^.deptno = 10")
+        .withConformance(lenient)
+        .fails("Table 'E' not found");
+    // Table aliases in FROM stay visible through a chain of |> WHERE.
+    sql("from emp as e |> where e.deptno = 10 |> where e.sal > 1000")
+        .withConformance(lenient)
+        .ok();
+    // |> WHERE can see both CTEs and table aliases in FROM.
+    sql("with e as (select * from emp)\n"
+        + "from e as x |> where x.deptno in (select deptno from e)")
+        .withConformance(lenient)
+        .ok();
+    sql("with e as (select * from emp)\n"
+        + "select * from e order by empno |> where deptno in (select deptno from e)")
+        .withConformance(lenient)
+        .ok();
+    // |> WHERE cannot see CTEs of a WITH in parentheses.
+    sql("(with e as (select * from emp) select * from emp)\n"
+        + "|> where deptno in (select deptno from ^e^)")
+        .withConformance(lenient)
+        .fails("Object 'E' not found");
+    sql("(with e as (select * from emp) select * from emp) order by empno\n"
+        + "|> where deptno in (select deptno from ^e^)")
+        .withConformance(lenient)
+        .fails("Object 'E' not found");
+    sql("(with dept as (select 1 as x from emp) select * from emp)\n"
+        + "|> where deptno in (select dept.deptno from dept)")
+        .withConformance(lenient)
+        .ok();
+  }
+
+  /** Tests a pipe query used as an expression sub-query: the operand of
+   * {@code EXISTS} or {@code IN}, or a scalar sub-query. Such a query is
+   * validated in a scope of its own, so nothing that walks the enclosing
+   * query's expressions may descend into it. */
+  @Test void testPipeQueryAsSubQuery() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select ename, (select name from dept |> where deptno = 10) as dn\n"
+        + "from emp")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) DN)"
+            + " NOT NULL");
+    // An unknown column inside the sub-query is still reported, and the
+    // sub-query's columns are not visible outside it.
+    sql("select * from emp\n"
+        + "where exists (from dept |> where ^nonexistent^ = 1)")
+        .withConformance(lenient)
+        .fails("Column 'NONEXISTENT' not found in any table");
+    sql("select * from emp where exists (from dept) and ^name^ = 'x'")
+        .withConformance(lenient)
+        .fails("Column 'NAME' not found in any table");
+    // The usual arity rules apply; DEPT has two columns.
+    sql("select * from emp where ^deptno in (from dept^)")
+        .withConformance(lenient)
+        .fails("Values passed to IN operator must have compatible types");
+    sql("select ^(from dept |> where deptno = 10)^ from emp")
+        .withConformance(lenient)
+        .fails("Cannot apply '\\$SCALAR_QUERY' to arguments of type.*");
+    // A set operation whose first query is in pipe syntax reports a type
+    // mismatch at that query, which has no select list to point into.
+    sql("^(select slacker from emp |> where slacker)^\n"
+        + "union all select hiredate from emp")
+        .withConformance(lenient)
+        .fails("Type mismatch in column 1 of UNION ALL");
+  }
+
+  /** Tests that implicit type coercion applies to a query in pipe syntax as
+   * it does to the equivalent SELECT. */
+  @Test void testPipeQueryTypeCoercion() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("(from dept) union all select name, deptno from dept")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR NOT NULL DEPTNO,"
+            + " VARCHAR NOT NULL NAME) NOT NULL");
+    sql("select 'a' as x union all (select deptno from dept |> where true)")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR NOT NULL X) NOT NULL");
+  }
+
+  /** Tests a query in pipe syntax as the operand of the {@code ARRAY} and
+   * {@code MAP} query constructors. */
+  @Test void testPipeQueryInArrayAndMap() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select array(select ename from emp |> where deptno = 10)\n"
+        + "from dept")
+        .withConformance(lenient)
+        .columnType("VARCHAR(20) NOT NULL ARRAY NOT NULL");
+    sql("select map(from dept |> where deptno = 10) from emp")
+        .withConformance(lenient)
+        .columnType("(INTEGER NOT NULL, VARCHAR(10) NOT NULL) MAP NOT NULL");
+  }
+
+  @Test void testPipeWhereBaseQueries() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("table emp |> where deptno = 10")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+    // The validator rewrites the sub-query's ORDER BY into a different node,
+    // which replaces the FROM query's operand.
+    sql("from (select * from emp order by empno)")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+  }
+
+  @Test void testPipeValidationErrors() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("from ^nonexistent^ |> where x = 1")
+        .withConformance(lenient)
+        .fails("Object 'NONEXISTENT' not found");
+    sql("from emp |> where deptno = 10 |> where ^nonexistent^ = 1")
+        .withConformance(lenient)
+        .fails("Column 'NONEXISTENT' not found in any table");
+    sql("from emp |> where ^empno^")
+        .withConformance(lenient)
+        .fails("WHERE clause must be a condition");
+    sql("from emp |> where ^count(*)^ > 1")
+        .withConformance(lenient)
+        .fails("Aggregate expression is illegal in WHERE clause");
+    sql("from emp |> where ^rank() over (order by sal)^ = 1")
+        .withConformance(lenient)
+        .fails("Windowed aggregate expression is illegal in WHERE clause");
+    sql("from emp, dept |> where ^deptno^ = 10")
+        .withConformance(lenient)
+        .fails("Column 'DEPTNO' is ambiguous");
+    sql("select ename from emp |> where ^empno^ > 1")
+        .withConformance(lenient)
+        .fails("Column 'EMPNO' not found in any table");
+    sql("from emp as e |> where e.^nonexistent^ = 1")
+        .withConformance(lenient)
+        .fails("Column 'NONEXISTENT' not found in table 'E'");
+  }
+
+  /** Tests pipe syntax under a conformance level that requires a
+   * {@code FROM} clause, which an operator's surrogate SELECT has:
+   * the placeholder for the operator's input. */
+  @Test void testPipeUnderFromRequiredConformance() {
+    final SqlConformance fromRequired =
+        new SqlDelegatingConformance(SqlConformanceEnum.STRICT_2003) {
+          @Override public boolean isPipeSyntaxAllowed() {
+            return true;
+          }
+        };
+    assertThat(fromRequired.isFromRequired(), is(true));
+    sql("from dept |> where deptno = 10")
+        .withConformance(fromRequired)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME)"
+            + " NOT NULL");
+    // A SELECT that the user writes without a FROM clause is still rejected.
+    sql("^select 1^")
+        .withConformance(fromRequired)
+        .fails("SELECT must have a FROM clause");
+  }
+
   @Test void testCollectionTable() {
     sql("select * from table(ramp(3))")
         .type("RecordType(INTEGER NOT NULL I) NOT NULL");
@@ -11371,6 +11572,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("select dpt.skill.desc from dept_nested as dpt")
         .assertFieldOrigin(is("{CATALOG.SALES.DEPT_NESTED.SKILL.DESC}"));
+  }
+
+  /** Tests that a query written in pipe syntax reports the origins of its
+   * columns, as the {@code SELECT} it stands for does. */
+  @Test void testPipeFieldOrigin() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // "FROM dept" is "SELECT * FROM dept", and has its origins.
+    sql("from dept")
+        .withConformance(lenient)
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.DEPT.DEPTNO, CATALOG.SALES.DEPT.NAME}"));
+    // |> WHERE keeps the origins of its input's columns.
+    sql("from dept |> where deptno = 10")
+        .withConformance(lenient)
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.DEPT.DEPTNO, CATALOG.SALES.DEPT.NAME}"));
   }
 
   @Test void testBrackets() {
@@ -15402,6 +15619,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  sum(sal) over (order by mgr)\n"
             + "from emp^")
         .fails(missingFilters("JOB"));
+  }
+
+  @Test void testMustFilterColumnsInPipeQuery() {
+    final SqlValidatorFixture fixture = fixture()
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // "FROM emp" is "SELECT * FROM emp", and requires the same filters.
+    fixture.withSql("^from emp^")
+        .fails(missingFilters("EMPNO", "JOB"));
+
+    // A |> WHERE defuses them, exactly as a WHERE clause does.
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "^|> where empno = 1^")
+        .fails(missingFilters("JOB"));
+
+    // With two tables in the FROM clause, each contributes the fields at its
+    // own offset in the input table.
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor' and name = 'x'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "^|> where empno = 1 and job = 'doctor'^")
+        .fails(missingFilters("NAME"));
+
+    // A pipeline in a sub-query is defused by the enclosing query, and
+    // enforced at the top if it is not.
+    fixture.withSql("select * from (from emp |> where sal > 1000)\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("^select * from (from emp |> where sal > 1000)^")
+        .fails(missingFilters("EMPNO", "JOB"));
   }
 
   /** Returns a message that the particular columns are not filtered. */
