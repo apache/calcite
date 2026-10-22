@@ -4171,6 +4171,103 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  /** Tests a MERGE whose UPDATE contains a correlated sub-query, with
+   * sub-queries expanded into joins ({@code expand = true}). */
+  @Test void testMergeUpdateCorrelatedSubQueryExpanded() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set sal = (select d.deptno from dept d where d.deptno = e.deptno)";
+    sql(sql).withExpand(true).ok();
+  }
+
+  /** As {@link #testMergeUpdateCorrelatedSubQueryExpanded()}, but without
+   * decorrelation, so that the plan keeps the {@code LogicalCorrelate}. */
+  @Test void testMergeUpdateCorrelatedSubQueryExpandedNoDecorrelate() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set sal = (select d.deptno from dept d where d.deptno = e.deptno)";
+    sql(sql).withExpand(true).withDecorrelate(false).ok();
+  }
+
+  /** Tests a MERGE with an expanded sub-query in the UPDATE and an INSERT
+   * branch, which turns the join of the source and the target into a LEFT
+   * join. */
+  @Test void testMergeUpdateSubQueryExpandedWithInsert() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set sal = (select max(d.deptno) from dept d)\n"
+        + "when not matched then insert (empno, ename, sal)\n"
+        + "values (t.empno, t.ename, 10)";
+    sql(sql).withExpand(true).ok();
+  }
+
+  /** Tests a MERGE whose UPDATE contains an uncorrelated sub-query, with
+   * sub-queries expanded into joins ({@code expand = true}). */
+  @Test void testMergeUpdateUncorrelatedSubQueryExpanded() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set sal = (select max(d.deptno) from dept d)";
+    sql(sql).withExpand(true).ok();
+  }
+
+  /** Tests a MERGE whose INSERT values contain an uncorrelated sub-query,
+   * with sub-queries expanded into joins ({@code expand = true}). */
+  @Test void testMergeInsertSubQueryExpanded() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update set sal = 1\n"
+        + "when not matched then insert (empno, sal)\n"
+        + "values (t.empno, (select max(deptno) from dept))";
+    sql(sql).withExpand(true).ok();
+  }
+
+  /** As {@link #testMergeInsertSubQueryExpanded()}, but with sub-queries not
+   * expanded. */
+  @Test void testMergeInsertSubQuery() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update set sal = 1\n"
+        + "when not matched then insert (empno, sal)\n"
+        + "values (t.empno, (select max(deptno) from dept))";
+    sql(sql).withExpand(false).ok();
+  }
+
+  /** Tests a MERGE whose INSERT values contain a sub-query correlated to the
+   * source, with sub-queries expanded into joins. */
+  @Test void testMergeInsertCorrelatedSubQueryExpanded() {
+    final String sql = "merge into empnullables e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when not matched then insert (empno, sal)\n"
+        + "values (t.empno,\n"
+        + "  (select d.deptno from dept d where d.deptno = t.deptno))";
+    sql(sql).withExpand(true).ok();
+  }
+
+  /** Tests a MERGE into a modifiable view. The insert row is built for the
+   * view, as the update part, and the modification is on the view; the MERGE
+   * is not rewritten to the underlying table, so the values of the columns
+   * constrained by the view (DEPTNO = 20) are not set. */
+  @Test void testMergeModifiableView() {
+    final String sql = "merge into EMP_MODIFIABLEVIEW e\n"
+        + "using (select * from emp) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update set sal = t.sal\n"
+        + "when not matched then insert (empno, ename, sal)\n"
+        + "values (t.empno, t.ename, t.sal)";
+    sql(sql).withExtendedTester().ok();
+  }
+
   @Test void testSelectView() {
     // translated condition: deptno = 20 and sal > 1000 and empno > 100
     final String sql = "select * from emp_20 where empno > 100";
