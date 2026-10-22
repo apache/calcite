@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlConstantValueAggFunction;
+import org.apache.calcite.sql.SqlEmptyAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
@@ -50,7 +51,8 @@ import java.util.Map;
 /**
  * Planner rule that reduces aggregate functions whose arguments are constant
  * within each group. Such arguments include GROUP BY keys, deterministic
- * expressions of those keys, and constants even in a global aggregate.
+ * expressions of those keys, and constants (including query constants such as
+ * CURRENT_DATE) even in a global aggregate.
  *
  * <p>For example,
  * {@code SELECT sal, max(sal) FROM emp GROUP BY sal}
@@ -61,6 +63,7 @@ import java.util.Map;
  * group. Functions implementing {@link SqlConstantValueAggFunction}, such as
  * STDDEV_POP, STDDEV_SAMP, VAR_POP and VAR_SAMP, declare their constant result
  * and the minimum number of non-null values needed to produce it.
+ * Empty-input results are described independently by {@link SqlEmptyAggFunction}.
  *
  * <p>A global aggregate produces a row even on empty input. Therefore,
  * {@code SELECT MIN(1) FROM emp} becomes
@@ -218,7 +221,21 @@ public class AggregateReduceFunctionsOnGroupKeysRule
       }
     }
 
+    final RexNode emptyResult;
+    if (aggregate.getGroupCount() == 0 || argument.getType().isNullable()) {
+      final @Nullable RexNode empty = call.getAggregation().getEmptyResult(rexBuilder, call);
+      if (empty == null) {
+        return null;
+      }
+      emptyResult = empty;
+    } else {
+      // Ordinary groups with a non-nullable operand cannot have empty input.
+      // A positive count below the statistical minimum still yields NULL.
+      emptyResult = rexBuilder.makeNullLiteral(call.getType());
+    }
+
     final @Nullable RexNode condition;
+    RexNode fallback = emptyResult;
     if (aggregate.getGroupCount() == 0 || minCount > 1) {
       // COUNT ignores NULL arguments. DISTINCT only affects the threshold
       // when more than one value is required. addAggCall also turns a count
@@ -234,14 +251,23 @@ public class AggregateReduceFunctionsOnGroupKeysRule
       condition =
           rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, count,
               rexBuilder.makeExactLiteral(BigDecimal.valueOf(minCount), count.getType()));
-    } else if (result != argument && argument.getType().isNullable()) {
+      if (minCount > 1 && !RexUtil.isNullLiteral(emptyResult, true)) {
+        // Empty input and a positive count below the minimum need not have
+        // the same result.
+        final RexNode isEmpty =
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, count,
+                rexBuilder.makeExactLiteral(BigDecimal.ZERO, count.getType()));
+        fallback = rexBuilder.makeCall(SqlStdOperatorTable.CASE, isEmpty,
+            emptyResult, rexBuilder.makeNullLiteral(call.getType()));
+      }
+    } else if (argument.getType().isNullable()
+        && (result != argument || !RexUtil.isNullLiteral(emptyResult, true))) {
       condition = rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, argument);
     } else {
       condition = null;
     }
     if (condition != null) {
-      final RexNode nullResult = rexBuilder.makeNullLiteral(call.getType());
-      result = rexBuilder.makeCall(SqlStdOperatorTable.CASE, condition, nullResult, result);
+      result = rexBuilder.makeCall(SqlStdOperatorTable.CASE, condition, fallback, result);
     }
     if (!result.getType().equals(call.getType())) {
       result = rexBuilder.makeCast(call.getParserPosition(), call.getType(), result);

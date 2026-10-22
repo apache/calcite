@@ -24,7 +24,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Aggregate function that returns a constant result for sufficiently many
- * identical non-null arguments, and NULL for fewer arguments.
+ * identical non-null arguments, and NULL for a positive number of arguments
+ * below that minimum. Empty-input results are described separately by
+ * {@link SqlEmptyAggFunction}.
  *
  * <p>For example, STDDEV_POP and VAR_POP return 0 for one or more identical
  * non-null values. STDDEV_SAMP and VAR_SAMP require at least two such values.
@@ -57,7 +59,8 @@ public interface SqlConstantValueAggFunction {
   /**
    * Returns the minimum number of identical non-null values required for
    * {@link #getConstantResult} to apply. Must be positive.
-   * Below this count, including empty input, the aggregate returns NULL.
+   * With a positive number of non-null values below this count, the aggregate
+   * returns NULL. For no non-null values, use {@link SqlEmptyAggFunction}.
    * This contract applies when {@code getConstantResult} returns an expression.
    */
   default int getMinCountForConstantResult() {
