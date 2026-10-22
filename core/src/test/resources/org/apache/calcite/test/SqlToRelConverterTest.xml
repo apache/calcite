@@ -4199,15 +4199,14 @@ LogicalDelta
     <Resource name="planExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[=($9, $0)], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalFilter(condition=[<($5, $0)])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
-        LogicalJoin(condition=[=($0, $9)], joinType=[left])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10], DEPTNO1=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
+    LogicalJoin(condition=[AND(=($0, $11), <($7, $12))], joinType=[inner])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-          LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-            LogicalProject(DEPTNO=[$7], SAL=[$5])
-              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planNotExpanded">
@@ -4896,10 +4895,11 @@ ON (SELECT AVG(emp.sal) > 0 FROM emp)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[$11], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[$11])
     LogicalJoin(condition=[true], joinType=[left])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(EXPR$0=[>($0, 0)])
         LogicalAggregate(group=[{}], agg#0=[AVG($0)])
           LogicalProject(SAL=[$5])
