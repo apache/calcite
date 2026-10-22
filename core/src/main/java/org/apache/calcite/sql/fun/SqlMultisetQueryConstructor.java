@@ -20,7 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -83,11 +83,11 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    SqlSelect subSelect = call.operand(0);
-    subSelect.validateExpr(validator, scope);
+    final SqlNode subQuery = call.operand(0);
+    subQuery.validateExpr(validator, scope);
     final SqlValidatorNamespace ns =
-        requireNonNull(validator.getNamespace(subSelect),
-            () -> "namespace is missing for " + subSelect);
+        requireNonNull(validator.getNamespace(subQuery),
+            () -> "namespace is missing for " + subQuery);
     final RelDataType rowType = requireNonNull(ns.getRowType(), "rowType");
     final SqlCallBinding opBinding = new SqlCallBinding(validator, scope, call);
     return typeTransform.transformType(opBinding, rowType);

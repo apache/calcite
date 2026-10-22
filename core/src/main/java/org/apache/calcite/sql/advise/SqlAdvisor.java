@@ -21,6 +21,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlPipeCall;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
@@ -404,10 +405,14 @@ public class SqlAdvisor {
         // symbols such as '<Identifier>'.
         if (tokenName.startsWith("\"")
             && tokenName.endsWith("\"")) {
-          hintList.add(
-              new SqlMonikerImpl(
-                  tokenName.substring(1, tokenName.length() - 1),
-                  SqlMonikerType.KEYWORD));
+          final String keyword =
+              tokenName.substring(1, tokenName.length() - 1);
+          if (keyword.equals(SqlPipeCall.PIPE)
+              && !parserConfig.conformance().isPipeSyntaxAllowed()) {
+            // Do not include pipe operators unless pipe syntax is allowed.
+            continue;
+          }
+          hintList.add(new SqlMonikerImpl(keyword, SqlMonikerType.KEYWORD));
         }
       }
       return null;
