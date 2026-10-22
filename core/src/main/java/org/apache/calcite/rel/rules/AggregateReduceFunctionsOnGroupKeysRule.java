@@ -257,8 +257,9 @@ public class AggregateReduceFunctionsOnGroupKeysRule
         final RexNode isEmpty =
             rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, count,
                 rexBuilder.makeExactLiteral(BigDecimal.ZERO, count.getType()));
-        fallback = rexBuilder.makeCall(SqlStdOperatorTable.CASE, isEmpty,
-            emptyResult, rexBuilder.makeNullLiteral(call.getType()));
+        fallback =
+            rexBuilder.makeCall(SqlStdOperatorTable.CASE, isEmpty,
+                emptyResult, rexBuilder.makeNullLiteral(call.getType()));
       }
     } else if (argument.getType().isNullable()
         && (result != argument || !RexUtil.isNullLiteral(emptyResult, true))) {

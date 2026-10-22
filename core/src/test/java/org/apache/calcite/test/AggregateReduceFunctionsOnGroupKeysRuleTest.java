@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.rel.rules.CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -367,8 +368,9 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
   @MethodSource("nullOnEmptyFunctions")
   void testNullEmptyResult(SqlAggFunction function) {
     final Aggregate aggregate = emptyAggregate(function);
-    final RexNode result = function.getEmptyResult(aggregate.getCluster().getRexBuilder(),
-        aggregate.getAggCallList().get(0));
+    final RexNode result =
+        function.getEmptyResult(aggregate.getCluster().getRexBuilder(),
+            aggregate.getAggCallList().get(0));
     final RexLiteral literal = assertInstanceOf(RexLiteral.class, result);
     assertTrue(literal.isNull());
     assertThat(literal.getType(), is(aggregate.getAggCallList().get(0).getType()));
@@ -390,8 +392,8 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
   @Test void testLiteralAggEmptyResult() {
     final RelBuilder b = builder();
     b.values(new String[]{"X"}, 1).empty();
-    final Aggregate aggregate = (Aggregate) b.aggregate(b.groupKey(),
-        b.literalAgg("literal").as("R")).build();
+    final Aggregate aggregate =
+        (Aggregate) b.aggregate(b.groupKey(), b.literalAgg("literal").as("R")).build();
     final AggregateCall call = aggregate.getAggCallList().get(0);
     assertSame(call.rexList.get(0),
         call.getAggregation().getEmptyResult(b.getRexBuilder(), call));
@@ -414,8 +416,9 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
         SqlBasicAggFunction.create("CUSTOM", SqlKind.OTHER_FUNCTION,
             ReturnTypes.INTEGER_NULLABLE, OperandTypes.NUMERIC);
     final Aggregate aggregate = emptyAggregate(function);
-    assertNull(function.getEmptyResult(aggregate.getCluster().getRexBuilder(),
-        aggregate.getAggCallList().get(0)));
+    assertNull(
+        function.getEmptyResult(aggregate.getCluster().getRexBuilder(),
+            aggregate.getAggCallList().get(0)));
   }
 
   @Test void testUnknownEmptyResultPreventsReduction() {
@@ -427,8 +430,8 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
     };
     final RelBuilder b = builder();
     b.values(new String[]{"X"}, 1, 2).project(b.literal(1));
-    final RelNode original = b.aggregate(b.groupKey(),
-        b.aggregateCall(function, b.field(0)).as("R")).build();
+    final RelNode original =
+        b.aggregate(b.groupKey(), b.aggregateCall(function, b.field(0)).as("R")).build();
     assertThat(RelOptUtil.toString(reduce(original)), is(RelOptUtil.toString(original)));
   }
 
@@ -444,8 +447,8 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
     b.values(new String[]{"X"}, 1, 2)
         .filter(b.lessThanOrEqual(b.field(0), b.literal(rowCount)))
         .project(b.literal(1));
-    final RelNode original = b.aggregate(b.groupKey(),
-        b.aggregateCall(function, b.field(0)).as("R")).build();
+    final RelNode original =
+        b.aggregate(b.groupKey(), b.aggregateCall(function, b.field(0)).as("R")).build();
     final RelNode reduced = reduce(original);
     assertThat(RelOptUtil.toString(reduced), not(containsString("STDDEV_SAMP(")));
     assertThat(reduced.getRowType(), is(original.getRowType()));
@@ -464,8 +467,8 @@ class AggregateReduceFunctionsOnGroupKeysRuleTest {
     };
     final RelBuilder b = builder();
     b.values(new String[]{"X"}, 1, null);
-    final RelNode original = b.aggregate(b.groupKey(b.field(0)),
-        b.aggregateCall(function, b.field(0)).as("R")).build();
+    final RelNode original =
+        b.aggregate(b.groupKey(b.field(0)), b.aggregateCall(function, b.field(0)).as("R")).build();
     final RelNode reduced = reduce(original);
     assertThat(RelOptUtil.toString(reduced), not(containsString("AVG(")));
     assertThat(reduced.getRowType(), is(original.getRowType()));
