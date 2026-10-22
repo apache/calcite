@@ -197,4 +197,8 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean isGroupingSetsStarAllowed() {
     return delegate.isGroupingSetsStarAllowed();
   }
+
+  @Override public boolean isPipeSyntaxAllowed() {
+    return delegate.isPipeSyntaxAllowed();
+  }
 }

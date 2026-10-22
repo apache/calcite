@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.PipeNamespace;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
@@ -118,6 +119,18 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     case WITH:
       SqlNode body = ((SqlWith) query).body;
       return rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
+    case FROM_QUERY:
+    case PIPE_CALL:
+      // A query in pipe syntax is validated and converted as its surrogate
+      // SELECT, so coerce that.
+      final PipeNamespace pipeNs =
+          (PipeNamespace) requireNonNull(validator.getNamespace(query), "ns");
+      if (!rowTypeCoercion(scope, pipeNs.getSurrogateSelect(), columnIndex, targetType)) {
+        return false;
+      }
+      updateInferredColumnType(
+          requireNonNull(scope, "scope"), query, columnIndex, targetType);
+      return true;
     case UNION:
     case INTERSECT:
     case EXCEPT:
@@ -681,7 +694,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     int colCount = type1.isStruct() ? type1.getFieldCount() : 1;
     RelDataType[] argTypes = new RelDataType[2];
     argTypes[0] = type1;
-    final boolean isSubQuery = node2 instanceof SqlSelect;
+    final boolean isSubQuery =
+        node2 instanceof SqlSelect || node2.isA(SqlKind.PIPE_QUERY);
     // For subquery, use the row type directly.
     // For collection, use the component type for comparison, not the collection.
     if (isSubQuery) {
@@ -748,7 +762,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       if (isSubQuery) {
         // Use rowTypeCoercion on the subquery output column,
         // consistent with how inOperationCoercion handles the subquery case.
-        SqlValidatorScope scope1 = validator.getSelectScope((SqlSelect) node2);
+        SqlValidatorScope scope1 = node2 instanceof SqlSelect
+            ? validator.getSelectScope((SqlSelect) node2)
+            : scope;
         RelDataType source = validator.getValidatedNodeType(node2);
         RelDataType target = binding.getTypeFactory()
             .createTypeWithNullability(desired, source.isNullable() || desired.isNullable());

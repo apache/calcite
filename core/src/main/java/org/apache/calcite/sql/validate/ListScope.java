@@ -64,6 +64,17 @@ public abstract class ListScope extends DelegatingScope {
     children.add(new ScopeChild(children.size(), alias, ns, nullable));
   }
 
+  /** Replaces the children of this scope, renumbering them. */
+  void replaceChildren(List<ScopeChild> newChildren) {
+    final List<ScopeChild> list = ImmutableList.copyOf(newChildren);
+    children.clear();
+    for (ScopeChild child : list) {
+      children.add(
+          new ScopeChild(children.size(), child.name, child.namespace,
+              child.nullable));
+    }
+  }
+
   /**
    * Returns an immutable list of child namespaces.
    *
