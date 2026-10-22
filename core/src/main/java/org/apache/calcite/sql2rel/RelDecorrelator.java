@@ -37,6 +37,7 @@ import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
@@ -2095,11 +2096,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
         ? relBuilder.literal(true)
         : RexUtil.composeConjunction(relBuilder.getRexBuilder(), joinConditions);
 
-    RelNode newJoin = relBuilder
-        .push(newLeftFrame.r)
-        .push(newRightFrame.r)
-        .join(rel.getJoinType(), finalCondition, ImmutableSet.of())
-        .build();
+    relBuilder.push(newLeftFrame.r).push(newRightFrame.r);
+    if (rel instanceof AsofJoin) {
+      final RexNode matchCondition =
+          decorrelateExpr(castNonNull(currentRel), map, cm,
+              ((AsofJoin) rel).getMatchCondition());
+      relBuilder.asofJoin(rel.getJoinType(), finalCondition, matchCondition);
+    } else {
+      relBuilder.join(rel.getJoinType(), finalCondition, ImmutableSet.of());
+    }
+    RelNode newJoin = relBuilder.build();
 
     // 4. Handle Full Join Projections (Coalesce)
     NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>(newLeftFrame.corDefOutputs);
