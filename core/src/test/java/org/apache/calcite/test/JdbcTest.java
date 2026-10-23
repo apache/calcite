@@ -1889,9 +1889,9 @@ public class JdbcTest {
    * <p>With {@link TypeCoercionTest.WideningTypeCoercion}, DECIMAL(18, 3)
    * compared with REAL widens to DOUBLE. {@code CAST(140737488355328 AS REAL)}
    * is exactly 2^47 (a power of two, exactly representable as REAL). DOUBLE
-   * has 53-bit mantissa; the unit in the last place (ULP) at 2^47 is
-   * 2^(47-52) = 0.03125. The DECIMAL value 140737488355328.016 exceeds the
-   * half-ULP (0.015625), so it rounds to the next DOUBLE above 2^47. The
+   * has a 53-bit mantissa; the unit in the last place (ULP) at 2^47 is
+   * 2^(47-52) = 0.03125. The fractional part .016 exceeds half a ULP
+   * (0.015625), so the DECIMAL value rounds to the next DOUBLE above 2^47. The
    * widened join correctly returns 0 rows. */
   @Test void testDecimalRealComparisonWidenedToDoubleDistinguishesValues() {
     final String sql = "SELECT *\n"
