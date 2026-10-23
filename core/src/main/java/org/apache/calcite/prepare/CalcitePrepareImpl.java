@@ -825,9 +825,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (type.getComponentType() != null) {
       final ColumnMetaData.AvaticaType componentType =
           avaticaType(typeFactory, type.getComponentType(), null);
-      final Type clazz = typeFactory.getJavaClass(type.getComponentType());
       final ColumnMetaData.Rep rep =
-          requireNonNull(ColumnMetaData.Rep.of(clazz));
+          type.getSqlTypeName() == SqlTypeName.MULTISET
+              ? ColumnMetaData.Rep.MULTISET
+              : ColumnMetaData.Rep.ARRAY;
       return ColumnMetaData.array(componentType, typeName, rep);
     } else {
       int typeOrdinal = getTypeOrdinal(type);

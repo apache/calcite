@@ -345,6 +345,22 @@ class CalciteRemoteDriverTest {
         .returnsUnordered("EXPR$0=1; EXPR$1=a", "EXPR$0=null; EXPR$1=b");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7848">[CALCITE-7848]
+   * Array.getArray() throws ClassCastException for an ARRAY or MULTISET of
+   * INTEGER ARRAYs or MULTISETs</a>.
+   *
+   * <p>The remote service used to fail to execute a query that returns a
+   * collection of a numeric type such as INTEGER. */
+  @Test void testRemoteIntegerCollections() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .query("select array[1, 2] as a,\n"
+            + "  array[array[1, 2], array[3, 4]] as aa,\n"
+            + "  multiset[1, 2] as m")
+        .returns("A=[1, 2]; AA=[[1, 2], [3, 4]]; M=[1, 2]\n");
+  }
+
   /** Same query as {@link #testRemoteExecuteQuery()}, run without the test
    * infrastructure. */
   @Test void testRemoteExecuteQuery2() throws Exception {
