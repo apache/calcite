@@ -13,7 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 name: "Validate Gradle Wrapper"
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - 'branch-*'
+  pull_request:
 
 jobs:
   validation:
