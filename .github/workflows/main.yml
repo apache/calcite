@@ -25,8 +25,11 @@ on:
   push:
     paths-ignore:
       - 'site/**'
+    # Pull requests get CI from the pull_request event. Without this filter,
+    # a pull request from a branch in this repository runs CI twice per commit.
     branches:
-      - '*'
+      - main
+      - 'branch-*'
   pull_request:
     types: [opened, synchronize, reopened]
     paths-ignore:
