@@ -854,8 +854,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newRel = rewriteScalarAggregate(rel, newRel, outputMap, corDefOutputs);
     }
 
-    // Aggregate does not change input ordering so corVars will be
-    // located at the same position as the input newProject.
     return register(rel, newRel, outputMap, corDefOutputs);
   }
 
@@ -966,16 +964,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         requireNonNull(createValueGenerator(corVarList, 0, valueGenCorDefOutputs));
     final int valueGenFieldCount = valueGen.getRowType().getFieldCount();
 
-    final Map<Integer, RexNode> newProjectMap = new HashMap<>();
-    for (Map.Entry<CorDef, Integer> corDefOutput : corDefOutputs.entrySet()) {
-      final CorDef corDef = corDefOutput.getKey();
-      final int leftPos = requireNonNull(valueGenCorDefOutputs.get(corDef));
-      final int rightPos = corDefOutput.getValue();
-      final RelDataType leftType = valueGen.getRowType().getFieldList().get(leftPos).getType();
-      final RexNode leftRef = new RexInputRef(leftPos, leftType);
-      newProjectMap.put(valueGenFieldCount + rightPos, leftRef);
-    }
-
     // Build join conditions
     final List<RexNode> conditions =
         buildCorDefJoinConditions(valueGenCorDefOutputs, corDefOutputs,
@@ -987,36 +975,39 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // to ensure each corVar's aggregate result is output.
     final RelNode join = relBuilder.push(valueGen).push(newRel)
         .join(JoinRelType.LEFT, joinCond).build();
-    RelDataType joinRowType = join.getRowType();
+    final RelDataType joinRowType = join.getRowType();
+    final PairList<RexNode, String> projects = PairList.of();
 
-    RexBuilder rexBuilder = relBuilder.getRexBuilder();
-    // Here we record the mapping between the original index and the new project.
-    // For the count, we map it as `case when x is null then 0 else x`.
-    for (int i1 = 0; i1 < oldRel.getAggCallList().size(); i1++) {
-      AggregateCall aggCall = oldRel.getAggCallList().get(i1);
-      if (aggCall.getAggregation() instanceof SqlCountAggFunction) {
-        int index = requireNonNull(outputMap.get(i1 + oldRel.getGroupCount()));
-        final RexInputRef ref = RexInputRef.of(index + valueGenFieldCount, joinRowType);
-        ImmutableList<RexNode> exprs =
-            ImmutableList.of(relBuilder.isNotNull(ref), ref, relBuilder.literal(0));
-        RexNode specificCountValue = rexBuilder.makeCall(SqlStdOperatorTable.CASE, exprs);
-        newProjectMap.put(ref.getIndex(), specificCountValue);
-      }
+    // Correlation fields must come from the value generator. Fields that share
+    // an aggregate output can have different values on unmatched outer rows.
+    for (Map.Entry<CorDef, Integer> entry : corDefOutputs.entrySet()) {
+      final int index = requireNonNull(valueGenCorDefOutputs.get(entry.getKey()));
+      final String name = newRel.getRowType().getFieldNames().get(entry.getValue());
+      entry.setValue(projects.size());
+      projects.add(RexInputRef.of(index, joinRowType), name);
     }
 
-    // Build [07] LogicalProject(DEPTNO=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])
-    // to handle COUNT function by converting nulls to zero.
-    final List<RexNode> newProjects = new ArrayList<>();
-    for (int index : ImmutableBitSet.range(valueGenFieldCount, joinRowType.getFieldCount())) {
-      if (newProjectMap.containsKey(index)) {
-        newProjects.add(requireNonNull(newProjectMap.get(index)));
-      } else {
-        newProjects.add(RexInputRef.of(index, joinRowType));
+    // Project the original aggregate outputs, preserving COUNT's empty-input
+    // value, and rebuild their positions independently of the correlation fields.
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    for (RelDataTypeField field : oldRel.getRowType().getFieldList()) {
+      final int index = requireNonNull(outputMap.get(field.getIndex()));
+      final RexInputRef ref = RexInputRef.of(valueGenFieldCount + index, joinRowType);
+      RexNode expression = ref;
+      final int aggIndex = field.getIndex() - oldRel.getGroupCount();
+      if (aggIndex >= 0
+          && oldRel.getAggCallList().get(aggIndex).getAggregation()
+              instanceof SqlCountAggFunction) {
+        final ImmutableList<RexNode> operands =
+            ImmutableList.of(relBuilder.isNotNull(ref), ref, relBuilder.literal(0));
+        expression = rexBuilder.makeCall(SqlStdOperatorTable.CASE, operands);
       }
+      outputMap.put(field.getIndex(), projects.size());
+      projects.add(expression, newRel.getRowType().getFieldNames().get(index));
     }
 
     return relBuilder.push(join)
-        .project(newProjects, newRel.getRowType().getFieldNames())
+        .project(projects.leftList(), projects.rightList())
         .build();
   }
 
