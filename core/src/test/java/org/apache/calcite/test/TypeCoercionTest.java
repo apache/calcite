@@ -514,12 +514,13 @@ class TypeCoercionTest {
     w.comparisonCommonType(decimal54, f.intType, decimal144);
     // No DECIMAL operand: unchanged.
     w.comparisonCommonType(f.intType, f.realType, f.realType);
-    w.comparisonCommonType(f.realType, f.doubleType, f.doubleType);
     // Nested types.
     w.comparisonCommonType(f.arrayType(decimal54), f.arrayType(f.realType),
         f.arrayType(f.doubleType));
     w.comparisonCommonType(f.mapType(f.intType, decimal54),
         f.mapType(f.intType, f.realType), f.mapType(f.intType, f.doubleType));
+    w.comparisonCommonType(f.mapType(decimal54, f.intType),
+        f.mapType(f.realType, f.intType), f.mapType(f.doubleType, f.intType));
     w.comparisonCommonType(f.recordType("a", decimal54),
         f.recordType("a", f.realType), f.recordType("a", f.doubleType));
   }
