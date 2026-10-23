@@ -16,14 +16,29 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -38,10 +53,13 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Properties;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
  * Tests generating Druid filters.
@@ -136,6 +154,42 @@ class DruidQueryFilterTest {
             + "\"lower\":\"lower-bound\",\"lowerStrict\":false,"
             + "\"upper\":\"upper-bound\",\"upperStrict\":false,"
             + "\"ordering\":\"lexicographic\"}"));
+  }
+
+  @Test void testOrWithExtractRetainsFilter() {
+    final Fixture f = new Fixture();
+    final HepPlanner planner =
+        new HepPlanner(new HepProgramBuilder().addRuleInstance(DruidRules.FILTER).build(),
+            Contexts.of(new CalciteConnectionConfigImpl(new Properties())));
+    final RelOptCluster cluster = RelOptCluster.create(planner, f.rexBuilder);
+    final RelDataType rowType = f.typeFactory.builder()
+        .add("timestamp", SqlTypeName.TIMESTAMP)
+        .build();
+    final DruidTable table =
+        new DruidTable(Mockito.mock(DruidSchema.class), "events", factory -> rowType,
+            ImmutableSet.of(), "timestamp", null, null, null);
+    final RelOptTable relOptTable =
+        RelOptTableImpl.create(null, rowType, ImmutableList.of("events"), table,
+            clazz -> null);
+    final RelNode scan = LogicalTableScan.create(cluster, relOptTable, ImmutableList.of());
+    final DruidQuery query =
+        DruidQuery.create(cluster, cluster.traitSet().plus(BindableConvention.INSTANCE),
+            relOptTable, table, ImmutableList.of(scan));
+    final RexNode timestamp = f.rexBuilder.makeInputRef(scan, 0);
+    final RexNode condition =
+        f.rexBuilder.makeCall(
+            SqlStdOperatorTable.OR, f.rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, timestamp,
+            f.rexBuilder.makeTimestampLiteral(new TimestampString("2020-01-01 00:00:00"), 0)),
+        f.rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            f.rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+                f.rexBuilder.makeFlag(TimeUnitRange.DAY), timestamp),
+            f.rexBuilder.makeExactLiteral(BigDecimal.valueOf(15))));
+    planner.setRoot(LogicalFilter.create(query, condition));
+
+    final DruidQuery result = assertInstanceOf(DruidQuery.class, planner.findBestExp());
+    assertThat(result.intervals, is(query.intervals));
+    final Filter filter = assertInstanceOf(Filter.class, result.getTopNode());
+    assertThat(filter.getCondition(), is(condition));
   }
 
   /** Everything a test needs for a healthy, active life. */
