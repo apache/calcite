@@ -10986,3 +10986,20 @@ order by emp.deptno, emp.sal;
 
 !ok
 !set expand false
+
+# [CALCITE-7885] RelDecorrelator merges distinct correlation fields and produces extra rows
+# The result of this query was validated using Postgres.
+with t(x, y) as (values (1, 1), (2, 1)),
+     s(z) as (values (1))
+select t.x, t.y,
+  (select count(*) from s where s.z = t.x and s.z = t.y) as c
+from t;
++---+---+---+
+| X | Y | C |
++---+---+---+
+| 1 | 1 | 1 |
+| 2 | 1 | 0 |
++---+---+---+
+(2 rows)
+
+!ok
