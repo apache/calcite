@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -26,6 +27,8 @@ import org.apache.calcite.sql.SqlSelect;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static org.apache.calcite.sql.validate.SqlValidatorUtil.flatten;
 
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
@@ -93,6 +96,27 @@ public class OrderByScope extends DelegatingScope {
 
   @Override public void validateExpr(SqlNode expr) {
     SqlNode expanded = validator.expandOrderExpr(select, expr);
+    expanded.accept(
+        new AggVisitor(validator.getOperatorTable(), false, true,
+            false, null, validator.catalogReader.nameMatcher()) {
+          @Override public Void visit(SqlCall call) {
+            switch (call.getKind()) {
+            case FILTER:
+            case WITHIN_GROUP:
+            case WITHIN_DISTINCT:
+              return found(call);
+            default:
+              return super.visit(call);
+            }
+          }
+
+          @Override protected Void found(SqlCall call) {
+            final SqlValidatorUtil.FlatAggregate flat = flatten(call);
+            validator.validateAggregateParams(flat.aggregateCall, flat.filter,
+                flat.distinctList, flat.orderList, OrderByScope.this);
+            return null;
+          }
+        });
 
     // expression needs to be valid in parent scope too
     parent.validateExpr(expanded);

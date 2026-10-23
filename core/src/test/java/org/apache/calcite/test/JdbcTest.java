@@ -3393,6 +3393,67 @@ public class JdbcTest {
             + "store_id=0; grocery_sqft=null\n");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7744">[CALCITE-7744]</a>
+   * ORDER BY agg(col) on a query where an alias shadows col produces an invalid
+   * plan containing an aggregate call in a Project. */
+  @Test void testOrderByAggregateAliasShadowingRejected() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("SELECT max(sal) AS sal, deptno, job "
+            + "FROM emp GROUP BY deptno, job ORDER BY max(sal)")
+        .throws_("Aggregate expressions cannot be nested: 'SAL' is a "
+            + "SELECT-list alias for an aggregate expression");
+  }
+
+  static Stream<Arguments> orderByAliasQueries() {
+    return Stream.of(
+        arguments("select deptno in (select deptno from dept) as b from emp order by b",
+            String.join("", Collections.nCopies(14, "B=true\n"))),
+        arguments("select exists (select 1 from dept d where d.deptno = e.deptno) as b "
+                + "from emp e order by b",
+            String.join("", Collections.nCopies(14, "B=true\n"))),
+        arguments("select sal > all (select sal from emp) as b from emp order by b",
+            String.join("", Collections.nCopies(14, "B=false\n"))),
+        arguments("select deptno + 1 as d1, d1 + 2 as measure d3 from emp order by d3 + 1",
+            String.join("", Collections.nCopies(3, "D1=11; D3=13\n"))
+                + String.join("", Collections.nCopies(5, "D1=21; D3=23\n"))
+                + String.join("", Collections.nCopies(6, "D1=31; D3=33\n"))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("orderByAliasQueries")
+  void testOrderByAliasExecutesValidatedExpressions(String query, String expected) {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query(query)
+        .returns(expected);
+  }
+
+  @Test void testOrderByAliasExecutesBoundParameter() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select sal + ? as x from emp order by x + 1")
+        .consumesPreparedStatement(p -> p.setInt(1, 1))
+        .returns2("X=801\nX=951\nX=1101\nX=1251\nX=1251\nX=1301\nX=1501\n"
+            + "X=1601\nX=2451\nX=2851\nX=2976\nX=3001\nX=3001\nX=5001\n");
+  }
+
+  @Test void testOrderByAliasExecutesCurrentDate() throws SQLException {
+    try (Connection connection = CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT).connect();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery("select current_date as d, empno from emp order by d")) {
+      assertThat(resultSet.getMetaData().getColumnType(1), is(Types.DATE));
+      int count = 0;
+      while (resultSet.next()) {
+        assertNotNull(resultSet.getDate(1));
+        ++count;
+      }
+      assertThat(count, is(14));
+    }
+  }
+
   /** Tests ORDER BY ... DESC. Nulls come first (they come last for ASC). */
   @Test void testOrderByDesc() {
     CalciteAssert.that()
