@@ -1850,7 +1850,10 @@ i: implicit cast / e: explicit cast / x: not allowed
   or `SqlValidatorUtil`; there is no JDBC connection property for it.
   `DOUBLE` has a 53-bit mantissa, about 15 decimal digits, so `DECIMAL`
   values with more significant digits can still compare as equal after
-  widening.
+  widening. Widening also changes comparisons of a `REAL` column with an
+  exact literal: `0.1` has type `DECIMAL(2, 1)`, so `real_col = 0.1` is
+  false for a `REAL` value stored as `0.1`, which converts to
+  0.100000001490116… in `DOUBLE`.
 * `IN` sub-query: compare type of LHS and RHS, and find the common type;
   if it is struct type, find wider type for every field;
 * `IN` expression list: compare every expression to find the common type;
