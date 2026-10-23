@@ -1828,12 +1828,13 @@ i: implicit cast / e: explicit cast / x: not allowed
   make `1 = true` and `0 = false` always evaluate to `TRUE`;
   if there is numeric type operand, find common type for both operands;
   if operands are `UUID` and `CHARACTER` or `BINARY`, promote to `UUID`.
-  By default, comparing `DECIMAL` with `REAL` or `DOUBLE` narrows to the
-  approximate type (`REAL` has 24-bit mantissa, about 7 decimal digits),
+  By default, comparing `DECIMAL` with `REAL` converts the `DECIMAL`
+  operand to `REAL`, which has a 24-bit mantissa (about 7 decimal digits),
   so distinct values can compare as equal. The same applies to `BETWEEN`,
-  `IN`, quantified comparisons, `NATURAL JOIN`, and `JOIN USING`, and to
-  the element types of `ARRAY`, `MAP`, and `ROW`. (`CASE`, `COALESCE`,
-  and set operations are not affected: they already use `DOUBLE` for this
+  `IN`, `IS [NOT] DISTINCT FROM`, `NULLIF`, quantified comparisons,
+  `NATURAL JOIN`, and `JOIN USING`, and to the element types of `ARRAY`,
+  `MAP`, and `ROW`. (`CASE`, `COALESCE`, multi-row `VALUES`, and set
+  operations are not affected: they already use `DOUBLE` for this
   combination.) Integer types have the same defect: `INTEGER` (31 bits)
   and `BIGINT` (63 bits) compared with `REAL` lose precision the same
   way, and `BIGINT` compared with `DOUBLE` does too; the override below
