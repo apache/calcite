@@ -10179,6 +10179,21 @@ LogicalProject(EXPR$0=[$0])
       <![CDATA[select*from unnest(multiset[1,2])]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnnestAliasOrdinalityResolvesToOrdinalityColumn">
+    <Resource name="sql">
+      <![CDATA[select ordinality
+from unnest(cast(array[row(1)] as row(a integer) array))
+  with ordinality as ordinality]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ORDINALITY=[$1])
+  Uncollect(withOrdinality=[true])
+    LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnnestArray">
     <Resource name="sql">
       <![CDATA[select*from unnest(array(select*from dept))]]>
@@ -10327,21 +10342,6 @@ from unnest(cast(array[row(1)] as row(a integer) array)) as d]]>
       <![CDATA[
 LogicalProject(D=[$0], A=[$0])
   Uncollect
-    LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
-      LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testUnnestSingleFieldRowWithOrdinality">
-    <Resource name="sql">
-      <![CDATA[select ordinality
-from unnest(cast(array[row(1)] as row(a integer) array))
-  with ordinality as ordinality]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(ORDINALITY=[$1])
-  Uncollect(withOrdinality=[true])
     LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>

@@ -127,8 +127,7 @@ public class AliasNamespace extends AbstractNamespace {
             ? new SingleColumnAliasRelDataType(rowType, dataColumnAlias)
             : validator.getTypeFactory().builder()
                 .kind(rowType.getStructKind())
-                .add(((SqlIdentifier) operands.get(1)).getSimple(),
-                    rowType.getFieldList().get(0).getType())
+                .addAll(dataColumnAlias.getFieldList())
                 .add(rowType.getFieldList().get(1))
                 .build();
       } else {
@@ -171,9 +170,9 @@ public class AliasNamespace extends AbstractNamespace {
   }
 
   /**
-   * Returns whether the data column of an aliased UNNEST is a field of
-   * the collection's ROW element, which keeps its own name, rather than
-   * a scalar column, which the alias renames.
+   * Returns whether UNNEST expands the collection's ROW element into one
+   * column per field. Such a column keeps its field name, and the alias
+   * names it as well; any other data column takes the alias as its name.
    */
   private boolean keepsElementFieldName(SqlCall unnestCall) {
     final RelDataType operandType =

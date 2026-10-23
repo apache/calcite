@@ -2325,7 +2325,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testUnnestSingleFieldRowWithOrdinality() {
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   */
+  @Test void testUnnestAliasOrdinalityResolvesToOrdinalityColumn() {
     // Alias equals ORDINALITY: unqualified "ordinality" must project
     // the ordinality column, not the data column named by the alias.
     final String sql = "select ordinality\n"
@@ -2334,6 +2339,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   */
   @Test void testUnnestSingleFieldRowWithOrdinalityAllColumns() {
     final String sql = "select d, d.a, d.ordinality\n"
         + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
