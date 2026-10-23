@@ -5470,17 +5470,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlValidatorScope orderScope = getOrderScope(select);
     validateExpr(orderItem, orderScope);
-
-    final RelDataType type = deriveType(orderScope, orderItem);
-    if (!type.isMeasure()) {
-      final SqlNode expanded = expandOrderExpr(select, orderItem);
-      // Validate in the SELECT scope rather than ORDER BY scope so that
-      // expressions expanded from SELECT-list aliases (e.g. an aggregate referencing
-      // an alias that shadows a column) are checked for validity (such as disallowing
-      // nested aggregates). Measures are skipped because measure expressions are validated
-      // in MeasureScope and can reference other select items not present in table scopes.
-      expanded.validate(this, getSelectScope(select));
-    }
   }
 
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
@@ -7623,13 +7612,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     for (SqlNode param : aggCall.getOperandList()) {
-      if (a.findAgg(param) != null) {
+      final SqlCall nestedAgg = a.findAgg(param);
+      if (nestedAgg != null) {
+        if (scope instanceof OrderByScope) {
+          for (SqlNode node
+              : SqlUtil.getAncestry(param, n -> n == nestedAgg, n -> false)) {
+            final SqlNode original = getOriginal(node);
+            if (original instanceof SqlIdentifier
+                && ((SqlIdentifier) original).isSimple()) {
+              throw newValidationError(getOriginal(aggCall),
+                  RESOURCE.orderByAliasNestedAgg(((SqlIdentifier) original).getSimple()));
+            }
+          }
+        }
         throw newValidationError(aggCall, RESOURCE.nestedAggIllegal());
       }
     }
     if (filter != null) {
       if (a.findAgg(filter) != null) {
-        throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
+        throw newValidationError(
+            scope instanceof OrderByScope ? getOriginal(filter) : filter,
+            RESOURCE.aggregateInFilterIllegal());
       }
     }
     if (distinctList != null) {
@@ -8564,48 +8567,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // Create a copy of the expression with the position of the order
       // item.
-      return reposition(expr, pos);
-    }
-
-    private SqlNode reposition(SqlNode node, SqlParserPos pos) {
-      SqlNode res = node.accept(new SqlShuttle() {
-        @Override public @Nullable SqlNode visit(SqlIdentifier id) {
-          return id.clone(pos);
-        }
-
-        @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-          return literal.clone(pos);
-        }
-
-        @Override public @Nullable SqlNode visit(SqlDataTypeSpec type) {
-          return type.clone(pos);
-        }
-
-        @Override public @Nullable SqlNode visit(SqlDynamicParam param) {
-          return param.clone(pos);
-        }
-
-        @Override public @Nullable SqlNode visit(SqlIntervalQualifier intervalQualifier) {
-          return intervalQualifier.clone(pos);
-        }
-
-        @Override public @Nullable SqlNode visit(SqlNodeList nodeList) {
-          SqlNodeList list = (SqlNodeList) super.visit(nodeList);
-          return list == null ? null : list.clone(pos);
-        }
-
-        @Override public @Nullable SqlNode visit(SqlCall call) {
-          if (call.isA(SqlKind.QUERY)
-              || call.getKind() == SqlKind.SCALAR_QUERY) {
-            return call.clone(pos);
-          }
-          CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
-          call.getOperator().acceptCall(this, call, false, argHandler);
-          SqlCall call2 = (SqlCall) argHandler.result();
-          return call2.clone(pos);
-        }
-      });
-      return res != null ? res : node.clone(pos);
+      return expr.clone(pos);
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
@@ -8619,9 +8581,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
         RelDataTypeField field = nameMatcher.field(rowType, alias);
         if (field != null) {
-          return nthSelectItem(
-              field.getIndex(),
-              id.getParserPosition());
+          final SqlNode expanded = nthSelectItem(field.getIndex(), id.getParserPosition());
+          setOriginal(expanded, id);
+          return expanded;
         }
       }
 
@@ -8639,7 +8601,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // operand[1] is a field name, not a column reference, and must not be qualified.
       CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, false);
       call.getOperator().acceptCall(this, call, true, argHandler);
-      return argHandler.result();
+      final SqlNode expanded = argHandler.result();
+      setOriginal(expanded, call);
+      return expanded;
     }
   }
 
