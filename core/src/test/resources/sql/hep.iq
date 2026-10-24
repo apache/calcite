@@ -411,4 +411,236 @@ PLAN VARCHAR NOT NULL
 !type
 !set hep-rules original
 
+# [CALCITE-7863] AggregateReduceFunctionsOnGroupKeysRule fails for constant aggregates on empty input
+!set hep-rules "
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS"
+
+SELECT MIN(1) AS MIN_V,
+    MAX(1) AS MAX_V,
+    AVG(1) AS AVG_V,
+    ANY_VALUE(1) AS ANY_V,
+    STDDEV_POP(1) AS POP_SD,
+    STDDEV_SAMP(1) AS SAMP_SD,
+    VAR_POP(1) AS POP_VAR,
+    VAR_SAMP(1) AS SAMP_VAR
+FROM (VALUES (7)) AS t(x)
+WHERE x < 0;
++-------+-------+-------+-------+--------+---------+---------+----------+
+| MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++-------+-------+-------+-------+--------+---------+---------+----------+
+|       |       |       |       |        |         |         |          |
++-------+-------+-------+-------+--------+---------+---------+----------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1:BIGINT], expr#2=[<($t0, $t1)], expr#3=[null:INTEGER], expr#4=[1], expr#5=[CASE($t2, $t3, $t4)], expr#6=[0], expr#7=[CASE($t2, $t3, $t6)], expr#8=[2:BIGINT], expr#9=[<($t0, $t8)], expr#10=[CASE($t9, $t3, $t6)], MIN_V=[$t5], MAX_V=[$t5], AVG_V=[$t5], ANY_V=[$t5], POP_SD=[$t7], SAMP_SD=[$t10], POP_VAR=[$t7], SAMP_VAR=[$t10])
+  EnumerableAggregate(group=[{}], agg#0=[COUNT()])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[0], expr#3=[<($t0, $t2)], $f0=[$t1], $condition=[$t3])
+      EnumerableValues(tuples=[[{ 7 }]])
+!plan
+
+# One value is sufficient for population statistics, but not sample statistics.
+SELECT MIN(1) AS MIN_V,
+    MAX(1) AS MAX_V,
+    AVG(1) AS AVG_V,
+    ANY_VALUE(1) AS ANY_V,
+    STDDEV_POP(1) AS POP_SD,
+    STDDEV_SAMP(1) AS SAMP_SD,
+    VAR_POP(1) AS POP_VAR,
+    VAR_SAMP(1) AS SAMP_VAR
+FROM (VALUES (7)) AS t(x)
+WHERE x > 0;
++-------+-------+-------+-------+--------+---------+---------+----------+
+| MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++-------+-------+-------+-------+--------+---------+---------+----------+
+|     1 |     1 |     1 |     1 |      0 |         |       0 |          |
++-------+-------+-------+-------+--------+---------+---------+----------+
+(1 row)
+
+!ok
+
+# Multiple constant aggregates share a single count.
+SELECT MIN(1) AS MIN_V,
+    MAX(1) AS MAX_V,
+    AVG(1) AS AVG_V,
+    ANY_VALUE(1) AS ANY_V,
+    STDDEV_POP(1) AS POP_SD,
+    STDDEV_SAMP(1) AS SAMP_SD,
+    VAR_POP(1) AS POP_VAR,
+    VAR_SAMP(1) AS SAMP_VAR
+FROM (VALUES (7), (8)) AS t(x)
+WHERE x > 0;
++-------+-------+-------+-------+--------+---------+---------+----------+
+| MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++-------+-------+-------+-------+--------+---------+---------+----------+
+|     1 |     1 |     1 |     1 |      0 |       0 |       0 |        0 |
++-------+-------+-------+-------+--------+---------+---------+----------+
+(1 row)
+
+!ok
+
+# Non-empty input with only NULL arguments.
+SELECT MIN(CAST(NULL AS INTEGER)) AS MIN_V,
+    MAX(CAST(NULL AS INTEGER)) AS MAX_V,
+    AVG(CAST(NULL AS INTEGER)) AS AVG_V,
+    ANY_VALUE(CAST(NULL AS INTEGER)) AS ANY_V,
+    STDDEV_POP(CAST(NULL AS INTEGER)) AS POP_SD,
+    STDDEV_SAMP(CAST(NULL AS INTEGER)) AS SAMP_SD,
+    VAR_POP(CAST(NULL AS INTEGER)) AS POP_VAR,
+    VAR_SAMP(CAST(NULL AS INTEGER)) AS SAMP_VAR
+FROM (VALUES (7), (8)) AS t(x)
+WHERE x > 0;
++-------+-------+-------+-------+--------+---------+---------+----------+
+| MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++-------+-------+-------+-------+--------+---------+---------+----------+
+|       |       |       |       |        |         |         |          |
++-------+-------+-------+-------+--------+---------+---------+----------+
+(1 row)
+
+!ok
+
+# NULL arguments on empty input.
+SELECT MIN(CAST(NULL AS INTEGER)) AS MIN_V,
+    MAX(CAST(NULL AS INTEGER)) AS MAX_V,
+    AVG(CAST(NULL AS INTEGER)) AS AVG_V,
+    ANY_VALUE(CAST(NULL AS INTEGER)) AS ANY_V,
+    STDDEV_POP(CAST(NULL AS INTEGER)) AS POP_SD,
+    STDDEV_SAMP(CAST(NULL AS INTEGER)) AS SAMP_SD,
+    VAR_POP(CAST(NULL AS INTEGER)) AS POP_VAR,
+    VAR_SAMP(CAST(NULL AS INTEGER)) AS SAMP_VAR
+FROM (VALUES (7)) AS t(x)
+WHERE x < 0;
++-------+-------+-------+-------+--------+---------+---------+----------+
+| MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++-------+-------+-------+-------+--------+---------+---------+----------+
+|       |       |       |       |        |         |         |          |
++-------+-------+-------+-------+--------+---------+---------+----------+
+(1 row)
+
+!ok
+
+# Retained aggregates and an existing COUNT keep their output positions.
+SELECT SUM(x) AS total, MIN(1) AS min_v, COUNT(*) AS n,
+    STDDEV_SAMP(1) AS sd, MAX(x) AS max_x
+FROM (VALUES (7), (8)) AS t(x)
+WHERE x > 0;
++-------+-------+---+----+-------+
+| TOTAL | MIN_V | N | SD | MAX_X |
++-------+-------+---+----+-------+
+|    15 |     1 | 2 |  0 |     8 |
++-------+-------+---+----+-------+
+(1 row)
+
+!ok
+
+# Grouped singleton, repeated values, and NULL keys.
+SELECT x, MIN(x) AS MIN_V,
+    MAX(x) AS MAX_V,
+    AVG(x) AS AVG_V,
+    ANY_VALUE(x) AS ANY_V,
+    STDDEV_POP(x) AS POP_SD,
+    STDDEV_SAMP(x) AS SAMP_SD,
+    VAR_POP(x) AS POP_VAR,
+    VAR_SAMP(x) AS SAMP_VAR
+FROM (VALUES (7), (8), (8), (CAST(NULL AS INTEGER)), (NULL)) AS t(x)
+GROUP BY x ORDER BY x NULLS LAST;
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+| X | MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+| 7 |     7 |     7 |     7 |     7 |      0 |         |       0 |          |
+| 8 |     8 |     8 |     8 |     8 |      0 |       0 |       0 |        0 |
+|   |       |       |       |       |        |         |         |          |
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+(3 rows)
+
+!ok
+
+# An empty grouped input produces no rows.
+SELECT x, MIN(1) AS MIN_V,
+    MAX(1) AS MAX_V,
+    AVG(1) AS AVG_V,
+    ANY_VALUE(1) AS ANY_V,
+    STDDEV_POP(1) AS POP_SD,
+    STDDEV_SAMP(1) AS SAMP_SD,
+    VAR_POP(1) AS POP_VAR,
+    VAR_SAMP(1) AS SAMP_VAR
+FROM (VALUES (7)) AS t(x)
+WHERE x < 0
+GROUP BY x;
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+| X | MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++---+-------+-------+-------+-------+--------+---------+---------+----------+
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+(0 rows)
+
+!ok
+
+# DISTINCT reduces identical non-null values to one value.
+!set hep-rules "
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS,
++CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+SELECT MIN(DISTINCT 1) AS MIN_V,
+    MAX(DISTINCT 1) AS MAX_V,
+    AVG(DISTINCT 1) AS AVG_V,
+    ANY_VALUE(DISTINCT 1) AS ANY_V,
+    STDDEV_POP(DISTINCT 1) AS POP_SD,
+    STDDEV_SAMP(DISTINCT 1) AS SAMP_SD,
+    VAR_POP(DISTINCT 1) AS POP_VAR,
+    VAR_SAMP(DISTINCT 1) AS SAMP_VAR
+FROM (VALUES (7), (8)) AS t(x)
+WHERE x > 0;
++-------+-------+-------+-------+--------+---------+---------+----------+
+| MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++-------+-------+-------+-------+--------+---------+---------+----------+
+|     1 |     1 |     1 |     1 |      0 |         |       0 |          |
++-------+-------+-------+-------+--------+---------+---------+----------+
+(1 row)
+
+!ok
+
+SELECT x, MIN(DISTINCT x) AS MIN_V,
+    MAX(DISTINCT x) AS MAX_V,
+    AVG(DISTINCT x) AS AVG_V,
+    ANY_VALUE(DISTINCT x) AS ANY_V,
+    STDDEV_POP(DISTINCT x) AS POP_SD,
+    STDDEV_SAMP(DISTINCT x) AS SAMP_SD,
+    VAR_POP(DISTINCT x) AS POP_VAR,
+    VAR_SAMP(DISTINCT x) AS SAMP_VAR
+FROM (VALUES (7), (7), (CAST(NULL AS INTEGER)), (NULL)) AS t(x)
+GROUP BY x ORDER BY x NULLS LAST;
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+| X | MIN_V | MAX_V | AVG_V | ANY_V | POP_SD | SAMP_SD | POP_VAR | SAMP_VAR |
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+| 7 |     7 |     7 |     7 |     7 |      0 |         |       0 |          |
+|   |       |       |       |       |        |         |         |          |
++---+-------+-------+-------+-------+--------+---------+---------+----------+
+(2 rows)
+
+!ok
+
+# Reduction still applies to group keys, including NULL keys.
+!set hep-rules "
++CoreRules.AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS"
+
+SELECT x, AVG(x) AS avg_v, ANY_VALUE(x) AS any_v
+FROM (VALUES (7), (7), (CAST(NULL AS INTEGER))) AS t(x)
+GROUP BY x ORDER BY x NULLS LAST;
++---+-------+-------+
+| X | AVG_V | ANY_V |
++---+-------+-------+
+| 7 |     7 |     7 |
+|   |       |       |
++---+-------+-------+
+(2 rows)
+
+!ok
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableCalc(expr#0=[{inputs}], X=[$t0], AVG_V=[$t0], ANY_V=[$t0])
+    EnumerableAggregate(group=[{0}])
+      EnumerableValues(tuples=[[{ 7 }, { 7 }, { null }]])
+!plan
+!set hep-rules original
+
 # End hep.iq
