@@ -5030,6 +5030,31 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5285">[CALCITE-5285]
+   * CalcReduceExpressionsRule creates a Calc equivalent to the input when
+   * reduceExpressions returns true but the output expressions have not
+   * changed</a>. The rule should not fire if only intermediate (non-output)
+   * expressions were simplified. */
+  @Test void testCalcReduceExpressionsNoChangeInOutput() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .addRuleInstance(CoreRules.CALC_REDUCE_EXPRESSIONS)
+        .build();
+    // FLOOR(CAST(sal AS BIGINT) / 1): reduceExpressions simplifies the
+    // intermediate '/ 1' sub-expression but does not rewrite the FLOOR
+    // node that is the project output, so the output is unchanged and
+    // the rule must not fire a second time.
+    final String sql = "select floor(cast(sal as bigint) / 1)\n"
+        + "from emp";
+    // planAfter is intentionally identical to what PROJECT_TO_CALC produces;
+    // CALC_REDUCE_EXPRESSIONS does not transform the Calc because the output
+    // expressions are unchanged.
+    sql(sql)
+        .withProgram(program)
+        .check();
+  }
+
   @Test void testReduceConstantsCalc() {
     // This reduction does not work using
     // ReduceExpressionsRule.PROJECT_INSTANCE or FILTER_INSTANCE,
