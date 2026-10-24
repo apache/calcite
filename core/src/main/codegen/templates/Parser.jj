@@ -1301,7 +1301,12 @@ SqlNode SqlStmt() :
         stmt = SqlTruncate()
     |
 </#if>
-        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_NONCURSOR) {
+            if (!stmt.isA(SqlKind.QUERY)) {
+                throw SqlUtil.newContextException(stmt.getParserPosition(),
+                    RESOURCE.invalidStatement());
+            }
+        }
     |
         stmt = SqlExplain()
     |
