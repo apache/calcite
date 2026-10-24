@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Correlate;
@@ -30,8 +29,10 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -46,17 +47,23 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql2rel.DeduplicateCorrelateVariables;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -1095,44 +1102,65 @@ public class SubQueryRemoveRule
   private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
     final Join join = call.rel(0);
     final RelBuilder builder = call.builder();
+    // rewrites one sub-query per call and relies on the rule firing repeatedly
     final RexSubQuery e =
         requireNonNull(RexUtil.SubQueryFinder.find(join.getCondition()));
 
     ImmutableBitSet inputSet = RelOptUtil.InputFinder.bits(e.getOperands(), null);
-    int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
-    int nFieldsRight = join.getRight().getRowType().getFieldCount();
+    final int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
+    final int nFieldsRight = join.getRight().getRowType().getFieldCount();
 
     // Correlation columns should also be considered.
     // For example:
-    //                                   LogicalJoin
-    //              left                                          right
-    //                |                                             |
-    // LogicalProject.NONE.[0, 1]                            LogicalValues.NONE.[0]
-    // RecordType(INTEGER DEPTNO, CHAR(11) DNAME)            RecordType(INTEGER DEPTNO)
+    // SELECT t1.deptno FROM dept AS t0 JOIN emp AS t1 ON
+    // (t1.deptno = (SELECT inner_t1.deptno FROM emp AS inner_t1 WHERE inner_t1.ENAME = t0.DNAME));
     //
-    // and subquery: $SCALAR_QUERY with correlate
-    // LogicalProject(DEPTNO=[$1])
-    //   LogicalFilter(condition=[=(CAST($0):CHAR(11) NOT NULL, $cor0.DNAME)])
+    // LogicalProject(DEPTNO=[$11])
+    //   LogicalJoin(condition=[=($11, $SCALAR_QUERY({
+    // LogicalProject(DEPTNO=[$8])
+    //   LogicalFilter(condition=[=($1, $cor0.dname)])
+    //     LogicalTableScan(table=[emp])
+    // }))], joinType=[inner])
+    //     LogicalTableScan(table=[dept])
+    //     LogicalTableScan(table=[emp])
     //
-    // In such a case $cor0.DNAME need to be accounted as input form left side.
-    final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
-    variablesSet.retainAll(join.getVariablesSet());
-    for (CorrelationId id : variablesSet) {
+    // In such a case $cor0.dname need to be accounted as input form left side.
+    final Set<CorrelationId> usedVariables =
+        intersect(join.getVariablesSet(), RelOptUtil.getVariablesUsed(e.rel));
+    for (CorrelationId id : usedVariables) {
       ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, e.rel);
       inputSet = ImmutableBitSet.union(ImmutableList.of(requiredColumns, inputSet));
     }
 
-    boolean inputIntersectsLeftSide = inputSet.intersects(ImmutableBitSet.range(0, nFieldsLeft));
-    boolean inputIntersectsRightSide =
+    final boolean inputIntersectsLeftSide =
+        inputSet.intersects(ImmutableBitSet.range(0, nFieldsLeft));
+    final boolean inputIntersectsRightSide =
         inputSet.intersects(ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
-    if (inputIntersectsLeftSide && inputIntersectsRightSide) {
-      if (join.getJoinType() != JoinRelType.INNER) {
-        // Rewriting requires flattening the join into a cross-product first (see below).
-        // That transformation is only valid for INNER JOIN (A JOIN B ON c ≡ (A × B) WHERE c).
-        // For OUTER JOINs the semantics differ (NULL-padding), so we bail out.
-        return;
-      }
+    if (inputIntersectsLeftSide && inputIntersectsRightSide
+        && join.getJoinType() != JoinRelType.INNER) {
+      // Rewriting requires flattening the join into a cross-product first (see below).
+      // That transformation is only valid for INNER JOIN (A JOIN B ON c ≡ (A × B) WHERE c).
+      // For OUTER JOINs the semantics differ (NULL-padding), so we bail out. We bail out
+      // before creating any correlation id, so that an abandoned match does not shift
+      // the ids of unrelated plans.
+      return;
+    }
 
+    // This rule rewrites one sub-query per call; the others stay in the condition.
+    // The relational expression that we create must keep defining the variables that
+    // they use (otherwise they would become uncorrelated, with their correlation
+    // variables undefined), and "e" must stop sharing variables with them (see
+    // renameSharedVariables).
+    final Set<CorrelationId> remainingVariables =
+        intersect(join.getVariablesSet(),
+            RelOptUtil.getVariablesUsed(otherSubQueries(join.getCondition(), e)));
+    final Pair<RexSubQuery, Set<CorrelationId>> unshared =
+        renameSharedVariables(e, usedVariables, remainingVariables, builder.getRexBuilder());
+    // "e" itself is still used to locate the sub-query in the condition.
+    final RexSubQuery unsharedSubQuery = unshared.left;
+    final Set<CorrelationId> variablesSet = unshared.right;
+
+    if (inputIntersectsLeftSide && inputIntersectsRightSide) {
       // The sub-query operands span both sides of the join, e.g.:
       //   SELECT empno FROM emp JOIN dept
       //   ON emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept)
@@ -1165,14 +1193,21 @@ public class SubQueryRemoveRule
       final RelOptUtil.Logic logic =
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(join.getCondition()), e);
       final RexNode target =
-          rule.apply(e, variablesSet, logic, builder, 1, count, 0);
+          rule.apply(unsharedSubQuery, variablesSet, logic, builder, 1, count, 0);
 
       // Step 3 – replace the sub-query in the ON condition with the expression (target)
       //   produced by rule.apply (e.g. a CASE expression for SOME, IS NOT NULL for EXISTS),
       //   then materialize it as a Filter (valid because the cross-product is already in place).
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-      final RexNode newCond = shuttle.apply(join.getCondition());
-      builder.filter(newCond);
+      RexNode newCond = shuttle.apply(join.getCondition());
+
+      // Keep the variables of the remaining sub-queries defined on the new Filter.
+      // The auxiliary fields are appended after both inputs, so field indexes do not
+      // change; only the row type that the variables reference is updated.
+      newCond =
+          remapCorrelationVariables(newCond, remainingVariables,
+              builder.peek().getRowType(), 0, 0, builder.getRexBuilder());
+      builder.filter(remainingVariables, newCond);
 
       // Step 4 – project away the auxiliary columns introduced by the sub-query rewrite,
       //   restoring the original output schema (fields 0 .. count-1).
@@ -1189,22 +1224,35 @@ public class SubQueryRemoveRule
                   ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
               ImmutableList.of(join.getCondition()), e);
 
+      // The sub-query's variables now reference the left input only; the fields
+      // that it uses are at the same indexes, so only the row type changes.
+      final RexSubQuery subQuery =
+          (RexSubQuery) remapCorrelationVariables(unsharedSubQuery, variablesSet,
+              join.getLeft().getRowType(), 0, 0, builder.getRexBuilder());
       final RexNode target =
-          rule.apply(e, variablesSet, logic, builder, 1, nFieldsLeft, 0);
+          rule.apply(subQuery, variablesSet, logic, builder, 1, nFieldsLeft, 0);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
 
+      final int nFieldsNewLeft = builder.fields().size();
       final RexNode newCond =
           shuttle.apply(
               RexUtil.shift(join.getCondition(), nFieldsLeft,
-                  builder.fields().size() - nFieldsLeft));
-      builder.push(join.getRight());
-      builder.join(join.getJoinType(), newCond);
+                  nFieldsNewLeft - nFieldsLeft));
 
+      // The remaining sub-queries reference right-side fields through the join's
+      // correlation variables, so their indexes must be shifted past the auxiliary
+      // fields that the rewrite appended to the left input.
+      pushJoin(builder, join, builder.build(), join.getRight(), newCond,
+          remainingVariables, nFieldsLeft, nFieldsNewLeft - nFieldsLeft);
+
+      // Project away the auxiliary fields: keep the left fields and whatever the
+      // original join emits after them (the right fields for INNER/LEFT/RIGHT/FULL,
+      // nothing for SEMI/ANTI, the marker field for LEFT_MARK).
       final int nFields = builder.fields().size();
-      ImmutableList<RexNode> fields =
+      final int nFieldsExtra = join.getRowType().getFieldCount() - nFieldsLeft;
+      builder.project(
           builder.fields(ImmutableBitSet.range(0, nFieldsLeft)
-              .union(ImmutableBitSet.range(nFields - nFieldsRight, nFields)));
-      builder.project(fields);
+          .union(ImmutableBitSet.range(nFields - nFieldsExtra, nFields))));
     } else {
       builder.push(join.getRight());
 
@@ -1213,7 +1261,7 @@ public class SubQueryRemoveRule
                   ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
               ImmutableList.of(join.getCondition()), e);
 
-      RexSubQuery subQuery = e;
+      RexSubQuery subQuery = unsharedSubQuery;
 
       if (!variablesSet.isEmpty()) {
         // Original correlates reference joint row type, but we are about to create
@@ -1221,6 +1269,11 @@ public class SubQueryRemoveRule
         // to adjust correlated variables in following way:
         //   1) new correlation variable must reference row type of right side only
         //   2) field index must be shifted on the size of the left side
+        //      (offset -nFieldsLeft; start is 0 because the sub-query references
+        //      only right-side fields). In the example below, $cor0.DEPTNO0 is
+        //      field 8 of EMP + DEPT and becomes $cor0.DEPTNO, field 0 of DEPT.
+        // This applies to every variable in variablesSet, including references
+        // inside nested sub-queries.
         // Example:
         // SELECT e1.*
         // FROM emp e1
@@ -1254,17 +1307,9 @@ public class SubQueryRemoveRule
         //         LogicalProject(EMPNO=[$0])
         //           LogicalFilter(condition=[>(CAST($cor0.DEPTNO):DECIMAL(7, 2) NOT NULL, $6)])
         //             LogicalTableScan(table=[[scott, EMP]])
-        CorrelationId id = Iterables.getOnlyElement(variablesSet);
-        RexBuilder rexBuilder = builder.getRexBuilder();
-
-        RelNode newSubQueryRel = e.rel.accept(new RelHomogeneousShuttle() {
-          @Override public RelNode visit(RelNode other) {
-            RelNode node =
-                RexUtil.shiftFieldAccess(rexBuilder, other, id, join.getRight(), -nFieldsLeft);
-            return super.visit(node);
-          }
-        });
-        subQuery = e.clone(newSubQueryRel);
+        subQuery =
+            (RexSubQuery) remapCorrelationVariables(subQuery, variablesSet,
+                join.getRight().getRowType(), 0, -nFieldsLeft, builder.getRexBuilder());
       }
 
       subQuery =
@@ -1275,15 +1320,183 @@ public class SubQueryRemoveRule
           rule.apply(subQuery, variablesSet, logic, builder, 1, nFieldsRight, 0);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, RexUtil.shift(target, nFieldsLeft));
 
-      RelNode newRight = builder.build();
-      builder.push(join.getLeft());
-      builder.push(newRight);
+      final RelNode newRight = builder.build();
+      final RexNode newCond = shuttle.apply(join.getCondition());
 
-      builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
+      // The auxiliary fields are appended after the right-side fields, so the indexes
+      // that the remaining sub-queries use do not change (hence start and offset 0).
+      pushJoin(builder, join, join.getLeft(), newRight, newCond, remainingVariables, 0, 0);
       builder.project(fields(builder, nFields));
     }
 
     call.transformTo(builder.build());
+  }
+
+  /** Returns the intersection of two sets of correlation variables, in the
+   * iteration order of {@code defined}.
+   *
+   * <p>The result ends up in the {@code variablesSet} of a relational expression
+   * (and therefore in its digest), so a deterministic order matters. */
+  private static Set<CorrelationId> intersect(Set<CorrelationId> defined,
+      Set<CorrelationId> used) {
+    if (defined.isEmpty() || used.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    return defined.stream().filter(used::contains)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  /** Returns the sub-queries of {@code condition}, except {@code e}.
+   *
+   * <p>Sub-queries are compared by value, as {@link ReplaceSubQueryShuttle}
+   * does; if the condition contains several equal sub-queries, they are all
+   * rewritten at once, and therefore none of them is "remaining". */
+  private static List<RexSubQuery> otherSubQueries(RexNode condition, RexSubQuery e) {
+    final RexUtil.SubQueryCollector collector = new RexUtil.SubQueryCollector(true);
+    condition.accept(collector);
+    return collector.getSubQueries().stream()
+        .filter(subQuery -> !subQuery.equals(e))
+        .collect(Collectors.toList());
+  }
+
+  /** Gives {@code subQuery} fresh correlation ids for the variables that it
+   * shares with the sub-queries that {@link #matchJoin} leaves in the condition,
+   * and returns it along with its new set of variables.
+   *
+   * <p>Rewriting the sub-query binds its variables to a new {@link Correlate}
+   * whose row type is just the left (or right) input, whereas the remaining
+   * sub-queries need the join to keep defining the same variables over the
+   * joint row type. For example, in
+   *
+   * <pre>{@code
+   * SELECT e.ename
+   * FROM emp e
+   * JOIN dept d
+   *   ON EXISTS (SELECT 1 FROM emp s WHERE s.mgr = e.empno)
+   *   AND EXISTS (SELECT 1 FROM emp s WHERE s.ename = d.dname)
+   * }</pre>
+   *
+   * <p>both sub-queries use {@code $cor0}. Rewriting the first one renames its
+   * {@code $cor0} to a fresh id, so that {@code $cor0} is not defined twice: by
+   * the Correlate over EMP (8 fields) and by the Join over EMP + auxiliary field
+   * + DEPT (12 fields). */
+  private static Pair<RexSubQuery, Set<CorrelationId>> renameSharedVariables(
+      RexSubQuery subQuery, Set<CorrelationId> variablesSet,
+      Set<CorrelationId> remainingVariables, RexBuilder rexBuilder) {
+    final Set<CorrelationId> sharedVariables = intersect(variablesSet, remainingVariables);
+    if (sharedVariables.isEmpty()) {
+      return Pair.of(subQuery, variablesSet);
+    }
+    final Set<CorrelationId> newVariablesSet = new LinkedHashSet<>(variablesSet);
+    RelNode rel = subQuery.rel;
+    for (CorrelationId id : sharedVariables) {
+      // DeduplicateCorrelateVariables replaces the old id with the new one
+      // throughout the sub-query, including nested sub-queries.
+      final CorrelationId newId = rel.getCluster().createCorrel();
+      rel = DeduplicateCorrelateVariables.go(rexBuilder, newId, ImmutableSet.of(id), rel);
+      newVariablesSet.remove(id);
+      newVariablesSet.add(newId);
+    }
+    return Pair.of(subQuery.clone(rel), newVariablesSet);
+  }
+
+  /** Creates the join that replaces {@code join} once one of the sub-queries in
+   * its condition has been rewritten, and pushes it onto {@code builder}.
+   *
+   * <p>If sub-queries that use the join's correlation variables are left in
+   * {@code condition}, the new join must keep defining those variables,
+   * otherwise they would be treated as uncorrelated and left undefined. Their
+   * field indexes are remapped as {@code start} and {@code offset} describe (see
+   * {@link #remapCorrelationVariables}), because the rewrite may have added
+   * auxiliary fields to one of the inputs. */
+  private static void pushJoin(RelBuilder builder, Join join, RelNode left,
+      RelNode right, RexNode condition, Set<CorrelationId> remainingVariables,
+      int start, int offset) {
+    if (remainingVariables.isEmpty()) {
+      builder.push(left);
+      builder.push(right);
+      builder.join(join.getJoinType(), condition);
+      return;
+    }
+
+    // The correlation row type comes from createJoinType rather than from the
+    // join's output, because the ON condition sees both inputs even for the
+    // SEMI and ANTI joins that do not output the right one.
+    final RelDataType correlRowType =
+        SqlValidatorUtil.createJoinType(builder.getTypeFactory(),
+            left.getRowType(), right.getRowType(), null,
+            join.getSystemFieldList());
+    final RexNode newCondition =
+        remapCorrelationVariables(condition, remainingVariables, correlRowType,
+            start, offset, builder.getRexBuilder());
+
+    // Not RelBuilder#join: given a non-empty variablesSet it may create a
+    // Correlate (and a Correlate has no room for a condition that references
+    // both inputs). Not Join#copy either, because that would keep the original,
+    // now stale, variablesSet.
+    builder.push(
+        LogicalJoin.create(left, right, join.getHints(), newCondition,
+            remainingVariables, join.getJoinType(), join.isSemiJoinDone(),
+            ImmutableList.copyOf(join.getSystemFieldList())));
+  }
+
+  /** Rewrites references to the correlation variables {@code ids} inside the
+   * sub-queries of {@code node} so that they reference a row of type
+   * {@code rowType}, shifting fields whose index is at least {@code start} by
+   * {@code offset}, as {@link RexUtil#shift(RexNode, int, int)} does for input
+   * references. An {@code offset} of 0 leaves the indexes alone and only
+   * changes the row type that the variables reference.
+   *
+   * <p>For example, in
+   *
+   * <pre>{@code
+   * SELECT e.ename
+   * FROM emp e
+   * LEFT JOIN dept d
+   *   ON e.deptno IN (SELECT s.deptno FROM emp s)
+   *   AND e.deptno = d.deptno
+   *   AND EXISTS (SELECT 1 FROM emp s WHERE s.ename = d.dname)
+   * }</pre>
+   *
+   * <p>{@code $cor0} is a row of EMP (fields 0..7) + DEPT (fields 8..10), so
+   * {@code $cor0.DNAME} is field 9. Rewriting the IN appends 4 auxiliary fields
+   * to the left input, which moves DEPT to fields 12..14; with {@code start = 8}
+   * and {@code offset = 4}, {@code $cor0.DNAME} becomes field 13 of 15.
+   *
+   * <p>Fields that the shift pushes outside {@code rowType}, which can only
+   * happen when {@code offset} is negative, are left unmapped, so that a
+   * reference to one of them is an error rather than a silently wrong index. */
+  private static RexNode remapCorrelationVariables(RexNode node,
+      Set<CorrelationId> ids, RelDataType rowType, int start, int offset,
+      RexBuilder rexBuilder) {
+    if (ids.isEmpty()) {
+      return node;
+    }
+    final int targetCount = rowType.getFieldCount();
+    final Mapping mapping;
+    if (offset == 0) {
+      mapping = Mappings.createIdentity(targetCount);
+    } else {
+      // A mapping from the old positions of the correlation row to the new
+      // ones; fields before "start" keep their index, the others move by
+      // "offset".
+      mapping =
+          Mappings.create(MappingType.PARTIAL_FUNCTION, targetCount - offset,
+              targetCount);
+      for (int source = 0; source < mapping.getSourceCount(); source++) {
+        final int target = source < start ? source : source + offset;
+        if (target >= 0 && target < targetCount) {
+          mapping.set(source, target);
+        }
+      }
+    }
+    for (CorrelationId id : ids) {
+      node =
+          node.accept(
+              new RelOptUtil.RexCorrelVariableMapShuttle(id, rowType, mapping,
+                  rexBuilder));
+    }
+    return node;
   }
 
   private static void matchFilterEnableMarkJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
