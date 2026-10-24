@@ -3309,6 +3309,59 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>.
+   *
+   * <p>The Calcite dialect writes the {@code VECTOR} type with its element
+   * type; PostgreSQL writes the type of the pgvector extension; dialects
+   * that do not support vectors throw. */
+  @Test void testCastToVector() {
+    final String query = "select\n"
+        + "  cast(array[\"product_id\", \"product_class_id\"] as vector(2)) as v,\n"
+        + "  cast(cast('[1, 2, 3]' as varchar(20)) as vector(3)) as w\n"
+        + "from \"foodmart\".\"product\"";
+    // The constant vector "W" is reduced to a cast of an array of literals
+    final String expected = "SELECT"
+        + " CAST(ARRAY[\"product_id\", \"product_class_id\"] AS VECTOR(2, REAL)) AS \"V\","
+        + " CAST(ARRAY[1.0E0, 2.0E0, 3.0E0] AS VECTOR(3, REAL)) AS \"W\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT"
+        + " CAST(ARRAY[\"product_id\", \"product_class_id\"] AS VECTOR(2)) AS \"V\","
+        + " CAST(ARRAY[1.0E0, 2.0E0, 3.0E0] AS VECTOR(3)) AS \"W\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withRoundTrip().ok(expected)
+        .withPostgresql().ok(expectedPostgresql)
+        .withMysql().throws_("Dialect for MYSQL does not support type VECTOR(2, REAL)")
+        .withOracle().throws_("Dialect for ORACLE does not support type VECTOR(2, REAL)");
+
+    // pgvector's "vector" type has REAL elements; there is no TINYINT vector
+    final String query2 = "select cast(array[\"product_id\"] as vector(1, tinyint)) as v\n"
+        + "from \"foodmart\".\"product\"";
+    final String expected2 = "SELECT"
+        + " CAST(ARRAY[\"product_id\"] AS VECTOR(1, TINYINT)) AS \"V\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query2)
+        .withRoundTrip().ok(expected2)
+        .withPostgresql()
+        .throws_("Dialect for POSTGRESQL does not support type VECTOR(1, TINYINT)");
+  }
+
+  /** Tests casts from the {@code VECTOR} type in generated SQL. */
+  @Test void testCastFromVector() {
+    final String query = "select\n"
+        + "  cast(cast(array[\"product_id\"] as vector(1)) as real array) as a,\n"
+        + "  cast(cast(array[\"product_id\"] as vector(1)) as varchar(20)) as s\n"
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT"
+        + " CAST(CAST(ARRAY[\"product_id\"] AS VECTOR(1, REAL)) AS REAL ARRAY) AS \"A\","
+        + " CAST(CAST(ARRAY[\"product_id\"] AS VECTOR(1, REAL))"
+        + " AS VARCHAR(20) CHARACTER SET \"ISO-8859-1\") AS \"S\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withRoundTrip().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7056">[CALCITE-7056]
    * Convert RelNode to Sql failed when the RelNode includes quantify operators</a>.
    */

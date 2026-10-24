@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlDialect;
 
 /**
@@ -38,5 +39,9 @@ public class CalciteSqlDialect extends SqlDialect {
   /** Creates a CalciteSqlDialect. */
   public CalciteSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public boolean supportsDataType(RelDataType type) {
+    return true;
   }
 }

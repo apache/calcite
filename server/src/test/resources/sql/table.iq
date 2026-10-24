@@ -464,4 +464,153 @@ select * from tdef1 order by i;
 
 !ok
 
+# A table with a VECTOR column
+create table tvec (id int not null, v vector(3), w vector(2, tinyint) not null);
+(0 rows modified)
+
+!update
+
+select * from tvec;
+ID INTEGER(10) NOT NULL
+V VECTOR(3)
+W VECTOR(2) NOT NULL
+!type
+
+insert into tvec values (1, cast(array[1, 2, 3] as vector(3)), cast('[1, 2]' as vector(2, tinyint)));
+(1 row modified)
+
+!update
+
+# An ARRAY or a character string is implicitly cast to the column's VECTOR type
+insert into tvec values (2, array[4.5, 5, 6], '[3, 4]'), (3, '[7, 8, 9]', array[5, 6]);
+(2 rows modified)
+
+!update
+
+insert into tvec values (4, null, array[7, 8]);
+(1 row modified)
+
+!update
+
+select * from tvec;
++----+-----------------+--------+
+| ID | V               | W      |
++----+-----------------+--------+
+|  1 | [1.0, 2.0, 3.0] | [1, 2] |
+|  2 | [4.5, 5.0, 6.0] | [3, 4] |
+|  3 | [7.0, 8.0, 9.0] | [5, 6] |
+|  4 |                 | [7, 8] |
++----+-----------------+--------+
+(4 rows)
+
+!ok
+
+# The number of elements must match the dimension
+insert into tvec values (5, array[1, 2], array[1, 2]);
+java.sql.SQLException: Error while executing SQL "insert into tvec values (5, array[1, 2], array[1, 2])": Cannot convert a value with 2 elements to VECTOR of dimension 3
+!error
+
+# A VECTOR value of a different dimension cannot be assigned
+insert into tvec select id + 10, w, w from tvec;
+java.sql.SQLException: Error while executing SQL "insert into tvec select id + 10, w, w from tvec": At line 1, column 34: Cannot assign to target field 'V' of type VECTOR(3, REAL) from source field 'W' of type VECTOR(2, TINYINT)
+!error
+
+update tvec set v = '[0.5, 1, 2]' where id = 4;
+(1 row modified)
+
+!update
+
+select id, cast(v as varchar(30)) as s from tvec where id = 4;
++----+-----------------+
+| ID | S               |
++----+-----------------+
+|  4 | [0.5, 1.0, 2.0] |
++----+-----------------+
+(1 row)
+
+!ok
+
+# A VECTOR value is converted to the element type of the target column
+create table tvec2 (v vector(2));
+(0 rows modified)
+
+!update
+
+insert into tvec2 select w from tvec where id = 1;
+(1 row modified)
+
+!update
+
+select v, cast(v as varchar(20)) as s from tvec2;
++------------+------------+
+| V          | S          |
++------------+------------+
+| [1.0, 2.0] | [1.0, 2.0] |
++------------+------------+
+(1 row)
+
+!ok
+
+drop table tvec2;
+(0 rows modified)
+
+!update
+
+# A vector is not implicitly converted to a character string or an array
+create table tother (id int, s varchar(5), a integer array, b boolean array);
+(0 rows modified)
+
+!update
+
+insert into tother (id, s) values (1, cast('[1, 2, 3]' as vector(3)));
+java.sql.SQLException: Error while executing SQL "insert into tother (id, s) values (1, cast('[1, 2, 3]' as vector(3)))": At line 1, column 25: Cannot assign to target field 'S' of type VARCHAR(5) from source field 'EXPR$1' of type VECTOR(3, REAL)
+!error
+
+insert into tother (id, a) values (2, cast('[1.5, 2, 3]' as vector(3)));
+java.sql.SQLException: Error while executing SQL "insert into tother (id, a) values (2, cast('[1.5, 2, 3]' as vector(3)))": At line 1, column 25: Cannot assign to target field 'A' of type INTEGER ARRAY from source field 'EXPR$1' of type VECTOR(3, REAL)
+!error
+
+insert into tother (id, b) values (3, cast('[1.5, 2, 3]' as vector(3)));
+java.sql.SQLException: Error while executing SQL "insert into tother (id, b) values (3, cast('[1.5, 2, 3]' as vector(3)))": At line 1, column 25: Cannot assign to target field 'B' of type BOOLEAN ARRAY from source field 'EXPR$1' of type VECTOR(3, REAL)
+!error
+
+insert into tother (id, s) select id, v from tvec;
+java.sql.SQLException: Error while executing SQL "insert into tother (id, s) select id, v from tvec": At line 1, column 25: Cannot assign to target field 'S' of type VARCHAR(5) from source field 'V' of type VECTOR(3, REAL)
+!error
+
+insert into tother (id, s) values (4, 'x');
+(1 row modified)
+
+!update
+
+update tother set s = (select v from tvec where id = 1);
+java.sql.SQLException: Error while executing SQL "update tother set s = (select v from tvec where id = 1)": From line 1, column 23 to line 1, column 55: Cannot assign to target field 'S' of type VARCHAR(5) from source field 'EXPR$0' of type VECTOR(3, REAL)
+!error
+
+# With an explicit CAST, a vector converts to a character string or an array
+insert into tother (id, s, a) select id, cast(v as varchar(5)), cast(v as integer array) from tvec where id = 1;
+(1 row modified)
+
+!update
+
+select id, s, a from tother where id = 1;
++----+-------+-----------+
+| ID | S     | A         |
++----+-------+-----------+
+|  1 | [1.0, | [1, 2, 3] |
++----+-------+-----------+
+(1 row)
+
+!ok
+
+drop table tother;
+(0 rows modified)
+
+!update
+
+drop table tvec;
+(0 rows modified)
+
+!update
+
 # End table.iq

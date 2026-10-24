@@ -6921,6 +6921,39 @@ public class SqlParserTest {
         .ok("CAST(`A` AS MAP< VARCHAR MULTISET, MAP< INTEGER, INTEGER > >)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>. */
+  @Test void testCastAsVectorType() {
+    expr("cast(a as vector(3))")
+        .ok("CAST(`A` AS VECTOR(3))");
+    expr("cast(a as VECTOR(768, tinyint))")
+        .ok("CAST(`A` AS VECTOR(768, TINYINT))");
+    expr("cast(a as vector(3, real) array)")
+        .ok("CAST(`A` AS VECTOR(3, REAL) ARRAY)");
+    expr("cast(a as map<varchar, vector(2)>)")
+        .ok("CAST(`A` AS MAP< VARCHAR, VECTOR(2) >)");
+    expr("cast(a as row(id int, v vector(2) null))")
+        .ok("CAST(`A` AS ROW(`ID` INTEGER, `V` VECTOR(2) NULL))");
+    // The parser accepts any element type and a dimension of 0;
+    // the validator rejects them
+    expr("cast(a as vector(0, varchar(5)))")
+        .ok("CAST(`A` AS VECTOR(0, VARCHAR(5)))");
+    expr("cast(a as vector(^-^1))")
+        .fails("(?s).*Encountered \"-\" at line 1, column 18.*");
+    expr("cast(a as vector(3, real ^array^))")
+        .fails("(?s).*Encountered \"array\" at line 1, column 26.*");
+    // Without parentheses, VECTOR is the name of a user-defined type
+    expr("cast(a as vector)")
+        .ok("CAST(`A` AS `VECTOR`)");
+    // VECTOR is not a reserved word
+    sql("select vector from vector")
+        .ok("SELECT `VECTOR`\n"
+            + "FROM `VECTOR`");
+    expr("vector(1, 2)")
+        .ok("`VECTOR`(1, 2)");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2980">[CALCITE-2980]

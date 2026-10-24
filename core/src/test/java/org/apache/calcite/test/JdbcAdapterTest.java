@@ -160,6 +160,29 @@ class JdbcAdapterTest {
         .returnsCount(14);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>.
+   *
+   * <p>The dialect of the database (HSQLDB) has no VECTOR type, so Calcite
+   * evaluates the expression that creates a vector, rather than pushing it
+   * down to the database; it still pushes down the filter. */
+  @Test void testVectorExpressionNotPushedDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno, cast(array[sal, sal * 2] as vector(2)) as v\n"
+            + "from scott.emp\n"
+            + "where empno < 7600")
+        .explainContains("expr#12=[CAST($t11):VECTOR(2, REAL) NOT NULL]")
+        .explainContains("JdbcToEnumerableConverter\n"
+            + "    JdbcFilter(condition=[<(CAST($0):INTEGER NOT NULL, 7600)])\n"
+            + "      JdbcTableScan(table=[[SCOTT, EMP]])")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .returnsUnordered("EMPNO=7369; V=[800.0, 1600.0]",
+            "EMPNO=7499; V=[1600.0, 3200.0]",
+            "EMPNO=7521; V=[1250.0, 2500.0]",
+            "EMPNO=7566; V=[2975.0, 5950.0]");
+  }
+
   @Test void testUnionPlan() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"

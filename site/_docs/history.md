@@ -134,6 +134,12 @@ and `GeodeSimpleSchemaFactory`) now requires the operator-level opt-in system pr
 `-Dcalcite.geode.pdxSerializablePackagePath.allowed=true`. A model that sets the operand
 without the opt-in will fail. Java callers of `GeodeUtils.createClientCache` are unaffected.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7857">CALCITE-7857</a>]
+introduces a new method `RelDataTypeFactory#createVectorType` in the existing
+`RelDataTypeFactory` interface, for the new `VECTOR` type. It is implemented
+in `SqlTypeFactoryImpl`; other implementations of the interface must
+implement it.
+
 #### New features
 {: #new-features-1-43-0}
 

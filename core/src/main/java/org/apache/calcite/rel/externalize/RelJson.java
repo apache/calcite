@@ -433,6 +433,13 @@ public class RelJson {
       componentType = toType(typeFactory, component);
       return typeFactory.createMultisetType(componentType, -1);
 
+    case VECTOR:
+      component = requireNonNull(map.get("component"), "component");
+      componentType = toType(typeFactory, component);
+      final Integer dimension =
+          requireNonNull((Integer) map.get("dimension"), "dimension");
+      return typeFactory.createVectorType(componentType, dimension);
+
     default:
       final Integer precision = (Integer) map.get("precision");
       final Integer scale = (Integer) map.get("scale");
@@ -640,6 +647,9 @@ public class RelJson {
       }
       if (node.getSqlTypeName().allowsPrec()) {
         map.put("precision", node.getPrecision());
+      }
+      if (node.getSqlTypeName() == SqlTypeName.VECTOR) {
+        map.put("dimension", node.getPrecision());
       }
       if (node.getSqlTypeName().allowsScale()) {
         map.put("scale", node.getScale());

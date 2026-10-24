@@ -262,7 +262,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     assert sqlTypeName == SqlTypeName.ARRAY || sqlTypeName == SqlTypeName.MULTISET;
     boolean isNullable = false;
     for (RelDataType type : types) {
-      if (type.getComponentType() == null) {
+      if (type.getComponentType() == null
+          || type.getSqlTypeName() == SqlTypeName.VECTOR) {
+        // A VECTOR has a component type, but is not an ARRAY or MULTISET.
+        // (ARRAY and MULTISET may be mixed; the result has the type of the
+        // first.)
         return null;
       }
       isNullable |= type.isNullable();

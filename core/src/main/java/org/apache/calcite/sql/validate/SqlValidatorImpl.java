@@ -24,6 +24,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelCrossType;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -4576,6 +4577,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
               leftColType.toString(), rightColType.toString()));
     }
+    SqlValidatorUtil.checkComparability(this, id, leftColType,
+        RelDataTypeComparability.UNORDERED, natural ? "NATURAL JOIN" : "USING");
   }
 
   private RelDataType checkAndDeriveDataType(SqlIdentifier id, SqlNode node) {
@@ -4706,6 +4709,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelDataType rowType =
         validateSelectList(selectItems, select, targetRowType);
     ns.setType(rowType);
+    validateDistinctComparability(select, rowType);
     validateHavingClause(select);
 
     validateMustFilterRequirements(select, ns);
@@ -4723,6 +4727,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       checkRollUpInWindowDecl(select);
       checkRollUpInGroupBy(select);
       checkRollUpInOrderBy(select);
+    }
+  }
+
+  /** If a SELECT has the DISTINCT keyword, checks that the values of each
+   * column can be compared for equality. */
+  private void validateDistinctComparability(SqlSelect select,
+      RelDataType rowType) {
+    if (!select.isDistinct() || select.isDistinctOn()) {
+      return;
+    }
+    final List<SqlNode> selectList =
+        getRawSelectScopeNonNull(select).getExpandedSelectList();
+    for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
+      final SqlNode node =
+          selectList != null && field.i < selectList.size()
+              ? selectList.get(field.i)
+              : select;
+      SqlValidatorUtil.checkComparability(this, node, field.e.getType(),
+          RelDataTypeComparability.UNORDERED, "SELECT DISTINCT");
     }
   }
 
@@ -5616,6 +5639,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope groupByScope = getGroupScope(select);
     validateGroupByExpr(groupByItem, groupByScope);
     groupByScope.validateExpr(groupByItem);
+    validateGroupByComparability(groupByItem, groupByScope);
+  }
+
+  /** Checks that the values of each expression in a GROUP BY item can be
+   * compared for equality. */
+  private void validateGroupByComparability(SqlNode groupByItem,
+      SqlValidatorScope groupByScope) {
+    if (groupByItem instanceof SqlNodeList) {
+      for (SqlNode node : (SqlNodeList) groupByItem) {
+        validateGroupByComparability(node, groupByScope);
+      }
+      return;
+    }
+    switch (groupByItem.getKind()) {
+    case GROUP_BY_DISTINCT:
+    case GROUPING_SETS:
+    case ROLLUP:
+    case CUBE:
+    case ROW:
+      for (SqlNode operand : ((SqlCall) groupByItem).getOperandList()) {
+        validateGroupByComparability(operand, groupByScope);
+      }
+      break;
+    default:
+      SqlValidatorUtil.checkComparability(this, groupByItem,
+          deriveType(groupByScope, groupByItem),
+          RelDataTypeComparability.UNORDERED, "GROUP BY");
+    }
   }
 
   private void validateGroupByExpr(SqlNode groupByItem,
@@ -5660,6 +5711,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlValidatorScope orderScope = getOrderScope(select);
     validateExpr(orderItem, orderScope);
+    final SqlNode orderExpr = SqlUtil.stripOrderModifiers(orderItem);
+    SqlValidatorUtil.checkComparability(this, orderExpr,
+        deriveOrderItemType(select, orderExpr, orderScope),
+        RelDataTypeComparability.ALL, "ORDER BY");
+  }
+
+  /** Derives the type of an item in the ORDER BY clause of a SELECT
+   * statement, which may be an ordinal of a select item. */
+  private RelDataType deriveOrderItemType(SqlSelect select, SqlNode orderItem,
+      SqlValidatorScope orderScope) {
+    if (orderItem instanceof SqlNumericLiteral
+        && config.conformance().isSortByOrdinal()) {
+      final int ordinal = ((SqlLiteral) orderItem).intValue(false);
+      final List<RelDataTypeField> fields =
+          getNamespaceOrThrow(select).getRowType().getFieldList();
+      if (ordinal >= 1 && ordinal <= fields.size()) {
+        return fields.get(ordinal - 1).getType();
+      }
+    }
+    return deriveType(orderScope, orderItem);
   }
 
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
@@ -7452,6 +7523,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlIdentifier identifier = (SqlIdentifier) node;
       identifier.validate(this, scope);
       RelDataType type = deriveType(scope, identifier);
+      SqlValidatorUtil.checkComparability(this, identifier, type,
+          RelDataTypeComparability.UNORDERED, "PARTITION BY");
       String name = identifier.names.get(1);
       typeBuilder.add(name, type);
     }
@@ -7468,6 +7541,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 () -> "order by field is null. All fields: "
                     + matchRecognize.getOrderList());
       }
+      SqlValidatorUtil.checkComparability(this, identifier,
+          deriveType(scope, identifier), RelDataTypeComparability.ALL,
+          "ORDER BY");
 
       if (allRows) {
         RelDataType type = deriveType(scope, identifier);
@@ -7978,6 +8054,50 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     default:
       throw new AssertionError(op);
+    }
+
+    // The arguments of an aggregate function with DISTINCT, and the keys of
+    // WITHIN DISTINCT, are compared for equality; the keys of WITHIN GROUP
+    // are ordered.
+    final SqlLiteral quantifier = aggCall.getFunctionQuantifier();
+    if (quantifier != null
+        && quantifier.getValue() == SqlSelectKeyword.DISTINCT) {
+      for (SqlNode param : aggCall.getOperandList()) {
+        // Some operands are not expressions (for example, the ORDER BY list
+        // of MySQL's GROUP_CONCAT); they have no type.
+        final RelDataType type = getValidatedNodeTypeIfKnown(param);
+        if (type != null) {
+          SqlValidatorUtil.checkComparability(this, param, type,
+              RelDataTypeComparability.UNORDERED, "DISTINCT");
+        }
+      }
+    }
+    if (distinctList != null) {
+      for (SqlNode param : distinctList) {
+        SqlValidatorUtil.checkComparability(this, param,
+            deriveType(scope, param), RelDataTypeComparability.UNORDERED,
+            "WITHIN DISTINCT");
+      }
+    }
+    if (orderList != null) {
+      for (SqlNode param : orderList) {
+        final SqlNode orderExpr = SqlUtil.stripOrderModifiers(param);
+        SqlValidatorUtil.checkComparability(this, orderExpr,
+            deriveType(scope, orderExpr), RelDataTypeComparability.ALL,
+            "WITHIN GROUP");
+      }
+    }
+    // In "ARRAY_AGG(x ORDER BY y)" and similar calls to STRING_AGG and
+    // GROUP_CONCAT, the ORDER BY list is an operand.
+    for (SqlNode param : aggCall.getOperandList()) {
+      if (param instanceof SqlNodeList) {
+        for (SqlNode orderItem : (SqlNodeList) param) {
+          final SqlNode orderExpr = SqlUtil.stripOrderModifiers(orderItem);
+          SqlValidatorUtil.checkComparability(this, orderExpr,
+              deriveType(scope, orderExpr), RelDataTypeComparability.ALL,
+              "ORDER BY");
+        }
+      }
     }
 
     // Because there are two forms of the PERCENTILE_CONT/PERCENTILE_DISC functions,

@@ -512,6 +512,92 @@ class RelWriterTest {
     assertThat(i, is(0));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>.
+   *
+   * <p>Tests {@link RelJson#toJson(Object)} and
+   * {@link RelJson#toType(RelDataTypeFactory, Object)} for a record type that
+   * contains {@code VECTOR} fields. */
+  @Test void testVectorTypeJson() {
+    int i = Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+      final RelDataType vectorType =
+          typeFactory.createVectorType(
+              typeFactory.createSqlType(SqlTypeName.REAL), 3);
+      final RelDataType type = typeFactory.builder()
+          .add("v", vectorType)
+          .nullable(true)
+          .add("w",
+              typeFactory.createVectorType(
+                  typeFactory.createSqlType(SqlTypeName.TINYINT), 768))
+          .nullable(false)
+          .build();
+      final JsonBuilder jsonBuilder = new JsonBuilder();
+      final RelJson json = RelJson.create().withJsonBuilder(jsonBuilder);
+      final Object o = json.toJson(type);
+      assertThat(o, notNullValue());
+      final String s = jsonBuilder.toJsonString(o);
+      final String expectedJson = "{\n"
+          + "  \"fields\": [\n"
+          + "    {\n"
+          + "      \"type\": \"VECTOR\",\n"
+          + "      \"nullable\": true,\n"
+          + "      \"component\": {\n"
+          + "        \"type\": \"REAL\",\n"
+          + "        \"nullable\": false\n"
+          + "      },\n"
+          + "      \"dimension\": 3,\n"
+          + "      \"name\": \"v\"\n"
+          + "    },\n"
+          + "    {\n"
+          + "      \"type\": \"VECTOR\",\n"
+          + "      \"nullable\": false,\n"
+          + "      \"component\": {\n"
+          + "        \"type\": \"TINYINT\",\n"
+          + "        \"nullable\": false\n"
+          + "      },\n"
+          + "      \"dimension\": 768,\n"
+          + "      \"name\": \"w\"\n"
+          + "    }\n"
+          + "  ],\n"
+          + "  \"nullable\": false\n"
+          + "}";
+      assertThat(s, is(expectedJson));
+      final RelDataType type2 = json.toType(typeFactory, o);
+      assertThat(type2, is(type));
+      assertThat(type2.getFieldList().get(0).getType().getFullTypeString(),
+          is("VECTOR(3, REAL)"));
+      return 0;
+    });
+    assertThat(i, is(0));
+  }
+
+  /** Tests that a plan that casts to {@code VECTOR} survives a round trip
+   * through JSON. */
+  @Test void testVectorCastRoundTrip() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelDataTypeFactory typeFactory = b.getTypeFactory();
+      final RelDataType vectorType =
+          typeFactory.createTypeWithNullability(
+              typeFactory.createVectorType(
+                  typeFactory.createSqlType(SqlTypeName.REAL), 2),
+              true);
+      return b.scan("EMP")
+          .project(
+              b.getRexBuilder().makeCast(vectorType,
+                  b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                      b.field("SAL"), b.field("COMM"))))
+          .build();
+    };
+    final String expected = ""
+        + "LogicalProject($f0=[CAST(ARRAY($5, $6)):VECTOR(2, REAL)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    relFn(relFn)
+        .assertThatPlan(isLinux(expected))
+        .assertThatPlanRoundTrips();
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table and a
