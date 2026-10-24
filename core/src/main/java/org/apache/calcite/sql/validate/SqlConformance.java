@@ -773,4 +773,20 @@ public interface SqlConformance {
   default boolean isGroupingSetsStarAllowed() {
     return false;
   }
+
+  /**
+   * Whether SQL pipe syntax is allowed.
+   *
+   * <p>Pipe SQL is not part of the SQL standard, but is supported by some
+   * databases, notably those using GoogleSQL and Spark SQL.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  default boolean isPipeSyntaxAllowed() {
+    return false;
+  }
 }

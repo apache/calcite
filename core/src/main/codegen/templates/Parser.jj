@@ -55,6 +55,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFromQuery;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlHint;
@@ -84,6 +85,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPipeWhere;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
@@ -689,6 +691,7 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 
 SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
 {
+    final boolean with = getToken(1).kind == WITH;
     SqlNode e;
     final List<Object> list = new ArrayList<Object>();
 }
@@ -700,13 +703,16 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
         LOOKAHEAD(2)
         e = Query(exprContext)
         e = OrderByLimitOpt(e)
+        e = PipeOpt(e, with)
         { return e; }
     |
         e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
         ( e = JoinTable(e) )*
         { list.add(e); }
         ( AddSetOpQuery(list, exprContext) )*
-        { return SqlParserUtil.toTree(list); }
+        { e = SqlParserUtil.toTree(list); }
+        e = PipeOpt(e, false)
+        { return e; }
     )
 }
 
@@ -743,11 +749,13 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
  */
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
+    final boolean with = getToken(1).kind == WITH;
     SqlNode e;
 }
 {
     e = QueryOrExpr(exprContext)
     e = OrderByLimitOpt(e)
+    e = PipeOpt(e, with)
     { return e; }
 }
 
@@ -899,7 +907,7 @@ void LimitClause(Span s, SqlNode[] offsetFetch) :
 }
 
 /**
- * Parses a leaf in a query expression (SELECT, VALUES or TABLE).
+ * Parses a leaf in a query expression (SELECT, VALUES, TABLE or FROM).
  */
 SqlNode LeafQuery(ExprContext exprContext) :
 {
@@ -915,6 +923,138 @@ SqlNode LeafQuery(ExprContext exprContext) :
     e = TableConstructor() { return e; }
 |
     e = ExplicitTable(getPos()) { return e; }
+|
+    e = FromQuery() { return e; }
+}
+
+/**
+ * Parses a standalone FROM clause. Only valid under conformance levels
+ * that allow pipe syntax.
+ */
+SqlNode FromQuery() :
+{
+    final SqlNode fromClause;
+    final Span s;
+}
+{
+    <FROM> {
+        s = span();
+        if (!this.conformance.isPipeSyntaxAllowed()) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.pipeSyntaxNotAllowed());
+        }
+    }
+    fromClause = FromClause()
+    // Report helpful error messages for common mistakes. (Generally, FROM
+    // must be followed by pipe operators.)
+    [
+        LOOKAHEAD(1)
+        (
+            <WHERE> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.pipeClauseNotAllowed("WHERE", "|> WHERE"));
+            }
+        |
+            <ORDER> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("ORDER BY"));
+            }
+        |
+            <LIMIT> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("LIMIT"));
+            }
+        |
+            <OFFSET> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("OFFSET"));
+            }
+        |
+            <FETCH> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("FETCH"));
+            }
+        |
+            ( <UNION> | <INTERSECT> | <EXCEPT> | <SET_MINUS> ) {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryInSetOpNotAllowed());
+            }
+        )
+    ]
+    { return new SqlFromQuery(s.end(this), fromClause); }
+}
+
+/**
+ * Reads optional pipe operators and applies them to the query {@code e}.
+ *
+ * <p>If {@code with}, {@code e} is a WITH, or an ORDER BY of a WITH, that is
+ * not in parentheses. Then the operators go inside the WITH, so that they can
+ * see its CTEs.
+ */
+SqlNode PipeOpt(SqlNode e, boolean with) :
+{
+    SqlWith w = null;
+}
+{
+    {
+        if (with && getToken(1).kind == PIPE) {
+            if (e instanceof SqlOrderBy) {
+                final SqlOrderBy orderBy = (SqlOrderBy) e;
+                w = (SqlWith) orderBy.query;
+                orderBy.setOperand(0, w.body);
+            } else {
+                w = (SqlWith) e;
+                e = w.body;
+            }
+        }
+    }
+    ( e = PipeOperator(e) )*
+    {
+        if (w != null) {
+            w.setOperand(1, e);
+            return w;
+        }
+        return e;
+    }
+}
+
+/**
+ * Reads a single pipe operator and applies it to the query {@code e}.
+ */
+SqlNode PipeOperator(SqlNode e) :
+{
+    final Span s;
+}
+{
+    <PIPE> {
+        s = span();
+        if (!this.conformance.isPipeSyntaxAllowed()) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.pipeSyntaxNotAllowed());
+        }
+        if (!e.isA(SqlKind.QUERY)) {
+            // A pipe operator applies only to a query.
+            checkNonQueryExpression(ExprContext.ACCEPT_QUERY);
+        }
+    }
+    (
+        e = PipeWhere(s, e)
+    )
+    { return e; }
+}
+
+/**
+ * Parses a pipe WHERE operator, and applies it to the query {@code e}.
+ */
+SqlNode PipeWhere(Span s, SqlNode e) :
+{
+    final SqlNode condition;
+}
+{
+    <WHERE> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    {
+        return new SqlPipeWhere(s.end(this), e, condition);
+    }
 }
 
 /**
@@ -3977,6 +4117,18 @@ void AddSetOpQuery(List<Object> list, ExprContext exprContext) :
         pos = getPos();
         checkQueryExpression(exprContext);
     }
+    [
+        // A FROM query must be in parentheses to follow a set operator.
+        LOOKAHEAD(1)
+        <FROM> {
+            if (!this.conformance.isPipeSyntaxAllowed()) {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.pipeSyntaxNotAllowed());
+            }
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.fromQueryInSetOpNotAllowed());
+        }
+    ]
     e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY) {
         list.add(new SqlParserUtil.ToTreeListItem(op, pos));
         list.add(e);
@@ -9672,6 +9824,7 @@ void NonReservedKeyWord2of3() :
 |   < QUOTE: "'" >
 |   < DOUBLE_QUOTE: "\"" >
 |   < VERTICAL_BAR: "|" >
+|   < PIPE: "|>" >
 |   < CARET: "^" >
 |   < AMPERSAND: "&" >
 |   < LEFTSHIFT: "<<" >

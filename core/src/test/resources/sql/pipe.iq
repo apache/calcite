@@ -1,0 +1,135 @@
+# pipe.iq - Tests for SQL pipe syntax
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Pipe syntax is only allowed under conformance levels that support it;
+# scott-lenient uses LENIENT conformance.
+!use scott-lenient
+!set outputformat mysql
+
+from dept;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+from emp |> where deptno = 10;
++-------+--------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
+
+select empno, ename, sal from emp |> where sal > 2500;
++-------+-------+---------+
+| EMPNO | ENAME | SAL     |
++-------+-------+---------+
+|  7566 | JONES | 2975.00 |
+|  7698 | BLAKE | 2850.00 |
+|  7788 | SCOTT | 3000.00 |
+|  7839 | KING  | 5000.00 |
+|  7902 | FORD  | 3000.00 |
++-------+-------+---------+
+(5 rows)
+
+!ok
+
+select ename from (from emp |> where deptno = 10) where sal > 1500;
++-------+
+| ENAME |
++-------+
+| CLARK |
+| KING  |
++-------+
+(2 rows)
+
+!ok
+
+# |> WHERE keeps the order of its input, even if the input's sort key is not
+# one of its columns.
+select ename from emp where deptno = 20 order by sal desc, empno
+|> where ename <> 'SMITH';
++-------+
+| ENAME |
++-------+
+| SCOTT |
+| FORD  |
+| JONES |
+| ADAMS |
++-------+
+(4 rows)
+
+!ok
+
+# A correlated sub-query in an operator whose input has a hidden column for a
+# sort key that is an expression.
+select ename, deptno as dno from emp order by sal + 1 desc, empno
+|> where exists (select 1 from dept as d where d.deptno = dno and d.loc = 'DALLAS');
++-------+-----+
+| ENAME | DNO |
++-------+-----+
+| SCOTT |  20 |
+| FORD  |  20 |
+| JONES |  20 |
+| ADAMS |  20 |
+| SMITH |  20 |
++-------+-----+
+(5 rows)
+
+!ok
+
+# After a join with USING, which merges columns, the operators see the columns
+# of the FROM clause.
+from emp JOIN dept USING (deptno) |> WHERE dname = 'ACCOUNTING' |> WHERE sal > 2000;
++--------+-------+-------+-----------+------+------------+---------+------+------------+----------+
+| DEPTNO | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DNAME      | LOC      |
++--------+-------+-------+-----------+------+------------+---------+------+------------+----------+
+|     10 |  7782 | CLARK | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      | ACCOUNTING | NEW YORK |
+|     10 |  7839 | KING  | PRESIDENT |      | 1981-11-17 | 5000.00 |      | ACCOUNTING | NEW YORK |
++--------+-------+-------+-----------+------+------------+---------+------+------------+----------+
+(2 rows)
+
+!ok
+
+# Implicit type coercion applies to a pipe query as it does to a SELECT.
+# Here, the operands of = SOME are INTEGER and TINYINT.
+select ename from emp
+where deptno + 0 = some (select deptno from dept |> where deptno < 20)
+order by ename;
++--------+
+| ENAME  |
++--------+
+| CLARK  |
+| KING   |
+| MILLER |
++--------+
+(3 rows)
+
+!ok
+
+# End pipe.iq

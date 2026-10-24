@@ -85,6 +85,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -1771,6 +1772,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  /** Tests a WITH whose body has an ORDER BY, as an IN sub-query. The sort
+   * is removed, so the converter must not look for its collation. */
+  @Test void testWithInsideWhereInOrderBy() {
+    final String sql = "select * from emp\n"
+        + "where deptno in (\n"
+        + "  with w as (select * from dept) select deptno from w order by deptno)";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-365">[CALCITE-365]
    * AssertionError while translating query with WITH and correlated
@@ -1922,6 +1932,95 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testExplicitTable() {
     sql("table emp").ok();
+  }
+
+  @Test void testFromQuery() {
+    sql("from emp").withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests that a pipeline over a streaming query is still streaming. */
+  @Test void testPipeWhereOverStream() {
+    sql("select stream * from orders |> where productid = 1")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** As {@link #testPipeWhereOverStream()}, but the pipeline starts from a
+   * WITH whose body is the streaming query. */
+  @Test void testPipeWhereOverStreamingWith() {
+    sql("(with d as (select * from dept)\n"
+        + "  select stream * from orders) |> where productid = 1")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testPipeWhere() {
+    sql("from emp |> where deptno = 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests that {@code |> WHERE} keeps the order of its input. The input's
+   * sort key, which is not one of its columns, stays as a hidden column. */
+  @Test void testPipeWhereKeepsOrder() {
+    final SqlToRelFixture f =
+        sql("select ename, deptno from emp order by sal desc\n"
+            + "|> where deptno = 10")
+            .withConformance(SqlConformanceEnum.LENIENT);
+    f.ok();
+    assertThat(f.toRoot().collation, hasToString("[2 DESC]"));
+  }
+
+  /** Tests a correlated sub-query in a {@code |> WHERE} whose input has a
+   * hidden column for its sort key. */
+  @Test void testPipeWhereCorrelatedHiddenSortKey() {
+    sql("select ename, deptno as dno from emp order by sal + 1 desc\n"
+        + "|> where exists (select 1 from dept as d where d.deptno = dno)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withDecorrelate(false).ok();
+  }
+
+  /** Tests a pipe query used as an expression sub-query, correlated on a
+   * table alias of the enclosing pipeline. */
+  @Test void testPipeQueryAsCorrelatedSubQuery() {
+    sql("from emp as e\n"
+        + "|> where exists (from dept |> where deptno = e.deptno)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests that implicit type coercion casts the column of a pipe query that
+   * is an {@code IN} sub-query, as it would for a SELECT. */
+  @Test void testPipeWhereInSubQueryCoercion() {
+    sql("select * from emp\n"
+        + "where cast(deptno as bigint) in\n"
+        + "  (select deptno from dept |> where deptno > 0)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withExpand(false)
+        .ok();
+  }
+
+  @Test void testPipeWhereWrapsSelect() {
+    sql("select ename, sal from emp |> where sal > 100")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testPipeWhereAfterUnion() {
+    sql("select deptno from emp union all select deptno from dept\n"
+        + "|> where deptno = 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testPipeWhereAfterWith() {
+    // The operator applies to the body of the WITH, above its ORDER BY.
+    sql("with d as (select * from emp)\n"
+        + "select * from d order by empno\n"
+        + "|> where deptno = 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests a pipe query as the argument of a {@code CURSOR}. */
+  @Test void testPipeWhereAsCursor() {
+    final String sql = "select * from table(dedup("
+        + "cursor(from emp |> where deptno = 10), 'ENAME'))";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT)
+        .withDecorrelate(false).ok();
   }
 
   @Test void testCollectionTable() {
