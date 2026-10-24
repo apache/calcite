@@ -3507,6 +3507,25 @@ public class SqlParserTest {
         .fails("Non-query expression encountered in illegal context");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5973">[CALCITE-5973]
+   * Invalid statement yields misleading parse error</a>.
+   *
+   * <p>A statement that is neither a query (SELECT, VALUES, TABLE, ...) nor
+   * any other supported statement should fail with a meaningful message,
+   * not with "Non-query expression encountered in illegal context". */
+  @Test void testInvalidStatementFails() {
+    sql("^invalid^")
+        .fails("Invalid SQL statement: query or other statement expected");
+    sql("^1 + 1^")
+        .fails("Invalid SQL statement: query or other statement expected");
+    sql("^invalid^ sql")
+        .fails("Invalid SQL statement: query or other statement expected");
+    // Statement with a typo in the leading keyword
+    sql("^reate^ table t (a int, b varchar) with('key' = 'value')")
+        .fails("Invalid SQL statement: query or other statement expected");
+  }
+
   /**
    * In modern SQL, a query can occur almost everywhere that an expression
    * can. This test tests the few exceptions.
