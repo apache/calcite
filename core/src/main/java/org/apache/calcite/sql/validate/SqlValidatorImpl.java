@@ -1265,7 +1265,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     scope = new CatalogScope(scope, ImmutableList.of("CATALOG"));
     final SqlNode topNode2 = validateScopedExpression(topNode, scope);
     final RelDataType type = getValidatedNodeType(topNode2);
-    Util.discard(type);
+    if (topNode2 != topNode) {
+      // The top node was rewritten (for example "TABLE t" becomes
+      // "SELECT * FROM t"). Callers such as Prepare still hold the original
+      // node and ask for its type, so register the type for it as well.
+      setValidatedNodeType(topNode, type);
+    }
     return topNode2;
   }
 
@@ -1913,7 +1918,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               type.getFullTypeString()));
     }
   }
-
   /**
    * Performs expression rewrites which are always used unconditionally. These
    * rewrites massage the expression tree into a standard form so that the
