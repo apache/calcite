@@ -242,7 +242,7 @@ select * from emp where job = 'CLERK';
 (emp natural join dept)
 intersect
 select * from emp natural join dept where job = 'CLERK';
-Non-query expression encountered in illegal context
+parse failed: Encountered "natural" at line 1, column 6.
 !error
 
 # [CALCITE-6303] UNION with CTE(s) results in exception during query validation

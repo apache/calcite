@@ -161,7 +161,26 @@ public class ExceptionMessageTest {
     } catch (SQLException e) {
       assertThat(e.getMessage(),
           equalTo("Error while executing SQL \"invalid sql\": parse failed: "
-              + "Non-query expression encountered in illegal context"));
+              + "Invalid SQL statement: query or other statement expected"));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5973">[CALCITE-5973]
+   * Invalid statement yields misleading parse error</a>.
+   */
+  @Test void testSyntaxErrorOnInvalidStatement() {
+    try (Fixture f = new Fixture()) {
+      // Statement that cannot be parsed as any known statement or query;
+      // previously failed with the misleading message
+      // "Non-query expression encountered in illegal context"
+      f.runQuery("reate table t (a int, b varchar) with('key' = 'value')");
+      fail("Query should fail");
+    } catch (SQLException e) {
+      assertThat(e.getMessage(),
+          equalTo("Error while executing SQL \"reate table t (a int, b varchar)"
+              + " with('key' = 'value')\": parse failed: "
+              + "Invalid SQL statement: query or other statement expected"));
     }
   }
 
