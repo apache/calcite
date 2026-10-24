@@ -355,6 +355,22 @@ class InterpreterTest {
             "[Ringo, 1]");
   }
 
+  /** Tests ROLLUP, which is GROUPING SETS with an empty grouping set. */
+  @Test void testAggregateRollup() {
+    rootSchema().add("beatles", new ScannableTableTest.BeatlesTable());
+    sql("select \"j\", count(*) from \"beatles\" group by rollup(\"j\")")
+        .returnsRowsUnordered("[John, 1]", "[Paul, 1]", "[Ringo, 1]",
+            "[George, 1]", "[null, 4]");
+  }
+
+  /** As {@link #testAggregateRollup()}, but the input is empty. The empty
+   * grouping set yields one row, as a query with no GROUP BY does. */
+  @Test void testAggregateRollupOnEmptyInput() {
+    rootSchema().add("beatles", new ScannableTableTest.BeatlesTable());
+    sql("select \"j\", count(*) from \"beatles\" where false group by rollup(\"j\")")
+        .returnsRows("[null, 0]");
+  }
+
   /** Tests a GROUP BY query that uses
    * {@link org.apache.calcite.sql.fun.SqlInternalOperators#LITERAL_AGG}. */
   @Test void testAggregateLiteralAgg() {
