@@ -1,0 +1,167 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: PR CI
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled, ready_for_review]
+  workflow_run:
+    workflows: ['**', '!PR CI']
+    types: [requested, in_progress, completed]
+  check_run:
+    types: [created, rerequested, completed]
+  status:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  checks: read
+  pull-requests: read
+  statuses: read
+
+jobs:
+  find-pulls:
+    name: Find PRs for merge gate
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      pulls: ${{ steps.find.outputs.result }}
+    steps:
+      - uses: actions/github-script@v8
+        id: find
+        with:
+          retries: 3
+          script: |
+            const event = context.payload;
+            if (event.context === 'PR merge gate' ||
+                (event.check_run?.app?.id === 15368 &&
+                 /^(PR merge gate|Find PRs for merge gate|Update PR merge gate(?: \(\d+\))?)$/.test(event.check_run.name))) {
+              return [];
+            }
+            if (event.pull_request) {
+              return event.pull_request.state === 'open' ? [event.pull_request.number] : [];
+            }
+            const sha = event.workflow_run?.head_sha || event.check_run?.head_sha || event.sha;
+            if (!sha && context.eventName !== 'workflow_dispatch') return [];
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              ...context.repo, state: 'open', per_page: 100,
+            });
+            return pulls.filter(pr => !sha || pr.head.sha === sha || pr.merge_commit_sha === sha)
+              .map(pr => pr.number);
+
+  update:
+    name: Update PR merge gate
+    needs: find-pulls
+    if: needs.find-pulls.outputs.pulls != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        pull: ${{ fromJSON(needs.find-pulls.outputs.pulls) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      checks: read
+      pull-requests: read
+      statuses: write
+    concurrency:
+      group: pr-merge-gate-${{ github.repository }}-${{ matrix.pull }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ matrix.pull }}
+        with:
+          retries: 3
+          script: |
+            const gate = 'PR merge gate';
+            const jenkins = 'continuous-integration/jenkins/pr-head';
+            const pull = { ...context.repo, pull_number: Number(process.env.PR_NUMBER) };
+            const latest = (items, key) => [...new Map(
+              items.sort((a, b) => a.id - b.id).map(item => [key(item), item])
+            ).values()];
+            const snapshot = pr => JSON.stringify([
+              pr.state, pr.head.sha, pr.base.sha, pr.merge_commit_sha, pr.mergeable,
+              pr.title, pr.labels.map(label => label.name).sort(),
+            ]);
+            let refs = [];
+            async function report(state, description) {
+              for (const sha of refs) {
+                await github.rest.repos.createCommitStatus({
+                  ...context.repo, sha, context: gate, state, description,
+                  target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                });
+              }
+            }
+            try {
+              for (let attempt = 0; attempt < 3; attempt++) {
+                const { data: pr } = await github.rest.pulls.get(pull);
+                if (pr.state !== 'open') return;
+                refs = [...new Set([pr.head.sha, ...(pr.mergeable && pr.merge_commit_sha ? [pr.merge_commit_sha] : [])])];
+                await report('pending', 'Refreshing PR CI results');
+                if (pr.mergeable === null && attempt < 2) {
+                  await new Promise(resolve => setTimeout(resolve, 2000));
+                  continue;
+                }
+                const results = [];
+                function add(name, status, conclusion) {
+                  const state = status !== 'completed' ? 'pending'
+                    : ['success', 'skipped', 'neutral'].includes(conclusion) ? 'success' : 'failure';
+                  results.push({ name, state });
+                }
+                if (pr.mergeable === null) add('Preparing test merge commit', 'pending');
+                for (const ref of refs) {
+                  const [checks, statuses] = await Promise.all([
+                    github.paginate(github.rest.checks.listForRef, { ...context.repo, ref, filter: 'latest', per_page: 100 }),
+                    github.paginate(github.rest.repos.listCommitStatusesForRef, { ...context.repo, ref, per_page: 100 }),
+                  ]);
+                  for (const check of latest(checks, c => `${c.app?.id}:${c.name}`)) {
+                    if (check.name === jenkins || (check.app?.id === 15368 &&
+                        /^(PR merge gate|Find PRs for merge gate|Update PR merge gate(?: \(\d+\))?)$/.test(check.name))) continue;
+                    add(check.name, check.status, check.conclusion);
+                  }
+                  for (const status of latest(statuses, s => s.context)) {
+                    if ([gate, jenkins].includes(status.context)) continue;
+                    add(status.context, status.state === 'pending' ? 'pending' : 'completed', status.state);
+                  }
+                }
+                // Include queued workflows that have not created job checks yet.
+                const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+                  ...context.repo, head_sha: pr.head.sha, per_page: 100,
+                });
+                const relevant = runs.filter(run => run.path?.split('@')[0] !== '.github/workflows/pr-ci.yml' && (
+                  run.pull_requests?.some(p => p.number === pr.number) ||
+                  (!run.pull_requests?.length && run.head_branch === pr.head.ref && run.head_repository?.id === pr.head.repo?.id)
+                ));
+                for (const run of latest(relevant, r => `${r.workflow_id}:${r.event}`)) {
+                  add(run.name, run.status, run.conclusion);
+                }
+                const { data: current } = await github.rest.pulls.get(pull);
+                if (snapshot(current) !== snapshot(pr)) continue;
+                const state = ['failure', 'pending'].find(s => results.some(r => r.state === s)) || 'success';
+                await report(state, state === 'success' ? 'Reported CI passed or was skipped' : `CI checks: ${state}`);
+                await core.summary.addHeading(`PR #${pr.number}: ${state}`)
+                  .addList(results.filter(r => r.state !== 'success').map(r => `${r.name}: ${r.state}`)).write();
+                return;
+              }
+              throw new Error('PR changed during validation; rerun PR CI');
+            } catch (error) {
+              await report('failure', 'Unable to verify CI results; rerun PR CI');
+              throw error;
+            }
