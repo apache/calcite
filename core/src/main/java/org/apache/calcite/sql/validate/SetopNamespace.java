@@ -20,9 +20,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -105,13 +109,32 @@ public class SetopNamespace extends AbstractNamespace {
       final SqlValidatorScope scope =
           requireNonNull(validator.scopes.get(call),
               () -> "scope for " + call);
+      ImmutableBitSet filterFields = ImmutableBitSet.of();
+      @Nullable ImmutableBitSet bypassFields = null;
+      final Set<SqlQualified> remnantFilterFields = new LinkedHashSet<>();
       for (SqlNode operand : call.getOperandList()) {
         if (!operand.isA(SqlKind.QUERY)) {
           throw validator.newValidationError(operand,
               RESOURCE.needQueryOp(operand.toString()));
         }
         validator.validateQuery(operand, scope, targetRowType);
+
+        // Propagate the operands' filter requirements to this namespace
+        final SqlValidatorNamespace operandNamespace =
+            requireNonNull(validator.getNamespace(operand),
+                () -> "namespace for " + operand);
+        final FilterRequirement requirement = operandNamespace.getFilterRequirement();
+        filterFields = filterFields.union(requirement.filterFields);
+        bypassFields =
+            bypassFields == null ? requirement.bypassFields
+                // A bypass filter only counts if the column is a bypass field in every branch
+                : bypassFields.intersect(requirement.bypassFields);
+        remnantFilterFields.addAll(requirement.remnantFilterFields);
       }
+      filterRequirement =
+          new FilterRequirement(filterFields,
+              bypassFields == null ? ImmutableBitSet.of() : bypassFields,
+              remnantFilterFields);
       return call.getOperator().deriveType(
           validator,
           scope,
