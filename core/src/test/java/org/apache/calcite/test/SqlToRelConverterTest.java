@@ -6812,6 +6812,33 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4340">[CALCITE-4340]
+   * Correlated Queries in ON clause do not work when referring to left side</a>.
+   */
+  @Test void testOnClauseCorrelatedScalarSubquery() {
+    final String sql = "select *\n"
+        + "from dept\n"
+        + "left join bonus on bonus.job = (\n"
+        + "  select emp.job\n"
+        + "  from emp\n"
+        + "  where emp.deptno = dept.deptno\n"
+        + ")";
+    sql(sql).ok();
+  }
+
+  @Test void testOnClauseCorrelatedScalarSubqueryInner() {
+    final String sql = "select *\n"
+        + "from dept\n"
+        + "join bonus on bonus.job = (\n"
+        + "  select emp.job\n"
+        + "  from emp\n"
+        + "  where emp.deptno = dept.deptno\n"
+        + ")";
+    sql(sql).ok();
+  }
+
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5597">[CALCITE-5597]
    * SELECT DISTINCT query with ORDER BY column will get error result</a>. */

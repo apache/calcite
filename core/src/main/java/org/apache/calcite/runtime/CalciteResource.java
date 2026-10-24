@@ -728,6 +728,9 @@ public interface CalciteResource {
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
   ExInst<CalciteException> sQLConformance_MultipleActiveAutocommitStatements();
 
+  @BaseMessage("Correlated subqueries in ON clause are not supported")
+  ExInst<CalciteException> correlatedSubqueryInOnClauseNotSupported();
+
   @BaseMessage("Descending sort (ORDER BY DESC) not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
   Feature sQLConformance_OrderByDesc();
