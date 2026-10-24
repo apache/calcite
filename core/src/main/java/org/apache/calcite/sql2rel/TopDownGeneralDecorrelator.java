@@ -291,7 +291,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
   private RelNode correlateElimination(RelNode rel, boolean allowEmptyOutputFromRewrite) {
     if (!(rel instanceof Correlate)) {
       for (int i = 0; i < rel.getInputs().size(); i++) {
-        rel.replaceInput(i, correlateElimination(rel.getInput(i), allowEmptyOutputFromRewrite));
+        final TopDownGeneralDecorrelator inputDecorrelator =
+            hasParent ? createSubDecorrelator() : createEmptyDecorrelator(builder);
+        rel.replaceInput(i,
+            inputDecorrelator.correlateElimination(rel.getInput(i), allowEmptyOutputFromRewrite));
       }
       return rel;
     }
