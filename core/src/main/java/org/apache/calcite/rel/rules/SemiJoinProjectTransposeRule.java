@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
@@ -31,8 +32,10 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -77,9 +80,24 @@ public class SemiJoinProjectTransposeRule
     final Join join = call.rel(0);
     final Project project = call.rel(1);
 
-    // Convert the LHS semi-join or anti-join keys to reference the child
-    // projection expression; all projection expressions must be RexInputRefs,
-    // otherwise, we wouldn't have created this semi-join or anti-join.
+    // Skip when the semi-join condition references one of the project's
+    // non-deterministic expressions (e.g. RAND()). Pulling such a project
+    // above the semi-join inlines that expression into the join condition
+    // via expandLocalRef while the project still re-emits it above,
+    // splitting one evaluation into two. Non-deterministic columns that the
+    // condition does not reference are safe to pull up. See [CALCITE-7551].
+    final ImmutableBitSet conditionRefs =
+        RelOptUtil.InputFinder.bits(join.getCondition());
+    final List<RexNode> projects = project.getProjects();
+    for (int i = 0; i < projects.size(); i++) {
+      if (conditionRefs.get(i) && !RexUtil.isDeterministic(projects.get(i))) {
+        return;
+      }
+    }
+
+    // Convert the LHS semi-join keys to reference the child projection
+    // expression; all projection expressions must be RexInputRefs,
+    // otherwise, we wouldn't have created this semi-join.
 
     // convert the join condition to reflect the LHS with the project
     // pulled up
