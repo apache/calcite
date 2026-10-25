@@ -507,6 +507,67 @@ SELECT (1, CAST(NULL AS VARCHAR))
 
 !ok
 
+# Test cases for https://issues.apache.org/jira/browse/CALCITE-7886
+# [CALCITE-7886] Subquery expansion fails for IN subquery with ROW types
+!set insubquerythreshold 0
+
+# Validated on H2 2.4.240 and PostgreSQL 14: same result.
+SELECT * FROM (SELECT ROW(1, 2) AS r) AS t WHERE r IN (ROW(1, 2), ROW(3, 4));
++--------+
+| R      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+# IN_DECIMAL casts "a" to ROW(DECIMAL, CHAR(1)) before it compares.
+WITH t(id, a) AS (
+  SELECT id, ROW(x, y)
+  FROM (VALUES (1, 1, 'a'), (2, 1, NULL), (3, 2, 'c')) AS v(id, x, y))
+SELECT id,
+  a IN (ROW(1, 'a'), ROW(2, 'b')) AS in_list,
+  a NOT IN (ROW(1, 'a'), ROW(2, 'b')) AS notin_list,
+  a IN (ROW(1.0, 'a'), ROW(2.5, 'b')) AS in_decimal,
+  a IN (VALUES (1, 'a'), (2, 'b')) AS in_values,
+  a NOT IN (SELECT 1, 'a') AS notin_subq
+FROM t
+ORDER BY id;
++----+---------+------------+------------+-----------+------------+
+| ID | IN_LIST | NOTIN_LIST | IN_DECIMAL | IN_VALUES | NOTIN_SUBQ |
++----+---------+------------+------------+-----------+------------+
+|  1 | true    | false      | true       | true      | false      |
+|  2 |         |            |            |           |            |
+|  3 | false   | true       | false      | false     | true       |
++----+---------+------------+------------+-----------+------------+
+(3 rows)
+
+!ok
+
+# A window function of a ROW type on the left of IN.
+# Validated on H2 2.4.240: same result.
+WITH t(id, a) AS (
+  SELECT id, ROW(x, y)
+  FROM (VALUES (1, 1, 'a'), (2, 1, NULL), (3, 2, 'c')) AS v(id, x, y))
+SELECT id,
+  LAG(a) OVER (ORDER BY id) IN (ROW(1, 'a'), ROW(2, 'b')) AS lag_in_list,
+  LEAD(a) OVER (ORDER BY id) IN (ROW(1, 'a'), ROW(2, 'b')) AS lead_in_list,
+  LAG(a) OVER (ORDER BY id) IN (SELECT 1, 'a') AS lag_in_subq
+FROM t
+ORDER BY id;
++----+-------------+--------------+-------------+
+| ID | LAG_IN_LIST | LEAD_IN_LIST | LAG_IN_SUBQ |
++----+-------------+--------------+-------------+
+|  1 |             |              |             |
+|  2 | true        | false        | true        |
+|  3 |             |              |             |
++----+-------------+--------------+-------------+
+(3 rows)
+
+!ok
+!set insubquerythreshold 20
+
 #####################################################################
 # ROW values inside a collection
 #
