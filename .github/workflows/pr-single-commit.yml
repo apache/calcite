@@ -1,0 +1,102 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: PR Single Commit
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: pr-single-commit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-single-commit:
+    name: Check single commit
+    if: contains(github.event.pull_request.labels.*.name, 'Approved')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify approval and then count commits
+        uses: actions/github-script@v8
+        with:
+          retries: 3
+          script: |
+            const guide = 'https://calcite.apache.org/develop/#contributing';
+            const fail = message => core.setFailed(`${message} See ${guide}.`);
+            try {
+              const pullRequest = {
+                ...context.repo,
+                pull_number: context.issue.number,
+              };
+              const { data: pr } = await github.rest.pulls.get(pullRequest);
+              if (pr.state !== 'open') {
+                core.info('PR is closed; nothing to check.');
+                return;
+              }
+              if (pr.head.sha !== context.payload.pull_request.head.sha) {
+                fail('PR commits changed. Use the check on the latest PR head.');
+                return;
+              }
+              if (!pr.labels.some(label => label.name === 'Approved')) {
+                core.info('The Approved label was removed; commit count not checked.');
+                return;
+              }
+
+              // On synchronize, the sender is the contributor, not the label author.
+              // Look up who applied the current label instead of trusting the push actor.
+              const events = await github.paginate(github.rest.issues.listEvents, {
+                ...context.repo,
+                issue_number: pr.number,
+                per_page: 100,
+              });
+              const approval = events
+                .filter(event => event.event === 'labeled' && event.label?.name === 'Approved')
+                .sort((a, b) => b.id - a.id)[0];
+              if (!approval?.actor) {
+                fail('Cannot verify who applied Approved. A maintainer must remove and reapply it.');
+                return;
+              }
+              // Includes write access inherited from the Calcite committer/PMC teams.
+              // MEMBER or COLLABORATOR alone is not proof of repository write permission.
+              const { data: access } = await github.rest.repos.getCollaboratorPermissionLevel({
+                ...context.repo,
+                username: approval.actor.login,
+              });
+              if (!['write', 'maintain', 'admin'].includes(access.permission)) {
+                fail(`The Approved label was added by ${approval.actor.login}, who lacks write access. ` +
+                  'A committer or PMC member with repository write access must remove and reapply it.');
+                return;
+              }
+
+              const { data: latest } = await github.rest.pulls.get(pullRequest);
+              if (latest.head.sha !== pr.head.sha || latest.base.sha !== pr.base.sha ||
+                  !latest.labels.some(label => label.name === 'Approved')) {
+                fail('PR commits, base, or approval changed during validation. Rerun this check.');
+                return;
+              }
+              if (latest.commits !== 1) {
+                fail(`PR must contain exactly one commit after approval; found ${latest.commits}. ` +
+                  'Squash the commits and push again.');
+                return;
+              }
+              core.info(`Approval verified for ${approval.actor.login}; PR contains exactly one commit.`);
+            } catch (error) {
+              fail(`Cannot verify approval and commit count: ${error.message}. Rerun this check.`);
+            }
