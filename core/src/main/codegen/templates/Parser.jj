@@ -9508,13 +9508,20 @@ String NonReservedKeyWord() :
     }
 }
 
+<#assign nonReservedKeywordsToRemove =
+    parser.nonReservedKeywordsToRemove!default.parser.nonReservedKeywordsToRemove>
+<#assign nonReservedKeywords =
+    ((parser.nonReservedKeywords!default.parser.nonReservedKeywords)
+        + (parser.nonReservedKeywordsToAdd!default.parser.nonReservedKeywordsToAdd))?filter(
+            keyword -> !nonReservedKeywordsToRemove?seq_contains(keyword))>
+
 /** @see #NonReservedKeyWord */
 void NonReservedKeyWord0of3() :
 {
 }
 {
     (
-<#list (parser.nonReservedKeywords!default.parser.nonReservedKeywords) + (parser.nonReservedKeywordsToAdd!default.parser.nonReservedKeywordsToAdd) as keyword>
+<#list nonReservedKeywords as keyword>
 <#if keyword?index == 0>
         <${keyword}>
 <#elseif keyword?index % 3 == 0>
@@ -9530,7 +9537,7 @@ void NonReservedKeyWord1of3() :
 }
 {
     (
-<#list (parser.nonReservedKeywords!default.parser.nonReservedKeywords) + (parser.nonReservedKeywordsToAdd!default.parser.nonReservedKeywordsToAdd) as keyword>
+<#list nonReservedKeywords as keyword>
 <#if keyword?index == 1>
         <${keyword}>
 <#elseif keyword?index % 3 == 1>
@@ -9546,7 +9553,7 @@ void NonReservedKeyWord2of3() :
 }
 {
     (
-<#list (parser.nonReservedKeywords!default.parser.nonReservedKeywords) + (parser.nonReservedKeywordsToAdd!default.parser.nonReservedKeywordsToAdd) as keyword>
+<#list nonReservedKeywords as keyword>
 <#if keyword?index == 2>
         <${keyword}>
 <#elseif keyword?index % 3 == 2>
