@@ -26,7 +26,7 @@ into `main`, with no bypass actors. GitHub enforces these checks directly.
 - `Check PR title` requires `[CALCITE-<digits>] <Jira summary>` to match the
   complete PR title and at least one commit subject exactly. Other prefixes
   skip this check. Title edits and pushes rerun it; Jira-only edits need a rerun.
-- `Check single commit` runs only with the `Approved` label. It verifies that
+- `Check single commit` runs only with the `LGTM-will-merge-soon` label. It verifies that
   the label was applied by someone with write, maintain, or admin access,
   then requires exactly one commit. GitHub Approve reviews are separate.
 

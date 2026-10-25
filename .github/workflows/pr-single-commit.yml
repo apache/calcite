@@ -29,7 +29,7 @@ concurrency:
 jobs:
   check-single-commit:
     name: Check single commit
-    if: contains(github.event.pull_request.labels.*.name, 'Approved')
+    if: contains(github.event.pull_request.labels.*.name, 'LGTM-will-merge-soon')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -54,8 +54,8 @@ jobs:
                 fail('PR commits changed. Use the check on the latest PR head.');
                 return;
               }
-              if (!pr.labels.some(label => label.name === 'Approved')) {
-                core.info('The Approved label was removed; commit count not checked.');
+              if (!pr.labels.some(label => label.name === 'LGTM-will-merge-soon')) {
+                core.info('The LGTM-will-merge-soon label was removed; commit count not checked.');
                 return;
               }
 
@@ -67,10 +67,10 @@ jobs:
                 per_page: 100,
               });
               const approval = events
-                .filter(event => event.event === 'labeled' && event.label?.name === 'Approved')
+                .filter(event => event.event === 'labeled' && event.label?.name === 'LGTM-will-merge-soon')
                 .sort((a, b) => b.id - a.id)[0];
               if (!approval?.actor) {
-                fail('Cannot verify who applied Approved. A maintainer must remove and reapply it.');
+                fail('Cannot verify who applied LGTM-will-merge-soon. A maintainer must remove and reapply it.');
                 return;
               }
               // Includes write access inherited from the Calcite committer/PMC teams.
@@ -80,14 +80,14 @@ jobs:
                 username: approval.actor.login,
               });
               if (!['write', 'maintain', 'admin'].includes(access.permission)) {
-                fail(`The Approved label was added by ${approval.actor.login}, who lacks write access. ` +
+                fail(`The LGTM-will-merge-soon label was added by ${approval.actor.login}, who lacks write access. ` +
                   'A committer or PMC member with repository write access must remove and reapply it.');
                 return;
               }
 
               const { data: latest } = await github.rest.pulls.get(pullRequest);
               if (latest.head.sha !== pr.head.sha || latest.base.sha !== pr.base.sha ||
-                  !latest.labels.some(label => label.name === 'Approved')) {
+                  !latest.labels.some(label => label.name === 'LGTM-will-merge-soon')) {
                 fail('PR commits, base, or approval changed during validation. Rerun this check.');
                 return;
               }
