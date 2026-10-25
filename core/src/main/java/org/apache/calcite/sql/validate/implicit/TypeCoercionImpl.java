@@ -553,6 +553,20 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         // A "scalar" (non-ROW) type is in the LHS of the IN
         coerced = coerceOperandType(scope, binding.getCall(), 0, widenTypes.get(0))
             || coerced;
+      } else if (node1.getKind() != SqlKind.ROW) {
+        // An expression of a ROW type is in the LHS of the IN, e.g.,
+        // SELECT r IN (ROW(1.5, 2), ...)
+        //        ^
+        // In this case cast it to a ROW of the desired field types
+        final List<RelDataTypeField> fields = type1.getFieldList();
+        final List<RelDataType> fieldTypes = new ArrayList<>();
+        for (int i = 0; i < colCount; i++) {
+          fieldTypes.add(syncAttributes(fields.get(i).getType(), widenTypes.get(i)));
+        }
+        coerced =
+            coerceOperandType(scope, binding.getCall(), 0,
+                factory.createStructType(fieldTypes, type1.getFieldNames()))
+            || coerced;
       }
 
       for (int i = 0; i < widenTypes.size(); i++) {
