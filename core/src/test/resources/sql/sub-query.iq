@@ -11005,6 +11005,7 @@ from t;
 !ok
 
 # [CALCITE-4340] Correlated Queries in ON clause do not work when referring to
+# Result had been validated in postgresql
 # left side. The scalar sub-query is correlated with the left side of the
 # join. BONUS is empty, so every dept row is null-extended.
 !set expand true
