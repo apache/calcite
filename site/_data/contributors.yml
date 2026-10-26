@@ -402,6 +402,11 @@
   githubId: zzwqqq
   org:
   role: Committer
+- name: Xiaojun Wu
+  apacheId: dwrite
+  githubId: dwrite
+  org:
+  role: Committer
 - name: Xiong Duan
   apacheId: xiong
   githubId: NobiGo
