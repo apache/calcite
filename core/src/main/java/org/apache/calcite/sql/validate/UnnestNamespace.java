@@ -95,6 +95,9 @@ class UnnestNamespace extends AbstractNamespace {
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     // Validate the call and its arguments, and infer the return type.
     validator.validateCall(unnest, scope);
+    // Sub-queries used as UNNEST operands (e.g. "UNNEST(ARRAY(SELECT ...))")
+    // cannot forward must-filter requirements to the enclosing query, enforce them here
+    validator.validateSubQueriesFilterRequirement(unnest);
     RelDataType type =
         unnest.getOperator().validateOperands(validator, scope, unnest);
 

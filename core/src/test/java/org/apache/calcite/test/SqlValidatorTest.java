@@ -15139,6 +15139,45 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of must-filter columns in set operations where one of
+   * the operands has no must-filter requirements. Such an operand must not
+   * prevent the other operands' remnant requirements from being defused by
+   * filtering a bypass field on the set operation's output.
+   */
+  @Test void testMustFilterColumnsInSetOpWithUnrestrictedOperand() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    final List<String> ops = Arrays.asList("union", "union all", "intersect", "except");
+    for (String op : ops) {
+      // Not valid because the remnant requirement on EMP.JOB is not defused
+      fixture.withSql("^select * from (\n"
+              + "select ename from emp where empno = 1\n"
+              + op + "\n"
+              + "select name from bonus) as x^")
+          .fails(missingFilters("JOB"));
+
+      // Valid because ENAME is a bypass field of the only operand that has
+      // requirements (BONUS has none), so filtering on it defuses the remnant
+      // requirement on EMP.JOB
+      fixture.withSql("select * from (\n"
+              + "select ename from emp where empno = 1\n"
+              + op + "\n"
+              + "select name from bonus) as x\n"
+              + "where x.ename = 'doctor'")
+          .ok();
+      fixture.withSql("select * from (\n"
+              + "select name from bonus\n"
+              + op + "\n"
+              + "select ename from emp where empno = 1) as x\n"
+              + "where x.name = 'doctor'")
+          .ok();
+    }
+  }
+
+  /**
    * Tests validation of must-filter columns with the inclusion of bypass fields.
    *
    * <p>If a table that implements
@@ -15589,6 +15628,54 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(missingFilters("JOB"));
   }
 
+  /**
+   * Tests that, when a subquery joins several tables that each leave a
+   * remnant must-filter obligation, filtering the bypass field of one table
+   * defuses only that table's remnant obligation, not the other tables'.
+   */
+  @Test void testMustFilterRemnantMatchesSourceTable() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // The subquery leaves a remnant obligation on EMP.JOB (defusable via the
+    // bypass field ENAME) and another on DEPT.NAME (defusable via the bypass
+    // field DEPTNO). Filtering ENAME must not defuse DEPT.NAME.
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.ename = 'doctor'^")
+        .fails(missingFilters("NAME"));
+
+    // Likewise, filtering DEPTNO must not defuse EMP.JOB
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.deptno = 10^")
+        .fails(missingFilters("JOB"));
+
+    // Valid because both bypass fields are filtered
+    fixture.withSql("select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.ename = 'doctor' and x.deptno = 10")
+        .ok();
+
+    // DEPT.NAME is still a must-filter field of the subquery; filtering the
+    // bypass field ENAME of EMP must not defuse it
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.name from emp as e, dept as d\n"
+            + "  where e.empno = 1 and e.job = 'a') as x\n"
+            + "where x.ename = 'doctor'^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select * from (\n"
+            + "  select e.ename, d.name from emp as e, dept as d\n"
+            + "  where e.empno = 1 and e.job = 'a') as x\n"
+            + "where x.name = 'doctor'")
+        .ok();
+  }
+
   /** Returns a message that the particular columns are not filtered. */
   private static String missingFilters(String... args) {
     return "SQL statement did not contain filters on the following fields: \\["
@@ -15720,6 +15807,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "from emp WHERE empno > 1 and job = 'doctor'\n"
             + "window myWindow as (partition by ename order by empno)\n"
             + "qualify sumDeptNo in (select deptno from dept where name = 'accounting')")
+        .ok();
+  }
+
+  /**
+   * Tests that a must-filter requirement inside a sub-query used as the
+   * operand of UNNEST (via an ARRAY query constructor) is enforced, rather
+   * than being silently dropped.
+   */
+  @Test void testMustFilterColumnsInUnnestSubQuery() {
+    final SqlValidatorFixture fixture = fixture()
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    fixture.withSql("select * from unnest(array(^select name from dept^))")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select * from bonus as b\n"
+            + "cross join unnest(array(^select name from dept^))")
+        .fails(missingFilters("NAME"));
+
+    fixture.withSql("select * from unnest(\n"
+            + "array(select name from dept where name = 'accounting'))")
+        .ok();
+    // Valid because DEPTNO is a bypass field of DEPT
+    fixture.withSql("select * from unnest(\n"
+            + "array(select name from dept where deptno = 10))")
         .ok();
   }
 

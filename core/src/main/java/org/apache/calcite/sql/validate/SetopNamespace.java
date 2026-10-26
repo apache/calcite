@@ -20,13 +20,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -109,9 +108,7 @@ public class SetopNamespace extends AbstractNamespace {
       final SqlValidatorScope scope =
           requireNonNull(validator.scopes.get(call),
               () -> "scope for " + call);
-      ImmutableBitSet filterFields = ImmutableBitSet.of();
-      @Nullable ImmutableBitSet bypassFields = null;
-      final Set<SqlQualified> remnantFilterFields = new LinkedHashSet<>();
+      final List<FilterRequirement.Group> filterGroups = new ArrayList<>();
       for (SqlNode operand : call.getOperandList()) {
         if (!operand.isA(SqlKind.QUERY)) {
           throw validator.newValidationError(operand,
@@ -119,22 +116,16 @@ public class SetopNamespace extends AbstractNamespace {
         }
         validator.validateQuery(operand, scope, targetRowType);
 
-        // Propagate the operands' filter requirements to this namespace
+        // Propagate the operands' filter requirements to this namespace. The
+        // operands' columns are positionally the columns of the set operation,
+        // so each group keeps its ordinals, and its bypass fields keep
+        // defusing only that group's requirements.
         final SqlValidatorNamespace operandNamespace =
             requireNonNull(validator.getNamespace(operand),
                 () -> "namespace for " + operand);
-        final FilterRequirement requirement = operandNamespace.getFilterRequirement();
-        filterFields = filterFields.union(requirement.filterFields);
-        bypassFields =
-            bypassFields == null ? requirement.bypassFields
-                // A bypass filter only counts if the column is a bypass field in every branch
-                : bypassFields.intersect(requirement.bypassFields);
-        remnantFilterFields.addAll(requirement.remnantFilterFields);
+        filterGroups.addAll(operandNamespace.getFilterRequirement().groups);
       }
-      filterRequirement =
-          new FilterRequirement(filterFields,
-              bypassFields == null ? ImmutableBitSet.of() : bypassFields,
-              remnantFilterFields);
+      filterRequirement = new FilterRequirement(filterGroups);
       return call.getOperator().deriveType(
           validator,
           scope,
