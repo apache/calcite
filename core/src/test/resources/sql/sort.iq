@@ -583,4 +583,22 @@ order by all;
 
 !ok
 
+# [CALCITE-7675] GROUP BY ALL should infer grouping keys only from expressions
+# that depend on the input; the same holds for the sort keys of ORDER BY ALL.
+# The constant 2 cannot reorder rows and is not a sort key, so the rows are
+# ordered by Y alone. Before [CALCITE-7675] the synthesized "ORDER BY 2" was
+# read as a sort ordinal and silently ordered by the second SELECT item.
+select 2 as c, y from (values (2, 'b'), (1, 'a'), (1, 'c')) as t(x, y)
+order by all;
++---+---+
+| C | Y |
++---+---+
+| 2 | a |
+| 2 | b |
+| 2 | c |
++---+---+
+(3 rows)
+
+!ok
+
 # End sort.iq
