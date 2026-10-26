@@ -109,7 +109,7 @@ LogicalAggregate(group=[{0, 1}], C=[COUNT()])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMapsFdForNonContiguousAggregateGroupSet">
+  <TestCase name="testMapsAggregateInputFdOrdinalsToOutputOrdinals">
     <Resource name="sql">
       <![CDATA[select a, b, c, count(*) as n
 from (values (0, 1, 1, 10), (0, 1, 1, 20))

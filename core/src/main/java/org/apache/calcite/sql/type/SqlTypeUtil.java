@@ -410,7 +410,7 @@ public abstract class SqlTypeUtil {
    * Returns whether a type or any type nested within its fields, collection
    * component, map key, or map value matches a predicate.
    */
-  public static boolean containsType(RelDataType type,
+  public static boolean containsMatchingType(RelDataType type,
       Predicate<? super RelDataType> predicate) {
     requireNonNull(type, "type");
     requireNonNull(predicate, "predicate");
@@ -419,21 +419,22 @@ public abstract class SqlTypeUtil {
     }
     if (type.isStruct()) {
       for (RelDataTypeField field : type.getFieldList()) {
-        if (containsType(field.getType(), predicate)) {
+        if (containsMatchingType(field.getType(), predicate)) {
           return true;
         }
       }
     }
     final RelDataType componentType = type.getComponentType();
-    if (componentType != null && containsType(componentType, predicate)) {
+    if (componentType != null
+        && containsMatchingType(componentType, predicate)) {
       return true;
     }
     final RelDataType keyType = type.getKeyType();
-    if (keyType != null && containsType(keyType, predicate)) {
+    if (keyType != null && containsMatchingType(keyType, predicate)) {
       return true;
     }
     final RelDataType valueType = type.getValueType();
-    return valueType != null && containsType(valueType, predicate);
+    return valueType != null && containsMatchingType(valueType, predicate);
   }
 
   /**

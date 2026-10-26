@@ -375,6 +375,11 @@ public class RelMetadataTest {
     assertThat(mq.determines(relNode, sumSal, count), is(Boolean.FALSE));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies that a grouping-set aggregate does
+   * not publish a dependency from its group key to its aggregate calls. */
   @Test void testFunctionalDependencyRollupAggregate() {
     final String sql = "select deptno, count(*) as \"count\""
         + " from emp group by rollup(deptno)";
@@ -722,6 +727,11 @@ public class RelMetadataTest {
     assertThat(mq.determines(relNode, empNo, dname), is(Boolean.FALSE));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies the direction in which an outer
+   * join's equality condition creates functional dependencies. */
   @Test void testFunctionalDependencyOuterJoinEqualityDirection() {
     final RelNode leftJoin = sql("SELECT d.deptno AS null_generated_key,"
         + " e.deptno AS preserved_key\n"
@@ -756,6 +766,11 @@ public class RelMetadataTest {
     assertThat(residualMq.determines(residualJoin, 1, 0), is(Boolean.FALSE));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies that null generation can invalidate
+   * a functional dependency inherited from an outer-join input. */
   @Test void testFunctionalDependencyFromNullGeneratingInput() {
     final String nullableProject = "(SELECT z, a, COALESCE(a, 1) AS y\n"
         + " FROM (VALUES (1, CAST(NULL AS INTEGER))) AS v(z, a))";

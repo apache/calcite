@@ -586,7 +586,7 @@ public class RelMdFunctionalDependency
    * in rows, collections, or maps.
    */
   private static boolean typeSupportsGroupKeyInference(RelDataType type) {
-    return !SqlTypeUtil.containsType(type,
+    return !SqlTypeUtil.containsMatchingType(type,
         SqlTypeUtil::isApproximateNumeric);
   }
 }

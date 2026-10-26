@@ -72,9 +72,12 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies that a null-generating join key does
+   * not determine a preserved-side key. */
   @Test void testKeepsGroupKeyFromPreservedSideOfLeftJoin() {
-    // The null-generating right key cannot determine the preserved left key:
-    // unmatched rows with different e.deptno values all have d.deptno = NULL.
     final String sql = "select d.deptno, e.deptno, count(*) as c\n"
         + "from emp e\n"
         + "left join dept d on e.deptno = d.deptno\n"
@@ -84,10 +87,16 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>.
+   *
+   * <p>The right Project has the functional dependency {@code r.a -> r.y},
+   * where {@code r.y = COALESCE(r.a, 1)}. LEFT JOIN null padding adds
+   * {@code (r.a, r.y) = (NULL, NULL)} alongside the matched
+   * {@code (NULL, 1)} row, so the join must not preserve that dependency. */
   @Test void testKeepsFdFromNullGeneratingInputOfLeftJoin() {
-    // This FD comes from the right input rather than from the join condition.
-    // The right Project has a -> COALESCE(a, 1), but null padding adds a row
-    // with a = NULL and y = NULL alongside the matched a = NULL, y = 1 row.
     final String sql = "select r.a, r.y, count(*) as c\n"
         + "from (values (1), (2)) as l(z)\n"
         + "left join (\n"
@@ -100,10 +109,12 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .checkUnchanged();
   }
 
-  @Test void testMapsFdForNonContiguousAggregateGroupSet() {
-    // AggregateProjectMergeRule changes the input group set to {1, 2, 3},
-    // whose keys occupy output positions {0, 1, 2}. Map the input FD 1 -> 2
-    // to output FD 0 -> 1, so the rule removes b rather than c.
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies that functional-dependency ordinals
+   * from an Aggregate input are mapped to Aggregate output ordinals. */
+  @Test void testMapsAggregateInputFdOrdinalsToOutputOrdinals() {
     final String sql = "select a, b, c, count(*) as n\n"
         + "from (values (0, 1, 1, 10), (0, 1, 1, 20))\n"
         + "  as t(z, a, b, c)\n"
@@ -115,6 +126,11 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies that equality between approximate
+   * numeric values does not create a grouping-key dependency. */
   @Test void testKeepsDoubleGroupKeyInferredFromEquality() {
     // SQL equality considers 0.0 and -0.0 equal, but Enumerable grouping
     // distinguishes their Double keys. Therefore x = y does not prove that
@@ -130,6 +146,11 @@ class AggregateRemoveDuplicateKeysRuleTest {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7757">[CALCITE-7757]
+   * RelMdFunctionalDependency can infer unsound dependencies and cause
+   * incorrect query results</a>. Verifies that a nested approximate numeric
+   * type prevents expression-derived grouping-key inference. */
   @Test void testArrayOfApproxNumericIsUnchanged() {
     final String sql = "select x, x[1] as y, count(*) as c\n"
         + "from (values (array[cast(0 as double)]),\n"
