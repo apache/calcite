@@ -58,3 +58,6 @@ local.properties
 
 # jenv
 .java-version
+
+# npm dependencies of .github/workflows/matrix.mjs
+.github/workflows/node_modules/
