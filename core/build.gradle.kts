@@ -70,6 +70,7 @@ dependencies {
     implementation("net.hydromatic:aggdesigner-algorithm")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-math3")
+    implementation("org.apache.commons:commons-secure-xml")
     implementation("org.apache.commons:commons-text")
     implementation("org.jooq:joou-java-6")
     implementation("commons-io:commons-io")

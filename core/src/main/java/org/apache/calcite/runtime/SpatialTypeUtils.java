@@ -21,6 +21,8 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Strict;
 
+import org.apache.commons.xml.secure.SecureSAXParserFactory;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -31,14 +33,17 @@ import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.jts.io.gml2.GMLReader;
+import org.locationtech.jts.io.gml2.GMLHandler;
 import org.locationtech.jts.io.gml2.GMLWriter;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
 
 import static java.lang.Integer.parseInt;
 
@@ -130,16 +135,31 @@ public class SpatialTypeUtils {
   /**
    * Constructs a geometry from a GML representation.
    *
+   * <p>The GML is parsed by a SAX parser from Apache Commons Secure XML, which
+   * does not fetch external DTDs or entities.
+   *
    * @param gml a GML
    * @return a geometry
    */
   public static Geometry fromGml(String gml) {
+    final SAXParser parser;
     try {
-      GMLReader reader = new GMLReader();
-      return reader.read(gml, GEOMETRY_FACTORY);
-    } catch (SAXException | IOException | ParserConfigurationException e) {
+      // Not namespace-aware, like JTS's GMLReader:
+      // GML values may use an undeclared "gml:" prefix
+      parser = SecureSAXParserFactory.newInstance().newSAXParser();
+    } catch (ParserConfigurationException | SAXException e) {
+      // Tested parsers reject unsupported features eagerly in the factory, not in
+      // newSAXParser, so an exception here indicates a classpath problem
+      throw new IllegalStateException(e);
+    }
+    @SuppressWarnings("argument.type.incompatible") // delegate is documented as nullable
+    final GMLHandler handler = new GMLHandler(GEOMETRY_FACTORY, null);
+    try {
+      parser.parse(new InputSource(new StringReader(gml)), handler);
+    } catch (SAXException | IOException e) {
       throw new RuntimeException("Unable to parse GML");
     }
+    return handler.getGeometry();
   }
 
   /**
