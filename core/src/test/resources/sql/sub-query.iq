@@ -11003,3 +11003,66 @@ from t;
 (2 rows)
 
 !ok
+
+# [CALCITE-4340] Correlated Queries in ON clause do not work when referring to
+# Result had been validated in postgresql
+# left side. The scalar sub-query is correlated with the left side of the
+# join. BONUS is empty, so every dept row is null-extended.
+!set expand true
+
+select *
+from dept
+left join bonus on bonus.job = (
+  select max(emp.job)
+  from emp
+  where emp.deptno = dept.deptno)
+order by deptno;
++--------+------------+----------+-------+-----+-----+------+
+| DEPTNO | DNAME      | LOC      | ENAME | JOB | SAL | COMM |
++--------+------------+----------+-------+-----+-----+------+
+|     10 | ACCOUNTING | NEW YORK |       |     |     |      |
+|     20 | RESEARCH   | DALLAS   |       |     |     |      |
+|     30 | SALES      | CHICAGO  |       |     |     |      |
+|     40 | OPERATIONS | BOSTON   |       |     |     |      |
++--------+------------+----------+-------+-----+-----+------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4340] Correlated Queries in ON clause do not work when referring to
+# left side. Inner join variant. BONUS is empty, so the result is empty.
+select *
+from dept
+join bonus on bonus.job = (
+  select max(emp.job)
+  from emp
+  where emp.deptno = dept.deptno);
++--------+-------+-----+-------+-----+-----+------+
+| DEPTNO | DNAME | LOC | ENAME | JOB | SAL | COMM |
++--------+-------+-----+-------+-----+-----+------+
++--------+-------+-----+-------+-----+-----+------+
+(0 rows)
+
+!ok
+
+# [CALCITE-4340] Correlated Queries in ON clause do not work when referring to
+# left side. The sub-query returns at most one row per dept, so only dept 10
+# (containing emp 7782) finds a match.
+select *
+from dept d
+left join emp e on e.sal = (
+  select e2.sal
+  from emp e2
+  where e2.empno = 7782 and e2.deptno = d.deptno)
+order by d.deptno, e.empno;
++--------+------------+----------+-------+-------+---------+------+------------+---------+------+---------+
+| DEPTNO | DNAME      | LOC      | EMPNO | ENAME | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO0 |
++--------+------------+----------+-------+-------+---------+------+------------+---------+------+---------+
+|     10 | ACCOUNTING | NEW YORK |  7782 | CLARK | MANAGER | 7839 | 1981-06-09 | 2450.00 |      |      10 |
+|     20 | RESEARCH   | DALLAS   |       |       |         |      |            |         |      |         |
+|     30 | SALES      | CHICAGO  |       |       |         |      |            |         |      |         |
+|     40 | OPERATIONS | BOSTON   |       |       |         |      |            |         |      |         |
++--------+------------+----------+-------+-------+---------+------+------------+---------+------+---------+
+(4 rows)
+
+!ok

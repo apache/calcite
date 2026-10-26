@@ -3732,7 +3732,8 @@ public class SqlToRelConverter {
           return;
         }
         Pair<RexNode, RelNode> conditionAndRightNode =
-            convertOnCondition(fromBlackboard, sqlCondition, leftRel, tempRightRel);
+            convertOnCondition(fromBlackboard, sqlCondition, leftRel, tempRightRel,
+                convertJoinType(joinType));
         condition = conditionAndRightNode.left;
         rightRel = conditionAndRightNode.right;
         break;
@@ -3748,7 +3749,8 @@ public class SqlToRelConverter {
           requireNonNull(((SqlAsofJoin) join).getMatchCondition(),
               () -> "getCondition for join " + join);
       Pair<RexNode, RelNode> conditionAndRightNode =
-          convertOnCondition(fromBlackboard, sqlMatchCondition, leftRel, tempRightRel);
+          convertOnCondition(fromBlackboard, sqlMatchCondition, leftRel, tempRightRel,
+              convertJoinType(joinType));
       RexNode matchCondition = conditionAndRightNode.left;
       matchCondition = simplifyPredicate(matchCondition);
       rightRel = conditionAndRightNode.right;
@@ -3874,10 +3876,25 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlNode condition,
       RelNode leftRel,
-      RelNode rightRel) {
+      RelNode rightRel,
+      JoinRelType joinType) {
     bb.setRoot(ImmutableList.of(leftRel, rightRel), leftRel,
         leftRel instanceof LogicalJoin);
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+    if (bb.registered.size() == 1
+        && bb.subQueryList.size() == 1
+        && bb.subQueryList.get(0).node.getKind() == SqlKind.SCALAR_QUERY
+        && (joinType == JoinRelType.INNER || joinType == JoinRelType.LEFT)
+        && !isSubQueryNonCorrelated(bb.registered.get(0).rel, bb)) {
+      return convertCorrelatedScalarSubqueryInOn(
+          bb, condition, leftRel, rightRel, bb.registered.get(0), bb.subQueryList.get(0));
+    }
+    for (RegisterArgs reg : bb.registered) {
+      if (!isSubQueryNonCorrelated(reg.rel, bb)) {
+        throw SqlUtil.newContextException(condition.getParserPosition(),
+            RESOURCE.correlatedSubqueryInOnClauseNotSupported());
+      }
+    }
     final RelNode newRightRel =
         bb.root == null || bb.registered.isEmpty()
             ? rightRel
@@ -3893,6 +3910,45 @@ public class SqlToRelConverter {
               rightFieldList.get(rightFieldCount - 1).getType(),
               leftFieldCount + rightFieldCount - 1);
     }
+    return Pair.of(conditionExp, newRightRel);
+  }
+
+  /**
+   * Handles a single correlated scalar sub-query in the ON clause of an
+   * INNER or LEFT join.
+   *
+   * <p>The sub-query is attached to the right input. Because the right input
+   * still references correlated variables from the left input, the outer
+   * {@link #createJoin} will rewrite the join as a {@link LogicalCorrelate}
+   * and push the ON condition into a filter on the right side.
+   */
+  private Pair<RexNode, RelNode> convertCorrelatedScalarSubqueryInOn(
+      Blackboard bb,
+      SqlNode condition,
+      RelNode leftRel,
+      RelNode rightRel,
+      RegisterArgs reg,
+      SubQuery subQuery) {
+    final RelNode subqRel = reg.rel;
+    final int leftFieldCount = leftRel.getRowType().getFieldCount();
+    final int rightFieldCount = rightRel.getRowType().getFieldCount();
+
+    final RelNode newRightRel =
+        LogicalJoin.create(rightRel, subqRel, ImmutableList.of(),
+            rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.LEFT);
+
+    // Rewrite the sub-query expression so that convertExpression references
+    // the sub-query result in the combined leftRel + newRightRel row.
+    subQuery.expr =
+        rexBuilder.makeRangeReference(
+            subqRel.getRowType(),
+            leftFieldCount + rightFieldCount,
+            JoinRelType.LEFT.generatesNullsOnRight());
+
+    bb.setRoot(ImmutableList.of(leftRel, newRightRel), leftRel,
+        leftRel instanceof LogicalJoin);
+    final RexNode conditionExp = bb.convertExpression(condition);
+
     return Pair.of(conditionExp, newRightRel);
   }
 

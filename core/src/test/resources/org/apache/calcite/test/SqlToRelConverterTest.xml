@@ -7143,6 +7143,53 @@ LogicalSort(offset=[+(1, ABS(-2))])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testOnClauseCorrelatedScalarSubquery">
+    <Resource name="sql">
+      <![CDATA[select *
+from dept
+left join bonus on bonus.job = (
+  select emp.job
+  from emp
+  where emp.deptno = dept.deptno
+)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])
+  LogicalJoin(condition=[=($0, $6)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[=($1, $5)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOnClauseCorrelatedScalarSubqueryInner">
+    <Resource name="sql">
+      <![CDATA[select *
+from dept
+join bonus on bonus.job = (
+  select emp.job
+  from emp
+  where emp.deptno = dept.deptno
+)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5], DEPTNO0=[CAST($6):INTEGER], $f1=[CAST($7):VARCHAR(10)])
+    LogicalJoin(condition=[AND(=($0, $6), =($3, $7))], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOrder">
     <Resource name="sql">
       <![CDATA[select empno from emp order by empno, empno desc]]>
