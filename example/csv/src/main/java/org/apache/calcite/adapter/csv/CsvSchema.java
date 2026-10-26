@@ -116,6 +116,8 @@ public class CsvSchema extends AbstractSchema {
       return new CsvScannableTable(source, null);
     case FILTERABLE:
       return new CsvFilterableTable(source, null);
+    case STREAMABLE_SCANNABLE:
+      return new CsvStreamScannableTable(source, null);
     default:
       throw new AssertionError("Unknown flavor " + this.flavor);
     }
