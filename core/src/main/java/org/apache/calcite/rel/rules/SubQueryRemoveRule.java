@@ -43,7 +43,6 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
@@ -219,24 +218,93 @@ public class SubQueryRemoveRule
       throw new AssertionError("unexpected " + op);
     }
 
+    String qAlias = "q";
+    if (subQueryIndex != 0) {
+      qAlias = "q" + subQueryIndex;
+    }
+
+    final RexNode caseRexNode;
+    final List<RexNode> operands = e.getOperands();
+    if (operands.size() == 1) {
+      caseRexNode =
+          rewriteSomeColumn(e.rel, op.comparisonKind, operands, 0, 0,
+              variablesSet, builder, qAlias);
+    } else {
+      // The SQL standard defines a comparison of rows with comparisons of
+      // their columns, and SOME distributes over OR.
+      // "(x0, x1) <> (a0, a1)" is "x0 <> a0 OR x1 <> a1", so
+      //
+      //   (x0, x1) <> SOME (SELECT a0, a1 FROM s)
+      //
+      // becomes
+      //
+      //   x0 <> SOME (SELECT a0 FROM s) OR x1 <> SOME (SELECT a1 FROM s)
+      //
+      // An ordering of rows is lexicographic:
+      // "(x0, x1) < (a0, a1)" is "x0 < a0 OR (x0 = a0 AND x1 < a1)", so
+      //
+      //   (x0, x1) < SOME (SELECT a0, a1 FROM s)
+      //
+      // becomes
+      //
+      //   x0 < SOME (SELECT a0 FROM s)
+      //   OR x1 < SOME (SELECT a1 FROM s WHERE a0 = x0)
+      //
+      // The filter "a0 = x0" drops the rows where it is UNKNOWN. For such a
+      // row "x0 < a0" is also UNKNOWN, so the first term is not FALSE, and
+      // the result does not change.
+      final List<RexNode> terms = new ArrayList<>();
+      for (int k = 0; k < operands.size(); k++) {
+        final SqlKind kind = k == operands.size() - 1
+            ? op.comparisonKind
+            : strict(op.comparisonKind);
+        final int prefixLength =
+            op.comparisonKind == SqlKind.NOT_EQUALS ? 0 : k;
+        terms.add(
+            rewriteSomeColumn(e.rel, kind, operands, k, prefixLength,
+                variablesSet, builder, qAlias + "_" + k));
+      }
+      caseRexNode = builder.or(terms);
+    }
+
+    // CASE statement above is created with nullable boolean type, but it might
+    // not be correct.  If the original sub-query node's type is not nullable it
+    // is guaranteed for case statement to not produce NULLs. Therefore to avoid
+    // planner complaining we need to add cast.  Note that nullable type is
+    // created due to the MIN aggregate call, since there is no GROUP BY.
+    if (!e.getType().isNullable()) {
+      return builder.cast(caseRexNode, e.getType().getSqlTypeName());
+    }
+    return caseRexNode;
+  }
+
+  /**
+   * Rewrites a SOME sub-query on one column of a row into a {@link Join}.
+   *
+   * <p>Compares {@code operands[column]} with field {@code column} of the
+   * rows of {@code rel} whose first {@code prefixLength} fields are equal to
+   * the first {@code prefixLength} operands.
+   *
+   * @return Expression that may be used to replace the comparison
+   */
+  private static RexNode rewriteSomeColumn(RelNode rel,
+      SqlKind comparisonKind, List<RexNode> operands, int column,
+      int prefixLength, Set<CorrelationId> variablesSet, RelBuilder builder,
+      String qAlias) {
+    final RexNode operand = operands.get(column);
     final RexNode caseRexNode;
     final RexNode literalFalse = builder.literal(false);
     final RexNode literalTrue = builder.literal(true);
     final RexLiteral literalUnknown =
         builder.getRexBuilder().makeNullLiteral(literalFalse.getType());
 
-    final SqlAggFunction minMax = op.comparisonKind == SqlKind.GREATER_THAN
-        || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
+    final SqlAggFunction minMax = comparisonKind == SqlKind.GREATER_THAN
+        || comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
         ? SqlStdOperatorTable.MIN
         : SqlStdOperatorTable.MAX;
 
-    String qAlias = "q";
-    if (subQueryIndex != 0) {
-      qAlias = "q" + subQueryIndex;
-    }
-
-    if (variablesSet.isEmpty()) {
-      switch (op.comparisonKind) {
+    if (variablesSet.isEmpty() && prefixLength == 0) {
+      switch (comparisonKind) {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN_OR_EQUAL:
       case LESS_THAN:
@@ -258,11 +326,11 @@ public class SubQueryRemoveRule
         // cross join (
         //   select max(deptno) as m, count(*) as c, count(deptno) as d
         //   from emp) as q
-        builder.push(e.rel)
+        builder.push(rel)
             .aggregate(builder.groupKey(),
-                builder.aggregateCall(minMax, builder.field(0)).as("m"),
+                builder.aggregateCall(minMax, builder.field(column)).as("m"),
                 builder.count(false, "c"),
-                builder.count(false, "d", builder.field(0)))
+                builder.count(false, "d", builder.field(column)))
             .as(qAlias)
             .join(JoinRelType.INNER);
         caseRexNode =
@@ -270,14 +338,14 @@ public class SubQueryRemoveRule
                 builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
                 builder.call(SqlStdOperatorTable.IS_TRUE,
-                    builder.call(RexUtil.op(op.comparisonKind),
-                        e.operands.get(0), builder.field(qAlias, "m"))),
+                    builder.call(RexUtil.op(comparisonKind),
+                        operand, builder.field(qAlias, "m"))),
                 literalTrue,
                 builder.greaterThan(builder.field(qAlias, "c"),
                     builder.field(qAlias, "d")),
                 literalUnknown,
-                builder.call(RexUtil.op(op.comparisonKind),
-                    e.operands.get(0), builder.field(qAlias, "m")));
+                builder.call(RexUtil.op(comparisonKind),
+                    operand, builder.field(qAlias, "m")));
         break;
 
       case NOT_EQUALS:
@@ -300,7 +368,8 @@ public class SubQueryRemoveRule
         // cross join (
         //   select count(*) as c, count(deptno) as d, max(deptno) as m
         //   from (select distinct deptno from emp)) as q
-        builder.push(e.rel);
+        builder.push(rel)
+            .project(builder.field(column));
         builder.distinct()
             .aggregate(builder.groupKey(),
                 builder.count(false, "c"),
@@ -310,19 +379,20 @@ public class SubQueryRemoveRule
             .join(JoinRelType.INNER);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
-                builder.equals(builder.field("c"), builder.literal(0)),
+                builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
-                builder.isNull(e.getOperands().get(0)),
+                builder.isNull(operand),
                 literalUnknown,
                 builder.and(
-                    builder.notEquals(builder.field("d"), builder.field("c")),
-                    builder.lessThanOrEqual(builder.field("d"),
+                    builder.notEquals(builder.field(qAlias, "d"),
+                        builder.field(qAlias, "c")),
+                    builder.lessThanOrEqual(builder.field(qAlias, "d"),
                         builder.literal(1))),
                 builder.or(
-                    builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
+                    builder.notEquals(operand, builder.field(qAlias, "m")),
                     literalUnknown),
-                builder.equals(builder.field("d"), builder.literal(1)),
-                builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
+                builder.equals(builder.field(qAlias, "d"), builder.literal(1)),
+                builder.notEquals(operand, builder.field(qAlias, "m")),
                 literalTrue);
         break;
 
@@ -331,7 +401,7 @@ public class SubQueryRemoveRule
       }
     } else {
       final String indicator = "trueLiteral";
-      switch (op.comparisonKind) {
+      switch (comparisonKind) {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN_OR_EQUAL:
       case LESS_THAN:
@@ -357,14 +427,24 @@ public class SubQueryRemoveRule
         //   select name, max(deptno) as m, count(*) as c, count(deptno) as d,
         //       LITERAL_AGG(true) as indicator
         //   from emp group by name) as q on e.name = q.name
-        builder.push(e.rel)
-            .aggregate(builder.groupKey(),
-                builder.aggregateCall(minMax, builder.field(0)).as("m"),
+        //
+        // For column k of a row, "q" also groups by the fields before k, and
+        // the join requires them to equal the operands before k. For example,
+        // the term for x2 in "(x0, x1, x2) < SOME (SELECT a0, a1, a2 FROM s)"
+        // groups by a0, a1 and joins on "x0 = q.a0 AND x1 = q.a1".
+        builder.push(rel)
+            .aggregate(builder.groupKey(ImmutableBitSet.range(prefixLength)),
+                builder.aggregateCall(minMax, builder.field(column)).as("m"),
                 builder.count(false, "c"),
-                builder.count(false, "d", builder.field(0)),
+                builder.count(false, "d", builder.field(column)),
                 builder.literalAgg(true, indicator));
         builder.as(qAlias);
-        builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
+        final List<RexNode> prefixEquals = new ArrayList<>();
+        for (int i = 0; i < prefixLength; i++) {
+          prefixEquals.add(
+              builder.equals(operands.get(i), builder.field(2, 1, i)));
+        }
+        builder.join(JoinRelType.LEFT, builder.and(prefixEquals), variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
                 builder.isNull(builder.field(qAlias, indicator)),
@@ -372,14 +452,14 @@ public class SubQueryRemoveRule
                 builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
                 builder.call(SqlStdOperatorTable.IS_TRUE,
-                    builder.call(RexUtil.op(op.comparisonKind),
-                        e.operands.get(0), builder.field(qAlias, "m"))),
+                    builder.call(RexUtil.op(comparisonKind),
+                        operand, builder.field(qAlias, "m"))),
                 literalTrue,
                 builder.greaterThan(builder.field(qAlias, "c"),
                     builder.field(qAlias, "d")),
                 literalUnknown,
-                builder.call(RexUtil.op(op.comparisonKind),
-                    e.operands.get(0), builder.field(qAlias, "m")));
+                builder.call(RexUtil.op(comparisonKind),
+                    operand, builder.field(qAlias, "m")));
         break;
 
       case NOT_EQUALS:
@@ -416,7 +496,8 @@ public class SubQueryRemoveRule
         // the q.dd <= 1 part means: true if there is at most one non-null value
         // so this clause means:
         // "if there are any null values and there is at most one non-null value".
-        builder.push(e.rel)
+        builder.push(rel)
+            .project(builder.field(column))
             .aggregate(builder.groupKey(),
                 builder.count(false, "c"),
                 builder.count(false, "d", builder.field(0)),
@@ -429,19 +510,20 @@ public class SubQueryRemoveRule
             builder.call(SqlStdOperatorTable.CASE,
                 builder.isNull(builder.field(qAlias, indicator)),
                 literalFalse,
-                builder.equals(builder.field("c"), builder.literal(0)),
+                builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
-                builder.isNull(e.getOperands().get(0)),
+                builder.isNull(operand),
                 literalUnknown,
                 builder.and(
-                    builder.notEquals(builder.field("d"), builder.field("c")),
-                    builder.lessThanOrEqual(builder.field("dd"),
+                    builder.notEquals(builder.field(qAlias, "d"),
+                        builder.field(qAlias, "c")),
+                    builder.lessThanOrEqual(builder.field(qAlias, "dd"),
                         builder.literal(1))),
                 builder.or(
-                    builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
+                    builder.notEquals(operand, builder.field(qAlias, "m")),
                     literalUnknown),
-                builder.equals(builder.field("dd"), builder.literal(1)),
-                builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
+                builder.equals(builder.field(qAlias, "dd"), builder.literal(1)),
+                builder.notEquals(operand, builder.field(qAlias, "m")),
                 literalTrue);
         break;
 
@@ -449,16 +531,54 @@ public class SubQueryRemoveRule
         throw new AssertionError("not possible - per above check");
       }
     }
-
-    // CASE statement above is created with nullable boolean type, but it might
-    // not be correct.  If the original sub-query node's type is not nullable it
-    // is guaranteed for case statement to not produce NULLs. Therefore to avoid
-    // planner complaining we need to add cast.  Note that nullable type is
-    // created due to the MIN aggregate call, since there is no GROUP BY.
-    if (!e.getType().isNullable()) {
-      return builder.cast(caseRexNode, e.getType().getSqlTypeName());
-    }
     return caseRexNode;
+  }
+
+  /** Returns the strict form of an ordering comparison, for example
+   * {@code <} for {@code <=}. */
+  private static SqlKind strict(SqlKind kind) {
+    switch (kind) {
+    case LESS_THAN_OR_EQUAL:
+      return SqlKind.LESS_THAN;
+    case GREATER_THAN_OR_EQUAL:
+      return SqlKind.GREATER_THAN;
+    default:
+      return kind;
+    }
+  }
+
+  /** Expands a comparison of two ROWs into comparisons of their fields,
+   * as the SQL standard defines it.
+   *
+   * <p>For example, {@code (x0, x1) = (y0, y1)} becomes
+   * {@code x0 = y0 AND x1 = y1}, and {@code (x0, x1) < (y0, y1)} becomes
+   * {@code x0 < y0 OR (x0 = y0 AND x1 < y1)}. */
+  private static RexNode compareRows(RelBuilder builder, SqlKind kind,
+      List<RexNode> left, List<RexNode> right) {
+    final int n = left.size();
+    final List<RexNode> fieldComparisons = new ArrayList<>();
+    switch (kind) {
+    case EQUALS:
+    case NOT_EQUALS:
+      for (int i = 0; i < n; i++) {
+        fieldComparisons.add(
+            builder.call(RexUtil.op(kind), left.get(i), right.get(i)));
+      }
+      return kind == SqlKind.EQUALS
+          ? builder.and(fieldComparisons)
+          : builder.or(fieldComparisons);
+    default:
+      RexNode result =
+          builder.call(RexUtil.op(kind), left.get(n - 1), right.get(n - 1));
+      for (int i = n - 2; i >= 0; i--) {
+        result =
+            builder.or(
+                builder.call(RexUtil.op(strict(kind)), left.get(i),
+                    right.get(i)),
+                builder.and(builder.equals(left.get(i), right.get(i)), result));
+      }
+      return result;
+    }
   }
 
   /**
@@ -1374,32 +1494,28 @@ public class SubQueryRemoveRule
       RelBuilder builder, int offset) {
     builder.push(e.rel);
     final List<RexNode> rightShiftRef = RexUtil.shift(builder.fields(), offset);
-    final List<RexNode> externalPredicate = new ArrayList<>();
-    final SqlOperator externalOperator;
+    final RexNode condition;
     switch (e.getKind()) {
     case SOME:
       SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
-      externalOperator = RelOptUtil.op(op.comparisonKind, SqlStdOperatorTable.EQUALS);
+      condition =
+          compareRows(builder, op.comparisonKind, e.getOperands(),
+              rightShiftRef);
       break;
     case IN:
-      externalOperator = SqlStdOperatorTable.EQUALS;
+      condition =
+          compareRows(builder, SqlKind.EQUALS, e.getOperands(), rightShiftRef);
       break;
     case EXISTS:
-      externalOperator = SqlStdOperatorTable.EQUALS;
       assert e.getOperands().isEmpty();
+      condition = builder.literal(true);
       break;
     default:
       throw new IllegalArgumentException("Only IN/SOME/EXISTS sub-query can be rewritten to "
           + "left mark join, but got: " + e.getKind());
     }
-    Pair.zip(e.getOperands(), rightShiftRef, false).stream()
-        .map(pair -> builder.call(externalOperator, pair.left, pair.right))
-        .forEach(externalPredicate::add);
 
-    builder.join(
-        JoinRelType.LEFT_MARK,
-        RexUtil.composeConjunction(builder.getRexBuilder(), externalPredicate),
-        variablesSet);
+    builder.join(JoinRelType.LEFT_MARK, condition, variablesSet);
     return last(builder.fields());
   }
 
