@@ -935,6 +935,38 @@ JOIN (VALUES (3, 7), (6, 14), (9, 21), (12, 28), (9, 35)) AS t3(b, d) USING (b);
 
 !ok
 
+# [CALCITE-7880] Unqualified common column of JOIN USING has the left column's type,
+# so arithmetic on it can overflow
+# The qualified BIGINT input is an arithmetic control: 2147483647 + 1 = 2147483648.
+SELECT f.k + 1 AS x
+FROM (VALUES (CAST(2147483647 AS INTEGER))) AS d(k)
+JOIN (VALUES (CAST(2147483647 AS BIGINT))) AS f(k) USING (k);
+X BIGINT(19) NOT NULL
+!type
++------------+
+| X          |
++------------+
+| 2147483648 |
++------------+
+(1 row)
+
+!ok
+
+# The issue's unqualified common column must use the same BIGINT arithmetic.
+SELECT k + 1 AS x
+FROM (VALUES (CAST(2147483647 AS INTEGER))) AS d(k)
+JOIN (VALUES (CAST(2147483647 AS BIGINT))) AS f(k) USING (k);
+X BIGINT(19) NOT NULL
+!type
++------------+
+| X          |
++------------+
+| 2147483648 |
++------------+
+(1 row)
+
+!ok
+
 SELECT t1.a
 FROM (VALUES (1), (2)) AS t1(a)
 JOIN (VALUES (1), (null)) AS t2(a)

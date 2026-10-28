@@ -709,7 +709,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // COALESCE is only needed for FULL JOIN; for RIGHT JOIN use the right
         // column (always non-null), and for INNER/LEFT JOIN use the left column.
         final JoinType joinType = join.getJoinType();
-        final SqlNode colRef;
+        SqlNode colRef;
         if (joinType.generatesNullsOnLeft() && joinType.generatesNullsOnRight()) {
           colRef =
               SqlStdOperatorTable.COALESCE.createCall(
@@ -720,6 +720,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           colRef = qualifiedNode.get(1);
         } else {
           colRef = qualifiedNode.get(0);
+        }
+
+        // For joins other than FULL JOIN, the common column is represented by
+        // one input column. Cast it to the common type of both inputs, as in
+        // the SELECT * expansion in Permute.
+        if (!joinType.generatesNullsOnLeft()
+            || !joinType.generatesNullsOnRight()) {
+          final RelDataType leftType = deriveType(scope, qualifiedNode.get(0));
+          final RelDataType rightType = deriveType(scope, qualifiedNode.get(1));
+          final RelDataType commonType =
+              requireNonNull(
+                  SqlTypeUtil.leastRestrictiveForComparison(typeFactory, leftType,
+                      rightType),
+                  () -> "leastRestrictiveForComparison for types " + leftType
+                      + " and " + rightType);
+          final RelDataType colRefType = joinType.generatesNullsOnLeft()
+              ? rightType
+              : leftType;
+          colRef = maybeCast(colRef, colRefType, commonType);
         }
 
         // If there is an alias for the column, no need to wrap with an AS operator
