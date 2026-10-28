@@ -18,8 +18,11 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
@@ -29,8 +32,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Static;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -41,7 +48,8 @@ import static java.util.Objects.requireNonNull;
  *
  * @see SqlBasicAggFunction
  */
-public abstract class SqlAggFunction extends SqlFunction implements Context {
+public abstract class SqlAggFunction extends SqlFunction
+    implements Context, SqlEmptyAggFunction {
   private final boolean requiresOrder;
   private final boolean requiresOver;
   private final Optionality requiresGroupOrder;
@@ -121,6 +129,37 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;
+  }
+
+  /** Provides the empty-input results of standard aggregate kinds in one place.
+   * Subclasses with different behavior may override this method. Unrecognized
+   * kinds, including user-defined functions, have no default result. */
+  @Override public @Nullable RexNode getEmptyResult(RexBuilder rexBuilder,
+      AggregateCall aggregateCall) {
+    switch (kind) {
+    case COUNT:
+    case SUM0:
+      return rexBuilder.makeLiteral(BigDecimal.ZERO, aggregateCall.getType());
+    case LITERAL_AGG:
+      return Iterables.getOnlyElement(aggregateCall.rexList);
+    case COLLECT:
+      // Calcite's COLLECT returns a non-null multiset, including on empty input.
+      return rexBuilder.makeLiteral(ImmutableList.of(), aggregateCall.getType());
+    case MIN:
+    case MAX:
+    case AVG:
+    case SUM:
+    case ANY_VALUE:
+    case STDDEV_POP:
+    case STDDEV_SAMP:
+    case VAR_POP:
+    case VAR_SAMP:
+    case STRING_AGG:
+    case LISTAGG:
+      return rexBuilder.makeNullLiteral(aggregateCall.getType());
+    default:
+      return null;
+    }
   }
 
   @Override public boolean isAggregator() {
