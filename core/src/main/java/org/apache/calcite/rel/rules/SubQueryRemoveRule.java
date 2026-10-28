@@ -967,24 +967,34 @@ public class SubQueryRemoveRule
     final Project project = call.rel(0);
     final Set<CorrelationId> projectVariablesSet = project.getVariablesSet();
     final RelBuilder builder = call.builder();
-    final RexSubQuery e =
-        requireNonNull(RexUtil.SubQueryFinder.find(project.getProjects()));
-    final RelOptUtil.Logic logic =
-        LogicVisitor.find(RelOptUtil.Logic.TRUE_FALSE_UNKNOWN,
-            project.getProjects(), e);
     builder.push(project.getInput());
-    final int fieldCount = builder.peek().getRowType().getFieldCount();
-    final Set<CorrelationId>  variablesSet =
-        RelOptUtil.getVariablesUsed(e.rel);
-    if (!projectVariablesSet.isEmpty()) {
+    // Rewrite all sub-queries in one call, as matchFilter does. If only one
+    // were rewritten per call, the Project created for the remaining ones
+    // would no longer define the correlation variables that they use, and a
+    // later call could not tell this Project's variables from those of an
+    // outer scope.
+    int count = 0;
+    List<RexNode> projects = project.getProjects();
+    while (true) {
+      final RexSubQuery e = RexUtil.SubQueryFinder.find(projects);
+      if (e == null) {
+        assert count > 0;
+        break;
+      }
+      ++count;
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(RelOptUtil.Logic.TRUE_FALSE_UNKNOWN, projects, e);
+      final Set<CorrelationId> variablesSet =
+          RelOptUtil.getVariablesUsed(e.rel);
       // Only consider the correlated variables which originated from this sub-query level.
       variablesSet.retainAll(projectVariablesSet);
+      final RexNode target =
+          rule.apply(e, variablesSet, logic,
+              builder, 1, builder.peek().getRowType().getFieldCount(), count);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+      projects = shuttle.apply(projects);
     }
-    final RexNode target =
-        rule.apply(e, variablesSet, logic, builder, 1, fieldCount, 0);
-    final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-    builder.project(shuttle.apply(project.getProjects()),
-        project.getRowType().getFieldNames());
+    builder.project(projects, project.getRowType().getFieldNames());
     call.transformTo(builder.build());
   }
 
