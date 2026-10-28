@@ -1119,21 +1119,6 @@ public class SubQueryRemoveRule
     final int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
     final int nFieldsRight = join.getRight().getRowType().getFieldCount();
 
-    // Correlation columns should also be considered.
-    // For example:
-    // SELECT t1.deptno FROM dept AS t0 JOIN emp AS t1 ON
-    // (t1.deptno = (SELECT inner_t1.deptno FROM emp AS inner_t1 WHERE inner_t1.ENAME = t0.DNAME));
-    //
-    // LogicalProject(DEPTNO=[$11])
-    //   LogicalJoin(condition=[=($11, $SCALAR_QUERY({
-    // LogicalProject(DEPTNO=[$8])
-    //   LogicalFilter(condition=[=($1, $cor0.dname)])
-    //     LogicalTableScan(table=[emp])
-    // }))], joinType=[inner])
-    //     LogicalTableScan(table=[dept])
-    //     LogicalTableScan(table=[emp])
-    //
-    // In such a case $cor0.dname need to be accounted as input form left side.
     final ImmutableBitSet subqueryUsedFields =
         RelOptUtil.InputFinder.analyze(e, join.getVariablesSet()).build();
 
@@ -1305,49 +1290,6 @@ public class SubQueryRemoveRule
       RexSubQuery subQuery = unsharedSubQuery;
 
       if (!variablesSet.isEmpty()) {
-        // Original correlates reference joint row type, but we are about to create
-        // new join of original right side and correlated sub-query. Therefore we have
-        // to adjust correlated variables in following way:
-        //   1) new correlation variable must reference row type of right side only
-        //   2) field index must be shifted on the size of the left side
-        //      (offset -nFieldsLeft; start is 0 because the sub-query references
-        //      only right-side fields). In the example below, $cor0.DEPTNO0 is
-        //      field 8 of EMP + DEPT and becomes $cor0.DEPTNO, field 0 of DEPT.
-        // This applies to every variable in variablesSet, including references
-        // inside nested sub-queries.
-        // Example:
-        // SELECT e1.*
-        // FROM emp e1
-        // JOIN dept d
-        //   ON e1.deptno = d.deptno
-        //   AND d.deptno IN (
-        //     SELECT e3.empno
-        //     FROM emp e3
-        //     WHERE d.deptno > e3.comm
-        //   )
-        // ORDER BY e1.empno, e1.deptno;
-        //
-        // LogicalJoin(condition=[AND(=($7, $8), IN(CAST($8):SMALLINT NOT NULL, {
-        // LogicalProject(EMPNO=[$0])
-        //   LogicalFilter(condition=[>(CAST($cor0.DEPTNO0):DECIMAL(7, 2) NOT NULL, $6)])
-        //     LogicalTableScan(table=[[scott, EMP]])
-        // }))], joinType=[inner])
-        //   LogicalTableScan(table=[[scott, EMP]])
-        //   LogicalProject(DEPTNO=[$0])
-        //     LogicalTableScan(table=[[scott, DEPT]])
-        //
-        // Rewrite to:
-        //
-        // LogicalProject(EMPNO=[$0], ENAME=[$1], ..., COMM=[$6], DEPTNO=[$7], DEPTNO0=[$8])
-        //   LogicalJoin(condition=[=($7, $8)], joinType=[inner])
-        //     LogicalTableScan(table=[[scott, EMP]])
-        //     LogicalFilter(condition=[=(CAST($0):SMALLINT NOT NULL, $1)])
-        //       LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-        //         LogicalProject(DEPTNO=[$0])
-        //           LogicalTableScan(table=[[scott, DEPT]])
-        //         LogicalProject(EMPNO=[$0])
-        //           LogicalFilter(condition=[>(CAST($cor0.DEPTNO):DECIMAL(7, 2) NOT NULL, $6)])
-        //             LogicalTableScan(table=[[scott, EMP]])
         subQuery =
             (RexSubQuery) remapCorrelationVariables(subQuery, variablesSet,
                 join.getRight().getRowType(), 0, -nFieldsLeft, builder.getRexBuilder());
