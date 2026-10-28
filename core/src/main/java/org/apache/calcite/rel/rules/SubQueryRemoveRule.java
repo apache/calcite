@@ -1140,7 +1140,8 @@ public class SubQueryRemoveRule
     final boolean inputIntersectsLeftSide =
         subqueryUsedFields.intersects(ImmutableBitSet.range(0, nFieldsLeft));
     final boolean inputIntersectsRightSide =
-        subqueryUsedFields.intersects(ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
+        subqueryUsedFields.intersects(
+            ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
     if (inputIntersectsLeftSide && inputIntersectsRightSide
         && join.getJoinType() != JoinRelType.INNER) {
       // Rewriting requires flattening the join into a cross-product first (see below).
