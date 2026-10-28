@@ -2955,6 +2955,75 @@ public class JdbcTest {
         .returns("desc=SameName\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7880">[CALCITE-7880]
+   * Unqualified common column of JOIN USING has the left column's type,
+   * so arithmetic on it can overflow</a>. */
+  @ParameterizedTest
+  @MethodSource("joinUsingMixedNumericTypes")
+  void testJoinUsingMixedNumericCommonColumn(String join, String leftType,
+      String rightType) {
+    // Each input has one row with key 2147483647, so every join matches that
+    // pair. The common type is BIGINT and adding 1 must give 2147483648.
+    // SELECT * below checks the common type independently of the unqualified
+    // reference. sql/join.iq also checks the arithmetic using the qualified
+    // BIGINT input, which does not use common-column expansion.
+    final String from = " from (values (cast(2147483647 as " + leftType + "))) as l(k) "
+        + join + " (values (cast(2147483647 as " + rightType + "))) as r(k)"
+        + (join.startsWith("natural") ? "" : " using (k)");
+    final String nullability = join.contains("full") ? "" : " NOT NULL";
+    CalciteAssert.that()
+        .query("select k + 1 as x" + from)
+        .returns("X=2147483648\n")
+        .typeIs("[X BIGINT" + nullability + "]");
+    CalciteAssert.that()
+        .query("select *" + from)
+        .typeIs("[K BIGINT" + nullability + "]");
+    // A qualified reference still denotes the original input column.
+    CalciteAssert.that()
+        .query("select l.k" + from)
+        .typeIs("[K " + leftType.toUpperCase(Locale.ROOT)
+            + (join.contains("right") || join.contains("full") ? "" : " NOT NULL")
+            + "]");
+  }
+
+  private static Stream<Arguments> joinUsingMixedNumericTypes() {
+    return Stream.of("join", "left join", "right join", "full join",
+        "natural join", "natural left join", "natural right join", "natural full join")
+        .flatMap(
+            join -> Stream.of(arguments(join, "integer", "bigint"),
+            arguments(join, "bigint", "integer")));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7880">[CALCITE-7880]
+   * Unqualified common column of JOIN USING has the left column's type,
+   * so arithmetic on it can overflow</a>. */
+  @ParameterizedTest
+  @MethodSource("joinUsingMixedNumericNulls")
+  void testJoinUsingMixedNumericCommonColumnWithNulls(String join, String leftType,
+      String rightType, String[] expected) {
+    // Only key 2147483647 matches; NULL never matches NULL. LEFT also retains
+    // 2147483646 and NULL, while RIGHT retains 2147483645 and NULL. Adding 1
+    // to each retained key gives the expected rows listed by the method source.
+    final String sql = "select k + 1 as x from (values "
+        + "(cast(2147483647 as " + leftType + ")), (2147483646), (null)) as l(k) "
+        + join + " (values (cast(2147483647 as " + rightType
+        + ")), (2147483645), (null)) as r(k) using (k)";
+    CalciteAssert.that()
+        .query(sql)
+        .returnsUnordered(expected)
+        .typeIs("[X BIGINT]");
+  }
+
+  private static Stream<Arguments> joinUsingMixedNumericNulls() {
+    return Stream.of(
+        arguments("left join", "integer", "bigint",
+            new String[] {"X=2147483648", "X=2147483647", "X=null"}),
+        arguments("right join", "bigint", "integer",
+            new String[] {"X=2147483648", "X=2147483646", "X=null"}));
+  }
+
   @Test void testValuesMinus() {
     CalciteAssert.that()
         .query("values (-2-1)")
