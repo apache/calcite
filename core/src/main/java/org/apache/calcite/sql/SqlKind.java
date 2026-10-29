@@ -207,6 +207,9 @@ public enum SqlKind {
   /** CYCLE clause of a recursive WITH item. */
   CYCLE,
 
+  /** SEARCH clause of a recursive WITH item (not the scalar SEARCH operator). */
+  SEARCH_CLAUSE,
+
   /** Represents a recursive CTE as a table ref. */
   WITH_ITEM_TABLE_REF,
 
@@ -1495,7 +1498,7 @@ public enum SqlKind {
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   ORDER_BY_ALL,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, CYCLE, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+                  VALUES, WITH, WITH_ITEM, CYCLE, SEARCH_CLAUSE, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
                   JSON_VALUE_EXPRESSION, UNNEST),
               SET_QUERY, AGGREGATE, DML, DDL));
 

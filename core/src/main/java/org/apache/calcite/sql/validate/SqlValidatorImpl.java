@@ -78,6 +78,7 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
+import org.apache.calcite.sql.SqlSearchClause;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
@@ -3803,17 +3804,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlValidatorScope scope = parentScope;
     for (int i = 0; i < with.withList.size(); i++) {
       SqlWithItem withItem = (SqlWithItem) with.withList.get(i);
+      final SqlSearchClause searchClause = withItem.searchClause;
+      if (searchClause != null && !withItem.recursive.booleanValue()) {
+        throw newValidationError(searchClause, RESOURCE.searchRequiresRecursive());
+      }
       final SqlCycleClause cycleClause = withItem.cycleClause;
       if (cycleClause != null && !withItem.recursive.booleanValue()) {
         throw newValidationError(cycleClause, RESOURCE.cycleRequiresRecursive());
       }
       SqlValidatorScope withScope =
           registerWithItem(scope, with, withItem, enclosingNode, alias, forceNullable);
-      if (withItem.cycleClause != null) {
+      if (cycleClause != null || searchClause != null) {
         // Validate and expand the user's projection before adding the generated
-        // columns. In particular, SELECT * must not pick up the path or mark.
+        // columns. In particular, SELECT * must not pick up generated columns.
         validateWithItem(withItem);
-        withItem = CycleRewriter.rewrite(this, scope, withItem);
+        withItem = RecursiveWithRewriter.rewrite(this, scope, withItem);
         with.withList.set(i, withItem);
         withScope = registerWithItem(scope, with, withItem, enclosingNode, alias, forceNullable);
       }

@@ -25,7 +25,7 @@ import java.util.List;
 
 /**
  * An item in a WITH clause of a query.
- * It has a name, an optional column list, a query, and an optional CYCLE clause.
+ * It has a name, an optional column list, a query, and optional SEARCH and CYCLE clauses.
  */
 public class SqlWithItem extends SqlCall {
   public SqlIdentifier name;
@@ -33,6 +33,7 @@ public class SqlWithItem extends SqlCall {
   public SqlLiteral recursive;
   public SqlNode query;
   public @Nullable SqlCycleClause cycleClause;
+  public @Nullable SqlSearchClause searchClause;
 
   @Deprecated // to be removed before 2.0
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
@@ -50,12 +51,20 @@ public class SqlWithItem extends SqlCall {
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query,
       SqlLiteral recursive, @Nullable SqlCycleClause cycleClause) {
+    this(pos, name, columnList, query, recursive, cycleClause, null);
+  }
+
+  public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
+      @Nullable SqlNodeList columnList, SqlNode query,
+      SqlLiteral recursive, @Nullable SqlCycleClause cycleClause,
+      @Nullable SqlSearchClause searchClause) {
     super(pos);
     this.name = name;
     this.columnList = columnList;
     this.recursive = recursive;
     this.query = query;
     this.cycleClause = cycleClause;
+    this.searchClause = searchClause;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -66,7 +75,7 @@ public class SqlWithItem extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query, recursive, cycleClause);
+    return ImmutableNullableList.of(name, columnList, query, recursive, cycleClause, searchClause);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -86,6 +95,9 @@ public class SqlWithItem extends SqlCall {
       break;
     case 4:
       cycleClause = (SqlCycleClause) operand;
+      break;
+    case 5:
+      searchClause = (SqlSearchClause) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -122,6 +134,9 @@ public class SqlWithItem extends SqlCall {
       }
       writer.keyword("AS");
       withItem.query.unparse(writer, MDX_PRECEDENCE, MDX_PRECEDENCE);
+      if (withItem.searchClause != null) {
+        withItem.searchClause.unparse(writer, 0, 0);
+      }
       if (withItem.cycleClause != null) {
         withItem.cycleClause.unparse(writer, 0, 0);
       }
@@ -131,10 +146,11 @@ public class SqlWithItem extends SqlCall {
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 4 || operands.length == 5;
+      assert operands.length >= 4 && operands.length <= 6;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
           (SqlNodeList) operands[1], operands[2], (SqlLiteral) operands[3],
-          operands.length == 5 ? (SqlCycleClause) operands[4] : null);
+          operands.length >= 5 ? (SqlCycleClause) operands[4] : null,
+          operands.length == 6 ? (SqlSearchClause) operands[5] : null);
     }
   }
 }

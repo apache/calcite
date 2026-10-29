@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSearchClause;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWith;
@@ -56,33 +57,36 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
-/** Lowers CYCLE to a recursive UNION with a mark and an array of key tuples.
+/** Lowers SEARCH and CYCLE to a recursive UNION with generated columns.
  *
  * <p>Each row has its own path. The row closing a cycle is emitted, but is
  * filtered out before evaluating the next recursive step. Fresh syntax nodes
  * are used because the original query has already been validated. */
-final class CycleRewriter {
+final class RecursiveWithRewriter {
   private static final SqlParserPos POS = SqlParserPos.ZERO;
-  private static final String INPUT = "$CYCLE_INPUT";
+  private static final String INPUT = "$RECURSIVE_INPUT";
+  private static final String DEPTH = "$DEPTH";
 
   private final SqlValidatorImpl validator;
   private final SqlWithItem item;
-  private final SqlCycleClause cycle;
+  private final @Nullable SqlCycleClause cycle;
+  private final @Nullable SqlSearchClause search;
   private final SqlNameMatcher matcher;
 
-  private CycleRewriter(SqlValidatorImpl validator, SqlWithItem item) {
+  private RecursiveWithRewriter(SqlValidatorImpl validator, SqlWithItem item) {
     this.validator = validator;
     this.item = item;
-    this.cycle = requireNonNull(item.cycleClause);
+    this.cycle = item.cycleClause;
+    this.search = item.searchClause;
     this.matcher = validator.getCatalogReader().nameMatcher();
   }
 
   static SqlWithItem rewrite(SqlValidatorImpl validator, SqlValidatorScope scope,
       SqlWithItem item) {
-    return new CycleRewriter(validator, item).rewrite(scope);
+    return new RecursiveWithRewriter(validator, item).rewrite(scope);
   }
 
-  /** Replaces CYCLE with explicit mark and path columns in both UNION operands.
+  /** Replaces SEARCH and CYCLE with explicit generated columns in both UNION operands.
    *
    * <p>For {@code CYCLE k1, k2 SET mark TO cycleValue DEFAULT defaultValue
    * USING path}, the transformation is schematically:
@@ -110,25 +114,98 @@ final class CycleRewriter {
    * The added WHERE condition stops expanding rows already marked as cycles.
    * The recursive output keys are taken after the user's projection. A row
    * closing a cycle is therefore returned with its extended path, but cannot
-   * feed the next recursive step. The original UNION [ALL] is retained.
-   * The returned WITH item declares the two additional columns and no longer
-   * has a CYCLE clause. */
+   * feed the next recursive step.
+   *
+   * <p>For {@code SEARCH DEPTH FIRST BY k1, k2 SET searchOrder}, the
+   * transformation is schematically:
+   *
+   * <pre>{@code
+   * seed output:
+   *   original columns,
+   *   ARRAY[ROW(k1, k2)] AS searchOrder
+   * recursive branch:
+   *   SELECT original output columns,
+   *          append(previousOrder, ROW(k1, k2)) AS searchOrder
+   *   FROM (
+   *     SELECT original projection, previous.searchOrder AS previousOrder
+   *     FROM original sources
+   *     WHERE original condition
+   *   ) AS step
+   * }</pre>
+   *
+   * <p>The generated array contains the key tuples along the path, including
+   * the current row. Lexicographic ordering of these arrays places a parent
+   * before its descendants. For distinct sibling keys, a node's descendants
+   * precede the next sibling.
+   * The keys within each tuple follow the order of the BY list. Even a single
+   * BY column is wrapped in ROW, so the generated column is always an array
+   * of rows. The internal {@link SqlInternalOperators#RECURSIVE_PATH_APPEND}
+   * operator implements append.
+   *
+   * <p>For {@code SEARCH BREADTH FIRST BY k1, k2 SET searchOrder}, the
+   * transformation is schematically:
+   *
+   * <pre>{@code
+   * seed output:
+   *   original columns,
+   *   ROW(0, k1, k2) AS searchOrder
+   * recursive branch:
+   *   SELECT original output columns,
+   *          ROW(previousOrder.$DEPTH + 1, k1, k2) AS searchOrder
+   *   FROM (
+   *     SELECT original projection, previous.searchOrder AS previousOrder
+   *     FROM original sources
+   *     WHERE original condition
+   *   ) AS step
+   * }</pre>
+   *
+   * <p>Here {@code $DEPTH} denotes the first field of the generated row. It is
+   * an INTEGER starting at zero for every seed row and incremented at each
+   * recursive step. The remaining fields contain only the current row's keys,
+   * not the ancestors' keys. Ordering by this row therefore sorts by depth,
+   * then by the BY columns within each level, independently of parent order.
+   * Key field names are uniquified to avoid collisions with {@code $DEPTH}.
+   *
+   * <p>In both SEARCH transformations, the previous ordering value is carried
+   * through the inner SELECT alongside the user's original projection. The
+   * outer SELECT computes the new ordering value using the projected output
+   * keys, just as for CYCLE. The seed is also wrapped so that its output keys
+   * can be referenced when constructing the initial ordering value.
+   * SEARCH only computes a sort key: it neither adds an ORDER BY nor changes
+   * the physical evaluation order of recursion, and it does not detect cycles.
+   * The consuming query must use {@code ORDER BY searchOrder} to request the
+   * corresponding output order. Rows with equal ordering values have no
+   * guaranteed relative order.
+   *
+   * <p>The original UNION [ALL] is retained. If both clauses are present, they
+   * are lowered together so that the user's projection and recursive reference
+   * are only expanded once. The search column precedes the cycle mark and path
+   * columns, and the CYCLE filter still stops expansion of completed paths.
+   * The user's projection, including SELECT *, is expanded before generated
+   * columns are added; those columns are not visible in the user's recursive
+   * term. The returned WITH item declares all generated columns and no longer
+   * has SEARCH or CYCLE clauses. */
   private SqlWithItem rewrite(SqlValidatorScope scope) {
     final Reference reference = validateRecursiveQuery();
     final RelDataType rowType = validator.getNamespaceOrThrow(item).getRowType();
-    final List<RelDataTypeField> keys = validateKeys(rowType);
+    final List<RelDataTypeField> cycleKeys = cycle == null
+        ? ImmutableList.of() : validateKeys(rowType, cycle.columns, false);
+    final List<RelDataTypeField> searchKeys = search == null
+        ? ImmutableList.of() : validateKeys(rowType, search.columns, true);
     final List<String> names = rowType.getFieldNames();
     validateGeneratedNames(names);
-    final RelDataType markType = validateMarkType(scope);
+    final RelDataType markType = cycle == null ? null : validateMarkType(scope);
 
     final SqlNode query = prepareQuery(reference);
     final SqlCall union = (SqlCall) queryBody(query);
-    union.setOperand(0, rewriteSeed(union.operand(0), names, keys, markType));
-    union.setOperand(1, rewriteStep(union.operand(1), reference, names, keys, markType));
+    union.setOperand(0, rewriteSeed(union.operand(0), names, cycleKeys, searchKeys, markType));
+    union.setOperand(1,
+        rewriteStep(union.operand(1), reference, names, cycleKeys, searchKeys, markType));
 
     final List<SqlNode> outputNames = identifiers(names);
-    outputNames.add(copy(cycle.markColumn));
-    outputNames.add(copy(cycle.pathColumn));
+    for (SqlIdentifier generated : generatedColumns()) {
+      outputNames.add(copy(generated));
+    }
     return new SqlWithItem(item.getParserPosition(), item.name,
         new SqlNodeList(outputNames, POS), query, item.recursive);
   }
@@ -138,19 +215,29 @@ final class CycleRewriter {
     final SqlNode body = queryBody(item.query);
     if (body.getKind() != SqlKind.UNION
         || !(((SqlCall) body).operand(1) instanceof SqlSelect)) {
-      throw validator.newValidationError(cycle, RESOURCE.cycleRequiresRecursiveSelect());
+      throw invalidRecursiveQuery();
     }
     final SqlSelect step = ((SqlCall) body).operand(1);
     final List<SqlNode> references = new ArrayList<>();
     findDirectReferences(step.getFrom(), references);
     if (references.size() != 1 || recursiveReferenceCount() != 1) {
-      throw validator.newValidationError(cycle, RESOURCE.cycleRequiresRecursiveSelect());
+      throw invalidRecursiveQuery();
     }
     if (validator.isAggregate(step) || step.isDistinct() || !step.getWindowList().isEmpty()
         || SqlUtil.containsCall(step, call -> call.getKind() == SqlKind.OVER)) {
-      throw validator.newValidationError(cycle, RESOURCE.cycleRecursiveSelectNotSupported());
+      throw search != null
+          ? validator.newValidationError(search, RESOURCE.searchRecursiveSelectNotSupported())
+          : validator.newValidationError(requireNonNull(cycle, "cycle"),
+              RESOURCE.cycleRecursiveSelectNotSupported());
     }
     return reference(references.get(0));
+  }
+
+  private RuntimeException invalidRecursiveQuery() {
+    return search != null
+        ? validator.newValidationError(search, RESOURCE.searchRequiresRecursiveSelect())
+        : validator.newValidationError(requireNonNull(cycle, "cycle"),
+            RESOURCE.cycleRequiresRecursiveSelect());
   }
 
   /** Finds direct references on the non-null-generating sides of joins. */
@@ -196,14 +283,16 @@ final class CycleRewriter {
     return references.size();
   }
 
-  private List<RelDataTypeField> validateKeys(RelDataType rowType) {
+  private List<RelDataTypeField> validateKeys(RelDataType rowType,
+      SqlNodeList columns, boolean searchKeys) {
     final List<RelDataTypeField> keys = new ArrayList<>();
-    for (SqlNode node : cycle.columns) {
+    for (SqlNode node : columns) {
       final SqlIdentifier key = (SqlIdentifier) node;
       final RelDataTypeField field = matcher.field(rowType, key.getSimple());
       if (field == null) {
         throw validator.newValidationError(key,
-            RESOURCE.cycleColumnNotFound(key.getSimple(), item.name.getSimple()));
+            searchKeys ? RESOURCE.searchColumnNotFound(key.getSimple(), item.name.getSimple())
+                : RESOURCE.cycleColumnNotFound(key.getSimple(), item.name.getSimple()));
       }
       if (keys.contains(field)) {
         throw validator.newValidationError(key,
@@ -215,19 +304,32 @@ final class CycleRewriter {
   }
 
   private void validateGeneratedNames(List<String> names) {
-    if (matcher.matches(cycle.markColumn.getSimple(), cycle.pathColumn.getSimple())) {
-      throw validator.newValidationError(cycle.pathColumn,
-          RESOURCE.cycleColumnConflict(cycle.pathColumn.getSimple()));
-    }
-    for (SqlIdentifier generated : ImmutableList.of(cycle.markColumn, cycle.pathColumn)) {
-      if (matcher.indexOf(names, generated.getSimple()) >= 0) {
+    final Set<String> used = matcher.createSet();
+    used.addAll(names);
+    for (SqlIdentifier generated : generatedColumns()) {
+      if (!used.add(generated.getSimple())) {
         throw validator.newValidationError(generated,
-            RESOURCE.cycleColumnConflict(generated.getSimple()));
+            search != null && generated == search.orderColumn
+                ? RESOURCE.searchColumnConflict(generated.getSimple())
+                : RESOURCE.cycleColumnConflict(generated.getSimple()));
       }
     }
   }
 
+  private List<SqlIdentifier> generatedColumns() {
+    final List<SqlIdentifier> columns = new ArrayList<>();
+    if (search != null) {
+      columns.add(search.orderColumn);
+    }
+    if (cycle != null) {
+      columns.add(cycle.markColumn);
+      columns.add(cycle.pathColumn);
+    }
+    return columns;
+  }
+
   private RelDataType validateMarkType(SqlValidatorScope scope) {
+    final SqlCycleClause cycle = requireNonNull(this.cycle);
     if (!(cycle.markValue instanceof SqlLiteral)
         || !(cycle.defaultValue instanceof SqlLiteral)) {
       throw validator.newValidationError(cycle, RESOURCE.cycleInvalidMarkValues());
@@ -267,11 +369,17 @@ final class CycleRewriter {
       aliases.addAll(
           SqlIdentifier.simpleNames(as.getOperandList().subList(2, as.operandCount())));
     }
-    final String mark =
-        SqlValidatorUtil.uniquify(cycle.markColumn.getSimple(), aliases, EXPR_SUGGESTER);
-    final String path =
-        SqlValidatorUtil.uniquify(cycle.pathColumn.getSimple(), aliases, EXPR_SUGGESTER);
-    return new Reference(source, qualified(alias, mark), qualified(alias, path));
+    final List<SqlIdentifier> columns = new ArrayList<>();
+    for (SqlIdentifier generated : generatedColumns()) {
+      columns.add(
+          qualified(alias,
+          SqlValidatorUtil.uniquify(generated.getSimple(), aliases, EXPR_SUGGESTER)));
+    }
+    return new Reference(source, columns);
+  }
+
+  private SqlIdentifier referenceColumn(Reference reference, SqlIdentifier column) {
+    return reference.columns.get(generatedColumns().indexOf(column));
   }
 
   /** Copies the query and adjusts joins and aliases before adding generated columns. */
@@ -296,8 +404,9 @@ final class CycleRewriter {
         }
         if (call == reference.source && call.operandCount() > 2) {
           final List<SqlNode> operands = new ArrayList<>(result.getOperandList());
-          operands.add(new SqlIdentifier(Util.last(reference.mark.names), POS));
-          operands.add(new SqlIdentifier(Util.last(reference.path.names), POS));
+          for (SqlIdentifier column : reference.columns) {
+            operands.add(new SqlIdentifier(Util.last(column.names), POS));
+          }
           return result.getOperator().createCall(result.getParserPosition(), operands);
         }
         return result;
@@ -316,38 +425,55 @@ final class CycleRewriter {
   }
 
   private SqlSelect rewriteSeed(SqlNode seed, List<String> names,
-      List<RelDataTypeField> keys, RelDataType markType) {
+      List<RelDataTypeField> cycleKeys, List<RelDataTypeField> searchKeys,
+      @Nullable RelDataType markType) {
     final List<SqlNode> columns = columns(names);
-    columns.add(cast(copy(cycle.defaultValue), markType));
-    columns.add(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(POS, key(keys)));
+    if (search != null) {
+      columns.add(searchOrder(searchKeys, true));
+    }
+    if (cycle != null) {
+      columns.add(cast(copy(cycle.defaultValue), requireNonNull(markType, "markType")));
+      columns.add(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(POS, key(cycleKeys)));
+    }
     return select(columns, alias(seed, names));
   }
 
   private SqlSelect rewriteStep(SqlSelect step, Reference reference, List<String> names,
-      List<RelDataTypeField> keys, RelDataType markType) {
-    excludeCompletedPaths(step, reference, markType);
+      List<RelDataTypeField> cycleKeys, List<RelDataTypeField> searchKeys,
+      @Nullable RelDataType markType) {
     final List<String> inputNames = new ArrayList<>(names);
-    inputNames.add(cycle.pathColumn.getSimple());
     final List<SqlNode> columns = columns(names);
-    columns.add(cycleMark(keys, markType));
-    columns.add(
-        SqlInternalOperators.CYCLE_PATH_APPEND.createCall(POS, previousPath(), key(keys)));
+    final List<SqlNode> stepColumns = new ArrayList<>(step.getSelectList());
+    if (search != null) {
+      inputNames.add(search.orderColumn.getSimple());
+      stepColumns.add(referenceColumn(reference, search.orderColumn));
+      columns.add(searchOrder(searchKeys, false));
+    }
+    if (cycle != null) {
+      excludeCompletedPaths(step, reference, requireNonNull(markType, "markType"));
+      inputNames.add(cycle.pathColumn.getSimple());
+      stepColumns.add(referenceColumn(reference, cycle.pathColumn));
+      columns.add(cycleMark(cycleKeys, requireNonNull(markType, "markType")));
+      columns.add(
+          SqlInternalOperators.RECURSIVE_PATH_APPEND.createCall(POS, previousPath(), key(cycleKeys)));
+    }
+    step.setSelectList(new SqlNodeList(stepColumns, POS));
     return select(columns, alias(step, inputNames));
   }
 
-  /** Filters closed paths and carries the previous path through the user's projection. */
+  /** Filters closed paths before evaluating the user's projection. */
   private void excludeCompletedPaths(SqlSelect step, Reference reference, RelDataType markType) {
+    final SqlCycleClause cycle = requireNonNull(this.cycle);
     final SqlNode mark = cast(copy(cycle.markValue), markType);
     final SqlNode live =
-        SqlStdOperatorTable.NOT_EQUALS.createCall(POS, reference.mark, mark);
+        SqlStdOperatorTable.NOT_EQUALS.createCall(POS,
+            referenceColumn(reference, cycle.markColumn), mark);
     step.setWhere(step.getWhere() == null ? live
         : SqlStdOperatorTable.AND.createCall(POS, step.getWhere(), live));
-    final List<SqlNode> columns = new ArrayList<>(step.getSelectList());
-    columns.add(reference.path);
-    step.setSelectList(new SqlNodeList(columns, POS));
   }
 
   private SqlNode cycleMark(List<RelDataTypeField> keys, RelDataType markType) {
+    final SqlCycleClause cycle = requireNonNull(this.cycle);
     final SqlNode contains =
         SqlInternalOperators.CYCLE_PATH_CONTAINS.createCall(POS, previousPath(), key(keys));
     return new SqlCase(POS, null, SqlNodeList.of(contains),
@@ -356,7 +482,31 @@ final class CycleRewriter {
   }
 
   private SqlIdentifier previousPath() {
-    return qualified(INPUT, cycle.pathColumn.getSimple());
+    return qualified(INPUT, requireNonNull(cycle, "cycle").pathColumn.getSimple());
+  }
+
+  private SqlNode searchOrder(List<RelDataTypeField> keys, boolean seed) {
+    final SqlSearchClause search = requireNonNull(this.search);
+    final SqlIdentifier previous = qualified(INPUT, search.orderColumn.getSimple());
+    if (!search.breadthFirst.booleanValue()) {
+      return seed
+          ? SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(POS, key(keys))
+          : SqlInternalOperators.RECURSIVE_PATH_APPEND.createCall(POS, previous, key(keys));
+    }
+    // The private depth field cannot collide with a user's BY column name.
+    final List<String> fieldNames = new ArrayList<>();
+    final Set<String> usedNames = matcher.createSet();
+    final List<SqlNode> values = new ArrayList<>();
+    fieldNames.add(DEPTH);
+    usedNames.add(DEPTH);
+    values.add(seed ? SqlLiteral.createExactNumeric("0", POS)
+        : SqlStdOperatorTable.PLUS.createCall(POS, previous.plus(DEPTH, POS),
+            SqlLiteral.createExactNumeric("1", POS)));
+    for (RelDataTypeField field : keys) {
+      fieldNames.add(SqlValidatorUtil.uniquify(field.getName(), usedNames, EXPR_SUGGESTER));
+      values.add(cast(qualified(INPUT, field.getName()), field.getType()));
+    }
+    return new SqlRowOperator("ROW", fieldNames).createCall(POS, values);
   }
 
   private static SqlNode queryBody(SqlNode query) {
@@ -411,13 +561,11 @@ final class CycleRewriter {
   /** Original recursive table reference and its qualified generated columns. */
   private static class Reference {
     final SqlNode source;
-    final SqlIdentifier mark;
-    final SqlIdentifier path;
+    final List<SqlIdentifier> columns;
 
-    Reference(SqlNode source, SqlIdentifier mark, SqlIdentifier path) {
+    Reference(SqlNode source, List<SqlIdentifier> columns) {
       this.source = source;
-      this.mark = mark;
-      this.path = path;
+      this.columns = columns;
     }
   }
 

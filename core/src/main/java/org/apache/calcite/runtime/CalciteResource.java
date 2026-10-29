@@ -938,6 +938,21 @@ public interface CalciteResource {
   @BaseMessage("CYCLE requires WITH RECURSIVE")
   ExInst<SqlValidatorException> cycleRequiresRecursive();
 
+  @BaseMessage("SEARCH requires WITH RECURSIVE")
+  ExInst<SqlValidatorException> searchRequiresRecursive();
+
+  @BaseMessage("SEARCH requires a UNION [ALL] with a recursive SELECT containing exactly one direct reference to its WITH item")
+  ExInst<SqlValidatorException> searchRequiresRecursiveSelect();
+
+  @BaseMessage("SEARCH is not supported with aggregation, DISTINCT, or window functions in the recursive SELECT")
+  ExInst<SqlValidatorException> searchRecursiveSelectNotSupported();
+
+  @BaseMessage("SEARCH column ''{0}'' is not a column of WITH item ''{1}''")
+  ExInst<SqlValidatorException> searchColumnNotFound(String column, String withItem);
+
+  @BaseMessage("SEARCH generated column ''{0}'' conflicts with another column")
+  ExInst<SqlValidatorException> searchColumnConflict(String column);
+
   @BaseMessage("CYCLE requires a UNION [ALL] with a recursive SELECT containing exactly one direct reference to its WITH item")
   ExInst<SqlValidatorException> cycleRequiresRecursiveSelect();
 

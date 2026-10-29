@@ -327,13 +327,10 @@ public class PhysTypeImpl implements PhysType {
       final Expression fieldComparator = generateCollatorExpression(fieldType.getCollation());
       Expression arg0 = fieldReference(parameterV0, index);
       Expression arg1 = fieldReference(parameterV1, index);
-      switch (Primitive.flavor(fieldClass(index))) {
-      case OBJECT:
+      if (Primitive.flavor(fieldClass(index)) == Primitive.Flavor.OBJECT
+          && !isComposite(fieldType)) {
         arg0 = EnumUtils.convert(arg0, Comparable.class);
         arg1 = EnumUtils.convert(arg1, Comparable.class);
-        break;
-      default:
-        break;
       }
       final boolean nullsFirst =
           collation.nullDirection
@@ -345,17 +342,13 @@ public class PhysTypeImpl implements PhysType {
           Expressions.statement(
               Expressions.assign(
                   parameterC,
-                  Expressions.call(
-                      Utilities.class,
+                  generateComparison(fieldType,
                       fieldNullable(index)
                           ? (nullsFirst != descending
                           ? "compareNullsFirst"
                           : "compareNullsLast")
                           : "compare",
-                      Expressions.list(
-                          arg0,
-                          arg1)
-                          .appendIfNotNull(fieldComparator)))));
+                      arg0, arg1, fieldComparator))));
       body.add(
           Expressions.ifThen(
               Expressions.notEqual(
@@ -455,13 +448,10 @@ public class PhysTypeImpl implements PhysType {
       final Expression fieldComparator = generateCollatorExpression(fieldType.getCollation());
       Expression arg0 = fieldReference(parameterV0, index);
       Expression arg1 = fieldReference(parameterV1, index);
-      switch (Primitive.flavor(fieldClass(index))) {
-      case OBJECT:
+      if (Primitive.flavor(fieldClass(index)) == Primitive.Flavor.OBJECT
+          && !isComposite(fieldType)) {
         arg0 = EnumUtils.convert(arg0, Comparable.class);
         arg1 = EnumUtils.convert(arg1, Comparable.class);
-        break;
-      default:
-        break;
       }
       final boolean descending =
           fieldCollation.getDirection()
@@ -470,13 +460,9 @@ public class PhysTypeImpl implements PhysType {
           Expressions.statement(
               Expressions.assign(
                   parameterC,
-                  Expressions.call(
-                      Utilities.class,
+                  generateComparison(fieldType,
                       compareMethodNameFunction.apply(fieldCollation),
-                      Expressions.list(
-                          arg0,
-                          arg1)
-                          .appendIfNotNull(fieldComparator)))));
+                      arg0, arg1, fieldComparator))));
       body.add(
           Expressions.ifThen(
               Expressions.notEqual(
@@ -542,6 +528,36 @@ public class PhysTypeImpl implements PhysType {
           ? "compareNullsLastForMergeJoin"
           : "compare";
     });
+  }
+
+  private static boolean isComposite(RelDataType type) {
+    return type.isStruct() || type.getComponentType() != null;
+  }
+
+  /** ROW and ARRAY sort keys (including SEARCH columns) are not Comparable.
+   * Use the same element-wise comparator as the single-key sort path. */
+  private static Expression generateComparison(RelDataType type, String method,
+      Expression left, Expression right, @Nullable Expression collator) {
+    if (isComposite(type)) {
+      final Expression comparison =
+          Expressions.call(
+              Expressions.call(BuiltInMethod.NULLS_COMPARATOR.method,
+                  Expressions.constant(method.equals("compareNullsFirst")),
+                  Expressions.constant(false)),
+              BuiltInMethod.COMPARATOR_COMPARE.method, left, right);
+      if (method.equals("compareNullsLastForMergeJoin")) {
+        // Preserve the merge join's special signal for two null keys.
+        return Expressions.condition(
+            Expressions.andAlso(Expressions.equal(left, Expressions.constant(null)),
+                Expressions.equal(right, Expressions.constant(null))),
+            Expressions.call(Utilities.class, method,
+                Expressions.constant(null, Comparable.class),
+                Expressions.constant(null, Comparable.class)), comparison);
+      }
+      return comparison;
+    }
+    return Expressions.call(Utilities.class, method,
+        Expressions.list(left, right).appendIfNotNull(collator));
   }
 
   @Override public RelDataType getRowType() {
