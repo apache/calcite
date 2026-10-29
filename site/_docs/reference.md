@@ -205,6 +205,7 @@ withItem:
       name
       [ '(' column [, column ]* ')' ]
       AS '(' query ')'
+      [ SEARCH { DEPTH | BREADTH } FIRST BY column [, column ]* SET orderColumn ]
       [ CYCLE column [, column ]* SET markColumn
           [ TO cycleValue DEFAULT nonCycleValue ] USING pathColumn ]
 
@@ -561,6 +562,59 @@ FROM left_table LEFT ASOF JOIN right_table
 MATCH_CONDITION left_table.timecol <= right_table.timecol
 ON left_table.col = right_table.col
 ```
+
+### Search ordering in recursive queries
+
+`SEARCH` generates a column that can be used to order the output of a recursive
+query. `SEARCH DEPTH FIRST` orders a node before its descendants and those
+descendants before the next sibling. `SEARCH BREADTH FIRST` orders by depth,
+then by the specified columns within each level. The columns in `BY` are
+compared in their listed order. For a generated search column named `seq`,
+with `ORDER BY seq ASC`, nested NULL key values compare after non-NULL values.
+`ORDER BY seq DESC` reverses the ordering of the entire search key.
+`NULLS FIRST` and `NULLS LAST` have no effect because `seq` itself is never NULL.
+
+For example:
+
+{% highlight sql %}
+WITH RECURSIVE
+  edges(src, dst) AS (VALUES (0, 2), (0, 1), (1, 4), (2, 3)),
+  walk(node) AS (
+    VALUES (0)
+    UNION ALL
+    SELECT e.dst FROM walk AS w JOIN edges AS e ON e.src = w.node
+  ) SEARCH DEPTH FIRST BY node SET search_order
+SELECT node FROM walk ORDER BY search_order;
+{% endhighlight %}
+
+This returns `0, 1, 4, 2, 3`. Changing `DEPTH` to `BREADTH` returns
+`0, 1, 2, 3, 4`. `SEARCH` does not itself sort the result or control the
+physical evaluation order; use an explicit `ORDER BY` on the generated column.
+Rows with equal search keys have no guaranteed relative order.
+
+The depth-first column is an array of key rows representing the path. The
+breadth-first column is a row containing the depth (starting at zero) and the
+current keys. The generated column is appended to the WITH item's output,
+including `SELECT *`, but is not part of its declared column list and cannot
+be referenced in the recursive term.
+
+The generated search column participates in duplicate elimination by `UNION`
+(or `UNION DISTINCT`). Therefore, the same node may appear more than once if
+its search keys differ, for example because it is reached through different
+paths with `DEPTH FIRST` or at different depths with `BREADTH FIRST`.
+Rows that are identical in all columns, including the search column, are
+still eliminated as duplicates.
+
+`SEARCH` requires `WITH RECURSIVE` and a binary `UNION` or `UNION ALL` whose
+recursive operand is a `SELECT` with exactly one direct reference to the
+WITH item on a non-null-generating side of a join. Aggregation, `DISTINCT`,
+and window functions in that operand are not supported. The `BY` columns
+must be distinct columns of the WITH item, and the generated column's name
+must not conflict with any other output column.
+
+`SEARCH` can be combined with `CYCLE`, in that order. The search column is
+followed by the cycle mark and path columns. Search ordering alone does not
+detect or stop cycles.
 
 ### Cycle detection in recursive queries
 

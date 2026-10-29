@@ -2745,6 +2745,81 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7815">[CALCITE-7815]
+   * Support the SQL-standard SEARCH clause in recursive CTEs</a>. */
+  @Test void testWithSearch() {
+    for (String mode : new String[]{"DEPTH", "BREADTH"}) {
+      sql("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+          + "SEARCH " + mode + " FIRST BY n SET seq SELECT * FROM t")
+          .ok("WITH RECURSIVE `T` (`N`) AS ((VALUES (ROW(1)))\n"
+              + "UNION ALL\n"
+              + "SELECT `N`\n"
+              + "FROM `T`) SEARCH " + mode + " FIRST BY `N` SET `SEQ` SELECT *\n"
+              + "FROM `T`");
+    }
+  }
+
+  @Test void testWithSearchCompositeKey() {
+    for (String mode : new String[]{"DEPTH", "BREADTH"}) {
+      sql("WITH RECURSIVE t(\"Key\", depth) AS (VALUES (1, 0)\n"
+          + "UNION ALL SELECT \"Key\", depth + 1 FROM t)\n"
+          + "SEARCH " + mode + " FIRST BY \"Key\", depth SET \"Sequence\" SELECT * FROM t")
+          .ok("WITH RECURSIVE `T` (`Key`, `DEPTH`) AS ((VALUES (ROW(1, 0)))\n"
+              + "UNION ALL\n"
+              + "SELECT `Key`, (`DEPTH` + 1)\n"
+              + "FROM `T`) SEARCH " + mode + " FIRST BY `Key`, `DEPTH`"
+              + " SET `Sequence` SELECT *\n"
+              + "FROM `T`");
+    }
+  }
+
+  @Test void testWithSearchFollowingWithItem() {
+    sql("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+        + "SEARCH BREADTH FIRST BY n SET seq, u AS (SELECT * FROM t) SELECT * FROM u")
+        .ok("WITH RECURSIVE `T` (`N`) AS ((VALUES (ROW(1)))\n"
+            + "UNION ALL\n"
+            + "SELECT `N`\n"
+            + "FROM `T`) SEARCH BREADTH FIRST BY `N` SET `SEQ`, `U` AS (SELECT *\n"
+            + "FROM `T`) SELECT *\n"
+            + "FROM `U`");
+  }
+
+  @Test void testWithSearchAndCycle() {
+    sql("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
+        + "SEARCH DEPTH FIRST BY n SET seq CYCLE n SET c USING p SELECT * FROM t")
+        .ok("WITH RECURSIVE `T` (`N`) AS ((VALUES (ROW(1)))\n"
+            + "UNION ALL\n"
+            + "SELECT `N`\n"
+            + "FROM `T`) SEARCH DEPTH FIRST BY `N` SET `SEQ`"
+            + " CYCLE `N` SET `C` TO TRUE DEFAULT FALSE USING `P` SELECT *\n"
+            + "FROM `T`");
+  }
+
+  @Test void testWithSearchFails() {
+    final String prefix = "WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n";
+    sql(prefix + "SEARCH ^FIRST^ BY n SET seq SELECT * FROM t")
+        .fails("(?s)Encountered \"FIRST\" at .*Was expecting.*\"BREADTH\".*\"DEPTH\".*");
+    sql(prefix + "SEARCH DEPTH ^BY^ n SET seq SELECT * FROM t")
+        .fails("(?s)Encountered \"BY\" at .*Was expecting.*\"FIRST\".*");
+    sql(prefix + "SEARCH BREADTH FIRST ^n^ SET seq SELECT * FROM t")
+        .fails("(?s)Encountered \"n\" at .*Was expecting.*\"BY\".*");
+    // BY requires a non-empty list of column names, not expressions.
+    sql(prefix + "SEARCH DEPTH FIRST BY ^SET^ seq SELECT * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SET' at .*Was expecting.*<IDENTIFIER>.*");
+    sql(prefix + "SEARCH DEPTH FIRST BY n, ^SET^ seq SELECT * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SET' at .*Was expecting.*<IDENTIFIER>.*");
+    sql(prefix + "SEARCH DEPTH FIRST BY n ^+^ 1 SET seq SELECT * FROM t")
+        .fails("(?s)Encountered \"\\+\" at .*Was expecting.*\"SET\".*");
+    sql(prefix + "SEARCH DEPTH FIRST BY n ^SELECT^ * FROM t")
+        .fails("(?s)Encountered \"SELECT\" at .*Was expecting.*\"SET\".*");
+    sql(prefix + "SEARCH DEPTH FIRST BY n SET ^SELECT^ * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at .*Was expecting.*<IDENTIFIER>.*");
+    // SEARCH must precede CYCLE.
+    sql(prefix + "CYCLE n SET c USING p ^SEARCH^ DEPTH FIRST BY n SET seq SELECT * FROM t")
+        .fails("(?s)Incorrect syntax near the keyword 'SEARCH' at .*Was expecting.*");
+  }
+
   @Test void testWithCycle() {
     sql("WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n FROM t)\n"
         + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p SELECT * FROM t")
