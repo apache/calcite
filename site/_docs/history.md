@@ -141,6 +141,13 @@ and `GeodeSimpleSchemaFactory`) now requires the operator-level opt-in system pr
 `-Dcalcite.geode.pdxSerializablePackagePath.allowed=true`. A model that sets the operand
 without the opt-in will fail. Java callers of `GeodeUtils.createClientCache` are unaffected.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7906">CALCITE-7906</a>]
+`LikePattern`, which handles the patterns passed to JDBC `DatabaseMetaData` methods such as
+`getTables` and `getColumns` and to `Lookup.getNames`, now supports the `_` wildcard (any single
+character) as well as `%`, as the JDBC specification requires. Previously `_` matched only itself.
+For example, the pattern `EMP_DEPT` now also matches `EMPXDEPT`. To match a literal `_`, escape it
+as `\_`. The public method `LikePattern.likeToRegex` has been removed as part of this improvement.
+
 #### New features
 {: #new-features-1-43-0}
 

@@ -18,13 +18,17 @@ package org.apache.calcite.schema.lookup;
 
 import org.apache.calcite.linq4j.function.Predicate1;
 
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * This class is used to hold a pattern, which is typically
  * used in SQL LIKE statements.
  *
- * <p>The pattern can contain wildcards (`%`) or character ranges (`[a-z]`).
+ * <p>The pattern can contain wildcards: {@code %}, which matches any sequence
+ * of characters, including none; and {@code _}, which matches exactly one character.
+ * A wildcard can be escaped using {@code \}. All other characters match only themselves.
  *
  * <p>The pattern can also be translated to a {@code Predicate1<String>} which
  * can be used to do filtering inside java.
@@ -56,43 +60,92 @@ public class LikePattern {
     if (likePattern == null || likePattern.equals(ANY)) {
       return v1 -> true;
     }
-    final Pattern regex = likeToRegex(likePattern);
-    return v1 -> regex.matcher(v1).matches();
+    final List<Segment> segments = segments(likePattern);
+    return v1 -> matches(segments, v1);
   }
 
-  /**
-   * Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
-   * using '\') to a Java regex. It's always case sensitive.
-   */
-  public static Pattern likeToRegex(String pattern) {
-    StringBuilder buf = new StringBuilder("^");
-    char[] charArray = pattern.toCharArray();
-    int slash = -2;
-    for (int i = 0; i < charArray.length; i++) {
-      char c = charArray[i];
-      if (slash == i - 1) {
-        buf.append('[').append(c).append(']');
-      } else {
-        switch (c) {
-        case '\\':
-          slash = i;
-          break;
-        case '%':
-          buf.append(".*");
-          break;
-        case '[':
-          buf.append("\\[");
-          break;
-        case ']':
-          buf.append("\\]");
-          break;
-        default:
-          buf.append('[').append(c).append(']');
+  /** Splits a LIKE-style pattern into the segments between its '%'
+   * wild-cards, resolving '\' escapes. Consecutive wild-cards act as
+   * one, so only the first and last segments can be empty: the first if
+   * the pattern starts with a wild-card, the last if it ends with one. */
+  private static List<Segment> segments(String pattern) {
+    final List<Segment> segments = new ArrayList<>();
+    final StringBuilder buf = new StringBuilder();
+    BitSet any = new BitSet();
+    for (int i = 0; i < pattern.length(); i++) {
+      final char c = pattern.charAt(i);
+      if (c == '\\') {
+        if (++i < pattern.length()) {
+          buf.append(pattern.charAt(i));
         }
+      } else if (c == '%') {
+        if (buf.length() > 0 || segments.isEmpty()) {
+          segments.add(new Segment(buf.toString(), any));
+        }
+        buf.setLength(0);
+        any = new BitSet();
+      } else {
+        if (c == '_') {
+          any.set(buf.length());
+        }
+        buf.append(c);
       }
     }
-    buf.append("$");
-    return Pattern.compile(buf.toString());
+    segments.add(new Segment(buf.toString(), any));
+    return segments;
+  }
+
+  /** Returns whether a string matches a pattern split by
+   * {@link #segments}. Each middle segment is matched at its leftmost
+   * position, which leaves the most room for the segments after it. */
+  private static boolean matches(List<Segment> segments, String s) {
+    final Segment first = segments.get(0);
+    if (segments.size() == 1) {
+      return s.length() == first.length() && first.matchesAt(s, 0);
+    }
+    final Segment last = segments.get(segments.size() - 1);
+    final int end = s.length() - last.length();
+    if (end < first.length() || !first.matchesAt(s, 0) || !last.matchesAt(s, end)) {
+      return false;
+    }
+    int pos = first.length();
+    for (Segment segment : segments.subList(1, segments.size() - 1)) {
+      while (pos + segment.length() <= end && !segment.matchesAt(s, pos)) {
+        pos++;
+      }
+      if (pos + segment.length() > end) {
+        return false;
+      }
+      pos += segment.length();
+    }
+    return true;
+  }
+
+  /** Characters of a pattern between '%' wild-cards (or the start or end of the pattern).
+   * A position in {@code any} holds an unescaped '_', which matches any one character. */
+  private static class Segment {
+    final String chars;
+    final BitSet any;
+
+    Segment(String chars, BitSet any) {
+      this.chars = chars;
+      this.any = any;
+    }
+
+    int length() {
+      return chars.length();
+    }
+
+    /** Returns whether this segment matches {@code s} starting at
+     * {@code pos}; the caller ensures there are enough characters. */
+    boolean matchesAt(String s, int pos) {
+      for (int i = 0; i < chars.length(); i++) {
+        if (!any.get(i) && s.charAt(pos + i) != chars.charAt(i)) {
+          return false;
+        }
+      }
+      return true;
+    }
   }
 
 }
