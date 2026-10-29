@@ -7951,13 +7951,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     for (SqlNode param : aggCall.getOperandList()) {
-      if (a.findAgg(param) != null) {
+      final SqlCall nestedAgg = a.findAgg(param);
+      if (nestedAgg != null) {
+        if (scope instanceof OrderByScope) {
+          for (SqlNode node
+              : SqlUtil.getAncestry(param, n -> n == nestedAgg, n -> false)) {
+            final SqlNode original = getOriginal(node);
+            if (original instanceof SqlIdentifier
+                && ((SqlIdentifier) original).isSimple()) {
+              throw newValidationError(getOriginal(aggCall),
+                  RESOURCE.orderByAliasNestedAgg(((SqlIdentifier) original).getSimple()));
+            }
+          }
+        }
         throw newValidationError(aggCall, RESOURCE.nestedAggIllegal());
       }
     }
     if (filter != null) {
       if (a.findAgg(filter) != null) {
-        throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
+        throw newValidationError(
+            scope instanceof OrderByScope ? getOriginal(filter) : filter,
+            RESOURCE.aggregateInFilterIllegal());
       }
     }
     if (distinctList != null) {
@@ -8818,9 +8832,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
         RelDataTypeField field = nameMatcher.field(rowType, alias);
         if (field != null) {
-          return nthSelectItem(
-              field.getIndex(),
-              id.getParserPosition());
+          final SqlNode expanded = nthSelectItem(field.getIndex(), id.getParserPosition());
+          setOriginal(expanded, id);
+          return expanded;
         }
       }
 
@@ -8850,7 +8864,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // operand[1] is a field name, not a column reference, and must not be qualified.
       CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, false);
       call.getOperator().acceptCall(this, call, true, argHandler);
-      return argHandler.result();
+      final SqlNode expanded = argHandler.result();
+      setOriginal(expanded, call);
+      return expanded;
     }
   }
 
