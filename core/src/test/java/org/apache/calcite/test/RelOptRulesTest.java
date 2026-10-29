@@ -4455,6 +4455,20 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7901">[CALCITE-7901]
+   * UnionMergeRule merges EXCEPT ALL into an enclosing EXCEPT DISTINCT</a>. */
+  @Test void testMergeMinusAllUnderDistinct() {
+    final String sql = "select * from emp where deptno = 10\n"
+        + "except all\n"
+        + "select * from emp where deptno = 20\n"
+        + "except\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_MERGE)
+        .checkUnchanged();
+  }
+
   /** Tests {@link CoreRules#MINUS_MERGE}
    * does not merge {@code Minus(a, Minus(b, c))}
    * into {@code Minus(a, b, c)}, which would be incorrect. */

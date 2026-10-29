@@ -85,11 +85,7 @@ public class UnionMergeRule
       return false;
     }
 
-    if (topOp.all && !bottomOp.all) {
-      return false;
-    }
-
-    return true;
+    return canMerge(topOp, bottomOp);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -127,10 +123,7 @@ public class UnionMergeRule
       return;
     }
 
-    // Can only combine (1) if all operators are ALL,
-    // or (2) top operator is DISTINCT (i.e. not ALL).
-    // In case (2), all operators become DISTINCT.
-    if (topOp.all && !bottomOp.all) {
+    if (!canMerge(topOp, bottomOp)) {
       return;
     }
 
@@ -160,6 +153,15 @@ public class UnionMergeRule
       relBuilder.minus(topOp.all, n);
     }
     call.transformTo(relBuilder.build());
+  }
+
+  /** Returns whether {@code bottomOp} can be merged into {@code topOp}. */
+  private static boolean canMerge(SetOp topOp, SetOp bottomOp) {
+    if (topOp instanceof Minus) {
+      return topOp.all == bottomOp.all;
+    } else {
+      return !topOp.all || bottomOp.all;
+    }
   }
 
   /** Rule configuration. */
