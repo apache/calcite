@@ -26,10 +26,13 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for SqlCall operands' order and size match with set.
@@ -37,6 +40,66 @@ import static org.hamcrest.Matchers.hasSize;
  *
  */
 public class SqlCallOperandsTest {
+  @Test void testSqlWithItemSearchAndCycleOperands() throws SqlParseException {
+    final String sql =
+        "WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n + 1 FROM t WHERE n < 3)\n"
+            + "SEARCH DEPTH FIRST BY n SET seq CYCLE n SET c USING p\n"
+            + "SELECT * FROM t";
+    final SqlWith with = (SqlWith) SqlParser.create(sql).parseQuery();
+    final SqlWithItem item = (SqlWithItem) with.withList.get(0);
+    assertThat(item.getOperandList(), hasSize(6));
+    assertThat(item.operand(4), sameInstance(item.searchClause));
+    assertThat(item.operand(5), sameInstance(item.cycleClause));
+
+    // Cloning recreates the call from its operand list.
+    final SqlWithItem copy = (SqlWithItem) item.clone(SqlParserPos.ZERO);
+    assertThat(copy.searchClause, sameInstance(item.searchClause));
+    assertThat(copy.cycleClause, sameInstance(item.cycleClause));
+    copy.setOperand(4, null);
+    assertThat(copy.searchClause, nullValue());
+    assertThat(copy.cycleClause, sameInstance(item.cycleClause));
+    copy.setOperand(5, null);
+    assertThat(copy.cycleClause, nullValue());
+    copy.setOperand(4, item.searchClause);
+    copy.setOperand(5, item.cycleClause);
+    assertThat(copy.getOperandList(), equalTo(item.getOperandList()));
+  }
+
+  @Test void testSqlWithItemCreateCall() throws SqlParseException {
+    final String sql =
+        "WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n + 1 FROM t WHERE n < 3)\n"
+            + "SEARCH DEPTH FIRST BY n SET seq CYCLE n SET c USING p\n"
+            + "SELECT * FROM t";
+    final SqlWith with = (SqlWith) SqlParser.create(sql).parseQuery();
+    final SqlWithItem item = (SqlWithItem) with.withList.get(0);
+    final SqlOperator operator = item.getOperator();
+    final SqlWithItem withoutClauses =
+        (SqlWithItem) operator.createCall(SqlParserPos.ZERO,
+            item.name, item.columnList, item.query, item.recursive);
+    assertThat(withoutClauses.searchClause, nullValue());
+    assertThat(withoutClauses.cycleClause, nullValue());
+
+    // Six operands preserve the clause positions even when either clause is absent.
+    for (SqlSearchClause search : Arrays.asList(null, item.searchClause)) {
+      for (SqlCycleClause cycle : Arrays.asList(null, item.cycleClause)) {
+        final SqlWithItem copy =
+            (SqlWithItem) operator.createCall(SqlParserPos.ZERO,
+                item.name, item.columnList, item.query, item.recursive, search, cycle);
+        assertThat(copy.searchClause, sameInstance(search));
+        assertThat(copy.cycleClause, sameInstance(cycle));
+      }
+    }
+
+    // Five operands are ambiguous: the final operand could be SEARCH or CYCLE.
+    for (SqlNode clause : Arrays.asList(null, item.searchClause, item.cycleClause)) {
+      final IllegalArgumentException exception =
+          assertThrows(IllegalArgumentException.class,
+              () -> operator.createCall(SqlParserPos.ZERO,
+                  item.name, item.columnList, item.query, item.recursive, clause));
+      assertThat(exception.getMessage(), equalTo("Expected 4 or 6 operands, got 5"));
+    }
+  }
+
   @Test void testSqlBasicCallSetOperandList() {
     final SqlLiteral one =
         SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
