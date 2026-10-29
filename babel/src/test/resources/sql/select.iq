@@ -473,4 +473,58 @@ FROM "scott"."EMP" AS "EMP"
 ORDER BY "DEPTNO", "EMPNO"
 !explain-validated-on all
 
+# [CALCITE-7900] Query with DISTINCT ON crashes
+# Note: All results in this section have been verified against PostgreSQL and are identical
+
+# DISTINCT ON in a sub-query
+SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename, deptno
+  FROM emp
+  ORDER BY deptno, empno) AS t
+ORDER BY deptno;
++-------+-------+--------+
+| EMPNO | ENAME | DEPTNO |
++-------+-------+--------+
+|  7782 | CLARK |     10 |
+|  7369 | SMITH |     20 |
+|  7499 | ALLEN |     30 |
++-------+-------+--------+
+(3 rows)
+
+!ok
+
+# DISTINCT ON in a sub-query, ORDER BY columns not in the SELECT list
+SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename
+  FROM emp
+  ORDER BY deptno, sal DESC, empno) AS t
+ORDER BY empno;
++-------+-------+
+| EMPNO | ENAME |
++-------+-------+
+|  7698 | BLAKE |
+|  7788 | SCOTT |
+|  7839 | KING  |
++-------+-------+
+(3 rows)
+
+!ok
+
+# DISTINCT ON in a sub-query with LIMIT
+SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename, deptno
+  FROM emp
+  ORDER BY deptno DESC, sal, empno
+  LIMIT 2) AS t
+ORDER BY empno;
++-------+-------+--------+
+| EMPNO | ENAME | DEPTNO |
++-------+-------+--------+
+|  7369 | SMITH |     20 |
+|  7900 | JAMES |     30 |
++-------+-------+--------+
+(2 rows)
+
+!ok
+
 # End select.iq

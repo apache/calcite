@@ -831,12 +831,12 @@ public class SqlToRelConverter {
     }
 
     if (select.isDistinctOn()) {
-      convertOrder(select, bb, collation, orderExprList, null, null);
-    } else {
-      convertOrder(
-          select, bb, collation, orderExprList, select.getOffset(),
-          select.getFetch());
+      convertDistinctOn(bb, select, collationList);
     }
+
+    convertOrder(
+        select, bb, collation, orderExprList, select.getOffset(),
+        select.getFetch());
 
     if (select.hasHints()) {
       final List<RelHint> hints = SqlUtil.getRelHint(hintStrategies, select.getHints());
@@ -856,20 +856,6 @@ public class SqlToRelConverter {
               }), true);
     } else {
       bb.setRoot(bb.root(), true);
-    }
-
-    if (select.isDistinctOn()) {
-      convertDistinctOn(bb, select, collationList);
-      final @Nullable RexNode offsetExpr = select.getOffset() == null
-          ? null : convertExpression(select.getOffset());
-      final @Nullable RexNode fetchExpr = select.getFetch() == null
-          ? null : convertExpression(select.getFetch());
-      if (offsetExpr != null || fetchExpr != null) {
-        bb.setRoot(
-            LogicalSort.create(bb.root(), RelCollations.EMPTY,
-                offsetExpr, fetchExpr),
-            false);
-      }
     }
   }
 
@@ -1154,6 +1140,8 @@ public class SqlToRelConverter {
             || (offset instanceof SqlLiteral
                 && Objects.equals(((SqlLiteral) offset).bigDecimalValue(), BigDecimal.ZERO)))
           && fetch == null) {
+        // DISTINCT ON may have added ORDER BY expressions; remove them
+        removeOrderExprs(bb, orderExprList);
         return;
       }
     }
@@ -1165,6 +1153,12 @@ public class SqlToRelConverter {
             fetch == null ? null : convertExpression(fetch)),
         false);
 
+    removeOrderExprs(bb, orderExprList);
+  }
+
+  /** Removes the expressions that were added to the project list only to
+   * sort the result. */
+  private void removeOrderExprs(Blackboard bb, List<SqlNode> orderExprList) {
     // If extra expressions were added to the project list for sorting,
     // add another project to remove them. But make the collation empty, because
     // we can't represent the real collation.
@@ -4304,7 +4298,8 @@ public class SqlToRelConverter {
       return;
     }
 
-    if (removeSortInSubQuery(bb.top)) {
+    // DISTINCT ON needs the ORDER BY even if the sort is removed
+    if (removeSortInSubQuery(bb.top) && !select.isDistinctOn()) {
       SqlNode offset = select.getOffset();
       if ((offset == null
               || (offset instanceof SqlLiteral

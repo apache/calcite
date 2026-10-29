@@ -6973,4 +6973,53 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "LIMIT 5";
     sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7900">[CALCITE-7900]
+   * Query with DISTINCT ON crashes</a>. The sub-query drops its sort, but
+   * the window that implements DISTINCT ON keeps the ORDER BY keys. */
+  @Test void testDistinctOnInSubQuery() {
+    final String sql = "SELECT * FROM (\n"
+        + "  SELECT DISTINCT ON (deptno) empno, ename, deptno\n"
+        + "  FROM emp\n"
+        + "  ORDER BY deptno, empno) AS t\n"
+        + "ORDER BY deptno";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7900">[CALCITE-7900]
+   * Query with DISTINCT ON crashes</a>. The ORDER BY keys are not in the
+   * SELECT list, so the sub-query must remove them after DISTINCT ON. */
+  @Test void testDistinctOnInSubQueryOrderByNotInSelect() {
+    final String sql = "SELECT * FROM (\n"
+        + "  SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "  FROM emp\n"
+        + "  ORDER BY deptno, sal DESC) AS t";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** As {@link #testDistinctOnInSubQueryOrderByNotInSelect()}, but the
+   * sub-query keeps its sort. */
+  @Test void testDistinctOnInSubQueryKeepSort() {
+    final String sql = "SELECT * FROM (\n"
+        + "  SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "  FROM emp\n"
+        + "  ORDER BY deptno, sal DESC) AS t";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT)
+        .withConfig(c -> c.withRemoveSortInSubQuery(false)).ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7900">[CALCITE-7900]
+   * Query with DISTINCT ON crashes</a>. The Sort that applies LIMIT must keep
+   * the ORDER BY collation; otherwise it can keep any 2 rows. */
+  @Test void testDistinctOnInSubQueryWithLimit() {
+    final String sql = "SELECT * FROM (\n"
+        + "  SELECT DISTINCT ON (deptno) empno, ename\n"
+        + "  FROM emp\n"
+        + "  ORDER BY deptno DESC, sal\n"
+        + "  LIMIT 2) AS t";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
 }
