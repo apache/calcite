@@ -138,8 +138,8 @@ class NestedResultTypesTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"DATE", "TIME", "TIMESTAMP", "BINARY(3)",
-      "INTERVAL YEAR TO MONTH", "INTERVAL DAY TO SECOND"})
+  @ValueSource(strings =
+      {"DATE", "TIME", "TIMESTAMP", "BINARY(3)", "INTERVAL YEAR TO MONTH", "INTERVAL DAY TO SECOND"})
   void testNullValues(String type) {
     final String value = "CAST(NULL AS " + type + ")";
     check("ROW(" + value + ", ARRAY[" + value + "], MAP['value', " + value + "])",
