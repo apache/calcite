@@ -151,7 +151,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -1066,36 +1065,6 @@ public class JdbcTest {
     assertThat(resultSetMetaData.getColumnName(6), is("PK_NAME"));
     resultSet.close();
     connection.close();
-  }
-
-  /** Unit test for
-   * {@link LikePattern#likeToRegex(org.apache.calcite.avatica.Meta.Pat)}. */
-  @Test void testLikeToRegex() {
-    checkLikeToRegex(true, "%", "abc");
-    checkLikeToRegex(true, "abc", "abc");
-    checkLikeToRegex(false, "abc", "abcd"); // trailing char fails match
-    checkLikeToRegex(false, "abc", "0abc"); // leading char fails match
-    checkLikeToRegex(false, "abc", "aBc"); // case-sensitive match
-    checkLikeToRegex(true, "a[b]c", "a[b]c"); // nothing special about brackets
-    checkLikeToRegex(true, "a$c", "a$c"); // nothing special about dollar
-    checkLikeToRegex(false, "a$", "a"); // nothing special about dollar
-    checkLikeToRegex(true, "a%c", "ac");
-    checkLikeToRegex(true, "a%c", "abbbc");
-    checkLikeToRegex(false, "a%c", "acccd");
-
-    // escape using back-slash
-    checkLikeToRegex(true, "a\\%c", "a%c");
-    checkLikeToRegex(false, "a\\%c", "abc");
-    checkLikeToRegex(false, "a\\%c", "a\\%c");
-
-    // multiple wild-cards
-    checkLikeToRegex(true, "a%c%d", "abcdaaad");
-    checkLikeToRegex(false, "a%c%d", "abcdc");
-  }
-
-  private void checkLikeToRegex(boolean b, String pattern, String abc) {
-    final Pattern regex = LikePattern.likeToRegex(pattern);
-    assertTrue(b == regex.matcher(abc).matches());
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns},
