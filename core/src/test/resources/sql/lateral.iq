@@ -331,4 +331,229 @@ EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
 
 !set planner-rules original
 
+# [CALCITE-4693] An aggregate without GROUP BY returns one row even for
+# empty input, so every department must appear.
+select d.deptno, t.s
+from dept as d
+cross join lateral (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as t
+order by d.deptno;
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     40 |          |
++--------+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but with a LIMIT 1 in the subquery.
+select d.deptno, t.s
+from dept as d
+cross join lateral (select sum(e.sal) as s from emp as e where e.deptno = d.deptno limit 1) as t;
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     40 |          |
++--------+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the left input of an inner join inside a
+# LEFT JOIN LATERAL, so department 40 must have X = 1, not NULL.
+select d.deptno, t.s, t.x
+from dept as d
+left join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  join (values (1)) as b(x) on true) as t on true
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but the aggregate is the right input of the inner
+# join.
+select d.deptno, t.s, t.x
+from dept as d
+left join lateral (
+  select a.s, b.x
+  from (values (1)) as b(x)
+  join (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a on true) as t on true
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the preserved input of a LEFT JOIN, so
+# department 40 must have X = 1, not NULL.
+select d.deptno, t.s, t.x
+from dept as d
+cross join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  left join (values (1)) as b(x) on true) as t
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the null-generating input of a LEFT JOIN,
+# where no row has the same effect as a row of nulls.
+select d.deptno, t.x, t.s
+from dept as d
+cross join lateral (
+  select b.x, a.s
+  from (values (1)) as b(x)
+  left join (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a on true) as t
+order by d.deptno;
++--------+---+----------+
+| DEPTNO | X | S        |
++--------+---+----------+
+|     10 | 1 |  8750.00 |
+|     20 | 1 | 10875.00 |
+|     30 | 1 |  9400.00 |
+|     40 | 1 |          |
++--------+---+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but with a condition on the aggregate.
+select d.deptno, t.x, t.s
+from dept as d
+cross join lateral (
+  select b.x, a.s
+  from (values (1)) as b(x)
+  left join (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+    on a.s > 9000) as t
+order by d.deptno;
++--------+---+----------+
+| DEPTNO | X | S        |
++--------+---+----------+
+|     10 | 1 |          |
+|     20 | 1 | 10875.00 |
+|     30 | 1 |  9400.00 |
+|     40 | 1 |          |
++--------+---+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but with COUNT, which is 0 rather than NULL for
+# department 40.
+select d.deptno, t.x, t.c
+from dept as d
+cross join lateral (
+  select b.x, a.c
+  from (values (1)) as b(x)
+  left join (select count(*) as c from emp as e where e.deptno = d.deptno) as a on true) as t
+order by d.deptno;
++--------+---+---+
+| DEPTNO | X | C |
++--------+---+---+
+|     10 | 1 | 3 |
+|     20 | 1 | 5 |
+|     30 | 1 | 6 |
+|     40 | 1 | 0 |
++--------+---+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the null-generating input of a RIGHT JOIN.
+select d.deptno, t.s, t.x
+from dept as d
+cross join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  right join (values (1)) as b(x) on true) as t
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is an input of a FULL JOIN, which preserves it
+# as well as generating nulls for it, so department 40 must have both a row
+# with X = 1 and an unmatched row with X = NULL.
+select d.deptno, t.s, t.x
+from dept as d
+cross join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  full join (values (1)) as b(x) on a.s > 9000) as t
+order by d.deptno, t.s, t.x;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 |   |
+|     10 |          | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
+|     40 |          |   |
++--------+----------+---+
+(6 rows)
+
+!ok
+
+# [CALCITE-4693] An aggregate without GROUP BY returns one row even for
+# empty input, so every department must appear.
+!use post
+select k.deptno,
+  k.deptno - t2.totalAmount as amountDue
+from dept as k,
+  lateral (select sum(emp.deptno) as totalAmount
+    from emp
+    where emp.deptno = k.deptno) as t2;
++--------+-----------+
+| DEPTNO | AMOUNTDUE |
++--------+-----------+
+|     10 |       -10 |
+|     20 |         0 |
+|     30 |       -30 |
+|     40 |           |
++--------+-----------+
+(4 rows)
+
+!ok
+
 # End lateral.iq

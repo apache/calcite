@@ -330,7 +330,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
 
     // decorrelate right side
     detectCorrelatedExpressions(correlate.getRight());
-    allowEmptyOutputFromRewrite &= correlate.getJoinType() != JoinRelType.LEFT_MARK;
+    allowEmptyOutputFromRewrite &= correlate.getJoinType() == JoinRelType.LEFT;
     RelNode newRight = unnest(correlate.getRight(), allowEmptyOutputFromRewrite);
     UnnestedQuery rightInfo = requireNonNull(mapRelToUnnestedQuery.get(correlate.getRight()));
 
@@ -748,7 +748,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     } else {
       // when neither the left nor the right side has correlation,
       // but the join condition has correlation, domain D is pushed down to the left by default.
-      newLeft = unnest(join.getLeft(), allowEmptyOutputFromRewrite);
+      newLeft = unnest(join.getLeft(), join.getJoinType() == JoinRelType.RIGHT);
       pushDownToLeft = true;
       leftInfo = requireNonNull(mapRelToUnnestedQuery.get(join.getLeft()));
     }
@@ -770,8 +770,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       rightInfo =
           new UnnestedQuery(join.getRight(), newRight, new TreeMap<>(), rightOldToNewOutputs);
     } else {
-      allowEmptyOutputFromRewrite &= join.getJoinType() != JoinRelType.LEFT_MARK;
-      newRight = unnest(join.getRight(), allowEmptyOutputFromRewrite);
+      newRight = unnest(join.getRight(), join.getJoinType() == JoinRelType.LEFT);
       pushDownToRight = true;
       rightInfo = requireNonNull(mapRelToUnnestedQuery.get(join.getRight()));
     }

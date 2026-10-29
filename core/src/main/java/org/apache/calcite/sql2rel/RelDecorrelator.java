@@ -581,7 +581,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final RelNode oldInput = rel.getInput();
-    final Frame frame = getInvoke(oldInput, isCorVarDefined, rel, true);
+    final Frame frame = getInvoke(oldInput, isCorVarDefined, rel, parentPropagatesNullValues);
     if (frame == null) {
       // If input has not been rewritten, do not rewrite this rel.
       return null;
@@ -1910,8 +1910,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     frameStack.push(Pair.of(rel.getCorrelationId(), leftFrame));
     final Frame rightFrame =
-        getInvoke(oldRight, true, rel,
-            rel.getJoinType() == JoinRelType.LEFT || parentPropagatesNullValues);
+        getInvoke(oldRight, true, rel, rel.getJoinType() == JoinRelType.LEFT);
     frameStack.pop();
 
     if (rightFrame == null || rightFrame.corDefOutputs.isEmpty()) {
@@ -2028,8 +2027,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RelNode oldLeft = rel.getInput(0);
     final RelNode oldRight = rel.getInput(1);
 
-    final Frame leftFrame = getInvoke(oldLeft, isCorVarDefined, rel, parentPropagatesNullValues);
-    final Frame rightFrame = getInvoke(oldRight, isCorVarDefined, rel, parentPropagatesNullValues);
+    // Decorrelate recursively. Setting parentPropagatesNullValues lets a scalar aggregate return
+    // no row for a corVar value, rather than a row of NULLs. That is safe only for the side of a
+    // LEFT or RIGHT join that generates NULL values, since the join then supplies those NULLs.
+    // FULL does not qualify, because it must output the aggregate's row even when it has no match.
+    final Frame leftFrame =
+        getInvoke(oldLeft, isCorVarDefined, rel, rel.getJoinType() == JoinRelType.RIGHT);
+    final Frame rightFrame =
+        getInvoke(oldRight, isCorVarDefined, rel, rel.getJoinType() == JoinRelType.LEFT);
 
     if (leftFrame == null || rightFrame == null) {
       // If any input has not been rewritten, do not rewrite this rel.
