@@ -38,6 +38,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -166,8 +167,8 @@ public class EnumerableAsofJoin extends AsofJoin implements EnumerableRel {
     int leftFieldCount = left.getRowType().getFieldCount();
     List<RexNode> operands = call.getOperands();
     assert operands.size() == 2;
-    RexNode compareLeft = operands.get(0);
-    RexNode compareRight = operands.get(1);
+    RexNode compareLeft = RexUtil.removeCast(operands.get(0));
+    RexNode compareRight = RexUtil.removeCast(operands.get(1));
     assert compareLeft instanceof RexInputRef;
     assert compareRight instanceof RexInputRef;
     RexInputRef leftInputRef = (RexInputRef) compareLeft;
