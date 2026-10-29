@@ -8786,6 +8786,39 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7905">[CALCITE-7905]
+   * AnsiSqlDialect does not check hint names and options for block-comment delimiters</a>. */
+  @Test void testTableScanHintsWithCommentDelimiter() {
+    final RelBuilder builder = relBuilder();
+    builder.getCluster().setHintStrategies(HintStrategyTable.builder()
+        .hintStrategy("PLACEHOLDER", HintPredicates.TABLE_SCAN)
+        .build());
+    // Each entry maps the text expected in the error message to a hint that contains it
+    final Map<String, RelHint> hints = ImmutableMap.<String, RelHint>builder()
+        // hint name, no options
+        .put("PLACE*/HOLDER", RelHint.builder("PLACE*/HOLDER").build())
+        // key-value options, in the value and in the key
+        .put("f */ g", RelHint.builder("PLACEHOLDER").hintOption("a", "f */ g").build())
+        .put("h /* i", RelHint.builder("PLACEHOLDER").hintOption("h /* i", "b").build())
+        // list options
+        .put("b */ c", RelHint.builder("PLACEHOLDER").hintOption("b */ c").build())
+        .put("d /* e", RelHint.builder("PLACEHOLDER").hintOption("a").hintOption("d /* e").build())
+        .build();
+    for (Map.Entry<String, RelHint> entry : hints.entrySet()) {
+      final RelNode root = builder
+          .scan("orders")
+          .hints(entry.getValue())
+          .project(builder.field("PRODUCT"))
+          .build();
+
+      final IllegalArgumentException e =
+          assertThrows(IllegalArgumentException.class, () ->
+              toSql(root, new AnsiSqlDialect(SqlDialect.EMPTY_CONTEXT)));
+      assertThat(e.getMessage(), containsString(entry.getKey()));
+    }
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
    * RelToSqlConverter should only generate "*" if field names match</a>. */
   @Test void testPreserveAlias() {

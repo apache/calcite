@@ -1086,7 +1086,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   private static SqlHint toSqlHint(RelHint hint, SqlParserPos pos) {
-    if (hint.kvOptions != null) {
+    if (!hint.kvOptions.isEmpty()) {
       return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
           SqlNodeList.of(pos, hint.kvOptions.entrySet().stream()
               .flatMap(
@@ -1094,7 +1094,7 @@ public class RelToSqlConverter extends SqlImplementor
                   SqlLiteral.createCharString(e.getValue(), pos)))
               .collect(Collectors.toList())),
           SqlHint.HintOptionFormat.KV_LIST);
-    } else if (hint.listOptions != null) {
+    } else if (!hint.listOptions.isEmpty()) {
       return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
           SqlNodeList.of(pos, hint.listOptions.stream()
               .map(e -> SqlLiteral.createCharString(e, pos))
