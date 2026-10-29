@@ -409,6 +409,9 @@ public interface CalciteResource {
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
 
+  @BaseMessage("Aggregate expressions cannot be nested: ''{0}'' is a SELECT-list alias for an aggregate expression")
+  ExInst<SqlValidatorException> orderByAliasNestedAgg(String a0);
+
   @BaseMessage("Measure expressions can only occur within AGGREGATE function")
   ExInst<SqlValidatorException> measureIllegal();
 

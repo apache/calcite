@@ -85,6 +85,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -5067,6 +5069,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // various kinds of measure expressions
     sql("select deptno, empno + 1 as measure e1 from emp").ok();
     sql("select *, empno + 1 as measure e1 from emp").ok();
+    // Guards against validating measure expressions in the SELECT scope when expanding ORDER BY,
+    // which would fail because measures can reference aliases (e.g. d1) defined in SELECT.
+    sql("select deptno + 1 as d1, d1 + 2 as measure d3\n"
+        + "from emp order by d3").ok();
 
     // an aggregate function in a measure does not make it an aggregate query
     sql("select *, sum(empno) as measure e1 from emp").ok();
@@ -8391,6 +8397,72 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // causes us to flag the intermediate level
     sql("select sum(^max(min(empno))^) from emp")
         .fails(ERR_NESTED_AGG);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7744">[CALCITE-7744]</a>
+   * ORDER BY agg(col) on a query where an alias shadows col produces an invalid
+   * plan containing an aggregate call in a Project. */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "^max(sal)^",
+      "^max(sal)^ desc",
+      "sal + ^max(sal)^",
+      "^sum(sal + 1)^",
+      "^max(1 + sal)^",
+      "^max(sal + sal)^",
+      "^max(\"SAL\")^ nulls last"
+  })
+  void testOrderByAggregateAliasShadowingRejected(String orderBy) {
+    final String error = "Aggregate expressions cannot be nested: 'SAL' is a "
+        + "SELECT-list alias for an aggregate expression";
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by " + orderBy)
+        .fails(error);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "^max(sal)^",
+      "^max(2 * sal)^",
+      "case when true then ^sum(sal + 1)^ else 0 end"
+  })
+  void testOrderByAliasRejectsAggregateExpressions(String orderBy) {
+    sql("select max(sal) + 1 as sal, deptno, job from emp\n"
+        + "group by deptno, job order by " + orderBy)
+        .fails("Aggregate expressions cannot be nested: 'SAL' is a "
+            + "SELECT-list alias for an aggregate expression");
+  }
+
+  @Test void testOrderByAggregateAliasFilterRejected() {
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by count(*) filter (where ^sal > 1000^)")
+        .fails("FILTER must not contain aggregate expression");
+    sql("select max(sal) as m, deptno, job from emp\n"
+        + "group by deptno, job order by max(sal)").ok();
+  }
+
+  @Test void testOrderByAggregateAliasWithinDistinctRejected() {
+    sql("select max(sal) as m, deptno from emp group by deptno\n"
+        + "order by ^sum(sal)^ within distinct (m)")
+        .fails("WITHIN DISTINCT must not contain aggregate expression");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "select deptno in (select deptno from dept) as b from emp order by b",
+      "select exists (select 1 from dept d where d.deptno = e.deptno) as b "
+          + "from emp e order by b",
+      "select sal > all (select sal from emp) as b from emp order by b",
+      "select sal + ? as x from emp order by x + 1",
+      "select current_date as d, empno from emp order by d",
+      "select deptno + 1 as d1, d1 + 2 as measure d3 from emp order by d3 + 1",
+      "select (select min(deptno) from dept) as b from emp order by b",
+      "select sal + ? as x from emp order by 1 desc",
+      "select current_timestamp as d, empno from emp order by 1",
+      "select deptno + 1 as d1, d1 + 2 as measure d3 from emp order by d3"
+  })
+  void testOrderByAliasPreservesValidatedExpressions(String query) {
+    sql(query).ok();
   }
 
   @Test void testNestedAggOver() {
