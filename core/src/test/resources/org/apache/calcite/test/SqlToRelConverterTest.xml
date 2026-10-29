@@ -2104,6 +2104,77 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], flattened=
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDistinctOnInSubQuery">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename, deptno
+  FROM emp
+  ORDER BY deptno, empno) AS t
+ORDER BY deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
+    LogicalFilter(condition=[=($3, 1)])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], $f3=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $7 NULLS LAST, $0 NULLS LAST)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctOnInSubQueryKeepSort">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename
+  FROM emp
+  ORDER BY deptno, sal DESC) AS t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$2], sort1=[$3], dir0=[ASC], dir1=[DESC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], SAL=[$3])
+      LogicalFilter(condition=[=($4, 1)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], SAL=[$5], $f4=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $7 NULLS LAST, $5 DESC NULLS FIRST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctOnInSubQueryOrderByNotInSelect">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename
+  FROM emp
+  ORDER BY deptno, sal DESC) AS t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalFilter(condition=[=($4, 1)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], SAL=[$5], $f4=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $7 NULLS LAST, $5 DESC NULLS FIRST)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctOnInSubQueryWithLimit">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (
+  SELECT DISTINCT ON (deptno) empno, ename
+  FROM emp
+  ORDER BY deptno DESC, sal
+  LIMIT 2) AS t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1])
+  LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC], fetch=[2])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], SAL=[$3])
+      LogicalFilter(condition=[=($4, 1)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], SAL=[$5], $f4=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $7 DESC NULLS FIRST, $5 NULLS LAST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDistinctOnMultiple">
     <Resource name="sql">
       <![CDATA[SELECT DISTINCT ON (deptno, job) empno, ename
@@ -2113,12 +2184,11 @@ ORDER BY deptno, job, hiredate DESC]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], JOB=[$3], HIREDATE=[$4])
-    LogicalFilter(condition=[=($5, 1)])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], JOB=[$3], HIREDATE=[$4], $f5=[ROW_NUMBER() OVER (PARTITION BY $2, $3 ORDER BY $2 NULLS LAST, $3 NULLS LAST, $4 DESC NULLS FIRST)])
-        LogicalSort(sort0=[$2], sort1=[$3], sort2=[$4], dir0=[ASC], dir1=[ASC], dir2=[DESC])
-          LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], JOB=[$2], HIREDATE=[$4])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalSort(sort0=[$2], sort1=[$3], sort2=[$4], dir0=[ASC], dir1=[ASC], dir2=[DESC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], JOB=[$3], HIREDATE=[$4])
+      LogicalFilter(condition=[=($5, 1)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], JOB=[$2], HIREDATE=[$4], $f5=[ROW_NUMBER() OVER (PARTITION BY $7, $2 ORDER BY $7 NULLS LAST, $2 NULLS LAST, $4 DESC NULLS FIRST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2131,12 +2201,11 @@ ORDER BY deptno, empno]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
-    LogicalFilter(condition=[=($3, 1)])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], $f3=[ROW_NUMBER() OVER (PARTITION BY $2 ORDER BY $2 NULLS LAST, $0 NULLS LAST)])
-        LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC])
-          LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
+      LogicalFilter(condition=[=($3, 1)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], $f3=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $7 NULLS LAST, $0 NULLS LAST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2150,13 +2219,11 @@ LIMIT 5]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1])
-  LogicalSort(fetch=[5])
+  LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC], fetch=[5])
     LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
       LogicalFilter(condition=[=($3, 1)])
-        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], $f3=[ROW_NUMBER() OVER (PARTITION BY $2 ORDER BY $2 NULLS LAST, $0 NULLS LAST)])
-          LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC])
-            LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
-              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], $f3=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $7 NULLS LAST, $0 NULLS LAST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
