@@ -41,6 +41,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.regex.Pattern;
+
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -135,7 +137,7 @@ class RecursiveCteTest {
     assertThat(search.getParserPosition().getLineNum(), is(3));
     final String unparsed = parsed.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
     final String quotedKeys = keys.equals("n") ? "\"N\"" : "\"N\", \"DEPTH\"";
-    assertThat(unparsed.replaceAll("\\s+", " "),
+    assertThat(Pattern.compile("\\s+").matcher(unparsed).replaceAll(" "),
         containsString("SEARCH " + mode + " FIRST BY " + quotedKeys + " SET \"SEQ\""));
     final SqlNode roundTrip = SqlParser.create(unparsed).parseQuery();
     assertThat(roundTrip.toSqlString(CalciteSqlDialect.DEFAULT).getSql(), is(unparsed));

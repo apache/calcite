@@ -455,7 +455,8 @@ final class RecursiveWithRewriter {
       stepColumns.add(referenceColumn(reference, cycle.pathColumn));
       columns.add(cycleMark(cycleKeys, requireNonNull(markType, "markType")));
       columns.add(
-          SqlInternalOperators.RECURSIVE_PATH_APPEND.createCall(POS, previousPath(), key(cycleKeys)));
+          SqlInternalOperators.RECURSIVE_PATH_APPEND.createCall(POS,
+              previousPath(), key(cycleKeys)));
     }
     step.setSelectList(new SqlNodeList(stepColumns, POS));
     return select(columns, alias(step, inputNames));
