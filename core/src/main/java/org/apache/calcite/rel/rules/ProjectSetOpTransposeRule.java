@@ -68,8 +68,10 @@ public class ProjectSetOpTransposeRule
     final Project origProject = call.rel(0);
     final SetOp setOp = call.rel(1);
 
-    // only UNION ALL; other set ops compare rows on all fields
-    if (setOp.kind != SqlKind.UNION || !setOp.all) {
+    // INTERSECT ALL and EXCEPT ALL compare rows on all fields,
+    // so only a permutation of all fields can be pushed past them
+    if (!setOp.all
+        || setOp.kind != SqlKind.UNION && origProject.getPermutation() == null) {
       return;
     }
 
