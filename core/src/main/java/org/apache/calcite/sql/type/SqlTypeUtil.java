@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlTypeNameSpec;
+import org.apache.calcite.sql.SqlVectorTypeNameSpec;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -1020,6 +1021,16 @@ public abstract class SqlTypeUtil {
       return canAssignFrom(getComponentTypeOrThrow(toType), getComponentTypeOrThrow(fromType));
     }
 
+    if (isVector(fromType) || isVector(toType)) {
+      // A vector can be assigned only to a vector of the same dimension and
+      // element type; other conversions require a cast.
+      return isVector(fromType)
+          && isVector(toType)
+          && fromType.getPrecision() == toType.getPrecision()
+          && getComponentTypeOrThrow(fromType).getSqlTypeName()
+              == getComponentTypeOrThrow(toType).getSqlTypeName();
+    }
+
     if (areCharacterSetsMismatched(toType, fromType)) {
       return false;
     }
@@ -1105,6 +1116,9 @@ public abstract class SqlTypeUtil {
     if (isMeasure(fromType)) {
       return canCastFrom(toType, requireNonNull(fromType.getMeasureElementType()),
                          typeMappingRule);
+    }
+    if (isVector(toType) || isVector(fromType)) {
+      return canCastVector(toType, fromType, typeMappingRule);
     }
     if (isAny(toType) || isAny(fromType) || isVariant(toType) || isVariant(fromType)) {
       return true;
@@ -1224,6 +1238,94 @@ public abstract class SqlTypeUtil {
       return false;
     }
     return typeMappingRule.canApplyFrom(toTypeName, fromTypeName);
+  }
+
+  /** Returns whether a value of type {@code fromType} can be cast to type
+   * {@code toType}, at least one of which is {@code VECTOR}.
+   *
+   * <p>A {@code VECTOR} can be cast to or from another {@code VECTOR} with
+   * the same dimension, to or from an {@code ARRAY} of numeric elements, and to
+   * or from a character string; {@code typeMappingRule} decides which of these
+   * casts are allowed in the current context. The number of elements of an
+   * {@code ARRAY} or character string is checked when the value is cast.
+   *
+   * <p>A {@code VECTOR} can be cast to {@code ANY}, but not from {@code ANY}
+   * (because the run-time representation of an {@code ANY} value is not
+   * known). */
+  private static boolean canCastVector(RelDataType toType,
+      RelDataType fromType, SqlTypeMappingRule typeMappingRule) {
+    final SqlTypeName toTypeName = toType.getSqlTypeName();
+    final SqlTypeName fromTypeName = fromType.getSqlTypeName();
+    if (fromTypeName == SqlTypeName.NULL
+        || fromTypeName == SqlTypeName.UNKNOWN
+        || toTypeName == SqlTypeName.UNKNOWN
+        || isAny(toType)) {
+      return true;
+    }
+    switch (toTypeName) {
+    case VECTOR:
+      switch (fromTypeName) {
+      case VECTOR:
+        final RelDataType toElementType = getComponentTypeOrThrow(toType);
+        final RelDataType fromVectorElementType =
+            getComponentTypeOrThrow(fromType);
+        if (!canApplyFrom(typeMappingRule, toTypeName, fromTypeName)
+            || toType.getPrecision() != fromType.getPrecision()) {
+          return false;
+        }
+        if (toElementType.getSqlTypeName()
+            == fromVectorElementType.getSqlTypeName()) {
+          return true;
+        }
+        // Converting the elements requires a cast. Assignment does not
+        // generate one, so it allows only vectors with the same element type.
+        return !(typeMappingRule instanceof SqlTypeAssignmentRule)
+            && canCastFrom(toElementType, fromVectorElementType,
+                typeMappingRule);
+      case ARRAY:
+        if (!canApplyFrom(typeMappingRule, toTypeName, fromTypeName)) {
+          return false;
+        }
+        final RelDataType fromElementType = getComponentTypeOrThrow(fromType);
+        switch (fromElementType.getSqlTypeName()) {
+        case NULL:
+        case UNKNOWN:
+          // For example, "ARRAY[NULL]" and "ARRAY()"; the cast will fail
+          // at run time
+          return true;
+        default:
+          return isNumeric(fromElementType)
+              && canCastFrom(getComponentTypeOrThrow(toType), fromElementType,
+                  typeMappingRule);
+        }
+      case CHAR:
+      case VARCHAR:
+        return canApplyFrom(typeMappingRule, toTypeName, fromTypeName);
+      default:
+        return false;
+      }
+    case ARRAY:
+      return fromTypeName == SqlTypeName.VECTOR
+          && canApplyFrom(typeMappingRule, toTypeName, fromTypeName)
+          && isNumeric(getComponentTypeOrThrow(toType))
+          && canCastFrom(getComponentTypeOrThrow(toType),
+              getComponentTypeOrThrow(fromType), typeMappingRule);
+    case CHAR:
+    case VARCHAR:
+      return fromTypeName == SqlTypeName.VECTOR
+          && canApplyFrom(typeMappingRule, toTypeName, fromTypeName);
+    default:
+      return false;
+    }
+  }
+
+  /** Returns whether a type mapping rule allows a value of type {@code from}
+   * to be converted to type {@code to}; returns false (rather than throwing)
+   * if the rule has no mapping for {@code to}. */
+  private static boolean canApplyFrom(SqlTypeMappingRule typeMappingRule,
+      SqlTypeName to, SqlTypeName from) {
+    return typeMappingRule.getTypeMapping().containsKey(to)
+        && typeMappingRule.canApplyFrom(to, from);
   }
 
   /**
@@ -1375,6 +1477,13 @@ public abstract class SqlTypeUtil {
       final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
       final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
       typeNameSpec = new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
+    } else if (isVector(type)) {
+      final RelDataType elementType = getComponentTypeOrThrow(type);
+      typeNameSpec =
+          new SqlVectorTypeNameSpec(type.getPrecision(),
+              new SqlBasicTypeNameSpec(elementType.getSqlTypeName(),
+                  SqlParserPos.ZERO),
+              SqlParserPos.ZERO);
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);
@@ -1763,6 +1872,17 @@ public abstract class SqlTypeUtil {
       return isComparable(keyType1, keyType2) && isComparable(valueType1, valueType2);
     }
 
+    if (type1Name == SqlTypeName.VECTOR || type2Name == SqlTypeName.VECTOR) {
+      // Vectors are compatible with vectors of the same dimension. (Whether
+      // they can be compared using "=" is a different matter; see
+      // RelDataType.getComparability.)
+      if (family1 == SqlTypeFamily.ANY || family2 == SqlTypeFamily.ANY) {
+        return true;
+      }
+      return type1Name == type2Name
+          && type1.getPrecision() == type2.getPrecision();
+    }
+
     if (family1 == family2) {
       return true;
     }
@@ -1988,6 +2108,11 @@ public abstract class SqlTypeUtil {
     }
     return type.getSqlTypeName() == SqlTypeName.ARRAY
         || type.getSqlTypeName() == SqlTypeName.MULTISET;
+  }
+
+  /** Returns whether a type is VECTOR. */
+  public static boolean isVector(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.VECTOR;
   }
 
   /** Returns whether a type is CHARACTER. */
@@ -2390,6 +2515,15 @@ public abstract class SqlTypeUtil {
       break;
     case VARIANT:
       builder.append("VARIANT");
+      break;
+    case VECTOR:
+      builder.append("VECTOR(")
+          .append(type.getPrecision())
+          .append(", ")
+          .append(
+              asSqlType(getComponentTypeOrThrow(type),
+                  NullabilityDisplay.DoNotDisplay))
+          .append(")");
       break;
     }
     switch (nullDisplay) {

@@ -7529,6 +7529,83 @@ public class SqlFunctions {
     }
   }
 
+  /** Support for {@code CAST(list AS VECTOR(dimension, ...))}.
+   *
+   * <p>Checks that a list (the value of an {@code ARRAY} or {@code VECTOR},
+   * or the element strings of a character string) has {@code dimension}
+   * elements, none of which is null, and returns a new list whose elements
+   * are the result of applying {@code convert} to each element. */
+  public static <E, T> List<T> toVector(List<E> list, int dimension,
+      Function1<E, T> convert) {
+    if (list.size() != dimension) {
+      throw RESOURCE.vectorDimensionMismatch(list.size(), dimension).ex();
+    }
+    final List<T> vector = new ArrayList<>(dimension);
+    for (E e : list) {
+      if (e == null) {
+        throw RESOURCE.vectorElementNull().ex();
+      }
+      vector.add(convert.apply(e));
+    }
+    return vector;
+  }
+
+  /** Support for {@code CAST(string AS VECTOR(dimension, ...))}.
+   *
+   * <p>Splits a string such as {@code '[1.5, -2, 3]'} into the strings of its
+   * elements, {@code ["1.5", "-2", "3"]}, and checks that there are
+   * {@code dimension} of them. The caller converts each element string to the
+   * element type of the vector.
+   *
+   * @see #parseVector(String) */
+  public static List<String> vectorFromString(String s, int dimension) {
+    final List<String> elements = parseVector(s);
+    if (elements == null) {
+      throw RESOURCE.invalidVectorString(s).ex();
+    }
+    if (elements.size() != dimension) {
+      throw RESOURCE.vectorDimensionMismatch(elements.size(), dimension).ex();
+    }
+    return elements;
+  }
+
+  /** Splits the string representation of a vector into the strings of its
+   * elements; returns null if the string is not a valid representation.
+   *
+   * <p>A valid representation consists of zero or more elements separated
+   * by commas and enclosed in square brackets, such as
+   * {@code '[1.5, -2, 3]'}; spaces are allowed around brackets and elements.
+   * This method does not check whether each element is a valid number. */
+  public static @Nullable List<String> parseVector(String s) {
+    final String trimmed = s.trim();
+    if (trimmed.length() < 2
+        || trimmed.charAt(0) != '['
+        || trimmed.charAt(trimmed.length() - 1) != ']') {
+      return null;
+    }
+    final String body = trimmed.substring(1, trimmed.length() - 1).trim();
+    if (body.isEmpty()) {
+      return ImmutableList.of();
+    }
+    final ImmutableList.Builder<String> elements = ImmutableList.builder();
+    for (String element : body.split(",", -1)) {
+      final String trimmedElement = element.trim();
+      if (trimmedElement.isEmpty()) {
+        return null;
+      }
+      elements.add(trimmedElement);
+    }
+    return elements.build();
+  }
+
+  /** Support for {@code CAST(vector AS VARCHAR)}.
+   *
+   * <p>Formats the strings of the elements of a vector, such as
+   * {@code ["1.5", "-2.0", "3.0"]}, as {@code '[1.5, -2.0, 3.0]'}. */
+  public static String vectorToString(List<String> elements) {
+    return "[" + String.join(", ", elements) + "]";
+  }
+
   /** Transforms a list, applying a function to each element. */
   public static <F, T> List<T> transform(List<? extends F> list,
       Function1<? super F, ? extends T> function) {

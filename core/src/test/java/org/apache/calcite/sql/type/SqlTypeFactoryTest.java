@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
@@ -34,10 +35,12 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -408,6 +411,99 @@ class SqlTypeFactoryTest {
     assertThat(unknownType2.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
     assertFalse(unknownType2.isNullable());
     assertThat(unknownType2.getFullTypeString(), is("UNKNOWN NOT NULL"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>. */
+  @Test void testCreateVectorType() {
+    final SqlTypeFixture f = new SqlTypeFixture();
+    final RelDataTypeFactory typeFactory = f.typeFactory;
+    final RelDataType real = typeFactory.createSqlType(SqlTypeName.REAL);
+    final RelDataType vector = typeFactory.createVectorType(real, 3);
+    assertThat(vector, instanceOf(VectorSqlType.class));
+    assertThat(vector.getSqlTypeName(), is(SqlTypeName.VECTOR));
+    assertThat(vector.getFamily(), is(SqlTypeFamily.VECTOR));
+    assertThat(vector, hasToString("VECTOR(3, REAL)"));
+    assertThat(vector.getFullTypeString(), is("VECTOR(3, REAL) NOT NULL"));
+    assertThat(((VectorSqlType) vector).getDimension(), is(3));
+    assertThat(vector.getPrecision(), is(3));
+    assertThat(vector.getComponentType(), is(real));
+    assertThat(vector.getComparability(), is(RelDataTypeComparability.NONE));
+    assertThat(vector.isNullable(), is(false));
+
+    // The nullability of the element type is ignored; elements are never null
+    final RelDataType vector2 =
+        typeFactory.createVectorType(
+            typeFactory.createTypeWithNullability(real, true), 3);
+    assertThat(vector2, sameInstance(vector));
+
+    // Nullability of the vector
+    final RelDataType nullableVector =
+        typeFactory.createTypeWithNullability(vector, true);
+    assertThat(nullableVector.isNullable(), is(true));
+    assertThat(nullableVector.getFullTypeString(), is("VECTOR(3, REAL)"));
+    assertThat(((VectorSqlType) nullableVector).getDimension(), is(3));
+    assertThat(typeFactory.createTypeWithNullability(nullableVector, false),
+        sameInstance(vector));
+    assertThat(typeFactory.enforceTypeWithNullability(vector, true),
+        sameInstance(nullableVector));
+
+    // The element type is normalized to a SQL type; a Java element type
+    // creates the same (canonical) vector type
+    final RelDataType javaFirst =
+        typeFactory.createVectorType(typeFactory.createJavaType(float.class),
+            4);
+    final RelDataType sqlSecond = typeFactory.createVectorType(real, 4);
+    assertThat(sqlSecond, sameInstance(javaFirst));
+    assertThat(javaFirst.getComponentType(), instanceOf(BasicSqlType.class));
+    assertThat(javaFirst.getComponentType(), sameInstance(real));
+
+    final RelDataType tinyintVector =
+        typeFactory.createVectorType(
+            typeFactory.createSqlType(SqlTypeName.TINYINT), 768);
+    assertThat(tinyintVector.getFullTypeString(),
+        is("VECTOR(768, TINYINT) NOT NULL"));
+
+    // Invalid element types and dimensions
+    assertThrows(IllegalArgumentException.class, () ->
+        typeFactory.createVectorType(f.sqlInt, 3));
+    assertThrows(IllegalArgumentException.class, () ->
+        typeFactory.createVectorType(f.sqlVarchar, 3));
+    assertThrows(IllegalArgumentException.class, () ->
+        typeFactory.createVectorType(real, 0));
+    assertThrows(AssertionError.class, () ->
+        typeFactory.createSqlType(SqlTypeName.VECTOR));
+  }
+
+  /** Tests {@link SqlTypeFactoryImpl#leastRestrictive} with VECTOR types. */
+  @Test void testLeastRestrictiveVector() {
+    final SqlTypeFixture f = new SqlTypeFixture();
+    final RelDataTypeFactory typeFactory = f.typeFactory;
+    final RelDataType real = typeFactory.createSqlType(SqlTypeName.REAL);
+    final RelDataType vector3 = typeFactory.createVectorType(real, 3);
+    final RelDataType vector3Nullable =
+        typeFactory.createTypeWithNullability(vector3, true);
+    final RelDataType vector4 = typeFactory.createVectorType(real, 4);
+    final RelDataType tinyintVector3 =
+        typeFactory.createVectorType(
+            typeFactory.createSqlType(SqlTypeName.TINYINT), 3);
+    final RelDataType realArray = typeFactory.createArrayType(real, -1);
+
+    assertThat(typeFactory.leastRestrictive(ImmutableList.of(vector3, vector3)),
+        is(vector3));
+    assertThat(
+        typeFactory.leastRestrictive(ImmutableList.of(vector3, vector3Nullable)),
+        is(vector3Nullable));
+    assertThat(typeFactory.leastRestrictive(ImmutableList.of(vector3, f.sqlNull)),
+        is(vector3Nullable));
+    // No common type for vectors of different element types or dimensions,
+    // nor for a vector and an array
+    assertNull(
+        typeFactory.leastRestrictive(ImmutableList.of(tinyintVector3, vector3)));
+    assertNull(typeFactory.leastRestrictive(ImmutableList.of(vector3, vector4)));
+    assertNull(typeFactory.leastRestrictive(ImmutableList.of(vector3, realArray)));
+    assertNull(typeFactory.leastRestrictive(ImmutableList.of(realArray, vector3)));
   }
 
   /** Test case for

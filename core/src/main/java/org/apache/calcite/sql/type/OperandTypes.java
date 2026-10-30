@@ -54,6 +54,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
@@ -1077,6 +1078,79 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker SAME_VARIADIC =
       new SameOperandTypeChecker(-1);
+
+  /**
+   * Operand type-checking strategy for functions such as {@code GREATEST} and
+   * {@code LEAST}, which compare their operands: like {@link #SAME_VARIADIC},
+   * but no operand may be a {@code VECTOR}, whose values are not comparable.
+   */
+  public static final SqlOperandTypeChecker SAME_VARIADIC_COMPARABLE =
+      notVector(SAME_VARIADIC, (i, n) -> true);
+
+  /**
+   * Returns an operand type checker that is like {@code checker}, but rejects
+   * an operand of type {@code VECTOR} at a position {@code i} (of {@code n}
+   * operands) for which {@code compared.test(i, n)} is true. Use it for a
+   * function that compares the values of those operands, for equality or
+   * order, because the values of a vector are not comparable.
+   *
+   * <p>Other types whose comparability is
+   * {@link RelDataTypeComparability#NONE} are not rejected.
+   *
+   * @param checker  Operand type checker that checks everything else
+   * @param compared Whether the function compares the values of the operand
+   *                 at a given position, given the number of operands
+   */
+  public static SqlOperandTypeChecker notVector(SqlOperandTypeChecker checker,
+      BiPredicate<Integer, Integer> compared) {
+    return new SqlOperandTypeChecker() {
+      @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+          boolean throwOnFailure) {
+        final int n = callBinding.getOperandCount();
+        for (int i = 0; i < n; i++) {
+          if (!compared.test(i, n)) {
+            continue;
+          }
+          final RelDataType type = callBinding.getOperandType(i);
+          if (SqlTypeUtil.isVector(type)) {
+            if (throwOnFailure) {
+              throw callBinding.getValidator().newValidationError(
+                  callBinding.operand(i),
+                  RESOURCE.typeNotComparableInClause(type.toString(),
+                      callBinding.getOperator().getName()));
+            }
+            return false;
+          }
+        }
+        return checker.checkOperandTypes(callBinding, throwOnFailure);
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return checker.getOperandCountRange();
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op,
+          String opName) {
+        return checker.getAllowedSignatures(op, opName);
+      }
+
+      @Override public Consistency getConsistency() {
+        return checker.getConsistency();
+      }
+
+      @Override public boolean isOptional(int i) {
+        return checker.isOptional(i);
+      }
+
+      @Override public boolean isFixedParameters() {
+        return checker.isFixedParameters();
+      }
+
+      @Override public @Nullable SqlOperandTypeInference typeInference() {
+        return checker.typeInference();
+      }
+    };
+  }
 
   /**
    * Operand type-checking strategy where any positive number of operands must all be

@@ -864,6 +864,280 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT UUID '123e4567-e89b-12d3-a456-426655440000' UNION SELECT NULL").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>. */
+  @Test void testVectorType() {
+    expr("cast(array[1, 2.5, 3] as vector(3))")
+        .columnType("VECTOR(3, REAL) NOT NULL");
+    expr("cast(array[1, 2, 3] as vector(3, real))")
+        .columnType("VECTOR(3, REAL) NOT NULL");
+    expr("cast(array[1, 2, 3] as vector(3, tinyint))")
+        .columnType("VECTOR(3, TINYINT) NOT NULL");
+    expr("cast('[1, 2, 3]' as vector(3))")
+        .columnType("VECTOR(3, REAL) NOT NULL");
+    expr("cast(null as vector(3))")
+        .columnType("VECTOR(3, REAL)");
+    expr("cast(cast(null as integer array) as vector(3))")
+        .columnType("VECTOR(3, REAL)");
+    expr("cast(array[1, null] as vector(2))")
+        .columnType("VECTOR(2, REAL) NOT NULL");
+
+    // Casts from a vector
+    final String v = "cast(array[1, 2] as vector(2))";
+    expr("cast(" + v + " as vector(2, tinyint))")
+        .columnType("VECTOR(2, TINYINT) NOT NULL");
+    expr("cast(" + v + " as real array)")
+        .columnType("REAL NOT NULL ARRAY NOT NULL");
+    expr("cast(" + v + " as double array)")
+        .columnType("DOUBLE NOT NULL ARRAY NOT NULL");
+    expr("cast(" + v + " as varchar)")
+        .columnType("VARCHAR NOT NULL");
+    expr("cast(" + v + " as char(10))")
+        .columnType("CHAR(10) NOT NULL");
+
+    // Vectors are compatible with vectors of the same dimension
+    expr("coalesce(cast(null as vector(2)), " + v + ")")
+        .columnType("VECTOR(2, REAL) NOT NULL");
+    expr("case when true then " + v + " else null end")
+        .columnType("VECTOR(2, REAL)");
+    sql("select " + v + " from emp union all select null from emp")
+        .type("RecordType(VECTOR(2, REAL) EXPR$0) NOT NULL");
+    expr("^coalesce(cast(null as vector(3)), " + v + ")^")
+        .fails("Illegal mixing of types in CASE or COALESCE statement");
+    expr("^case when true then cast(null as vector(3)) else " + v + " end^")
+        .fails("Illegal mixing of types in CASE or COALESCE statement");
+  }
+
+  /** Tests invalid {@code VECTOR} types and casts. */
+  @Test void testVectorTypeInvalid() {
+    expr("cast(array[1] as ^vector(0)^)")
+        .fails("Dimension of VECTOR must be a positive integer, but was 0");
+    expr("cast(array[1] as vector(1, ^double^))")
+        .fails("Element type of VECTOR must be REAL or TINYINT, but was 'DOUBLE'");
+    expr("cast(array[1] as vector(1, ^varchar(10)^))")
+        .fails("Element type of VECTOR must be REAL or TINYINT, but was 'VARCHAR\\(10\\)'");
+
+    // The number of elements of an array constructor or character literal
+    // is checked during validation
+    expr("cast(^array[1, 2]^ as vector(3))")
+        .fails("Cannot convert a value with 2 elements to VECTOR of dimension 3");
+    expr("cast(^'[1, 2, 3, 4]'^ as vector(3))")
+        .fails("Cannot convert a value with 4 elements to VECTOR of dimension 3");
+    expr("cast(^'1, 2, 3'^ as vector(3))")
+        .fails("Invalid VECTOR value '1, 2, 3'; expected numbers separated by "
+            + "commas and enclosed in square brackets, such as '\\[1.5, -2, 3\\]'");
+    expr("cast(^'[1, , 3]'^ as vector(3))")
+        .fails("Invalid VECTOR value .*");
+
+    final String v = "cast(array[1, 2] as vector(2))";
+    expr("^cast(" + v + " as vector(3))^")
+        .fails("Cast function cannot convert value of type VECTOR\\(2, REAL\\) NOT NULL "
+            + "to type VECTOR\\(3, REAL\\) NOT NULL");
+    expr("^cast(" + v + " as integer)^")
+        .fails("Cast function cannot convert value of type VECTOR\\(2, REAL\\) NOT NULL "
+            + "to type INTEGER NOT NULL");
+    expr("^cast(" + v + " as varbinary)^")
+        .fails("Cast function cannot convert value of type .* to type VARBINARY NOT NULL");
+    expr("^cast(" + v + " as variant)^")
+        .fails("Cast function cannot convert value of type .* to type VARIANT NOT NULL");
+    expr("^cast(1 as vector(1))^")
+        .fails("Cast function cannot convert value of type INTEGER NOT NULL "
+            + "to type VECTOR\\(1, REAL\\) NOT NULL");
+    expr("^cast(array['a'] as vector(1))^")
+        .fails("Cast function cannot convert value of type CHAR\\(1\\) NOT NULL ARRAY NOT NULL "
+            + "to type VECTOR\\(1, REAL\\) NOT NULL");
+    expr("^cast(multiset[1] as vector(1))^")
+        .fails("Cast function cannot convert value of type .* MULTISET NOT NULL "
+            + "to type VECTOR\\(1, REAL\\) NOT NULL");
+    expr("^cast(cast(1 as variant) as vector(1))^")
+        .fails("Cast function cannot convert value of type VARIANT NOT NULL "
+            + "to type VECTOR\\(1, REAL\\) NOT NULL");
+    // A vector converts only to an array of numbers
+    expr("^cast(" + v + " as boolean array)^")
+        .fails("Cast function cannot convert value of type .* "
+            + "to type BOOLEAN ARRAY NOT NULL");
+    expr("^cast(" + v + " as timestamp array)^")
+        .fails("Cast function cannot convert value of type .* "
+            + "to type TIMESTAMP\\(0\\) ARRAY NOT NULL");
+    expr("^cast(" + v + " as vector(2) array)^")
+        .fails("Cast function cannot convert value of type .* "
+            + "to type VECTOR\\(2, REAL\\) ARRAY NOT NULL");
+
+    // SAFE_CAST and TRY_CAST do not check the number of elements during
+    // validation; they return NULL at run time
+    expr("safe_cast('[1, 2]' as vector(3))")
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .columnType("VECTOR(3, REAL)");
+    expr("safe_cast(array[1, 2] as vector(3))")
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .columnType("VECTOR(3, REAL)");
+    expr("try_cast('junk' as vector(3))")
+        .withOperatorTable(operatorTableFor(SqlLibrary.MSSQL))
+        .columnType("VECTOR(3, REAL)");
+  }
+
+  /** Tests that values of type {@code VECTOR} are not comparable. */
+  @Test void testVectorNotComparable() {
+    final String v = "cast(array[1, 2] as vector(2))";
+    final String t = "(select " + v + " as v, deptno from emp) as t";
+    final String notComparable = "Values of type 'VECTOR\\(2, REAL\\)' are not "
+        + "comparable, so they cannot be used in ";
+    sql("select * from " + t + " where ^v = v^")
+        .fails("(?s)Cannot apply '=' to arguments of type "
+            + "'<VECTOR\\(2, REAL\\)> = <VECTOR\\(2, REAL\\)>'.*");
+    sql("select * from " + t + " where ^v < v^")
+        .fails("(?s)Cannot apply '<' to arguments of type .*");
+    sql("select * from " + t + " where ^v <> " + v + "^")
+        .fails("(?s)Cannot apply '<>' to arguments of type .*");
+    sql("select * from " + t + " where ^v is distinct from v^")
+        .fails("(?s)Cannot apply 'IS DISTINCT FROM' to arguments of type .*");
+    // NULLIF(a, b) is rewritten to CASE WHEN a = b ...
+    sql("select ^nullif(v, v)^ from " + t)
+        .fails("(?s)Cannot apply '=' to arguments of type .*");
+    sql("select ^max(v)^ from " + t)
+        .fails("(?s)Cannot apply 'MAX' to arguments of type 'MAX\\(<VECTOR\\(2, REAL\\)>\\)'.*");
+    sql("select * from " + t + " order by ^v^")
+        .fails(notComparable + "ORDER BY");
+    sql("select * from " + t + " order by ^v^ desc nulls first")
+        .fails(notComparable + "ORDER BY");
+    sql("select * from " + t + " order by deptno, ^1^")
+        .fails(notComparable + "ORDER BY");
+    sql("select v as w from " + t + " order by ^w^")
+        .fails(notComparable + "ORDER BY");
+    sql("select v, count(*) from " + t + " group by ^v^")
+        .fails(notComparable + "GROUP BY");
+    sql("select count(*) from " + t + " group by rollup(deptno, ^v^)")
+        .fails(notComparable + "GROUP BY");
+    sql("select count(*) from " + t + " group by grouping sets ((deptno, ^v^))")
+        .fails(notComparable + "GROUP BY");
+    sql("select distinct deptno, ^v^ from " + t)
+        .fails(notComparable + "SELECT DISTINCT");
+    sql("^select v from " + t + " union select v from " + t + "^")
+        .fails(notComparable + "UNION");
+    sql("^select v from " + t + " intersect select v from " + t + "^")
+        .fails(notComparable + "INTERSECT");
+    sql("^select v from " + t + " except all select v from " + t + "^")
+        .fails(notComparable + "EXCEPT ALL");
+    sql("select row_number() over (order by ^v^) from " + t)
+        .fails(notComparable + "ORDER BY");
+    sql("select row_number() over (order by deptno, ^v^ desc nulls last) from " + t)
+        .fails(notComparable + "ORDER BY");
+    sql("select count(*) over (partition by ^v^) from " + t)
+        .fails(notComparable + "PARTITION BY");
+    sql("select * from " + t + " join " + t.replace(" t", " t2") + " using (^v^)")
+        .fails(notComparable + "USING");
+    sql("select * from " + t + " ^natural^ join " + t.replace(" t", " t2"))
+        .fails(notComparable + "NATURAL JOIN");
+    sql("select count(distinct ^v^) from " + t)
+        .fails(notComparable + "DISTINCT");
+    sql("select sum(deptno) within distinct (^v^) from " + t)
+        .fails(notComparable + "WITHIN DISTINCT");
+    sql("select listagg(cast(v as varchar), ',') within group (order by ^v^ desc)\n"
+        + "from " + t)
+        .fails(notComparable + "WITHIN GROUP");
+    sql("select * from " + t + " where ^v^ in (v, v)")
+        .fails(notComparable + "IN");
+    sql("select * from " + t + " where ^v^ not in (v, v)")
+        .fails(notComparable + "NOT IN");
+    sql("select * from " + t + " where (deptno, ^v^) in\n"
+        + "(select deptno, v from " + t.replace(" t", " t2") + ")")
+        .fails(notComparable + "IN");
+    sql("select * from " + t + " where ^v between v and v^")
+        .fails("(?s)Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type .*");
+    sql("select * from " + t + " where ^v^ = some (v, v)")
+        .fails(notComparable + "= SOME");
+    sql("select * from " + t + " where ^v^ <> all\n"
+        + "(select v from " + t.replace(" t", " t2") + ")")
+        .fails(notComparable + "<> ALL");
+    // A simple CASE is rewritten to CASE WHEN v = v ...
+    sql("select ^case v when v then 1 else 0 end^ from " + t)
+        .fails("(?s)Cannot apply '=' to arguments of type .*");
+
+    // Aggregate functions whose argument or ORDER BY is a vector
+    sql("select arg_min(v, deptno) from " + t).ok();
+    sql("select array_agg(deptno order by ^v^) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .fails(notComparable + "ORDER BY");
+    sql("select string_agg(cast(deptno as varchar), ',' order by ^v^ desc)\n"
+        + "from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .fails(notComparable + "ORDER BY");
+    sql("select group_concat(deptno order by ^v^ separator ';') from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.MYSQL))
+        .fails(notComparable + "ORDER BY");
+    sql("select array_agg(v order by deptno) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .ok();
+
+    // MODE and APPROX_COUNT_DISTINCT compare the values of their argument
+    sql("select mode(^v^) from " + t)
+        .fails(notComparable + "MODE");
+    sql("select approx_count_distinct(^v^) from " + t)
+        .fails(notComparable + "APPROX_COUNT_DISTINCT");
+    sql("select approx_count_distinct(deptno, ^v^) from " + t)
+        .fails(notComparable + "APPROX_COUNT_DISTINCT");
+    sql("select mode(deptno), approx_count_distinct(deptno) from " + t).ok();
+
+    // GREATEST and LEAST compare their arguments
+    sql("select greatest(^v^, v) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .fails(notComparable + "GREATEST");
+    sql("select least(^v^, v) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .fails(notComparable + "LEAST");
+    sql("select greatest(^v^, v) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .fails(notComparable + "GREATEST");
+    sql("select greatest(deptno, 1) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .ok();
+
+    // DECODE compares its first argument with each search value, but not
+    // with the results
+    sql("select decode(^v^, v, 1) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.ORACLE))
+        .fails(notComparable + "DECODE");
+    sql("select decode(deptno, 10, v, ^v^, v) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.ORACLE))
+        .fails(notComparable + "DECODE");
+    sql("select decode(deptno, 10, v, 20, v, v) from " + t)
+        .withOperatorTable(operatorTableFor(SqlLibrary.ORACLE))
+        .ok();
+
+    // MATCH_RECOGNIZE partitions and orders rows
+    final String t3 = "with t3 as (select " + v + " as v, deptno, empno from emp)\n"
+        + "select * from t3";
+    sql(t3 + " match_recognize (\n"
+        + "  order by ^v^\n"
+        + "  measures a.empno as x\n"
+        + "  pattern (a)\n"
+        + "  define a as true)")
+        .fails(notComparable + "ORDER BY");
+    sql(t3 + " match_recognize (\n"
+        + "  partition by ^v^\n"
+        + "  order by empno\n"
+        + "  measures a.empno as x\n"
+        + "  pattern (a)\n"
+        + "  define a as true)")
+        .fails(notComparable + "PARTITION BY");
+
+    // Operations that do not compare vectors are valid
+    sql("select v from " + t + " union all select v from " + t).ok();
+    sql("select distinct on (deptno) v from " + t + " order by deptno")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql("select deptno, count(v) from " + t + " group by deptno").ok();
+    sql("select v is null, v is not null from " + t).ok();
+    sql("select * from " + t + " order by deptno").ok();
+
+    // The checks apply only to VECTOR. The validator still accepts other
+    // types whose comparability is NONE, such as the structured type of
+    // HOME_ADDRESS.
+    sql("select home_address from emp_address order by home_address").ok();
+    sql("select home_address, count(*) from emp_address group by home_address")
+        .ok();
+  }
+
   @Test void testConcatWithCharset() {
     sql("_UTF16'a'||_UTF16'b'||_UTF16'c'")
         .assertCharset(isCharset("UTF-16LE"));

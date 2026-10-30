@@ -6634,6 +6634,113 @@ public class JdbcTest {
         });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>.
+   *
+   * <p>Binds a vector to a dynamic parameter, as an application does to pass
+   * the query vector of a nearest-neighbor search. The parameter has the
+   * vector type. Reading its value checks the number of elements, and
+   * converts each element (which may be a number of any Java type, or a
+   * string) to the element type. */
+  @Test void testVectorDynamicParameter() throws Exception {
+    CalciteAssert.hr()
+        .doWithConnection(connection -> {
+          final String sql = "select cast(? as vector(3)) as v,\n"
+              + "  cast(cast(? as vector(2, tinyint)) as varchar(20)) as w";
+          try (PreparedStatement p = connection.prepareStatement(sql)) {
+            final ParameterMetaData metaData = p.getParameterMetaData();
+            assertThat(metaData.getParameterType(1), is(Types.ARRAY));
+            assertThat(metaData.getParameterTypeName(1), is("VECTOR"));
+            assertThat(metaData.getPrecision(1), is(3));
+            assertThat(metaData.getPrecision(2), is(2));
+
+            p.setObject(1, Arrays.asList(1f, 2.5f, -3f));
+            p.setObject(2, Arrays.asList(1, 2));
+            try (ResultSet r = p.executeQuery()) {
+              assertThat(CalciteAssert.toString(r),
+                  is("V=[1.0, 2.5, -3.0]; W=[1, 2]\n"));
+            }
+
+            p.setObject(1, Arrays.asList(1, 2L, new BigDecimal("3.5")));
+            p.setObject(2, Arrays.asList(1.5d, "-7"));
+            try (ResultSet r = p.executeQuery()) {
+              assertThat(CalciteAssert.toString(r),
+                  is("V=[1.0, 2.0, 3.5]; W=[1, -7]\n"));
+            }
+
+            p.setNull(1, Types.ARRAY);
+            p.setObject(2, Arrays.asList(1, 2));
+            try (ResultSet r = p.executeQuery()) {
+              assertThat(CalciteAssert.toString(r), is("V=null; W=[1, 2]\n"));
+            }
+
+            // The cast is evaluated when the rows are fetched
+            p.setObject(1, Arrays.asList(1f, 2f));
+            assertThat(fetchError(p),
+                containsString("Cannot convert a value with 2 elements "
+                    + "to VECTOR of dimension 3"));
+
+            p.setObject(1, Arrays.asList(1f, null, 3f));
+            assertThat(fetchError(p),
+                containsString("Elements of a VECTOR must not be NULL"));
+
+            p.setObject(1, Arrays.asList(1f, 2f, 3f));
+            p.setObject(2, Arrays.asList(1, 1000));
+            assertThat(fetchError(p), containsString("out of range"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+
+          // Without a cast, the parameter gets the vector type from the
+          // context, and its value is still checked
+          final String sql2 = "select case when \"deptno\" = 10 then ?\n"
+              + "  else cast(array[0, 0, 0] as vector(3)) end as v\n"
+              + "from \"hr\".\"depts\"\n"
+              + "where \"deptno\" in (10, 30)\n"
+              + "order by \"deptno\"";
+          try (PreparedStatement p = connection.prepareStatement(sql2)) {
+            final ParameterMetaData metaData = p.getParameterMetaData();
+            assertThat(metaData.getParameterTypeName(1), is("VECTOR"));
+            assertThat(metaData.getPrecision(1), is(3));
+
+            p.setObject(1, Arrays.asList("1", 2, 3.5d));
+            try (ResultSet r = p.executeQuery()) {
+              assertThat(CalciteAssert.toString(r),
+                  is("V=[1.0, 2.0, 3.5]\nV=[0.0, 0.0, 0.0]\n"));
+            }
+
+            p.setNull(1, Types.ARRAY);
+            try (ResultSet r = p.executeQuery()) {
+              assertThat(CalciteAssert.toString(r),
+                  is("V=null\nV=[0.0, 0.0, 0.0]\n"));
+            }
+
+            p.setObject(1, Arrays.asList(1f, 2f));
+            assertThat(fetchError(p),
+                containsString("Cannot convert a value with 2 elements "
+                    + "to VECTOR of dimension 3"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  /** Executes a statement, fetches its rows, and returns the messages of the
+   * exception (and its causes) that this throws. */
+  private static String fetchError(PreparedStatement p) {
+    try (ResultSet r = p.executeQuery()) {
+      final String rows = CalciteAssert.toString(r);
+      throw new AssertionError("expected an error, but got " + rows);
+    } catch (SQLException | RuntimeException e) {
+      final StringBuilder b = new StringBuilder();
+      for (Throwable t = e; t != null; t = t.getCause()) {
+        b.append(t.getMessage()).append('\n');
+      }
+      return b.toString();
+    }
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5048">[CALCITE-5048]
    * Query with parameterized LIMIT and correlated sub-query throws AssertionError "not a

@@ -20,8 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
+import org.apache.calcite.sql.SqlVectorTypeNameSpec;
 import org.apache.calcite.util.TryThreadLocal;
 
 import com.google.common.collect.ImmutableList;
@@ -42,8 +44,10 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.integerBound;
 import static org.apache.calcite.sql.type.SqlTypeUtil.integerRangeContains;
 import static org.apache.calcite.test.Matchers.isListOf;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -327,6 +331,105 @@ class SqlTypeUtilTest {
         is(false));
     assertThat(SqlTypeUtil.canCastFrom(intType, booleanType, lenientRule),
         is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7857">[CALCITE-7857]
+   * Add a VECTOR data type</a>.
+   *
+   * <p>Tests which casts and assignments involving VECTOR are allowed. */
+  @Test void testVectorCastsAndAssignments() {
+    final RelDataTypeFactory typeFactory = f.typeFactory;
+    final RelDataType real = typeFactory.createSqlType(SqlTypeName.REAL);
+    final RelDataType tinyint = typeFactory.createSqlType(SqlTypeName.TINYINT);
+    final RelDataType vector3 = typeFactory.createVectorType(real, 3);
+    final RelDataType vector3Nullable =
+        typeFactory.createTypeWithNullability(vector3, true);
+    final RelDataType vector4 = typeFactory.createVectorType(real, 4);
+    final RelDataType tinyintVector3 = typeFactory.createVectorType(tinyint, 3);
+    final RelDataType realArray = typeFactory.createArrayType(real, -1);
+    final RelDataType varcharArray =
+        typeFactory.createArrayType(f.sqlVarchar, -1);
+    final SqlTypeCoercionRule cast = SqlTypeCoercionRule.instance();
+    final SqlTypeMappingRule assign = SqlTypeAssignmentRule.instance();
+
+    // Explicit casts
+    assertThat(SqlTypeUtil.canCastFrom(vector3, vector3Nullable, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(tinyintVector3, vector3, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, vector4, cast), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, realArray, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.arrayBigInt, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, varcharArray, cast), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.multisetBigInt, cast), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.sqlVarchar, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.sqlNull, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.sqlInt, cast), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.sqlAny, cast), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(realArray, vector3, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.arrayBigInt, vector3, cast), is(true));
+    assertThat(
+        SqlTypeUtil.canCastFrom(typeFactory.createArrayType(f.sqlBoolean, -1),
+            vector3, cast),
+        is(false));
+    assertThat(
+        SqlTypeUtil.canCastFrom(typeFactory.createArrayType(f.sqlVarchar, -1),
+            vector3, cast),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlVarchar, vector3, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlChar, vector3, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlAny, vector3, cast), is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlInt, vector3, cast), is(false));
+    assertThat(
+        SqlTypeUtil.canCastFrom(typeFactory.createSqlType(SqlTypeName.VARBINARY),
+            vector3, cast),
+        is(false));
+
+    // Assignments allow only vectors of the same dimension and element type
+    assertThat(SqlTypeUtil.canCastFrom(vector3, vector3Nullable, assign),
+        is(true));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, tinyintVector3, assign),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, vector4, assign), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, realArray, assign), is(false));
+    assertThat(SqlTypeUtil.canCastFrom(vector3, f.sqlVarchar, assign),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(realArray, vector3, assign), is(false));
+    assertThat(SqlTypeUtil.canAssignFrom(vector3, vector3Nullable), is(true));
+    assertThat(SqlTypeUtil.canAssignFrom(vector3, tinyintVector3), is(false));
+    assertThat(SqlTypeUtil.canAssignFrom(vector3, vector4), is(false));
+    assertThat(SqlTypeUtil.canAssignFrom(vector3, realArray), is(false));
+    assertThat(SqlTypeUtil.canAssignFrom(realArray, vector3), is(false));
+    assertThat(SqlTypeUtil.canAssignFrom(vector3, f.sqlVarchar), is(false));
+    assertThat(SqlTypeUtil.canAssignFrom(vector3, f.sqlNull), is(true));
+
+    // Vectors of the same dimension are compatible ("comparable" in the
+    // sense of SqlTypeUtil.isComparable) even though they cannot be
+    // compared using "="
+    assertThat(SqlTypeUtil.isComparable(vector3, tinyintVector3), is(true));
+    assertThat(SqlTypeUtil.isComparable(vector3, f.sqlNull), is(true));
+    assertThat(SqlTypeUtil.isComparable(vector3, vector4), is(false));
+    assertThat(SqlTypeUtil.isComparable(vector3, realArray), is(false));
+    assertThat(SqlTypeUtil.isComparable(realArray, vector3), is(false));
+    assertThat(SqlTypeUtil.isComparable(vector3, f.sqlVarchar), is(false));
+  }
+
+  /** Tests {@link SqlTypeUtil#convertTypeToSpec} for VECTOR types. */
+  @Test void testConvertVectorTypeToSpec() {
+    final RelDataTypeFactory typeFactory = f.typeFactory;
+    final RelDataType vector =
+        typeFactory.createVectorType(
+            typeFactory.createSqlType(SqlTypeName.TINYINT), 3);
+    final SqlDataTypeSpec spec = convertTypeToSpec(vector);
+    assertThat(spec.getTypeNameSpec(), instanceOf(SqlVectorTypeNameSpec.class));
+    final SqlVectorTypeNameSpec vectorSpec =
+        (SqlVectorTypeNameSpec) spec.getTypeNameSpec();
+    assertThat(vectorSpec.getDimension(), is(3));
+    assertThat(vectorSpec.getTypeName().getSimple(), is("VECTOR"));
+    assertThat(spec, hasToString("VECTOR(3, TINYINT)"));
+    assertThat(
+        SqlTypeUtil.asSqlType(vector,
+            SqlTypeUtil.NullabilityDisplay.DisplayNonNullability),
+        is("VECTOR(3, TINYINT) NOT NULL"));
   }
 
   private static void assertCanCast(RelDataType toType, RelDataType fromType) {

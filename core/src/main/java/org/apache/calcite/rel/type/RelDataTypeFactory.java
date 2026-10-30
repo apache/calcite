@@ -166,6 +166,21 @@ public interface RelDataTypeFactory {
       long maxCardinality);
 
   /**
+   * Creates a vector type. A vector is a list of exactly {@code dimension}
+   * elements, none of which is null.
+   *
+   * @param elementType type of the elements of the vector; only its type name
+   *                    is used, and that must be allowed by
+   *                    {@link org.apache.calcite.sql.type.VectorSqlType#isValidElementType}
+   * @param dimension   number of elements of the vector; must be positive
+   * @return canonical vector type descriptor
+   *
+   * @throws IllegalArgumentException if the element type or dimension is not
+   * valid
+   */
+  RelDataType createVectorType(RelDataType elementType, int dimension);
+
+  /**
    * Duplicates a type, making a deep copy. Normally, this is a no-op, since
    * canonical type objects are returned. However, it is useful when copying a
    * type from one factory to another.

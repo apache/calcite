@@ -259,6 +259,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // UUID is assignable from
     rules.add(SqlTypeName.UUID, EnumSet.of(SqlTypeName.UUID));
 
+    // VECTOR is assignable from ...
+    rules.add(SqlTypeName.VECTOR, EnumSet.of(SqlTypeName.VECTOR));
+
     // ANY is assignable from ...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);

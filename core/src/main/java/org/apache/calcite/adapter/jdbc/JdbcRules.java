@@ -63,6 +63,7 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -495,7 +496,9 @@ public class JdbcRules {
           .withConversion(Project.class, project ->
                   (out.dialect.supportsWindowFunctions()
                       || !project.containsOver())
-                      && !userDefinedFunctionInProject(project),
+                      && !userDefinedFunctionInProject(project)
+                      && !containsUnsupportedVector(project.getProjects(),
+                          out.dialect),
               Convention.NONE, out, "JdbcProjectRule")
           .withRuleFactory(JdbcProjectRule::new)
           .toRule(JdbcProjectRule.class);
@@ -585,7 +588,10 @@ public class JdbcRules {
     /** Creates a JdbcFilterRule. */
     public static JdbcFilterRule create(JdbcConvention out) {
       return Config.INSTANCE
-          .withConversion(Filter.class, r -> !userDefinedFunctionInFilter(r),
+          .withConversion(Filter.class,
+              r -> !userDefinedFunctionInFilter(r)
+                  && !containsUnsupportedVector(
+                      ImmutableList.of(r.getCondition()), out.dialect),
               Convention.NONE, out, "JdbcFilterRule")
           .withRuleFactory(JdbcFilterRule::new)
           .toRule(JdbcFilterRule.class);
@@ -1099,6 +1105,30 @@ public class JdbcRules {
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
+  }
+
+  /** Returns whether any of a list of expressions, or any of their operands,
+   * has a {@code VECTOR} type that a dialect cannot write in SQL (see
+   * {@link SqlDialect#supportsDataType}). Such expressions are evaluated by
+   * Calcite rather than pushed down to the database.
+   *
+   * <p>Other types are not checked; for example, the Oracle dialect reports
+   * that it does not support {@code BOOLEAN}, but it can write boolean
+   * conditions. */
+  private static boolean containsUnsupportedVector(
+      List<? extends RexNode> nodes, SqlDialect dialect) {
+    for (RexNode node : nodes) {
+      if (SqlTypeUtil.isVector(node.getType())
+          && !dialect.supportsDataType(node.getType())) {
+        return true;
+      }
+      if (node instanceof RexCall
+          && containsUnsupportedVector(((RexCall) node).getOperands(),
+              dialect)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Visitor that checks whether part of a projection is a user-defined

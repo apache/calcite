@@ -265,7 +265,10 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE, REDSHIFT, SPARK, HIVE})
   public static final SqlFunction DECODE =
       SqlBasicFunction.create(SqlKind.DECODE, DECODE_RETURN_TYPE,
-          OperandTypes.VARIADIC);
+          // DECODE(expr, search1, result1, ..., [default]) compares expr
+          // with each search value
+          OperandTypes.notVector(OperandTypes.VARIADIC,
+              (i, n) -> i == 0 || i % 2 == 1 && i < n - 1));
 
   /** The "IF(condition, thenValue, elseValue)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
@@ -496,7 +499,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GREATEST =
       SqlBasicFunction.create(SqlKind.GREATEST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
-          OperandTypes.SAME_VARIADIC);
+          OperandTypes.SAME_VARIADIC_COMPARABLE);
 
   /** The "GREATEST(value, value)" function. Identical to the standard <code>GREATEST</code>
    * function except it skips null values and only returns null if all parameters are nulls. */
@@ -504,14 +507,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GREATEST_PG =
       SqlBasicFunction.create("GREATEST", SqlKind.GREATEST_PG,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
-          OperandTypes.SAME_VARIADIC);
+          OperandTypes.SAME_VARIADIC_COMPARABLE);
 
   /** The "LEAST(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, HIVE})
   public static final SqlFunction LEAST =
       SqlBasicFunction.create(SqlKind.LEAST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
-          OperandTypes.SAME_VARIADIC);
+          OperandTypes.SAME_VARIADIC_COMPARABLE);
 
   /** The "LEAST(value, value)" function. Identical to the standard <code>LEAST</code>
    * function except it skips null values and only returns null if all parameters are nulls. */
@@ -519,7 +522,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction LEAST_PG =
       SqlBasicFunction.create("LEAST", SqlKind.LEAST_PG,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
-          OperandTypes.SAME_VARIADIC);
+          OperandTypes.SAME_VARIADIC_COMPARABLE);
 
   /** The "CEIL(value)" function. Identical to the standard <code>CEIL</code> function
    * except the return type should be a double if the operand is an integer. */
