@@ -170,6 +170,24 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         "filterRequirement (maybe validation is not complete?)");
   }
 
+  /** Requires that a source namespace has no pending "must-filter" obligations.
+   *
+   * <p>Namespaces such as PIVOT, UNPIVOT, MATCH_RECOGNIZE and table function
+   * calls transform the rows of their source in a way that does not preserve
+   * column positions, and therefore cannot re-express the source's
+   * {@link FilterRequirement} in terms of their own output columns. Rather
+   * than silently dropping the requirement (which would let a query read a
+   * {@link SemanticTable}'s rows with the must-filter enforcement bypassed),
+   * such namespaces fail closed: the source's must-filter fields have to be
+   * filtered (or defused by a bypass field) within the source query itself.
+   *
+   * @param sourceNs Namespace whose rows this namespace transforms
+   * @param node     Node to which a validation error should be attached
+   */
+  protected void checkFilterRequirementSatisfied(SqlValidatorNamespace sourceNs, SqlNode node) {
+    validator.checkFilterRequirementSatisfied(sourceNs, node);
+  }
+
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }

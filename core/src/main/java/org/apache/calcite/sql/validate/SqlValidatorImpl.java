@@ -1650,39 +1650,44 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType type = namespace.getType();
 
       if (node == top) {
-        final FilterRequirement filterRequirement =
-            namespace.getFilterRequirement();
-
-        // Either of the following two conditions result in an invalid query:
-        // 1) A top-level namespace must not return any must-filter fields.
-        // A non-top-level namespace (e.g. a subquery) may return must-filter
-        // fields; these are neutralized if the consuming query filters on them.
-        // 2) A top-level namespace must not have any remnant-must-filter fields.
-        // Remnant must filter fields are fields that are not selected and cannot
-        // be defused unless a bypass field defuses it.
-        if (!filterRequirement.filterFields.isEmpty()
-            || !filterRequirement.remnantFilterFields.isEmpty()) {
-          Stream<String> mustFilterStream =
-              filterRequirement.filterFields.stream()
-                  .mapToObj(namespace.getRowType().getFieldNames()::get);
-          Stream<String> remnantStream =
-              filterRequirement.remnantFilterFields.stream()
-                  .map(q -> q.suffix().get(0));
-
-          // Set of field names, sorted alphabetically for determinism.
-          Set<String> fieldNameSet =
-              Stream.concat(mustFilterStream, remnantStream)
-                  .collect(Collectors.toCollection(TreeSet::new));
-          throw newValidationError(node,
-              RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
+        // The top-level filter check applies only to namespaces that expose rows to the caller.
+        // A DML statement's target namespace does not: its must-filter fields describe how the
+        // table is read, not how it is written. The source query of a DML statement is checked
+        // separately (see validateDmlSourceFilterRequirement).
+        if (!(namespace instanceof DmlNamespace)) {
+          checkFilterRequirementSatisfied(namespace, node);
         }
-
         if (!config.embeddedQuery()) {
           type = SqlTypeUtil.fromMeasure(typeFactory, type);
         }
       }
       setValidatedNodeType(node, type);
     }
+  }
+
+  /**
+   * Checks that {@code namespace} exposes no unsatisfied must-filter
+   * obligations, and throws otherwise.
+   */
+  void checkFilterRequirementSatisfied(SqlValidatorNamespace namespace, SqlNode node) {
+    namespace.getRowType(); // ensure the source namespace has been validated
+    final FilterRequirement filterRequirement = namespace.getFilterRequirement();
+    if (filterRequirement.filterFields.isEmpty()
+        && filterRequirement.remnantFilterFields.isEmpty()) {
+      return;
+    }
+    final Stream<String> mustFilterStream =
+        filterRequirement.filterFields.stream()
+            .mapToObj(namespace.getRowType().getFieldNames()::get);
+    final Stream<String> remnantStream =
+        filterRequirement.remnantFilterFields.stream()
+            .map(q -> q.suffix().get(0));
+
+    // Set of field names, sorted alphabetically for determinism.
+    final Set<String> fieldNameSet =
+        Stream.concat(mustFilterStream, remnantStream)
+            .collect(Collectors.toCollection(TreeSet::new));
+    throw newValidationError(node, RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
   }
 
   @Override public SqlValidatorScope getEmptyScope() {
@@ -4756,37 +4761,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
       Consumer<SqlQualified> consumer) {
     node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall call) {
+        // Do not descend into sub-queries, whose identifiers belong to their
+        // own scope; the outer scope cannot resolve them
+        if (call.getKind().belongsTo(SqlKind.QUERY)) {
+          return null;
+        }
+        return super.visit(call);
+      }
       @Override public Void visit(SqlIdentifier id) {
         final SqlQualified qualified = scope.fullyQualify(id);
         consumer.accept(qualified);
-        return null;
-      }
-    });
-  }
-
-  /** Removes all entries from {@code qualifieds} and
-   * {@code remnantMustFilterFields} if {@code node} is a bypassField. */
-  private static void purgeForBypassFields(SqlNode node, SqlValidatorScope scope,
-      Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds,
-      Set<SqlQualified> remnantMustFilterFields) {
-    node.accept(new SqlBasicVisitor<Void>() {
-      @Override public Void visit(SqlIdentifier id) {
-        final SqlQualified qualified = scope.fullyQualify(id);
-        if (bypassQualifieds.contains(qualified)) {
-          // Clear all the must-filter qualifieds from the same table identifier
-          Collection<SqlQualified> sameIdentifier =
-              qualifieds.stream()
-                  .filter(q -> qualifiedMatchesIdentifier(q, qualified))
-                  .collect(Collectors.toList());
-          sameIdentifier.forEach(qualifieds::remove);
-
-          // Clear all the remnant must-filter qualifieds from the same table identifier
-          Collection<SqlQualified> sameIdentifier_ =
-              remnantMustFilterFields.stream()
-                  .filter(q -> qualifiedMatchesIdentifier(q, qualified))
-                  .collect(Collectors.toList());
-          sameIdentifier_.forEach(remnantMustFilterFields::remove);
-        }
         return null;
       }
     });
@@ -4800,10 +4785,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             SqlQualified.create(fromScope, 1, child.namespace,
                 new SqlIdentifier(ImmutableList.of(child.name, fieldNames.get(i)),
                     SqlParserPos.ZERO))));
-  }
-
-  private static boolean qualifiedMatchesIdentifier(SqlQualified q1, SqlQualified q2) {
-    return q1.identifier.names.get(0).equals(q2.identifier.names.get(0));
   }
 
   private void checkRollUpInSelectList(SqlSelect select) {
@@ -5269,6 +5250,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         qualifyNode);
 
     qualifyNode.validate(this, qualifyScope);
+    validateSubQueriesFilterRequirement(qualifyNode);
 
     final RelDataType type = deriveType(qualifyScope, qualifyNode);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
@@ -5334,85 +5316,109 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     ns.filterRequirement = FilterRequirement.EMPTY;
     if (select.getFrom() != null) {
       final SelectScope fromScope = (SelectScope) getFromScope(select);
-      final BitSet projectedNonFilteredBypassField = new BitSet();
-      final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
-      final Set<SqlQualified> bypassQualifieds = new LinkedHashSet<>();
-      final Set<SqlQualified> remnantQualifieds = new LinkedHashSet<>();
+      // Requirements of each table instance read by this query, in terms of
+      // the columns of the FROM items through which they are read
+      final List<PendingFilterGroup> groups = new ArrayList<>();
       for (ScopeChild child : fromScope.children) {
-        final List<String> fieldNames =
-            child.namespace.getRowType().getFieldNames();
-        final FilterRequirement filterRequirement =
-            child.namespace.getFilterRequirement();
-        toQualifieds(filterRequirement.filterFields, qualifieds, fromScope,
-            child, fieldNames);
-        toQualifieds(filterRequirement.bypassFields, bypassQualifieds,
-            fromScope, child, fieldNames);
-        remnantQualifieds.addAll(filterRequirement.remnantFilterFields);
+        final List<String> fieldNames = child.namespace.getRowType().getFieldNames();
+        for (FilterRequirement.Group childGroup : child.namespace.getFilterRequirement().groups) {
+          final PendingFilterGroup group = new PendingFilterGroup(childGroup.remnantFilterFields);
+          toQualifieds(childGroup.filterFields, group.qualifieds, fromScope, child, fieldNames);
+          toQualifieds(childGroup.bypassFields, group.bypassQualifieds,
+              fromScope, child, fieldNames);
+          groups.add(group);
+        }
       }
-      if (!qualifieds.isEmpty() || !bypassQualifieds.isEmpty()) {
+      if (!groups.isEmpty()) {
+        // A filter on a must-filter field satisfies it. A filter on a bypass
+        // field defuses all the requirements of the table instance it belongs
+        // to, but not those of other table instances, even if they are read
+        // through the same FROM item.
+        final Consumer<SqlQualified> filter = qualified -> {
+          groups.forEach(group -> group.qualifieds.remove(qualified));
+          groups.removeIf(group -> group.bypassQualifieds.contains(qualified));
+        };
         if (select.getWhere() != null) {
-          forEachQualified(select.getWhere(), getWhereScope(select),
-              qualifieds::remove);
-          purgeForBypassFields(select.getWhere(), getWhereScope(select),
-              qualifieds, bypassQualifieds, remnantQualifieds);
+          forEachQualified(select.getWhere(), getWhereScope(select), filter);
         }
         if (select.getHaving() != null) {
-          forEachQualified(select.getHaving(), getHavingScope(select),
-              qualifieds::remove);
-          purgeForBypassFields(select.getHaving(), getHavingScope(select),
-              qualifieds, bypassQualifieds, remnantQualifieds);
+          forEachQualified(select.getHaving(), getHavingScope(select), filter);
         }
 
-        // Each of the must-filter fields identified must be returned as a
-        // SELECT item, which is then flagged as must-filter.
-        final BitSet mustFilterFields = new BitSet();
-        // Each of the bypass fields identified must be returned as a
-        // SELECT item, which is then flagged as a bypass field for the consumer.
-        final BitSet mustFilterBypassFields = new BitSet();
         final List<SqlNode> expandedSelectItems =
-            requireNonNull(fromScope.getExpandedSelectList(),
-                "expandedSelectList");
-        forEach(expandedSelectItems, (selectItem, i) -> {
-          selectItem = stripAs(selectItem);
-          if (selectItem instanceof SqlIdentifier) {
-            SqlQualified qualified =
-                fromScope.fullyQualify((SqlIdentifier) selectItem);
-            if (qualifieds.remove(qualified)) {
+            requireNonNull(fromScope.getExpandedSelectList(), "expandedSelectList");
+        final List<@Nullable SqlQualified> selectQualifieds =
+            Util.transform(expandedSelectItems, selectItem -> {
+              selectItem = stripAs(selectItem);
+              return selectItem instanceof SqlIdentifier
+                  ? fromScope.fullyQualify((SqlIdentifier) selectItem)
+                  : null;
+            });
+        final List<FilterRequirement.Group> filterGroups = new ArrayList<>();
+        final Set<String> missingFields = new TreeSet<>();
+        for (PendingFilterGroup group : groups) {
+          // Each of the must-filter fields identified must be returned as a
+          // SELECT item, which is then flagged as must-filter.
+          final BitSet mustFilterFields = new BitSet();
+          // Each of the bypass fields identified must be returned as a
+          // SELECT item, which is then flagged as a bypass field for the
+          // consumer.
+          final BitSet mustFilterBypassFields = new BitSet();
+          forEach(selectQualifieds, (qualified, i) -> {
+            if (qualified == null) {
+              return;
+            }
+            if (group.qualifieds.remove(qualified)) {
               // SELECT item #i referenced a must-filter column that was not
               // filtered in the WHERE or HAVING. It becomes a must-filter
               // column for our consumer.
               mustFilterFields.set(i);
             }
-            if (bypassQualifieds.remove(qualified)) {
+            if (group.bypassQualifieds.remove(qualified)) {
               // SELECT item #i referenced a bypass column that was not filtered
               // in the WHERE or HAVING. It becomes a bypass column for our
               // consumer.
               mustFilterBypassFields.set(i);
-              projectedNonFilteredBypassField.set(0);
             }
-          }
-        });
+          });
 
-        // If there are must-filter fields that are not in the SELECT clause and
-        // there were no bypass-fields on this table, this is an error.
-        if (!qualifieds.isEmpty() && !projectedNonFilteredBypassField.get(0)) {
-          throw newValidationError(select,
-              RESOURCE.mustFilterFieldsMissing(
-                  qualifieds.stream()
-                      .map(q -> q.suffix().get(0))
-                      .collect(Collectors.toCollection(TreeSet::new))
-                      .toString()));
+          // If there are must-filter fields that are not in the SELECT clause
+          // and there were no bypass-fields on this table, this is an error.
+          if (!group.qualifieds.isEmpty() && mustFilterBypassFields.isEmpty()) {
+            group.qualifieds.forEach(q -> missingFields.add(q.suffix().get(0)));
+          }
+          // Remaining must-filter fields can be defused by a bypass-field,
+          // so we pass this to the consumer.
+          final Set<SqlQualified> remnantMustFilterFields =
+              new LinkedHashSet<>(group.remnantQualifieds);
+          remnantMustFilterFields.addAll(group.qualifieds);
+          filterGroups.add(
+              new FilterRequirement.Group(
+                  ImmutableBitSet.fromBitSet(mustFilterFields),
+                  ImmutableBitSet.fromBitSet(mustFilterBypassFields),
+                  remnantMustFilterFields));
         }
-        // Remaining must-filter fields can be defused by a bypass-field,
-        // so we pass this to the consumer.
-        ImmutableSet<SqlQualified> remnantMustFilterFields =
-            Stream.of(remnantQualifieds, qualifieds)
-                .flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
-        ns.filterRequirement =
-            new FilterRequirement(ImmutableBitSet.fromBitSet(mustFilterFields),
-                ImmutableBitSet.fromBitSet(mustFilterBypassFields),
-                remnantMustFilterFields);
+        if (!missingFields.isEmpty()) {
+          throw newValidationError(select,
+              RESOURCE.mustFilterFieldsMissing(missingFields.toString()));
+        }
+        ns.filterRequirement = new FilterRequirement(filterGroups);
       }
+    }
+  }
+
+  /** Filter requirements of a table instance read by a SELECT, in terms of
+   * the columns of the FROM items, while they are being defused. */
+  private static class PendingFilterGroup {
+    /** Must-filter fields that have not been filtered yet. */
+    final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
+    /** Bypass fields that can defuse this group's requirements. */
+    final Set<SqlQualified> bypassQualifieds = new LinkedHashSet<>();
+    /** Must-filter fields that can only be defused by a bypass field. */
+    final Set<SqlQualified> remnantQualifieds;
+
+    PendingFilterGroup(Set<SqlQualified> remnantQualifieds) {
+      this.remnantQualifieds = remnantQualifieds;
     }
   }
 
@@ -5996,6 +6002,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!isReturnBooleanType(type)) {
       throw newValidationError(condition, RESOURCE.condMustBeBoolean(clause));
     }
+
+    // Sub-queries used as expressions cannot forward must-filter
+    // requirements to the enclosing query; enforce them here (fail-closed).
+    validateSubQueriesFilterRequirement(condition);
   }
 
   private static boolean isReturnBooleanType(RelDataType relDataType) {
@@ -6038,6 +6048,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw newValidationError(having, RESOURCE.havingMustBeBoolean());
     }
+
+    // Sub-queries used as expressions cannot forward must-filter
+    // requirements to the enclosing query; enforce them here (fail-closed).
+    validateSubQueriesFilterRequirement(having);
   }
 
   /** Validates that SELECT items do not qualify common columns
@@ -6483,6 +6497,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Perform any validation specific to the scope. For example, an
     // aggregating scope requires that expressions are valid aggregations.
     scope.validateExpr(expr);
+
+    // Sub-queries used as expressions cannot forward must-filter
+    // requirements to the enclosing query; enforce them here (fail-closed).
+    validateSubQueriesFilterRequirement(expr);
+  }
+
+  /** Validates that the sub-queries inside an expression have no pending
+   * "must-filter" obligations.
+   *
+   * @param expr Expression, possibly containing sub-queries
+   */
+  void validateSubQueriesFilterRequirement(SqlNode expr) {
+    expr.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall call) {
+        if (call.getKind().belongsTo(SqlKind.QUERY)) {
+          final SqlValidatorNamespace ns = getNamespace(call);
+          if (ns != null) {
+            checkFilterRequirementSatisfied(ns, call);
+            return null;
+          }
+        }
+        return super.visit(call);
+      }
+    });
   }
 
   /**
@@ -6585,6 +6623,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return typeFactory.createStructType(fields);
   }
 
+  /** Throws if {@code source}, the read side of a DML statement, has
+   * outstanding filter requirements. */
+  private void validateDmlSourceFilterRequirement(SqlNode source) {
+    checkFilterRequirementSatisfied(getNamespaceOrThrow(source), source);
+  }
+
   @Override public void validateInsert(SqlInsert insert) {
     final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(insert);
     validateNamespace(targetNamespace, unknownType);
@@ -6614,6 +6658,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       requireNonNull(scope, "scope");
       validateQuery(source, scope, targetRowType);
     }
+
+    validateDmlSourceFilterRequirement(source);
 
     // REVIEW jvs 4-Dec-2008: In FRG-365, this namespace row type is
     // discarding the type inferred by inferUnknownTypes (which was invoked
@@ -7002,6 +7048,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateDelete(SqlDelete call) {
     final SqlSelect sqlSelect = SqlNonNullableAccessors.getSourceSelect(call);
     validateSelect(sqlSelect, unknownType);
+    validateDmlSourceFilterRequirement(sqlSelect);
 
     final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(call);
     validateNamespace(targetNamespace, unknownType);
@@ -7027,6 +7074,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlSelect select = SqlNonNullableAccessors.getSourceSelect(call);
     validateSelect(select, targetRowType);
+    validateDmlSourceFilterRequirement(select);
 
     final RelDataType sourceRowType = getValidatedNodeType(select);
     checkTypeAssignment(scopes.get(select), table, sourceRowType, targetRowType,
@@ -7084,6 +7132,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     validateSelect(sqlSelect, targetRowType);
+    validateDmlSourceFilterRequirement(sqlSelect);
 
     SqlUpdate updateCallAfterValidate = call.getUpdateCall();
     if (updateCallAfterValidate != null) {
@@ -7216,6 +7265,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (SqlNode operand : operands) {
       operand.validate(this, scope);
+      validateSubQueriesFilterRequirement(operand);
     }
 
     // validate that all row types have the same number of columns

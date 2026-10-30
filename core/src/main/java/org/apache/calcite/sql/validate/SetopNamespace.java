@@ -24,6 +24,9 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -105,13 +108,24 @@ public class SetopNamespace extends AbstractNamespace {
       final SqlValidatorScope scope =
           requireNonNull(validator.scopes.get(call),
               () -> "scope for " + call);
+      final List<FilterRequirement.Group> filterGroups = new ArrayList<>();
       for (SqlNode operand : call.getOperandList()) {
         if (!operand.isA(SqlKind.QUERY)) {
           throw validator.newValidationError(operand,
               RESOURCE.needQueryOp(operand.toString()));
         }
         validator.validateQuery(operand, scope, targetRowType);
+
+        // Propagate the operands' filter requirements to this namespace. The
+        // operands' columns are positionally the columns of the set operation,
+        // so each group keeps its ordinals, and its bypass fields keep
+        // defusing only that group's requirements.
+        final SqlValidatorNamespace operandNamespace =
+            requireNonNull(validator.getNamespace(operand),
+                () -> "namespace for " + operand);
+        filterGroups.addAll(operandNamespace.getFilterRequirement().groups);
       }
+      filterRequirement = new FilterRequirement(filterGroups);
       return call.getOperator().deriveType(
           validator,
           scope,
