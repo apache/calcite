@@ -43,11 +43,37 @@ class LikePatternTest {
     checkMatcher(true, "a%c", "ac");
     checkMatcher(true, "a%c", "abbbc");
     checkMatcher(false, "a%c", "acccd");
+    checkMatcher(true, "a^b", "a^b");
+    checkMatcher(true, "a[b", "a[b");
+    checkMatcher(true, "a\\\\b", "a\\b");
+
+    // wildcard _
+    checkMatcher(true, "a_c", "abc");
+    checkMatcher(false, "a_c", "ac");
+    checkMatcher(false, "a_c", "abbc");
+    checkMatcher(false, "%_", "");
+    checkMatcher(true, "_%_", "ab");
+    checkMatcher(true, "_%_", "axb");
+    checkMatcher(true, "_%_", "axxxxb");
+
+    checkMatcher(true, "_bc", "xbc");
+    checkMatcher(false, "_bc", "xybc");
+    checkMatcher(true, "ab_", "abx");
+    checkMatcher(false, "ab_", "abxy");
+
+    checkMatcher(true, "%a_c%", "xxabcx");
+    checkMatcher(false, "%a_c%", "xxacx");
+    checkMatcher(true, "%a_c%", "aaxc");
+    checkMatcher(true, "%a_c%", "axcc");
 
     // escape using back-slash
+    checkMatcher(true, "a\\_c", "a_c");
+    checkMatcher(false, "a\\_c", "abc");
     checkMatcher(true, "a\\%c", "a%c");
     checkMatcher(false, "a\\%c", "abc");
     checkMatcher(false, "a\\%c", "a\\%c");
+    checkMatcher(true, "%\\_%", "a_b");
+    checkMatcher(false, "%\\_%", "ab");
 
     // multiple wild-cards
     checkMatcher(true, "a%c%d", "abcdaaad");
@@ -74,6 +100,10 @@ class LikePatternTest {
     checkMatcher(true, "%ab%abc%", "abxabc");
     checkMatcher(true, "%ab%abc%", "ababcd");
     checkMatcher(false, "%ab%abc%", "ababxc");
+    checkMatcher(true, "%%a", "xa");
+    checkMatcher(false, "%%a", "ax");
+    checkMatcher(true, "a%%", "ax");
+    checkMatcher(false, "a%%", "xa");
 
     // A run of '%' wild-cards is equivalent to a single one
     checkMatcher(true, "%%", "");
@@ -95,7 +125,8 @@ class LikePatternTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7906">[CALCITE-7906]
-   * LikePattern matching time grows exponentially with the number of '%' wildcards</a>. */
+   * Improve LikePattern to support '_' wildcard and enhance the performance
+   * of '%' wildcards</a>. */
   @Test void testMatcherManyWildcards() {
     final String name = Strings.repeat("a", 40);
     assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
@@ -106,6 +137,10 @@ class LikePatternTest {
       // Wildcards separated by literals
       assertThat(
           LikePattern.matcher(Strings.repeat("%a", 10) + "%x").apply(name),
+          is(false));
+      // Combination of wildcards
+      assertThat(
+          LikePattern.matcher(Strings.repeat("%_", 10) + "%x").apply(name),
           is(false));
     });
   }
