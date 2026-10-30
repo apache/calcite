@@ -200,4 +200,157 @@ public class ModelHandlerTest {
     assertThat(ClassNameFilter.append("", ""), is(""));
   }
 
+  // ----- Non-inline model-file handling ---------------------------------
+  //
+  // The following tests cover two related aspects of the non-inline branch
+  // of the ModelHandler constructor:
+  //
+  //   1. The client-facing IOException on a bad model file carries only
+  //      the path, not the file's contents and not whether the file
+  //      exists. Legitimate operators find the detail in the log.
+  //   2. When calcite.model.baseDirectory is set, model paths that
+  //      resolve outside it are rejected.
+  //
+  // The inline: branch is intentionally untouched: inline text is
+  // supplied by the caller, and detailed parse messages remain
+  // load-bearing for model authors.
+
+  @Test void testModelFileNoRestrictionWhenBaseDirectoryUnset() {
+    assertThat(ModelHandler.modelFile("", "anywhere/model.json").getPath(),
+        is(new File("anywhere/model.json").getPath()));
+  }
+
+  @Test void testModelFileRelativePathResolvesUnderBaseDirectory(
+      @TempDir Path tempDir) {
+    final File file =
+        ModelHandler.modelFile(tempDir.toString(), "sub/model.json");
+    assertThat(file.toPath().startsWith(tempDir), is(true));
+    assertThat(file.getName(), is("model.json"));
+  }
+
+  @Test void testModelFileRelativeEscapeRejected(@TempDir Path tempDir) {
+    SecurityException e =
+        assertThrows(SecurityException.class, () ->
+            ModelHandler.modelFile(tempDir.resolve("base").toString(),
+                "../escape/model.json"));
+    assertThat(e.getMessage(),
+        containsString("calcite.model.baseDirectory"));
+  }
+
+  @Test void testModelFileAbsolutePathOutsideBaseDirectoryRejected(
+      @TempDir Path tempDir) {
+    final Path base = tempDir.resolve("base");
+    final Path outside = tempDir.resolve("outside/model.json");
+    assertThrows(SecurityException.class, () ->
+        ModelHandler.modelFile(base.toString(), outside.toString()));
+  }
+
+  @Test void testModelFileAbsolutePathInsideBaseDirectoryAllowed(
+      @TempDir Path tempDir) {
+    final Path inside = tempDir.resolve("model.json");
+    final File file =
+        ModelHandler.modelFile(tempDir.toString(), inside.toString());
+    assertThat(file.toPath(), is(inside));
+  }
+
+  /** A malformed model file surfaces a path-only message; source-byte
+   * fragments Jackson would otherwise quote in the parse error do not
+   * reach the client through the IOException chain. */
+  @Test void testMalformedModelFileReportsPathOnly(@TempDir Path tempDir) {
+    final String marker = "distinct-first-line-marker";
+    Path modelFile = tempDir.resolve("scratch.json");
+    try {
+      Files.write(modelFile, (marker + " not json content").getBytes(StandardCharsets.UTF_8));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    IOException e =
+        assertThrows(IOException.class,
+            () -> new ModelHandler(root, modelFile.toString()));
+    assertThat(e.getMessage(), containsString(modelFile.toString()));
+    assertThat(e.getMessage(), containsString("see log of")); // Full info in log
+    // Neither the top-level message nor any cause in the chain names the
+    // marker string from the file
+    Throwable t = e;
+    while (t != null) {
+      assertThat(String.valueOf(t.getMessage()),
+          not(containsString(marker)));
+      t = t.getCause();
+    }
+  }
+
+  /** A missing model file produces the same shape of message as a
+   * malformed one: the client cannot distinguish "does not exist" from
+   * "exists but unreadable" from "exists but invalid" via the error
+   * string. */
+  @Test void testMissingModelFileReportsGenericPathOnlyError(
+      @TempDir Path tempDir) {
+    final Path modelFile = tempDir.resolve("no-such-model.json");
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    IOException e =
+        assertThrows(IOException.class,
+            () -> new ModelHandler(root, modelFile.toString()));
+    assertThat(e.getMessage(), containsString(modelFile.toString()));
+    assertThat(e.getMessage(), containsString("see log of")); // Full info in log
+    // The message must not carry the "FileNotFound"/"No such file"
+    // signatures that would otherwise distinguish existence
+    Throwable t = e;
+    while (t != null) {
+      assertThat(String.valueOf(t.getMessage()),
+          not(containsString("FileNotFound")));
+      assertThat(String.valueOf(t.getMessage()),
+          not(containsString("No such file")));
+      t = t.getCause();
+    }
+  }
+
+  /** Inline-model errors keep the detailed Jackson message: inline text
+   * comes from the caller, so echoing it back leaks nothing. */
+  @Test void testInlineModelErrorsKeepDetail() {
+    SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    IOException e =
+        assertThrows(IOException.class,
+            () -> new ModelHandler(root, "inline:{ not valid json"));
+    // The inline branch throws the underlying Jackson IOException
+    // unchanged (or a wrapped one whose chain still names the parser).
+    // Assert only that we did not swap in the path-only message.
+    assertThat(String.valueOf(e.getMessage()),
+        not(containsString("see log of")));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7908">[CALCITE-7908]
+   * ModelHandler should apply the model class-name filter to the JDBC driver
+   * auto-detected from jdbcUrl</a>. */
+  @Test void testJdbcSchemaWithoutDriverChecksDetectedDriver() {
+    final String model = "inline:{"
+        + "  version: '1.0',"
+        + "  defaultSchema: 'SCOTT',"
+        + "  schemas: [ {"
+        + "    type: 'jdbc',"
+        + "    name: 'SCOTT',"
+        + "    jdbcUser: 'SA',"
+        + "    jdbcPassword: '',"
+        + "    jdbcUrl: 'jdbc:hsqldb:res:scott',"
+        + "    jdbcSchema: 'SCOTT'"
+        + "  } ]"
+        + "}";
+    // The model has no jdbcDriver, so the filter must see the driver
+    // that DriverManager picks for the URL
+    final SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    Throwable e =
+        assertThrows(RuntimeException.class, () ->
+            new ModelHandler(root, model, ClassNameFilter.of("", "org.apache.calcite.")));
+    while (e != null && !(e instanceof SecurityException)) {
+      e = e.getCause();
+    }
+    assertThat("expected SecurityException in chain", e, notNullValue());
+    assertThat(e.getMessage(), containsString("org.hsqldb.jdbc.JDBCDriver"));
+
+    final SchemaPlus root2 = CalciteSchema.createRootSchema(false, false).plus();
+    assertDoesNotThrow(() ->
+        new ModelHandler(root2, model, ClassNameFilter.of("", "org.hsqldb.")));
+  }
+
 }

@@ -56,6 +56,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -358,10 +361,20 @@ public class ModelHandler {
 
   public void visit(JsonJdbcSchema jsonSchema) {
     final SchemaPlus parentSchema = currentMutableSchema("jdbc schema");
-    classNameFilter.check(jsonSchema.jdbcDriver);
+    String driverClassName = jsonSchema.jdbcDriver;
+    if (driverClassName == null || driverClassName.trim().isEmpty()) {
+      // No driver class in the model; check the one DriverManager picks for the URL
+      try {
+        driverClassName = DriverManager.getDriver(jsonSchema.jdbcUrl).getClass().getName();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    classNameFilter.check(driverClassName);
+
     final DataSource dataSource =
         JdbcSchema.dataSource(jsonSchema.jdbcUrl,
-            jsonSchema.jdbcDriver,
+            driverClassName,
             jsonSchema.jdbcUser,
             jsonSchema.jdbcPassword);
     final JdbcSchema schema;
