@@ -49,9 +49,9 @@ public abstract class SqlInternalOperators {
   private SqlInternalOperators() {
   }
 
-  /** Appends a key tuple to the path of a recursive CTE. */
-  public static final SqlInternalOperator CYCLE_PATH_APPEND =
-      new SqlInternalOperator("$CYCLE_PATH_APPEND", SqlKind.OTHER_FUNCTION,
+  /** Appends a key tuple to a recursive CTE path used by SEARCH or CYCLE. */
+  public static final SqlInternalOperator RECURSIVE_PATH_APPEND =
+      new SqlInternalOperator("$RECURSIVE_PATH_APPEND", SqlKind.OTHER_FUNCTION,
           2, true, ReturnTypes.ARG0, null, OperandTypes.ANY_ANY);
 
   /** Tests whether a key tuple occurs in a recursive CTE's path. */

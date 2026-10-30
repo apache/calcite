@@ -591,4 +591,225 @@ SELECT * FROM t;
 CYCLE mark and default must be distinct, non-null Boolean or compatible single-character string literals
 !error
 
+# SEARCH creates a sort key. The outer ORDER BY requests depth-first output.
+# A child is visited before the next sibling, even when its key is larger.
+WITH RECURSIVE edges(src, dst) AS (
+    VALUES (0, 2), (0, 1), (1, 4), (2, 3)
+),
+walk(node) AS (
+    VALUES (0)
+    UNION ALL
+    SELECT e.dst FROM walk w JOIN edges e ON e.src = w.node
+)
+SEARCH DEPTH FIRST BY node SET seq
+SELECT * FROM walk ORDER BY seq;
++------+-----------------+
+| NODE | SEQ             |
++------+-----------------+
+|    0 | [{0}]           |
+|    1 | [{0}, {1}]      |
+|    4 | [{0}, {1}, {4}] |
+|    2 | [{0}, {2}]      |
+|    3 | [{0}, {2}, {3}] |
++------+-----------------+
+(5 rows)
+
+!ok
+
+# Breadth-first ordering uses depth followed by the current key, not the
+# parent's position. At depth 2, node 3 therefore precedes node 4.
+WITH RECURSIVE edges(src, dst) AS (
+    VALUES (0, 2), (0, 1), (1, 4), (2, 3)
+),
+walk(node) AS (
+    VALUES (0)
+    UNION ALL
+    SELECT e.dst FROM walk w JOIN edges e ON e.src = w.node
+)
+SEARCH BREADTH FIRST BY node SET seq
+SELECT * FROM walk ORDER BY seq;
++------+--------+
+| NODE | SEQ    |
++------+--------+
+|    0 | {0, 0} |
+|    1 | {1, 1} |
+|    2 | {1, 2} |
+|    3 | {2, 3} |
+|    4 | {2, 4} |
++------+--------+
+(5 rows)
+
+!ok
+
+# Composite BY keys are compared in the specified order.
+WITH RECURSIVE t(n, k, depth) AS (
+    VALUES (0, 0, 0)
+    UNION ALL
+    SELECT v.n, v.k, t.depth + 1
+    FROM t CROSS JOIN (VALUES (1, 2), (2, 1), (1, 1)) AS v(n, k)
+    WHERE t.depth < 1
+)
+SEARCH DEPTH FIRST BY k, n SET seq
+SELECT n, k, seq FROM t ORDER BY seq;
++---+---+------------------+
+| N | K | SEQ              |
++---+---+------------------+
+| 0 | 0 | [{0, 0}]         |
+| 1 | 1 | [{0, 0}, {1, 1}] |
+| 2 | 1 | [{0, 0}, {1, 2}] |
+| 1 | 2 | [{0, 0}, {2, 1}] |
++---+---+------------------+
+(4 rows)
+
+!ok
+
+# NULL keys sort after non-null keys within a level.
+WITH RECURSIVE t(n, depth) AS (
+    VALUES (0, 0)
+    UNION ALL
+    SELECT v.n, t.depth + 1
+    FROM t CROSS JOIN (VALUES (CAST(NULL AS INTEGER)), (2), (1)) AS v(n)
+    WHERE t.depth < 1
+)
+SEARCH BREADTH FIRST BY n SET seq
+SELECT n FROM t ORDER BY seq;
++---+
+| N |
++---+
+| 0 |
+| 1 |
+| 2 |
+|   |
++---+
+(4 rows)
+
+!ok
+
+# The generated column is included in SELECT * and available to a later CTE.
+WITH RECURSIVE "Walk"("Node") AS (
+    VALUES (1)
+    UNION ALL
+    SELECT "Node" + 1 FROM "Walk" WHERE "Node" < 3
+)
+SEARCH DEPTH FIRST BY "Node" SET "Sequence",
+u AS (SELECT * FROM "Walk")
+SELECT "Node" FROM u ORDER BY "Sequence";
++------+
+| Node |
++------+
+|    1 |
+|    2 |
+|    3 |
++------+
+(3 rows)
+
+!ok
+
+# SEARCH and CYCLE can be combined. The row closing the cycle is returned.
+WITH RECURSIVE t(n, depth) AS (
+    VALUES (1, 0)
+    UNION ALL
+    SELECT MOD(n + 1, 3), depth + 1 FROM t WHERE depth < 5
+)
+SEARCH DEPTH FIRST BY n SET seq
+CYCLE n SET is_cycle USING cycle_path
+SELECT n, is_cycle, CARDINALITY(cycle_path) AS path_length
+FROM t ORDER BY seq;
++---+----------+-------------+
+| N | IS_CYCLE | PATH_LENGTH |
++---+----------+-------------+
+| 1 | false    |           1 |
+| 2 | false    |           2 |
+| 0 | false    |           3 |
+| 1 | true     |           4 |
++---+----------+-------------+
+(4 rows)
+
+!ok
+
+# Multiple roots and UNION DISTINCT: duplicate seed rows are eliminated.
+WITH RECURSIVE t(n) AS (
+    VALUES (2), (1), (1)
+    UNION DISTINCT
+    SELECT n + 2 FROM t WHERE n < 3
+)
+SEARCH BREADTH FIRST BY n SET seq
+SELECT * FROM t ORDER BY seq;
++---+--------+
+| N | SEQ    |
++---+--------+
+| 1 | {0, 1} |
+| 2 | {0, 2} |
+| 3 | {1, 3} |
+| 4 | {1, 4} |
++---+--------+
+(4 rows)
+
+!ok
+
+# A search key also works in a descending, multi-column sort with a limit.
+WITH RECURSIVE edges(src, dst) AS (
+    VALUES (0, 2), (0, 1), (1, 4), (2, 3)
+),
+walk(node) AS (
+    VALUES (0)
+    UNION ALL
+    SELECT e.dst FROM walk w JOIN edges e ON e.src = w.node
+)
+SEARCH DEPTH FIRST BY node SET seq
+SELECT node FROM walk ORDER BY seq DESC, node FETCH NEXT 3 ROWS ONLY;
++------+
+| NODE |
++------+
+|    3 |
+|    2 |
+|    4 |
++------+
+(3 rows)
+
+!ok
+
+# SEARCH cannot create rows when the seed is empty.
+WITH RECURSIVE t(n) AS (
+    SELECT n FROM (VALUES (1)) AS v(n) WHERE FALSE
+    UNION ALL
+    SELECT n + 1 FROM t WHERE n < 3
+)
+SEARCH BREADTH FIRST BY n SET seq
+SELECT n FROM t ORDER BY seq;
++---+
+| N |
++---+
++---+
+(0 rows)
+
+!ok
+
+# SEARCH keys must name columns of the WITH item.
+WITH RECURSIVE t(n) AS (
+    VALUES (1) UNION ALL SELECT n + 1 FROM t WHERE n < 3
+)
+SEARCH DEPTH FIRST BY missing SET seq
+SELECT * FROM t;
+SEARCH column 'MISSING' is not a column of WITH item 'T'
+!error
+
+# The generated search column must have a fresh name.
+WITH RECURSIVE t(n) AS (
+    VALUES (1) UNION ALL SELECT n + 1 FROM t WHERE n < 3
+)
+SEARCH BREADTH FIRST BY n SET n
+SELECT * FROM t;
+SEARCH generated column 'N' conflicts with another column
+!error
+
+# Generated columns are not visible in the user's recursive term.
+WITH RECURSIVE t(n) AS (
+    VALUES (1) UNION ALL SELECT n FROM t WHERE seq IS NOT NULL
+)
+SEARCH DEPTH FIRST BY n SET seq
+SELECT * FROM t;
+Column 'SEQ' not found in any table
+!error
+
 # End recursive_queries.iq

@@ -107,6 +107,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlCycleClause;
+import org.apache.calcite.sql.SqlSearchClause;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -4002,14 +4003,36 @@ void AddWithItem(List<SqlWithItem> list, SqlLiteral recursive) :
     final SqlNodeList columnList;
     final SqlNode definition;
     SqlCycleClause cycle = null;
+    SqlSearchClause search = null;
 }
 {
     id = SimpleIdentifier()
     ( columnList = ParenthesizedSimpleIdentifierList() | { columnList = null; } )
     <AS>
     definition = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
+    [ search = SearchClause() ]
     [ cycle = CycleClause() ]
-    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive, cycle)); }
+    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive,
+        cycle, search)); }
+}
+
+SqlSearchClause SearchClause() :
+{
+    final Span s;
+    final boolean breadthFirst;
+    final List<SqlNode> columns = new ArrayList<SqlNode>();
+    SqlIdentifier column;
+    final SqlIdentifier orderColumn;
+}
+{
+    <SEARCH> { s = span(); }
+    ( <DEPTH> { breadthFirst = false; } | <BREADTH> { breadthFirst = true; } )
+    <FIRST> <BY>
+    column = SimpleIdentifier() { columns.add(column); }
+    ( <COMMA> column = SimpleIdentifier() { columns.add(column); } )*
+    <SET> orderColumn = SimpleIdentifier()
+    { return new SqlSearchClause(s.end(this), SqlLiteral.createBoolean(breadthFirst, s.pos()),
+        new SqlNodeList(columns, s.pos()), orderColumn); }
 }
 
 SqlCycleClause CycleClause() :
