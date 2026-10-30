@@ -49,6 +49,13 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-43-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7907">CALCITE-7907</a>]
+  Extend `UnionToDistinctRule` to match `Union` instead of `LogicalUnion`.
+  The default configuration of `UnionToDistinctRule` (`CoreRules.UNION_TO_DISTINCT`)
+  has changed: the rule's matching scope has increased. Projects that need the
+  previous behavior can use
+  `UnionToDistinctRule.Config.DEFAULT.withOperandFor(LogicalUnion.class)`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7580">CALCITE-7580</a>]
   Remove Gandiva dependency from Arrow adapter. Arrow adapter projection and
   filter evaluation now run in Java, and the `arrow-gandiva` dependency is no

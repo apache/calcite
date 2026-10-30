@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -76,8 +75,10 @@ public class UnionToDistinctRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
+    /** Default configuration: matches any {@link Union} with {@code all = false};
+     * use {@link #withOperandFor(Class)} to narrow. */
     Config DEFAULT = ImmutableUnionToDistinctRule.Config.of()
-        .withOperandFor(LogicalUnion.class);
+        .withOperandFor(Union.class);
 
     @Override default UnionToDistinctRule toRule() {
       return new UnionToDistinctRule(this);
