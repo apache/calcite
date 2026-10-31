@@ -36,6 +36,12 @@ on:
       - 'site/**'
     branches:
       - '*'
+  # Replays the test jobs of an earlier run: paste the seed from its log
+  workflow_dispatch:
+    inputs:
+      matrix_rng_seed:
+        description: 'RNG seed of the test matrix'
+        required: false
 
 concurrency:
   # On main/release, we don't want any jobs cancelled so the sha is used to name the group
@@ -49,69 +55,94 @@ concurrency:
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
   DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  # matrix.mjs reads both values as well
   GUAVA_MIN: '21.0' # oldest supported Guava version
   GUAVA_MAX: '33.4.8-jre' # latest supported Guava version
-  GUAVA: '21.0' # most jobs test against oldest Guava version
 
 jobs:
-  windows-jdk8:
-    name: 'Windows (JDK 8)'
-    runs-on: windows-latest
+  matrix_prep:
+    name: 'Matrix preparation'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      MATRIX_JOBS: 6
+      # Every push to a pull request gets the same rows
+      GITHUB_PR_NUMBER: ${{ github.event.number }}
+      RNG_SEED: ${{ github.event.inputs.matrix_rng_seed }}
     steps:
-    - uses: actions/checkout@v7
-      with:
-        fetch-depth: 50
-    - name: 'Set up JDK 25 for compilation and JDK 8 for tests'
-      uses: actions/setup-java@v6
-      with:
-        java-version: |
-          25
-          8
-        distribution: 'zulu'
-    - uses: burrunan/gradle-cache-action@v1
-      name: Test
-      with:
-        job-id: jdk${{ matrix.jdk }}
-        remote-build-cache-proxy-enabled: false
-        arguments: --scan --no-parallel --no-daemon build javadoc
-        properties: |
-          org.gradle.java.installations.auto-download=false
-    - name: 'sqlline and sqllsh'
-      env:
-        JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
-      shell: cmd
-      run: |
-        call sqlline.bat -e '!quit'
-        echo.
-        echo Sqlline example/csv
-        call sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
-        echo.
-        echo sqlsh
-        call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - id: set-matrix
+        run: |
+          npm ci --prefix .github/workflows
+          node .github/workflows/matrix.mjs
 
-  windows-jdk17:
-    name: 'Windows (JDK 17)'
-    runs-on: windows-latest
+  test:
+    name: '${{ matrix.name }}'
+    needs: matrix_prep
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
+    env:
+      TZ: ${{ matrix.tz }}
+      ORG_GRADLE_PROJECT_testExtraJvmArgs: ${{ matrix.testExtraJvmArgs }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 17 for tests'
+      - name: 'Set up JDK 25 for compilation'
         uses: actions/setup-java@v6
         with:
-          java-version: |
-            25
-            17
+          java-version: 25
           distribution: 'zulu'
+          # https://github.com/actions/setup-java/issues/559
+          architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
+      # The last JDK set up becomes JAVA_HOME, which runs Gradle and the tests
+      - name: 'Set up JDK ${{ matrix.java_version }} (${{ matrix.java_distribution }}) for tests'
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java_version }}
+          distribution: ${{ matrix.java_distribution }}
+          # https://github.com/actions/setup-java/issues/559
+          architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
+      - name: 'Clone Avatica main'
+        if: ${{ matrix.avatica == 'main' }}
+        run: git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
+      - uses: burrunan/gradle-cache-action@v1
+        name: 'Build Avatica main'
+        if: ${{ matrix.avatica == 'main' }}
+        with:
+          job-id: avatica-jdk${{ matrix.java_version }}
+          remote-build-cache-proxy-enabled: false
+          build-root-directory: ../calcite-avatica
+          arguments: publishToMavenLocal
+          properties: |
+            calcite.avatica.version=1.0.0-dev-main
+            skipJavadoc=
+      - name: 'Parameters: JDK ${{ matrix.java_version }} ${{ matrix.java_distribution }}, Guava ${{ matrix.guava }}, TZ=${{ matrix.tz }}, ${{ matrix.testExtraJvmArgs }}'
+        shell: bash
+        env:
+          MATRIX_JSON: ${{ toJSON(matrix) }}
+        run: |
+          echo "Matrix row: $MATRIX_JSON"
+          echo "JAVA_HOME: $JAVA_HOME"
+          echo "Properties the test JVM sees with testExtraJvmArgs:"
+          # testExtraJvmArgs is unquoted on purpose: each argument is a separate word
+          "$JAVA_HOME/bin/java" $ORG_GRADLE_PROJECT_testExtraJvmArgs -XshowSettings:properties -version 2>&1 \
+            | grep -E '^ *(java\.version|java\.vendor|java\.vm\.name|user\.language|user\.country|user\.timezone|file\.encoding|os\.name|os\.arch) ='
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         with:
-          job-id: jdk${{ matrix.jdk }}
+          job-id: jdk${{ matrix.java_version }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ matrix.guava }} ${{ matrix.avatica == 'main' && '-Pcalcite.avatica.version=1.0.0-dev-main-SNAPSHOT -PenableMavenLocal' || '' }} tasks build ${{ matrix.javadoc && 'javadoc' || '' }}
           properties: |
             org.gradle.java.installations.auto-download=false
-      - name: 'sqlline and sqllsh'
+      - name: 'sqlline and sqlsh'
+        if: ${{ runner.os == 'Windows' }}
         env:
           JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
         shell: cmd
@@ -123,248 +154,8 @@ jobs:
           echo.
           echo sqlsh
           call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
-
-  windows-jdk21:
-    name: 'Windows (JDK 21)'
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 21 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            21
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-      - name: 'sqlline and sqllsh'
-        env:
-          JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
-        shell: cmd
-        run: |
-          call sqlline.bat -e '!quit'
-          echo.
-          echo Sqlline example/csv
-          call sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
-          echo.
-          echo sqlsh
-          call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
-
-  linux-jdk8-oldest-guava-tz:
-    name: 'Linux (JDK 8, oldest Guava, America/New_York Timezone)'
-    runs-on: ubuntu-latest
-    env:
-      TZ: 'America/New_York' # flips between −05:00 and −04:00
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 8 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            8
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-
-  linux-jdk8-latest-guava-tz:
-    name: 'Linux (JDK 8, latest Guava, America/New_York Timezone)'
-    runs-on: ubuntu-latest
-    env:
-      TZ: 'America/New_York' # flips between −05:00 and −04:00
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 8 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            8
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} tasks build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-
-  linux-jdk11-tz:
-    name: 'Linux (JDK 11, Pacific/Chatham Timezone)'
-    runs-on: ubuntu-latest
-    env:
-      TZ: 'Pacific/Chatham' # flips between +12:45 and +13:45
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 11 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            11
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-
-  linux-jdk17:  # LTS JDK version, don't remove until EOL
-    name: 'Linux (JDK 17)'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 17 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            17
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-
-  linux-jdk121:  # LTS JDK version, don't remove until EOL
-    name: 'Linux (JDK 21)'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 21 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            21
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-
-  linux-jdk24: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
-    name: 'Linux (JDK 24)'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 24 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            24
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk${{ matrix.jdk }}
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
-          properties: |
-            org.gradle.java.installations.auto-download=false
-
-  linux-avatica:
-    name: 'Linux (JDK 11, Avatica main)'
-    runs-on: ubuntu-latest
-    steps:
-    - name: 'Set up JDK 25 for compilation and JDK 11 for tests'
-      uses: actions/setup-java@v6
-      with:
-        java-version: |
-          25
-          11
-        distribution: 'zulu'
-    - name: 'Clone Avatica to Maven Local repository'
-      run: |
-        git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
-    - uses: burrunan/gradle-cache-action@v1
-      name: Build Avatica
-      with:
-        job-id: avatica-jdk${{ matrix.jdk }}
-        remote-build-cache-proxy-enabled: false
-        build-root-directory: ../calcite-avatica
-        arguments: publishToMavenLocal
-        properties: |
-          calcite.avatica.version=1.0.0-dev-main
-          skipJavadoc=
-    - uses: actions/checkout@v7
-      with:
-        fetch-depth: 50
-    - uses: burrunan/gradle-cache-action@v1
-      name: Test
-      with:
-        job-id: jdk${{ matrix.jdk }}
-        remote-build-cache-proxy-enabled: false
-        execution-only-caches: true
-        arguments: --scan --no-parallel --no-daemon build javadoc
-        properties: |
-          org.gradle.java.installations.auto-download=false
-          calcite.avatica.version=1.0.0-dev-main-SNAPSHOT
-          enableMavenLocal=
-
-  mac:
-    name: 'macOS (JDK 21)'
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
-      - name: 'Set up JDK 25 for compilation and JDK 21 for tests'
-        uses: actions/setup-java@v6
-        with:
-          java-version: |
-            25
-            21
-          distribution: 'zulu'
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        with:
-          job-id: jdk21
-          remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build javadoc
-          properties: |
-            org.gradle.java.installations.auto-download=false
-      - name: 'sqlline and sqllsh'
+      - name: 'sqlline and sqlsh'
+        if: ${{ runner.os != 'Windows' }}
         env:
           JAVA_OPTS: "-Dcalcite.model.classes.allowed=org.apache."
         run: |
