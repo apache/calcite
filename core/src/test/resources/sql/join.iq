@@ -91,6 +91,92 @@ where t1.i + t2.i + t3.i + t4.i = 1;
 
 !ok
 
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# JOIN binds tighter than comma: s CROSS JOIN (t RIGHT JOIN u ON t.x = u.y)
+# Same result on PostgreSQL 14.
+with s (c0) as (values 'a', 'b'),
+  t (x) as (values 1, 2),
+  u (y) as (values 10, 20)
+select s.c0, t.x, u.y
+from s, t right join u on t.x = u.y;
++----+---+----+
+| C0 | X | Y  |
++----+---+----+
+| a  |   | 10 |
+| a  |   | 20 |
+| b  |   | 10 |
+| b  |   | 20 |
++----+---+----+
+(4 rows)
+
+!ok
+
+# s CROSS JOIN (u LEFT JOIN t ON t.x = u.y)
+# Same result on PostgreSQL 14.
+with s (c0) as (values 'a', 'b'),
+  t (x) as (values 1, 2),
+  u (y) as (values 10, 20)
+select s.c0, t.x, u.y
+from s, u left join t on t.x = u.y;
++----+---+----+
+| C0 | X | Y  |
++----+---+----+
+| a  |   | 10 |
+| a  |   | 20 |
+| b  |   | 10 |
+| b  |   | 20 |
++----+---+----+
+(4 rows)
+
+!ok
+
+# s CROSS JOIN (t FULL JOIN u ON t.x = u.y)
+# Same result on PostgreSQL 14.
+with s (c0) as (values 'a', 'b'),
+  t (x) as (values 1, 2),
+  u (y) as (values 10, 20)
+select s.c0, t.x, u.y
+from s, t full join u on t.x = u.y;
++----+---+----+
+| C0 | X | Y  |
++----+---+----+
+| a  | 1 |    |
+| a  | 2 |    |
+| a  |   | 10 |
+| a  |   | 20 |
+| b  | 1 |    |
+| b  | 2 |    |
+| b  |   | 10 |
+| b  |   | 20 |
++----+---+----+
+(8 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# Correlated sub-query in the ON clause of a join after a comma.
+# Same result on PostgreSQL 14.
+with emp (ename, deptno, sal)
+    as (values ('SMITH', 20, 800), ('CLARK', 10, 2450),
+      ('ALLEN', 30, 1600), ('JONES', 20, 2975)),
+  dept (deptno) as (values (10), (20))
+select v.v, e.ename, d.deptno
+from (values ('A'), ('M')) as v (v),
+  emp as e join dept as d
+  on d.deptno = e.deptno
+  and e.sal = (select max(sal) from emp as e2 where e2.deptno = d.deptno);
++---+-------+--------+
+| V | ENAME | DEPTNO |
++---+-------+--------+
+| A | CLARK |     10 |
+| A | JONES |     20 |
+| M | CLARK |     10 |
+| M | JONES |     20 |
++---+-------+--------+
+(4 rows)
+
+!ok
+
 # OR is a nestedLoop join
 select *
 from emp

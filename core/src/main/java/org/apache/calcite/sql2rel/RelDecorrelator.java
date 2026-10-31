@@ -1920,6 +1920,26 @@ public class RelDecorrelator implements ReflectiveVisitor {
     assert rel.getRequiredColumns().cardinality()
         <= rightFrame.corDefOutputs.keySet().size();
 
+    // In a LEFT correlate, the right input gives the values of the variables of
+    // enclosing correlates, and they are NULL in the rows that the join pads.
+    // Unless the parent supplies these NULLs again, get the values from the
+    // left input too; the conditions below match the copies.
+    Frame newLeftFrame = leftFrame;
+    if (rel.getJoinType().generatesNullsOnRight()
+        && !parentPropagatesNullValues) {
+      final List<CorRef> outerCorVars = new ArrayList<>();
+      for (CorRef corRef : collectExternalCorVars(oldRight)) {
+        if (!corRef.corr.equals(rel.getCorrelationId())) {
+          outerCorVars.add(corRef);
+        }
+      }
+      if (!outerCorVars.isEmpty()) {
+        newLeftFrame =
+            supplyMissingCorVars(oldLeft, leftFrame, outerCorVars,
+                new TreeMap<>());
+      }
+    }
+
     // Change correlator rel into a join.
     // Join all the correlated variables produced by this correlator rel
     // with the values generated and propagated from the right input
@@ -1927,7 +1947,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         new TreeMap<>(rightFrame.corDefOutputs);
     final List<RexNode> conditions = new ArrayList<>();
     final List<RelDataTypeField> newLeftOutput =
-        leftFrame.r.getRowType().getFieldList();
+        newLeftFrame.r.getRowType().getFieldList();
     int newLeftFieldCount = newLeftOutput.size();
 
     final List<RelDataTypeField> newRightOutput =
@@ -1939,7 +1959,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       if (!corDef.corr.equals(rel.getCorrelationId())) {
         continue;
       }
-      final int newLeftPos = requireNonNull(leftFrame.oldToNewOutputs.get(corDef.field));
+      final int newLeftPos = requireNonNull(newLeftFrame.oldToNewOutputs.get(corDef.field));
       final int newRightPos = rightOutput.getValue();
 
       // Using `equals` instead of `IS NOT DISTINCT FROM` is an optimization
@@ -1960,6 +1980,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
       corDefOutputs.remove(corDef);
     }
 
+    // If both inputs propagate the same reference to an enclosing correlate,
+    // the two copies must have the same value.
+    conditions.addAll(
+        buildCorDefJoinConditions(newLeftFrame.corDefOutputs, corDefOutputs,
+            newLeftFrame.r, rightFrame.r, relBuilder));
+
     // Update the output position for the corVars: only pass on the cor
     // vars that are not used in the join key.
     for (Map.Entry<CorDef, Integer> entry : corDefOutputs.entrySet()) {
@@ -1968,7 +1994,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // then add any corVar from the left input. Do not need to change
     // output positions.
-    corDefOutputs.putAll(leftFrame.corDefOutputs);
+    corDefOutputs.putAll(newLeftFrame.corDefOutputs);
 
     // Create the mapping between the output of the old correlation rel
     // and the new join rel
@@ -1982,7 +2008,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         == oldLeftFieldCount + oldRightFieldCount;
 
     // Left input positions are not changed.
-    mapOldToNewOutputs.putAll(leftFrame.oldToNewOutputs);
+    mapOldToNewOutputs.putAll(newLeftFrame.oldToNewOutputs);
 
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
@@ -1992,7 +2018,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final RexNode condition =
         RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
-    RelNode newJoin = relBuilder.push(leftFrame.r).push(rightFrame.r)
+    RelNode newJoin = relBuilder.push(newLeftFrame.r).push(rightFrame.r)
         .join(rel.getJoinType(), condition).build();
 
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);

@@ -434,6 +434,12 @@ be present.
 in those same conformance levels, any *column* in *insert* may be replaced by
 *columnDecl*, which has a similar effect to including it in an EXTEND clause.
 
+In *tableExpression*, JOIN binds tighter than comma, as in the SQL standard:
+"FROM a, b JOIN c ON c.x = b.x" is equivalent to
+"FROM a, (b JOIN c ON c.x = b.x)", so the ON condition can reference
+`b` and `c` but not `a`. A LATERAL item can reference the items to its left,
+also those before a comma.
+
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.
 
