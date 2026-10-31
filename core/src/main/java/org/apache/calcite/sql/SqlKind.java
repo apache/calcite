@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.validate.PipeNamespace;
+
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
@@ -592,6 +594,26 @@ public enum SqlKind {
    * t</code>. See also {@link #COLLECTION_TABLE}.
    */
   EXPLICIT_TABLE,
+
+  /**
+   * Standalone {@code FROM}, e.g. {@code FROM t}, in pipe syntax.
+   */
+  FROM_QUERY,
+
+  /**
+   * Call to a pipe operator, e.g. {@code q |> WHERE c}.
+   *
+   * @see SqlPipeCall
+   */
+  PIPE_CALL,
+
+  /**
+   * Input of a pipe operator; that is, the rows of the query it applies to,
+   * in the {@code FROM} clause of its surrogate SELECT.
+   *
+   * @see SqlPipeInput
+   */
+  PIPE_INPUT,
 
   /**
    * Scalar query; that is, a sub-query used in an expression context, and
@@ -1442,6 +1464,13 @@ public enum SqlKind {
           SET_OPTION, OTHER_DDL);
 
   /**
+   * Category consisting of the queries written in pipe syntax. These are
+   * the kinds whose namespace is a {@link PipeNamespace}.
+   */
+  public static final EnumSet<SqlKind> PIPE_QUERY =
+      EnumSet.of(FROM_QUERY, PIPE_CALL);
+
+  /**
    * Category consisting of query node types.
    *
    * <p>Consists of:
@@ -1450,12 +1479,16 @@ public enum SqlKind {
    * {@link #INTERSECT},
    * {@link #UNION},
    * {@link #VALUES},
+   * {@link #WITH},
    * {@link #ORDER_BY},
-   * {@link #EXPLICIT_TABLE}.
+   * {@link #EXPLICIT_TABLE},
+   * {@link #FROM_QUERY},
+   * {@link #PIPE_CALL},
+   * {@link #PIPE_INPUT}.
    */
   public static final EnumSet<SqlKind> QUERY =
       EnumSet.of(SELECT, UNION, INTERSECT, EXCEPT, VALUES, WITH, ORDER_BY,
-          EXPLICIT_TABLE);
+          EXPLICIT_TABLE, FROM_QUERY, PIPE_CALL, PIPE_INPUT);
 
   /**
    * Category consisting of all expression operators.
@@ -1493,7 +1526,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
-                  ORDER_BY_ALL,
+                  ORDER_BY_ALL, FROM_QUERY, PIPE_CALL, PIPE_INPUT,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, CYCLE, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
                   JSON_VALUE_EXPRESSION, UNNEST),
