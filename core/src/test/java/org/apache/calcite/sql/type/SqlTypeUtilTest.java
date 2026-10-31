@@ -25,13 +25,17 @@ import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.util.TryThreadLocal;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
@@ -140,6 +144,35 @@ class SqlTypeUtilTest {
              SqlTypeCoercionRule.THREAD_PROVIDERS.push(typeCoercionRules)) {
       checkConvert(typeCoercionRules, is(true));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7893">[CALCITE-7893]
+   * Type mapping rules can be corrupted when identity hash codes of
+   * SqlTypeName values collide</a>.
+   *
+   * <p>{@link SqlTypeAssignmentRule} and {@link SqlTypeCoercionRule} each
+   * reuse one set for their calls to {@link SqlTypeMappingRules.Builder#add}. The constant hash code stands in
+   * for {@code {DATE}} and {@code {TIME}} having equal identity hash code
+   * sums. */
+  @Test void testTypeMappingBuilderKeepsSourceTypesOfReusedSet() {
+    final Set<SqlTypeName> rule = new HashSet<SqlTypeName>() {
+      // CHECKSTYLE: IGNORE 1
+      @Override public int hashCode() {
+        return 0;
+      }
+    };
+    final SqlTypeMappingRules.Builder builder = SqlTypeMappingRules.builder();
+    rule.add(SqlTypeName.DATE);
+    builder.add(SqlTypeName.DATE, rule);
+    rule.clear();
+    rule.add(SqlTypeName.TIME);
+    builder.add(SqlTypeName.TIME, rule);
+
+    assertThat(builder.map,
+        is(
+            ImmutableMap.of(SqlTypeName.DATE, ImmutableSet.of(SqlTypeName.DATE),
+                SqlTypeName.TIME, ImmutableSet.of(SqlTypeName.TIME))));
   }
 
   private void checkConvert(SqlTypeCoercionRule rules,
