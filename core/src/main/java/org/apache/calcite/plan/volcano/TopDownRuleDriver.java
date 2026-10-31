@@ -78,6 +78,13 @@ class TopDownRuleDriver implements RuleDriver {
    */
   private final Set<RelNode> passThroughCache = new HashSet<>();
 
+  /**
+   * Physical nodes that satisfy none of the subsets being optimized and that
+   * have been scheduled for trait derivation in their own subset. A node is
+   * scheduled at most once, until its inputs' sets are merged.
+   */
+  private final Set<RelNode> derivedRels = new HashSet<>();
+
   //~ Constructors -----------------------------------------------------------
 
   TopDownRuleDriver(VolcanoPlanner planner) {
@@ -136,6 +143,7 @@ class TopDownRuleDriver implements RuleDriver {
     ruleQueue.clear();
     tasks.clear();
     passThroughCache.clear();
+    derivedRels.clear();
     applying = null;
   }
 
@@ -169,6 +177,9 @@ class TopDownRuleDriver implements RuleDriver {
       if (subset.resetTaskState() || explored) {
         Collection<RelNode> parentRels = subset.getParentRels();
         for (RelNode parentRel : parentRels) {
+          // The inputs of parentRel may now deliver new traits, so allow
+          // its traits to be derived again.
+          derivedRels.remove(parentRel);
           RelSet parentRelSet =
               requireNonNull(planner.getSet(parentRel), () -> "no set found for " + parentRel);
           clearProcessed(parentRelSet);
@@ -547,6 +558,11 @@ class TopDownRuleDriver implements RuleDriver {
     // convert the physical node either by converter rule or traits pass though.
     if (!rel.getTraitSet().satisfies(group.getTraitSet())) {
       RelNode passThroughRel = convert(rel, group);
+      // The rel itself may satisfy no optimizing subset, and a pass-through
+      // rel is never derived (it is in passThroughCache). Derive traits for
+      // the original rel in its own subset, otherwise alternatives derived
+      // from its inputs are never generated (CALCITE-4542).
+      scheduleDerive(rel);
       if (passThroughRel == null) {
         LOGGER.debug("Skip optimizing because of traits: {}", rel);
         return null;
@@ -556,6 +572,24 @@ class TopDownRuleDriver implements RuleDriver {
           planner.register(finalPassThroughRel, group));
       rel = passThroughRel;
     }
+    return getOptimizeInputTaskSatisfied(rel, group);
+  }
+
+  /** Schedules, at most once per rel, optimization of the rel's inputs and
+   * trait derivation in the subset the rel belongs to. */
+  private void scheduleDerive(RelNode rel) {
+    if (!(rel instanceof PhysicalNode)
+        || rel.isEnforcer()
+        || passThroughCache.contains(rel)
+        || !derivedRels.add(rel)) {
+      return;
+    }
+    tasks.push(getOptimizeInputTaskSatisfied(rel, planner.getSubsetNonNull(rel)));
+  }
+
+  /** Creates the task that optimizes inputs of a physical node and derives
+   * its traits; the node must satisfy {@code group}. */
+  private Task getOptimizeInputTaskSatisfied(RelNode rel, RelSubset group) {
     boolean unProcess = false;
     for (RelNode input : rel.getInputs()) {
       RelOptCost winner = ((RelSubset) input).getWinnerCost();
@@ -835,6 +869,13 @@ class TopDownRuleDriver implements RuleDriver {
     }
 
     @Override public void perform() {
+      final RelSubset subset = planner.getSubset(mExpr);
+      if (subset != null && VolcanoPlanner.equivRoot(subset.set) != subset.set) {
+        // The set was merged into another one after this task was scheduled,
+        // and mExpr was not moved to it (that set already has an equivalent
+        // rel, or mExpr was pruned).
+        return;
+      }
       List<RelNode> inputs = mExpr.getInputs();
       for (RelNode input : inputs) {
         if (((RelSubset) input).getWinnerCost() == null) {
