@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -290,6 +291,15 @@ class ElasticsearchRules {
 
     protected ElasticsearchFilterRule(Config config) {
       super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalFilter filter = call.rel(0);
+      // Bound variables of a prepared statement are not known at planning
+      // time, so a condition that references them cannot be translated into
+      // an Elasticsearch query. Keep such filters above the adapter and let
+      // Calcite evaluate them once the parameters are bound.
+      return !RexUtil.containsDynamicParam(filter.getCondition());
     }
 
     @Override public RelNode convert(RelNode relNode) {
