@@ -76,8 +76,8 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlOverOperator;
+import org.apache.calcite.sql.SqlPipeCall;
 import org.apache.calcite.sql.SqlPipeInput;
-import org.apache.calcite.sql.SqlPipeOperator;
 import org.apache.calcite.sql.SqlPipeQuery;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
@@ -3220,7 +3220,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case WITH:
     case OTHER_FUNCTION:
     case FROM_QUERY:
-    case PIPE_OPERATOR:
+    case PIPE_CALL:
       if (alias == null) {
         alias = SqlValidatorUtil.alias(node, nextGeneratedId++);
       }
@@ -3415,9 +3415,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> operands;
     switch (node.getKind()) {
     case FROM_QUERY:
-    case PIPE_OPERATOR:
-      registerPipe(parentScope, usingScope, node, enclosingNode, alias,
-          forceNullable);
+    case PIPE_CALL:
+      registerPipe(parentScope, usingScope, (SqlPipeQuery) node, enclosingNode,
+          alias, forceNullable);
       break;
 
     case SELECT:
@@ -3748,23 +3748,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Registers a query written in pipe syntax. Each is registered along with
-   * its {@link SqlPipeQuery#surrogateSelect()}.
+   * Registers a query written in pipe syntax.
    */
   private void registerPipe(SqlValidatorScope parentScope,
-      @Nullable SqlValidatorScope usingScope, SqlNode node,
+      @Nullable SqlValidatorScope usingScope, SqlPipeQuery node,
       SqlNode enclosingNode, @Nullable String alias, boolean forceNullable) {
-    if (node instanceof SqlPipeOperator) {
+    if (node instanceof SqlPipeCall) {
       // PipeNamespace decides, when it is validated, what this operator sees
       // of its input.
-      final SqlNode input = ((SqlPipeOperator) node).getQuery();
+      final SqlNode input = ((SqlPipeCall) node).getQuery();
       registerQuery(parentScope, null, input, input, null, false);
     }
-    final SqlSelect surrogate = ((SqlPipeQuery) node).surrogateSelect();
+    // Register the pipe query's surrogate SELECT (see
+    // SqlPipeQuery#surrogateSelect) as if it were the query. This is what lets
+    // a pipe query reuse the validation of SELECT.
+    final SqlSelect surrogate = node.surrogateSelect();
     registerQuery(parentScope, null, surrogate, node, null, false);
-    // The query's expressions are resolved in its surrogate's scopes, so the
-    // query itself needs only the scope it is written in.
-    scopes.put(node, parentScope);
+    // Associate this node with the scope created for its surrogate, so it
+    // can be found by e.g. validateInsert.
+    scopes.put(node, getSelectScope(surrogate));
     registerNamespace(usingScope, alias,
         new PipeNamespace(this, node, surrogate, parentScope, enclosingNode),
         forceNullable);
@@ -3778,12 +3780,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (ns instanceof PipeNamespace) {
       return ((PipeNamespace) ns).outChildren();
     }
-    return anonymousPipeChild(input, ns);
+    return singleAnonymousScopeChild(input, ns);
   }
 
-  /** Returns the scope children that an operator applied to a pipe query can
-   * see: one anonymous table. */
-  List<ScopeChild> anonymousPipeChild(SqlNode node,
+  /** Returns a single scope child for {@code node}, under a generated alias,
+   * so that its columns are visible but the table aliases are not. */
+  List<ScopeChild> singleAnonymousScopeChild(SqlNode node,
       SqlValidatorNamespace ns) {
     return ImmutableList.of(
         new ScopeChild(0, SqlValidatorUtil.alias(node, nextGeneratedId++),
@@ -4841,10 +4843,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SelectNamespace ns) {
     // A surrogate is registered with its pipe operator as enclosing node.
     final @Nullable SqlNode node = ns.getEnclosingNode();
-    if (!(node instanceof SqlPipeOperator)) {
+    if (!(node instanceof SqlPipeCall)) {
       return null;
     }
-    return getNamespaceOrThrow(((SqlPipeOperator) node).getQuery())
+    return getNamespaceOrThrow(((SqlPipeCall) node).getQuery())
         .getFilterRequirement();
   }
 
@@ -5097,14 +5099,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         break;
       }
     } else if (query.isA(SqlKind.PIPE_QUERY)) {
-      if (query instanceof SqlPipeOperator) {
+      if (query instanceof SqlPipeCall) {
         // A pipeline is a stream if and only if the query it starts from is.
-        validateModality(((SqlPipeOperator) query).getQuery());
+        validateModality(((SqlPipeCall) query).getQuery());
       }
       // The query's own clauses are its surrogate's, so they follow the
       // rules for the clauses of a SELECT on a stream.
       validateModality(
-          ((PipeNamespace) getNamespaceOrThrow(query)).getSelect(), modality,
+          ((PipeNamespace) getNamespaceOrThrow(query)).getSurrogateSelect(), modality,
           true);
     } else if (query.getKind() == SqlKind.WITH) {
      // The modality of WITH clause depends on its body
@@ -5138,8 +5140,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else if (query.getKind() == SqlKind.VALUES
         || query.getKind() == SqlKind.FROM_QUERY) {
       return SqlModality.RELATION;
-    } else if (query instanceof SqlPipeOperator) {
-      return deduceModality(((SqlPipeOperator) query).getQuery());
+    } else if (query instanceof SqlPipeCall) {
+      return deduceModality(((SqlPipeCall) query).getQuery());
     } else if (query.getKind() == SqlKind.WITH) {
       return deduceModality(((SqlWith) query).body);
     } else {
@@ -8298,7 +8300,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else if (sqlQuery.isA(SqlKind.PIPE_QUERY)) {
       // A pipe query has the origins of its surrogate SELECT.
       final PipeNamespace ns = (PipeNamespace) getNamespaceOrThrow(sqlQuery);
-      return getFieldOrigin(ns.getSelect(), i);
+      return getFieldOrigin(ns.getSurrogateSelect(), i);
     } else {
       return null;
     }

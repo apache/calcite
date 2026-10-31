@@ -985,11 +985,11 @@ SqlNode FromQuery() :
 }
 
 /**
- * Reads optional pipe operators and applies them to the query {@code e}.
+ * Parses zero or more pipe operators that follow the query {@code e}.
  *
- * <p>If {@code with}, {@code e} is a WITH, or an ORDER BY of a WITH, that is
- * not in parentheses. Then the operators go inside the WITH, so that they can
- * see its CTEs.
+ * <p>The flag {@code with} signifies whether {@code e} is a WITH that is not
+ * in parentheses, or an ORDER BY of such a WITH. If so, the operators are
+ * applied to the body of the WITH, so that they can reference its CTEs.
  */
 SqlNode PipeOpt(SqlNode e, boolean with) :
 {
@@ -1019,7 +1019,7 @@ SqlNode PipeOpt(SqlNode e, boolean with) :
 }
 
 /**
- * Reads a single pipe operator and applies it to the query {@code e}.
+ * Parses one pipe operation.
  */
 SqlNode PipeOperator(SqlNode e) :
 {
@@ -1044,7 +1044,7 @@ SqlNode PipeOperator(SqlNode e) :
 }
 
 /**
- * Parses a pipe WHERE operator, and applies it to the query {@code e}.
+ * Parses a {@code |> WHERE} operation.
  */
 SqlNode PipeWhere(Span s, SqlNode e) :
 {
@@ -4118,7 +4118,7 @@ void AddSetOpQuery(List<Object> list, ExprContext exprContext) :
         checkQueryExpression(exprContext);
     }
     [
-        // A FROM query must be in parentheses to follow a set operator.
+        // Deliberately require parentheses, as GoogleSQL does.
         LOOKAHEAD(1)
         <FROM> {
             if (!this.conformance.isPipeSyntaxAllowed()) {

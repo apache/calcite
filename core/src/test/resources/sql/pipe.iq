@@ -17,6 +17,13 @@
 #
 # Pipe syntax is only allowed under conformance levels that support it;
 # scott-lenient uses LENIENT conformance.
+#
+# The expected results were checked against GoogleSQL's reference
+# implementation. To repeat the check, visit
+# https://github.com/google/googlesql to download GoogleSQL. Then,
+# from core/src/test/resources, run:
+#   ./pipe_iq_googlesql.py <path>/execute_query_linux \
+#     pipe_iq_googlesql_setup.sql sql/pipe.iq
 !use scott-lenient
 !set outputformat mysql
 

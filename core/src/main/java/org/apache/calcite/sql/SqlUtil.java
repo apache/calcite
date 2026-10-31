@@ -921,7 +921,7 @@ public abstract class SqlUtil {
       return getSelectListItem(operandList.get(0), i);
 
     case FROM_QUERY:
-    case PIPE_OPERATOR:
+    case PIPE_CALL:
       // A query in pipe syntax has no select list to point into.
       return query;
 

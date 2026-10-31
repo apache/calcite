@@ -26,11 +26,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Base class for parse tree nodes that represent a query written in SQL pipe
- * syntax: a standalone {@code FROM} query, which is the head of a pipeline,
- * or a {@link SqlPipeOperator} applied to a query. The query an operator is
- * applied to need not itself be in pipe syntax; for example,
- * {@code (SELECT * FROM emp) |> WHERE deptno = 10}.
+ * Base class for parse tree nodes that represent a query in SQL pipe
+ * syntax: {@link SqlFromQuery} or {@link SqlPipeCall}.
  *
  * @see SqlConformance#isPipeSyntaxAllowed()
  * @see SqlKind#PIPE_QUERY
@@ -40,13 +37,19 @@ public abstract class SqlPipeQuery extends SqlCall {
     super(pos);
   }
 
-  /** Creates the surrogate SELECT that stands in for this operation
-   * while it is validated and converted.
+  /**
+   * Creates the surrogate SELECT of this query: a {@code SELECT} that stands
+   * in for the query while it is validated and converted.
    *
-   * @see SqlPipeOperator */
+   * <p>For example, {@code FROM emp |> WHERE c} is a {@link SqlPipeWhere}
+   * whose input is the {@link SqlFromQuery} {@code FROM emp}. The surrogate of
+   * {@code FROM emp} is {@code SELECT * FROM emp}, and the surrogate of the
+   * {@link SqlPipeWhere} is {@code SELECT * FROM input WHERE c}.
+   */
   public abstract SqlSelect surrogateSelect();
 
-  /** Creates a {@code SELECT} for {@link #surrogateSelect} to return. */
+  /** Creates a surrogate SELECT with the given select list and FROM clause,
+   * and no other clauses. */
   protected SqlSelect surrogate(@Nullable SqlNodeList keywordList,
       SqlNodeList selectList, @Nullable SqlNode from) {
     return new SqlSelect(getParserPosition(), keywordList, selectList, from,

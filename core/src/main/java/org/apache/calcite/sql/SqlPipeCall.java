@@ -24,34 +24,27 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Base class for parse tree nodes that represent operators in SQL pipe
- * syntax; for example, {@code FROM emp |> WHERE deptno = 10}.
- *
- * <p>A pipe operator stays in the parse tree through validation. It is
- * validated and converted as its {@link #surrogateSelect}, which reads the
- * operator's input through a {@link SqlPipeInput}. For example, the
- * surrogate of {@code |> WHERE c} is {@code SELECT * FROM input WHERE c}.
+ * Base class for parse tree nodes that represent a call to a pipe operator.
  *
  * @see SqlConformance#isPipeSyntaxAllowed()
- * @see SqlKind#PIPE_OPERATOR
+ * @see SqlKind#PIPE_CALL
  */
-public abstract class SqlPipeOperator extends SqlPipeQuery {
-  /** The {@code |>} token, with which each operator's name starts. */
+public abstract class SqlPipeCall extends SqlPipeQuery {
   public static final String PIPE = "|>";
 
   protected SqlNode query;
 
   //~ Constructors -----------------------------------------------------------
 
-  protected SqlPipeOperator(SqlParserPos pos, SqlNode query) {
+  protected SqlPipeCall(SqlParserPos pos, SqlNode query) {
     super(pos);
     this.query = requireNonNull(query, "query");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Creates a {@code SELECT} for {@link #surrogateSelect} to return, which
-   * reads this operator's input through a {@link SqlPipeInput}. */
+  /** Creates a surrogate SELECT with the given select list, and whose FROM
+   * clause is a {@link SqlPipeInput} of this pipe operator call. */
   protected SqlSelect surrogate(@Nullable SqlNodeList keywordList,
       SqlNodeList selectList) {
     return surrogate(keywordList, selectList, SqlPipeInput.of(this));
@@ -63,22 +56,21 @@ public abstract class SqlPipeOperator extends SqlPipeQuery {
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
-    if (i == 0) {
-      query = requireNonNull(operand, "operand");
-    } else {
-      super.setOperand(i, operand);
+    if (i != 0) {
+      throw new AssertionError(i);
     }
+    query = requireNonNull(operand, "operand");
   }
 
   @Override public final SqlKind getKind() {
-    return SqlKind.PIPE_OPERATOR;
+    return SqlKind.PIPE_CALL;
   }
 
   /** Definition of a pipe operator. Unparses the input query, then the
    * operator's keyword, then a tail supplied by the sub-class. */
   public abstract static class Operator extends SqlPipeQuery.Operator {
     protected Operator(String name) {
-      super(name, SqlKind.PIPE_OPERATOR);
+      super(name, SqlKind.PIPE_CALL);
     }
 
     @Override public SqlSyntax getSyntax() {
@@ -87,7 +79,7 @@ public abstract class SqlPipeOperator extends SqlPipeQuery {
 
     @Override public final void unparse(SqlWriter writer, SqlCall call,
         int leftPrec, int rightPrec) {
-      final SqlPipeOperator pipe = (SqlPipeOperator) call;
+      final SqlPipeCall pipe = (SqlPipeCall) call;
       // An ORDER_BY frame starts each operator on a new line, unindented.
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY);
@@ -109,6 +101,6 @@ public abstract class SqlPipeOperator extends SqlPipeQuery {
 
     /** Unparses whatever follows the operator's keyword. */
     protected abstract void unparseTail(SqlWriter writer,
-        SqlPipeOperator call);
+        SqlPipeCall call);
   }
 }

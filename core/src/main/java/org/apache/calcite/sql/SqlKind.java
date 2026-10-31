@@ -601,13 +601,15 @@ public enum SqlKind {
   FROM_QUERY,
 
   /**
-   * Pipe operator, e.g. {@code |> WHERE c}.
+   * Call to a pipe operator, e.g. {@code q |> WHERE c}.
+   *
+   * @see SqlPipeCall
    */
-  PIPE_OPERATOR,
+  PIPE_CALL,
 
   /**
-   * Placeholder for the input of a pipe operator in the {@code FROM} clause
-   * of the operator's surrogate SELECT.
+   * Input of a pipe operator; that is, the rows of the query it applies to,
+   * in the {@code FROM} clause of its surrogate SELECT.
    *
    * @see SqlPipeInput
    */
@@ -1466,7 +1468,7 @@ public enum SqlKind {
    * the kinds whose namespace is a {@link PipeNamespace}.
    */
   public static final EnumSet<SqlKind> PIPE_QUERY =
-      EnumSet.of(FROM_QUERY, PIPE_OPERATOR);
+      EnumSet.of(FROM_QUERY, PIPE_CALL);
 
   /**
    * Category consisting of query node types.
@@ -1481,12 +1483,12 @@ public enum SqlKind {
    * {@link #ORDER_BY},
    * {@link #EXPLICIT_TABLE},
    * {@link #FROM_QUERY},
-   * {@link #PIPE_OPERATOR},
+   * {@link #PIPE_CALL},
    * {@link #PIPE_INPUT}.
    */
   public static final EnumSet<SqlKind> QUERY =
       EnumSet.of(SELECT, UNION, INTERSECT, EXCEPT, VALUES, WITH, ORDER_BY,
-          EXPLICIT_TABLE, FROM_QUERY, PIPE_OPERATOR, PIPE_INPUT);
+          EXPLICIT_TABLE, FROM_QUERY, PIPE_CALL, PIPE_INPUT);
 
   /**
    * Category consisting of all expression operators.
@@ -1524,7 +1526,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
-                  ORDER_BY_ALL, FROM_QUERY, PIPE_OPERATOR, PIPE_INPUT,
+                  ORDER_BY_ALL, FROM_QUERY, PIPE_CALL, PIPE_INPUT,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, CYCLE, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
                   JSON_VALUE_EXPRESSION, UNNEST),

@@ -1772,8 +1772,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
-  /** Tests a WITH whose body has an ORDER BY, as an IN sub-query. The sort
-   * is removed, so the converter must not look for its collation. */
   @Test void testWithInsideWhereInOrderBy() {
     final String sql = "select * from emp\n"
         + "where deptno in (\n"
@@ -1986,7 +1984,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Tests that implicit type coercion casts the column of a pipe query that
-   * is an {@code IN} sub-query, as it would for a SELECT. */
+   * is an {@code IN} sub-query, as it would for a SELECT. The plan shows the
+   * cast as {@code CAST($0):BIGINT NOT NULL} in the sub-query. */
   @Test void testPipeWhereInSubQueryCoercion() {
     sql("select * from emp\n"
         + "where cast(deptno as bigint) in\n"
@@ -2008,7 +2007,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testPipeWhereAfterWith() {
-    // The operator applies to the body of the WITH, above its ORDER BY.
+    // The |> WHERE applies to the body of the WITH, above its ORDER BY.
     sql("with d as (select * from emp)\n"
         + "select * from d order by empno\n"
         + "|> where deptno = 10")

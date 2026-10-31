@@ -25,6 +25,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -37,6 +39,7 @@ public class SqlFromQuery extends SqlPipeQuery {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
+      checkArgument(operands.length == 1);
       return new SqlFromQuery(pos, requireNonNull(operands[0], "from"));
     }
   };
@@ -69,11 +72,10 @@ public class SqlFromQuery extends SqlPipeQuery {
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
-    if (i == 0) {
-      from = requireNonNull(operand, "operand");
-    } else {
-      super.setOperand(i, operand);
+    if (i != 0) {
+      throw new AssertionError(i);
     }
+    from = requireNonNull(operand, "operand");
   }
 
   /** Definition of the standalone {@code FROM} query operator. */

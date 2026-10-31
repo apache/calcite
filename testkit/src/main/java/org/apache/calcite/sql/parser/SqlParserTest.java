@@ -4929,6 +4929,8 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"select\".*");
   }
 
+  // Tests for SQL pipe syntax.
+
   @Test void testFromQuery() {
     final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
     sql("from emp")
@@ -4954,8 +4956,6 @@ public class SqlParserTest {
         .ok("(FROM `EMP`)\n"
             + "UNION ALL\n"
             + "(FROM `DEPT`)");
-    // A FROM query must be in parentheses to be an operand of a
-    // set operator.
     final String error = "A FROM query must be in parentheses to be an"
         + " operand of UNION, INTERSECT or EXCEPT";
     sql("from emp ^union^ all (from dept)")
@@ -4969,16 +4969,9 @@ public class SqlParserTest {
   @Test void testFromQueryConformance() {
     final String error =
         "Pipe syntax is not allowed under the current SQL conformance level";
-    final SqlConformanceEnum conformance = SqlConformanceEnum.DEFAULT;
-    sql("^from^ emp")
-        .withConformance(conformance)
-        .fails(error);
-    sql("select * from emp ^|>^ where deptno = 10")
-        .withConformance(conformance)
-        .fails(error);
-    sql("select * from emp union ^from^ dept")
-        .withConformance(conformance)
-        .fails(error);
+    sql("^from^ emp").fails(error);
+    sql("select * from emp ^|>^ where deptno = 10").fails(error);
+    sql("select * from emp union ^from^ dept").fails(error);
   }
 
   @Test void testPipeWhere() {
@@ -5148,8 +5141,6 @@ public class SqlParserTest {
     sql("from emp |> where deptno = 10 ^order^ by empno")
         .withConformance(lenient)
         .fails("(?s)Encountered \"order\" at .*");
-    // A clause of a SELECT may not follow a FROM query, though a
-    // parenthesized one, like any sub-query, may have an ORDER BY.
     sql("from emp ^where^ deptno = 10")
         .withConformance(lenient)
         .fails("WHERE clause is not allowed after a FROM query; "

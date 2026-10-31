@@ -132,8 +132,8 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPipeCall;
 import org.apache.calcite.sql.SqlPipeInput;
-import org.apache.calcite.sql.SqlPipeOperator;
 import org.apache.calcite.sql.SqlPipeQuery;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
@@ -708,10 +708,10 @@ public class SqlToRelConverter {
   }
 
   private static boolean isStream(SqlNode query) {
-    if (query instanceof SqlPipeOperator) {
+    if (query instanceof SqlPipeCall) {
       // A pipeline is a stream if the query it starts from is one. If that is
       // a WITH, look at its body.
-      SqlNode input = ((SqlPipeOperator) query).getQuery();
+      SqlNode input = ((SqlPipeCall) query).getQuery();
       while (input instanceof SqlWith) {
         input = ((SqlWith) input).body;
       }
@@ -738,9 +738,9 @@ public class SqlToRelConverter {
       return isOrdered(((SqlWith) query).body);
     case ORDER_BY:
       return !((SqlOrderBy) query).orderList.isEmpty();
-    case PIPE_OPERATOR:
+    case PIPE_CALL:
       // Each pipe operator keeps its input's order.
-      return isOrdered(((SqlPipeOperator) query).getQuery());
+      return isOrdered(((SqlPipeCall) query).getQuery());
     default:
       return false;
     }
@@ -2898,18 +2898,20 @@ public class SqlToRelConverter {
     case EXCEPT:
     case UNION:
     case FROM_QUERY:
-    case PIPE_OPERATOR:
+    case PIPE_CALL:
       final RelNode rel = convertQueryRecursive(from, false, null).project();
       bb.setRoot(rel, true);
       return;
 
     case PIPE_INPUT:
-      // The input's order matters only if the operator is at the top of the
-      // statement. Then convert the input as top, so that its sort is kept.
+      // If the "bb.top" flag is set, it means we are converting a pipe
+      // operator call at the top of the statement; therefore, we need to
+      // also convert the input with the top flag set. (This causes it to
+      // retain its ordering, which would otherwise be dropped for a
+      // subquery.)
       final boolean keepOrder = bb.top;
       SqlNode pipeInput = ((SqlPipeInput) from).getInput();
       while (pipeInput instanceof SqlWith) {
-        // convertWith would convert the body as the top of the statement.
         pipeInput = ((SqlWith) pipeInput).body;
       }
       final RelRoot pipeInputRoot =
@@ -3555,7 +3557,6 @@ public class SqlToRelConverter {
     final List<CorrelationId> correlNames = new ArrayList<>();
     // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex for aggregation
     final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping = new HashMap<>();
-    int correlFieldCount = Integer.MAX_VALUE;
 
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
@@ -3600,9 +3601,6 @@ public class SqlToRelConverter {
       while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
         topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
       }
-      correlFieldCount =
-          Math.min(correlFieldCount,
-              topLevelFieldAccess.getReferenceExpr().getType().getFieldCount());
       final int originalFieldIndex = topLevelFieldAccess.getField().getIndex();
       final RelDataTypeField field = rowType.getFieldList()
           .get(originalFieldIndex - namespaceOffset);
@@ -3651,24 +3649,28 @@ public class SqlToRelConverter {
       leaves.put(r, r.getRowType().getFieldCount());
     }
 
-    // The rel of a pipe operator's input may also have trailing columns for
-    // sort keys (see convertNonAggregateSelectList), which the correlation
-    // variable lacks. Give it the rel's row type.
-    if (readsPipeInput(bb.scope) && fieldMapping.isEmpty()
-        && correlFieldCount < bb.root().getRowType().getFieldCount()) {
-      for (int i = 0; i < correlFieldCount; i++) {
-        fieldMapping.put(Pair.of(correlNames.get(0), i), i);
-      }
-    }
-
-    // If there are field mappings (due to aggregation or a pipe operator's
-    // input), rewrite the RelNode tree to update correlation variable row
-    // type and field indices
+    // If there are field mappings (due to aggregation), rewrite the RelNode tree
+    // to update correlation variable row type and field indices
     if (!fieldMapping.isEmpty()) {
       r =
           r.accept(
               new CorrelationFieldMappingShuttle(rexBuilder, correlNames.get(0),
                   bb.root().getRowType(), fieldMapping));
+    } else if (readsPipeInput(bb.scope)) {
+      // The rel of a pipe operator's input may have trailing columns for
+      // sort keys (see convertFrom), which the correlation variable lacks.
+      // Use the CorrelationFieldMappingShuttle to change the type of the
+      // variable to the rel's row type.
+      final RelDataType rowType = bb.root().getRowType();
+      final Map<Pair<CorrelationId, Integer>, Integer> identityMapping =
+          new HashMap<>();
+      for (int i = 0; i < rowType.getFieldCount(); i++) {
+        identityMapping.put(Pair.of(correlNames.get(0), i), i);
+      }
+      r =
+          r.accept(
+              new CorrelationFieldMappingShuttle(rexBuilder, correlNames.get(0),
+                  rowType, identityMapping));
     }
 
     return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
@@ -4509,7 +4511,7 @@ public class SqlToRelConverter {
     case VALUES:
       return RelRoot.of(convertValues((SqlCall) query, targetRowType), kind);
     case FROM_QUERY:
-    case PIPE_OPERATOR:
+    case PIPE_CALL:
       return convertPipeQuery((SqlPipeQuery) query, top);
     default:
       throw new AssertionError("not a query: " + query);
@@ -4545,12 +4547,14 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Converts a query written in pipe syntax, by converting its surrogate
-   * {@code SELECT} (see {@link SqlPipeOperator}).
+   * Converts a query written in pipe syntax.
    */
   private RelRoot convertPipeQuery(SqlPipeQuery query, boolean top) {
+    // Convert the query's surrogate SELECT (see
+    // SqlPipeQuery#surrogateSelect), in the scopes that the validator gave
+    // the surrogate.
     final PipeNamespace ns = getNamespace(query);
-    final SqlSelect select = ns.getSelect();
+    final SqlSelect select = ns.getSurrogateSelect();
     final SqlValidatorScope selectScope = validator().getWhereScope(select);
     final MeasureScope measureScope =
         (MeasureScope) validator().getMeasureScope(select);

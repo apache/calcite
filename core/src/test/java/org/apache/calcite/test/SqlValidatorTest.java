@@ -10695,6 +10695,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("(INTEGER NOT NULL, VARCHAR(10) NOT NULL) MAP NOT NULL");
   }
 
+  @Test void testPipeQueryAsInsertSource() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // The validator looks up the scope of an INSERT source that is not a
+    // SELECT, so a pipe query must have one.
+    sql("insert into emp from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .ok();
+    sql("insert into emp (from emp |> where deptno = 10)")
+        .withConformance(lenient)
+        .ok();
+  }
+
   @Test void testPipeWhereBaseQueries() {
     final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
     sql("table emp |> where deptno = 10")
@@ -10737,7 +10749,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Tests pipe syntax under a conformance level that requires a
    * {@code FROM} clause, which an operator's surrogate SELECT has:
-   * the placeholder for the operator's input. */
+   * a {@link org.apache.calcite.sql.SqlPipeInput}. */
   @Test void testPipeUnderFromRequiredConformance() {
     final SqlConformance fromRequired =
         new SqlDelegatingConformance(SqlConformanceEnum.STRICT_2003) {

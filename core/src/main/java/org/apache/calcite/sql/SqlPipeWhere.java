@@ -25,6 +25,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -33,18 +35,19 @@ import static java.util.Objects.requireNonNull;
  *
  * @see SqlConformance#isPipeSyntaxAllowed()
  */
-public class SqlPipeWhere extends SqlPipeOperator {
+public class SqlPipeWhere extends SqlPipeCall {
   public static final SqlSpecialOperator OPERATOR =
       new Operator(PIPE + " WHERE") {
         @Override public SqlCall createCall(
             @Nullable SqlLiteral functionQualifier, SqlParserPos pos,
             @Nullable SqlNode... operands) {
+          checkArgument(operands.length == 2);
           return new SqlPipeWhere(pos, requireNonNull(operands[0], "query"),
               requireNonNull(operands[1], "condition"));
         }
 
         @Override protected void unparseTail(SqlWriter writer,
-            SqlPipeOperator call) {
+            SqlPipeCall call) {
           SqlUtil.unparseConditionClause(writer,
               ((SqlPipeWhere) call).condition, 0, 0);
         }

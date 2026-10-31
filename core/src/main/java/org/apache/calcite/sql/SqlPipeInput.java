@@ -24,21 +24,26 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
- * Node that represents the input of a pipe operator in its
- * {@link SqlPipeOperator#surrogateSelect}.
+ * Parse tree node that represents the input table of a pipe operator.
+ *
+ * <p>The parser does not create it; it occurs only as the {@code FROM} clause
+ * of a surrogate SELECT (see {@link SqlPipeQuery#surrogateSelect()}).
  *
  * @see SqlKind#PIPE_INPUT
  */
 public class SqlPipeInput extends SqlCall {
-  /** Definition of the pipe-input placeholder. */
+  /** Definition of the pipe input. */
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("PIPE_INPUT", SqlKind.PIPE_INPUT) {
         @Override public SqlCall createCall(
             @Nullable SqlLiteral functionQualifier, SqlParserPos pos,
             @Nullable SqlNode... operands) {
+          checkArgument(operands.length == 1);
           return new SqlPipeInput(pos, requireNonNull(operands[0], "input"));
         }
 
@@ -59,8 +64,9 @@ public class SqlPipeInput extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Creates a placeholder for the input of {@code pipe}. */
-  public static SqlPipeInput of(SqlPipeOperator pipe) {
+  /** Creates a node that represents the input of the given pipe operator
+   * call. */
+  public static SqlPipeInput of(SqlPipeCall pipe) {
     return new SqlPipeInput(pipe.getParserPosition(), pipe.getQuery());
   }
 
@@ -78,10 +84,9 @@ public class SqlPipeInput extends SqlCall {
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
-    if (i == 0) {
-      input = requireNonNull(operand, "operand");
-    } else {
-      super.setOperand(i, operand);
+    if (i != 0) {
+      throw new AssertionError(i);
     }
+    input = requireNonNull(operand, "operand");
   }
 }

@@ -120,12 +120,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       SqlNode body = ((SqlWith) query).body;
       return rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
     case FROM_QUERY:
-    case PIPE_OPERATOR:
+    case PIPE_CALL:
       // A query in pipe syntax is validated and converted as its surrogate
       // SELECT, so coerce that.
       final PipeNamespace pipeNs =
           (PipeNamespace) requireNonNull(validator.getNamespace(query), "ns");
-      if (!rowTypeCoercion(scope, pipeNs.getSelect(), columnIndex, targetType)) {
+      if (!rowTypeCoercion(scope, pipeNs.getSurrogateSelect(), columnIndex, targetType)) {
         return false;
       }
       updateInferredColumnType(
@@ -680,8 +680,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     int colCount = type1.isStruct() ? type1.getFieldCount() : 1;
     RelDataType[] argTypes = new RelDataType[2];
     argTypes[0] = type1;
-    // Not isA(SqlKind.QUERY): coercing a WITH as a sub-query gives it a type
-    // that its conversion does not preserve.
     final boolean isSubQuery =
         node2 instanceof SqlSelect || node2.isA(SqlKind.PIPE_QUERY);
     // For subquery, use the row type directly.

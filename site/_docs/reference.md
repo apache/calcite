@@ -499,7 +499,9 @@ but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isPipeSyntaxAllowed--).
 A standalone `FROM` is a query, equivalent to `SELECT *` over that `FROM`
 clause. Any query may be followed by pipe operators, each of which takes the
-query before it as its input table and produces a new table.
+query before it as its input table and produces a new table. Pipe syntax is
+based on
+[GoogleSQL's pipe syntax](https://github.com/google/googlesql/blob/master/docs/pipe-syntax.md).
 
 A pipe operator sees only the columns of its input table (and, in a sub-query,
 those of enclosing queries). Table aliases in a standalone `FROM` remain
