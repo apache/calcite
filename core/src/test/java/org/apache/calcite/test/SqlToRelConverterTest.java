@@ -6043,6 +6043,46 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withTypeCoercion(false).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
+   *
+   * <p>A custom TypeCoercion that overrides {@code commonTypeForBinaryComparison}
+   * can widen a JOIN condition's DECIMAL/REAL comparison to DOUBLE, instead
+   * of the default narrowing to REAL. */
+  @Test void testJoinOnDecimalEqualsRealWithCustomTypeCoercion() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) ON d.k = f.k";
+    sql(sql)
+        .withFactory(f ->
+            f.withValidator((opTab, catalogReader, typeFactory, config) ->
+                SqlValidatorUtil.newValidator(opTab, catalogReader, typeFactory,
+                    config.withTypeCoercionFactory(
+                        TypeCoercionTest.WideningTypeCoercion::new))))
+        .ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7827">[CALCITE-7827]
+   * Document precision loss in DECIMAL/REAL comparisons and how to widen them to DOUBLE</a>.
+   *
+   * <p>Unlike {@link #testJoinOnDecimalEqualsRealWithCustomTypeCoercion} (which
+   * uses {@code ON}), {@code JOIN USING} causes
+   * {@link org.apache.calcite.sql2rel.SqlToRelConverter} to call
+   * {@code commonTypeForBinaryComparison} directly. The plan shows both
+   * columns cast to {@code DOUBLE}. */
+  @Test void testJoinUsingDecimalEqualsRealWithCustomTypeCoercion() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (CAST(59999943 AS DECIMAL(18, 3)))) AS d(k)\n"
+        + "JOIN (VALUES (CAST(59999945 AS REAL))) AS f(k) USING (k)";
+    sql(sql)
+        .withFactory(f ->
+            f.withValidator((opTab, catalogReader, typeFactory, config) ->
+                SqlValidatorUtil.newValidator(opTab, catalogReader, typeFactory,
+                    config.withTypeCoercionFactory(
+                        TypeCoercionTest.WideningTypeCoercion::new))))
+        .ok();
+  }
+
   /** Tests LEFT JOIN LATERAL with multiple columns from outer. */
   @Test void testLeftJoinLateral4() {
     final String sql = "select * from (values (4,5)) as t(c,d)\n"

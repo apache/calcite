@@ -1888,6 +1888,32 @@ i: implicit cast / e: explicit cast / x: not allowed
   make `1 = true` and `0 = false` always evaluate to `TRUE`;
   if there is numeric type operand, find common type for both operands;
   if operands are `UUID` and `CHARACTER` or `BINARY`, promote to `UUID`.
+  By default, comparing `DECIMAL` with `REAL` converts the `DECIMAL`
+  operand to `REAL`, which has a 24-bit mantissa (about 7 decimal digits),
+  so distinct values can compare as equal. The same applies to `BETWEEN`,
+  `IN`, `IS [NOT] DISTINCT FROM`, `NULLIF`, quantified comparisons,
+  `NATURAL JOIN`, and `JOIN USING`, and to the element types of `ARRAY`,
+  `MAP`, and `ROW`. (`CASE`, `COALESCE`, multi-row `VALUES`, and set
+  operations are not affected: they already use `DOUBLE` for this
+  combination.) Integer types have the same defect: `INTEGER` (31 bits)
+  and `BIGINT` (63 bits) compared with `REAL` lose precision the same
+  way, and `BIGINT` compared with `DOUBLE` does too; the override below
+  leaves those alone.
+  To widen to `DOUBLE` instead, override
+  `TypeCoercion#commonTypeForBinaryComparison` in a `TypeCoercionImpl`
+  subclass and install it via
+  `SqlValidator.Config#withTypeCoercionFactory`. The rule is: call
+  `super`, and replace the result with `DOUBLE` only when `super` returns
+  an approximate type and one operand is `DECIMAL`; this leaves
+  `DECIMAL` vs `VARCHAR`, `DECIMAL` vs `INTEGER`, and non-`DECIMAL` pairs
+  unchanged. This opt-in is available to applications using `Frameworks`
+  or `SqlValidatorUtil`; there is no JDBC connection property for it.
+  `DOUBLE` has a 53-bit mantissa, about 15 decimal digits, so `DECIMAL`
+  values with more significant digits can still compare as equal after
+  widening. Widening also changes comparisons of a `REAL` column with an
+  exact literal: `0.1` has type `DECIMAL(2, 1)`, so `real_col = 0.1` is
+  false for a `REAL` value stored as `0.1`, which converts to
+  0.100000001490116… in `DOUBLE`.
 * `IN` sub-query: compare type of LHS and RHS, and find the common type;
   if it is struct type, find wider type for every field;
 * `IN` expression list: compare every expression to find the common type;
