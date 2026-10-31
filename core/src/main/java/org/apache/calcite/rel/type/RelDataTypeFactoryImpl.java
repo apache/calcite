@@ -260,16 +260,28 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   protected @Nullable RelDataType leastRestrictiveArrayMultisetType(
       final List<RelDataType> types, SqlTypeName sqlTypeName) {
     assert sqlTypeName == SqlTypeName.ARRAY || sqlTypeName == SqlTypeName.MULTISET;
+    // Filter out NULL types; they only affect nullability, not the component type.
+    // E.g., leastRestrictive(ARRAY<CHAR(3)>, ARRAY<CHAR(1)>, NULL) should yield
+    // ARRAY<CHAR(3)> nullable, not fail.
+    final List<RelDataType> nonNullTypes = new ArrayList<>();
     boolean isNullable = false;
     for (RelDataType type : types) {
+      if (type.getSqlTypeName() == SqlTypeName.NULL) {
+        isNullable = true;
+        continue;
+      }
       if (type.getComponentType() == null) {
         return null;
       }
+      nonNullTypes.add(type);
       isNullable |= type.isNullable();
+    }
+    if (nonNullTypes.isEmpty()) {
+      return null;
     }
     final RelDataType type =
         leastRestrictive(
-            Util.transform(types,
+            Util.transform(nonNullTypes,
                 t -> t instanceof ArraySqlType
                     ? ((ArraySqlType) t).getComponentType()
                     : ((MultisetSqlType) t).getComponentType()));
@@ -285,22 +297,34 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   protected @Nullable RelDataType leastRestrictiveMapType(
       final List<RelDataType> types, SqlTypeName sqlTypeName) {
     assert sqlTypeName == SqlTypeName.MAP;
+    // Filter out NULL types; they only affect nullability, not key/value types.
+    // E.g., leastRestrictive(MAP<CHAR(10),CHAR(10)>, MAP<CHAR(1),CHAR(1)>, NULL)
+    // should yield MAP<CHAR(10),CHAR(10)> nullable, not fail.
+    final List<RelDataType> nonNullTypes = new ArrayList<>();
     boolean isNullable = false;
     for (RelDataType type : types) {
+      if (type.getSqlTypeName() == SqlTypeName.NULL) {
+        isNullable = true;
+        continue;
+      }
       if (!(type instanceof MapSqlType)) {
         return null;
       }
+      nonNullTypes.add(type);
       isNullable |= type.isNullable();
+    }
+    if (nonNullTypes.isEmpty()) {
+      return null;
     }
     final RelDataType keyType =
         leastRestrictive(
-            Util.transform(types, t -> ((MapSqlType) t).getKeyType()));
+            Util.transform(nonNullTypes, t -> ((MapSqlType) t).getKeyType()));
     if (keyType == null) {
       return null;
     }
     final RelDataType valueType =
         leastRestrictive(
-            Util.transform(types, t -> ((MapSqlType) t).getValueType()));
+            Util.transform(nonNullTypes, t -> ((MapSqlType) t).getValueType()));
     if (valueType == null) {
       return null;
     }
