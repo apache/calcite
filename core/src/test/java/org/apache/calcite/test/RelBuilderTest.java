@@ -50,6 +50,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
@@ -2652,6 +2653,29 @@ public class RelBuilderTest {
             .nullable(true)
             .build();
     assertThat(root.getRowType(), hasRelDataType(expectedRowType));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7910">[CALCITE-7910]
+   * Minus and Intersect lose StructKind of nested ROW types in row type derivation</a>. */
+  @Test void testMinusPreservesNestedStructKind() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelDataType inner =
+        typeFactory.createStructType(StructKind.PEEK_FIELDS_NO_EXPAND,
+            ImmutableList.of(typeFactory.createSqlType(SqlTypeName.INTEGER),
+                typeFactory.createSqlType(SqlTypeName.VARCHAR)),
+            ImmutableList.of("_1", "_2"));
+    final RelDataType rowType =
+        new RelDataTypeFactory.Builder(typeFactory)
+            .add("a", SqlTypeName.BIGINT)
+            .add("b", inner)
+            .build();
+
+    final RelNode minus =
+        builder.values(rowType).values(rowType).minus(false).build();
+
+    assertThat(minus.getRowType(), is(rowType));
   }
 
   /** Test case for
