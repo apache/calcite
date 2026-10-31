@@ -663,7 +663,7 @@ public class RexLiteral extends RexNode {
             (nlsString.getCharsetName() != null)
                 && !nlsString.getCharsetName().equals(
                 CalciteSystemProperty.DEFAULT_CHARSET.value());
-        sb.append(nlsString.asSql(includeCharset, false));
+        nlsString.asSql(sb, includeCharset, false);
       }
       break;
     case BOOLEAN:
