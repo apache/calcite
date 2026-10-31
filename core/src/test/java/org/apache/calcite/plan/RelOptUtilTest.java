@@ -47,6 +47,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.DeduplicateCorrelateVariables;
 import org.apache.calcite.sql2rel.RexRewritingRelShuttle;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
@@ -1001,6 +1002,53 @@ class RelOptUtilTest {
                 "JOB_CNT2"),
             ImmutableSet.of());
     assertThat(castNode2.explain(), is(expectNode2.explain()));
+  }
+
+  @Test void testDeduplicateCorrelationsInRexExpression() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RelOptCluster cluster = relBuilder.getCluster();
+    final CorrelationId oldId = cluster.createCorrel();
+    final CorrelationId newId = cluster.createCorrel();
+    final CorrelationId outerId = cluster.createCorrel();
+    final int deptNo = empRow.getFieldNames().indexOf("DEPTNO");
+    final RexNode oldRef =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(empRow, oldId), deptNo);
+    final RexNode outerRef =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(empRow, outerId), deptNo);
+    final RelNode innerRel = relBuilder.push(empScan)
+        .filter(relBuilder.equals(relBuilder.field("DEPTNO"), oldRef))
+        .project(relBuilder.field("DEPTNO"))
+        .build();
+    final RexSubQuery nested = RexSubQuery.in(innerRel, ImmutableList.of(oldRef));
+    final RelNode outerRel = relBuilder.push(deptScan)
+        .filter(
+            relBuilder.and(nested,
+                relBuilder.equals(relBuilder.field("DEPTNO"), oldRef),
+                relBuilder.equals(relBuilder.field("DEPTNO"), outerRef)))
+        .project(relBuilder.field("DEPTNO"))
+        .build();
+    final RexNode inSubQuery =
+        RexSubQuery.in(outerRel, ImmutableList.of(RexSubQuery.scalar(innerRel)));
+    final RexNode expression =
+        relBuilder.and(relBuilder.equals(oldRef, outerRef), inSubQuery);
+    final RexNode rewritten =
+        DeduplicateCorrelateVariables.go(rexBuilder, newId, ImmutableSet.of(oldId), expression);
+    final RelNode rewrittenProject =
+        relBuilder.push(empScan).project(rewritten).build();
+    assertThat(RelOptUtil.getVariablesUsed(rewrittenProject),
+        is(ImmutableSet.of(newId, outerId)));
+    final RelNode originalProject =
+        relBuilder.push(empScan).project(expression).build();
+    assertThat(RelOptUtil.getVariablesUsed(originalProject),
+        is(ImmutableSet.of(oldId, outerId)));
+
+    final Project expected =
+        (Project) DeduplicateCorrelateVariables.go(rexBuilder, newId,
+            ImmutableSet.of(oldId), relBuilder.push(empScan).project(expression).build());
+    assertThat(rewritten, is(expected.getProjects().get(0)));
+    final RexNode rewrittenTwice =
+        DeduplicateCorrelateVariables.go(rexBuilder, newId, ImmutableSet.of(oldId), rewritten);
+    assertThat(rewrittenTwice, is(rewritten));
   }
 
   @Test void testRemapCorrelHandlesNestedSubQueries() {

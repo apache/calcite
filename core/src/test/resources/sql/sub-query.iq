@@ -11169,6 +11169,51 @@ ORDER BY empno;
 
 !ok
 
+# [CALCITE-7882] JOIN ON condition with an uncorrelated sub-query followed by
+# a correlated EXISTS fails with "Unable to implement"
+# A scalar sub-query and a correlated EXISTS, in both orders
+select e.ename
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal < (select max(s.sal) from emp as s)
+  and exists (select 1 from emp as s where s.mgr = e.empno)
+order by e.ename;
++-------+
+| ENAME |
++-------+
+| BLAKE |
+| CLARK |
+| FORD  |
+| JONES |
+| SCOTT |
++-------+
+(5 rows)
+
+!ok
+
+# Several sub-queries in one ON, OR, NOT EXISTS, GROUP BY, IN lists,
+# LATERAL, a sub-query in FROM, composite keys, and correlation with
+# an outer query
+select e.ename, d.dname
+from emp as e join dept as d
+on e.deptno = d.deptno
+  and e.sal < (select max(s.sal) from emp as s)
+  and exists (select 1 from emp as s where s.mgr = e.empno)
+  and e.mgr not in (select s.mgr from emp as s where s.job = 'CLERK')
+order by e.ename;
++-------+------------+
+| ENAME | DNAME      |
++-------+------------+
+| BLAKE | SALES      |
+| CLARK | ACCOUNTING |
+| FORD  | RESEARCH   |
+| JONES | RESEARCH   |
+| SCOTT | RESEARCH   |
++-------+------------+
+(5 rows)
+
+!ok
+
 # [CALCITE-7887] SubQueryRemoveRule fails for a sub-query inside a window function
 # SELECT list with a sub-query correlated to the current scope followed by
 # one correlated to an outer scope. SubQueryRemoveRule used to rewrite one
