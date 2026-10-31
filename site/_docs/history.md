@@ -77,7 +77,9 @@ operator-supplied.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7713">CALCITE-7713</a>]
 Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate
-pattern is set in `calcite.model.classes.allowed` system property.
+pattern is set in `calcite.model.classes.allowed` system property. This also applies
+to the JDBC driver that `DriverManager` chooses for `jdbcUrl` when a JDBC schema
+does not specify `jdbcDriver`.
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7716">CALCITE-7716</a>]
 `UUID` values are now ordered as unsigned 128-bit values, as SQL requires.
