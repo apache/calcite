@@ -1923,6 +1923,24 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCalcReduceExpressionsNoChangeInOutput">
+    <Resource name="sql">
+      <![CDATA[select floor(cast(sal as bigint) / 1)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[FLOOR(/(CAST($5):BIGINT NOT NULL, 1))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalCalc(expr#0..8=[{inputs}], expr#9=[CAST($t5):BIGINT NOT NULL], expr#10=[1], expr#11=[/($t9, $t10)], expr#12=[FLOOR($t11)], EXPR$0=[$t12])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCallOverCorrelationVariableIsNotFlattened">
     <Resource name="sql">
       <![CDATA[select * from emp e1 where exists (select * from emp e2 where (e1.deptno+30) = e2.deptno)]]>

@@ -471,9 +471,44 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       for (RexNode expr : exprList) {
         expandedExprList.add(expr.accept(shuttle));
       }
+
+      final List<RexNode> origProjectExprs = new ArrayList<>();
+      for (RexLocalRef projectExpr : program.getProjectList()) {
+        origProjectExprs.add(expandedExprList.get(projectExpr.getIndex()));
+      }
+      final @Nullable RexLocalRef origConditionRef = program.getCondition();
+      final @Nullable RexNode origConditionExpr =
+          origConditionRef != null
+              ? expandedExprList.get(origConditionRef.getIndex())
+              : null;
+
       final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
       if (reduceExpressions(calc, expandedExprList, predicates, false,
           config.matchNullability(), config.treatDynamicCallsAsConstant())) {
+
+        // Check whether the output expressions actually changed.
+        // reduceExpressions may return true because it simplified an
+        // intermediate expression, but the output (projects + condition)
+        // may still be equivalent to the original.
+        boolean outputChanged = false;
+        final List<RexLocalRef> projectList = program.getProjectList();
+        for (int i = 0; i < projectList.size(); i++) {
+          if (!expandedExprList.get(projectList.get(i).getIndex())
+              .equals(origProjectExprs.get(i))) {
+            outputChanged = true;
+            break;
+          }
+        }
+        if (!outputChanged && origConditionRef != null) {
+          if (!expandedExprList.get(origConditionRef.getIndex())
+              .equals(origConditionExpr)) {
+            outputChanged = true;
+          }
+        }
+        if (!outputChanged) {
+          return;
+        }
+
         final RexProgramBuilder builder =
             new RexProgramBuilder(
                 calc.getInput().getRowType(),
