@@ -23,6 +23,9 @@ import org.apache.calcite.sql.parser.SqlParserTest;
 import org.hamcrest.core.IsNull;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 /**
  * Testing for extension functionality of the base SQL parser impl.
  *
@@ -30,6 +33,18 @@ import org.junit.jupiter.api.Test;
  * as verifying specific extension points.
  */
 class ExtensionSqlParserTest extends SqlParserTest {
+
+  @Test void testRemoveNonReservedKeywords() {
+    for (String keyword : new String[] {"ADD", "AFTER", "BEFORE"}) {
+      assertThat(keyword, isReserved(keyword), is(true));
+      sql("select ^" + keyword + "^ from t")
+          .fails("(?s).*Incorrect syntax near the keyword '" + keyword + "'.*");
+      sql("select \"" + keyword + "\" from t")
+          .ok("SELECT `" + keyword + "`\nFROM `T`");
+    }
+    assertThat(isReserved("KEY"), is(false));
+    sql("select key from t").ok("SELECT `KEY`\nFROM `T`");
+  }
 
   @Override public SqlParserFixture fixture() {
     return super.fixture()
