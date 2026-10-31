@@ -662,13 +662,13 @@ class RelToSqlConverterTest {
         + "match_condition \"employee\".\"department_id\" <= \"product\".\"product_id\"\n"
         + "on \"employee\".\"salary\" = \"product\".\"gross_weight\"";
     final String expected = "SELECT \"t\".\"full_name\"\nFROM "
-        + "((SELECT \"employee_id\", \"full_name\", \"first_name\", \"last_name\", \"position_id\", "
+        + "(SELECT \"employee_id\", \"full_name\", \"first_name\", \"last_name\", \"position_id\", "
         + "\"position_title\", \"store_id\", \"department_id\", \"birth_date\", \"hire_date\", "
         + "\"end_date\", \"salary\", \"supervisor_id\", \"education_level\", \"marital_status\", "
         + "\"gender\", \"management_role\", CAST(\"salary\" AS DOUBLE) AS \"salary0\"\n"
-        + "FROM \"foodmart\".\"employee\") AS \"t\" ASOF JOIN \"foodmart\".\"product\" "
+        + "FROM \"foodmart\".\"employee\") AS \"t\"\nASOF JOIN \"foodmart\".\"product\" "
         + "MATCH_CONDITION \"t\".\"department_id\" <= \"product\".\"product_id\" ON "
-        + "\"t\".\"salary0\" = \"product\".\"gross_weight\")";
+        + "\"t\".\"salary0\" = \"product\".\"gross_weight\"";
     sql(sql).ok(expected);
   }
 

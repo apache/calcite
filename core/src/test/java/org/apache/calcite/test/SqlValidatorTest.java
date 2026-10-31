@@ -10978,9 +10978,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6266">[CALCITE-6266]
    * SqlValidatorException with LATERAL TABLE and JOIN</a>. */
   @Test void testCollectionTableWithLateral3() {
-    // The cause of [CALCITE-6266] was that CROSS JOIN had higher precedence
-    // than ",", and therefore "table(ramp(deptno)" was being associated with
-    // "values".
+    // CROSS JOIN binds tighter than ",", so "table(ramp(deptno))" is joined
+    // with "values"; LATERAL still sees "dept", which is before the comma.
     sql("select *\n"
         + "from dept,\n"
         + "  lateral table(ramp(deptno))\n"
@@ -11004,6 +11003,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
         + "  ^emp^")
         .fails("Duplicate relation name 'EMP' in FROM clause");
+    // LATERAL on the right of a join sees the items on the left of the join
+    // and the items before the comma
+    sql("select *\n"
+        + "from dept,\n"
+        + "  emp cross join lateral (select * from bonus\n"
+        + "    where bonus.ename = emp.ename and bonus.job = dept.name)")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7911">[CALCITE-7911]
+   * FROM a, b JOIN c is parsed incorrectly</a>. */
+  @Test void testJoinOnAfterComma() {
+    // "emp, dept join bonus on c" means "emp, (dept join bonus on c)",
+    // so c sees dept and bonus, but not emp
+    sql("select *\n"
+        + "from emp, dept join bonus on dept.name = bonus.job")
+        .ok();
+    sql("select *\n"
+        + "from emp, dept join bonus on ^emp^.ename = bonus.ename")
+        .fails("Table 'EMP' not found");
   }
 
   /** Test case for

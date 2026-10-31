@@ -152,9 +152,9 @@ from dept,
 !ok
 
 # [CALCITE-6266] SqlValidatorException with LATERAL TABLE and JOIN
-# The problem also occurred in ', LATERAL (SELECT ...) JOIN', because
-# ',' should had lower precedence than 'JOIN', but should have had equal
-# precedence.
+# The problem also occurred in ', LATERAL (SELECT ...) JOIN'. 'JOIN' binds
+# tighter than ',', so the LATERAL item is inside a join, and it must see
+# the items before the ','. Same result on PostgreSQL 14.
 with dept (deptno, dname)
     as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
   emp (empno, deptno, ename)
@@ -172,6 +172,102 @@ from dept,
 |     20 | RESEARCH   |  7369 |      20 | SMITH | B |
 +--------+------------+-------+---------+-------+---+
 (4 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL on the right of a join sees the item on the left of the join (v)
+# and the item before the ',' (dept). Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  (values 'A', 'M') as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0) as emp;
++--------+------------+---+-------+---------+-------+
+| DEPTNO | DNAME      | V | EMPNO | DEPTNO0 | ENAME |
++--------+------------+---+-------+---------+-------+
+|     10 | ACCOUNTING | A |  7782 |      10 | CLARK |
+|     20 | RESEARCH   | M |  7369 |      20 | SMITH |
++--------+------------+---+-------+---------+-------+
+(2 rows)
+
+!ok
+
+# As above, with LEFT JOIN; a row of v that has no match in emp still appears
+# once for each dept, with a null ENAME. Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select dept.deptno, emp.ename, v.v
+from dept,
+  (values ('A'), ('M')) as v (v)
+  left join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0) as emp on true;
++--------+-------+---+
+| DEPTNO | ENAME | V |
++--------+-------+---+
+|     10 | CLARK | A |
+|     10 |       | M |
+|     20 | SMITH | M |
+|     20 |       | A |
++--------+-------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL sees two items before the ',' (v1 and dept) and the item on the
+# left of the join (v2). Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select v1.v as v1, dept.deptno, emp.ename, v2.v as v2
+from (values ('A'), ('M')) as v1 (v),
+  dept,
+  (values ('A'), ('M')) as v2 (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v2.v in emp.ename) > 0
+    and v1.v = 'A') as emp;
++----+--------+-------+----+
+| V1 | DEPTNO | ENAME | V2 |
++----+--------+-------+----+
+| A  |     10 | CLARK | A  |
+| A  |     20 | SMITH | M  |
++----+--------+-------+----+
+(2 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL on the right of a join uses a column of the join's left input (v.v)
+# two times. Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select dept.deptno, emp.ename, v.v
+from dept,
+  (values ('A'), ('M')) as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0
+    and position(v.v in emp.ename) < 4) as emp;
++--------+-------+---+
+| DEPTNO | ENAME | V |
++--------+-------+---+
+|     10 | CLARK | A |
+|     20 | SMITH | M |
++--------+-------+---+
+(2 rows)
 
 !ok
 

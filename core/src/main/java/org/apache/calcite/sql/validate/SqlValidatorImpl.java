@@ -3003,8 +3003,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       final SqlNode node2 = s != null ? s.getNode() : node;
       final TableScope tableScope = new TableScope(parentScope0, node2);
-      if (usingScope instanceof ListScope) {
-        for (ScopeChild child : ((ListScope) usingScope).children) {
+      // The items to the left of this one are visible, also those before an
+      // enclosing join, as "a" in "FROM a, LATERAL (...) CROSS JOIN b".
+      // JoinScope propagates each child to the enclosing JoinScope, so the
+      // outermost one holds all of them, in FROM-list order.
+      SqlValidatorScope outer = usingScope;
+      while (outer instanceof JoinScope
+          && ((JoinScope) outer).getUsingScope() instanceof JoinScope) {
+        outer = ((JoinScope) outer).getUsingScope();
+      }
+      if (outer instanceof ListScope) {
+        for (ScopeChild child : ((ListScope) outer).children) {
           tableScope.addChild(child.namespace, child.name, child.nullable);
         }
       }
