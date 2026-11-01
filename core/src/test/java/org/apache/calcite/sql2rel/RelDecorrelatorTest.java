@@ -34,9 +34,11 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -2586,5 +2588,57 @@ public class RelDecorrelatorTest {
     RelDecorrelator.decorrelateQuery(before, builder,
         RuleSets.ofList(Collections.emptyList()),
         RuleSets.ofList(Collections.emptyList()));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+  @Test void testNonDeterministicWindowCall() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final SqlSumAggFunction aggregate =
+        new SqlSumAggFunction(builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)) {
+          @Override public boolean isDeterministic() {
+            return false;
+          }
+        };
+    final Holder<@Nullable RexCorrelVariable> variable = Holder.empty();
+    final RelNode before = builder.values(new String[] {"X"}, 1, 2)
+        .project(builder.aggregateCall(aggregate, builder.literal(1)).over().as("K"))
+        .variable(variable::set)
+        .values(new String[] {"Y"}, 1)
+        .filter(builder.greaterThan(builder.field("Y"), builder.field(variable.get(), "K")))
+        .correlate(JoinRelType.INNER, variable.get().id, builder.field(2, 0, "K"))
+        .build();
+    final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+    final String planAfter = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "  LogicalProject(K=[SUM(1) OVER ()])\n"
+        + "    LogicalValues(tuples=[[{ 1 }, { 2 }]])\n"
+        + "  LogicalFilter(condition=[>($0, $cor0.K)])\n"
+        + "    LogicalValues(tuples=[[{ 1 }]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+  @Test void testNonDeterministicLeftFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> variable = Holder.empty();
+    final RelNode before = builder.values(new String[] {"X"}, 1, 2)
+        .filter(builder.lessThan(builder.call(SqlStdOperatorTable.RAND), builder.literal(0.5)))
+        .project(builder.alias(builder.literal(0), "K"))
+        .variable(variable::set)
+        .values(new String[] {"Y"}, 1)
+        .filter(builder.greaterThan(builder.field("Y"), builder.field(variable.get(), "K")))
+        .correlate(JoinRelType.INNER, variable.get().id, builder.field(2, 0, "K"))
+        .build();
+    final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+    final String planAfter = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "  LogicalProject(K=[0])\n"
+        + "    LogicalFilter(condition=[<(RAND(), 0.5E0)])\n"
+        + "      LogicalValues(tuples=[[{ 1 }, { 2 }]])\n"
+        + "  LogicalFilter(condition=[>($0, $cor0.K)])\n"
+        + "    LogicalValues(tuples=[[{ 1 }]])\n";
+    assertThat(after, hasTree(planAfter));
   }
 }

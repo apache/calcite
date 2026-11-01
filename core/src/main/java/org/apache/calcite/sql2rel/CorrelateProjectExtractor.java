@@ -329,6 +329,10 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
 
     @Override public @Nullable Boolean visitCall(RexCall call) {
+      // Moving a call out of the inner loop changes its evaluation count.
+      if (!call.getOperator().isDeterministic()) {
+        return Boolean.FALSE;
+      }
       // Constant operands must not disqualify the call
       Boolean hasSimpleCorrelation = null;
       for (RexNode op : call.operands) {
