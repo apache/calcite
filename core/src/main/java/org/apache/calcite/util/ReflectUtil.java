@@ -590,6 +590,37 @@ public abstract class ReflectUtil {
     return false;
   }
 
+  /** Derives whether the {@code i}th parameter of a method is nullable.
+   *
+   * <p>The algorithm is as follows:
+   * <ul>
+   *   <li>If the parameter has a {@code @Nullable} annotation (from any
+   *       well-known nullness library such as jspecify, Checker Framework,
+   *       or javax.annotation), returns true.</li>
+   *   <li>If the parameter has a {@link Parameter} annotation with
+   *       {@code nullable = false}, returns false.</li>
+   *   <li>Otherwise, returns whether the Java type is not a primitive
+   *       (i.e., the default nullability derived from the type).</li>
+   * </ul>
+   */
+  public static boolean isParameterNullable(Method method, int i) {
+    final Annotation[] annotations = method.getParameterAnnotations()[i];
+    // Check for @Nullable annotation from any well-known library
+    for (Annotation annotation : annotations) {
+      if (annotation.annotationType().getSimpleName().equals("Nullable")) {
+        return true;
+      }
+    }
+    // Check @Parameter annotation for explicit nullable attribute
+    for (Annotation annotation : annotations) {
+      if (annotation.annotationType() == Parameter.class) {
+        return ((Parameter) annotation).nullable();
+      }
+    }
+    // Default: derived from Java type
+    return !method.getParameterTypes()[i].isPrimitive();
+  }
+
   /** Returns whether a parameter of a given type could possibly have an
    * argument of a given type.
    *

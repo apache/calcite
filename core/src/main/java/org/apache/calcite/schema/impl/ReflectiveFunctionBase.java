@@ -134,12 +134,28 @@ public abstract class ReflectiveFunctionBase implements Function {
 
     public ParameterListBuilder add(final Class<?> type, final String name,
         final boolean optional) {
+      return add(type, name, optional, !type.isPrimitive());
+    }
+
+    /** Adds a parameter with explicit nullability control.
+     *
+     * <p>The {@code nullable} parameter controls whether the parameter type
+     * allows null values, independently of whether the parameter is optional.
+     *
+     * @param type Java type of the parameter
+     * @param name Name of the parameter
+     * @param optional Whether the parameter is optional
+     * @param nullable Whether the parameter type is nullable
+     */
+    public ParameterListBuilder add(final Class<?> type, final String name,
+        final boolean optional, final boolean nullable) {
       final int ordinal = builder.size();
       builder.add(
           new FunctionParameter() {
             @Override public String toString() {
               return ordinal + ": " + name + " " + type.getSimpleName()
-                  + (optional ? "?" : "");
+                  + (optional ? "?" : "")
+                  + (nullable ? "" : " NOT NULL");
             }
 
             @Override public int getOrdinal() {
@@ -151,7 +167,8 @@ public abstract class ReflectiveFunctionBase implements Function {
             }
 
             @Override public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return typeFactory.createJavaType(type);
+              final RelDataType javaType = typeFactory.createJavaType(type);
+              return typeFactory.createTypeWithNullability(javaType, nullable);
             }
 
             @Override public boolean isOptional() {
@@ -165,7 +182,8 @@ public abstract class ReflectiveFunctionBase implements Function {
       final Class<?>[] types = method.getParameterTypes();
       for (int i = 0; i < types.length; i++) {
         add(types[i], ReflectUtil.getParameterName(method, i),
-            ReflectUtil.isParameterOptional(method, i));
+            ReflectUtil.isParameterOptional(method, i),
+            ReflectUtil.isParameterNullable(method, i));
       }
       return this;
     }

@@ -81,4 +81,20 @@ public @interface Parameter {
    * is NULL, and therefore optional parameters must be nullable.
    */
   boolean optional() default false;
+
+  /** Returns whether the parameter type is nullable.
+   *
+   * <p>This attribute controls the nullability of the parameter type,
+   * independently of whether the parameter is {@link #optional()}.
+   *
+   * <p>If true (the default), the nullability is derived from the Java type:
+   * boxed types (e.g. {@code Integer}) are nullable, primitive types
+   * (e.g. {@code int}) are not. You can set this to {@code false} to
+   * explicitly make a parameter non-nullable, or use a {@code @Nullable}
+   * annotation on the parameter to explicitly make it nullable.
+   *
+   * <p>If a parameter is {@link #optional()}, it must be nullable, because
+   * the default value of an optional parameter is NULL.
+   */
+  boolean nullable() default true;
 }

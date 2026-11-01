@@ -670,6 +670,29 @@ public class Smalls {
     }
   }
 
+  /** Example of a UDF with a non-nullable parameter (CALCITE-6018).
+   *
+   * <p>The parameter {@code s} is declared as {@code String} (which would
+   * normally be nullable), but the {@code @Parameter(nullable = false)}
+   * annotation makes it non-nullable. */
+  public static class MyNonNullParamFunction {
+    public static String eval(
+        @Parameter(name = "s", nullable = false) String s) {
+      return s;
+    }
+  }
+
+  /** Example of a UDF with a {@code @Nullable} parameter (CALCITE-6018).
+   *
+   * <p>The parameter {@code s} is declared as {@code String} and annotated
+   * with {@code @Nullable}, which explicitly marks it as nullable. */
+  public static class MyNullableParamFunction {
+    public static String eval(
+        @org.checkerframework.checker.nullness.qual.Nullable String s) {
+      return s == null ? "<null>" : s;
+    }
+  }
+
   /** Example of a non-strict UDF. (Does something useful when passed NULL.) */
   public static class MyToStringFunction {
     public static String eval(@Parameter(name = "o") Object o) {
