@@ -76,4 +76,35 @@ select * from "metadata".tables;
 
 !ok
 
+!if (use_old_decorr) {
+# Test case for [CALCITE-7914] Equal correlation values must not share a sequence value from the inner input.
+select count(distinct p) as c
+from (select (select max(n)
+              from (select x, next value for "my_seq" as n from (values 1, 2) s(x)) s
+              where s.x = t.k) as p
+      from (values 1, 1, 2) t(k));
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+# Test case for [CALCITE-7914] Moving a sequence call out of the inner loop changes its evaluation count.
+select count(distinct p) as c
+from (values 10, 20) t(k),
+  lateral (select t.k + next value for "my_seq" as p
+           from (values 1, 2)) s;
++---+
+| C |
++---+
+| 4 |
++---+
+(1 row)
+
+!ok
+!}
+
 # End sequence.iq
