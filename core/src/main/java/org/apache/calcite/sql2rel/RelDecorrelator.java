@@ -1757,11 +1757,19 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * ensuring that we only map the correlation variable to a local field or
    * expression from the current relational expression (e.g., a {@link RexInputRef}),
    * rather than to another correlation variable.
+   *
+   * <p>Both {@code EQUALS} and {@code IS NOT DISTINCT FROM} establish an
+   * equivalence between a correlated field and a local expression. The
+   * correlation outputs produced here are consumed by
+   * {@link #buildCorDefJoinConditions}, which joins them with
+   * {@code IS NOT DISTINCT FROM}, so the more permissive NULL semantics of
+   * {@code IS NOT DISTINCT FROM} are preserved end-to-end.
    */
   private static void findCorrelationEquivalent(CorRef correlation, RexNode e)
       throws Util.FoundOne {
     switch (e.getKind()) {
     case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
       final RexCall call = (RexCall) e;
       final List<RexNode> operands = call.getOperands();
       if (!RexUtil.containsFieldAccess(operands.get(1))

@@ -327,6 +327,9 @@ public class RexSimplify {
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
       return simplifyComparison((RexCall) e, unknownAs);
+    case IS_DISTINCT_FROM:
+    case IS_NOT_DISTINCT_FROM:
+      return simplifyIsDistinctFrom((RexCall) e);
     case SEARCH:
       return simplifySearch((RexCall) e, unknownAs);
     case LIKE:
@@ -359,6 +362,22 @@ public class RexSimplify {
   /** Applies NOT to an expression. */
   RexNode not(RexNode e) {
     return RexUtil.not(rexBuilder, e);
+  }
+
+  /** Simplifies an {@code IS [NOT] DISTINCT FROM} call.
+   *
+   * <p>Unlike {@code x = x}, which is null-rejecting, {@code x IS NOT
+   * DISTINCT FROM x} holds even when {@code x} is null or is a row with
+   * nullable fields, provided {@code x} is deterministic; it simplifies to
+   * TRUE. Similarly, {@code x IS DISTINCT FROM x} simplifies to FALSE. */
+  private RexNode simplifyIsDistinctFrom(RexCall e) {
+    final List<RexNode> operands = e.getOperands();
+    if (operands.size() == 2
+        && operands.get(0).equals(operands.get(1))
+        && RexUtil.isDeterministic(operands.get(0))) {
+      return rexBuilder.makeLiteral(e.getKind() == SqlKind.IS_NOT_DISTINCT_FROM);
+    }
+    return simplifyGenericNode(e);
   }
 
   /** Applies IS NOT FALSE to an expression. */

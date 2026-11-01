@@ -454,6 +454,142 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7915">[CALCITE-7915]
+   * RelDecorrelator does not recognize IS NOT DISTINCT FROM as correlation
+   * equivalent</a>. */
+  @Test void testCorrelationEquivalentIsNotDistinctFrom() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "SELECT e.ename\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT 1\n"
+        + "  FROM dept d\n"
+        + "  WHERE d.deptno IS NOT DISTINCT FROM e.deptno)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(ENAME=[$1])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(i=[true])\n"
+        + "          LogicalFilter(condition=["
+        + "OR(AND(IS NULL($0), IS NULL($cor0.DEPTNO)), IS TRUE(=($0, $cor0.DEPTNO)))])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan. The value generator is not needed: the correlated field
+    // is recognized as equivalent to a local column, and the join condition
+    // uses "=" because DEPTNO is not nullable.
+    final String planAfter = ""
+        + "LogicalProject(ENAME=[$1])\n"
+        + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f1=[true])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  @Test void testCorrelationEquivalentIsNotDistinctFromNullable() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "SELECT e.ename\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT 1\n"
+        + "  FROM dept d\n"
+        + "  WHERE d.loc IS NOT DISTINCT FROM e.comm)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(ENAME=[$1])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(i=[true])\n"
+        + "          LogicalFilter(condition=["
+        + "OR(AND(IS NULL(CAST($2):DECIMAL(19, 9)), IS NULL(CAST($cor0.COMM):DECIMAL(19, 9))), "
+        + "IS TRUE(=(CAST($2):DECIMAL(19, 9), CAST($cor0.COMM):DECIMAL(19, 9))))])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan. Because the correlated column is nullable, the join
+    // condition keeps the null-safe IS NOT DISTINCT FROM operator.
+    final String planAfter = ""
+        + "LogicalProject(ENAME=[$1])\n"
+        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($8, $9)], joinType=[inner])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
+        + "SAL=[$5], COMM=[$6], DEPTNO=[$7], COMM0=[CAST($6):DECIMAL(19, 9)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(LOC0=[$0], $f1=[true])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(LOC0=[$3])\n"
+        + "          LogicalFilter(condition=["
+        + "IS NOT DISTINCT FROM(CAST($2):DECIMAL(19, 9), $3)])\n"
+        + "            LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], "
+        + "LOC0=[CAST($2):DECIMAL(19, 9)])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7394">[CALCITE-7394]
    * Nested sub-query with multiple levels of correlation returns incorrect results</a>. */
   @Test void testNestedSubQueryWithMultiLevelCorrelation() {

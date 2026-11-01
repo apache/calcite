@@ -4125,6 +4125,19 @@ class RexProgramTest extends RexProgramTestBase {
         "IS DISTINCT FROM(?0.bool0, ?0.bool1)");
   }
 
+  /** Tests that "x IS NOT DISTINCT FROM x" simplifies to "true" and
+   * "x IS DISTINCT FROM x" simplifies to "false", even when {@code x} is
+   * nullable. */
+  @Test void notDistinctSameOperand() {
+    checkSimplify(isNotDistinctFrom(literal(1), literal(1)), "true");
+    checkSimplify(isNotDistinctFrom(vInt(), vInt()), "true");
+    checkSimplifyUnchanged(isNotDistinctFrom(vInt(), vIntNotNull()));
+
+    checkSimplify(isDistinctFrom(literal(1), literal(1)), "false");
+    checkSimplify(isDistinctFrom(vInt(), vInt()), "false");
+    checkSimplifyUnchanged(isDistinctFrom(vInt(), vIntNotNull()));
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2505">[CALCITE-2505]
    * RexSimplify wrongly simplifies "COALESCE(+(NULL), x)" to "NULL"</a>. */

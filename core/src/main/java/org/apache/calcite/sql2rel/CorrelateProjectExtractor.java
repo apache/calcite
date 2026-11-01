@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
@@ -35,6 +36,7 @@ import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -105,7 +107,15 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
 
   @Override public RelNode visit(LogicalCorrelate correlate) {
     RelNode left = correlate.getLeft().accept(this);
-    RelNode right = correlate.getRight().accept(this);
+    // The SQL-to-Rex conversion expands an IS NOT DISTINCT FROM condition
+    // over a correlated column into
+    // OR(AND(IS NULL(a), IS NULL(b)), IS TRUE(=(a, b))). Collapse it back
+    // before the extraction below runs, because the extraction replaces
+    // inner correlated expressions (for example IS NULL($cor0.DEPTNO)) with
+    // accesses of columns pre-computed on the left side, after which the
+    // expanded pattern is no longer recognizable to RelDecorrelator.
+    RelNode right =
+        collapseExpandedIsNotDistinctFrom(correlate.getRight()).accept(this);
     int oldLeft = left.getRowType().getFieldCount();
     // Find the correlated expressions from the right side that can be moved to the left
     Set<RexNode> callsWithCorrelationInRight =
@@ -200,6 +210,32 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
     builder.project(builder.fields(retainFields));
     return builder.build();
+  }
+
+  /** Collapses {@code IS NOT DISTINCT FROM} conditions that the SQL-to-Rex
+   * conversion expanded into {@code OR(AND(IS NULL(a), IS NULL(b)),
+   * IS TRUE(=(a, b)))} back into atomic {@code IS NOT DISTINCT FROM} calls,
+   * in the filters of the given plan. */
+  private static RelNode collapseExpandedIsNotDistinctFrom(RelNode root) {
+    final RexBuilder rexBuilder = root.getCluster().getRexBuilder();
+    return root.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        RelNode result = super.visit(other);
+        if (result instanceof Filter
+            && ((Filter) result).getCondition() instanceof RexCall) {
+          final Filter filter = (Filter) result;
+          final RexCall condition = (RexCall) filter.getCondition();
+          if (RexUtil.containsCorrelation(condition)) {
+            final RexNode collapsed =
+                RelOptUtil.collapseExpandedIsNotDistinctFromExpr(condition, rexBuilder);
+            if (collapsed != condition) {
+              return filter.copy(filter.getTraitSet(), filter.getInput(), collapsed);
+            }
+          }
+        }
+        return result;
+      }
+    });
   }
 
   /**
