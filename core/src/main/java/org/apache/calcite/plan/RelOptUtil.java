@@ -2559,15 +2559,27 @@ public abstract class RelOptUtil {
   public static void decomposeConjunction(
       @Nullable RexNode rexPredicate,
       List<RexNode> rexList) {
-    if (rexPredicate == null || rexPredicate.isAlwaysTrue()) {
+    // Use an explicit stack to avoid StackOverflowError on deeply nested ANDs
+    // (e.g. CALCITE-5845)
+    if (rexPredicate == null) {
       return;
     }
-    if (rexPredicate.isA(SqlKind.AND)) {
-      for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
-        decomposeConjunction(operand, rexList);
+    final Deque<RexNode> stack = new ArrayDeque<>();
+    stack.push(rexPredicate);
+    while (!stack.isEmpty()) {
+      final RexNode node = stack.pop();
+      if (node.isAlwaysTrue()) {
+        continue;
       }
-    } else {
-      rexList.add(rexPredicate);
+      if (node.isA(SqlKind.AND)) {
+        final List<RexNode> operands = ((RexCall) node).getOperands();
+        // Push in reverse order so that the leftmost operand is processed first
+        for (int i = operands.size() - 1; i >= 0; i--) {
+          stack.push(operands.get(i));
+        }
+      } else {
+        rexList.add(node);
+      }
     }
   }
 
@@ -2593,47 +2605,59 @@ public abstract class RelOptUtil {
       @Nullable RexNode rexPredicate,
       List<RexNode> rexList,
       List<RexNode> notList) {
-    if (rexPredicate == null || rexPredicate.isAlwaysTrue()) {
+    // Use an explicit stack to avoid StackOverflowError on deeply nested
+    // expressions (e.g. CALCITE-5845)
+    if (rexPredicate == null) {
       return;
     }
-    switch (rexPredicate.getKind()) {
-    case AND:
-      for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
-        decomposeConjunction(operand, rexList, notList);
+    final Deque<RexNode> stack = new ArrayDeque<>();
+    stack.push(rexPredicate);
+    while (!stack.isEmpty()) {
+      final RexNode node = stack.pop();
+      if (node.isAlwaysTrue()) {
+        continue;
       }
-      break;
-    case NOT:
-      final RexNode e = ((RexCall) rexPredicate).getOperands().get(0);
-      if (e.isAlwaysFalse()) {
-        return;
-      }
-      switch (e.getKind()) {
-      case OR:
-        final List<RexNode> ors = new ArrayList<>();
-        decomposeDisjunction(e, ors);
-        for (RexNode or : ors) {
-          switch (or.getKind()) {
-          case NOT:
-            rexList.add(((RexCall) or).operands.get(0));
-            break;
-          default:
-            notList.add(or);
-          }
+      switch (node.getKind()) {
+      case AND:
+        final List<RexNode> operands = ((RexCall) node).getOperands();
+        // Push in reverse order so that the leftmost operand is processed first
+        for (int i = operands.size() - 1; i >= 0; i--) {
+          stack.push(operands.get(i));
         }
         break;
+      case NOT:
+        final RexNode e = ((RexCall) node).getOperands().get(0);
+        if (e.isAlwaysFalse()) {
+          break;
+        }
+        switch (e.getKind()) {
+        case OR:
+          final List<RexNode> ors = new ArrayList<>();
+          decomposeDisjunction(e, ors);
+          for (RexNode or : ors) {
+            switch (or.getKind()) {
+            case NOT:
+              rexList.add(((RexCall) or).operands.get(0));
+              break;
+            default:
+              notList.add(or);
+            }
+          }
+          break;
+        default:
+          notList.add(e);
+        }
+        break;
+      case LITERAL:
+        if (!RexLiteral.isNullLiteral(node)
+            && RexLiteral.booleanValue(node)) {
+          break; // ignore TRUE
+        }
+        // fall through
       default:
-        notList.add(e);
+        rexList.add(node);
+        break;
       }
-      break;
-    case LITERAL:
-      if (!RexLiteral.isNullLiteral(rexPredicate)
-          && RexLiteral.booleanValue(rexPredicate)) {
-        return; // ignore TRUE
-      }
-      // fall through
-    default:
-      rexList.add(rexPredicate);
-      break;
     }
   }
 
@@ -2647,15 +2671,27 @@ public abstract class RelOptUtil {
   public static void decomposeDisjunction(
       @Nullable RexNode rexPredicate,
       List<RexNode> rexList) {
-    if (rexPredicate == null || rexPredicate.isAlwaysFalse()) {
+    // Use an explicit stack to avoid StackOverflowError on deeply nested ORs
+    // (e.g. CALCITE-5845)
+    if (rexPredicate == null) {
       return;
     }
-    if (rexPredicate.isA(SqlKind.OR)) {
-      for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
-        decomposeDisjunction(operand, rexList);
+    final Deque<RexNode> stack = new ArrayDeque<>();
+    stack.push(rexPredicate);
+    while (!stack.isEmpty()) {
+      final RexNode node = stack.pop();
+      if (node.isAlwaysFalse()) {
+        continue;
       }
-    } else {
-      rexList.add(rexPredicate);
+      if (node.isA(SqlKind.OR)) {
+        final List<RexNode> operands = ((RexCall) node).getOperands();
+        // Push in reverse order so that the leftmost operand is processed first
+        for (int i = operands.size() - 1; i >= 0; i--) {
+          stack.push(operands.get(i));
+        }
+      } else {
+        rexList.add(node);
+      }
     }
   }
 

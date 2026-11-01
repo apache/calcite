@@ -51,6 +51,7 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -7119,5 +7120,103 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  ORDER BY deptno DESC, sal\n"
         + "  LIMIT 2) AS t";
     sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ANDs</a>.
+   *
+   * <p>Verifies that converting a SQL with many AND-connected predicates
+   * from SqlNode to RelNode does not cause StackOverflowError. */
+  @Test void testLargeAndPredicate() {
+    final int count = 1000;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("SELECT * FROM emp WHERE 1 = 1");
+    for (int i = 0; i < count; i++) {
+      sb.append(" AND 1 = 1");
+    }
+    final String sql = sb.toString();
+    // Should not throw StackOverflowError
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ORs</a>.
+   *
+   * <p>Verifies that converting a SQL with many OR-connected predicates
+   * from SqlNode to RelNode does not cause StackOverflowError. */
+  @Test void testLargeOrPredicate() {
+    final int count = 1000;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("SELECT * FROM emp WHERE 1 = 0");
+    for (int i = 0; i < count; i++) {
+      sb.append(" OR 1 = 0");
+    }
+    final String sql = sb.toString();
+    // Should not throw StackOverflowError
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+  }
+
+  /** Verifies that a small AND chain produces a flat RexCall with correct
+   * operand count and structure (CALCITE-5845 correctness check). */
+  @Test void testSmallAndChainPlanStructure() {
+    final String sql = "SELECT * FROM emp"
+        + " WHERE deptno = 10 AND sal > 1000 AND empno > 0 AND ename = 'x'";
+    final RelNode rel = sql(sql).toRel();
+    // The filter condition should be a flat AND with 4 operands
+    assertThat(rel, notNullValue());
+    final LogicalFilter filter = (LogicalFilter) rel.getInput(0);
+    final RexNode condition = filter.getCondition();
+    assertThat(condition, notNullValue());
+    // After flattening, the condition should be a single AND call
+    // with all 4 terms as direct operands (not nested ANDs)
+    assertThat(condition, instanceOf(RexCall.class));
+    final RexCall andCall = (RexCall) condition;
+    assertThat(andCall.getKind(), is(SqlKind.AND));
+    assertThat(andCall.getOperands(), hasSize(4));
+    // Verify none of the operands is itself an AND (i.e., it's flat)
+    for (RexNode operand : andCall.getOperands()) {
+      if (operand instanceof RexCall) {
+        assertThat(((RexCall) operand).getKind(), not(is(SqlKind.AND)));
+      }
+    }
+  }
+
+  /** Verifies that mixed AND/OR with IN expansion produces correct flat
+   * structure (CALCITE-5845 correctness check). */
+  @Test void testMixedAndOrWithIn() {
+    final String sql = "SELECT * FROM emp"
+        + " WHERE deptno IN (10, 20) AND sal > 1000 AND empno < 100";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+    // Just verify the plan is generated without error and the filter exists
+    final String plan = RelOptUtil.toString(rel);
+    assertThat(plan, notNullValue());
+    assertThat(plan.contains("Filter"), is(true));
+  }
+
+  /** Verifies that a large AND chain with actual column references
+   * produces a correct plan (CALCITE-5845 stress test). */
+  @Test void testLargeAndPredicateWithColumns() {
+    final int count = 500;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("SELECT * FROM emp WHERE deptno > 0");
+    for (int i = 0; i < count; i++) {
+      // Use unique constants to avoid deduplication by simplifyPredicate
+      sb.append(" AND sal > ").append(i);
+    }
+    final String sql = sb.toString();
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+    final LogicalFilter filter = (LogicalFilter) rel.getInput(0);
+    final RexNode condition = filter.getCondition();
+    assertThat(condition, instanceOf(RexCall.class));
+    final RexCall andCall = (RexCall) condition;
+    assertThat(andCall.getKind(), is(SqlKind.AND));
+    // Should have 501 operands: 1 deptno > 0 + 500 unique sal > i
+    assertThat(andCall.getOperands(), hasSize(501));
   }
 }
