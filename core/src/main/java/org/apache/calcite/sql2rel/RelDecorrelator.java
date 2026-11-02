@@ -180,6 +180,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return visitCall(over);
     }
 
+    /**
+     * Declines decorrelation because references inside the sub-query may become
+     * unbound when the outer Correlate is removed (CALCITE-7913).
+     * {@link RelDecorrelator#isDeterministic(RelNode)} catches {@link Util.FoundOne}
+     * and returns false.
+     */
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
       throw Util.FoundOne.NULL;
     }
