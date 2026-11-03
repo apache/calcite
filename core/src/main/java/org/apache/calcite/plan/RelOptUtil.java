@@ -30,15 +30,28 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
@@ -182,6 +195,112 @@ public abstract class RelOptUtil {
       RelOptUtil::notContainsWindowedAgg;
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns whether a relational expression is known to be deterministic,
+   * including its inputs and sub-queries.
+   *
+   * <p>Assumes parameters, correlation bindings, query context and table contents
+   * stay fixed within the query. Uses {@link SqlOperator#isDeterministic()} for
+   * function calls, allowing query-stable functions such as
+   * {@code CURRENT_TIMESTAMP}.
+   *
+   * <p>Returns false for unrecognized operators and {@link Sample}, even if a
+   * particular instance is deterministic. Does not check whether a rewrite
+   * supports these operators.
+   */
+  public static boolean isDeterministic(RelNode rel) {
+    rel = rel.stripped();
+    if (rel instanceof Aggregate
+        || rel instanceof Window
+        || rel instanceof Match
+        || rel instanceof Project
+        || rel instanceof Filter
+        || rel instanceof Calc
+        || rel instanceof Join
+        || rel instanceof Correlate
+        || rel instanceof Sort
+        || rel instanceof SetOp
+        || rel instanceof Exchange
+        || rel instanceof TableScan
+        || rel instanceof Values
+        || rel instanceof TableFunctionScan
+        || rel instanceof Snapshot
+        || rel instanceof Collect
+        || rel instanceof Uncollect) {
+      try {
+        if (rel instanceof Aggregate) {
+          for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+            if (!call.getAggregation().isDeterministic()) {
+              return false;
+            }
+          }
+        }
+        visitExpressions(rel, DeterminismChecker.INSTANCE);
+        for (RelNode input : rel.getInputs()) {
+          if (!isDeterministic(input)) {
+            return false;
+          }
+        }
+        return true;
+      } catch (Util.FoundOne e) {
+        Util.swallow(e, null);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether a relational expression or one of its inputs contains a
+   * {@link RexSubQuery}.
+   *
+   * <p>Visits the expression fields of standard relational operators. For an
+   * unrecognized operator, visits expressions exposed by
+   * {@link RelNode#accept(RexShuttle)} and continues through its inputs.
+   */
+  public static boolean containsSubQuery(RelNode rel) {
+    rel = rel.stripped();
+    try {
+      visitExpressions(rel, SubQueryFinder.INSTANCE);
+      for (RelNode input : rel.getInputs()) {
+        if (containsSubQuery(input)) {
+          return true;
+        }
+      }
+      return false;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return true;
+    }
+  }
+
+  /** Visits one node's expressions with a read-only shuttle, including fields
+   * not exposed by {@link RelNode#accept(RexShuttle)}. */
+  private static void visitExpressions(RelNode rel, RexShuttle shuttle) {
+    rel.accept(shuttle);
+    if (rel instanceof Aggregate) {
+      for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+        call.rexList.forEach(shuttle::apply);
+      }
+    } else if (rel instanceof Window) {
+      for (Window.Group group : ((Window) rel).groups) {
+        group.aggCalls.forEach(shuttle::apply);
+        shuttle.apply(group.lowerBound.getOffset());
+        shuttle.apply(group.upperBound.getOffset());
+      }
+    } else if (rel instanceof Match) {
+      final Match match = (Match) rel;
+      shuttle.apply(match.getPattern());
+      shuttle.apply(match.getAfter());
+      shuttle.apply(match.getInterval());
+      match.getMeasures().values().forEach(shuttle::apply);
+      match.getPatternDefinitions().values().forEach(shuttle::apply);
+    } else if (rel instanceof AsofJoin) {
+      shuttle.apply(((AsofJoin) rel).getMatchCondition());
+    } else if (rel instanceof ConditionalCorrelate) {
+      shuttle.apply(((ConditionalCorrelate) rel).getCondition());
+    }
+  }
 
   /**
    * Whether this node is a limit without sort specification.
@@ -4534,6 +4653,41 @@ public abstract class RelOptUtil {
     }
   }
 
+  /** Checks function calls and sub-query plans for determinism. */
+  private static class DeterminismChecker extends RexShuttle {
+    private static final DeterminismChecker INSTANCE = new DeterminismChecker();
+
+    @Override public RexNode visitCall(RexCall call) {
+      if (!call.getOperator().isDeterministic()) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitCall(call);
+    }
+
+    @Override public RexNode visitOver(RexOver over) {
+      if (!over.getOperator().isDeterministic()) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitOver(over);
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      if (!isDeterministic(subQuery.rel)) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitSubQuery(subQuery);
+    }
+  }
+
+  /** Finds the first sub-query in an expression. */
+  private static class SubQueryFinder extends RexShuttle {
+    private static final SubQueryFinder INSTANCE = new SubQueryFinder();
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      throw Util.FoundOne.NULL;
+    }
+  }
+
   /** Visitor that finds all variables used but not stopped in an expression. */
   private static class VariableSetVisitor extends RelVisitor {
     final Set<CorrelationId> variables = new HashSet<>();
@@ -4994,7 +5148,7 @@ public abstract class RelOptUtil {
 
     @Override public RelNode visit(RelNode other) {
       other.collectVariablesUsed(vuv.variables);
-      other.accept(vuv);
+      visitExpressions(other, vuv);
       RelNode result = super.visit(other);
       // Important! Remove stopped variables AFTER we visit
       // children. (which what super.visit() does)

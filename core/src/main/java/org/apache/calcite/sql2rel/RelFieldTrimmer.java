@@ -29,6 +29,8 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
@@ -1461,6 +1463,31 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return result(newSnapshot, inputMapping, snapshot);
   }
 
+  /** Trims inputs and updates dependencies for other {@link Correlate} types. */
+  public TrimResult trimFields(Correlate correlate,
+      ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+    final TrimResult trimResult = trimFields((RelNode) correlate, fieldsUsed, extraFields);
+    final Correlate trimmed = (Correlate) trimResult.left;
+    final ImmutableBitSet requiredColumns =
+        trimmed.getRequiredColumns().intersect(
+            RelOptUtil.correlationColumns(trimmed.getCorrelationId(), trimmed.getRight()));
+    if (requiredColumns.equals(trimmed.getRequiredColumns())) {
+      return trimResult;
+    }
+    final Correlate newCorrelate;
+    if (trimmed instanceof ConditionalCorrelate) {
+      newCorrelate =
+          ((ConditionalCorrelate) trimmed).copy(trimmed.getTraitSet(),
+              trimmed.getLeft(), trimmed.getRight(), trimmed.getCorrelationId(),
+              requiredColumns, trimmed.getJoinType(), trimmed.getCondition());
+    } else {
+      newCorrelate =
+          trimmed.copy(trimmed.getTraitSet(), trimmed.getLeft(), trimmed.getRight(),
+              trimmed.getCorrelationId(), requiredColumns, trimmed.getJoinType());
+    }
+    return result(newCorrelate, trimResult.right, correlate);
+  }
+
   /**
    * Trims {@link LogicalCorrelate} nodes.
    */
@@ -1471,57 +1498,50 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       return trimFields((RelNode) correlate, fieldsUsed, extraFields);
     }
 
-    fieldsUsed = fieldsUsed.union(correlate.getRequiredColumns());
+    final RelNode left = correlate.getLeft();
+    final RelNode right = correlate.getRight();
+    final int leftCount = left.getRowType().getFieldCount();
+    final int rightCount = right.getRowType().getFieldCount();
 
-    List<RelNode> newInputs = new ArrayList<>();
-    List<Mapping> inputMappings = new ArrayList<>();
-    int changeCount = 0;
-    int offset = 0;
-    for (RelNode input : correlate.getInputs()) {
-      final RelDataType inputRowType = input.getRowType();
-      final int inputFieldCount = inputRowType.getFieldCount();
+    // Trim the right input first to find which left fields it still uses.
+    final ImmutableBitSet rightFields = fieldsUsed
+        .intersect(ImmutableBitSet.range(leftCount, leftCount + rightCount)).shift(-leftCount);
+    final TrimResult rightTrim = dispatchTrimFields(right, rightFields, extraFields);
+    // Trimming can remove declared dependencies, but cannot introduce new ones.
+    final ImmutableBitSet requiredColumns = correlate.getRequiredColumns()
+        .intersect(RelOptUtil.correlationColumns(correlate.getCorrelationId(), rightTrim.left));
+    final ImmutableBitSet leftFields = fieldsUsed
+        .intersect(ImmutableBitSet.range(leftCount)).union(requiredColumns);
+    final TrimResult leftTrim = dispatchTrimFields(left, leftFields, extraFields);
 
-      ImmutableBitSet currentInputFieldsUsed = fieldsUsed
-          .intersect(ImmutableBitSet.range(offset, offset + inputFieldCount))
-          .shift(-offset);
-
-      TrimResult trimResult =
-          dispatchTrimFields(input, currentInputFieldsUsed, extraFields);
-
-      newInputs.add(trimResult.left);
-      inputMappings.add(trimResult.right);
-
-      offset += inputFieldCount;
-
-      if (trimResult.left != input) {
-        changeCount++;
-      }
-    }
-
-    if (changeCount == 0) {
+    if (leftTrim.left == left && rightTrim.left == right
+        && requiredColumns.equals(correlate.getRequiredColumns())) {
       return result(correlate,
           Mappings.createIdentity(correlate.getRowType().getFieldCount()));
     }
 
-    Mapping mapping = Mappings.concatenateMappings(inputMappings);
+    final Mapping mapping =
+        Mappings.concatenateMappings(ImmutableList.of(leftTrim.right, rightTrim.right));
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    RelNode newLeft = newInputs.get(0);
+    RelNode newLeft = leftTrim.left;
     RexCorrelVariableMapShuttle rexVisitor =
         new RexCorrelVariableMapShuttle(correlate.getCorrelationId(),
             newLeft.getRowType(), mapping, rexBuilder);
     RelNode newRight =
-        newInputs.get(1).accept(new RexRewritingRelShuttle(rexVisitor));
+        rightTrim.left.accept(new RexRewritingRelShuttle(rexVisitor));
     final LogicalCorrelate newCorrelate =
         correlate
             .copy(correlate.getTraitSet(),
                 newLeft,
                 newRight,
                 correlate.getCorrelationId(),
-                correlate.getRequiredColumns().permute(mapping),
+                requiredColumns.permute(leftTrim.right),
                 correlate.getJoinType());
 
-    return result(newCorrelate, mapping);
+    // SEMI and ANTI correlates expose only fields from the left input.
+    return result(newCorrelate,
+        correlate.getJoinType().projectsRight() ? mapping : leftTrim.right);
   }
 
   protected Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {

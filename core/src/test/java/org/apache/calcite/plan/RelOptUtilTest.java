@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalConditionalCorrelate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -51,6 +52,7 @@ import org.apache.calcite.sql2rel.RexRewritingRelShuttle;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -1120,6 +1122,59 @@ class RelOptUtilTest {
     RexCorrelVariable secondVar = (RexCorrelVariable) secondFieldAccess.getReferenceExpr();
     assertThat(secondVar.id, is(middleCorrelationId));
     assertThat(secondVar.getType(), is(empRow));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+  @Test void testVariablesUsedInConditionalCorrelate() {
+    final CorrelationId externalId = relBuilder.getCluster().createCorrel();
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexCorrelVariable variable =
+        (RexCorrelVariable) rexBuilder.makeCorrel(empRow, externalId);
+    final int column = empRow.getFieldNames().indexOf("DEPTNO");
+    final RexNode condition =
+        relBuilder.equals(rexBuilder.makeFieldAccess(variable, column), relBuilder.literal(10));
+    final CorrelationId innerId = relBuilder.getCluster().createCorrel();
+    final RelNode correlate =
+        LogicalConditionalCorrelate.create(empScan, deptScan, ImmutableList.of(), innerId,
+            ImmutableBitSet.of(), JoinRelType.LEFT_MARK, condition);
+    assertThat(RelOptUtil.correlationColumns(externalId, correlate),
+        is(ImmutableBitSet.of(column)));
+    assertThat(RelOptUtil.getVariablesUsed(correlate), is(ImmutableSet.of(externalId)));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+  @Test void testIsDeterministicSubQuery() {
+    final RelNode values = relBuilder.values(new String[] {"x"}, 1D).build();
+    final RelNode stable = relBuilder.push(values)
+        .project(relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP))
+        .build();
+    assertThat(RelOptUtil.containsSubQuery(stable), is(false));
+    final RelNode nonDeterministic = relBuilder.push(values)
+        .project(relBuilder.call(SqlStdOperatorTable.RAND))
+        .build();
+    final RelNode stableSubQuery = relBuilder.push(empScan)
+        .project(
+            relBuilder.call(SqlStdOperatorTable.IS_NOT_NULL,
+            RexSubQuery.scalar(stable)))
+        .build();
+    assertThat(RelOptUtil.isDeterministic(stableSubQuery), is(true));
+    assertThat(RelOptUtil.containsSubQuery(stableSubQuery), is(true));
+
+    final RelNode nonDeterministicSubQuery = relBuilder.push(empScan)
+        .project(
+            relBuilder.call(SqlStdOperatorTable.IS_NOT_NULL,
+            RexSubQuery.scalar(nonDeterministic)))
+        .build();
+    assertThat(RelOptUtil.isDeterministic(nonDeterministicSubQuery), is(false));
+
+    final RelNode nonDeterministicOperand = relBuilder.push(empScan)
+        .project(
+            RexSubQuery.in(values,
+            ImmutableList.of(relBuilder.call(SqlStdOperatorTable.RAND))))
+        .build();
+    assertThat(RelOptUtil.isDeterministic(nonDeterministicOperand), is(false));
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions
