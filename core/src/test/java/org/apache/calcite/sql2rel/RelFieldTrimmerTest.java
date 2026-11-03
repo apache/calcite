@@ -910,4 +910,31 @@ class RelFieldTrimmerTest {
     assertThat(trimmed, hasTree(expected));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>Trimming an unused expression also removes its correlation dependency. */
+  @Test void testTrimUnusedCorrelatedExpression() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final RelNode original = builder.values(new String[] {"K", "Z"}, 1, 2)
+        .variable(v::set)
+        .values(new String[] {"Y"}, 1)
+        .filter(builder.equals(builder.field("Y"), builder.field(v.get(), "K")))
+        .project(
+            builder.field("Y"), builder.call(SqlStdOperatorTable.PLUS,
+            builder.field(v.get(), "Z"), builder.call(SqlStdOperatorTable.RAND)))
+        .correlate(JoinRelType.SEMI, v.get().id,
+            builder.field(2, 0, "K"), builder.field(2, 0, "Z"))
+        .project(builder.field("K"))
+        .build();
+    final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(original);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])\n"
+        + "  LogicalValues(tuples=[[{ 1 }]])\n"
+        + "  LogicalFilter(condition=[=($0, $cor0.K)])\n"
+        + "    LogicalValues(tuples=[[{ 1 }]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
 }
