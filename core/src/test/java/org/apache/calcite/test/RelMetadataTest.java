@@ -88,6 +88,7 @@ import org.apache.calcite.rel.metadata.RelMdExplainVisibility;
 import org.apache.calcite.rel.metadata.RelMdMaxRowCount;
 import org.apache.calcite.rel.metadata.RelMdPopulationSize;
 import org.apache.calcite.rel.metadata.RelMdPredicates;
+import org.apache.calcite.rel.metadata.RelMdSize;
 import org.apache.calcite.rel.metadata.RelMdUniqueKeys;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -97,6 +98,7 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -115,6 +117,7 @@ import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.tools.Frameworks;
@@ -3627,6 +3630,47 @@ public class RelMetadataTest {
     checkSize("SELECT CAST (1 AS SMALLINT UNSIGNED)", 2d);
     checkSize("SELECT CAST (1 AS INTEGER UNSIGNED)", 4d);
     checkSize("SELECT CAST (1 AS BIGINT UNSIGNED)", 8d);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7917">[CALCITE-7917]
+   * RelMdSize returns negative sizes for CHARACTER and BINARY types with
+   * unspecified precision</a>. */
+  @Test void testSizeUnspecifiedPrecision() {
+    checkSize("SELECT CAST(empno AS VARCHAR) FROM emp", 100d);
+
+    final RelOptCluster cluster = sql("values 1").toRel().getCluster();
+    final RelDataType rowType = cluster.getTypeFactory().builder()
+        .add("a", SqlTypeName.VARCHAR)
+        .add("b", SqlTypeName.VARBINARY)
+        .build();
+    final LogicalValues values = LogicalValues.createEmpty(cluster, rowType);
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    assertThat(mq.getAverageColumnSizes(values),
+        equalTo(Arrays.asList(100d, 100d)));
+    assertThat(mq.getAverageRowSize(values), equalTo(200d));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7917">[CALCITE-7917]
+   * RelMdSize returns negative sizes for CHARACTER and BINARY types with
+   * unspecified precision</a>. */
+  @Test void testSizeUnspecifiedPrecisionCustomTypeSystem() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public int getDefaultPrecision(SqlTypeName typeName) {
+            return RelDataType.PRECISION_NOT_SPECIFIED;
+          }
+        });
+    final RelMdSize relMdSize = new RelMdSize() { };
+    assertThat(
+        relMdSize.averageTypeValueSize(
+            typeFactory.createSqlType(SqlTypeName.CHAR)),
+        equalTo(100d));
+    assertThat(
+        relMdSize.averageTypeValueSize(
+            typeFactory.createSqlType(SqlTypeName.BINARY)),
+        equalTo(100d));
   }
 
   private void checkSize(String query, double expected) {
