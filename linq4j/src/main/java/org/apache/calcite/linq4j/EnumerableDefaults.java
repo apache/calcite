@@ -4540,7 +4540,7 @@ public abstract class EnumerableDefaults {
     return source instanceof OrderedQueryable
         ? ((OrderedQueryable<T>) source)
         : new EnumerableOrderedQueryable<>(
-            source, (Class) Object.class, requireNonNull(null, "null"), null);
+            source, (Class) Object.class, Linq4j.DEFAULT_PROVIDER, null);
   }
 
   /** Default implementation of {@link ExtendedEnumerable#into(Collection)}. */
