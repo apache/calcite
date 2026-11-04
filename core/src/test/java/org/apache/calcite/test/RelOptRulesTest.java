@@ -12622,11 +12622,15 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  order by sal\n"
         + "  fetch next (rand_integer(2) + 1) rows only) e";
 
-    sql(sql)
+    final RelOptFixture fixture = sql(sql)
         .withRule() // empty program
         .withLateDecorrelate(true)
-        .withTopDownGeneralDecorrelate(enableTopDown)
-        .check();
+        .withTopDownGeneralDecorrelate(enableTopDown);
+    if (enableTopDown) {
+      fixture.check();
+    } else {
+      fixture.checkUnchanged();
+    }
   }
 
   @Test void testTopDownGeneralDecorrelateForFilterSome() {

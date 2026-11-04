@@ -5844,7 +5844,7 @@ public class JdbcTest {
         + " from \"hr\".\"depts\"\n"
         + " where e.\"deptno\"=\"depts\".\"deptno\") on true";
     final String explain = ""
-        + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], $f1=[$t6])\n"
+        + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], I=[$t6])\n"
         + "  EnumerableMergeJoin(condition=[=($1, $5)], joinType=[left])\n"
         + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
         + "      EnumerableTableScan(table=[[hr, emps]])\n"

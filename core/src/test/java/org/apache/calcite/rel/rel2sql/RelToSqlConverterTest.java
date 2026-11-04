@@ -9717,35 +9717,33 @@ class RelToSqlConverterTest {
     String query = "select A.\"department_id\" "
         + "from \"foodmart\".\"employee\" A "
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
-    final String expectedOracle = "SELECT \"t\".\"department_id\"\n"
-        + "FROM (SELECT \"department_id\"\n"
-        + "FROM \"foodmart\".\"employee\") \"t\"\n"
-        + "INNER JOIN (SELECT \"t2\".\"department_id\", MIN(\"t2\".\"department_id\") \"EXPR$0\"\n"
-        + "FROM (SELECT NULL \"DUMMY\"\n"
+    final String expectedOracle = "SELECT \"employee\".\"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\") \"EXPR$0\"\n"
+        + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\n"
         + "FROM \"DUAL\"\n"
-        + "WHERE 1 = 0) \"t0\",\n"
+        + "WHERE 1 = 0) \"t\",\n"
         + "(SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY \"department_id\") \"t2\"\n"
-        + "GROUP BY \"t2\".\"department_id\"\n"
-        + "HAVING \"t2\".\"department_id\" = MIN(\"t2\".\"department_id\")) \"t5\" ON \"t\".\"department_id\" = \"t5\".\"department_id\"";
+        + "GROUP BY \"department_id\") \"t1\"\n"
+        + "GROUP BY \"t1\".\"department_id\"\n"
+        + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     final String expectedNoExpand = "SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\" AS \"employee\"\n"
         + "WHERE \"department_id\" = (SELECT MIN(\"employee\".\"department_id\")\n"
         + "FROM \"foodmart\".\"department\"\n"
         + "WHERE 1 = 2)";
-    final String expected = "SELECT \"t\".\"department_id\"\n"
-        + "FROM (SELECT \"department_id\"\n"
-        + "FROM \"foodmart\".\"employee\") AS \"t\"\n"
-        + "INNER JOIN (SELECT \"t2\".\"department_id\", MIN(\"t2\".\"department_id\") AS \"EXPR$0\"\n"
+    final String expected = "SELECT \"employee\".\"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
         + "FROM (SELECT *\n"
-        + "FROM (VALUES (NULL)) AS \"t\" (\"DUMMY\")\n"
-        + "WHERE 1 = 0) AS \"t0\",\n"
+        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"department_id\", \"department_description\")\n"
+        + "WHERE 1 = 0) AS \"t\",\n"
         + "(SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY \"department_id\") AS \"t2\"\n"
-        + "GROUP BY \"t2\".\"department_id\"\n"
-        + "HAVING \"t2\".\"department_id\" = MIN(\"t2\".\"department_id\")) AS \"t5\" ON \"t\".\"department_id\" = \"t5\".\"department_id\"";
+        + "GROUP BY \"department_id\") AS \"t1\"\n"
+        + "GROUP BY \"t1\".\"department_id\"\n"
+        + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) AS \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     sql(query)
         .ok(expectedNoExpand)
         .withConfig(c -> c.withExpand(true)).ok(expected)

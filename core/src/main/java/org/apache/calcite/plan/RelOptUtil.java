@@ -33,7 +33,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Collect;
-import org.apache.calcite.rel.core.ConditionalCorrelate;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
@@ -98,6 +97,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
@@ -197,17 +197,15 @@ public abstract class RelOptUtil {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns whether a relational expression is known to be deterministic,
-   * including its inputs and sub-queries.
+   * Returns whether a relational expression and its inputs are known to be
+   * deterministic, including expressions in sub-queries.
    *
    * <p>Assumes parameters, correlation bindings, query context and table contents
-   * stay fixed within the query. Uses {@link SqlOperator#isDeterministic()} for
-   * function calls, allowing query-stable functions such as
-   * {@code CURRENT_TIMESTAMP}.
+   * stay fixed within the query. Function calls use
+   * {@link SqlOperator#isDeterministic()}, which allows query-stable functions
+   * such as {@code CURRENT_TIMESTAMP}.
    *
-   * <p>Returns false for unrecognized operators and {@link Sample}, even if a
-   * particular instance is deterministic. Does not check whether a rewrite
-   * supports these operators.
+   * <p>Returns false for {@link Sample} and unrecognized relational operators.
    */
   public static boolean isDeterministic(RelNode rel) {
     rel = rel.stripped();
@@ -251,12 +249,10 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Returns whether a relational expression or one of its inputs contains a
-   * {@link RexSubQuery}.
+   * Returns whether an expression in a relational tree contains a sub-query.
    *
-   * <p>Visits the expression fields of standard relational operators. For an
-   * unrecognized operator, visits expressions exposed by
-   * {@link RelNode#accept(RexShuttle)} and continues through its inputs.
+   * <p>Checks the expression fields of standard relational operators. For other
+   * operators, checks expressions exposed by {@link RelNode#accept(RexShuttle)}.
    */
   public static boolean containsSubQuery(RelNode rel) {
     rel = rel.stripped();
@@ -274,8 +270,7 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Visits one node's expressions with a read-only shuttle, including fields
-   * not exposed by {@link RelNode#accept(RexShuttle)}. */
+  /** Visits one node's expressions, including fields omitted by accept(RexShuttle). */
   private static void visitExpressions(RelNode rel, RexShuttle shuttle) {
     rel.accept(shuttle);
     if (rel instanceof Aggregate) {
@@ -297,8 +292,8 @@ public abstract class RelOptUtil {
       match.getPatternDefinitions().values().forEach(shuttle::apply);
     } else if (rel instanceof AsofJoin) {
       shuttle.apply(((AsofJoin) rel).getMatchCondition());
-    } else if (rel instanceof ConditionalCorrelate) {
-      shuttle.apply(((ConditionalCorrelate) rel).getCondition());
+    } else if (rel instanceof Correlate) {
+      shuttle.apply(((Correlate) rel).getCondition());
     }
   }
 
@@ -4653,9 +4648,9 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Checks function calls and sub-query plans for determinism. */
+  /** Checks expressions and sub-query plans for determinism. */
   private static class DeterminismChecker extends RexShuttle {
-    private static final DeterminismChecker INSTANCE = new DeterminismChecker();
+    static final DeterminismChecker INSTANCE = new DeterminismChecker();
 
     @Override public RexNode visitCall(RexCall call) {
       if (!call.getOperator().isDeterministic()) {
@@ -4664,11 +4659,11 @@ public abstract class RelOptUtil {
       return super.visitCall(call);
     }
 
-    @Override public RexNode visitOver(RexOver over) {
-      if (!over.getOperator().isDeterministic()) {
+    @Override public SqlAggFunction visitOverAggFunction(SqlAggFunction op) {
+      if (!op.isDeterministic()) {
         throw Util.FoundOne.NULL;
       }
-      return super.visitOver(over);
+      return op;
     }
 
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
@@ -4679,9 +4674,9 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Finds the first sub-query in an expression. */
+  /** Finds sub-queries in expressions. */
   private static class SubQueryFinder extends RexShuttle {
-    private static final SubQueryFinder INSTANCE = new SubQueryFinder();
+    static final SubQueryFinder INSTANCE = new SubQueryFinder();
 
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
       throw Util.FoundOne.NULL;

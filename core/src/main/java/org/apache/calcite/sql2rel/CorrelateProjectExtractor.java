@@ -35,6 +35,7 @@ import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -283,6 +284,10 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
    * Returns whether the specified node is a simply correlated expression.
    */
   private static boolean isSimpleCorrelatedExpression(RexNode node, CorrelationId id) {
+    // Moving an expression out of the inner loop changes its evaluation count.
+    if (!RexUtil.isDeterministic(node)) {
+      return false;
+    }
     Boolean r = node.accept(new SimpleCorrelationDetector(id));
     return r == null ? Boolean.FALSE : r;
   }
@@ -329,10 +334,6 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
 
     @Override public @Nullable Boolean visitCall(RexCall call) {
-      // Moving a call out of the inner loop changes its evaluation count.
-      if (!call.getOperator().isDeterministic()) {
-        return Boolean.FALSE;
-      }
       // Constant operands must not disqualify the call
       Boolean hasSimpleCorrelation = null;
       for (RexNode op : call.operands) {

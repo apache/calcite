@@ -23,6 +23,7 @@ import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelValidityChecker;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Join;
@@ -910,31 +911,38 @@ class RelFieldTrimmerTest {
     assertThat(trimmed, hasTree(expected));
   }
 
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
-   *
-   * <p>Trimming an unused expression also removes its correlation dependency. */
-  @Test void testTrimUnusedCorrelatedExpression() {
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+  @Test void testTrimNestedSemiCorrelate() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    final RelNode original = builder.values(new String[] {"K", "Z"}, 1, 2)
-        .variable(v::set)
-        .values(new String[] {"Y"}, 1)
-        .filter(builder.equals(builder.field("Y"), builder.field(v.get(), "K")))
-        .project(
-            builder.field("Y"), builder.call(SqlStdOperatorTable.PLUS,
-            builder.field(v.get(), "Z"), builder.call(SqlStdOperatorTable.RAND)))
-        .correlate(JoinRelType.SEMI, v.get().id,
-            builder.field(2, 0, "K"), builder.field(2, 0, "Z"))
+    final Holder<@Nullable RexCorrelVariable> outer = Holder.empty();
+    builder.values(new String[] {"UNUSED", "K"}, 99, 5).variable(outer::set);
+    final RelNode innerLeft = builder.values(new String[] {"I", "J"}, 2, 3).build();
+    final RexCorrelVariable inner = (RexCorrelVariable) builder.getRexBuilder()
+        .makeCorrel(innerLeft.getRowType(), outer.get().id);
+    final RelNode original = builder.push(innerLeft)
+        .values(new String[] {"X"}, 5)
+        .filter(
+            builder.equals(builder.field("X"),
+            builder.call(SqlStdOperatorTable.PLUS,
+                builder.field(inner, "I"), builder.field(inner, "J"))))
+        .correlate(JoinRelType.INNER, inner.id,
+            builder.field(2, 0, "I"), builder.field(2, 0, "J"))
+        .filter(builder.equals(builder.field(outer.get(), "K"), builder.field("X")))
+        .correlate(JoinRelType.SEMI, outer.get().id, builder.field(2, 0, "K"))
         .project(builder.field("K"))
         .build();
     final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(original);
+    new RelValidityChecker().go(trimmed);
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])\n"
-        + "  LogicalValues(tuples=[[{ 1 }]])\n"
-        + "  LogicalFilter(condition=[=($0, $cor0.K)])\n"
-        + "    LogicalValues(tuples=[[{ 1 }]])\n";
+        + "  LogicalValues(tuples=[[{ 5 }]])\n"
+        + "  LogicalFilter(condition=[=($cor0.K, $2)])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])\n"
+        + "      LogicalValues(tuples=[[{ 2, 3 }]])\n"
+        + "      LogicalFilter(condition=[=($0, +($cor0.I, $cor0.J))])\n"
+        + "        LogicalValues(tuples=[[{ 5 }]])\n";
     assertThat(trimmed, hasTree(expected));
   }
-
 }

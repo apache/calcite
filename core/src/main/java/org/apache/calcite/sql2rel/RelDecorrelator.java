@@ -35,6 +35,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.AsofJoin;
@@ -72,6 +73,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
@@ -90,6 +92,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -304,8 +307,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   protected RelNode decorrelate(RelNode root, @Nullable RuleSet preDecorrelateRules) {
-    // Removing Correlate can leave references inside RexSubQuery unbound
-    // (CALCITE-7913). Wait until sub-query removal has expanded these plans.
     if (RelOptUtil.containsSubQuery(root)) {
       return root;
     }
@@ -360,15 +361,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
           + RelOptUtil.toString(root));
     }
     root = root.accept(new CorrelateProjectExtractor(f));
-    root = prepareForDecorrelation(root);
+    RelNode input = root;
+    if (needsFieldTrimming(input)) {
+      input = trimUnusedFields(input);
+      input = relBuilder.push(input).rename(root.getRowType().getFieldNames()).build();
+    }
+    // Rebuild correlations for the prepared input to this rewrite attempt.
+    this.cm = new CorelMapBuilder().build(input);
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"
-          + RelOptUtil.toString(root));
+          + RelOptUtil.toString(input));
     }
     // Perform decorrelation.
     map.clear();
 
-    final Frame frame = getInvoke(root, false, null, true);
+    final Frame frame = getInvoke(input, false, null, true);
     if (frame != null) {
       // Check if the frame has more fields than the original and discard the extra ones
       RelNode result = frame.r;
@@ -471,17 +478,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return applyHepProgram(root, ruleSetToHepProgram(ruleSet));
   }
 
-  /** Removes unused expressions before the determinism checks and rebuilds
-   * the correlation map. */
-  private RelNode prepareForDecorrelation(RelNode root) {
-    final List<String> fieldNames = root.getRowType().getFieldNames();
-    final RelBuilder trimBuilder = relBuilderFactory().create(root.getCluster(), null);
-    root = new RelFieldTrimmer(null, trimBuilder).trim(root);
-    root = trimBuilder.push(root).rename(fieldNames).build();
-    cm = new CorelMapBuilder().build(root);
-    return root;
-  }
-
   private HepProgram ruleSetToHepProgram(RuleSet ruleSet) {
     final RelBuilderFactory f = relBuilderFactory();
     final HepProgramBuilder builder = HepProgram.builder();
@@ -559,15 +555,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
           // variables, terminate rewrite
           return null;
         }
-        // This node keeps its original input references, so restore the input's
-        // field order and remove any fields added by decorrelation.
-        relBuilder.push(frame.r);
-        final RelNode input = relBuilder
-            .project(relBuilder.fields(ImmutableList.copyOf(frame.oldToNewOutputs.values())),
-                oldInputs.get(i).getRowType().getFieldNames())
-            .build();
-        newInputs.add(input);
-        newRel.replaceInput(i, input);
+        newInputs.add(frame.r);
+        newRel.replaceInput(i, frame.r);
       }
 
       if (!Util.equalShallow(oldInputs, newInputs)) {
@@ -873,7 +862,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if ((rel.hasEmptyGroup() || rel.getGroupSet().isEmpty())
         && !frame.corDefOutputs.isEmpty()
         && !parentPropagatesNullValues) {
-      return rewriteScalarAggregate(rel, newRel, outputMap, corDefOutputs);
+      newRel = rewriteScalarAggregate(rel, newRel, outputMap, corDefOutputs);
     }
 
     return register(rel, newRel, outputMap, corDefOutputs);
@@ -976,16 +965,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * <p>Implementation based on: Improving Unnesting of Complex Queries
    * (https://dl.gi.de/server/api/core/bitstreams/c1918e8c-6a87-4da2-930a-bfed289f2388/content)
    */
-  private @Nullable Frame rewriteScalarAggregate(Aggregate oldRel,
+  private RelNode rewriteScalarAggregate(Aggregate oldRel,
       RelNode newRel,
       Map<Integer, Integer> outputMap,
       NavigableMap<CorDef, Integer> corDefOutputs) {
     final List<CorRef> corVarList = collectExternalCorVars(oldRel);
     final NavigableMap<CorDef, Integer> valueGenCorDefOutputs = new TreeMap<>();
-    final RelNode valueGen = createValueGenerator(corVarList, 0, valueGenCorDefOutputs);
-    if (valueGen == null) {
-      return null;
-    }
+    final RelNode valueGen =
+        requireNonNull(createValueGenerator(corVarList, 0, valueGenCorDefOutputs));
     final int valueGenFieldCount = valueGen.getRowType().getFieldCount();
 
     // Build join conditions
@@ -1030,10 +1017,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       projects.add(expression, newRel.getRowType().getFieldNames().get(index));
     }
 
-    final RelNode result = relBuilder.push(join)
+    return relBuilder.push(join)
         .project(projects.leftList(), projects.rightList())
         .build();
-    return register(oldRel, result, outputMap, corDefOutputs);
   }
 
   /**
@@ -1054,18 +1040,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /**
    * Invokes decorrelation logic for a given relational expression.
+   * Returns null if the rewrite would repeat a non-deterministic input.
    *
    * @param parentPropagatesNullValues True if the parent RelNode produces null
    *                                   when all of its inputs fields are null.
    */
   public @Nullable Frame getInvoke(RelNode r, boolean isCorVarDefined,
       @Nullable RelNode parent, boolean parentPropagatesNullValues) {
-    final Frame frame = dispatcher.invoke(r, isCorVarDefined, parentPropagatesNullValues);
-    currentRel = parent;
-    if (frame != null) {
-      map.put(r, frame);
+    try {
+      final Frame frame = dispatcher.invoke(r, isCorVarDefined, parentPropagatesNullValues);
+      if (frame != null) {
+        map.put(r, frame);
+      }
+      return frame;
+    } catch (UnsafeDecorrelation e) {
+      return null;
+    } finally {
+      currentRel = parent;
     }
-    return frame;
   }
 
   /** Returns a literal output field, or null if it is not literal. */
@@ -1312,10 +1304,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final NavigableMap<CorDef, Integer> valueGenCorDefOutputs = new TreeMap<>();
-    final RelNode valueGen = createValueGenerator(corVarList, 0, valueGenCorDefOutputs);
-    if (valueGen == null) {
-      return null;
-    }
+    final RelNode valueGen =
+        requireNonNull(createValueGenerator(corVarList, 0, valueGenCorDefOutputs));
     final int valueGenFieldCount = valueGen.getRowType().getFieldCount();
     // Original SetOp payload width.
     final int payloadFieldCount = rel.getRowType().getFieldCount();
@@ -1425,9 +1415,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // If this Project has correlated reference, create value generator
     // and produce the correlated variables in the new output.
     frame = maybeAddValueGenerator(rel, frame);
-    if (frame == null) {
-      return null;
-    }
 
     // Project projects the original expressions
     final Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
@@ -1449,10 +1436,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newPos++;
     }
 
-    // Keep field names, but omit projections made redundant by field trimming.
     RelNode newProject = relBuilder.push(frame.r)
-        .projectNamed(projects.leftList(), projects.rightList(),
-            !projects.rightList().equals(frame.r.getRowType().getFieldNames()))
+        .projectNamed(projects.leftList(), projects.rightList(), true)
         .build();
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
@@ -1466,8 +1451,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *                             will start
    * @param corDefOutputs        output positions for the correlated variables
    *                             generated
-   * @return The value generator, or null if no parameters are needed or the
-   *     parameter source cannot be repeated safely
+   * @return RelNode the root of the resultant RelNode tree
    */
   private @Nullable RelNode createValueGenerator(
       Iterable<CorRef> correlations,
@@ -1526,13 +1510,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
         RelNode projected = relBuilder.push(newInput)
             .project(relBuilder.fields(positions))
             .build();
-        if (!canDecorrelateInput(projected)) {
-          // Unused non-deterministic expressions need not be evaluated again.
-          final RelBuilder trimBuilder = relBuilderFactory().create(projected.getCluster(), null);
-          projected = new RelFieldTrimmer(null, trimBuilder).trim(projected);
-          if (!canDecorrelateInput(projected)) {
-            return null;
-          }
+        if (!RelOptUtil.isDeterministic(projected)) {
+          projected = trimUnusedFields(projected);
+        }
+        if (!canRepeat(projected)) {
+          throw UnsafeDecorrelation.INSTANCE;
         }
         final RelNode distinct = relBuilder.push(projected).distinct().build();
         RelOptCluster cluster = distinct.getCluster();
@@ -1595,6 +1577,49 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return map.get(r);
   }
 
+  /** Finds inputs whose repeatability may depend on unused fields. */
+  private boolean needsFieldTrimming(RelNode root) {
+    try {
+      new RelVisitor() {
+        @Override public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
+          if (node instanceof Correlate
+              && ((Correlate) node).getJoinType().projectsRight()) {
+            final Correlate correlate = (Correlate) node;
+            final RelNode parameters = relBuilder.push(correlate.getLeft())
+                .project(relBuilder.fields(correlate.getRequiredColumns())).build();
+            if (!canRepeat(correlate.getRight()) || !canRepeat(parameters)) {
+              throw Util.FoundOne.NULL;
+            }
+          }
+          super.visit(node, ordinal, parent);
+        }
+      }.go(root);
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
+  /** Checks the computations needed to reproduce this relation's output. */
+  private boolean canRepeat(RelNode rel) {
+    // Unexpanded sub-queries can retain unbound references (CALCITE-7913).
+    return !RelOptUtil.containsSubQuery(rel)
+        && (RelOptUtil.isDeterministic(rel)
+            || RelOptUtil.isDeterministic(trimUnusedFields(rel)));
+  }
+
+  /** Removes unused computations using a separate builder. */
+  private RelNode trimUnusedFields(RelNode rel) {
+    final RelBuilder builder = relBuilderFactory().create(rel.getCluster(), null);
+    return new RelFieldTrimmer(null, builder).trim(RelOptUtil.stripAll(rel));
+  }
+
+  /** Stops a rewrite that would repeat a non-deterministic input. */
+  private static class UnsafeDecorrelation extends ControlFlowException {
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
+    static final UnsafeDecorrelation INSTANCE = new UnsafeDecorrelation();
+  }
+
   private RelNode getCorRel(CorRef corVar) {
     final RelNode r =
         requireNonNull(cm.mapCorToCorRel.get(corVar.corr),
@@ -1636,16 +1661,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return getCorRel(corVar);
   }
 
-  /** Returns whether an input can be re-evaluated or shared during decorrelation. */
-  private static boolean canDecorrelateInput(RelNode rel) {
-    // Unexpanded sub-queries may retain unbound outer references (CALCITE-7913).
-    return !RelOptUtil.containsSubQuery(rel) && RelOptUtil.isDeterministic(rel);
-  }
-
   /** Adds a value generator to satisfy the correlating variables used by
    * a relational expression, if those variables are not already provided by
    * its input. */
-  private @Nullable Frame maybeAddValueGenerator(RelNode rel, Frame inputFrame) {
+  private Frame maybeAddValueGenerator(RelNode rel, Frame inputFrame) {
     final CorelMap cm1 = new CorelMapBuilder().build(inputFrame.r, rel);
     if (!cm1.mapRefRelToCorRef.containsKey(rel)) {
       return inputFrame;
@@ -1681,7 +1700,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return false;
   }
 
-  private @Nullable Frame decorrelateInputWithValueGenerator(RelNode rel, Frame inputFrame) {
+  private Frame decorrelateInputWithValueGenerator(RelNode rel, Frame inputFrame) {
     // currently only handles one input
     assert rel.getInputs().size() == 1;
     RelNode oldInput = inputFrame.r;
@@ -1774,7 +1793,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *                       to include positions in the new join
    * @return a new Frame describing {@code rel} after attaching the value generator
    */
-  private @Nullable Frame createFrameWithValueGenerator(RelNode rel, Frame frame,
+  private Frame createFrameWithValueGenerator(RelNode rel, Frame frame,
       Collection<CorRef> corVarList, NavigableMap<CorDef, Integer> corDefOutputs) {
     int leftFieldCount = frame.r.getRowType().getFieldCount();
 
@@ -1782,9 +1801,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // does not change the output ordering from the inputs.
     final RelNode valueGen =
         createValueGenerator(corVarList, leftFieldCount, corDefOutputs);
-    if (valueGen == null) {
-      return null;
-    }
+    requireNonNull(valueGen, "valueGen");
 
     RelNode join =
         relBuilder
@@ -1915,9 +1932,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // If this Filter has correlated reference, create value generator
     // and produce the correlated variables in the new output.
     frame = maybeAddValueGenerator(rel, frame);
-    if (frame == null) {
-      return null;
-    }
 
     final CorelMap cm2 = new CorelMapBuilder().build(rel);
 
@@ -1941,8 +1955,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   public @Nullable Frame decorrelateRel(Correlate rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
-    // Each outer row needs its own non-deterministic result, even for equal bindings.
-    if (!canDecorrelateInput(rel.getRight())) {
+    if (!rel.getJoinType().projectsRight()) {
+      return null;
+    }
+    if (!canRepeat(rel.getRight())) {
       return null;
     }
     //
@@ -1969,12 +1985,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
         getInvoke(oldRight, true, rel, rel.getJoinType() == JoinRelType.LEFT);
     frameStack.pop();
 
-    if (rightFrame == null || rightFrame.corDefOutputs.isEmpty()) {
+    if (rightFrame == null
+        || RelOptUtil.getVariablesUsed(rightFrame.r).contains(rel.getCorrelationId())) {
       return null;
     }
-
-    assert rel.getRequiredColumns().cardinality()
-        <= rightFrame.corDefOutputs.keySet().size();
 
     // Change correlator rel into a join.
     // Join all the correlated variables produced by this correlator rel
@@ -2112,17 +2126,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // ensure CorVars are present in left input
       if (generatesNullsOnRight || RexUtil.containsFieldAccess(rel.getCondition())) {
         newLeftFrame = supplyMissingCorVars(oldLeft, leftFrame, corVarList, leftCorDefOutputs);
-        if (newLeftFrame == null) {
-          return null;
-        }
         rightCorDefOutputs.putAll(rightFrame.corDefOutputs);
       }
       // ensure CorVars are present in right input
       if (generatesNullsOnLeft) {
         newRightFrame = supplyMissingCorVars(oldRight, rightFrame, corVarList, rightCorDefOutputs);
-        if (newRightFrame == null) {
-          return null;
-        }
         leftCorDefOutputs.putAll(leftFrame.corDefOutputs);
       }
     } else {
@@ -2748,7 +2756,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
         return newRexNode;
       }
-      return fieldAccess;
+      return rexBuilder.makeFieldAccess(fieldAccess.getReferenceExpr().accept(this),
+          fieldAccess.getField().getIndex());
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -3050,6 +3059,35 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 
+  /** Prunes the scalar input while retaining its Project and optional Filter. */
+  private Project trimScalarInput(Project project) {
+    final RelNode input = project.getInput().stripped();
+    final Filter filter = input instanceof Filter ? (Filter) input : null;
+    final RelNode source = filter == null ? input : filter.getInput().stripped();
+    final RelNode unwrapped = RelOptUtil.stripAll(source);
+    if (RelOptUtil.isDeterministic(unwrapped)) {
+      return project;
+    }
+    final ImmutableBitSet fields =
+        RelOptUtil.InputFinder.bits(project.getProjects(),
+            filter == null ? null : filter.getCondition());
+    final RelBuilder builder = relBuilderFactory().create(source.getCluster(), null);
+    final RelFieldTrimmer.TrimResult trimmed = new RelFieldTrimmer(null, builder)
+        .dispatchTrimFields(unwrapped, fields, Collections.emptySet());
+    final RexShuttle shuttle = new RexPermuteInputsShuttle(trimmed.right, trimmed.left);
+    RelNode newInput = trimmed.left;
+    if (filter != null) {
+      newInput =
+          filter.copy(filter.getTraitSet(), trimmed.left, filter.getCondition().accept(shuttle));
+      createCopyHook().apply(filter, newInput);
+    }
+    final Project newProject =
+        project.copy(project.getTraitSet(), newInput,
+            shuttle.apply(project.getProjects()), project.getRowType());
+    createCopyHook().apply(project, newProject);
+    return newProject;
+  }
+
   /** Planner rule that removes correlations for scalar projects. */
   public static final class RemoveCorrelationForScalarProjectRule
       extends RelRule<RemoveCorrelationForScalarProjectRule
@@ -3075,15 +3113,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final Correlate correlate = call.rel(0);
       final RelNode left = call.rel(1);
       final Aggregate aggregate = call.rel(2);
-      final Project project = call.rel(3);
-      RelNode right = call.rel(4);
       final RelOptCluster cluster = correlate.getCluster();
 
-      if (!canDecorrelateInput(correlate.getRight())) {
+      if (!d.canRepeat(correlate.getRight())) {
         return;
       }
-
       d.setCurrent(call.getPlanner().getRoot(), correlate);
+      final Project project = d.trimScalarInput(call.rel(3));
+      RelNode right = project.getInput().stripped();
 
       // Check for this pattern.
       // The pattern matching could be simplified if rules can be applied
@@ -3135,7 +3172,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         Filter filter = (Filter) right;
         right = filter.getInput();
 
-        assert right instanceof HepRelVertex;
         right = right.stripped();
 
         // check filter input contains no correlation
@@ -3294,17 +3330,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final RelNode left = call.rel(1);
       final Project aggOutputProject = call.rel(2);
       final Aggregate aggregate = call.rel(3);
-      final Project aggInputProject = call.rel(4);
-      RelNode right = call.rel(5);
       final RelBuilder builder = call.builder();
       final RexBuilder rexBuilder = builder.getRexBuilder();
       final RelOptCluster cluster = correlate.getCluster();
 
-      if (!canDecorrelateInput(correlate.getRight())) {
+      if (!d.canRepeat(correlate.getRight())) {
         return;
       }
-
       d.setCurrent(call.getPlanner().getRoot(), correlate);
+      final Project aggInputProject = d.trimScalarInput(call.rel(4));
+      RelNode right = aggInputProject.getInput().stripped();
 
       // check for this pattern
       // The pattern matching could be simplified if rules can be applied
@@ -3362,7 +3397,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         Filter filter = (Filter) right;
         right = filter.getInput();
 
-        assert right instanceof HepRelVertex;
         right = right.stripped();
 
         // check filter input contains no correlation
@@ -3418,8 +3452,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
 
         // check corVar references are valid
-        if (!d.checkCorVars(correlate, aggInputProject, filter,
-            correlatedJoinKeys)) {
+        if (!d.checkCorVars(correlate, aggInputProject, filter, correlatedJoinKeys)) {
           return;
         }
 
@@ -4210,7 +4243,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * @return A new Frame with all required correlated variables, or the original frame
    * if all were present
    */
-  private @Nullable Frame supplyMissingCorVars(RelNode oldInput, Frame frame,
+  private Frame supplyMissingCorVars(RelNode oldInput, Frame frame,
       List<CorRef> corVarList, NavigableMap<CorDef, Integer> corDefOutputs) {
     final ImmutableSortedSet<CorDef> haves = frame.corDefOutputs.keySet();
     if (hasAll(corVarList, haves)) {
