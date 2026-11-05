@@ -389,6 +389,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc, operator);
   }
 
+  @Override public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(
+      SqlNode node, boolean nullsFirst, boolean desc, @Nullable SqlOperator operator,
+      boolean isRows) {
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc, operator);
+  }
+
 //  @Override public SqlNode emulateNullDirection(SqlNode node,
 //      boolean nullsFirst, boolean desc) {
 //    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
@@ -1233,6 +1239,11 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
 
+    final SqlCall flatCall = flattenNestedIntervalMultiply(call);
+    if (flatCall != call) {
+      unparseIntervalOperandsBasedFunctions(writer, flatCall, leftPrec, rightPrec);
+      return;
+    }
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
@@ -1265,6 +1276,112 @@ public class BigQuerySqlDialect extends SqlDialect {
 
     writer.endFunCall(frame);
 
+  }
+
+  /**
+   * Rewrites a nested multiply in the interval operand so that the interval literal is a
+   * direct operand again. That is the shape {@link #unparseExpressionIntervalCall} handles.
+   * Example 1:
+   * Input: DATETIME_ADD(ts, (INTERVAL 1 HOUR * store_id) * 2)
+   * Output: DATETIME_ADD(ts, store_id * 2 * INTERVAL 1 HOUR)
+   * Example 2: a factor of -1 is dropped and flips ADD to SUB (or SUB to ADD).
+   * Input: DATETIME_ADD(ts, (INTERVAL 1 HOUR * store_id) * -1)
+   * Output: DATETIME_SUB(ts, store_id * INTERVAL 1 HOUR)
+   * Example 3: a negative interval literal becomes a positive one and a -1 factor.
+   * Input: DATETIME_ADD(ts, INTERVAL -1 HOUR * store_id)
+   * Output: DATETIME_SUB(ts, store_id * INTERVAL 1 HOUR)
+   *
+   * @param call SqlCall : DATETIME_ADD(ts, (INTERVAL 1 HOUR * store_id) * -1)
+   * @return the rewritten call, or the same call when there is nothing to rewrite
+   */
+  private static SqlCall flattenNestedIntervalMultiply(SqlCall call) {
+    if (call.operandCount() != 2 || call.operand(1).getKind() != SqlKind.TIMES) {
+      return call;
+    }
+    final SqlCall times = call.operand(1);
+    final List<SqlNode> factors = new ArrayList<>();
+    final List<SqlNode> intervals = new ArrayList<>();
+    collectMultiplyFactors(times, factors, intervals);
+    if (intervals.size() != 1 || factors.isEmpty()) {
+      return call;
+    }
+    SqlIntervalLiteral intervalLiteral = (SqlIntervalLiteral) intervals.get(0);
+    final SqlIntervalLiteral.IntervalValue intervalValue =
+        (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
+    final boolean direct = times.operand(0) == intervalLiteral
+        || times.operand(1) == intervalLiteral;
+    if (direct && intervalValue.getSign() >= 0) {
+      return call;
+    }
+    if (intervalValue.getSign() < 0) {
+      // unparseExpressionIntervalCall drops the sign of the literal, so move it into a -1 factor.
+      intervalLiteral =
+          SqlLiteral.createInterval(1, intervalValue.getIntervalLiteral(),
+              intervalValue.getIntervalQualifier(), intervalLiteral.getParserPosition());
+      factors.add(SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO));
+    }
+    SqlOperator operator = call.getOperator();
+    final SqlOperator negatedOperator = negatedIntervalFunction(operator);
+    if (negatedOperator != null && factors.size() > 1) {
+      for (int i = 0; i < factors.size(); i++) {
+        if (isMinusOne(factors.get(i))) {
+          factors.remove(i);
+          operator = negatedOperator;
+          break;
+        }
+      }
+    }
+    SqlNode multiplier = factors.get(0);
+    for (int i = 1; i < factors.size(); i++) {
+      multiplier = MULTIPLY.createCall(SqlParserPos.ZERO, multiplier, factors.get(i));
+    }
+    final SqlNode interval =
+        MULTIPLY.createCall(SqlParserPos.ZERO, multiplier, intervalLiteral);
+    return operator.createCall(call.getFunctionQuantifier(), call.getParserPosition(),
+        call.operand(0), interval);
+  }
+
+  /** Splits a tree of multiplies into its interval literals and its other factors. */
+  private static void collectMultiplyFactors(SqlNode node, List<SqlNode> factors,
+      List<SqlNode> intervals) {
+    if (node instanceof SqlIntervalLiteral) {
+      intervals.add(node);
+    } else if (node.getKind() == SqlKind.TIMES && node instanceof SqlCall) {
+      for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+        collectMultiplyFactors(operand, factors, intervals);
+      }
+    } else {
+      factors.add(node);
+    }
+  }
+
+  /** Returns the function that adds the negated interval, or null if there is none. */
+  private static @Nullable SqlOperator negatedIntervalFunction(SqlOperator operator) {
+    if (operator == SqlLibraryOperators.DATETIME_ADD) {
+      return SqlLibraryOperators.DATETIME_SUB;
+    } else if (operator == SqlLibraryOperators.DATETIME_SUB) {
+      return SqlLibraryOperators.DATETIME_ADD;
+    } else if (operator == SqlLibraryOperators.DATE_ADD) {
+      return SqlLibraryOperators.DATE_SUB;
+    } else if (operator == SqlLibraryOperators.DATE_SUB) {
+      return SqlLibraryOperators.DATE_ADD;
+    }
+    return null;
+  }
+
+  private static boolean isMinusOne(SqlNode node) {
+    if (node instanceof SqlNumericLiteral) {
+      final BigDecimal value = ((SqlNumericLiteral) node).bigDecimalValue();
+      return value != null && value.compareTo(BigDecimal.ONE.negate()) == 0;
+    }
+    if (node.getKind() == SqlKind.MINUS_PREFIX) {
+      final SqlNode operand = ((SqlCall) node).operand(0);
+      if (operand instanceof SqlNumericLiteral) {
+        final BigDecimal value = ((SqlNumericLiteral) operand).bigDecimalValue();
+        return value != null && value.compareTo(BigDecimal.ONE) == 0;
+      }
+    }
+    return false;
   }
 
   /**
@@ -1336,7 +1453,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep("INTERVAL");
     if (call.getKind() == SqlKind.TIMES) {
       if (!literalValue.getIntervalLiteral().equals("1")) {
-        multiplier.unparse(writer, leftPrec, rightPrec);
+        // The multiplier is followed by "* N", so a lower-precedence call such as a + b
+        // needs brackets.
+        multiplier.unparse(writer, leftPrec, MULTIPLY.getLeftPrec());
         writer.sep("*");
         writer.sep(literalValue.toString());
       } else {

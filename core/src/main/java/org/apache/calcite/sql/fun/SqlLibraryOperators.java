@@ -2177,6 +2177,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARBINARY_NULLABLE,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_CONVERT_BYTES_TO_STRING =
+      SqlBasicFunction.create("SAFE_CONVERT_BYTES_TO_STRING",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.BINARY, SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction TO_BASE64 =
       SqlBasicFunction.create("TO_BASE64",
@@ -2295,15 +2301,6 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TO_DATE =
       SqlBasicFunction.create("TO_DATE",
           ReturnTypes.DATE_NULLABLE,
-          OperandTypes.STRING_STRING,
-          SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_TO_DATE =
-      new SqlFunction("TO_DATE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
-          null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
@@ -3607,6 +3604,24 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.NUMERIC)
           .withDistinct(Optionality.OPTIONAL);
 
+  /** The "AI.AGG(text, instruction)" function; reduces a column of text
+   * using a natural language instruction. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction AI_AGG =
+      SqlBasicAggFunction
+          .create("AI.AGG", SqlKind.OTHER_FUNCTION, ReturnTypes.VARCHAR_NULLABLE,
+              OperandTypes.STRING_STRING)
+          .withFunctionType(SqlFunctionCategory.STRING);
+
+  /** The Snowflake "AI_AGG(text, instruction)" function. Equivalent to
+   * the BigQuery "AI.AGG(text, instruction)". */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction SNOWFLAKE_AI_AGG =
+      SqlBasicAggFunction
+          .create("AI_AGG", SqlKind.OTHER_FUNCTION, ReturnTypes.VARCHAR_NULLABLE,
+              OperandTypes.STRING_STRING)
+          .withFunctionType(SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FARM_FINGERPRINT =
       new SqlFunction(
@@ -3672,7 +3687,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TRUNC",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP,
+          ReturnTypes.DATE,
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME,
               SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
@@ -3818,23 +3833,12 @@ public abstract class SqlLibraryOperators {
               number -> number == 2),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {HIVE, SPARK})
+  @LibraryOperator(libraries = {HIVE, SPARK, ORACLE})
   public static final SqlFunction NEXT_DAY =
       new SqlFunction(
           "NEXT_DAY",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE,
-          null,
-          OperandTypes.family(SqlTypeFamily.ANY,
-              SqlTypeFamily.STRING),
-          SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_NEXT_DAY =
-      new SqlFunction(
-          "ORACLE_NEXT_DAY",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.DATE_NULLABLE,
           null,
           OperandTypes.family(SqlTypeFamily.ANY,
               SqlTypeFamily.STRING),
@@ -3881,6 +3885,30 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
               number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_PREVIOUS_DAY =
+      new SqlFunction(
+          "PREVIOUS_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(
+                  ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.CHARACTER)),
+              OperandTypes.family(
+                  ImmutableList.of(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER))),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction JAROWINKLER_SIMILARITY =
+      new SqlFunction(
+          "JAROWINKLER_SIMILARITY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
   public static final SqlFunction SHIFTLEFT =
@@ -4008,7 +4036,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction JSON_OBJECT =
       new SqlFunction("JSON_OBJECT",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000,
+          ReturnTypes.JSON,
           null,
           OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
@@ -4912,6 +4940,30 @@ public abstract class SqlLibraryOperators {
                   n -> n >= 0 && n <= 2)),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction BASE64_DECODE_STRING =
+      new SqlFunction(
+          "BASE64_DECODE_STRING",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+              n -> n == 1),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction BASE64_DECODE_BINARY =
+      new SqlFunction(
+          "BASE64_DECODE_BINARY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARBINARY_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+              n -> n == 1),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction CREATEXML =
       new SqlFunction("CREATEXML",
@@ -5045,4 +5097,35 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING_STRING),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction CURRENT_REGION =
+      new SqlFunction(
+          "CURRENT_REGION",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction OBJECT_KEYS =
+      new SqlFunction(
+          "OBJECT_KEYS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction REGR_SLOPE =
+      SqlBasicAggFunction
+          .create(
+              "REGR_SLOPE",
+              SqlKind.REGR_SLOPE,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
 }

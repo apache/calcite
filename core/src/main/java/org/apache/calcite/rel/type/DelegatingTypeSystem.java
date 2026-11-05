@@ -66,6 +66,10 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.getNumTypeRadix(typeName);
   }
 
+  @Override public boolean isDateSupportsTimeParts() {
+    return typeSystem.isDateSupportsTimeParts();
+  }
+
   @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
     return typeSystem.deriveSumType(typeFactory, argumentType);

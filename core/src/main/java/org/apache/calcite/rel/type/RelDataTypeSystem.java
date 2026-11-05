@@ -69,6 +69,9 @@ public interface RelDataTypeSystem {
   /** Returns whether the type can be auto increment. */
   boolean isAutoincrement(SqlTypeName typeName);
 
+  /** Returns whether the DATE datatype supports TIME parts. */
+  boolean isDateSupportsTimeParts();
+
   /** Returns the numeric type radix, typically 2 or 10.
    * 0 means "not applicable". */
   int getNumTypeRadix(SqlTypeName typeName);
