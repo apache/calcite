@@ -665,7 +665,7 @@ public abstract class ReflectUtil {
     try {
       final Object module =
           Class.class.getMethod("getModule").invoke(declaringClass);
-      marked = nullMarked((AnnotatedElement) module);
+      marked = nullMarked((AnnotatedElement) castNonNull(module));
       if (marked != null) {
         return marked;
       }
