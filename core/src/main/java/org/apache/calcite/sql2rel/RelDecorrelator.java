@@ -1757,21 +1757,26 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * ensuring that we only map the correlation variable to a local field or
    * expression from the current relational expression (e.g., a {@link RexInputRef}),
    * rather than to another correlation variable.
+   *
+   * <p>{@code IS NOT DISTINCT FROM} establishes the same equivalence as
+   * {@code =} (it compares values null-safely), so it is also recognized.
    */
   private static void findCorrelationEquivalent(CorRef correlation, RexNode e)
       throws Util.FoundOne {
     switch (e.getKind()) {
     case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
       final RexCall call = (RexCall) e;
       final List<RexNode> operands = call.getOperands();
-      if (!RexUtil.containsFieldAccess(operands.get(1))
-          && references(operands.get(0), correlation)) {
-        throw new Util.FoundOne(operands.get(1));
-      }
-      if (!RexUtil.containsFieldAccess(operands.get(0))
-          && references(operands.get(1), correlation)) {
-        throw new Util.FoundOne(operands.get(0));
-      }
+      // For IS NOT DISTINCT FROM, binding is only sound when the local
+      // operand is NOT NULL: the residual filter
+      // {@code IS NOT DISTINCT FROM(x, x)} is then always true, and the join
+      // condition reproduces the original null-safe comparison. Otherwise
+      // rows where the local operand is null would be wrongly filtered out,
+      // although {@code x IS NOT DISTINCT FROM y} accepts them when y is
+      // also null.
+      findEqualityEquivalent(correlation, operands.get(0), operands.get(1),
+          e.getKind() == SqlKind.IS_NOT_DISTINCT_FROM);
       break;
     case AND:
       for (RexNode operand : ((RexCall) e).getOperands()) {
@@ -1780,6 +1785,26 @@ public class RelDecorrelator implements ReflectiveVisitor {
       break;
     default:
       break;
+    }
+  }
+
+  /** If one of {@code operand0} and {@code operand1} references the given
+   * correlation, and the other does not contain any {@link RexFieldAccess},
+   * throws the other operand as a {@link org.apache.calcite.util.Util.FoundOne}.
+   *
+   * <p>If {@code requireNotNullOperand} is true, the non-correlation operand
+   * must additionally be NOT NULL to be accepted. */
+  private static void findEqualityEquivalent(CorRef correlation, RexNode operand0,
+      RexNode operand1, boolean requireNotNullOperand) throws Util.FoundOne {
+    if (!RexUtil.containsFieldAccess(operand1)
+        && references(operand0, correlation)
+        && !(requireNotNullOperand && operand1.getType().isNullable())) {
+      throw new Util.FoundOne(operand1);
+    }
+    if (!RexUtil.containsFieldAccess(operand0)
+        && references(operand1, correlation)
+        && !(requireNotNullOperand && operand0.getType().isNullable())) {
+      throw new Util.FoundOne(operand0);
     }
   }
 
