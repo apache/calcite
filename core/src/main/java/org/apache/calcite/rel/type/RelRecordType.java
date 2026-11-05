@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -46,6 +47,8 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
 
   /** Candidate indexes are derived from the fields and rebuilt on demand. */
   private transient volatile @Nullable Map<String, List<RelDataTypeField>> fieldNameMap;
+  private transient volatile @Nullable Map<CaseInsensitiveFieldName, List<RelDataTypeField>>
+      insensitiveFieldNameMap;
 
   /** Minimum number of fields where it is worth populating {@link #fieldNameMap}
    * to accelerate lookups by field name. */
@@ -141,30 +144,39 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
 
   private @Nullable List<RelDataTypeField> indexedFields(String fieldName,
       boolean caseSensitive) {
-    if (!caseSensitive || fieldList == null || fieldList.size() <= THRESHOLD) {
+    if (fieldList == null || fieldList.size() <= THRESHOLD) {
       return null;
     }
-    return getFieldIndex().getOrDefault(fieldName, ImmutableList.of());
+    final Map<?, List<RelDataTypeField>> index = getFieldIndex(caseSensitive);
+    final Object key = caseSensitive ? fieldName : new CaseInsensitiveFieldName(fieldName);
+    return index.getOrDefault(key, ImmutableList.of());
   }
 
-  private Map<String, List<RelDataTypeField>> getFieldIndex() {
-    Map<String, List<RelDataTypeField>> index = fieldNameMap;
+  private Map<?, List<RelDataTypeField>> getFieldIndex(boolean caseSensitive) {
+    Map<?, List<RelDataTypeField>> index =
+        caseSensitive ? fieldNameMap : insensitiveFieldNameMap;
     if (index == null) {
       synchronized (this) {
-        index = fieldNameMap;
+        index = caseSensitive ? fieldNameMap : insensitiveFieldNameMap;
         if (index == null) {
-          fieldNameMap = createFieldIndex();
-          index = fieldNameMap;
+          if (caseSensitive) {
+            fieldNameMap = createFieldIndex(Function.identity());
+            index = fieldNameMap;
+          } else {
+            insensitiveFieldNameMap = createFieldIndex(CaseInsensitiveFieldName::new);
+            index = insensitiveFieldNameMap;
+          }
         }
       }
     }
     return index;
   }
 
-  private Map<String, List<RelDataTypeField>> createFieldIndex() {
-    final Map<String, List<RelDataTypeField>> entries = new HashMap<>();
+  private <K> Map<K, List<RelDataTypeField>> createFieldIndex(Function<String, K> keyFactory) {
+    final Map<K, List<RelDataTypeField>> entries = new HashMap<>();
     for (RelDataTypeField field : requireNonNull(fieldList, "fieldList")) {
-      entries.computeIfAbsent(field.getName(), k -> new ArrayList<>()).add(field);
+      final K key = keyFactory.apply(field.getName());
+      entries.computeIfAbsent(key, k -> new ArrayList<>()).add(field);
     }
     entries.replaceAll((key, fields) -> ImmutableList.copyOf(fields));
     return Collections.unmodifiableMap(entries);
@@ -248,6 +260,40 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   }
 
   //~ Inner Classes ----------------------------------------------------------
+
+  /** Hash key that delegates matching to String.equalsIgnoreCase on this JDK.
+   * Code-point folding only supplies a hash; it never decides equality. */
+  private static final class CaseInsensitiveFieldName
+      implements Comparable<CaseInsensitiveFieldName> {
+    private final String name;
+    private final int hash;
+
+    private CaseInsensitiveFieldName(String name) {
+      this.name = name;
+      int h = name.length();
+      for (int offset = 0; offset < name.length();) {
+        final int codePoint = name.codePointAt(offset);
+        h = 31 * h + Character.toLowerCase(Character.toUpperCase(codePoint));
+        offset += Character.charCount(codePoint);
+      }
+      this.hash = h;
+    }
+
+    @Override public boolean equals(@Nullable Object obj) {
+      return this == obj
+          || obj instanceof CaseInsensitiveFieldName
+          && name.equalsIgnoreCase(((CaseInsensitiveFieldName) obj).name);
+    }
+
+    @Override public int hashCode() {
+      return hash;
+    }
+
+    @Override public int compareTo(CaseInsensitiveFieldName other) {
+      final int c = Integer.compare(name.length(), other.name.length());
+      return c != 0 ? c : name.compareToIgnoreCase(other.name);
+    }
+  }
 
   /**
    * Skinny object which has the same information content as a
