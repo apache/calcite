@@ -24,6 +24,7 @@ import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CommentTrait;
 import org.apache.calcite.plan.GroupByWithQualifyHavingRankRelTrait;
+import org.apache.calcite.plan.MergeSortProjectTrait;
 import org.apache.calcite.plan.QualifyRelTrait;
 import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
@@ -12752,6 +12753,30 @@ class RelToSqlConverterDMTest {
                                 + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
                                 + " (SELECT first_name AS FNAME\nFROM RUNDATE)";
     assertThat(actualSql, isLinux(expectedSql));
+  }
+
+  /** A Sort carrying {@link MergeSortProjectTrait} is not wrapped in a sub-query for its
+   * sort-only column, and its ORDER BY item is rendered as the underlying expression. */
+  @Test public void testSortWithMergeSortProjectTrait() {
+    final RelBuilder builder = foodmartRelBuilder();
+    final RelNode sort = builder.scan("employee")
+        .project(builder.field("full_name"), builder.field("birth_date"),
+            builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.YEAR),
+                builder.field("birth_date")))
+        .sortLimit(0, 5, builder.desc(builder.field(2)))
+        .build();
+    final RelNode sortWithTrait =
+        sort.copy(sort.getTraitSet().plus(new MergeSortProjectTrait(ImmutableList.of(2))),
+            sort.getInputs());
+    final RelNode root = builder.push(sortWithTrait)
+        .project(builder.field(0), builder.field(1))
+        .build();
+
+    final String expectedSql = "SELECT full_name, birth_date\n"
+        + "FROM foodmart.employee\n"
+        + "ORDER BY EXTRACT(YEAR FROM birth_date) DESC NULLS FIRST\n"
+        + "LIMIT 5";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
   /** When a column of a CTE has the same name as the CTE and the dialect does not support
