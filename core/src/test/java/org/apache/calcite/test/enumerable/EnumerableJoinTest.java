@@ -336,6 +336,30 @@ class EnumerableJoinTest {
         "empid=7");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7817">[CALCITE-7817]
+   * Enumerable merge ANTI join drops left rows with NULL keys</a>. */
+  @Test void testMergeJoinAntiWithSingleKeyAndNullValues() {
+    tester(false, new HrSchema())
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .withRel(builder -> builder
+            .scan("s", "emps").as("e1")
+            .sort(builder.field("commission"))
+            .scan("s", "emps").as("e2")
+            .filter(builder.equals(builder.field("deptno"), builder.literal(20)))
+            .sort(builder.field("commission"))
+            .antiJoin(
+                builder.equals(builder.field(2, 0, "commission"),
+                    builder.field(2, 1, "commission")))
+            .project(builder.field("empid"))
+            .build())
+        .explainHookContains("EnumerableMergeJoin")
+        .returnsUnordered("empid=100", "empid=110", "empid=150");
+  }
+
   private void checkMergeJoinWithCompositeKeyAndNullValues(boolean bigSchema, JoinRelType joinType,
       String... expected) {
     CalciteAssert.AssertQuery checker =
