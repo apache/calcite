@@ -106,19 +106,25 @@ public abstract class RelDataTypeImpl
       throw new IllegalStateException("Trying to access field " + fieldName
           + " in a type with no fields: " + this);
     }
-    final Map<String, RelDataTypeField> fieldMap = getFieldMap();
-    if (caseSensitive && fieldMap != null) {
-      RelDataTypeField field = fieldMap.get(fieldName);
-      if (field != null) {
+    for (RelDataTypeField field : fieldList) {
+      if (Util.matches(caseSensitive, field.getName(), fieldName)) {
         return field;
       }
-    } else {
-      for (RelDataTypeField field : fieldList) {
-        if (Util.matches(caseSensitive, field.getName(), fieldName)) {
-          return field;
-        }
-      }
     }
+    return resolveFieldFallback(fieldName, caseSensitive, elideRecord);
+  }
+
+  /** Resolves a name after no explicitly declared field matched.
+   * Preserves nested-record, extra-field, and dynamic-field fallback order.
+   *
+   * @param fieldName Name of field to find
+   * @param caseSensitive Whether names must match exactly
+   * @param elideRecord Whether to find fields nested within records
+   * @return Matching fallback field, or null if there is none
+   */
+  protected @Nullable RelDataTypeField resolveFieldFallback(String fieldName,
+      boolean caseSensitive, boolean elideRecord) {
+    final List<RelDataTypeField> fields = requireNonNull(fieldList, "fieldList");
     if (elideRecord) {
       final List<Slot> slots = new ArrayList<>();
       getFieldRecurse(slots, this, 0, fieldName, caseSensitive);
@@ -135,41 +141,66 @@ public abstract class RelDataTypeImpl
       }
     }
     // Extra field
-    if (!fieldList.isEmpty()) {
-      final RelDataTypeField lastField = Iterables.getLast(fieldList);
+    if (!fields.isEmpty()) {
+      final RelDataTypeField lastField = Iterables.getLast(fields);
       if (lastField.getName().equals("_extra")) {
         return new RelDataTypeFieldImpl(
             fieldName, -1, lastField.getType());
       }
     }
 
-    // a dynamic * field will match any field name.
-    if (fieldMap != null) {
-      return fieldMap.get("");
-    } else {
+    return getFieldFallback();
+  }
+
+  /** Returns all explicitly declared fields matching a name, in field order.
+   *
+   * <p>Unlike {@link #getField}, this method does not resolve nested fields or
+   * synthesize matches for an extra field or a dynamic star. Duplicate fields
+   * are retained, so callers can distinguish a first match from an ambiguous
+   * reference. The returned list is immutable.
+   *
+   * <p>Matching uses {@link Util#matches(boolean, String, String)}.
+   *
+   * @param fieldName Name to match
+   * @param caseSensitive Whether names must match exactly
+   * @return Matching fields, or an empty list if there are none
+   */
+  public List<RelDataTypeField> getFields(String fieldName, boolean caseSensitive) {
+    final ImmutableList.Builder<RelDataTypeField> matches = ImmutableList.builder();
+    for (RelDataTypeField field : getFieldList()) {
+      if (Util.matches(caseSensitive, field.getName(), fieldName)) {
+        matches.add(field);
+      }
+    }
+    return matches.build();
+  }
+
+  /** Returns an optional case-sensitive map from field names to their first field.
+   *
+   * <p>This implementation returns null. The method is retained for source
+   * and binary compatibility, but field lookup no longer consults it.
+   * Subclasses should override {@link #getField} and {@link #getFields}
+   * to customize lookup behavior.
+   *
+   * @return Field map, or null if this type does not provide one
+   * @deprecated Use {@link #getField} for a single match or {@link #getFields}
+   *     for all declared matches
+   */
+  @Deprecated // to be removed before 2.0
+  protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
+    return null;
+  }
+
+  /** Returns a fallback after declared, nested, and extra-field lookup fail.
+   * The default implementation returns the first dynamic star, if present. */
+  protected @Nullable RelDataTypeField getFieldFallback() {
+    if (fieldList != null) {
       for (RelDataTypeField field : fieldList) {
         if (field.isDynamicStar()) {
-          // the requested field could be in the unresolved star
           return field;
         }
       }
     }
-
-    return null;
-  }
-
-  /** Returns a map from field names to fields.
-   *
-   * <p>Matching is case-sensitive.
-   *
-   * <p>If several fields have the same name, the map contains the first.
-   *
-   * <p>A {@link RelDataTypeField#isDynamicStar() dynamic star field} is indexed
-   * under its own name and "" (the empty string).
-   *
-   * <p>If the map is null, the type must do lookup the long way.
-   */
-  protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
     return null;
   }
 
