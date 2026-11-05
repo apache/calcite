@@ -16,14 +16,17 @@
  */
 package org.apache.calcite.test;
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -36,16 +39,21 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -64,6 +72,87 @@ class CollectionTypeTest {
   private static final String ARRAY_OF_ROWS_QUERY =
       "SELECT ARRAY[ROW(MOD(\"ID\", 2), CAST(NULL AS INTEGER))] AS a,\n"
           + "\"ARRAYFIELD\"[1] AS n FROM \"T\"";
+
+  /** Regression tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7919">[CALCITE-7919]
+   * Comparison of ARRAY and ROW keys in enumerable operators</a>. */
+  @ParameterizedTest
+  @MethodSource("compositeSortCases")
+  void testSortCompositeKeys(String key, String order, boolean limit,
+      String[] expected) {
+    withNestedTable()
+        .query("SELECT id FROM " + compositeKeyQuery(key)
+            + " AS t ORDER BY k " + order + ", id DESC"
+            + (limit ? " OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY" : ""))
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          if (limit) {
+            planner.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+            planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          }
+        })
+        .explainContains(limit ? "EnumerableLimitSort" : "EnumerableSort")
+        .returnsOrdered(limit ? Arrays.copyOfRange(expected, 1, 4) : expected);
+  }
+
+  private static List<Arguments> compositeSortCases() {
+    final List<Arguments> cases = new ArrayList<>();
+    for (String key : compositeKeys()) {
+      for (boolean limit : new boolean[]{false, true}) {
+        cases.add(
+            Arguments.of(key, "ASC NULLS FIRST", limit,
+            new String[]{"ID=4", "ID=2", "ID=0", "ID=1", "ID=3"}));
+        cases.add(
+            Arguments.of(key, "ASC NULLS LAST", limit,
+            new String[]{"ID=2", "ID=0", "ID=1", "ID=3", "ID=4"}));
+        cases.add(
+            Arguments.of(key, "DESC NULLS FIRST", limit,
+            new String[]{"ID=4", "ID=3", "ID=1", "ID=2", "ID=0"}));
+        cases.add(
+            Arguments.of(key, "DESC NULLS LAST", limit,
+            new String[]{"ID=3", "ID=1", "ID=2", "ID=0", "ID=4"}));
+      }
+    }
+    return cases;
+  }
+
+  private static List<String> compositeKeys() {
+    return Arrays.asList("ARRAY[a, b]", "ROW(a, b)", "ARRAY[ROW(a, b)]");
+  }
+
+  private static String compositeKeyQuery(String key) {
+    // IDs 0 and 2 have equal keys; ID 3 has a null field; ID 4 has a null key.
+    return "(SELECT id, CASE WHEN id = 4 THEN NULL ELSE " + key + " END AS k\n"
+        + "FROM (SELECT \"ID\" AS id, MOD(\"ID\", 2) AS a,\n"
+        + "CASE WHEN \"ID\" = 3 THEN NULL ELSE 0 END AS b FROM \"T\"))";
+  }
+
+  @ParameterizedTest
+  @MethodSource("compositeKeys")
+  void testWindowCompositeKeys(String key) {
+    withNestedTable()
+        .query("SELECT id, ROW_NUMBER() OVER (ORDER BY k NULLS FIRST, id DESC) AS rn\n"
+            + "FROM " + compositeKeyQuery(key) + " AS t")
+        .explainContains("EnumerableWindow")
+        .returnsUnordered("ID=4; RN=1", "ID=2; RN=2", "ID=0; RN=3",
+            "ID=1; RN=4", "ID=3; RN=5");
+  }
+
+  @ParameterizedTest
+  @MethodSource("compositeKeys")
+  void testMergeJoinCompositeKeys(String key) {
+    // A LEFT JOIN must retain the null key without matching the other null key.
+    final String data = "(SELECT * FROM " + compositeKeyQuery(key) + " AS t WHERE id <> 3)";
+    withNestedTable()
+        .query("SELECT l.id AS lid, r.id AS rid\n"
+            + "FROM " + data + " AS l\n"
+            + "LEFT JOIN " + data + " AS r ON l.id = r.id AND l.k = r.k")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .explainContains("EnumerableMergeJoin")
+        .returnsUnordered("LID=0; RID=0", "LID=1; RID=1", "LID=2; RID=2", "LID=4; RID=null");
+  }
 
   @Test void testDistinctArrayOfRows() {
     withNestedTable()
