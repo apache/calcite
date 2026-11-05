@@ -21,6 +21,7 @@ plugins {
 dependencies {
     api(project(":core"))
     api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
 
     implementation(platform("org.junit:junit-bom"))
     implementation(kotlin("stdlib-jdk8"))
@@ -48,4 +49,14 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
                 org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
         )
     }
+}
+
+// JSpecify's @NullMarked annotation has @Target({..., ElementType.MODULE}),
+// and ElementType.MODULE does not exist under --release 8. Compiling source
+// that uses @NullMarked with --release 8 therefore produces an
+// un-suppressible "unknown enum constant" warning, which fails the build
+// under -Werror. Fall back to -source/-target 8: the bytecode target is
+// still 8, but the platform classes come from the JDK in use.
+tasks.compileJava {
+    options.release.set(null as Int?)
 }

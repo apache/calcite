@@ -148,6 +148,7 @@ dependencies {
         apiv("org.jboss:jandex")
         apiv("org.jooq:joou-java-6", "joou")
         apiv("org.jsoup:jsoup")
+        apiv("org.jspecify:jspecify", "jspecify")
         apiv("org.junit:junit-bom", "junit5")
         apiv("org.mockito:mockito-core", "mockito")
         apiv("org.mongodb:mongodb-driver-sync")

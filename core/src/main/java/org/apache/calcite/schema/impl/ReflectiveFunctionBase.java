@@ -132,22 +132,15 @@ public abstract class ReflectiveFunctionBase implements Function {
       return add(type, name, false);
     }
 
+    /** Adds a parameter, deriving nullability from the Java type.
+     *
+     * <p>The parameter type is nullable unless the type is primitive. */
     public ParameterListBuilder add(final Class<?> type, final String name,
         final boolean optional) {
       return add(type, name, optional, !type.isPrimitive());
     }
 
-    /** Adds a parameter with explicit nullability control.
-     *
-     * <p>The {@code nullable} parameter controls whether the parameter type
-     * allows null values, independently of whether the parameter is optional.
-     *
-     * @param type Java type of the parameter
-     * @param name Name of the parameter
-     * @param optional Whether the parameter is optional
-     * @param nullable Whether the parameter type is nullable
-     */
-    public ParameterListBuilder add(final Class<?> type, final String name,
+    private ParameterListBuilder add(final Class<?> type, final String name,
         final boolean optional, final boolean nullable) {
       final int ordinal = builder.size();
       builder.add(
