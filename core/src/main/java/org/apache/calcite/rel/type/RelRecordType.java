@@ -19,11 +19,13 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,12 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   /** Name resolution policy; usually {@link StructKind#FULLY_QUALIFIED}. */
   private final StructKind kind;
   private final boolean nullable;
-  private final @Nullable Map<String, RelDataTypeField> fieldNameMap;
+
+  /** First dynamic star on a wide record, or -1. */
+  private final int fallbackFieldIndex;
+
+  /** Candidate indexes are derived from the fields and rebuilt on demand. */
+  private transient volatile @Nullable Map<String, List<RelDataTypeField>> fieldNameMap;
 
   /** Minimum number of fields where it is worth populating {@link #fieldNameMap}
    * to accelerate lookups by field name. */
@@ -58,19 +65,16 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     super(fields);
     this.nullable = nullable;
     this.kind = requireNonNull(kind, "kind");
+    int fallback = -1;
     if (fields.size() > THRESHOLD) {
-      final Map<String, RelDataTypeField> map = new HashMap<>();
-      for (RelDataTypeField f : fields) {
-        map.putIfAbsent(f.getName(), f);
-        if (f.isDynamicStar()) {
-          // the first dynamic star field is cached with a special name
-          map.putIfAbsent("", f);
+      for (Ord<RelDataTypeField> field : Ord.zip(requireNonNull(fieldList, "fieldList"))) {
+        if (field.e.isDynamicStar()) {
+          fallback = field.i;
+          break;
         }
       }
-      this.fieldNameMap = ImmutableMap.copyOf(map);
-    } else {
-      this.fieldNameMap = null;
     }
+    this.fallbackFieldIndex = fallback;
     computeDigest();
   }
 
@@ -111,8 +115,59 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     return kind;
   }
 
-  @Override protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
-    return fieldNameMap;
+  @Override public @Nullable RelDataTypeField getField(String fieldName,
+      boolean caseSensitive, boolean elideRecord) {
+    final List<RelDataTypeField> matches = indexedFields(fieldName, caseSensitive);
+    if (matches == null) {
+      return super.getField(fieldName, caseSensitive, elideRecord);
+    }
+    if (!matches.isEmpty()) {
+      return matches.get(0);
+    }
+    return resolveFieldFallback(fieldName, caseSensitive, elideRecord);
+  }
+
+  @Override public List<RelDataTypeField> getFields(String fieldName, boolean caseSensitive) {
+    final List<RelDataTypeField> matches = indexedFields(fieldName, caseSensitive);
+    return matches != null ? matches : super.getFields(fieldName, caseSensitive);
+  }
+
+  @Override protected @Nullable RelDataTypeField getFieldFallback() {
+    if (fieldList != null && fieldList.size() > THRESHOLD) {
+      return fallbackFieldIndex < 0 ? null : fieldList.get(fallbackFieldIndex);
+    }
+    return super.getFieldFallback();
+  }
+
+  private @Nullable List<RelDataTypeField> indexedFields(String fieldName,
+      boolean caseSensitive) {
+    if (!caseSensitive || fieldList == null || fieldList.size() <= THRESHOLD) {
+      return null;
+    }
+    return getFieldIndex().getOrDefault(fieldName, ImmutableList.of());
+  }
+
+  private Map<String, List<RelDataTypeField>> getFieldIndex() {
+    Map<String, List<RelDataTypeField>> index = fieldNameMap;
+    if (index == null) {
+      synchronized (this) {
+        index = fieldNameMap;
+        if (index == null) {
+          fieldNameMap = createFieldIndex();
+          index = fieldNameMap;
+        }
+      }
+    }
+    return index;
+  }
+
+  private Map<String, List<RelDataTypeField>> createFieldIndex() {
+    final Map<String, List<RelDataTypeField>> entries = new HashMap<>();
+    for (RelDataTypeField field : requireNonNull(fieldList, "fieldList")) {
+      entries.computeIfAbsent(field.getName(), k -> new ArrayList<>()).add(field);
+    }
+    entries.replaceAll((key, fields) -> ImmutableList.copyOf(fields));
+    return Collections.unmodifiableMap(entries);
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

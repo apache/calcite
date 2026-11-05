@@ -4700,7 +4700,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       rowTypes = Collections.singleton(rowType);
     }
     for (RelDataType rowType0 : rowTypes) {
-      if (nameMatcher.frequency(rowType0.getFieldNames(), name) > 1) {
+      if (nameMatcher.fieldFrequency(rowType0, name) > 1) {
         throw newValidationError(id, RESOURCE.columnInUsingNotUnique(name));
       }
     }
