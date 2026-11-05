@@ -210,6 +210,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return false;
   }
 
+  @Override public boolean isDateSupportsTimeParts() {
+    return false;
+  }
+
   @Override public int getNumTypeRadix(SqlTypeName typeName) {
     if (typeName.getFamily() == SqlTypeFamily.NUMERIC
         && getDefaultPrecision(typeName) != -1) {

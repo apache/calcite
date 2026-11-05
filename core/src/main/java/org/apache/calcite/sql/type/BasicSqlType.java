@@ -179,6 +179,10 @@ public class BasicSqlType extends AbstractSqlType {
     return typeSystem.getMaxNumericPrecision();
   }
 
+  public boolean isDateTypeSupportsTimeParts() {
+    return typeSystem.isDateSupportsTimeParts();
+  }
+
   @Override public int getScale() {
     if (scale == SCALE_NOT_SPECIFIED) {
       switch (typeName) {
