@@ -42,6 +42,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -15967,5 +15968,25 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(rel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testAggregateCallBindingWithMultipleCollationKeys() {
+    final RelNode input = relBuilder().scan("EMP").build();
+    final RelDataType argumentType =
+        input.getRowType().getFieldList().get(1).getType();
+    final RelCollation collation = RelCollations.of(
+        new RelFieldCollation(0), new RelFieldCollation(5));
+    final AggregateCall call = AggregateCall.create(
+        SqlStdOperatorTable.PERCENTILE_DISC, false, false, false,
+        ImmutableList.of(), ImmutableList.of(1), -1, null, collation,
+        argumentType, "percentile_disc");
+    final LogicalAggregate aggregate = LogicalAggregate.create(input,
+        ImmutableList.of(), ImmutableBitSet.of(), null, ImmutableList.of(call));
+
+    final RelDataType collationType =
+        call.createBinding(aggregate).getCollationType();
+    assertThat(collationType, is(argumentType));
+    assertThat(collationType,
+        is(not(input.getRowType().getFieldList().get(0).getType())));
   }
 }
