@@ -109,9 +109,9 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     RelNode right = correlate.getRight().accept(this);
     int oldLeft = left.getRowType().getFieldCount();
     // Find the correlated expressions from the right side that can be moved to the left
-    Set<RexNode> expressionsToExtract =
-        findExtractableExpressions(correlate.getCorrelationId(), right);
-    if (expressionsToExtract.isEmpty()) {
+    Set<RexNode> callsWithCorrelationInRight =
+        findCorrelationDependentCalls(correlate.getCorrelationId(), right);
+    if (callsWithCorrelationInRight.isEmpty()) {
       if (correlate.getLeft().equals(left) && correlate.getRight().equals(right)) {
         return correlate;
       } else {
@@ -129,21 +129,21 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     // Transform the correlated expression from the right side to an expression over the left side
     builder.push(left);
 
-    List<RexNode> leftExpressions = new ArrayList<>();
-    for (RexNode expression : expressionsToExtract) {
-      leftExpressions.add(replaceCorrelationsWithInputRef(expression, builder));
+    List<RexNode> callsWithCorrelationOverLeft = new ArrayList<>();
+    for (RexNode callInRight : callsWithCorrelationInRight) {
+      callsWithCorrelationOverLeft.add(replaceCorrelationsWithInputRef(callInRight, builder));
     }
-    builder.projectPlus(leftExpressions);
+    builder.projectPlus(callsWithCorrelationOverLeft);
 
     // Construct the mapping to transform the expressions in the right side based on the new
     // projection in the left side.
     Map<RexNode, RexNode> transformMapping = new HashMap<>();
     int newFieldIndex = oldLeft;
-    for (RexNode expression : expressionsToExtract) {
+    for (RexNode callInRight : callsWithCorrelationInRight) {
       RexBuilder xb = builder.getRexBuilder();
       RexNode v = xb.makeCorrel(builder.peek().getRowType(), correlate.getCorrelationId());
       RexNode flatCorrelationInRight = xb.makeFieldAccess(v, newFieldIndex);
-      transformMapping.put(expression, flatCorrelationInRight);
+      transformMapping.put(callInRight, flatCorrelationInRight);
       newFieldIndex++;
     }
 
@@ -184,27 +184,23 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   }
 
   /**
-   * Finds calls and nested field accesses that can move to the left input,
-   * within the scope of the specified correlation.
+   * Finds expressions that can move to the left input within the scope of the
+   * specified correlation.
    */
-  private static Set<RexNode> findExtractableExpressions(CorrelationId corrId, RelNode plan) {
+  private static Set<RexNode> findCorrelationDependentCalls(CorrelationId corrId, RelNode plan) {
     SimpleCorrelationCollector finder = new SimpleCorrelationCollector(corrId);
     visitCorrelationScope(plan, corrId, finder);
-    return finder.expressions;
+    return finder.correlations;
   }
 
   /** Replaces mapped expressions in the scope of {@code id}, using the same
-   * traversal as {@link #findExtractableExpressions}. */
+   * traversal as {@link #findCorrelationDependentCalls}. */
   private static RelNode replaceExpressionsUsingMap(RelNode plan, CorrelationId id,
       Map<RexNode, RexNode> mapping) {
-    return visitCorrelationScope(plan, id, new ExpressionReplacer(mapping));
+    return visitCorrelationScope(plan, id, new CallReplacer(mapping));
   }
 
-  /** Visits Project and Filter expressions in the scope of {@code id}.
-   *
-   * <p>If a Project or Filter binds the id, skips its expressions but visits
-   * its input. Other nodes that bind the id are left untouched.
-   */
+  /** Visits expressions in the scope of {@code id}. */
   private static RelNode visitCorrelationScope(RelNode plan, CorrelationId id,
       RexShuttle visitor) {
     return plan.accept(new RelHomogeneousShuttle() {
@@ -223,11 +219,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   }
 
   /**
-   * Collects calls and nested field accesses that can move to the left input.
-   *
-   * <p>Selects the outermost eligible expression. Direct field accesses such as
-   * {@code $cor0.A} stay in place; nested accesses such as {@code $cor0.R.A}
-   * may be extracted.
+   * Collects the outermost expressions that can move to the left input.
    *
    * <p>Does not collect candidates from lambda bodies or sub-query plans.
    * An enclosing call may still be selected if {@link SimpleCorrelationDetector}
@@ -237,7 +229,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     private final CorrelationId correlationId;
     // Clients are iterating over the collection thus it is better to use LinkedHashSet to keep
     // plans stable among executions.
-    private final Set<RexNode> expressions = new LinkedHashSet<>();
+    private final Set<RexNode> correlations = new LinkedHashSet<>();
 
     SimpleCorrelationCollector(CorrelationId corrId) {
       this.correlationId = corrId;
@@ -245,7 +237,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
 
     @Override public RexNode visitCall(RexCall call) {
       if (isSimpleCorrelatedExpression(call, correlationId)) {
-        expressions.add(call);
+        correlations.add(call);
         return call;
       } else {
         return super.visitCall(call);
@@ -260,7 +252,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       if (!isDirectFieldAccess(fieldAccess, correlationId)
           && isSimpleCorrelatedExpression(fieldAccess, correlationId)) {
-        expressions.add(fieldAccess);
+        correlations.add(fieldAccess);
         return fieldAccess;
       } else {
         return super.visitFieldAccess(fieldAccess);
@@ -377,10 +369,10 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
    * matching expression wins. Does not descend into lambda bodies or sub-query
    * plans.
    */
-  private static final class ExpressionReplacer extends RexShuttle {
+  private static final class CallReplacer extends RexShuttle {
     private final Map<RexNode, RexNode> mapping;
 
-    ExpressionReplacer(Map<RexNode, RexNode> mapping) {
+    CallReplacer(Map<RexNode, RexNode> mapping) {
       this.mapping = mapping;
     }
 
