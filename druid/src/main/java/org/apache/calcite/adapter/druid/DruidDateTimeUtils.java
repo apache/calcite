@@ -60,9 +60,12 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Generates a list of {@link Interval}s equivalent to a given
-   * expression. Assumes that all the predicates in the input
-   * reference a single column: the timestamp column.
+   * Generates intervals for timestamp ranges derived from an expression.
+   * Assumes that all predicates reference the timestamp column.
+   *
+   * @param e filter expression to convert
+   * @return intervals for the derived timestamp ranges, or null if ranges
+   *     cannot be derived from the expression
    */
   public static @Nullable List<Interval> createInterval(RexNode e) {
     final List<Range<Long>> ranges = extractRanges(e, false);
@@ -106,6 +109,15 @@ public class DruidDateTimeUtils {
     return intervals;
   }
 
+  /**
+   * Extracts timestamp ranges from an expression. Returns null if ranges cannot
+   * be extracted, for example if a predicate is unsupported or an OR has an
+   * unextractable disjunct.
+   *
+   * @param node expression to convert
+   * @param withNot whether to complement ranges under an odd number of NOTs
+   * @return timestamp ranges, or null if they cannot be extracted
+   */
   protected static @Nullable List<Range<Long>> extractRanges(RexNode node, boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
@@ -126,9 +138,11 @@ public class DruidDateTimeUtils {
       for (RexNode child : call.getOperands()) {
         List<Range<Long>> extracted =
             extractRanges(child, withNot);
-        if (extracted != null) {
-          intervals.addAll(extracted);
+        if (extracted == null) {
+          // Every disjunct must be represented to avoid excluding matching rows.
+          return null;
         }
+        intervals.addAll(extracted);
       }
       return intervals;
     }
