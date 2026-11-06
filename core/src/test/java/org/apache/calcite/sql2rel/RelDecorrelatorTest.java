@@ -657,6 +657,43 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7915">[CALCITE-7915]
+   * RelDecorrelator does not recognize IS NOT DISTINCT FROM as correlation equivalent</a>. */
+  @Test void testCorrelationEquivalentIsNotDistinctFrom() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // Simplification is disabled to keep the IS NOT DISTINCT FROM condition
+    // intact (otherwise it would be rewritten in terms of = and IS NULL).
+    final RelBuilder noSimplify = builder.transform(c -> c.withSimplify(false));
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode before = noSimplify.scan("EMP")
+        .variable(v::set)
+        .scan("DEPT")
+        .filter(
+            noSimplify.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                noSimplify.field(0),
+                noSimplify.field(v.get(), "DEPTNO")))
+        .correlate(JoinRelType.LEFT, v.get().id, noSimplify.field(2, 0, "DEPTNO"))
+        .build();
+
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[IS NOT DISTINCT FROM($0, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+    // The correlation variable is bound to the local DEPTNO column (found
+    // through the IS NOT DISTINCT FROM condition), so no value generator is
+    // needed; the null-safe comparison is enforced by the join condition.
+    final String planAfter = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[IS NOT DISTINCT FROM($0, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   @Test void testCorrelationInSetOp0() {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
