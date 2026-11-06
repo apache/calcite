@@ -62,9 +62,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Tests for collection types, including
- * <a href="https://issues.apache.org/jira/browse/CALCITE-1386">[CALCITE-1386]
- * ITEM operator seems to ignore the value type of collection and assign the value to Object</a>.
+ * Tests for collection and structured types, including nested values,
+ * element access, sorting and joins.
  */
 class CollectionTypeTest {
   // Use a table scan so multi-column results are represented as Object[].
@@ -73,9 +72,7 @@ class CollectionTypeTest {
       "SELECT ARRAY[ROW(MOD(\"ID\", 2), CAST(NULL AS INTEGER))] AS a,\n"
           + "\"ARRAYFIELD\"[1] AS n FROM \"T\"";
 
-  /** Regression tests for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7919">[CALCITE-7919]
-   * Comparison of composite keys in enumerable operators</a>. */
+  /** Tests sorting by composite keys in enumerable operators. */
   @ParameterizedTest
   @MethodSource("compositeSortCases")
   void testSortCompositeKeys(String key, String order, boolean limit,
@@ -124,8 +121,13 @@ class CollectionTypeTest {
   }
 
   private static String compositeKeyQuery(String key) {
-    // IDs 0 and 2 have equal keys; ID 3 has a null field; ID 4 has a null key.
-    return "(SELECT id, CASE WHEN id = 4 THEN NULL ELSE " + key + " END AS k\n"
+    return compositeKeyQuery(key, true);
+  }
+
+  private static String compositeKeyQuery(String key, boolean nullableKey) {
+    // IDs 0 and 2 have equal keys; ID 3 has a null field; ID 4 optionally has a null key.
+    return "(SELECT id, " + (nullableKey ? "CASE WHEN id = 4 THEN NULL ELSE " + key + " END" : key)
+        + " AS k\n"
         + "FROM (SELECT \"ID\" AS id, MOD(\"ID\", 2) AS a,\n"
         + "CASE WHEN \"ID\" = 3 THEN NULL ELSE 0 END AS b FROM \"T\"))";
   }
@@ -142,20 +144,57 @@ class CollectionTypeTest {
   }
 
   @ParameterizedTest
-  @MethodSource("compositeKeys")
-  void testMergeJoinCompositeKeys(String key) {
-    // A LEFT JOIN must retain the null key without matching the other null key.
-    final String data = "(SELECT * FROM " + compositeKeyQuery(key) + " AS t WHERE id <> 3)";
-    withNestedTable()
-        .query("SELECT l.id AS lid, r.id AS rid\n"
-            + "FROM " + data + " AS l\n"
-            + "LEFT JOIN " + data + " AS r ON l.id = r.id AND l.k = r.k")
-        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
-          planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
-        })
-        .explainContains("EnumerableMergeJoin")
-        .returnsUnordered("LID=0; RID=0", "LID=1; RID=1", "LID=2; RID=2", "LID=4; RID=null");
+  @MethodSource("compositeJoinCases")
+  void testMergeJoinCompositeKeys(String key, boolean matchesNullField, boolean nullableKey) {
+    final String data = compositeKeyQuery(key, nullableKey);
+    for (boolean leftJoin : new boolean[]{false, true}) {
+      final List<String> expected =
+          new ArrayList<>(Arrays.asList("LID=0; RID=0", "LID=1; RID=1", "LID=2; RID=2"));
+      if (matchesNullField) {
+        expected.add("LID=3; RID=3");
+      } else if (leftJoin) {
+        expected.add("LID=3; RID=null");
+      }
+      if (!nullableKey) {
+        expected.add("LID=4; RID=4");
+      } else if (leftJoin) {
+        expected.add("LID=4; RID=null");
+      }
+      for (boolean mergeJoin : new boolean[]{false, true}) {
+        withNestedTable()
+            .query("SELECT l.id AS lid, r.id AS rid\n"
+                + "FROM " + data + " AS l\n"
+                + (leftJoin ? "LEFT JOIN " : "JOIN ") + data
+                + " AS r ON l.id = r.id AND l.k = r.k")
+            .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+              if (mergeJoin) {
+                planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+                planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+              } else {
+                planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+                planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+              }
+            })
+            .explainContains(mergeJoin ? "EnumerableMergeJoin" : "EnumerableHashJoin")
+            .returnsUnordered(expected.toArray(new String[0]));
+      }
+    }
+  }
+
+  private static List<Arguments> compositeJoinCases() {
+    final List<Arguments> cases = new ArrayList<>();
+    for (String key : compositeKeys()) {
+      // NULL fields prevent ROW equality, but NULL elements in collections do not.
+      cases.add(Arguments.of(key, !key.equals("ROW(a, b)"), true));
+    }
+    cases.add(Arguments.of("ROW(a, ROW(b))", false, true));
+    cases.add(Arguments.of("ROW(a, CASE WHEN b IS NULL THEN NULL ELSE ROW(b) END)", false, true));
+    cases.add(Arguments.of("ROW(a, CASE WHEN b IS NULL THEN NULL ELSE ARRAY[b] END)", false, true));
+    // A non-null ROW may still have nullable fields. ID 4 must match after the NULL field at ID 3.
+    cases.add(Arguments.of("ROW(a, b)", false, false));
+    cases.add(Arguments.of("ROW(a, ROW(b))", false, false));
+    cases.add(Arguments.of("ROW(ARRAY[a], ARRAY[b])", true, false));
+    return cases;
   }
 
   @Test void testDistinctArrayOfRows() {

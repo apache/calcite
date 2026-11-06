@@ -18,6 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Predicate1;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -284,8 +285,15 @@ public class Utilities {
    * values are null, so that merge join does not match two null keys. */
   public static int compareCompositeNullsLastForMergeJoin(@Nullable Object v0,
       @Nullable Object v1) {
+    return compareCompositeNullsLastForMergeJoin(v0, v1, null);
+  }
+
+  /** ROW variant that also rejects equal keys containing NULL fields.
+   * The generated predicate descends into ROW fields, but not collection elements. */
+  public static int compareCompositeNullsLastForMergeJoin(@Nullable Object v0,
+      @Nullable Object v1, Predicate1<Object> containsNull) {
     return EnumerableDefaults.compareObjectsNullsLastForMergeJoin(v0, v1,
-        Functions::compareListItems);
+        Functions::compareListItems, containsNull);
   }
 
   /** Creates a pattern builder. */

@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -524,7 +525,9 @@ public class PhysTypeImpl implements PhysType {
       // merge join keys must be sorted in ascending order, nulls last
       assert fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST;
       assert fieldCollation.getDirection() == RelFieldCollation.Direction.ASCENDING;
-      return fieldNullable(fieldCollation.getFieldIndex())
+      final int index = fieldCollation.getFieldIndex();
+      // Even a non-null ROW can have NULL fields that prevent a join match.
+      return fieldNullable(index) || rowType.getFieldList().get(index).getType().isStruct()
           ? "compareNullsLastForMergeJoin"
           : "compare";
     });
@@ -555,6 +558,12 @@ public class PhysTypeImpl implements PhysType {
         break;
       case "compareNullsLastForMergeJoin":
         compositeMethod = "compareCompositeNullsLastForMergeJoin";
+        if (type.isStruct()) {
+          final ParameterExpression row = Expressions.parameter(Object.class, "row");
+          return Expressions.call(Utilities.class, compositeMethod, left, right,
+              Expressions.lambda(Predicate1.class,
+                  structIsNullOrContainsNullExpression(row, type), row));
+        }
         break;
       default:
         throw new AssertionError("unexpected comparison method: " + method);

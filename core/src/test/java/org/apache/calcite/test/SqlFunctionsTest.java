@@ -19,6 +19,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -1007,16 +1008,26 @@ class SqlFunctionsTest {
   /** Composite null keys compare equally for sorting, but must not match in a merge join. */
   @Test void testCompareCompositeNullKeys() {
     final Object key = new Object[]{1, null};
+    final Predicate1<Object> containsNull = row -> ((Object[]) row)[1] == null;
     assertThat(Utilities.compareCompositeNullsFirst(null, null), is(0));
     assertThat(Utilities.compareCompositeNullsLast(null, null), is(0));
     assertThat(Utilities.compareCompositeNullsLastForMergeJoin(null, key), is(1));
     assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, null), is(-1));
-    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, new Object[]{1, null}), is(0));
+    assertThat(Utilities.compareCompositeNullsLast(key, new Object[]{1, null}), is(0));
+    // The exception class is private; obtain it from the scalar comparator
+    // and verify that composite comparisons use the same merge join signal.
     final RuntimeException exception =
         assertThrows(RuntimeException.class,
             () -> Utilities.compareNullsLastForMergeJoin(null, null));
     assertThrows(exception.getClass(),
         () -> Utilities.compareCompositeNullsLastForMergeJoin(null, null));
+    assertThrows(exception.getClass(),
+        () -> Utilities.compareCompositeNullsLastForMergeJoin(key, new Object[]{1, null},
+            containsNull));
+    // A NULL field must not change the ordering of unequal keys.
+    final Object nextKey = new Object[]{2, null};
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, nextKey, containsNull), is(-1));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(nextKey, key, containsNull), is(1));
   }
 
   @Test void testTruncateLong() {
