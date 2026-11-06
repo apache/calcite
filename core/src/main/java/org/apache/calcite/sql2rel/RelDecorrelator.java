@@ -1768,13 +1768,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
     case IS_NOT_DISTINCT_FROM:
       final RexCall call = (RexCall) e;
       final List<RexNode> operands = call.getOperands();
-      // For IS NOT DISTINCT FROM, binding is only sound when the local
-      // operand is NOT NULL: the residual filter
-      // {@code IS NOT DISTINCT FROM(x, x)} is then always true, and the join
-      // condition reproduces the original null-safe comparison. Otherwise
-      // rows where the local operand is null would be wrongly filtered out,
-      // although {@code x IS NOT DISTINCT FROM y} accepts them when y is
-      // also null.
+      // For IS NOT DISTINCT FROM, binding the correlation to a local operand
+      // is only sound if that operand is NOT NULL. Decorrelation leaves the
+      // original filter in place on the inner side of the join, with the
+      // correlation substituted by its binding, so the filter condition
+      // becomes the residual condition {@code IS NOT DISTINCT FROM(x, x)},
+      // which is always true (hence harmless). The null-safe comparison of
+      // the original condition is instead enforced by the join condition.
+      // If x were nullable, inner rows with x = NULL, which the original
+      // condition accepts when the correlated column is null, would be
+      // rejected by the null-rejecting join condition, changing the result.
       findEqualityEquivalent(correlation, operands.get(0), operands.get(1),
           e.getKind() == SqlKind.IS_NOT_DISTINCT_FROM);
       break;
