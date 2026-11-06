@@ -66,6 +66,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -667,6 +669,33 @@ public class Smalls {
         @Parameter(name = "E", optional = true) Integer e) {
       return "{a: " + a + ", b: " + b +  ", c: " + c +  ", d: " + d  + ", e: "
           + e + "}";
+    }
+  }
+
+  /** Example of a UDF with a non-nullable parameter (CALCITE-6018).
+   *
+   * <p>The class is not null-marked, so an unannotated {@code String}
+   * parameter would be nullable (the historical default), but the
+   * {@code @NonNull} type annotation makes the parameter {@code s}
+   * non-nullable. */
+  public static class MyNonNullParamFunction {
+    public static String eval(
+        @Parameter(name = "s") @NonNull String s) {
+      return s;
+    }
+  }
+
+  /** Example of a UDF in a null-marked class (CALCITE-6018).
+   *
+   * <p>The class is annotated {@code @NullMarked}, so the unannotated
+   * parameter {@code s} is non-nullable, while the parameter {@code t},
+   * annotated {@code @Nullable}, is nullable. */
+  @NullMarked
+  public static class MyNullMarkedFunction {
+    public static String eval(
+        @Parameter(name = "s") String s,
+        @Parameter(name = "t") @org.jspecify.annotations.Nullable String t) {
+      return s + (t == null ? "<null>" : t);
     }
   }
 

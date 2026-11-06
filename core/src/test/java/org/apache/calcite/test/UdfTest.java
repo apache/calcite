@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -54,6 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Tests for user-defined functions;
@@ -205,6 +207,18 @@ class UdfTest {
         + "           name: 'CHARACTERARRAY',\n"
         + "           className: '"
         + Smalls.CharacterArrayFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_NONNULL_PARAM',\n"
+        + "           className: '"
+        + Smalls.MyNonNullParamFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_NULL_MARKED',\n"
+        + "           className: '"
+        + Smalls.MyNullMarkedFunction.class.getName()
         + "'\n"
         + "         }\n"
         + "       ]\n"
@@ -664,6 +678,84 @@ class UdfTest {
         .throws_("DEFAULT is only allowed for optional parameters");
     with.query("values (\"adhoc\".abcde(a=>1,b=>DEFAULT,c=>3))")
         .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6018">[CALCITE-6018]
+   * Support nullable parameters in UDFs</a>.
+   *
+   * <p>Tests that a parameter whose type is annotated with jspecify's
+   * {@code @NonNull} is non-nullable even though the class is not
+   * null-marked. Note that the non-null type is only reported:
+   * the validator does not reject a call that passes NULL, and the call
+   * returns NULL. */
+  @Test void testNonNullParameter() throws Exception {
+    final CalciteAssert.AssertThat with = withUdf();
+    // Non-null parameter accepts non-null value
+    with.query("values \"adhoc\".my_nonnull_param('hello')")
+        .returns("EXPR$0=hello\n");
+    // A NULL argument is not rejected; the call returns NULL
+    with.query("values \"adhoc\".my_nonnull_param(cast(null as varchar))")
+        .returns("EXPR$0=null\n");
+
+    // Verify that the parameter type is non-nullable
+    final Method method =
+        Smalls.MyNonNullParamFunction.class.getMethod("eval", String.class);
+    final ScalarFunction func = ScalarFunctionImpl.create(method);
+    final List<FunctionParameter> params = func.getParameters();
+    assertThat(params, hasSize(1));
+    final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final RelDataType paramType = params.get(0).getType(typeFactory);
+    assertThat("Parameter with @NonNull should be non-nullable",
+        paramType.isNullable(), is(false));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6018">[CALCITE-6018]
+   * Support nullable parameters in UDFs</a>.
+   *
+   * <p>Tests that within a {@code @NullMarked} class an unannotated reference
+   * type parameter is non-nullable, while a parameter whose type is annotated
+   * {@code @Nullable} is nullable. */
+  @Test void testNullMarkedParameter() throws Exception {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values \"adhoc\".my_null_marked('a', 'b')")
+        .returns("EXPR$0=ab\n");
+    // Nullable parameter accepts NULL
+    with.query("values \"adhoc\".my_null_marked('a', cast(null as varchar))")
+        .returns("EXPR$0=a<null>\n");
+
+    // Verify the parameter types
+    final Method method =
+        Smalls.MyNullMarkedFunction.class.getMethod("eval", String.class,
+            String.class);
+    final ScalarFunction func = ScalarFunctionImpl.create(method);
+    final List<FunctionParameter> params = func.getParameters();
+    assertThat(params, hasSize(2));
+    final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    assertThat("Unannotated parameter in @NullMarked class should be "
+            + "non-nullable",
+        params.get(0).getType(typeFactory).isNullable(), is(false));
+    assertThat("Parameter with @Nullable should be nullable",
+        params.get(1).getType(typeFactory).isNullable(), is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6018">[CALCITE-6018]
+   * Support nullable parameters in UDFs</a>.
+   *
+   * <p>Tests that a primitive parameter annotated with {@code @Parameter}
+   * stays NOT NULL. */
+  @Test void testPrimitiveParameterStaysNonNull() throws Exception {
+    final Method method =
+        Types.lookupMethod(Smalls.MyLeftFunction.class, "eval", String.class,
+            int.class);
+    final ScalarFunction func = ScalarFunctionImpl.create(method);
+    final List<FunctionParameter> params = func.getParameters();
+    assertThat(params, hasSize(2));
+    final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    assertThat("Primitive parameter with @Parameter should be non-nullable",
+        params.get(1).getType(typeFactory).isNullable(), is(false));
   }
 
   /** Test for
