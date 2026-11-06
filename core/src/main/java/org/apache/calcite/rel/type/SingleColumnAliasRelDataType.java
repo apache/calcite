@@ -26,12 +26,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
- * Specific type of RelDataType that corresponds to a single column table,
- * where column can have alias.
+ * Specific type of RelDataType where the first column can also be
+ * referenced by an alias.
  *
  * <p>For instance:
  * <blockquote><pre>select rmp, rmp.i from table(ramp(3)) as rmp;</pre></blockquote>
+ *
+ * <p>The wrapped type may have more than one field, for example
+ * UNNEST WITH ORDINALITY of a collection of single-field ROW values, whose
+ * second field is ORDINALITY; only the first field gets the extra alias name.
+ * If the alias equals the name of another field, that field wins (see
+ * {@link #getField}).
  *
  * @see org.apache.calcite.sql.validate.AliasNamespace
  */
@@ -40,8 +48,8 @@ public class SingleColumnAliasRelDataType implements RelDataType {
   private final RelDataType alias;
 
   public SingleColumnAliasRelDataType(RelDataType original, RelDataType alias) {
-    assert original.isStruct() && original.getFieldCount() == 1;
-    assert alias.isStruct() && alias.getFieldCount() == 1;
+    checkArgument(original.isStruct() && original.getFieldCount() >= 1);
+    checkArgument(alias.isStruct() && alias.getFieldCount() == 1);
     this.original = original;
     this.alias = alias;
   }
@@ -59,13 +67,18 @@ public class SingleColumnAliasRelDataType implements RelDataType {
   }
 
   @Override public int getFieldCount() {
-    return 1;
+    return original.getFieldCount();
   }
 
   @Override public StructKind getStructKind() {
     return original.getStructKind();
   }
 
+  /**
+   * Looks up {@code fieldName} in the wrapped type first, then in the alias.
+   * A name that matches a wrapped field resolves to that field; the alias is
+   * a fallback for names that match none.
+   */
   @Override public @Nullable RelDataTypeField getField(final String fieldName,
       final boolean caseSensitive, final boolean elideRecord) {
     RelDataTypeField originalField = original.getField(fieldName, caseSensitive, elideRecord);

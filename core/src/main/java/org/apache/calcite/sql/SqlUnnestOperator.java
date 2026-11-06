@@ -25,7 +25,10 @@ import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
+
+import org.apiguardian.api.API;
 
 import static java.util.Objects.requireNonNull;
 
@@ -77,9 +80,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         return builder.build();
       }
 
-      if (type.isStruct()) {
-        type = type.getFieldList().get(0).getType();
-      }
+      type = unwrapOperandType(type);
 
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
@@ -100,10 +101,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       } else {
         RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
         boolean isNullable = componentType.isNullable() || padNullable;
-        // Whether a struct element expands into one column per field depends
-        // on the SQL conformance; allowAliasUnnestItems describes how
-        // collections of ROW values are expanded.
-        if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
+        if (expandsStructIntoColumns(componentType, allowAliasUnnestItems(opBinding))) {
           for (RelDataTypeField field : componentType.getFieldList()) {
             RelDataType fieldType = field.getType();
             if (isNullable) {
@@ -129,6 +127,32 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       builder.add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
     }
     return builder.build();
+  }
+
+  /**
+   * Returns the collection type that {@code operandType} denotes.
+   *
+   * <p>For a sub-query operand, {@code operandType} is a single-field
+   * struct; this returns the type of that field.
+   */
+  @API(since = "1.43", status = API.Status.INTERNAL)
+  public static RelDataType unwrapOperandType(RelDataType operandType) {
+    return operandType.isStruct() ? operandType.getFieldList().get(0).getType() : operandType;
+  }
+
+  /**
+   * Returns whether UNNEST expands an element of type {@code componentType}
+   * into one column per field.
+   *
+   * @param componentType element type of the collection
+   * @param allowAliasUnnestItems value of
+   *     {@link SqlConformance#allowAliasUnnestItems()}; when true, a ROW
+   *     element becomes a single column of the ROW type
+   */
+  @API(since = "1.43", status = API.Status.INTERNAL)
+  public static boolean expandsStructIntoColumns(RelDataType componentType,
+      boolean allowAliasUnnestItems) {
+    return componentType.isStruct() && !allowAliasUnnestItems;
   }
 
   private static boolean allowAliasUnnestItems(SqlOperatorBinding operatorBinding) {
