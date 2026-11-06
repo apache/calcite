@@ -1296,57 +1296,46 @@ public class SqlFunctions {
     return substring(c, clamp(s));
   }
 
-  /** SQL SUBSTRING(string FROM ... FOR ...) function. */
-  public static String substring(String c, int s, int l) {
-    int lc = c.length();
-    long e = (long) s + (long) l;
+  /** Returns the 0-based begin index of {@code SUBSTRING(value FROM s FOR l)}
+   * for a value of length {@code lc}. */
+  private static int substringBegin(int lc, long s) {
+    return (int) Math.min(Math.max(s, 1) - 1, lc);
+  }
+
+  /** Returns the 0-based end index (exclusive) of
+   * {@code SUBSTRING(value FROM s FOR l)} for a value of length {@code lc}.
+   * It is never less than {@link #substringBegin}. */
+  private static int substringEnd(int lc, long s, long l) {
     if (l < 0) {
       throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
-    // Prevent overflow in addition
-    if (s > lc || e < 1L) {
-      return "";
+    if (s < 1) {
+      // Remove the positions before 1; s <= 0 and l >= 0, so s + l cannot overflow
+      l = Math.max(s + l, 1) - 1;
+      s = 1;
     }
-    final int s0 = Math.max(s - 1, 0);
-    final long e0 = Math.min(e - 1, (long) lc);
-    // We know that e0 cannot exceed Integer.MAX_VALUE, since it's smaller than lc
-    return c.substring(s0, (int) e0);
+    if (s > lc) {
+      return lc;
+    }
+    return (int) (s - 1 + Math.min(l, lc - s + 1));
+  }
+
+  /** SQL SUBSTRING(string FROM ... FOR ...) function. */
+  public static String substring(String c, long s, long l) {
+    final int lc = c.length();
+    return c.substring(substringBegin(lc, s), substringEnd(lc, s, l));
+  }
+
+  public static String substring(String c, int s, int l) {
+    return substring(c, (long) s, (long) l);
   }
 
   public static String substring(String c, int s, long l) {
-    if (s < 0) {
-      if (l > 0 && l + s > 0) {
-        l += s;
-        return substring(c, 0, l);
-      }
-    }
-    int l0 = clamp(l);
-    return SqlFunctions.substring(c, s, l0);
+    return substring(c, (long) s, l);
   }
 
   public static String substring(String c, long s, int l) {
-    if (s < 0) {
-      s += l;
-      if (s > 0) {
-        return substring(c, 0, s);
-      } else {
-        return "";
-      }
-    }
-    int s0 = clamp(s);
-    return SqlFunctions.substring(c, s0, l);
-  }
-
-  public static String substring(String c, long s, long l) {
-    if (s < 0) {
-      if (l > 0) {
-        l += s;
-        return substring(c, 0, clamp(l));
-      }
-    }
-    int s0 = clamp(s);
-    int l0 = clamp(l);
-    return SqlFunctions.substring(c, s0, l0);
+    return substring(c, s, (long) l);
   }
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */
@@ -1361,19 +1350,26 @@ public class SqlFunctions {
     return c.substring(s0);
   }
 
+  public static ByteString substring(ByteString c, long s) {
+    return substring(c, clamp(s));
+  }
+
   /** SQL SUBSTRING(binary FROM ... FOR ...) function for binary. */
+  public static ByteString substring(ByteString c, long s, long l) {
+    final int lc = c.length();
+    return c.substring(substringBegin(lc, s), substringEnd(lc, s, l));
+  }
+
   public static ByteString substring(ByteString c, int s, int l) {
-    int lc = c.length();
-    int e = s + l;
-    if (l < 0) {
-      throw RESOURCE.illegalNegativeSubstringLength().ex();
-    }
-    if (s > lc || e < 1) {
-      return ByteString.EMPTY;
-    }
-    final int s0 = Math.max(s - 1, 0);
-    final int e0 = Math.min(e - 1, lc);
-    return c.substring(s0, e0);
+    return substring(c, (long) s, (long) l);
+  }
+
+  public static ByteString substring(ByteString c, int s, long l) {
+    return substring(c, (long) s, l);
+  }
+
+  public static ByteString substring(ByteString c, long s, int l) {
+    return substring(c, s, (long) l);
   }
 
   /** SQL FORMAT_NUMBER(value, decimalOrFormat) function. */
