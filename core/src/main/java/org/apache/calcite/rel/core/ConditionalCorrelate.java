@@ -25,6 +25,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -72,6 +73,14 @@ public abstract class ConditionalCorrelate extends Correlate {
 
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
+  }
+
+  @Override public RelNode accept(RexShuttle shuttle) {
+    RexNode condition = shuttle.apply(this.condition);
+    if (this.condition == condition) {
+      return this;
+    }
+    return copy(traitSet, left, right, correlationId, requiredColumns, joinType, condition);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
