@@ -23,7 +23,10 @@ import org.apache.calcite.sql.SqlCycleClause;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSearchClause;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
@@ -38,6 +41,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.regex.Pattern;
+
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -48,7 +53,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static java.util.Objects.requireNonNull;
 
 /** Examples of recursive CTE parsing, validation and execution, including the
- * SQL-standard CYCLE clause. */
+ * SQL-standard SEARCH and CYCLE clauses. */
 @Timeout(30)
 class RecursiveCteTest {
   private static final String WITH_NUMBERS = "WITH RECURSIVE t(n) AS (\n"
@@ -58,6 +63,12 @@ class RecursiveCteTest {
       + ")\n";
 
   private static final String NUMBERS = WITH_NUMBERS + "SELECT * FROM t";
+
+  private static final String WITH_TREE = "WITH RECURSIVE edges(src, dst) AS (\n"
+      + "  VALUES (0, 2), (0, 1), (1, 4), (2, 3)),\n"
+      + "walk(node) AS (VALUES (0)\n"
+      + "  UNION ALL\n"
+      + "  SELECT e.dst FROM walk AS w JOIN edges AS e ON e.src = w.node)\n";
 
   /** The self-reference is an identifier in the parse tree, not a Java object
    * reference back to the WITH item. Name resolution happens during validation.
@@ -82,8 +93,8 @@ class RecursiveCteTest {
     final SqlNodeList columnList = requireNonNull(item.columnList);
     assertThat(columnList, hasSize(1));
     assertThat(((SqlIdentifier) columnList.get(0)).getSimple(), is("N"));
-    // CYCLE is the optional fifth operand of a WITH item.
-    assertThat(item.getOperandList(), hasSize(5));
+    // CYCLE and SEARCH are the optional fifth and sixth operands of a WITH item.
+    assertThat(item.getOperandList(), hasSize(6));
     final SqlCall union = (SqlCall) item.query;
     assertThat(union.getOperator(), is(SqlStdOperatorTable.UNION_ALL));
     assertThat(union.operand(0).getKind(), is(SqlKind.VALUES));
@@ -103,6 +114,232 @@ class RecursiveCteTest {
     assertThat(with.withList, hasSize(2));
     assertThat(((SqlWithItem) with.withList.get(0)).recursive.booleanValue(), is(true));
     assertThat(((SqlWithItem) with.withList.get(1)).recursive.booleanValue(), is(true));
+  }
+
+  /** SEARCH follows AS (query); parsing and unparsing preserve its mode and keys. */
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = {
+      "DEPTH|n", "BREADTH|n", "DEPTH|n, depth", "BREADTH|n, depth"
+  })
+  void testSearchClause(String mode, String keys) throws SqlParseException {
+    final String sql = "WITH RECURSIVE t(n, depth) AS (VALUES (1, 0)\n"
+        + "UNION ALL SELECT n + 1, depth + 1 FROM t WHERE n < 3)\n"
+        + "SEARCH " + mode + " FIRST BY " + keys + " SET seq\n"
+        + "SELECT n FROM t ORDER BY seq";
+    final SqlNode parsed = SqlParser.create(sql).parseQuery();
+    final SqlWith with = (SqlWith) ((SqlOrderBy) parsed).query;
+    final SqlSearchClause search =
+        requireNonNull(((SqlWithItem) with.withList.get(0)).searchClause);
+    assertThat(search.getKind(), is(SqlKind.SEARCH_CLAUSE));
+    assertThat(search.breadthFirst.booleanValue(), is(mode.equals("BREADTH")));
+    assertThat(search.orderColumn.getSimple(), is("SEQ"));
+    assertThat(search.columns, hasSize(keys.equals("n") ? 1 : 2));
+    assertThat(search.getParserPosition().getLineNum(), is(3));
+    final String unparsed = parsed.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
+    final String quotedKeys = keys.equals("n") ? "\"N\"" : "\"N\", \"DEPTH\"";
+    assertThat(Pattern.compile("\\s+").matcher(unparsed).replaceAll(" "),
+        containsString("SEARCH " + mode + " FIRST BY " + quotedKeys + " SET \"SEQ\""));
+    final SqlNode roundTrip = SqlParser.create(unparsed).parseQuery();
+    assertThat(roundTrip.toSqlString(CalciteSqlDialect.DEFAULT).getSql(), is(unparsed));
+  }
+
+  /** SEARCH creates a sort key; ORDER BY requests the corresponding row order. */
+  @Test void testSearchDepthFirst() {
+    CalciteAssert.that()
+        .query(WITH_TREE + "SEARCH DEPTH FIRST BY node SET seq\n"
+            + "SELECT node FROM walk ORDER BY seq")
+        .returnsOrdered("NODE=0", "NODE=1", "NODE=4", "NODE=2", "NODE=3");
+  }
+
+  /** Within a level, BY keys take precedence over the parents' order. */
+  @Test void testSearchBreadthFirst() {
+    CalciteAssert.that()
+        .query(WITH_TREE + "SEARCH BREADTH FIRST BY node SET seq\n"
+            + "SELECT node FROM walk ORDER BY seq")
+        .returnsOrdered("NODE=0", "NODE=1", "NODE=2", "NODE=3", "NODE=4");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchCompositeKey(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n, k, depth) AS (VALUES (0, 0, 0)\n"
+            + "UNION ALL SELECT v.n, v.k, t.depth + 1\n"
+            + "FROM t CROSS JOIN (VALUES (1, 2), (2, 1), (1, 1)) AS v(n, k)\n"
+            + "WHERE t.depth < 1)\n"
+            + "SEARCH " + mode + " FIRST BY k, n SET seq\n"
+            + "SELECT n, k FROM t ORDER BY seq")
+        .returnsOrdered("N=0; K=0", "N=1; K=1", "N=2; K=1", "N=1; K=2");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchFollowingWithItem(String mode) {
+    CalciteAssert.that()
+        .query(WITH_NUMBERS + "SEARCH " + mode + " FIRST BY n SET seq,\n"
+            + "u AS (SELECT * FROM t) SELECT n FROM u ORDER BY seq")
+        .returnsOrdered("N=1", "N=2", "N=3");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchQuotedNames(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE \"Walk\"(\"Node\") AS (VALUES (1)\n"
+            + "UNION ALL SELECT \"Node\" + 1 FROM \"Walk\" WHERE \"Node\" < 3)\n"
+            + "SEARCH " + mode + " FIRST BY \"Node\" SET \"Sequence\"\n"
+            + "SELECT \"Node\" FROM \"Walk\" ORDER BY \"Sequence\"")
+        .returnsOrdered("Node=1", "Node=2", "Node=3");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchEmptySeed(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n) AS (SELECT n FROM (VALUES (1)) AS v(n) WHERE FALSE\n"
+            + "UNION ALL SELECT n + 1 FROM t WHERE n < 3)\n"
+            + "SEARCH " + mode + " FIRST BY n SET seq\n"
+            + "SELECT * FROM t ORDER BY seq")
+        .returnsCount(0);
+  }
+
+  /** SEARCH precedes CYCLE, which stops expansion of the repeated node. */
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchWithCycle(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n, depth) AS (VALUES (1, 0)\n"
+            + "UNION ALL SELECT MOD(n + 1, 3), depth + 1 FROM t WHERE depth < 5)\n"
+            + "SEARCH " + mode + " FIRST BY n SET seq\n"
+            + "CYCLE n SET c TO 'Y' DEFAULT 'N' USING p\n"
+            + "SELECT n, c, CARDINALITY(p) AS path_length FROM t ORDER BY seq")
+        .returnsOrdered("N=1; C=N; PATH_LENGTH=1", "N=2; C=N; PATH_LENGTH=2",
+            "N=0; C=N; PATH_LENGTH=3", "N=1; C=Y; PATH_LENGTH=4");
+  }
+
+  @ParameterizedTest
+  @CsvSource({"DEPTH, UNION ALL", "BREADTH, UNION ALL",
+      "DEPTH, UNION", "BREADTH, UNION"})
+  void testSearchMultipleRoots(String mode, String union) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n) AS (VALUES (2), (1)\n"
+            + union + " SELECT n + 2 FROM t WHERE n < 3)\n"
+            + "SEARCH " + mode + " FIRST BY n SET seq\n"
+            + "SELECT n FROM t ORDER BY seq")
+        .returnsOrdered(mode.equals("DEPTH")
+            ? new String[]{"N=1", "N=3", "N=2", "N=4"}
+            : new String[]{"N=1", "N=2", "N=3", "N=4"});
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchNullKey(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n, depth) AS (VALUES (0, 0)\n"
+            + "UNION ALL SELECT v.n, t.depth + 1\n"
+            + "FROM t CROSS JOIN (VALUES (CAST(NULL AS INTEGER)), (2), (1)) AS v(n)\n"
+            + "WHERE t.depth < 1)\n"
+            + "SEARCH " + mode + " FIRST BY n SET seq\n"
+            + "SELECT n FROM t ORDER BY seq")
+        .returnsOrdered("N=0", "N=1", "N=2", "N=null");
+  }
+
+  @ParameterizedTest
+  @CsvSource({"DEPTH, false", "BREADTH, false", "DEPTH, true", "BREADTH, true"})
+  void testSearchMultipleSortKeys(String mode, boolean limit) {
+    CalciteAssert.that()
+        .query(WITH_TREE + "SEARCH " + mode + " FIRST BY node SET seq\n"
+            + "SELECT node FROM walk ORDER BY seq DESC, node"
+            + (limit ? " FETCH NEXT 5 ROWS ONLY" : ""))
+        .returnsOrdered(mode.equals("DEPTH")
+            ? new String[]{"NODE=3", "NODE=2", "NODE=4", "NODE=1", "NODE=0"}
+            : new String[]{"NODE=4", "NODE=3", "NODE=2", "NODE=1", "NODE=0"});
+  }
+
+  @ParameterizedTest
+  @CsvSource({"false, *", "true, *", "false, t.*", "true, t.*"})
+  void testSearchStarInRecursiveTerm(boolean identifierExpansion, String projection) {
+    SqlValidatorTestCase.FIXTURE
+        .withValidatorIdentifierExpansion(identifierExpansion)
+        .withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
+            + "UNION ALL SELECT " + projection + " FROM t WHERE n < 0)\n"
+            + "SEARCH DEPTH FIRST BY n SET seq SELECT * FROM t")
+        .type("RecordType(INTEGER NOT NULL N, "
+            + "RecordType(INTEGER NOT NULL N) NOT NULL ARRAY NOT NULL SEQ) NOT NULL");
+  }
+
+  @Test void testSearchBreadthFirstRowType() {
+    SqlValidatorTestCase.FIXTURE.withSql(WITH_NUMBERS
+        + "SEARCH BREADTH FIRST BY n SET seq SELECT * FROM t")
+        .type("RecordType(INTEGER NOT NULL N, "
+            + "RecordType(INTEGER NOT NULL $DEPTH, INTEGER NOT NULL N) NOT NULL SEQ) NOT NULL");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchColumnAliases(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t(n) AS (VALUES (1)\n"
+            + "UNION ALL SELECT w.seq + 1 FROM t AS w(seq) WHERE w.seq < 3)\n"
+            + "SEARCH " + mode + " FIRST BY n SET seq SELECT n FROM t ORDER BY seq")
+        .returnsOrdered("N=1", "N=2", "N=3");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"DEPTH", "BREADTH"})
+  void testSearchInferredColumnNames(String mode) {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t AS (SELECT 1 AS n\n"
+            + "UNION ALL SELECT n + 1 FROM t WHERE n < 3)\n"
+            + "SEARCH " + mode + " FIRST BY n SET seq SELECT n FROM t ORDER BY seq")
+        .returnsOrdered("N=1", "N=2", "N=3");
+  }
+
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = {
+      "SEARCH DEPTH FIRST BY ^missing^ SET seq|SEARCH column 'MISSING' is not a column of WITH item 'T'",
+      "SEARCH BREADTH FIRST BY n, ^n^ SET seq|Duplicate name 'N' in column list",
+      "SEARCH DEPTH FIRST BY n SET ^n^|SEARCH generated column 'N' conflicts with another column",
+      "SEARCH DEPTH FIRST BY n SET seq CYCLE n SET ^seq^ USING p|CYCLE generated column 'SEQ' conflicts with another column",
+      "SEARCH BREADTH FIRST BY n SET seq CYCLE n SET c USING ^seq^|CYCLE generated column 'SEQ' conflicts with another column"
+  })
+  void testSearchInvalidColumns(String clause, String error) {
+    SqlValidatorTestCase.FIXTURE.withSql(WITH_NUMBERS + clause + " SELECT * FROM t")
+        .fails(error);
+  }
+
+  @Test void testSearchRequiresRecursive() {
+    SqlValidatorTestCase.FIXTURE.withSql("WITH t(n) AS (VALUES (1))\n"
+        + "^SEARCH DEPTH FIRST BY n SET seq^ SELECT * FROM t")
+        .fails("SEARCH requires WITH RECURSIVE");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"SELECT 2", "SELECT a.n FROM t a JOIN t b ON a.n = b.n",
+      "SELECT a.n FROM (VALUES (1)) v(n) LEFT JOIN t a ON a.n = v.n",
+      "SELECT a.n FROM t a WHERE EXISTS (SELECT 1 FROM t b WHERE b.n = a.n)"})
+  void testSearchInvalidRecursiveReference(String step) {
+    SqlValidatorTestCase.FIXTURE.withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
+        + "UNION ALL " + step + ") ^SEARCH DEPTH FIRST BY n SET seq^ SELECT * FROM t")
+        .fails("SEARCH requires a UNION \\[ALL\\] with a recursive SELECT containing"
+            + " exactly one direct reference to its WITH item");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings =
+      {"SELECT DISTINCT n FROM t", "SELECT MAX(n) FROM t", "SELECT SUM(n) OVER () FROM t"})
+  void testSearchInvalidRecursiveSelect(String step) {
+    SqlValidatorTestCase.FIXTURE.withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
+        + "UNION ALL " + step + ") ^SEARCH BREADTH FIRST BY n SET seq^ SELECT * FROM t")
+        .fails("SEARCH is not supported with aggregation, DISTINCT, or window functions"
+            + " in the recursive SELECT");
+  }
+
+  @Test void testSearchOrderNotVisibleInRecursiveTerm() {
+    SqlValidatorTestCase.FIXTURE.withSql("WITH RECURSIVE t(n) AS (VALUES (1)\n"
+        + "UNION ALL SELECT n FROM t WHERE ^seq^ IS NOT NULL)\n"
+        + "SEARCH DEPTH FIRST BY n SET seq SELECT * FROM t")
+        .fails("Column 'SEQ' not found in any table");
   }
 
   /** CYCLE follows AS (query) and belongs to that WITH item. */
@@ -409,7 +646,7 @@ class RecursiveCteTest {
     final String plan = RelOptUtil.toString(rel);
     assertThat(plan, containsString("LogicalRepeatUnion(all=[true])"));
     assertThat(plan, containsString("$CYCLE_PATH_CONTAINS"));
-    assertThat(plan, containsString("$CYCLE_PATH_APPEND"));
+    assertThat(plan, containsString("$RECURSIVE_PATH_APPEND"));
   }
 
   @ParameterizedTest
