@@ -541,6 +541,7 @@ public class PhysTypeImpl implements PhysType {
   private static Expression generateComparison(RelDataType type, String method,
       Expression left, Expression right, @Nullable Expression collator) {
     if (isComposite(type)) {
+      // Composite types have no collation of their own, so collator is unused here.
       final String compositeMethod;
       switch (method) {
       case "compare":
