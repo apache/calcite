@@ -539,23 +539,24 @@ public class PhysTypeImpl implements PhysType {
   private static Expression generateComparison(RelDataType type, String method,
       Expression left, Expression right, @Nullable Expression collator) {
     if (isComposite(type)) {
-      final Expression comparison =
-          Expressions.call(
-              Expressions.call(BuiltInMethod.NULLS_COMPARATOR.method,
-                  Expressions.constant(method.equals("compareNullsFirst")),
-                  Expressions.constant(false)),
-              BuiltInMethod.COMPARATOR_COMPARE.method, left, right);
-      if (method.equals("compareNullsLastForMergeJoin")) {
-        // This call throws BothValuesAreNullException, which merge join catches
-        // to advance without matching two null keys.
-        return Expressions.condition(
-            Expressions.andAlso(Expressions.equal(left, Expressions.constant(null)),
-                Expressions.equal(right, Expressions.constant(null))),
-            Expressions.call(Utilities.class, method,
-                Expressions.constant(null, Comparable.class),
-                Expressions.constant(null, Comparable.class)), comparison);
+      final String compositeMethod;
+      switch (method) {
+      case "compare":
+        compositeMethod = "compareComposite";
+        break;
+      case "compareNullsFirst":
+        compositeMethod = "compareCompositeNullsFirst";
+        break;
+      case "compareNullsLast":
+        compositeMethod = "compareCompositeNullsLast";
+        break;
+      case "compareNullsLastForMergeJoin":
+        compositeMethod = "compareCompositeNullsLastForMergeJoin";
+        break;
+      default:
+        throw new AssertionError("unexpected comparison method: " + method);
       }
-      return comparison;
+      return Expressions.call(Utilities.class, compositeMethod, left, right);
     }
     return Expressions.call(Utilities.class, method,
         Expressions.list(left, right).appendIfNotNull(collator));

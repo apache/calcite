@@ -1004,6 +1004,21 @@ class SqlFunctionsTest {
     assertThat(Utilities.compare(empty, empty), is(0));
   }
 
+  /** Composite null keys compare equally for sorting, but must not match in a merge join. */
+  @Test void testCompareCompositeNullKeys() {
+    final Object key = new Object[]{1, null};
+    assertThat(Utilities.compareCompositeNullsFirst(null, null), is(0));
+    assertThat(Utilities.compareCompositeNullsLast(null, null), is(0));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(null, key), is(1));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, null), is(-1));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, new Object[]{1, null}), is(0));
+    final RuntimeException exception =
+        assertThrows(RuntimeException.class,
+            () -> Utilities.compareNullsLastForMergeJoin(null, null));
+    assertThrows(exception.getClass(),
+        () -> Utilities.compareCompositeNullsLastForMergeJoin(null, null));
+  }
+
   @Test void testTruncateLong() {
     assertThat(SqlFunctions.truncate(12345L, 1000L), is(12000L));
     assertThat(SqlFunctions.truncate(12000L, 1000L), is(12000L));
