@@ -5424,6 +5424,36 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Variant of {@link #compareNullsLastForMergeJoin(Comparable, Comparable, Comparator)}
+   * for values that are not {@link Comparable}, such as ROW and ARRAY values.
+   * Throws {@link BothValuesAreNullException} if both values are null. */
+  public static <T> int compareObjectsNullsLastForMergeJoin(@Nullable T v0,
+      @Nullable T v1, Comparator<? super T> comparator) {
+    return compareObjectsNullsLastForMergeJoin(v0, v1, comparator, null);
+  }
+
+  /** Compares merge join keys, optionally rejecting equal keys containing NULL fields.
+   * Checks fields only after comparing keys, so unequal keys retain their sort order. */
+  public static <T> int compareObjectsNullsLastForMergeJoin(@Nullable T v0,
+      @Nullable T v1, Comparator<? super T> comparator,
+      @Nullable Predicate1<? super T> containsNull) {
+    if (v0 == null && v1 == null) {
+      throw new BothValuesAreNullException();
+    }
+    if (v0 == null) {
+      return 1;
+    }
+    if (v1 == null) {
+      return -1;
+    }
+    final int c = comparator.compare(v0, v1);
+    if (c == 0 && containsNull != null
+        && (containsNull.apply(v0) || containsNull.apply(v1))) {
+      throw new BothValuesAreNullException();
+    }
+    return c;
+  }
+
   public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1) {
     return compareNullsLastForMergeJoin(v0, v1, null);
   }
