@@ -75,7 +75,7 @@ class CollectionTypeTest {
 
   /** Regression tests for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7919">[CALCITE-7919]
-   * Comparison of ARRAY and ROW keys in enumerable operators</a>. */
+   * Comparison of composite keys in enumerable operators</a>. */
   @ParameterizedTest
   @MethodSource("compositeSortCases")
   void testSortCompositeKeys(String key, String order, boolean limit,
@@ -116,7 +116,10 @@ class CollectionTypeTest {
   }
 
   private static List<String> compositeKeys() {
-    return Arrays.asList("ARRAY[a, b]", "ROW(a, b)", "ARRAY[ROW(a, b)]");
+    // IDs 0 and 2 produce equal maps with different entry insertion orders.
+    return Arrays.asList("ARRAY[a, b]", "ROW(a, b)", "ARRAY[ROW(a, b)]",
+        "MULTISET[a, b]",
+        "CASE WHEN id = 2 THEN MAP[1, b, 0, a] ELSE MAP[0, a, 1, b] END");
   }
 
   private static String compositeKeyQuery(String key) {

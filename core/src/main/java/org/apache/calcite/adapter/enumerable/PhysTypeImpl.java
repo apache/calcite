@@ -531,10 +531,12 @@ public class PhysTypeImpl implements PhysType {
   }
 
   private static boolean isComposite(RelDataType type) {
-    return type.isStruct() || type.getComponentType() != null;
+    return type.isStruct()
+        || type.getComponentType() != null
+        || type.getSqlTypeName() == SqlTypeName.MAP;
   }
 
-  /** ROW and ARRAY sort keys are not Comparable.
+  /** ROW, ARRAY, MULTISET and MAP sort keys are not Comparable.
    * Use the same element-wise comparator as the single-key sort path. */
   private static Expression generateComparison(RelDataType type, String method,
       Expression left, Expression right, @Nullable Expression collator) {

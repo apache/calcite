@@ -262,12 +262,12 @@ public class Utilities {
     return EnumerableDefaults.compareNullsLastForMergeJoin(v0, v1, comparator);
   }
 
-  /** Compares two non-null ROW, ARRAY or MULTISET values element-wise. */
+  /** Compares two non-null ROW, ARRAY, MULTISET or MAP values element-wise. */
   public static int compareComposite(Object v0, Object v1) {
     return Functions.compareListItems(v0, v1);
   }
 
-  /** Compares two ROW, ARRAY or MULTISET values element-wise, nulls first. */
+  /** Compares two ROW, ARRAY, MULTISET or MAP values element-wise, nulls first. */
   public static int compareCompositeNullsFirst(@Nullable Object v0, @Nullable Object v1) {
     return v0 == v1 ? 0
         : v0 == null ? -1
@@ -275,7 +275,7 @@ public class Utilities {
                 : Functions.compareListItems(v0, v1);
   }
 
-  /** Compares two ROW, ARRAY or MULTISET values element-wise, nulls last. */
+  /** Compares two ROW, ARRAY, MULTISET or MAP values element-wise, nulls last. */
   public static int compareCompositeNullsLast(@Nullable Object v0, @Nullable Object v1) {
     return Functions.compareListItems(v0, v1);
   }
