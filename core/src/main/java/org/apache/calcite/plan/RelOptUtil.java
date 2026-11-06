@@ -387,7 +387,7 @@ public abstract class RelOptUtil {
    *
    * <p>Does not visit relational inputs or use rewritten expressions returned
    * by the visitor. The additional cases cover fields omitted by
-   * {@link RelNode#accept(RexShuttle)}, such as Match measures and Window bounds.
+   * {@link RelNode#accept(RexShuttle)}.
    */
   private static void visitExpressions(RelNode rel, RexShuttle visitor) {
     rel.accept(visitor);
@@ -2903,9 +2903,9 @@ public abstract class RelOptUtil {
       RelDataType newRowType,
       Mapping inputMapping) {
     RelNode subQuery = node.rel;
-    RexCorrelVariableMapShuttle correlationMapper =
+    RexCorrelVariableMapShuttle rexVisitor =
         new RexCorrelVariableMapShuttle(correlationId, newRowType, inputMapping, rexBuilder);
-    RelNode newSubQuery = correlationMapper.remapCorrelationFields(subQuery);
+    RelNode newSubQuery = rexVisitor.remapCorrelationFields(subQuery);
 
     return node.clone(newSubQuery);
   }

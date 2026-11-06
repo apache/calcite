@@ -289,9 +289,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /** Trims a scalar rule's right input, keeping all its output fields.
-   * The left input retains the keys needed by the rule's uniqueness checks.
-   * Submits an equivalent Correlate via {@link RelOptRuleCall#transformTo(RelNode)}
-   * if trimming changes the right input. */
+   * The left input retains the keys needed by the rule's uniqueness checks. */
   private void trimRightInput(RelOptRuleCall call, Correlate correlate, RelNode right) {
     final RelNode trimmed = new RelFieldTrimmer(null, relBuilder).trim(right);
     if (right.deepEquals(trimmed)) {
@@ -3210,14 +3208,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       int nullIndicatorPos;
 
-      final @Nullable Filter correlatedFilter;
+      final @Nullable Filter filter;
       if (right instanceof Filter && d.cm.mapRefRelToCorRef.containsKey(right)) {
-        correlatedFilter = (Filter) right;
-        right = correlatedFilter.getInput();
+        filter = (Filter) right;
+        right = filter.getInput();
         assert right instanceof HepRelVertex;
         right = right.stripped();
       } else if (d.cm.mapRefRelToCorRef.containsKey(project)) {
-        correlatedFilter = null;
+        filter = null;
       } else {
         return;
       }
@@ -3228,7 +3226,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
-      if (correlatedFilter != null) {
+      if (filter != null) {
         // rightInput has this shape:
         //
         //       Filter (references corVar)
@@ -3248,7 +3246,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         List<RexNode> tmpRightJoinKeys = new ArrayList<>();
         List<RexNode> correlatedJoinKeys = new ArrayList<>();
         RelOptUtil.splitCorrelatedFilterCondition(
-            correlatedFilter,
+            filter,
             tmpRightJoinKeys,
             correlatedJoinKeys,
             false);
@@ -3283,7 +3281,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         List<RexFieldAccess> correlatedKeyList =
             visitor.getFieldAccessList();
 
-        if (!d.checkCorVars(correlate, project, correlatedFilter, correlatedKeyList)) {
+        if (!d.checkCorVars(correlate, project, filter, correlatedKeyList)) {
           return;
         }
 
@@ -3297,7 +3295,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
         // Change the filter condition into a join condition
         joinCond =
-            d.removeCorrelationExpr(correlatedFilter.getCondition(), false);
+            d.removeCorrelationExpr(filter.getCondition(), false);
 
         nullIndicatorPos =
             left.getRowType().getFieldCount()
@@ -3446,14 +3444,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
       }
 
-      final @Nullable Filter correlatedFilter;
+      final @Nullable Filter filter;
       if (right instanceof Filter && d.cm.mapRefRelToCorRef.containsKey(right)) {
-        correlatedFilter = (Filter) right;
-        right = correlatedFilter.getInput();
+        filter = (Filter) right;
+        right = filter.getInput();
         assert right instanceof HepRelVertex;
         right = right.stripped();
       } else if (d.cm.mapRefRelToCorRef.containsKey(aggInputProject)) {
-        correlatedFilter = null;
+        filter = null;
       } else {
         return;
       }
@@ -3464,7 +3462,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
-      if (correlatedFilter != null) {
+      if (filter != null) {
         // rightInput has this shape:
         //
         //       Filter (references corVar)
@@ -3480,7 +3478,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         List<RexNode> rightJoinKeys = new ArrayList<>();
         List<RexNode> tmpCorrelatedJoinKeys = new ArrayList<>();
         RelOptUtil.splitCorrelatedFilterCondition(
-            correlatedFilter,
+            filter,
             rightJoinKeys,
             tmpCorrelatedJoinKeys,
             true);
@@ -3517,7 +3515,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
 
         // check corVar references are valid
-        if (!d.checkCorVars(correlate, aggInputProject, correlatedFilter,
+        if (!d.checkCorVars(correlate, aggInputProject, filter,
             correlatedJoinKeys)) {
           return;
         }
@@ -3565,7 +3563,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         //
 
         // first change the filter condition into a join condition
-        joinCond = d.removeCorrelationExpr(correlatedFilter.getCondition(), false);
+        joinCond = d.removeCorrelationExpr(filter.getCondition(), false);
       } else {
         // check corVar references are valid
         if (!d.checkCorVars(correlate, aggInputProject, null, null)) {

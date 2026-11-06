@@ -1494,10 +1494,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final Mapping mapping =
         Mappings.concatenateMappings(ImmutableList.of(leftTrim.right, rightTrim.right));
-    final RexCorrelVariableMapShuttle correlationMapper =
+    final RexCorrelVariableMapShuttle rexVisitor =
         new RexCorrelVariableMapShuttle(correlate.getCorrelationId(),
             leftTrim.left.getRowType(), leftTrim.right, relBuilder.getRexBuilder());
-    final RelNode newRight = correlationMapper.remapCorrelationFields(rightTrim.left);
+    final RelNode newRight = rexVisitor.remapCorrelationFields(rightTrim.left);
     final LogicalCorrelate newCorrelate =
         correlate
             .copy(correlate.getTraitSet(),
