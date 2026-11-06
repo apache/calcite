@@ -98,11 +98,12 @@ public class GeodeUtils {
    *
    * @param locatorHost               Locator's host address
    * @param locatorPort               Locator's port
-   * @param autoSerializerPackagePath package name of the Domain classes loaded in the regions
+   * @param autoSerializerPackagePath package name of the Domain classes loaded in the regions,
+   *                                  or null to register no class pattern
    * @return Returns a Geode {@link ClientCache} instance connected to Geode cluster
    */
   public static synchronized ClientCache createClientCache(String locatorHost,
-      int locatorPort, String autoSerializerPackagePath,
+      int locatorPort, @Nullable String autoSerializerPackagePath,
       boolean readSerialized) {
     if (locatorPort != currentLocatorPort
         || !equalsIgnoreCase(currentLocatorHost, locatorHost)) {
@@ -124,7 +125,10 @@ public class GeodeUtils {
 
     return new ClientCacheFactory()
         .addPoolLocator(locatorHost, locatorPort)
-        .setPdxSerializer(new ReflectionBasedAutoSerializer(autoSerializerPackagePath))
+        .setPdxSerializer(
+            autoSerializerPackagePath == null
+                ? new ReflectionBasedAutoSerializer()
+                : new ReflectionBasedAutoSerializer(autoSerializerPackagePath))
         .setPdxReadSerialized(readSerialized)
         .create();
   }

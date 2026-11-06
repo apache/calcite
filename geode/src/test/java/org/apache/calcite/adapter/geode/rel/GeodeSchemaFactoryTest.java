@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.geode.simple.GeodeSimpleSchema;
 import org.apache.calcite.adapter.geode.simple.GeodeSimpleSchemaFactory;
 import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -30,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Verifies that the {@code pdxSerializablePackagePath} operand is disabled by
  * default in both Geode schema factories, and enabled only when the
  * {@code calcite.geode.pdxSerializablePackagePath.allowed} system property is set.
+ * Without the operand, both factories create the schema.
  *
  * <p>Marked {@link Isolated} because one test toggles the JVM-wide cached value
  * of {@link CalciteSystemProperty#GEODE_PDX_PACKAGE_PATH_ALLOWED}.
@@ -108,6 +111,34 @@ class GeodeSchemaFactoryTest {
     try (AutoCloseable ignored = overrideGeodePdxPackagePathAllowed()) {
       new GeodeSimpleSchemaFactory().create(rootSchema(), "geode", operand());
     }
+  }
+
+  /** Returns an operand without {@code pdxSerializablePackagePath}, as the
+   * default configuration has it. */
+  private static Map<String, Object> operandWithoutPdxPackagePath() {
+    final Map<String, Object> operand = operand();
+    operand.remove(GeodeSchemaFactory.PDX_SERIALIZABLE_PACKAGE_PATH);
+    return operand;
+  }
+
+  /** A factory creates the schema, with a new client cache, from an operand
+   * without {@code pdxSerializablePackagePath}, which is how the operand
+   * arrives unless it is explicitly allowed. Creating the cache used to fail
+   * with NullPointerException inside Geode's ReflectionBasedAutoSerializer. */
+  @Test void testPdxPackagePathOperandAbsentCreatesSchema() {
+    GeodeUtils.closeClientCache();
+    assertThat(
+        new GeodeSchemaFactory().create(rootSchema(), "geode",
+            operandWithoutPdxPackagePath()),
+        instanceOf(GeodeSchema.class));
+  }
+
+  @Test void testSimpleFactoryPdxPackagePathOperandAbsentCreatesSchema() {
+    GeodeUtils.closeClientCache();
+    assertThat(
+        new GeodeSimpleSchemaFactory().create(rootSchema(), "geode",
+            operandWithoutPdxPackagePath()),
+        instanceOf(GeodeSimpleSchema.class));
   }
 
   /** A null operand is always accepted, independent of the opt-in property. */
