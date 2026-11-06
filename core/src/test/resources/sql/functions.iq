@@ -1171,4 +1171,181 @@ select SUBSTRING('text' FROM NULL);
 
 !ok
 
+# [CALCITE-7923] SUBSTRING index may silently overflow for BINARY arguments
+# Binary SUBSTRING computed start + length in int arithmetic and overflowed.
+# Validated on Postgres.
+!use post
+SELECT SUBSTRING(x'123456' FROM 2 FOR 2147483647) AS c;
++------+
+| C    |
++------+
+| 3456 |
++------+
+(1 row)
+
+!ok
+
+SELECT SUBSTRING(b FROM 2 FOR 2147483647) AS c
+FROM (VALUES (x'123456')) AS t(b);
++------+
+| C    |
++------+
+| 3456 |
++------+
+(1 row)
+
+!ok
+
+# start + length = Integer.MAX_VALUE does not overflow.
+SELECT SUBSTRING(x'123456' FROM 2 FOR 2147483645) AS c;
++------+
+| C    |
++------+
+| 3456 |
++------+
+(1 row)
+
+!ok
+
+# Same query with VARCHAR, fixed in [CALCITE-5810].
+SELECT SUBSTRING('abc' FROM 2 FOR 2147483647) AS c;
++----+
+| C  |
++----+
+| bc |
++----+
+(1 row)
+
+!ok
+
+# PostgreSQL SUBSTR on binary had the same overflow.
+!use post-postgresql
+SELECT SUBSTR(x'123456', 2, 2147483647) AS c;
++------+
+| C    |
++------+
+| 3456 |
++------+
+(1 row)
+
+!ok
+
+# SUBSTRING with a BIGINT start or length follows the INTEGER rules.
+# Validated on Postgres with INTEGER arguments.
+!use post
+
+# start + length = -1, so the result is empty.
+SELECT '[' || SUBSTRING('abc' FROM CAST(-3 AS BIGINT) FOR CAST(2 AS BIGINT)) || ']' AS c;
++----+
+| C  |
++----+
+| [] |
++----+
+(1 row)
+
+!ok
+
+SELECT '[' || SUBSTRING(v FROM s FOR l) || ']' AS c
+FROM (VALUES ('abc', CAST(-3 AS BIGINT), CAST(2 AS BIGINT))) AS t(v, s, l);
++----+
+| C  |
++----+
+| [] |
++----+
+(1 row)
+
+!ok
+
+# start + length = 2, so the result is position 1.
+SELECT SUBSTRING('abc' FROM CAST(-3 AS BIGINT) FOR CAST(5 AS BIGINT)) AS c;
++---+
+| C |
++---+
+| a |
++---+
+(1 row)
+
+!ok
+
+# start + length = 2 again, with values out of the INTEGER range.
+# Postgres has no BIGINT SUBSTRING.
+SELECT SUBSTRING('abc' FROM CAST(-3000000000 AS BIGINT) FOR CAST(3000000002 AS BIGINT)) AS c;
++---+
+| C |
++---+
+| a |
++---+
+(1 row)
+
+!ok
+
+# A negative length is an error, also when the start is negative.
+SELECT SUBSTRING('abc' FROM CAST(-3 AS BIGINT) FOR -1) AS c;
+Substring error: negative substring length not allowed
+!error
+
+SELECT SUBSTRING(v FROM s FOR l) AS c
+FROM (VALUES ('abc', CAST(-3 AS BIGINT), -1)) AS t(v, s, l);
+Substring error: negative substring length not allowed
+!error
+
+# Binary SUBSTRING with a BIGINT start or length.
+# Validated on Postgres with INTEGER arguments.
+SELECT SUBSTRING(x'123456' FROM 2 FOR 2147483650) AS c;
++------+
+| C    |
++------+
+| 3456 |
++------+
+(1 row)
+
+!ok
+
+# start + length = 2, so the result is position 1.
+SELECT SUBSTRING(x'123456' FROM CAST(-3 AS BIGINT) FOR 5) AS c;
++----+
+| C  |
++----+
+| 12 |
++----+
+(1 row)
+
+!ok
+
+SELECT SUBSTRING(b FROM s FOR l) AS c
+FROM (VALUES (x'123456', CAST(-3 AS BIGINT), CAST(5 AS BIGINT))) AS t(b, s, l);
++----+
+| C  |
++----+
+| 12 |
++----+
+(1 row)
+
+!ok
+
+# Postgres has no BIGINT SUBSTRING.
+SELECT SUBSTRING(x'123456' FROM CAST(-3000000000 AS BIGINT) FOR CAST(3000000002 AS BIGINT)) AS c;
++----+
+| C  |
++----+
+| 12 |
++----+
+(1 row)
+
+!ok
+
+SELECT SUBSTRING(x'123456' FROM CAST(-3000000000 AS BIGINT)) AS c;
++--------+
+| C      |
++--------+
+| 123456 |
++--------+
+(1 row)
+
+!ok
+
+SELECT SUBSTRING(x'123456' FROM CAST(-3 AS BIGINT) FOR -1) AS c;
+Substring error: negative substring length not allowed
+!error
+
 # End functions.iq
