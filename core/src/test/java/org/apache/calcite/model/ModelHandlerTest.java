@@ -341,4 +341,38 @@ public class ModelHandlerTest {
         not(containsString("see log of")));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7908">[CALCITE-7908]
+   * ModelHandler should apply the model class-name filter to the JDBC driver
+   * auto-detected from jdbcUrl</a>. */
+  @Test void testJdbcSchemaWithoutDriverChecksDetectedDriver() {
+    final String model = "inline:{"
+        + "  version: '1.0',"
+        + "  defaultSchema: 'SCOTT',"
+        + "  schemas: [ {"
+        + "    type: 'jdbc',"
+        + "    name: 'SCOTT',"
+        + "    jdbcUser: 'SA',"
+        + "    jdbcPassword: '',"
+        + "    jdbcUrl: 'jdbc:hsqldb:res:scott',"
+        + "    jdbcSchema: 'SCOTT'"
+        + "  } ]"
+        + "}";
+    // The model has no jdbcDriver, so the filter must see the driver
+    // that DriverManager picks for the URL
+    final SchemaPlus root = CalciteSchema.createRootSchema(false, false).plus();
+    Throwable e =
+        assertThrows(RuntimeException.class, () ->
+            new ModelHandler(root, model, ClassNameFilter.of("", "org.apache.calcite.")));
+    while (e != null && !(e instanceof SecurityException)) {
+      e = e.getCause();
+    }
+    assertThat("expected SecurityException in chain", e, notNullValue());
+    assertThat(e.getMessage(), containsString("org.hsqldb.jdbc.JDBCDriver"));
+
+    final SchemaPlus root2 = CalciteSchema.createRootSchema(false, false).plus();
+    assertDoesNotThrow(() ->
+        new ModelHandler(root2, model, ClassNameFilter.of("", "org.hsqldb.")));
+  }
+
 }

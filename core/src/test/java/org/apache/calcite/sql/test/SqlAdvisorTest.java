@@ -22,6 +22,7 @@ import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.advise.SqlSimpleParser;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.StringAndPos;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.test.SqlValidatorFixture;
@@ -502,6 +503,17 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
     // unfortunately cannot complete this case: syntax is too broken
     sql = "select a.empno, b.deptno from dummy a join sales.^ on a.deptno=";
     f.withSql(sql).assertComplete(QUANTIFIERS, EXPR_KEYWORDS); // join
+  }
+
+  @Test void testPipeKeywordNeedsConformance() {
+    final String sql = "select * from dummy join sales.emp ^";
+    final List<String> pipeKeywords =
+        Collections.singletonList("KEYWORD(|>)");
+    fixture().withSql(sql)
+        .assertComplete(JOIN_KEYWORDS);
+    ((Fixture) fixture().withConformance(SqlConformanceEnum.LENIENT))
+        .withSql(sql)
+        .assertComplete(JOIN_KEYWORDS, pipeKeywords);
   }
 
   @Test void testJoinKeywords() {

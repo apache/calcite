@@ -33,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link Primitive}.
@@ -120,28 +119,18 @@ class PrimitiveTest {
     assertThat(number, instanceOf(Float.class));
     assertThat(number.doubleValue(), is(2.0d));
 
-    try {
-      number = Primitive.INT.number(null);
-      fail("expected exception, got " + number);
-    } catch (NullPointerException e) {
-      // ok
-    }
+    assertThrows(NullPointerException.class, () ->
+        Primitive.INT.number(null));
 
     // not a number
-    try {
-      number = Primitive.CHAR.number(3);
-      fail("expected exception, got " + number);
-    } catch (AssertionError e) {
-      assertThat(e.getMessage(), is("CHAR: 3"));
-    }
+    Throwable e = assertThrows(AssertionError.class, () ->
+        Primitive.CHAR.number(3));
+    assertThat(e.getMessage(), is("CHAR: 3"));
 
     // not a number
-    try {
-      number = Primitive.BOOLEAN.number(null);
-      fail("expected exception, got " + number);
-    } catch (AssertionError e) {
-      assertThat(e.getMessage(), is("BOOLEAN: null"));
-    }
+    e = assertThrows(AssertionError.class, () ->
+        Primitive.BOOLEAN.number(null));
+    assertThat(e.getMessage(), is("BOOLEAN: null"));
   }
 
   /** Test for

@@ -2241,4 +2241,32 @@ WHERE empno = 7369;
 
 !ok
 
+# Test case for [CALCITE-6091] CASE WHEN with ARRAY/MAP types and NULL ELSE
+# branch should not truncate element type
+!use scott
+
+SELECT CASE WHEN true THEN ARRAY['abc'] WHEN false THEN ARRAY['d'] ELSE null END AS c;
++-------+
+| C     |
++-------+
+| [abc] |
++-------+
+(1 row)
+
+!ok
+C CHAR(3) ARRAY
+!type
+
+SELECT CASE WHEN true THEN ARRAY[1, 2] WHEN false THEN ARRAY[3] ELSE null END AS c;
++--------+
+| C      |
++--------+
+| [1, 2] |
++--------+
+(1 row)
+
+!ok
+C INTEGER ARRAY
+!type
+
 # End cast.iq

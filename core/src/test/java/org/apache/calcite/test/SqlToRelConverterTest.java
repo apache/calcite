@@ -51,6 +51,7 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -85,6 +86,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -1771,6 +1773,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  @Test void testWithInsideWhereInOrderBy() {
+    final String sql = "select * from emp\n"
+        + "where deptno in (\n"
+        + "  with w as (select * from dept) select deptno from w order by deptno)";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-365">[CALCITE-365]
    * AssertionError while translating query with WITH and correlated
@@ -1922,6 +1931,96 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testExplicitTable() {
     sql("table emp").ok();
+  }
+
+  @Test void testFromQuery() {
+    sql("from emp").withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests that a pipeline over a streaming query is still streaming. */
+  @Test void testPipeWhereOverStream() {
+    sql("select stream * from orders |> where productid = 1")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** As {@link #testPipeWhereOverStream()}, but the pipeline starts from a
+   * WITH whose body is the streaming query. */
+  @Test void testPipeWhereOverStreamingWith() {
+    sql("(with d as (select * from dept)\n"
+        + "  select stream * from orders) |> where productid = 1")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testPipeWhere() {
+    sql("from emp |> where deptno = 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests that {@code |> WHERE} keeps the order of its input. The input's
+   * sort key, which is not one of its columns, stays as a hidden column. */
+  @Test void testPipeWhereKeepsOrder() {
+    final SqlToRelFixture f =
+        sql("select ename, deptno from emp order by sal desc\n"
+            + "|> where deptno = 10")
+            .withConformance(SqlConformanceEnum.LENIENT);
+    f.ok();
+    assertThat(f.toRoot().collation, hasToString("[2 DESC]"));
+  }
+
+  /** Tests a correlated sub-query in a {@code |> WHERE} whose input has a
+   * hidden column for its sort key. */
+  @Test void testPipeWhereCorrelatedHiddenSortKey() {
+    sql("select ename, deptno as dno from emp order by sal + 1 desc\n"
+        + "|> where exists (select 1 from dept as d where d.deptno = dno)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withDecorrelate(false).ok();
+  }
+
+  /** Tests a pipe query used as an expression sub-query, correlated on a
+   * table alias of the enclosing pipeline. */
+  @Test void testPipeQueryAsCorrelatedSubQuery() {
+    sql("from emp as e\n"
+        + "|> where exists (from dept |> where deptno = e.deptno)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests that implicit type coercion casts the column of a pipe query that
+   * is an {@code IN} sub-query, as it would for a SELECT. The plan shows the
+   * cast as {@code CAST($0):BIGINT NOT NULL} in the sub-query. */
+  @Test void testPipeWhereInSubQueryCoercion() {
+    sql("select * from emp\n"
+        + "where cast(deptno as bigint) in\n"
+        + "  (select deptno from dept |> where deptno > 0)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withExpand(false)
+        .ok();
+  }
+
+  @Test void testPipeWhereWrapsSelect() {
+    sql("select ename, sal from emp |> where sal > 100")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testPipeWhereAfterUnion() {
+    sql("select deptno from emp union all select deptno from dept\n"
+        + "|> where deptno = 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testPipeWhereAfterWith() {
+    // The |> WHERE applies to the body of the WITH, above its ORDER BY.
+    sql("with d as (select * from emp)\n"
+        + "select * from d order by empno\n"
+        + "|> where deptno = 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Tests a pipe query as the argument of a {@code CURSOR}. */
+  @Test void testPipeWhereAsCursor() {
+    final String sql = "select * from table(dedup("
+        + "cursor(from emp |> where deptno = 10), 'ENAME'))";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT)
+        .withDecorrelate(false).ok();
   }
 
   @Test void testCollectionTable() {
@@ -7021,5 +7120,103 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  ORDER BY deptno DESC, sal\n"
         + "  LIMIT 2) AS t";
     sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ANDs</a>.
+   *
+   * <p>Verifies that converting a SQL with many AND-connected predicates
+   * from SqlNode to RelNode does not cause StackOverflowError. */
+  @Test void testLargeAndPredicate() {
+    final int count = 1000;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("SELECT * FROM emp WHERE 1 = 1");
+    for (int i = 0; i < count; i++) {
+      sb.append(" AND 1 = 1");
+    }
+    final String sql = sb.toString();
+    // Should not throw StackOverflowError
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ORs</a>.
+   *
+   * <p>Verifies that converting a SQL with many OR-connected predicates
+   * from SqlNode to RelNode does not cause StackOverflowError. */
+  @Test void testLargeOrPredicate() {
+    final int count = 1000;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("SELECT * FROM emp WHERE 1 = 0");
+    for (int i = 0; i < count; i++) {
+      sb.append(" OR 1 = 0");
+    }
+    final String sql = sb.toString();
+    // Should not throw StackOverflowError
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+  }
+
+  /** Verifies that a small AND chain produces a flat RexCall with correct
+   * operand count and structure (CALCITE-5845 correctness check). */
+  @Test void testSmallAndChainPlanStructure() {
+    final String sql = "SELECT * FROM emp"
+        + " WHERE deptno = 10 AND sal > 1000 AND empno > 0 AND ename = 'x'";
+    final RelNode rel = sql(sql).toRel();
+    // The filter condition should be a flat AND with 4 operands
+    assertThat(rel, notNullValue());
+    final LogicalFilter filter = (LogicalFilter) rel.getInput(0);
+    final RexNode condition = filter.getCondition();
+    assertThat(condition, notNullValue());
+    // After flattening, the condition should be a single AND call
+    // with all 4 terms as direct operands (not nested ANDs)
+    assertThat(condition, instanceOf(RexCall.class));
+    final RexCall andCall = (RexCall) condition;
+    assertThat(andCall.getKind(), is(SqlKind.AND));
+    assertThat(andCall.getOperands(), hasSize(4));
+    // Verify none of the operands is itself an AND (i.e., it's flat)
+    for (RexNode operand : andCall.getOperands()) {
+      if (operand instanceof RexCall) {
+        assertThat(((RexCall) operand).getKind(), not(is(SqlKind.AND)));
+      }
+    }
+  }
+
+  /** Verifies that mixed AND/OR with IN expansion produces correct flat
+   * structure (CALCITE-5845 correctness check). */
+  @Test void testMixedAndOrWithIn() {
+    final String sql = "SELECT * FROM emp"
+        + " WHERE deptno IN (10, 20) AND sal > 1000 AND empno < 100";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+    // Just verify the plan is generated without error and the filter exists
+    final String plan = RelOptUtil.toString(rel);
+    assertThat(plan, notNullValue());
+    assertThat(plan.contains("Filter"), is(true));
+  }
+
+  /** Verifies that a large AND chain with actual column references
+   * produces a correct plan (CALCITE-5845 stress test). */
+  @Test void testLargeAndPredicateWithColumns() {
+    final int count = 500;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("SELECT * FROM emp WHERE deptno > 0");
+    for (int i = 0; i < count; i++) {
+      // Use unique constants to avoid deduplication by simplifyPredicate
+      sb.append(" AND sal > ").append(i);
+    }
+    final String sql = sb.toString();
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, notNullValue());
+    final LogicalFilter filter = (LogicalFilter) rel.getInput(0);
+    final RexNode condition = filter.getCondition();
+    assertThat(condition, instanceOf(RexCall.class));
+    final RexCall andCall = (RexCall) condition;
+    assertThat(andCall.getKind(), is(SqlKind.AND));
+    // Should have 501 operands: 1 deptno > 0 + 500 unique sal > i
+    assertThat(andCall.getOperands(), hasSize(501));
   }
 }

@@ -195,6 +195,11 @@ query:
       [ LIMIT [ start, ] { count | ALL } ]
       [ OFFSET { start | expression } { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count | '(' expression ')' ] { ROW | ROWS } ONLY ]
+      [ pipeOperator ]*
+  |   FROM tableExpression [ pipeOperator ]*
+
+pipeOperator:
+      '|>' WHERE booleanExpression
 
 withItem:
       name
@@ -429,6 +434,12 @@ be present.
 in those same conformance levels, any *column* in *insert* may be replaced by
 *columnDecl*, which has a similar effect to including it in an EXTEND clause.
 
+In *tableExpression*, JOIN binds tighter than comma, as in the SQL standard:
+"FROM a, b JOIN c ON c.x = b.x" is equivalent to
+"FROM a, (b JOIN c ON c.x = b.x)", so the ON condition can reference
+`b` and `c` but not `a`. A LATERAL item can reference the items to its left,
+also those before a comma.
+
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.
 
@@ -489,6 +500,25 @@ becomes a grouping key; for example,
 *selectWithoutFrom* is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isFromRequired--).
+
+*pipeOperator* and a standalone `FROM` are only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isPipeSyntaxAllowed--).
+A standalone `FROM` is a query, equivalent to `SELECT *` over that `FROM`
+clause. Any query may be followed by pipe operators, each of which takes the
+query before it as its input table and produces a new table. Pipe syntax is
+based on
+[GoogleSQL's pipe syntax](https://github.com/google/googlesql/blob/master/docs/pipe-syntax.md).
+
+A pipe operator sees only the columns of its input table (and, in a sub-query,
+those of enclosing queries). Table aliases in a standalone `FROM` remain
+visible to the operators that follow it.
+
+For example:
+
+{% highlight sql %}
+FROM emp AS e
+|> WHERE e.deptno = 10
+{% endhighlight %}
 
 MINUS is equivalent to EXCEPT,
 but is not standard SQL and is only allowed in certain

@@ -458,6 +458,22 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Unparses the item of a {@code FROM} clause using a
+   * {@link SqlWriter.FrameTypeEnum#FROM_LIST} frame.
+   *
+   * @param writer Writer
+   * @param from Item of the FROM clause
+   */
+  public static void unparseFromClause(SqlWriter writer, SqlNode from) {
+    final SqlWriter.Frame fromFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
+    from.unparse(writer,
+        SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
+        SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
+    writer.endList(fromFrame);
+  }
+
+  /**
    * Unparses a condition using a
    * {@link SqlWriter.FrameTypeEnum#WHERE_LIST} frame, which provides
    * predicate-list formatting.
@@ -903,6 +919,11 @@ public abstract class SqlUtil {
     case UNION:
       final List<SqlNode> operandList = ((SqlBasicCall) query).getOperandList();
       return getSelectListItem(operandList.get(0), i);
+
+    case FROM_QUERY:
+    case PIPE_CALL:
+      // A query in pipe syntax has no select list to point into.
+      return query;
 
     default:
       // Unexpected type of query.

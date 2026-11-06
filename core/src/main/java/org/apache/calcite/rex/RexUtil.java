@@ -67,10 +67,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1519,15 +1521,22 @@ public class RexUtil {
 
   private static void addAnd(ImmutableList.Builder<RexNode> builder,
       Set<RexNode> digests, RexNode node) {
-    switch (node.getKind()) {
-    case AND:
-      for (RexNode operand : ((RexCall) node).getOperands()) {
-        addAnd(builder, digests, operand);
-      }
-      return;
-    default:
-      if (!node.isAlwaysTrue() && digests.add(node)) {
-        builder.add(node);
+    // Use an explicit stack to avoid StackOverflowError on deeply nested ANDs
+    // (e.g. CALCITE-5845)
+    final Deque<RexNode> stack = new ArrayDeque<>();
+    stack.push(node);
+    while (!stack.isEmpty()) {
+      final RexNode current = stack.pop();
+      if (current.getKind() == SqlKind.AND) {
+        final List<RexNode> operands = ((RexCall) current).getOperands();
+        // Push in reverse order so that the leftmost operand is processed first
+        for (int i = operands.size() - 1; i >= 0; i--) {
+          stack.push(operands.get(i));
+        }
+      } else {
+        if (!current.isAlwaysTrue() && digests.add(current)) {
+          builder.add(current);
+        }
       }
     }
   }
@@ -1823,20 +1832,44 @@ public class RexUtil {
    * calls to an associative operator such as AND and OR.
    */
   public static boolean isFlat(RexNode expr) {
-    if (!(expr instanceof RexCall)) {
-      return true;
+    // Use an explicit stack to avoid StackOverflowError on deeply nested
+    // expressions (e.g. CALCITE-5845)
+    final Deque<RexNode> stack = new ArrayDeque<>();
+    stack.push(expr);
+    while (!stack.isEmpty()) {
+      final RexNode current = stack.pop();
+      if (!(current instanceof RexCall)) {
+        continue;
+      }
+      final RexCall call = (RexCall) current;
+      if (!isFlat(call.getOperands(), call.getOperator())) {
+        return false;
+      }
+      for (RexNode operand : call.getOperands()) {
+        stack.push(operand);
+      }
     }
-    final RexCall call = (RexCall) expr;
-    return isFlat(call.getOperands(), call.getOperator())
-        && all(call.getOperands(), RexUtil::isFlat);
+    return true;
   }
 
   private static void flattenRecurse(
       List<RexNode> list, List<? extends RexNode> exprs, SqlOperator op) {
-    for (RexNode expr : exprs) {
+    // Use an explicit stack to avoid StackOverflowError on deeply nested
+    // associative calls (e.g. CALCITE-5845)
+    final Deque<RexNode> stack = new ArrayDeque<>();
+    // Push in reverse order so that the leftmost operand is processed first
+    for (int i = exprs.size() - 1; i >= 0; i--) {
+      stack.push(exprs.get(i));
+    }
+    while (!stack.isEmpty()) {
+      final RexNode expr = stack.pop();
       if (expr instanceof RexCall
           && ((RexCall) expr).getOperator() == op) {
-        flattenRecurse(list, ((RexCall) expr).getOperands(), op);
+        final List<RexNode> operands = ((RexCall) expr).getOperands();
+        // Push in reverse order so that the leftmost operand is processed first
+        for (int i = operands.size() - 1; i >= 0; i--) {
+          stack.push(operands.get(i));
+        }
       } else {
         list.add(expr);
       }

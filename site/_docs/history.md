@@ -49,6 +49,13 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-43-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7907">CALCITE-7907</a>]
+  Extend `UnionToDistinctRule` to match `Union` instead of `LogicalUnion`.
+  The default configuration of `UnionToDistinctRule` (`CoreRules.UNION_TO_DISTINCT`)
+  has changed: the rule's matching scope has increased. Projects that need the
+  previous behavior can use
+  `UnionToDistinctRule.Config.DEFAULT.withOperandFor(LogicalUnion.class)`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7580">CALCITE-7580</a>]
   Remove Gandiva dependency from Arrow adapter. Arrow adapter projection and
   filter evaluation now run in Java, and the `arrow-gandiva` dependency is no
@@ -77,7 +84,9 @@ operator-supplied.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7713">CALCITE-7713</a>]
 Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate
-pattern is set in `calcite.model.classes.allowed` system property.
+pattern is set in `calcite.model.classes.allowed` system property. This also applies
+to the JDBC driver that `DriverManager` chooses for `jdbcUrl` when a JDBC schema
+does not specify `jdbcDriver`.
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7716">CALCITE-7716</a>]
 `UUID` values are now ordered as unsigned 128-bit values, as SQL requires.
@@ -140,6 +149,13 @@ The Geode schema operand `pdxSerializablePackagePath` (honored by `GeodeSchemaFa
 and `GeodeSimpleSchemaFactory`) now requires the operator-level opt-in system property
 `-Dcalcite.geode.pdxSerializablePackagePath.allowed=true`. A model that sets the operand
 without the opt-in will fail. Java callers of `GeodeUtils.createClientCache` are unaffected.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7906">CALCITE-7906</a>]
+`LikePattern`, which handles the patterns passed to JDBC `DatabaseMetaData` methods such as
+`getTables` and `getColumns` and to `Lookup.getNames`, now supports the `_` wildcard (any single
+character) as well as `%`, as the JDBC specification requires. Previously `_` matched only itself.
+For example, the pattern `EMP_DEPT` now also matches `EMPXDEPT`. To match a literal `_`, escape it
+as `\_`. The public method `LikePattern.likeToRegex` has been removed as part of this improvement.
 
 #### New features
 {: #new-features-1-43-0}

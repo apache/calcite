@@ -662,7 +662,7 @@ public abstract class ReturnTypes {
       List<RelDataType> inputTypes) {
     if (type.isStruct()) {
       final RelDataTypeFactory.Builder builder =
-          new RelDataTypeFactory.Builder(typeFactory);
+          new RelDataTypeFactory.Builder(typeFactory).kind(type.getStructKind());
       final List<RelDataTypeField> fields = type.getFieldList();
       for (int i = 0; i < fields.size(); i++) {
         final List<RelDataType> fieldInputTypes = new ArrayList<>();

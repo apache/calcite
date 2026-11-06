@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
@@ -3632,17 +3633,59 @@ public class SqlParserTest {
     sql("select * from a as a2, b cross join c")
         .node(
             customMatches("custom", node -> {
-              // Parsed as left-deep:
-              //   select * from (a as a2, b) cross join c
-              // (This is not valid SQL, but illustrates operator
-              // associativity.)
+              // JOIN binds tighter than comma:
+              //   select * from a as a2, (b cross join c)
               assertThat(node, instanceOf(SqlSelect.class));
               final SqlSelect select = (SqlSelect) node;
               assertThat(select.getFrom(), instanceOf(SqlJoin.class));
               final SqlJoin from = requireNonNull((SqlJoin) select.getFrom());
-              assertThat(from.getLeft(), instanceOf(SqlJoin.class));
-              assertThat(from.getRight(), instanceOf(SqlIdentifier.class));
+              assertThat(from.getJoinType(), is(JoinType.COMMA));
+              assertThat(from.getLeft().getKind(), is(SqlKind.AS));
+              assertThat(from.getRight(), instanceOf(SqlJoin.class));
             }));
+  }
+
+  private static String joinTree(SqlNode node) {
+    if (node instanceof SqlJoin) {
+      final SqlJoin join = (SqlJoin) node;
+      return join.getJoinType() + "(" + joinTree(join.getLeft()) + ", "
+          + joinTree(join.getRight()) + ")";
+    }
+    return node.toString();
+  }
+
+  /** Returns a matcher for a query whose FROM clause has a given join tree;
+   * for example "COMMA(A, RIGHT(B, C))" for "FROM a, b RIGHT JOIN c". */
+  private static Matcher<SqlNode> hasJoinTree(String expected) {
+    return customMatches(expected, node -> {
+      final SqlSelect select = (SqlSelect) node;
+      assertThat(joinTree(requireNonNull(select.getFrom())), is(expected));
+    });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7911">[CALCITE-7911]
+   * FROM a, b JOIN c is parsed incorrectly</a>. */
+  @Test void testJoinCommaPrecedence() {
+    // An explicit JOIN binds tighter than comma; joins and commas are each
+    // left-associative.
+    sql("select * from a, b right join c on b.x = c.x")
+        .node(hasJoinTree("COMMA(A, RIGHT(B, C))"));
+    sql("select * from a, b join c on true, d left join e on true")
+        .node(hasJoinTree("COMMA(COMMA(A, INNER(B, C)), LEFT(D, E))"));
+    sql("select * from a join b on true join c on true, d")
+        .node(hasJoinTree("COMMA(INNER(INNER(A, B), C), D)"));
+    // Printed SQL must parse to the same tree.
+    final String expected = "SELECT *\n"
+        + "FROM `A`,\n"
+        + "`B`\n"
+        + "RIGHT JOIN `C` ON (`B`.`X` = `C`.`X`)";
+    sql("select * from a, (b right join c on b.x = c.x)")
+        .ok(expected)
+        .node(hasJoinTree("COMMA(A, RIGHT(B, C))"));
+    sql(expected)
+        .withConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .node(hasJoinTree("COMMA(A, RIGHT(B, C))"));
   }
 
   @Test void testInternalComma() {
@@ -4948,6 +4991,236 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"select\".*");
   }
 
+  // Tests for SQL pipe syntax.
+
+  @Test void testFromQuery() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("from emp")
+        .withConformance(lenient)
+        .ok("FROM `EMP`");
+    sql("from emp join dept using (deptno)")
+        .withConformance(lenient)
+        .ok("FROM `EMP`\n"
+            + "INNER JOIN `DEPT` USING (`DEPTNO`)");
+    sql("from (from emp)")
+        .withConformance(lenient)
+        .ok("FROM (FROM `EMP`)");
+  }
+
+  @Test void testFromQueryOrderedAndSetOp() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("(from emp) order by empno")
+        .withConformance(lenient)
+        .ok("(FROM `EMP`)\n"
+            + "ORDER BY `EMPNO`");
+    sql("(from emp) union all (from dept)")
+        .withConformance(lenient)
+        .ok("(FROM `EMP`)\n"
+            + "UNION ALL\n"
+            + "(FROM `DEPT`)");
+    final String error = "A FROM query must be in parentheses to be an"
+        + " operand of UNION, INTERSECT or EXCEPT";
+    sql("from emp ^union^ all (from dept)")
+        .withConformance(lenient)
+        .fails(error);
+    sql("select * from emp except ^from^ dept")
+        .withConformance(lenient)
+        .fails(error);
+  }
+
+  @Test void testFromQueryConformance() {
+    final String error =
+        "Pipe syntax is not allowed under the current SQL conformance level";
+    sql("^from^ emp").fails(error);
+    sql("select * from emp ^|>^ where deptno = 10").fails(error);
+    sql("select * from emp union ^from^ dept").fails(error);
+  }
+
+  @Test void testPipeWhere() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+    sql("from emp |> where deptno = 10 |> where ename <> 'X'")
+        .withConformance(lenient)
+        .ok("FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10)\n"
+            + "|> WHERE (`ENAME` <> 'X')");
+  }
+
+  @Test void testPipeWhereAfterQuery() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select * from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+    sql("values (1, 2) |> where true")
+        .withConformance(lenient)
+        .ok("VALUES (ROW(1, 2))\n"
+            + "|> WHERE TRUE");
+    sql("table emp |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("(TABLE `EMP`)\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+    sql("select 1 union all select 2 |> where true")
+        .withConformance(lenient)
+        .ok("SELECT 1\n"
+            + "UNION ALL\n"
+            + "SELECT 2\n"
+            + "|> WHERE TRUE");
+    sql("select * from emp order by empno limit 5 |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMPNO`\n"
+            + "FETCH NEXT 5 ROWS ONLY\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+    sql("with e as (select * from emp) select * from e |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("WITH `E` AS (SELECT *\n"
+            + "FROM `EMP`) (SELECT *\n"
+            + "FROM `E`\n"
+            + "|> WHERE (`DEPTNO` = 10))");
+    sql("(with e as (select * from emp) select * from e) |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("(WITH `E` AS (SELECT *\n"
+            + "FROM `EMP`) SELECT *\n"
+            + "FROM `E`)\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+    sql("with e as (select * from emp) select * from e order by empno\n"
+        + "|> where deptno = 10")
+        .withConformance(lenient)
+        .ok("WITH `E` AS (SELECT *\n"
+            + "FROM `EMP`) (SELECT *\n"
+            + "FROM `E`\n"
+            + "ORDER BY `EMPNO`\n"
+            + "|> WHERE (`DEPTNO` = 10))");
+    sql("(with e as (select * from emp) select * from e) order by empno\n"
+        + "|> where deptno = 10")
+        .withConformance(lenient)
+        .ok("(WITH `E` AS (SELECT *\n"
+            + "FROM `EMP`) SELECT *\n"
+            + "FROM `E`\n"
+            + "ORDER BY `EMPNO`)\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+  }
+
+  @Test void testPipeQueryAsSubQuery() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select * from (from emp |> where deptno = 10)")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM (FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10))");
+    sql("select * from emp where deptno in (from dept |> where name = 'a')")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "WHERE (`DEPTNO` IN (FROM `DEPT`\n"
+            + "|> WHERE (`NAME` = 'a')))");
+    sql("select * from emp where exists (from dept)")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "WHERE (EXISTS (FROM `DEPT`))");
+    sql("select (from dept |> where deptno = 10) from emp")
+        .withConformance(lenient)
+        .ok("SELECT (FROM `DEPT`\n"
+            + "|> WHERE (`DEPTNO` = 10))\n"
+            + "FROM `EMP`");
+    sql("insert into emp2 from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .ok("INSERT INTO `EMP2`\n"
+            + "FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10)");
+    sql("with e as (from emp |> where deptno = 10)\n"
+        + "from e |> where ename = 'X'")
+        .withConformance(lenient)
+        .ok("WITH `E` AS (FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10)) (FROM `E`\n"
+            + "|> WHERE (`ENAME` = 'X'))");
+    sql("from emp |> where deptno in (select deptno from dept)")
+        .withConformance(lenient)
+        .ok("FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` IN (SELECT `DEPTNO`\n"
+            + "FROM `DEPT`))");
+  }
+
+  /** Tests pipe operators after a parenthesized query, in a context that is
+   * itself in parentheses, such as an item in a FROM clause. */
+  @Test void testPipeAfterParenthesizedQuery() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select * from ((select 1 as x) |> where x = 1)")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM (SELECT 1 AS `X`\n"
+            + "|> WHERE (`X` = 1))");
+    sql("select * from ((from emp) |> where deptno = 10) as e")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM (FROM `EMP`\n"
+            + "|> WHERE (`DEPTNO` = 10)) AS `E`");
+    sql("select * from ((select 1 as x) union all (select 2) |> where x = 1)")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM (SELECT 1 AS `X`\n"
+            + "UNION ALL\n"
+            + "SELECT 2\n"
+            + "|> WHERE (`X` = 1))");
+    sql("select * from emp,\n"
+        + "lateral ((select deptno from dept) |> where deptno = emp.deptno)")
+        .withConformance(lenient)
+        .ok("SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "LATERAL(SELECT `DEPTNO`\n"
+            + "FROM `DEPT`\n"
+            + "|> WHERE (`DEPTNO` = `EMP`.`DEPTNO`))");
+    sql("with t as ((select 1 as x) |> where x = 1) select * from t")
+        .withConformance(lenient)
+        .ok("WITH `T` AS (SELECT 1 AS `X`\n"
+            + "|> WHERE (`X` = 1)) SELECT *\n"
+            + "FROM `T`");
+    // The input of a pipe operator must be a query.
+    sql("select * from ((emp join dept using (deptno)) ^|>^ where true)")
+        .withConformance(lenient)
+        .fails("Non-query expression encountered in illegal context");
+  }
+
+  @Test void testPipeSyntaxIllegal() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("1 + 2 ^|>^ where true")
+        .withConformance(lenient)
+        .fails("Non-query expression encountered in illegal context");
+    sql("^|>^ where empno > 1")
+        .withConformance(lenient)
+        .fails("(?s)Encountered \"\\|>\" at .*");
+    sql("from emp |> ^match_recognize^ (partition by deptno)")
+        .withConformance(lenient)
+        .fails("(?s)Encountered \"match_recognize\" at .*"
+            + "Was expecting.*\"WHERE\".*");
+    sql("from emp |> where deptno = 10 ^order^ by empno")
+        .withConformance(lenient)
+        .fails("(?s)Encountered \"order\" at .*");
+    sql("from emp ^where^ deptno = 10")
+        .withConformance(lenient)
+        .fails("WHERE clause is not allowed after a FROM query; "
+            + "use '\\|> WHERE'");
+    sql("from emp ^order^ by empno")
+        .withConformance(lenient)
+        .fails("ORDER BY clause is not allowed after a FROM query");
+    sql("from emp ^limit^ 5")
+        .withConformance(lenient)
+        .fails("LIMIT clause is not allowed after a FROM query");
+    sql("from emp ^offset^ 5")
+        .withConformance(lenient)
+        .fails("OFFSET clause is not allowed after a FROM query");
+    sql("from emp ^fetch^ next 5 rows only")
+        .withConformance(lenient)
+        .fails("FETCH clause is not allowed after a FROM query");
+  }
+
   @Test void testCollectionTable() {
     sql("select * from table(ramp(3, 4))")
         .ok("SELECT *\n"
@@ -5071,19 +5344,19 @@ public class SqlParserTest {
         + "match_condition orders.ts <= products.expiry\n"
         + "on orders.productid = products.productid";
     final String expected0 = "SELECT *\n"
-        + "FROM (`ORDERS` "
+        + "FROM `ORDERS`\n"
         + "ASOF JOIN `PRODUCTS` "
         + "MATCH_CONDITION (`ORDERS`.`TS` <= `PRODUCTS`.`EXPIRY`) "
-        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`))";
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`)";
     sql(sql0).ok(expected0);
     final String sql1 = "select * from orders left asof join products\n"
         + "match_condition orders.ts <= products.expiry\n"
         + "on orders.productid = products.productid";
     final String expected1 = "SELECT *\n"
-        + "FROM (`ORDERS` "
+        + "FROM `ORDERS`\n"
         + "LEFT ASOF JOIN `PRODUCTS` "
         + "MATCH_CONDITION (`ORDERS`.`TS` <= `PRODUCTS`.`EXPIRY`) "
-        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`))";
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`)";
     sql(sql1).ok(expected1);
 
     sql("select * from orders asof join products\n"
@@ -6869,8 +7142,8 @@ public class SqlParserTest {
         .ok("SELECT (ARRAY (SELECT `X`\n"
             + "FROM (VALUES (ROW(1))) AS `X`\n"
             + "ORDER BY `X`))");
-    sql("SELECT array(SELECT x FROM (VALUES(1)) x^,^ SELECT x FROM (VALUES(1)) x)")
-      .fails("(?s)Encountered \", SELECT\" at.*");
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+      .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
     sql("SELECT array(1, ^SELECT^ x FROM (VALUES(1)) x)")
       .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
   }
@@ -7009,8 +7282,8 @@ public class SqlParserTest {
 
     sql("SELECT map(1, ^SELECT^ x FROM (VALUES(1)) x)")
         .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
-    sql("SELECT map(SELECT x FROM (VALUES(1)) x^,^ SELECT x FROM (VALUES(1)) x)")
-        .fails("(?s)Encountered \", SELECT\" at.*");
+    sql("SELECT map(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
   }
 
   @Test void testVisitSqlInsertWithSqlShuttle() {

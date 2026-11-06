@@ -59,6 +59,7 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.RexRewritingRelShuttle;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.SmallStack;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -1276,6 +1277,87 @@ class RelOptUtilTest {
     final Filter newFilter = (Filter) result.rel.getInput(0);
     final Correlate newNested = (Correlate) newFilter.getInput();
     assertThat(((Project) newNested.getRight()).getProjects(), is(ImmutableList.of(local)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ANDs</a>.
+   *
+   * <p>Verifies that {@link RelOptUtil#conjunctions} computes a deeply nested
+   * binary AND tree on a small-stack thread; the previous recursive
+   * implementation overflows. */
+  @Test void testConjunctionsDeeplyNested() {
+    final RexBuilder rexBuilder = relBuilder.getCluster().getRexBuilder();
+    final RelDataType booleanType =
+        relBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+    final int depth = 20_000;
+    // Build AND(AND(AND(..., $1), $2), $3, ...) as a left-deep binary tree,
+    // iteratively.
+    RexNode node = rexBuilder.makeInputRef(booleanType, 0);
+    for (int i = 1; i < depth; i++) {
+      node =
+          rexBuilder.makeCall(SqlStdOperatorTable.AND, node,
+              rexBuilder.makeInputRef(booleanType, i));
+    }
+    final RexNode deepTree = node;
+    final List<RexNode> conjunctions =
+        SmallStack.run(() -> RelOptUtil.conjunctions(deepTree));
+    assertThat(conjunctions, hasSize(depth));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ANDs</a>.
+   *
+   * <p>Verifies that {@link RelOptUtil#decomposeConjunction(RexNode, List, List)}
+   * computes a deeply nested binary AND tree on a small-stack thread; the
+   * previous recursive implementation overflows. */
+  @Test void testDecomposeConjunctionNotDeeplyNested() {
+    final RexBuilder rexBuilder = relBuilder.getCluster().getRexBuilder();
+    final RelDataType booleanType =
+        relBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+    final int depth = 20_000;
+    RexNode node = rexBuilder.makeInputRef(booleanType, 0);
+    for (int i = 1; i < depth; i++) {
+      node =
+          rexBuilder.makeCall(SqlStdOperatorTable.AND, node,
+              rexBuilder.makeInputRef(booleanType, i));
+    }
+    final RexNode deepTree = node;
+    final List<RexNode> rexList = new ArrayList<>();
+    final List<RexNode> notList = new ArrayList<>();
+    SmallStack.run(() -> {
+      RelOptUtil.decomposeConjunction(deepTree, rexList, notList);
+      return null;
+    });
+    assertThat(rexList, hasSize(depth));
+    assertThat(notList, hasSize(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5845">[CALCITE-5845]
+   * StackOverflowError when SQL has a very large predicate with many ANDs</a>.
+   *
+   * <p>Verifies that {@link RelOptUtil#disjunctions} computes a deeply nested
+   * binary OR tree on a small-stack thread; the previous recursive
+   * implementation overflows. */
+  @Test void testDisjunctionsDeeplyNested() {
+    final RexBuilder rexBuilder = relBuilder.getCluster().getRexBuilder();
+    final RelDataType booleanType =
+        relBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+    final int depth = 20_000;
+    // Build OR(OR(OR(..., $1), $2), $3, ...) as a left-deep binary tree,
+    // iteratively.
+    RexNode node = rexBuilder.makeInputRef(booleanType, 0);
+    for (int i = 1; i < depth; i++) {
+      node =
+          rexBuilder.makeCall(SqlStdOperatorTable.OR, node,
+              rexBuilder.makeInputRef(booleanType, i));
+    }
+    final RexNode deepTree = node;
+    final List<RexNode> disjunctions =
+        SmallStack.run(() -> RelOptUtil.disjunctions(deepTree));
+    assertThat(disjunctions, hasSize(depth));
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions

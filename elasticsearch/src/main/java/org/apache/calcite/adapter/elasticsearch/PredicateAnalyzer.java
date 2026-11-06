@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.elasticsearch.QueryBuilders.QueryBuilder;
 import org.apache.calcite.adapter.elasticsearch.QueryBuilders.RangeQueryBuilder;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -138,6 +139,15 @@ class PredicateAnalyzer {
 
     @Override public Expression visitLiteral(RexLiteral literal) {
       return new LiteralExpression(literal);
+    }
+
+    @Override public Expression visitDynamicParam(RexDynamicParam dynamicParam) {
+      // Bound variables of a prepared statement have no value at planning
+      // time and thus cannot be translated into an Elasticsearch query.
+      // Normally such filters are not pushed down at all
+      // (see ElasticsearchFilterRule#matches), so this is a safety net.
+      throw new PredicateAnalyzerException(
+          "Dynamic parameter is not supported: " + dynamicParam);
     }
 
     private static boolean supportedRexCall(RexCall call) {

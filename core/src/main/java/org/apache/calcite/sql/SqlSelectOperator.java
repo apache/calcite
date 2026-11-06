@@ -167,17 +167,7 @@ public class SqlSelectOperator extends SqlOperator {
     if (select.from != null) {
       // Calcite SQL requires FROM but MySQL does not.
       writer.sep("FROM");
-
-      // for FROM clause, use precedence just below join operator to make
-      // sure that an un-joined nested select will be properly
-      // parenthesized
-      final SqlWriter.Frame fromFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
-      select.from.unparse(
-          writer,
-          SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
-          SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
-      writer.endList(fromFrame);
+      SqlUtil.unparseFromClause(writer, select.from);
     }
 
     SqlNode where = select.where;

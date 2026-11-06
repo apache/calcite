@@ -928,6 +928,12 @@ allprojects {
                         passProperty(e)
                     }
                 }
+                // JVM arguments for the test JVM only, separated by spaces.
+                // CI sets the locale and the time zone here.
+                // A -D argument overrides the same property passed above.
+                project.props.string("testExtraJvmArgs").trim().takeIf { it.isNotEmpty() }?.let {
+                    jvmArgs(it.split(Regex("\\s+")))
+                }
             }
             // Cannot be moved above otherwise configure each will override
             // also the specific configurations below.
