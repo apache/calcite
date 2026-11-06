@@ -3919,6 +3919,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_CONSTRUCT_COMPACT =
+      new SqlFunction("ARRAY_CONSTRUCT_COMPACT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE, SqlTypeTransforms.TO_ARRAY), null,
+          OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
   public static final SqlFunction SHIFTLEFT =
       new SqlFunction(

@@ -10678,6 +10678,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expecteSql));
   }
 
+  @Test public void testArrayConstructCompact() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode projectNode =
+        relBuilder.call(SqlLibraryOperators.ARRAY_CONSTRUCT_COMPACT, relBuilder.field(1),
+            relBuilder.field(2));
+    RelNode root = relBuilder
+        .project(projectNode)
+        .build();
+    final String expecteSql = "SELECT ARRAY_CONSTRUCT_COMPACT(\"ENAME\", \"JOB\") AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expecteSql));
+  }
+
   @Test public void testSnowflakeJaroWinklerSimilarity() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RexNode jaroWinklerNode =
