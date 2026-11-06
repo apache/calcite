@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
@@ -66,6 +67,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -80,7 +83,9 @@ import static java.util.Objects.requireNonNull;
  * TableScan operator is identified uniquely by a {@link RelTableRef} containing
  * its qualified name and an identifier.
  *
- * <p>If the lineage cannot be inferred, we return null.
+ * <p>If the lineage cannot be inferred, or expanding its candidate expressions
+ * exceeds {@link CalciteSystemProperty#EXPRESSION_LINEAGE_MAX_EXPANSIONS},
+ * we return null.
  */
 public class RelMdExpressionLineage
     implements MetadataHandler<BuiltInMetadata.ExpressionLineage> {
@@ -494,16 +499,44 @@ public class RelMdExpressionLineage
    * @param rexBuilder rexBuilder
    * @param expr expression
    * @param mapping mapping
-   * @return set of resulting expressions equivalent to the input expression
+   * @return set of resulting expressions equivalent to the input expression,
+   *     or null if expansion is unsupported or exceeds the configured budget
    */
   protected static @Nullable Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
       RexNode expr, Map<RexInputRef, Set<RexNode>> mapping) {
+    return createAllPossibleExpressions(rexBuilder, expr, mapping,
+        CalciteSystemProperty.EXPRESSION_LINEAGE_MAX_EXPANSIONS.value());
+  }
+
+  /** Expands with an explicit per-call budget; -1 means unlimited.
+   * The budget counts candidate construction attempts, not distinct results. */
+  static @Nullable Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
+      RexNode expr, Map<RexInputRef, Set<RexNode>> mapping, int maxExpansions) {
+    checkArgument(maxExpansions >= -1, "maxExpansions must be at least -1");
     // Extract input fields referenced by expression
     final ImmutableBitSet predFieldsUsed = extractInputRefs(expr);
 
     if (predFieldsUsed.isEmpty()) {
       // The unique expression is the input expression
       return ImmutableSet.of(expr);
+    }
+
+    if (maxExpansions >= 0) {
+      // Every referenced column adds a dimension to the Cartesian product.
+      // Count before copying RexNodes, even if equal candidates would later
+      // collapse in a Set. Division avoids overflow for very large products.
+      int remaining = maxExpansions;
+      for (Map.Entry<RexInputRef, Set<RexNode>> entry : mapping.entrySet()) {
+        if (predFieldsUsed.get(entry.getKey().getIndex())) {
+          int count = entry.getValue().size();
+          if (count > remaining) {
+            return null;
+          }
+          if (count > 0) {
+            remaining /= count;
+          }
+        }
+      }
     }
 
     try {
