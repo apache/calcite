@@ -41,7 +41,8 @@ import static java.util.Objects.requireNonNull;
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
 public class TimestampWithTimeZoneString
-    implements Comparable<TimestampWithTimeZoneString> {
+    implements Comparable<TimestampWithTimeZoneString>,
+    ComparableSqlConstant<TimestampWithTimeZoneString> {
 
   final TimestampString localDateTime;
   final TimeZone timeZone;
@@ -173,7 +174,22 @@ public class TimestampWithTimeZoneString
   }
 
   @Override public int compareTo(TimestampWithTimeZoneString o) {
-    return this.pt.getCalendar().compareTo(o.pt.getCalendar());
+    final int c = compareToInstant(o);
+    return c != 0 ? c : v.compareTo(o.v);
+  }
+
+  /** Compares this timestamp to another timestamp by instant. */
+  public int compareToInstant(TimestampWithTimeZoneString o) {
+    return Long.compare(getMillisSinceEpoch(), o.getMillisSinceEpoch());
+  }
+
+  @Override public int compareSqlConstantTo(TimestampWithTimeZoneString o) {
+    return compareToInstant(o);
+  }
+
+  /** Returns the number of milliseconds since the epoch. */
+  public long getMillisSinceEpoch() {
+    return pt.getCalendar().getTimeInMillis();
   }
 
   public TimestampWithTimeZoneString round(int precision) {
