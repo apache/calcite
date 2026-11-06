@@ -118,6 +118,7 @@ class CollectionTypeTest {
   private static List<String> compositeKeys() {
     // IDs 0 and 2 produce equal maps with different entry insertion orders.
     return Arrays.asList("ARRAY[a, b]", "ROW(a, b)", "ARRAY[ROW(a, b)]",
+        "ARRAY[ARRAY[a, b]]", "ROW(ARRAY[a], ARRAY[b])",
         "MULTISET[a, b]",
         "CASE WHEN id = 2 THEN MAP[1, b, 0, a] ELSE MAP[0, a, 1, b] END");
   }
