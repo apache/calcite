@@ -598,13 +598,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       }
       return false;
     } else { // check if there are fields with the same name
-      int count = 0;
-      for (RelDataTypeField f : rowType.getFieldList()) {
-        if (Util.matches(nameMatcher.isCaseSensitive(), f.getName(), columnName)) {
-          count++;
-        }
-      }
-      return count > 1;
+      return SqlNameMatchers.withCaseSensitive(nameMatcher.isCaseSensitive())
+          .fields(rowType, columnName).size() > 1;
     }
   }
 
