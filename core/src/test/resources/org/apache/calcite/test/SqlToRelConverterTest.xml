@@ -328,6 +328,42 @@ LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasUnnestArrayFieldsFlattened">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.detail.skills, o
+from dept_nested_expanded as d,
+ UNNEST(d.employees) with ordinality as t(e, o)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$5], SKILLS=[$7], O=[$8])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(E=[$0.EMPNO], E1=[$0.ENAME], E2=[$0.DETAIL.SKILLS], O=[$1])
+      Uncollect(withOrdinality=[true], expandStructFields=[false])
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAliasUnnestArrayFlattened">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e
+from dept_nested_expanded as d,
+ UNNEST(d.employees) as t(e)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], E=[ROW($5, $6, ROW($7))])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(EMPNO=[$0.EMPNO], ENAME=[$0.ENAME], SKILLS=[$0.DETAIL.SKILLS])
+      Uncollect(expandStructFields=[false])
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAliasUnnestArrayLiteralPlanWithoutColumnList">
     <Resource name="sql">
       <![CDATA[select t
@@ -345,12 +381,13 @@ LogicalProject(T=[$0])
   <TestCase name="testAliasUnnestArrayPlanWithDoubleColumn">
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
+LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2, 3}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect(expandStructFields=[false])
-      LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(E=[$0], EMPNO=[$1.EMPNO], ENAME=[$1.ENAME], SKILLS=[$1.DETAIL.SKILLS])
+      Uncollect(expandStructFields=[false])
+        LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
     <Resource name="sql">
@@ -362,12 +399,13 @@ from dept_nested_expanded as d CROSS JOIN
   <TestCase name="testAliasUnnestArrayPlanWithDoubleColumnBigQuery">
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
+LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2, 3}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect(expandStructFields=[false])
-      LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(E=[$0], EMPNO=[$1.EMPNO], ENAME=[$1.ENAME], SKILLS=[$1.DETAIL.SKILLS])
+      Uncollect(expandStructFields=[false])
+        LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
     <Resource name="sql">
@@ -379,12 +417,13 @@ from dept_nested_expanded as d CROSS JOIN
   <TestCase name="testAliasUnnestArrayPlanWithSingleColumn">
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
+LogicalProject(DEPTNO=[$0], EMPNO=[$5])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect(expandStructFields=[false])
-      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EMPNO=[$0.EMPNO], ENAME=[$0.ENAME], SKILLS=[$0.DETAIL.SKILLS])
+      Uncollect(expandStructFields=[false])
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
     <Resource name="sql">
@@ -396,12 +435,13 @@ from dept_nested_expanded as d,
   <TestCase name="testAliasUnnestArrayPlanWithSingleColumnBigQuery">
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
+LogicalProject(DEPTNO=[$0], EMPNO=[$5])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect(expandStructFields=[false])
-      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EMPNO=[$0.EMPNO], ENAME=[$0.ENAME], SKILLS=[$0.DETAIL.SKILLS])
+      Uncollect(expandStructFields=[false])
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
     <Resource name="sql">
@@ -418,12 +458,31 @@ from dept_nested_expanded as d,
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
+LogicalProject(DEPTNO=[$0], EMPNO=[$5])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-    Uncollect(expandStructFields=[false])
-      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EMPNO=[$0.EMPNO], ENAME=[$0.ENAME], SKILLS=[$0.DETAIL.SKILLS])
+      Uncollect(expandStructFields=[false])
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAliasUnnestArrayWithOrdinalityFlattened">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e, o
+from dept_nested_expanded as d,
+ UNNEST(d.employees) with ordinality as t(e, o)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], E=[ROW($5, $6, ROW($7))], O=[$8])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(E=[$0.EMPNO], E1=[$0.ENAME], E2=[$0.DETAIL.SKILLS], O=[$1])
+      Uncollect(withOrdinality=[true], expandStructFields=[false])
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -10840,9 +10899,10 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$7])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
     LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-    Uncollect
-      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], SKILLS=[$2.SKILLS])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -10858,7 +10918,25 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$7])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
     LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-    LogicalProject(EMPNO=[$0], Y=[$1], Z=[$2])
+    LogicalProject(EMPNO=[$0], Y=[$1], Z=[$2.SKILLS])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestNestedRowFlattened">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e.*
+from dept_nested_expanded as d,
+ UNNEST(d.employees) as e]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$5], ENAME=[$6], DETAIL=[ROW($7)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], SKILLS=[$2.SKILLS])
       Uncollect
         LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
           LogicalValues(tuples=[[{ 0 }]])

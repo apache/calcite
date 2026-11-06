@@ -3966,6 +3966,21 @@ public class JdbcTest {
         .returns("");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7608">[CALCITE-7608]
+   * Enhance Uncollect to support pass-through fields</a>. Uses both decorrelators. */
+  @Test void testUncollectPassthroughOverReflectiveScan() {
+    final String sql = "select *\n"
+        + "from \"hr\".\"depts\" d, unnest(d.\"employees\") as e";
+    for (boolean topDown : new boolean[] {false, true}) {
+      // The "employees" arrays of the 3 departments hold 3 employees in total
+      CalciteAssert.hr()
+          .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
+          .query(sql)
+          .returnsCount(3);
+    }
+  }
+
   /** Tests ORDER BY ... OFFSET ... FETCH. */
   @Test void testOrderByOffsetFetch() {
     CalciteAssert.that()

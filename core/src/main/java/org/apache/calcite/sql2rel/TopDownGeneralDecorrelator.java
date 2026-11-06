@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -232,14 +233,32 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     prePlanner.setRoot(rel);
     RelNode preparedRel = prePlanner.findBestExp();
 
+    // Extract computations over correlated variables from the right side of
+    // a Correlate into its left input, like RelDecorrelator does. Rewrites
+    // that require the right side to access correlated fields directly (such
+    // as CorrelateUncollectMergeRule) can then apply.
+    preparedRel = preparedRel.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
+
+    // Merge each Correlate over an Uncollect into a generalized Uncollect
+    // before the main pass: correlateElimination does not support Uncollect,
+    // and one such Correlate would otherwise make the whole query bail out.
+    HepProgram uncollectProgram = HepProgram.builder()
+        .addRuleInstance(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .build();
+    HepPlanner uncollectPlanner =
+        new HepPlanner(uncollectProgram, null, true, null, RelOptCostImpl.FACTORY);
+    uncollectPlanner.setRoot(preparedRel);
+    preparedRel = uncollectPlanner.findBestExp();
+
     // start decorrelating
-    RelNode decorrelateNode = rel;
+    RelNode decorrelateNode = preparedRel;
     if (canDecorrelateOffsetFetch(preparedRel, false)) {
       TopDownGeneralDecorrelator decorrelator = createEmptyDecorrelator(builder);
       try {
         decorrelateNode = decorrelator.correlateElimination(preparedRel, true);
       } catch (UnsupportedOperationException e) {
-        // if the correlation exists in an unsupported operator, retain the original plan.
+        // The correlation exists in an unsupported operator. Retain the
+        // prepared plan
       }
     }
 
@@ -250,6 +269,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
                 CoreRules.FILTER_INTO_JOIN,
                 CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
                 CoreRules.PROJECT_MERGE,
+                CoreRules.PROJECT_UNCOLLECT_MERGE,
                 CoreRules.PROJECT_REMOVE))
         .build();
     HepPlanner postPlanner = new HepPlanner(postProgram);
