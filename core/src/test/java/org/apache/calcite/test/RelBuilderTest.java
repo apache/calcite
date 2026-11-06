@@ -5344,21 +5344,23 @@ public class RelBuilderTest {
         hasTree(expectedWithoutSimplify));
   }
 
-  /** Tests filter builder with correlation variables. */
+  /** Tests a filter's local binding alongside an outer correlation. */
   @Test void testFilterWithCorrelationVariables() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<@Nullable RexCorrelVariable> local = Holder.empty();
     RelNode root = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
-        .filter(Collections.singletonList(v.get().id),
+        .variable(local::set)
+        .filter(Collections.singletonList(local.get().id),
             builder.or(
                 builder.and(
                     builder.lessThan(builder.field(v.get(), "DEPTNO"),
                         builder.literal(30)),
                     builder.greaterThan(builder.field(v.get(), "DEPTNO"),
                         builder.literal(20))),
-                builder.isNull(builder.field(2))))
+                builder.isNull(builder.field(local.get(), "LOC"))))
         .join(JoinRelType.LEFT,
             builder.equals(builder.field(2, 0, "SAL"),
                 builder.literal(1000)),
@@ -5372,7 +5374,7 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[OR("
         + "SEARCH($cor0.DEPTNO, Sarg[(20..30)]), "
-        + "IS NULL($2))], variablesSet=[[$cor0]])\n"
+        + "IS NULL($cor1.LOC))], variablesSet=[[$cor1]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
 
     assertThat(root, hasTree(expected));

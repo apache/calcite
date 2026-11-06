@@ -2589,7 +2589,11 @@ public class RelDecorrelatorTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>A conservative requiredColumns declaration may include an unused column.
+   * Decorrelation must still produce a join when the RHS has no references to
+   * propagate, without requiring an output entry for the declared column. */
   @Test void testUnusedCorrelationColumn() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode before = builder

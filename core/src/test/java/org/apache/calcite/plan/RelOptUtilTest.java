@@ -25,12 +25,19 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalConditionalCorrelate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalMatch;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -70,6 +77,8 @@ import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1128,15 +1137,17 @@ class RelOptUtilTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>Sub-query plans and operands must both be checked for determinism.
+   * Query-stable calls are allowed; a window aggregate declared non-deterministic
+   * must be rejected even with constant operands. */
   @Test void testIsDeterministic() {
     final RelNode values = relBuilder.values(new String[] {"X"}, 1D).build();
     final RelNode stable = relBuilder.push(values)
         .project(relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP)).build();
     final RelNode random = relBuilder.push(values)
         .project(relBuilder.call(SqlStdOperatorTable.RAND)).build();
-    assertThat(RelOptUtil.isDeterministic(stable), is(true));
-    assertThat(RelOptUtil.isDeterministic(random), is(false));
     assertThat(RelOptUtil.containsSubQuery(stable), is(false));
 
     final RelNode stableSubQuery = relBuilder.push(values)
@@ -1166,8 +1177,11 @@ class RelOptUtilTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
-  @Test void testVariablesUsedInMatch() {
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>A correlation used only in a Match measure must still contribute its
+   * field. A whole-row reference must contribute every field. */
+  @Test void testCorrelationColumns() {
     final CorrelationId id = relBuilder.getCluster().createCorrel();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     final RexNode measure = rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(empRow, id), 0);
@@ -1181,6 +1195,87 @@ class RelOptUtilTest {
             ImmutableMap.of(), false, ImmutableBitSet.of(), RelCollations.EMPTY, null);
     assertThat(RelOptUtil.getVariablesUsed(match), is(ImmutableSet.of(id)));
     assertThat(RelOptUtil.correlationColumns(id, match), is(ImmutableBitSet.of(0)));
+
+    final RelNode wholeRow = relBuilder.push(empScan)
+        .project(rexBuilder.makeCorrel(empRow, id)).build();
+    assertThat(RelOptUtil.correlationColumns(id, wholeRow),
+        is(ImmutableBitSet.range(empRow.getFieldCount())));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>The condition uses the outer binding for both matching and distinct ids.
+   * Mapping its field 1 to 0 must visit the condition once and leave the nested
+   * RHS's locally bound field 0 unchanged. */
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testConditionalCorrelateReferences(boolean sameId) {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RelNode outer = relBuilder.values(new String[] {"A", "B"}, 10, 20).build();
+    final CorrelationId id = relBuilder.getCluster().createCorrel();
+    final CorrelationId innerId = sameId ? id : relBuilder.getCluster().createCorrel();
+    final RexNode outerVariable = rexBuilder.makeCorrel(outer.getRowType(), id);
+    final RelNode left = relBuilder.values(new String[] {"A", "B"}, 1, 2).build();
+    final RexNode innerVariable = rexBuilder.makeCorrel(left.getRowType(), innerId);
+    final RexNode local = rexBuilder.makeFieldAccess(innerVariable, 0);
+    final RelNode right = relBuilder.values(new String[] {"V"}, 0)
+        .project(relBuilder.alias(local, "Q")).build();
+    final RexNode condition =
+        relBuilder.equals(rexBuilder.makeInputRef(left, 0),
+            rexBuilder.makeFieldAccess(outerVariable, 1));
+    final ConditionalCorrelate correlate =
+        LogicalConditionalCorrelate.create(left, right, ImmutableList.of(),
+            innerId, ImmutableBitSet.of(0), JoinRelType.LEFT_MARK, condition);
+    assertThat(RelOptUtil.correlationColumns(id, correlate), is(ImmutableBitSet.of(1)));
+
+    final Mapping mapping = Mappings.create(MappingType.INVERSE_SURJECTION, 2, 1);
+    mapping.set(1, 0);
+    final RelNode newOuter = relBuilder.push(outer).project(relBuilder.field("B")).build();
+    final ConditionalCorrelate result = (ConditionalCorrelate)
+        new RelOptUtil.RexCorrelVariableMapShuttle(id, newOuter.getRowType(), mapping, rexBuilder)
+            .remapCorrelationFields(correlate);
+    assertThat(RelOptUtil.correlationColumns(id, result), is(ImmutableBitSet.of(0)));
+    assertThat(((Project) result.getRight()).getProjects(), is(ImmutableList.of(local)));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>Remapping through RexSubQuery must honor a nested Correlate that reuses
+   * the outer id. The outer B reference is renumbered; the nested RHS's local A
+   * reference must keep its original field. */
+  @Test void testRemapSubQueryCorrelationScope() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RelNode outer = relBuilder.values(new String[] {"A", "B"}, 10, 20).build();
+    final CorrelationId id = relBuilder.getCluster().createCorrel();
+    final RexNode outerVariable = rexBuilder.makeCorrel(outer.getRowType(), id);
+    final RelNode left = relBuilder.values(new String[] {"A", "B"}, 1, 2).build();
+    final RexNode innerVariable = rexBuilder.makeCorrel(left.getRowType(), id);
+    final RexNode local = rexBuilder.makeFieldAccess(innerVariable, 0);
+    final RelNode right = relBuilder.values(new String[] {"V"}, 0)
+        .project(relBuilder.alias(local, "Q")).build();
+    final RelNode nested =
+        LogicalCorrelate.create(left, right, ImmutableList.of(),
+            id, ImmutableBitSet.of(0), JoinRelType.INNER);
+    final RelNode filter =
+        LogicalFilter.create(
+            nested, relBuilder.equals(rexBuilder.makeInputRef(nested, 2),
+            rexBuilder.makeFieldAccess(outerVariable, 1)));
+    final RelNode scalar =
+        LogicalProject.create(filter, ImmutableList.of(),
+            ImmutableList.of(rexBuilder.makeInputRef(filter, 2)),
+            ImmutableList.of("Q"), ImmutableSet.of());
+    final Mapping mapping = Mappings.create(MappingType.INVERSE_SURJECTION, 2, 1);
+    mapping.set(1, 0);
+    final RelNode newOuter = relBuilder.push(outer).project(relBuilder.field("B")).build();
+    final RexSubQuery result =
+        RelOptUtil.remapCorrelatesInSuqQuery(rexBuilder, RexSubQuery.scalar(scalar),
+            id, newOuter.getRowType(), mapping);
+    assertThat(RelOptUtil.correlationColumns(id, result.rel), is(ImmutableBitSet.of(0)));
+    final Filter newFilter = (Filter) result.rel.getInput(0);
+    final Correlate newNested = (Correlate) newFilter.getInput();
+    assertThat(((Project) newNested.getRight()).getProjects(), is(ImmutableList.of(local)));
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions

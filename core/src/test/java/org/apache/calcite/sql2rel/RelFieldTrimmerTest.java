@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -26,17 +27,23 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelValidityChecker;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -45,6 +52,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +60,8 @@ import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +69,7 @@ import java.util.List;
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -911,11 +922,16 @@ class RelFieldTrimmerTest {
     assertThat(trimmed, hasTree(expected));
   }
 
-
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>. */
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>Removing the unused Project must not apply its output mapping to the
+   * remaining nested correlations. A SEMI correlate exposes only its left
+   * input, even when its RHS contains another binding of the same id. */
   @Test void testTrimNestedSemiCorrelate() {
-    final RelBuilder builder = RelBuilder.create(config().build());
+    // Leave the unused Project for the trimmer to remove.
+    final RelBuilder builder = RelBuilder.create(config().build())
+        .transform(c -> c.withPruneInputOfAggregate(false));
     final Holder<@Nullable RexCorrelVariable> outer = Holder.empty();
     builder.values(new String[] {"UNUSED", "K"}, 99, 5).variable(outer::set);
     final RelNode innerLeft = builder.values(new String[] {"I", "J"}, 2, 3).build();
@@ -932,17 +948,100 @@ class RelFieldTrimmerTest {
         .filter(builder.equals(builder.field(outer.get(), "K"), builder.field("X")))
         .correlate(JoinRelType.SEMI, outer.get().id, builder.field(2, 0, "K"))
         .project(builder.field("K"))
+        .aggregate(builder.groupKey(), builder.countStar("C"))
         .build();
     final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(original);
     new RelValidityChecker().go(trimmed);
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])\n"
-        + "  LogicalValues(tuples=[[{ 5 }]])\n"
-        + "  LogicalFilter(condition=[=($cor0.K, $2)])\n"
-        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])\n"
-        + "      LogicalValues(tuples=[[{ 2, 3 }]])\n"
-        + "      LogicalFilter(condition=[=($0, +($cor0.I, $cor0.J))])\n"
-        + "        LogicalValues(tuples=[[{ 5 }]])\n";
+        + "LogicalAggregate(group=[{}], C=[COUNT()])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])\n"
+        + "    LogicalValues(tuples=[[{ 5 }]])\n"
+        + "    LogicalFilter(condition=[=($cor0.K, $2)])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])\n"
+        + "        LogicalValues(tuples=[[{ 2, 3 }]])\n"
+        + "        LogicalFilter(condition=[=($0, +($cor0.I, $cor0.J))])\n"
+        + "          LogicalValues(tuples=[[{ 5 }]])\n";
     assertThat(trimmed, hasTree(expected));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>Dropping outer A shifts B from field 1 to 0. The Project or Filter's
+   * local A must keep its own position, while the outer B reference in its
+   * input uses the new mapping. */
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testTrimLocalCorrelationBinding(boolean projectBinding) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelNode outer = builder.values(new String[] {"A", "B"}, 10, 20).build();
+    final CorrelationId id = builder.getCluster().createCorrel();
+    final RexNode outerVariable = rexBuilder.makeCorrel(outer.getRowType(), id);
+    final RelNode values = builder.values(new String[] {"A", "B"}, 20, 30).build();
+    final RelNode input =
+        LogicalFilter.create(
+            values, builder.equals(rexBuilder.makeInputRef(values, 0),
+            rexBuilder.makeFieldAccess(outerVariable, 1)));
+    final RexNode local = rexBuilder.makeCorrel(input.getRowType(), id);
+    final RelNode scalar = builder.values(new String[] {"Z"}, 0)
+        .project(builder.alias(rexBuilder.makeFieldAccess(local, 0), "P")).build();
+    final RelNode right = projectBinding
+        ? LogicalProject.create(input, ImmutableList.of(),
+            ImmutableList.of(RexSubQuery.scalar(scalar)), ImmutableList.of("P"),
+            ImmutableSet.of(id))
+        : LogicalFilter.create(input,
+            builder.greaterThan(rexBuilder.makeFieldAccess(local, 0), builder.literal(0)),
+            ImmutableSet.of(id));
+    assertThat(RelOptUtil.correlationColumns(id, right), is(ImmutableBitSet.of(1)));
+    final RelNode correlate =
+        LogicalCorrelate.create(outer, right, ImmutableList.of(),
+            id, ImmutableBitSet.of(0, 1), JoinRelType.LEFT);
+    final RelNode root =
+        LogicalProject.create(correlate, ImmutableList.of(),
+            ImmutableList.of(rexBuilder.makeInputRef(correlate, 2)),
+            ImmutableList.of("P"), ImmutableSet.of());
+    final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(root);
+    final String binderTree = projectBinding
+        ? "    LogicalProject(variablesSet=[[$cor0]], P=[$SCALAR_QUERY({\n"
+            + "LogicalProject(P=[$cor0.A])\n"
+            + "  LogicalValues(tuples=[[{ 0 }]])\n"
+            + "})])\n"
+        : "    LogicalFilter(condition=[>($cor0.A, 0)], variablesSet=[[$cor0]])\n";
+    assertThat(
+        trimmed, hasTree(""
+        + "LogicalProject(P=[$1])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalValues(tuples=[[{ 20 }]])\n"
+        + binderTree
+        + "      LogicalFilter(condition=[=($0, $cor0.B)])\n"
+        + "        LogicalValues(tuples=[[{ 20, 30 }]])\n"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   *
+   * <p>The unused RHS projection is the only reference to outer UNUSED.
+   * Trimming it must remove that dependency before trimming the left input,
+   * while keeping and remapping K. */
+  @Test void testTrimUnusedCorrelationColumn() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final RelNode root = builder
+        .values(new String[] {"UNUSED", "K"}, 99, 20).variable(v::set)
+        .values(new String[] {"X"}, 20)
+        .projectPlus(builder.field(v.get(), "UNUSED"))
+        .filter(builder.equals(builder.field("X"), builder.field(v.get(), "K")))
+        .correlate(JoinRelType.INNER, v.get().id,
+            builder.field(2, 0, "UNUSED"), builder.field(2, 0, "K"))
+        .project(builder.field("X"))
+        .build();
+    final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(root);
+    assertThat(
+        trimmed, hasTree("LogicalProject(X=[$1])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "    LogicalValues(tuples=[[{ 20 }]])\n"
+        + "    LogicalFilter(condition=[=($0, $cor0.K)])\n"
+        + "      LogicalValues(tuples=[[{ 20 }]])\n"));
   }
 }
