@@ -896,6 +896,10 @@ public class CoreRules {
   public static final UnionEliminatorRule UNION_REMOVE =
       UnionEliminatorRule.Config.DEFAULT.toRule();
 
+  /** Rule that removes UNION ALL branches that cannot affect an enclosing Aggregate. */
+  public static final AggregateUnionNullBranchRule AGGREGATE_UNION_NULL_BRANCH =
+      AggregateUnionNullBranchRule.Config.DEFAULT.toRule();
+
   /** Rule that pulls up constants through a Union operator. */
   public static final UnionPullUpConstantsRule UNION_PULL_UP_CONSTANTS =
        UnionPullUpConstantsRule.Config.DEFAULT.toRule();
