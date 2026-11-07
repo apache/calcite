@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -45,11 +45,11 @@ import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A visitor for relational expressions that extracts a
@@ -108,10 +108,16 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     RelNode left = correlate.getLeft().accept(this);
     RelNode right = correlate.getRight().accept(this);
     int oldLeft = left.getRowType().getFieldCount();
-    // Find the correlated expressions from the right side that can be moved to the left
-    Set<RexNode> callsWithCorrelationInRight =
-        findCorrelationDependentCalls(correlate.getCorrelationId(), right);
-    if (callsWithCorrelationInRight.isEmpty()) {
+    final Map<RexNode, Integer> expressions = new LinkedHashMap<>();
+    final CorrelatedExpressionSelector collector =
+        new CorrelatedExpressionSelector(correlate.getCorrelationId()) {
+          @Override RexNode selected(RexNode expression) {
+            expressions.computeIfAbsent(expression, key -> expressions.size());
+            return expression;
+          }
+        };
+    visitCorrelationScope(right, correlate.getCorrelationId(), collector);
+    if (expressions.isEmpty()) {
       if (correlate.getLeft().equals(left) && correlate.getRight().equals(right)) {
         return correlate;
       } else {
@@ -130,32 +136,30 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     builder.push(left);
 
     List<RexNode> callsWithCorrelationOverLeft = new ArrayList<>();
-    for (RexNode callInRight : callsWithCorrelationInRight) {
-      callsWithCorrelationOverLeft.add(replaceCorrelationsWithInputRef(callInRight, builder));
+    for (RexNode callInRight : expressions.keySet()) {
+      callsWithCorrelationOverLeft.add(
+          replaceCorrelationsWithInputRef(callInRight, correlate.getCorrelationId(), builder));
     }
     builder.projectPlus(callsWithCorrelationOverLeft);
 
-    // Construct the mapping to transform the expressions in the right side based on the new
-    // projection in the left side.
-    Map<RexNode, RexNode> transformMapping = new HashMap<>();
-    int newFieldIndex = oldLeft;
-    for (RexNode callInRight : callsWithCorrelationInRight) {
-      RexBuilder xb = builder.getRexBuilder();
-      RexNode v = xb.makeCorrel(builder.peek().getRowType(), correlate.getCorrelationId());
-      RexNode flatCorrelationInRight = xb.makeFieldAccess(v, newFieldIndex);
-      transformMapping.put(callInRight, flatCorrelationInRight);
-      newFieldIndex++;
-    }
-
     final int newLeft = builder.fields().size();
-    // Transform the expressions in the right side using the mapping constructed earlier.
-    right = replaceExpressionsUsingMap(right, correlate.getCorrelationId(), transformMapping);
-    // Regions left in place, such as lambda bodies, may still read original fields.
-    // Bound the remaining references by the old declaration and the added columns.
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RexNode variable =
+        rexBuilder.makeCorrel(builder.peek().getRowType(), correlate.getCorrelationId());
+    final CorrelatedExpressionSelector replacements =
+        new CorrelatedExpressionSelector(correlate.getCorrelationId()) {
+          @Override RexNode selected(RexNode expression) {
+            final int slot =
+                requireNonNull(expressions.get(expression), "selected expression");
+            return rexBuilder.makeFieldAccess(variable, oldLeft + slot);
+          }
+        };
+    right = visitCorrelationScope(right, correlate.getCorrelationId(), replacements);
+    final ImmutableBitSet declared = correlate.getRequiredColumns()
+        .union(ImmutableBitSet.range(oldLeft, newLeft));
     final ImmutableBitSet requiredColumns =
-        correlate.getRequiredColumns().union(ImmutableBitSet.range(oldLeft, newLeft))
-            .intersect(RelOptUtil.correlationColumns(correlate.getCorrelationId(), right));
-    List<RexNode> requiredFields = builder.fields(requiredColumns.asList());
+        CorrelationReferences.requiredColumns(right, correlate.getCorrelationId(), declared);
+    final List<RexNode> requiredFields = builder.fields(requiredColumns.asList());
     builder.push(right);
 
     builder.correlate(correlate.getJoinType(), correlate.getCorrelationId(), requiredFields);
@@ -183,102 +187,78 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     return builder.build();
   }
 
-  /**
-   * Finds expressions that can move to the left input within the scope of the
-   * specified correlation.
-   */
-  private static Set<RexNode> findCorrelationDependentCalls(CorrelationId corrId, RelNode plan) {
-    SimpleCorrelationCollector finder = new SimpleCorrelationCollector(corrId);
-    visitCorrelationScope(plan, corrId, finder);
-    return finder.correlations;
-  }
-
-  /** Replaces mapped expressions in the scope of {@code id}, using the same
-   * traversal as {@link #findCorrelationDependentCalls}. */
-  private static RelNode replaceExpressionsUsingMap(RelNode plan, CorrelationId id,
-      Map<RexNode, RexNode> mapping) {
-    return visitCorrelationScope(plan, id, new CallReplacer(mapping));
-  }
-
-  /** Visits expressions in the scope of {@code id}. */
-  private static RelNode visitCorrelationScope(RelNode plan, CorrelationId id,
+  /** Applies the visitor within the specified correlation scope. */
+  private static RelNode visitCorrelationScope(RelNode root, CorrelationId id,
       RexShuttle visitor) {
-    return plan.accept(new RelHomogeneousShuttle() {
-      @Override public RelNode visit(RelNode other) {
-        final boolean expressionNode = other instanceof Project || other instanceof Filter;
-        final boolean bindsId = other.getVariablesSet().contains(id);
-        if (bindsId && !expressionNode) {
-          // Conservatively leave other nested bindings untouched.
-          return other;
+    return root.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode rel) {
+        if (rel.getVariablesSet().contains(id)) {
+          if (rel instanceof Correlate) {
+            return visitChild(rel, 0, rel.getInput(0));
+          }
+          if (rel instanceof Project || rel instanceof Filter) {
+            return visitChildren(rel);
+          }
+          return rel;
         }
-        final RelNode node = expressionNode && !bindsId ? other.accept(visitor) : other;
-        // Project and Filter bindings apply to their expressions, not their inputs.
-        return super.visit(node);
+        final RelNode node = rel instanceof Project || rel instanceof Filter
+            ? rel.accept(visitor) : rel;
+        return visitChildren(node);
       }
     });
   }
 
-  /**
-   * Collects the outermost expressions that can move to the left input.
+  /** Selects outermost deterministic computations over one correlation.
    *
-   * <p>Does not collect candidates from lambda bodies or sub-query plans.
-   * An enclosing call may still be selected if {@link SimpleCorrelationDetector}
-   * accepts it as a whole.
-   */
-  private static final class SimpleCorrelationCollector extends RexShuttle {
-    private final CorrelationId correlationId;
-    // Clients are iterating over the collection thus it is better to use LinkedHashSet to keep
-    // plans stable among executions.
-    private final Set<RexNode> correlations = new LinkedHashSet<>();
+   * <p>A rejected call does not prevent selecting a movable operand. Lambda
+   * bodies and sub-query plans do not supply candidates; a complete call
+   * containing a deterministic lambda may still be selected. Replacement checks
+   * each occurrence because operator equality does not compare determinism. */
+  private abstract static class CorrelatedExpressionSelector extends RexShuttle {
+    private final CorrelationId id;
+    private final SimpleCorrelationDetector detector;
 
-    SimpleCorrelationCollector(CorrelationId corrId) {
-      this.correlationId = corrId;
+    CorrelatedExpressionSelector(CorrelationId id) {
+      this.id = id;
+      this.detector = new SimpleCorrelationDetector(id);
     }
 
+    /** Handles an expression that has passed the extraction checks.
+     *
+     * @return Expression to use at this occurrence
+     */
+    abstract RexNode selected(RexNode expression);
+
     @Override public RexNode visitCall(RexCall call) {
-      if (isSimpleCorrelatedExpression(call, correlationId)) {
-        correlations.add(call);
-        return call;
-      } else {
-        return super.visitCall(call);
+      return Boolean.TRUE.equals(call.accept(detector))
+          ? selected(call) : super.visitCall(call);
+    }
+
+    @Override public RexNode visitFieldAccess(RexFieldAccess access) {
+      if (isDirectFieldAccess(access, id)) {
+        return access;
       }
+      return Boolean.TRUE.equals(access.accept(detector))
+          ? selected(access) : super.visitFieldAccess(access);
     }
 
     @Override public RexNode visitLambda(RexLambda lambda) {
-      // Expressions in the body may depend on the lambda's parameters.
       return lambda;
     }
-
-    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-      if (!isDirectFieldAccess(fieldAccess, correlationId)
-          && isSimpleCorrelatedExpression(fieldAccess, correlationId)) {
-        correlations.add(fieldAccess);
-        return fieldAccess;
-      } else {
-        return super.visitFieldAccess(fieldAccess);
-      }
-    }
   }
 
   /**
-   * Returns whether the specified node is a simply correlated expression.
-   */
-  private static boolean isSimpleCorrelatedExpression(RexNode node, CorrelationId id) {
-    Boolean r = node.accept(new SimpleCorrelationDetector(id));
-    return r == null ? Boolean.FALSE : r;
-  }
-
-  /**
-   * Classifies expressions by their dependence on the specified correlation.
+   * A visitor classifying row expressions as simply correlated if they satisfy
+   * the conditions below. Lambda parameters are neutral and must be bound
+   * within the expression being analyzed.
    *
-   * <p>Returns true if an expression uses that correlation and has no disallowed
-   * operands. Returns false for other correlation ids, input or local references,
-   * window expressions, sub-queries, or non-deterministic calls. Otherwise returns
-   * null, which is neutral when combining operands and does not qualify an
-   * expression for extraction on its own.
-   *
-   * <p>Lambda bodies are checked as part of the enclosing expression; their
-   * parameters are neutral. A call containing a lambda can qualify as a whole.
+   * <ul>
+   * <li>all correlation fields have the specified correlation id</li>
+   * <li>leaves are correlation fields, dynamic parameters, literals, or
+   * parameters bound by a contained lambda</li>
+   * <li>intermediate nodes are deterministic calls, field accesses, or lambdas
+   * whose bodies satisfy these conditions</li>
+   * </ul>
    *
    * <p>Examples:
    *
@@ -290,7 +270,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
    * +($0, $cor0.DEPTNO) -> FALSE
    * }</pre>
    *
-   * <p>A deterministic subexpression built only from literals and dynamic parameters, such
+   * <p>A subexpression built only from literals and dynamic parameters, such
    * as {@code ARRAY(null:INTEGER)} above, is neutral: it neither qualifies nor
    * disqualifies the enclosing call.
    */
@@ -319,14 +299,21 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
       Boolean hasSimpleCorrelation = null;
       for (RexNode op : call.operands) {
         Boolean b = op.accept(this);
-        if (b != null) {
-          hasSimpleCorrelation = hasSimpleCorrelation == null ? b : hasSimpleCorrelation && b;
+        if (Boolean.FALSE.equals(b)) {
+          return Boolean.FALSE;
+        }
+        if (Boolean.TRUE.equals(b)) {
+          hasSimpleCorrelation = Boolean.TRUE;
         }
       }
+      // Null means neutral: no operand contributes a correlation with corrId.
       return hasSimpleCorrelation;
     }
 
     @Override public @Nullable Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        return ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id.equals(corrId);
+      }
       return fieldAccess.getReferenceExpr().accept(this);
     }
 
@@ -335,7 +322,8 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
 
     @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
-      return correlVariable.id.equals(corrId);
+      // A whole-row value cannot become a single input reference on the left.
+      return Boolean.FALSE;
     }
 
     @Override public Boolean visitTableInputRef(RexTableInputRef ref) {
@@ -351,10 +339,11 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
   }
 
-  private static RexNode replaceCorrelationsWithInputRef(RexNode exp, RelBuilder b) {
+  private static RexNode replaceCorrelationsWithInputRef(RexNode exp, CorrelationId id,
+      RelBuilder b) {
     return exp.accept(new RexShuttle() {
       @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-        if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        if (isDirectFieldAccess(fieldAccess, id)) {
           return b.field(fieldAccess.getField().getIndex());
         }
         return super.visitFieldAccess(fieldAccess);
@@ -362,40 +351,4 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     });
   }
 
-  /**
-   * A visitor traversing row expressions and replacing calls and field
-   * accesses with other expressions according to the specified mapping.
-   * The mapping is consulted before recursing so that the outermost
-   * matching expression wins. Does not descend into lambda bodies or sub-query
-   * plans.
-   */
-  private static final class CallReplacer extends RexShuttle {
-    private final Map<RexNode, RexNode> mapping;
-
-    CallReplacer(Map<RexNode, RexNode> mapping) {
-      this.mapping = mapping;
-    }
-
-    @Override public RexNode visitLambda(RexLambda lambda) {
-      return lambda;
-    }
-
-    @Override public RexNode visitCall(RexCall oldCall) {
-      RexNode newCall = mapping.get(oldCall);
-      if (newCall != null) {
-        return newCall;
-      } else {
-        return super.visitCall(oldCall);
-      }
-    }
-
-    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-      RexNode replacement = mapping.get(fieldAccess);
-      if (replacement != null) {
-        return replacement;
-      } else {
-        return super.visitFieldAccess(fieldAccess);
-      }
-    }
-  }
 }

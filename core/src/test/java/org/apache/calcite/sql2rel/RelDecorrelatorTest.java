@@ -20,22 +20,37 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelValidityChecker;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -44,23 +59,36 @@ import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import static java.util.Objects.requireNonNull;
 
@@ -2598,22 +2626,148 @@ public class RelDecorrelatorTest {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
    * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
-   *
-   * <p>A conservative requiredColumns declaration may include an unused column.
-   * Decorrelation must still produce a join when the RHS has no references to
-   * propagate, without requiring an output entry for the declared column. */
-  @Test void testUnusedCorrelationColumn() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode before = builder
-        .values(new String[] {"K"}, 1)
-        .values(new String[] {"X"}, 2)
-        .correlate(JoinRelType.LEFT, builder.getCluster().createCorrel(),
-            builder.field(2, 0, "K"))
-        .build();
+   * A parent aggregate can discard a nested Correlate's non-deterministic
+   * output without changing the input that supplies its binding. */
+  @Test void testUnusedNonDeterministicNestedCorrelateOutput() throws Exception {
+    final RelBuilder builder = RelBuilder.create(Frameworks.newConfigBuilder().build())
+        .transform(c -> c.withPruneInputOfAggregate(false));
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelNode left = builder.values(new String[] {"K"}, 1, 2).build();
+    final CorrelationId outerId = builder.getCluster().createCorrel();
+    final RexNode outerKey =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(left.getRowType(), outerId), 0);
+    final RelNode innerLeft = builder.values(new String[] {"I"}, 1, 2).build();
+    final CorrelationId innerId = builder.getCluster().createCorrel();
+    final RexNode innerKey =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(innerLeft.getRowType(), innerId), 0);
+    final RelNode values = builder.values(new String[] {"X"}, 0).build();
+    final RelNode innerRight =
+        LogicalProject.create(values, ImmutableList.of(),
+            ImmutableList.of(innerKey, builder.call(SqlStdOperatorTable.RAND)),
+            ImmutableList.of("V", "UNUSED"), ImmutableSet.of());
+    final RelNode nested =
+        LogicalCorrelate.create(innerLeft, innerRight, ImmutableList.of(),
+            innerId, ImmutableBitSet.of(0), JoinRelType.INNER);
+    final RelNode filter =
+        LogicalFilter.create(nested, builder.equals(rexBuilder.makeInputRef(nested, 0), outerKey));
+    final RelNode aggregateInput =
+        LogicalProject.create(filter, ImmutableList.of(),
+            ImmutableList.of(rexBuilder.makeInputRef(filter, 0)),
+            ImmutableList.of("I"), ImmutableSet.of());
+    final RelNode count = aggregate(aggregateInput, SqlStdOperatorTable.COUNT, -1);
+    final RelNode right =
+        LogicalProject.create(count, ImmutableList.of(),
+            ImmutableList.of(
+                builder.call(SqlStdOperatorTable.PLUS,
+                    rexBuilder.makeInputRef(count, 0), builder.literal(1))),
+            ImmutableList.of("P"), ImmutableSet.of());
+    final RelNode before =
+        LogicalCorrelate.create(left, right, ImmutableList.of(),
+            outerId, ImmutableBitSet.of(0), JoinRelType.LEFT);
     final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
-    assertThat(
-        after, hasTree("LogicalJoin(condition=[true], joinType=[left])\n"
-        + "  LogicalValues(tuples=[[{ 1 }]])\n"
-        + "  LogicalValues(tuples=[[{ 2 }]])\n"));
+    final String plan = RelOptUtil.toString(after);
+    assertThat(plan, not(containsString("Correlate")));
+    assertThat(plan, not(containsString("RAND()")));
+    // Keep the scalar aggregate rewrite, rather than adding a domain join.
+    assertThat(after.getInput(0), instanceOf(Aggregate.class));
+    try (PreparedStatement statement = RelRunners.run(after);
+        ResultSet rows = statement.executeQuery()) {
+      final List<Integer> keys = new ArrayList<>();
+      while (rows.next()) {
+        keys.add(rows.getInt(1));
+        assertThat(rows.getLong(2), is(2L));
+      }
+      assertThat(keys, containsInAnyOrder(1, 2));
+    }
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   * A nested Project's binding does not hide a reference above it to the outer
+   * binding with the same id. Both scalar rewrites must retain that outer binding. */
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testScalarSourceWithShadowedCorrelation(boolean aggregateRule) {
+    final RelBuilder builder = RelBuilder.create(Frameworks.newConfigBuilder().build())
+        .transform(c -> c.withBloat(-1));
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelNode left = builder.values(new String[] {"A", "B"}, 10, 20).build();
+    final CorrelationId id = builder.getCluster().createCorrel();
+    final RexNode outer = rexBuilder.makeCorrel(left.getRowType(), id);
+    final RelNode values = builder.values(new String[] {"A", "B"}, 1, 2).build();
+    final RexNode local = rexBuilder.makeCorrel(values.getRowType(), id);
+    final RelNode subQuery = builder.values(new String[] {"Z"}, 0)
+        .project(rexBuilder.makeFieldAccess(local, 0)).build();
+    final RelNode binding =
+        LogicalProject.create(values, ImmutableList.of(),
+            ImmutableList.of(RexSubQuery.scalar(subQuery)),
+            ImmutableList.of("P"), ImmutableSet.of(id));
+    final RelNode source =
+        LogicalProject.create(binding, ImmutableList.of(),
+            ImmutableList.of(rexBuilder.makeInputRef(binding, 0),
+                rexBuilder.makeFieldAccess(outer, 1)),
+            ImmutableList.of("P", "Q"), ImmutableSet.of());
+    final RelNode project =
+        LogicalProject.create(source, ImmutableList.of(),
+            ImmutableList.of(
+                builder.call(SqlStdOperatorTable.PLUS,
+                    rexBuilder.makeInputRef(source, 1), rexBuilder.makeFieldAccess(outer, 0))),
+            ImmutableList.of("R"), ImmutableSet.of());
+    final SqlAggFunction function =
+        aggregateRule ? SqlStdOperatorTable.SUM : SqlStdOperatorTable.SINGLE_VALUE;
+    RelNode right = aggregate(project, function, 0);
+    if (aggregateRule) {
+      right =
+          LogicalProject.create(
+              right, ImmutableList.of(), ImmutableList.of(
+              builder.call(SqlStdOperatorTable.PLUS,
+                  rexBuilder.makeInputRef(right, 0), builder.literal(1))),
+          ImmutableList.of("R"), ImmutableSet.of());
+    }
+    final RelNode before =
+        LogicalCorrelate.create(left, right, ImmutableList.of(),
+            id, ImmutableBitSet.of(0, 1), JoinRelType.LEFT);
+    final RelValidityChecker inputChecker = new RelValidityChecker();
+    inputChecker.go(before);
+    assertThat(inputChecker.invalidCount(), is(0));
+
+    final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+    // The validity checker resolves references against their enclosing bindings;
+    // a flat set of used correlation ids would miss this shadowing case.
+    final RelValidityChecker outputChecker = new RelValidityChecker();
+    outputChecker.go(after);
+    assertThat(outputChecker.invalidCount(), is(0));
+  }
+
+  @Test void testScalarSubQueryKeepsNullExtension() throws Exception {
+    final RelBuilder builder = RelBuilder.create(Frameworks.newConfigBuilder().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelNode left = builder.values(new String[] {"K"}, 1, 2).build();
+    final CorrelationId id = builder.getCluster().createCorrel();
+    final RexNode key =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(left.getRowType(), id), 0);
+    final RelNode values = builder.values(new String[] {"X"}, 1).build();
+    final RelNode filter =
+        LogicalFilter.create(values, builder.equals(rexBuilder.makeInputRef(values, 0), key));
+    final RelNode sub = builder.values(new String[] {"V"}, 7).build();
+    final RelNode project =
+        LogicalProject.create(filter, ImmutableList.of(),
+            ImmutableList.of(RexSubQuery.scalar(sub)), ImmutableList.of("P"), ImmutableSet.of());
+    final RelNode before =
+        LogicalCorrelate.create(left, aggregate(project, SqlStdOperatorTable.SINGLE_VALUE, 0),
+            ImmutableList.of(), id, ImmutableBitSet.of(0), JoinRelType.LEFT);
+    final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+    try (PreparedStatement statement = RelRunners.run(after)) {
+      assertThat(CalciteAssert.toString(statement.executeQuery()), is("K=1; P=7\nK=2; P=null\n"));
+    }
+  }
+
+  private static RelNode aggregate(RelNode input, SqlAggFunction function, int argument) {
+    final AggregateCall call =
+        AggregateCall.create(SqlParserPos.ZERO, function, false, false, false, ImmutableList.of(),
+            argument < 0 ? ImmutableList.of() : ImmutableList.of(argument), -1, null,
+            RelCollations.EMPTY, true, input, null, "P");
+    return LogicalAggregate.create(input, ImmutableList.of(), ImmutableBitSet.of(),
+        null, ImmutableList.of(call));
   }
 }

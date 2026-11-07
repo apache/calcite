@@ -288,16 +288,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return newRootRel;
   }
 
-  /** Trims a scalar rule's right input, keeping all its output fields.
-   * The left input retains the keys needed by the rule's uniqueness checks. */
+  /** Trims the right input, preserving its output fields and the left input.
+   * Submits an equivalent Correlate if the plan changes and the trimmed right
+   * input is deterministic. */
   private void trimRightInput(RelOptRuleCall call, Correlate correlate, RelNode right) {
-    final RelNode trimmed = new RelFieldTrimmer(null, relBuilder).trim(right);
-    if (right.deepEquals(trimmed)) {
-      return;
+    final RelNode trimmed = RelFieldTrimmer.trimPreservingBindings(right, relBuilder);
+    if (!right.deepEquals(trimmed) && RelOptUtil.isDeterministic(trimmed)) {
+      call.transformTo(
+          correlate.copy(correlate.getTraitSet(),
+          ImmutableList.of(correlate.getLeft(), trimmed)));
     }
-    call.transformTo(
-        correlate.copy(correlate.getTraitSet(), correlate.getLeft(), trimmed,
-        correlate.getCorrelationId(), correlate.getRequiredColumns(), correlate.getJoinType()));
   }
 
   private void setCurrent(@Nullable RelNode root, @Nullable Correlate corRel) {
@@ -311,16 +311,35 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return RelBuilder.proto(relBuilder);
   }
 
+  /** Returns whether this node's expressions are supported by the scalar
+   * correlation rewrite. Local bindings and sub-queries are not supported.
+   * This checks expression structure only, not determinism. */
+  private static boolean canRewriteScalarExpressions(RelNode rel) {
+    if (!rel.getVariablesSet().isEmpty()) {
+      return false;
+    }
+    if (rel instanceof Project) {
+      return !RexUtil.SubQueryFinder.containsSubQuery((Project) rel);
+    }
+    if (rel instanceof Filter) {
+      return !RexUtil.SubQueryFinder.containsSubQuery((Filter) rel);
+    }
+    if (rel instanceof Aggregate) {
+      for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+        if (RexUtil.SubQueryFinder.find(call.rexList) != null) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
   protected RelNode decorrelate(RelNode root) {
     return decorrelate(root, null);
   }
 
   protected RelNode decorrelate(RelNode root, @Nullable RuleSet preDecorrelateRules) {
-    // Unexpanded sub-queries may retain references to bindings removed by this
-    // rewrite (CALCITE-7913).
-    if (RelOptUtil.containsSubQuery(root)) {
-      return root;
-    }
     final RelBuilderFactory f = relBuilderFactory();
     final HepProgram program;
     if (preDecorrelateRules != null) {
@@ -1948,13 +1967,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // so the frame's field mappings remain valid.
     RelNode right = rightFrame.r;
     if (!RelOptUtil.isDeterministic(right)) {
-      final RelBuilder trimBuilder = relBuilderFactory().create(rel.getCluster(), null);
-      right = new RelFieldTrimmer(null, trimBuilder).trim(right);
+      right = RelFieldTrimmer.trimPreservingBindings(right, relBuilder);
       if (!RelOptUtil.isDeterministic(right)) {
         return null;
       }
     }
-    if (RelOptUtil.getVariablesUsed(right).contains(rel.getCorrelationId())) {
+    // An empty correlation-output map does not prove that all references to
+    // this binding have been rewritten.
+    if (CorrelationReferences.mayUse(right, rel.getCorrelationId())) {
       return null;
     }
 
@@ -3114,14 +3134,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check this project only projects one expression, i.e. scalar
       // sub-queries.
-      if (project.getProjects().size() != 1) {
+      if (project.getProjects().size() != 1
+          || !canRewriteScalarExpressions(project)
+          || !canRewriteScalarExpressions(aggregate)) {
         return;
       }
 
+      // This rewrite shares the right input between outer rows.
       final RelNode rightPlan = RelOptUtil.stripAll(correlate.getRight());
-      if (RelOptUtil.containsSubQuery(rightPlan)) {
-        return;
-      }
       if (!RelOptUtil.isDeterministic(rightPlan)) {
         d.trimRightInput(call, correlate, rightPlan);
         return;
@@ -3132,6 +3152,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final @Nullable Filter filter;
       if (right instanceof Filter && d.cm.mapRefRelToCorRef.containsKey(right)) {
         filter = (Filter) right;
+        if (!canRewriteScalarExpressions(filter)) {
+          return;
+        }
         right = filter.getInput();
         assert right instanceof HepRelVertex;
         right = right.stripped();
@@ -3142,7 +3165,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       // The selected scalar rewrite requires an uncorrelated source.
-      if (!RelOptUtil.getVariablesUsed(RelOptUtil.stripAll(right)).isEmpty()) {
+      if (!CorrelationReferences.isUncorrelated(RelOptUtil.stripAll(right))) {
         d.trimRightInput(call, correlate, rightPlan);
         return;
       }
@@ -3322,7 +3345,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check aggOutputProject projects only one expression
       final List<RexNode> aggOutputProjects = aggOutputProject.getProjects();
-      if (aggOutputProjects.size() != 1) {
+      if (aggOutputProjects.size() != 1
+          || !canRewriteScalarExpressions(aggOutputProject)
+          || !canRewriteScalarExpressions(aggInputProject)
+          || !canRewriteScalarExpressions(aggregate)) {
         return;
       }
 
@@ -3340,10 +3366,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
+      // This rewrite shares the right input between outer rows.
       final RelNode rightPlan = RelOptUtil.stripAll(correlate.getRight());
-      if (RelOptUtil.containsSubQuery(rightPlan)) {
-        return;
-      }
       if (!RelOptUtil.isDeterministic(rightPlan)) {
         d.trimRightInput(call, correlate, rightPlan);
         return;
@@ -3368,6 +3392,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final @Nullable Filter filter;
       if (right instanceof Filter && d.cm.mapRefRelToCorRef.containsKey(right)) {
         filter = (Filter) right;
+        if (!canRewriteScalarExpressions(filter)) {
+          return;
+        }
         right = filter.getInput();
         assert right instanceof HepRelVertex;
         right = right.stripped();
@@ -3378,7 +3405,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       // The selected scalar rewrite requires an uncorrelated source.
-      if (!RelOptUtil.getVariablesUsed(RelOptUtil.stripAll(right)).isEmpty()) {
+      if (!CorrelationReferences.isUncorrelated(RelOptUtil.stripAll(right))) {
         d.trimRightInput(call, correlate, rightPlan);
         return;
       }
@@ -3751,7 +3778,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check aggOutputProj projects only one expression
       List<RexNode> aggOutputProjExprs = aggOutputProject.getProjects();
-      if (aggOutputProjExprs.size() != 1) {
+      if (aggOutputProjExprs.size() != 1 || !canRewriteScalarExpressions(aggOutputProject)) {
         return;
       }
 

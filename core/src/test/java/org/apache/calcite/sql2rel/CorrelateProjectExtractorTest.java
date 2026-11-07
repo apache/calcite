@@ -17,16 +17,11 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelTraitDef;
-import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalConditionalCorrelate;
-import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
@@ -42,12 +37,9 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.PreparedStatement;
 import java.util.List;
@@ -225,204 +217,51 @@ public class CorrelateProjectExtractorTest {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
    * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
    *
-   * <p>Lift the deterministic A + 1 call without lifting fragments out of the
-   * non-deterministic lambda. B remains a required outer field even though
-   * the lambda stays on the right. */
+   * <p>Extract A + 1 while leaving an equal expression inside the non-deterministic
+   * lambda untouched. Both original outer fields are still required there,
+   * and duplicate outer rows must retain their inner rows. */
   @Test void testNonDeterministicLambda() throws Exception {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    builder.values(new String[] {"A", "B"}, 10, 20).variable(v::set);
+    builder.values(new String[] {"A", "B"}, 10, 20, 10, 20).variable(v::set);
     final RexLambdaRef x = new RexLambdaRef(0, "x", builder.field("A").getType());
+    final RexNode pure =
+        builder.call(SqlStdOperatorTable.PLUS, builder.field(v.get(), "A"), builder.literal(1));
     final RexNode sum =
-        builder.call(SqlStdOperatorTable.PLUS, x, builder.field(v.get(), "B"));
+        builder.call(SqlStdOperatorTable.PLUS,
+            builder.call(SqlStdOperatorTable.PLUS, x, pure), builder.field(v.get(), "B"));
     final RexNode body =
         builder.lessThan(
             builder.call(SqlStdOperatorTable.PLUS, sum, builder.call(SqlStdOperatorTable.RAND)),
             builder.literal(3));
     final RexNode expression =
-        builder.call(
-            SqlLibraryOperators.EXISTS, builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-            builder.literal(1), builder.literal(2)),
-        builder.getRexBuilder().makeLambdaCall(body, ImmutableList.of(x)));
-    final RelNode before = builder.values(new String[] {"V"}, 0)
+        builder.call(SqlLibraryOperators.EXISTS,
+            builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                builder.literal(1), builder.literal(2)),
+            builder.getRexBuilder().makeLambdaCall(body, ImmutableList.of(x)));
+    final RelNode before = builder.values(new String[] {"V"}, 0, 1)
         .project(
-            builder.alias(
-                builder.call(SqlStdOperatorTable.PLUS,
-                builder.field(v.get(), "A"), builder.literal(1)), "P"),
-            builder.alias(expression, "Q"))
+            builder.alias(pure, "P"), builder.alias(expression, "Q"))
         .correlate(JoinRelType.INNER, v.get().id,
             builder.field(2, 0, "A"), builder.field(2, 0, "B"))
         .project(builder.field("P"), builder.field("Q"))
         .build();
     final RelNode after =
         before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
-    assertThat(
-        after, hasTree(""
-        + "LogicalProject(P=[$2], Q=[$3])\n"
-        + "  LogicalProject(A=[$0], B=[$1], P=[$3], Q=[$4])\n"
-        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1, 2}])\n"
-        + "      LogicalProject(A=[$0], B=[$1], $f2=[+($0, 1)])\n"
-        + "        LogicalValues(tuples=[[{ 10, 20 }]])\n"
-        + "      LogicalProject(P=[$cor0.$f2], Q=[EXISTS(ARRAY(1, 2), (x) -> <(+(+(x, $cor0.B), RAND()), 3))])\n"
-        + "        LogicalValues(tuples=[[{ 0 }]])\n"));
+    final Correlate extracted = extractedCorrelate(after);
+    assertThat(extracted.getRequiredColumns(), is(ImmutableBitSet.of(0, 1, 2)));
+    assertThat(((Project) extracted.getRight()).getProjects().get(1), is(expression));
     final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(after);
     try (PreparedStatement statement = RelRunners.run(trimmed)) {
-      assertThat(CalciteAssert.toString(statement.executeQuery()), is("P=11; Q=false\n"));
+      assertThat(CalciteAssert.toString(statement.executeQuery()),
+          is("P=11; Q=false\nP=11; Q=false\nP=11; Q=false\nP=11; Q=false\n"));
     }
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
-   *
-   * <p>The outer and nested bindings deliberately share an id and row type.
-   * Extracting the outer call must not replace the equal call in the nested
-   * ConditionalCorrelate. */
-  @Test void testNestedConditionalCorrelate() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RexBuilder rexBuilder = builder.getRexBuilder();
-    final RelNode left = builder.values(new String[] {"A", "B"}, 10, 20).build();
-    final RelNode innerLeft = builder.values(new String[] {"A", "B"}, 1, 2).build();
-    final CorrelationId id = builder.getCluster().createCorrel();
-    final RexNode outer = rexBuilder.makeCorrel(left.getRowType(), id);
-    final RexNode inner = rexBuilder.makeCorrel(innerLeft.getRowType(), id);
-    final RexNode innerExpression =
-        builder.call(SqlStdOperatorTable.PLUS,
-            rexBuilder.makeFieldAccess(inner, 0), builder.literal(1));
-    final RexNode outerExpression =
-        builder.call(SqlStdOperatorTable.PLUS,
-            rexBuilder.makeFieldAccess(outer, 0), builder.literal(1));
-    final RelNode innerRight = builder.values(new String[] {"X"}, 0)
-        .project(builder.alias(innerExpression, "P")).build();
-    final RelNode nested =
-        LogicalConditionalCorrelate.create(innerLeft, innerRight, ImmutableList.of(),
-            id, ImmutableBitSet.of(0), JoinRelType.LEFT_MARK, builder.literal(true));
-    final RelNode right =
-        LogicalProject.create(nested, ImmutableList.of(),
-            ImmutableList.of(outerExpression, rexBuilder.makeInputRef(nested, 2)),
-            ImmutableList.of("P", "Q"), ImmutableSet.of());
-    final RelNode before =
-        LogicalCorrelate.create(left, right, ImmutableList.of(),
-            id, ImmutableBitSet.of(0), JoinRelType.LEFT);
-    final RelNode after =
-        before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
-    assertThat(
-        after, hasTree(""
-        + "LogicalProject(A=[$0], B=[$1], P=[$3], Q=[$4])\n"
-        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
-        + "    LogicalProject(A=[$0], B=[$1], $f2=[+($0, 1)])\n"
-        + "      LogicalValues(tuples=[[{ 10, 20 }]])\n"
-        + "    LogicalProject(P=[$cor0.$f2], Q=[$2])\n"
-        + "      LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{0}])\n"
-        + "        LogicalValues(tuples=[[{ 1, 2 }]])\n"
-        + "        LogicalProject(P=[+($cor0.A, 1)])\n"
-        + "          LogicalValues(tuples=[[{ 0 }]])\n"));
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
-   *
-   * <p>After extracting an outer ROW field, an inner reference using the same
-   * id must not keep the outer ROW in requiredColumns. Otherwise the unused
-   * structured correlation prevents flattening. */
-  @Test void testNestedCorrelationWithStructuredField() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RexBuilder rexBuilder = builder.getRexBuilder();
-    final RelNode left = builder.values(new String[] {"A", "B"}, 1, 2)
-        .project(
-            builder.alias(
-                builder.call(SqlStdOperatorTable.ROW,
-            builder.field("A"), builder.field("B")), "R"))
-        .build();
-    final CorrelationId id = builder.getCluster().createCorrel();
-    final RexNode outer = rexBuilder.makeCorrel(left.getRowType(), id);
-    final RelNode innerLeft = builder.values(new String[] {"S"}, 3).build();
-    final RexNode inner = rexBuilder.makeCorrel(innerLeft.getRowType(), id);
-    final RelNode innerRight = builder.values(new String[] {"V"}, 0)
-        .project(builder.alias(rexBuilder.makeFieldAccess(inner, 0), "Q")).build();
-    final RelNode nested =
-        LogicalCorrelate.create(innerLeft, innerRight, ImmutableList.of(),
-            id, ImmutableBitSet.of(0), JoinRelType.INNER);
-    final RexNode outerField =
-        rexBuilder.makeFieldAccess(rexBuilder.makeFieldAccess(outer, 0), 1);
-    final RelNode right =
-        LogicalProject.create(nested, ImmutableList.of(),
-            ImmutableList.of(outerField, rexBuilder.makeInputRef(nested, 1)),
-            ImmutableList.of("P", "Q"), ImmutableSet.of());
-    final RelNode before =
-        LogicalCorrelate.create(left, right, ImmutableList.of(),
-            id, ImmutableBitSet.of(0), JoinRelType.LEFT);
-    final RelNode after =
-        before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
-    final RelNode flattened =
-        new RelStructuredTypeFlattener(builder, rexBuilder,
-            ViewExpanders.simpleContext(builder.getCluster()), false).rewrite(after);
-    assertThat(
-        flattened, hasTree(""
-        + "LogicalProject(R=[$0], R1=[$1], P=[$3], Q=[$4])\n"
-        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
-        + "    LogicalProject(R$$0=[$0], R$$1=[$1], $f1=[ROW($0, $1).EXPR$1])\n"
-        + "      LogicalValues(tuples=[[{ 1, 2 }]])\n"
-        + "    LogicalProject(P=[$cor0.$f1], Q=[$1])\n"
-        + "      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
-        + "        LogicalValues(tuples=[[{ 3 }]])\n"
-        + "        LogicalProject(Q=[$cor0.S])\n"
-        + "          LogicalValues(tuples=[[{ 0 }]])\n"));
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
-   *
-   * <p>A Project or Filter binds its id in its own expressions, not its input.
-   * Keep the local expression intact while extracting outer expressions above
-   * the binding and in its input. */
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void testLocalBindingExpressions(boolean projectBinding) {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RexBuilder rexBuilder = builder.getRexBuilder();
-    final RelNode left = builder.values(new String[] {"A", "B"}, 10, 20).build();
-    final CorrelationId id = builder.getCluster().createCorrel();
-    final RexNode outer = rexBuilder.makeCorrel(left.getRowType(), id);
-    final RelNode values = builder.values(new String[] {"A", "B"}, 22, 33).build();
-    final RexNode inputExpression =
-        builder.call(SqlStdOperatorTable.PLUS,
-            rexBuilder.makeFieldAccess(outer, 1), builder.literal(2));
-    final RelNode input =
-        LogicalFilter.create(values,
-            builder.equals(rexBuilder.makeInputRef(values, 0), inputExpression));
-    final RexNode local = rexBuilder.makeCorrel(input.getRowType(), id);
-    final RexNode localExpression =
-        builder.call(SqlStdOperatorTable.PLUS,
-            rexBuilder.makeFieldAccess(local, 0), builder.literal(1));
-    final RelNode binder = projectBinding
-        ? LogicalProject.create(input, ImmutableList.of(), ImmutableList.of(localExpression),
-            ImmutableList.of("P"), ImmutableSet.of(id))
-        : LogicalFilter.create(input, builder.greaterThan(localExpression, builder.literal(0)),
-            ImmutableSet.of(id));
-    final RexNode outerExpression =
-        builder.call(SqlStdOperatorTable.PLUS,
-            rexBuilder.makeFieldAccess(outer, 0), builder.literal(1));
-    final RelNode right =
-        LogicalProject.create(binder, ImmutableList.of(),
-            ImmutableList.of(outerExpression, rexBuilder.makeInputRef(binder, 0)),
-            ImmutableList.of("P", "Q"), ImmutableSet.of());
-    final RelNode before =
-        LogicalCorrelate.create(left, right, ImmutableList.of(),
-            id, ImmutableBitSet.of(0, 1), JoinRelType.LEFT);
-    final RelNode after =
-        before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
-    final String binderTree = projectBinding
-        ? "      LogicalProject(variablesSet=[[$cor0]], P=[+($cor0.A, 1)])\n"
-        : "      LogicalFilter(condition=[>(+($cor0.A, 1), 0)], variablesSet=[[$cor0]])\n";
-    assertThat(
-        after, hasTree(""
-        + "LogicalProject(A=[$0], B=[$1], P=[$4], Q=[$5])\n"
-        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2, 3}])\n"
-        + "    LogicalProject(A=[$0], B=[$1], $f2=[+($0, 1)], $f3=[+($1, 2)])\n"
-        + "      LogicalValues(tuples=[[{ 10, 20 }]])\n"
-        + "    LogicalProject(P=[$cor0.$f2], Q=[$0])\n"
-        + binderTree
-        + "        LogicalFilter(condition=[=($0, $cor0.$f3)])\n"
-        + "          LogicalValues(tuples=[[{ 22, 33 }]])\n"));
+  private static Correlate extractedCorrelate(RelNode rel) {
+    while (!(rel instanceof Correlate)) {
+      rel = rel.getInput(0);
+    }
+    return (Correlate) rel;
   }
 }
