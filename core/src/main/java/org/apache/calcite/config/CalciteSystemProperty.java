@@ -108,6 +108,22 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> ENABLE_REX_DIGEST_NORMALIZE =
       booleanProperty("calcite.enable.rexnode.digest.normalize", true);
 
+  /** Maximum number of candidate expressions constructed by one expression
+   * lineage expansion. Candidates are counted before deduplication. If the
+   * Cartesian product of column origins exceeds this budget, the metadata
+   * provider returns unknown rather than a partial result.
+   *
+   * <p>The default is 10,000. A value of -1 disables the limit; 0 disables
+   * expansions that reference input columns. Expressions without input
+   * references do not require expansion and are unaffected. Values less than
+   * -1 are invalid and use the default.
+   *
+   * <p>This is a per-expansion work limit, not a query-wide memory limit. It
+   * also applies when all-predicates metadata uses the same expansion helper.
+   */
+  public static final CalciteSystemProperty<Integer> EXPRESSION_LINEAGE_MAX_EXPANSIONS =
+      intProperty("calcite.metadata.expression.lineage.max.expansions", 10_000, v -> v >= -1);
+
   /**
    * Whether to follow the SQL standard strictly.
    */
