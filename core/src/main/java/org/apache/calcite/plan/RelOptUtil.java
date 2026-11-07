@@ -25,15 +25,14 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Collect;
-import org.apache.calcite.rel.core.ConditionalCorrelate;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
@@ -48,7 +47,6 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
-import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Values;
@@ -128,7 +126,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -340,6 +337,9 @@ public abstract class RelOptUtil {
         || rel instanceof Uncollect
         || rel instanceof Sample) {
       try {
+        if (!RelNodes.visitExpressions(rel, DeterminismChecker.INSTANCE)) {
+          return false;
+        }
         if (rel instanceof Aggregate) {
           for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
             if (!call.getAggregation().isDeterministic()) {
@@ -347,7 +347,6 @@ public abstract class RelOptUtil {
             }
           }
         }
-        visitExpressions(rel, DeterminismChecker.INSTANCE);
         for (RelNode input : rel.getInputs()) {
           if (!isDeterministic(input)) {
             return false;
@@ -359,64 +358,6 @@ public abstract class RelOptUtil {
       }
     }
     return false;
-  }
-
-  /**
-   * Returns whether an expression in a relational tree contains a sub-query.
-   *
-   * <p>Checks the expression fields of standard relational operators. For other
-   * operators, checks expressions exposed by {@link RelNode#accept(RexShuttle)}.
-   * Planner wrappers are not expanded.
-   */
-  public static boolean containsSubQuery(RelNode rel) {
-    try {
-      visitExpressions(rel, SubQueryFinder.INSTANCE);
-      for (RelNode input : rel.getInputs()) {
-        if (containsSubQuery(input)) {
-          return true;
-        }
-      }
-      return false;
-    } catch (Util.FoundOne e) {
-      Util.swallow(e, null);
-      return true;
-    }
-  }
-
-  /** Visits the expressions of a relational node.
-   *
-   * <p>Does not visit relational inputs or use rewritten expressions returned
-   * by the visitor. The additional cases cover fields omitted by
-   * {@link RelNode#accept(RexShuttle)}.
-   */
-  private static void visitExpressions(RelNode rel, RexShuttle visitor) {
-    rel.accept(visitor);
-    if (rel instanceof Aggregate) {
-      for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
-        visitor.apply(call.rexList);
-      }
-    }
-    if (rel instanceof AsofJoin) {
-      visitor.apply(((AsofJoin) rel).getMatchCondition());
-    }
-    if (rel instanceof Match) {
-      Match match = (Match) rel;
-      match.getMeasures().values().forEach(e -> e.accept(visitor));
-      match.getPatternDefinitions().values().forEach(e -> e.accept(visitor));
-      visitor.apply(match.getPattern());
-      visitor.apply(match.getAfter());
-      visitor.apply(match.getInterval());
-    }
-    if (rel instanceof Window) {
-      for (Window.Group group : ((Window) rel).groups) {
-        visitor.apply(group.aggCalls);
-        visitor.apply(group.lowerBound.getOffset());
-        visitor.apply(group.upperBound.getOffset());
-      }
-    }
-    if (rel instanceof TableModify) {
-      visitor.apply(((TableModify) rel).getSourceExpressionList());
-    }
   }
 
   /**
@@ -454,17 +395,18 @@ public abstract class RelOptUtil {
   }
 
   /** Finds which columns of a correlation variable are used within a
-   * relational expression. A reference to the whole row uses all its fields.
-   *
-   * <p>A Correlate's binding covers its right input. Project and Filter
-   * bindings cover their expressions, not their inputs. Other binding nodes
-   * are visited conservatively.
-   */
+   * relational expression. */
   public static ImmutableBitSet correlationColumns(CorrelationId id,
       RelNode rel) {
-    final CorrelationCollector collector = new CorrelationColumnsCollector(id);
+    final CorrelationCollector collector = new CorrelationCollector();
     rel.accept(collector);
-    return ImmutableBitSet.of(collector.vuv.variableFields.get(id));
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (int field : collector.vuv.variableFields.get(id)) {
+      if (field >= 0) {
+        builder.set(field);
+      }
+    }
+    return builder.build();
   }
 
   /** Returns true, and calls {@link Litmus#succeed()} if a given relational
@@ -2905,7 +2847,8 @@ public abstract class RelOptUtil {
     RelNode subQuery = node.rel;
     RexCorrelVariableMapShuttle rexVisitor =
         new RexCorrelVariableMapShuttle(correlationId, newRowType, inputMapping, rexBuilder);
-    RelNode newSubQuery = rexVisitor.remapCorrelationFields(subQuery);
+    RelNode newSubQuery =
+        subQuery.accept(new RexRewritingRelShuttle(rexVisitor));
 
     return node.clone(newSubQuery);
   }
@@ -4700,7 +4643,8 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Checks expressions and sub-query plans for determinism. */
+  /** Checks operator declarations and expression operands for determinism
+   * without rewriting expressions. */
   private static class DeterminismChecker extends RexShuttle {
     static final DeterminismChecker INSTANCE = new DeterminismChecker();
 
@@ -4723,15 +4667,6 @@ public abstract class RelOptUtil {
         throw Util.FoundOne.NULL;
       }
       return super.visitSubQuery(subQuery);
-    }
-  }
-
-  /** Finds sub-queries in expressions. */
-  private static class SubQueryFinder extends RexShuttle {
-    static final SubQueryFinder INSTANCE = new SubQueryFinder();
-
-    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
-      throw Util.FoundOne.NULL;
     }
   }
 
@@ -4767,7 +4702,7 @@ public abstract class RelOptUtil {
 
     @Override public RexNode visitCorrelVariable(RexCorrelVariable p) {
       variables.add(p.id);
-      variableFields.putAll(p.id, ImmutableBitSet.range(p.getType().getFieldCount()));
+      variableFields.put(p.id, -1);
       return p;
     }
 
@@ -4775,10 +4710,7 @@ public abstract class RelOptUtil {
       if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
         final RexCorrelVariable v =
             (RexCorrelVariable) fieldAccess.getReferenceExpr();
-        variables.add(v.id);
         variableFields.put(v.id, fieldAccess.getField().getIndex());
-        // Record the selected field without visiting the row as a whole.
-        return fieldAccess;
       }
       return super.visitFieldAccess(fieldAccess);
     }
@@ -4884,40 +4816,6 @@ public abstract class RelOptUtil {
       this.newCorrelRowType = newCorrelRowType;
       this.mapping = mapping;
       this.rexBuilder = rexBuilder;
-    }
-
-    /** Remaps correlation field references in a tree and its sub-queries.
-     *
-     * <p>Rewrites expressions exposed by {@link RelNode#accept(RexShuttle)}.
-     * Expression fields omitted by that method are not remapped.
-     *
-     * <p>For a nested binding of the same id, skips a {@link Correlate}'s right
-     * input or a {@link Project}/{@link Filter}'s own expressions. Their other
-     * inputs remain in scope. A {@link ConditionalCorrelate}'s condition is
-     * outside the right-input binding and is always visited, regardless of
-     * whether the ids match. Other binding scopes are not recognized.
-     *
-     * @param root Tree to rewrite
-     * @return Tree with the field references remapped
-     */
-    public RelNode remapCorrelationFields(RelNode root) {
-      return root.accept(new RexRewritingRelShuttle(this) {
-        @Override public RelNode visit(RelNode other) {
-          final boolean bindsId = other.getVariablesSet().contains(correlationId);
-          if (bindsId) {
-            if (other instanceof Correlate) {
-              // Only the right input is inside this binding; the node's own
-              // expressions, including a ConditionalCorrelate condition, are not.
-              return visitChild(other, 0, other.getInput(0))
-                  .accept(RexCorrelVariableMapShuttle.this);
-            }
-            if (other instanceof Project || other instanceof Filter) {
-              return visitChildren(other);
-            }
-          }
-          return super.visit(other);
-        }
-      });
     }
 
     @Override public RexNode visitFieldAccess(final RexFieldAccess fieldAccess) {
@@ -5228,44 +5126,16 @@ public abstract class RelOptUtil {
    * {@link RexSubQuery sub-queries}. */
   private static class CorrelationCollector extends RelHomogeneousShuttle {
     @SuppressWarnings("assignment.type.incompatible")
-    protected final VariableUsedVisitor vuv = new VariableUsedVisitor(this);
+    private final VariableUsedVisitor vuv = new VariableUsedVisitor(this);
 
     @Override public RelNode visit(RelNode other) {
-      final Set<CorrelationId> defined = other.getVariablesSet();
-      final ImmutableSet<CorrelationId> previousUses =
-          Sets.intersection(defined, vuv.variables).immutableCopy();
       other.collectVariablesUsed(vuv.variables);
-      visitExpressions(other, vuv);
-      super.visit(other);
-      // Hide uses introduced by this scope, preserving uses already found in
-      // a parent or sibling when a nested binding reuses the same id.
-      vuv.variables.removeAll(defined);
-      vuv.variables.addAll(previousUses);
-      return other;
-    }
-  }
-
-  /** Collects fields without crossing the known binding scopes of one id. */
-  private static class CorrelationColumnsCollector extends CorrelationCollector {
-    private final CorrelationId id;
-
-    CorrelationColumnsCollector(CorrelationId id) {
-      this.id = id;
-    }
-
-    @Override public RelNode visit(RelNode other) {
-      if (other.getVariablesSet().contains(id)) {
-        if (other instanceof Correlate) {
-          ((Correlate) other).getLeft().accept(this);
-          visitExpressions(other, vuv);
-          return other;
-        }
-        if (other instanceof Project || other instanceof Filter) {
-          visitChildren(other);
-          return other;
-        }
-      }
-      return super.visit(other);
+      other.accept(vuv);
+      RelNode result = super.visit(other);
+      // Important! Remove stopped variables AFTER we visit
+      // children. (which what super.visit() does)
+      vuv.variables.removeAll(other.getVariablesSet());
+      return result;
     }
   }
 

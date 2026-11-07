@@ -18,15 +18,34 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.AsofJoin;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
 
+import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Comparator;
@@ -119,6 +138,61 @@ public class RelNodes {
     for (RelNode input : rel.getInputs()) {
       findRex(input, finder, aggPredicate, consumer);
     }
+  }
+
+  /** Visits a node's expression fields for read-only analysis.
+   *
+   * <p>Does not visit relational inputs, expand planner wrappers, visit
+   * literal-only data, or apply rewritten expressions. The visitor controls
+   * traversal inside expressions, including sub-query plans.
+   *
+   * @return Whether the operator family has known expression coverage;
+   *     false means that unseen references or calls cannot be ruled out
+   */
+  @API(since = "1.43.0", status = API.Status.INTERNAL)
+  public static boolean visitExpressions(RelNode rel, RexShuttle visitor) {
+    rel.accept(visitor);
+    if (rel instanceof Aggregate) {
+      for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+        visitor.apply(call.rexList);
+      }
+    } else if (rel instanceof AsofJoin) {
+      visitor.apply(((AsofJoin) rel).getMatchCondition());
+    } else if (rel instanceof ConditionalCorrelate) {
+      visitor.apply(((ConditionalCorrelate) rel).getCondition());
+    } else if (rel instanceof Match) {
+      final Match match = (Match) rel;
+      match.getMeasures().values().forEach(e -> e.accept(visitor));
+      match.getPatternDefinitions().values().forEach(e -> e.accept(visitor));
+      visitor.apply(match.getPattern());
+      visitor.apply(match.getAfter());
+      visitor.apply(match.getInterval());
+    } else if (rel instanceof Window) {
+      for (Window.Group group : ((Window) rel).groups) {
+        visitor.apply(group.aggCalls);
+        visitor.apply(group.lowerBound.getOffset());
+        visitor.apply(group.upperBound.getOffset());
+      }
+    } else if (rel instanceof TableModify) {
+      visitor.apply(((TableModify) rel).getSourceExpressionList());
+    } else {
+      return rel instanceof Project
+          || rel instanceof Filter
+          || rel instanceof Calc
+          || rel instanceof Join
+          || rel instanceof Correlate
+          || rel instanceof Sort
+          || rel instanceof SetOp
+          || rel instanceof Exchange
+          || rel instanceof TableScan
+          || rel instanceof Values
+          || rel instanceof TableFunctionScan
+          || rel instanceof Snapshot
+          || rel instanceof Collect
+          || rel instanceof Uncollect
+          || rel instanceof Sample;
+    }
+    return true;
   }
 
   /** Arbitrary stable comparator for {@link RelNode}s. */
