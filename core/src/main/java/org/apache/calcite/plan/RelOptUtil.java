@@ -25,20 +25,32 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
@@ -85,6 +97,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
@@ -285,6 +298,66 @@ public abstract class RelOptUtil {
       }
     }
     return result;
+  }
+
+  /** Returns whether a relational expression, its inputs and sub-queries are
+   * deterministic according to their operator declarations.
+   *
+   * <p>Assumes parameters, correlation bindings, query context and table contents
+   * stay fixed within the query. Function calls use
+   * {@link SqlOperator#isDeterministic()}, which allows query-stable functions
+   * such as {@code CURRENT_TIMESTAMP}. A {@link Sample} must declare repeatability.
+   * Unknown relational operators return false. Planner wrappers are not expanded.
+   *
+   * <p>Input order must also be stable where it affects the result. This method
+   * does not establish that property, for example for an unordered FETCH.
+   * It does not trim fields or modify the expression.
+   */
+  public static boolean isDeterministic(RelNode rel) {
+    if (rel instanceof Sample
+        && !((Sample) rel).getSamplingParameters().isRepeatable()) {
+      return false;
+    }
+    if (rel instanceof Aggregate
+        || rel instanceof Window
+        || rel instanceof Match
+        || rel instanceof Project
+        || rel instanceof Filter
+        || rel instanceof Calc
+        || rel instanceof Join
+        || rel instanceof Correlate
+        || rel instanceof Sort
+        || rel instanceof SetOp
+        || rel instanceof Exchange
+        || rel instanceof TableScan
+        || rel instanceof Values
+        || rel instanceof TableFunctionScan
+        || rel instanceof Snapshot
+        || rel instanceof Collect
+        || rel instanceof Uncollect
+        || rel instanceof Sample) {
+      try {
+        if (!RelNodes.visitExpressions(rel, DeterminismChecker.INSTANCE)) {
+          return false;
+        }
+        if (rel instanceof Aggregate) {
+          for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+            if (!call.getAggregation().isDeterministic()) {
+              return false;
+            }
+          }
+        }
+        for (RelNode input : rel.getInputs()) {
+          if (!isDeterministic(input)) {
+            return false;
+          }
+        }
+        return true;
+      } catch (Util.FoundOne e) {
+        Util.swallow(e, null);
+      }
+    }
+    return false;
   }
 
   /**
@@ -4567,6 +4640,33 @@ public abstract class RelOptUtil {
               .filter(hint -> hint.inheritPath.isEmpty())
               .collect(Collectors.toList());
       return hintable.withHints(resetHints);
+    }
+  }
+
+  /** Checks operator declarations and expression operands for determinism
+   * without rewriting expressions. */
+  private static class DeterminismChecker extends RexShuttle {
+    static final DeterminismChecker INSTANCE = new DeterminismChecker();
+
+    @Override public RexNode visitCall(RexCall call) {
+      if (!call.getOperator().isDeterministic()) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitCall(call);
+    }
+
+    @Override public SqlAggFunction visitOverAggFunction(SqlAggFunction op) {
+      if (!op.isDeterministic()) {
+        throw Util.FoundOne.NULL;
+      }
+      return op;
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      if (!isDeterministic(subQuery.rel)) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitSubQuery(subQuery);
     }
   }
 

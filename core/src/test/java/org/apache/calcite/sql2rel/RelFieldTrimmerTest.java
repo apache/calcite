@@ -25,44 +25,131 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalMatch;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.sql.PreparedStatement;
 import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Test for {@link RelFieldTrimmer}. */
 class RelFieldTrimmerTest {
+  /** Scope-local trimming must not renumber fields captured by expressions
+   * that the ordinary correlation remapper does not rewrite, such as Match. */
+  @Test void testTrimWithinScopePreservesCorrelation() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelNode left = builder.values(new String[] {"UNUSED", "K"}, 10, 20).build();
+    final CorrelationId id = builder.getCluster().createCorrel();
+    final RexNode key =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(left.getRowType(), id), 1);
+    final RelNode values = builder.values(new String[] {"X"}, 1).build();
+    final RelDataType rowType = builder.getTypeFactory().builder().add("M", key.getType()).build();
+    final RelNode match =
+        LogicalMatch.create(values, rowType, builder.literal("A"), false, false,
+            ImmutableMap.of("A", builder.literal(true)), ImmutableMap.of("M", key),
+            rexBuilder.makeFlag(SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW),
+            ImmutableMap.of(), false, ImmutableBitSet.of(), RelCollations.EMPTY, null);
+    final RelNode correlate =
+        LogicalCorrelate.create(left, match, ImmutableList.of(),
+            id, ImmutableBitSet.of(1), JoinRelType.LEFT);
+    final RelNode root = builder.push(correlate).project(builder.field(2)).build();
+    final RelNode trimmed =
+        RelFieldTrimmer.trimPreservingBindings(root, builder);
+    assertThat(trimmed.getRowType(), is(root.getRowType()));
+    final Correlate result = (Correlate) trimmed.getInput(0);
+    assertThat(result.getLeft().getRowType(), is(left.getRowType()));
+    final RexFieldAccess measure =
+        (RexFieldAccess) ((Match) result.getRight()).getMeasures().get("M");
+    assertThat(measure.getField().getIndex(), is(1));
+    assertThat(measure.getReferenceExpr().getType(), is(left.getRowType()));
+  }
+
+  /** Rebuilding a consumer must not capture its outer reference in a local
+   * binding that reuses the same correlation id. */
+  @Test void testTrimWithinScopeDoesNotMergeBindingProject() throws Exception {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelNode outer = builder.values(new String[] {"A", "B"}, 10, 20).build();
+    final RelNode input = builder.values(new String[] {"A", "B"}, 1, 2).build();
+    final CorrelationId id = builder.getCluster().createCorrel();
+    final RexNode outerField =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(outer.getRowType(), id), 1);
+    final RexNode localField =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(input.getRowType(), id), 0);
+    final RelNode subQuery = builder.values(new String[] {"Z"}, 0).project(localField).build();
+    final RelNode binding =
+        LogicalProject.create(input, ImmutableList.of(),
+            ImmutableList.of(RexSubQuery.scalar(subQuery)), ImmutableList.of("P"),
+            ImmutableSet.of(id));
+    final RelNode consumer =
+        LogicalProject.create(binding, ImmutableList.of(),
+            ImmutableList.of(rexBuilder.makeInputRef(binding, 0), outerField,
+                builder.call(SqlStdOperatorTable.RAND)),
+            ImmutableList.of("P", "E", "UNUSED"), ImmutableSet.of());
+    final RelNode root =
+        LogicalProject.create(consumer, ImmutableList.of(),
+            ImmutableList.of(rexBuilder.makeInputRef(consumer, 0),
+                rexBuilder.makeInputRef(consumer, 1)),
+            ImmutableList.of("P", "E"), ImmutableSet.of());
+    final RelNode trimmed = RelFieldTrimmer.trimPreservingBindings(root, builder);
+    assertThat(trimmed.getRowType(), is(root.getRowType()));
+    assertThat(trimmed.getVariablesSet(), is(ImmutableSet.of()));
+    assertThat(trimmed.getInput(0).getVariablesSet(), is(ImmutableSet.of(id)));
+    assertThat(((Project) trimmed).getProjects().get(1), is(outerField));
+    final RelNode correlate =
+        LogicalCorrelate.create(outer, trimmed, ImmutableList.of(), id, ImmutableBitSet.of(1),
+            JoinRelType.INNER);
+    try (PreparedStatement statement = RelRunners.run(correlate)) {
+      assertThat(CalciteAssert.toString(statement.executeQuery()),
+          is("A=10; B=20; P=1; E=20\n"));
+    }
+  }
+
   public static Frameworks.ConfigBuilder config() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     return Frameworks.newConfigBuilder()
@@ -909,5 +996,6 @@ class RelFieldTrimmerTest {
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(trimmed, hasTree(expected));
   }
+
 
 }
