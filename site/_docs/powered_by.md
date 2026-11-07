@@ -153,3 +153,8 @@ graph database.
 ### TBDS
 
 [TBDS](https://cloud.tencent.com/product/tbds) (Tencent Big Data Suite) is a platform for big data storage and processing. It uses calcite for SQL parsing and query optimization.
+
+### Wordfully
+
+[Wordfully](https://wordfully.ai/) is a writing assistant for grammar and
+spelling checks, sentence rephrasing, and tone adjustments.
