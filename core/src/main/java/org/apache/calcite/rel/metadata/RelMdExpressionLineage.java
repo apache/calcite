@@ -522,9 +522,7 @@ public class RelMdExpressionLineage
     }
 
     if (maxExpansions >= 0) {
-      // Every referenced column adds a dimension to the Cartesian product.
-      // Count before copying RexNodes, even if equal candidates would later
-      // collapse in a Set. Division avoids overflow for very large products.
+      // Estimate the number of candidates before copying any RexNodes.
       int remaining = maxExpansions;
       for (Map.Entry<RexInputRef, Set<RexNode>> entry : mapping.entrySet()) {
         if (predFieldsUsed.get(entry.getKey().getIndex())) {
@@ -533,6 +531,8 @@ public class RelMdExpressionLineage
             return null;
           }
           if (count > 0) {
+            // Divide the remaining budget instead of multiplying the counts:
+            // the product can overflow even when each count fits in an int.
             remaining /= count;
           }
         }
