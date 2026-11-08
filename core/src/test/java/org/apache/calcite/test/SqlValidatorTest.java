@@ -65,6 +65,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
@@ -16436,5 +16437,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Struct array + scalar array: all result columns (including struct fields) are nullable.
     sql("select * from unnest(array[(1, 'a'), (2, 'b')], array[10, 20]) as t(p, q, r)")
         .type("RecordType(INTEGER P, CHAR(1) Q, INTEGER R) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7792">[CALCITE-7792]
+   * Failed namespace validation breaks SqlAdvisorValidator hints and can
+   * overflow the stack in getRowType()</a>.
+   *
+   * <p>After validateImpl() fails, a later getRowType() re-throws the stored
+   * error instead of recursing. */
+  @Test void testNamespaceRethrowsStoredFailure() throws Exception {
+    final String sql = "select * from (select bad_col from emp) as t";
+    final SqlNode topNode = fixture().factory.createParser(sql).parseQuery();
+
+    // Grab the inner SELECT's SqlNode before validation, so we can look up its
+    // namespace after the expected failure.
+    final SqlSelect outerSelect = (SqlSelect) topNode;
+    final SqlCall asCall = (SqlCall) outerSelect.getFrom();
+    final SqlNode innerSelect = asCall.operand(0);
+
+    final SqlValidator validator = fixture().factory.createValidator();
+
+    // First validation attempt fails with a clear error about the bad column.
+    final Exception firstFailure =
+        assertThrows(Exception.class, () -> validator.validate(topNode));
+    assertThat(firstFailure.getMessage(), containsString("BAD_COL"));
+
+    final SqlValidatorNamespace namespace = validator.getNamespace(innerSelect);
+    assertThat(namespace, notNullValue());
+
+    // getRowType() call re-throws the stored error rather than recursing into a null rowType.
+    final Exception secondFailure =
+        assertThrows(Exception.class, namespace::getRowType);
+    assertThat(secondFailure.getMessage(), containsString("BAD_COL"));
   }
 }

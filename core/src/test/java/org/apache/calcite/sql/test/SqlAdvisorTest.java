@@ -1317,6 +1317,19 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
             ImmutableMap.of("COLUMN(count)", "`count`"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7792">[CALCITE-7792]
+   * Failed namespace validation breaks SqlAdvisorValidator hints and can
+   * overflow the stack in getRowType()</a>.
+   *
+   * <p>The sub-query fails to validate, because the type of {@code ?} cannot
+   * be inferred, but the advisor still offers the columns it can resolve. */
+  @Test void testAdviceSubQueryWithDynamicParam() {
+    final String sql = "select ename^ from (select ?, ename from emp)";
+    fixture().withSql(sql)
+        .assertComplete("COLUMN(ENAME)\n", "ename");
+  }
+
   @Test void testAdviceEmptyFrom() {
     String sql = "select * from^";
     fixture().withSql(sql).withLex(Lex.JAVA)
