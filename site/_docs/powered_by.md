@@ -157,4 +157,5 @@ graph database.
 ### Wordfully
 
 [Wordfully](https://wordfully.ai/) is a writing assistant for grammar and
-spelling checks, sentence rephrasing, and tone adjustments.
+spelling checks, sentence rephrasing, and tone adjustments. It uses Calcite
+to parse, validate, and optimize SQL for internal data processing.
