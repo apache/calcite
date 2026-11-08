@@ -35,9 +35,9 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
-import java.util.HashSet;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
-import java.util.Set;
 
 /**
  * <code>SqlAdvisorValidator</code> is used by {@link SqlAdvisor} to traverse
@@ -47,8 +47,6 @@ import java.util.Set;
  */
 public class SqlAdvisorValidator extends SqlValidatorImpl {
   //~ Instance fields --------------------------------------------------------
-
-  private final Set<SqlValidatorNamespace> activeNamespaces = new HashSet<>();
 
   private final RelDataType emptyStructType =
       SqlTypeUtil.createEmptyStructType(typeFactory);
@@ -184,14 +182,51 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     }
   }
 
+  /**
+   * Masks type-inference {@link CalciteException} during validation of
+   * sub-expressions so that the advisor can continue providing hints even
+   * when a namespace fails to validate, for example an unknown column in
+   * an incomplete SQL fragment.
+   */
+  @Override protected void inferUnknownTypes(
+      RelDataType inferredType,
+      SqlValidatorScope scope,
+      SqlNode node) {
+    try {
+      super.inferUnknownTypes(inferredType, scope, node);
+    } catch (CalciteException e) {
+      Util.swallow(e, TRACER);
+    }
+  }
+
   @Override protected void validateNamespace(final SqlValidatorNamespace namespace,
       RelDataType targetRowType) {
-    // Only attempt to validate each namespace once. Otherwise, if
-    // validation fails, we may end up cycling.
-    if (activeNamespaces.add(namespace)) {
+    // Namespace.validate() already guards against cycles via its own
+    // status field, throwing on re-entry while IN_PROGRESS, and is a
+    // no-op if already VALID.
+    try {
       super.validateNamespace(namespace, targetRowType);
-    } else {
+    } catch (CalciteException e) {
+      // Mask validation errors so the advisor can continue providing hints
+      // even when a namespace fails to validate. Fall back to an empty struct
+      // type so callers can enumerate zero columns gracefully.
+      Util.swallow(e, TRACER);
       namespace.setType(emptyStructType);
+    }
+  }
+
+  /**
+   * Masks {@link CalciteException} during roll-up validation, which is
+   * irrelevant for completion hints and can fail with an unresolvable column,
+   * which would otherwise abort validation of the entire enclosing namespace.
+   */
+  @Override protected void checkRollUp(@Nullable SqlNode grandParent,
+      @Nullable SqlNode parent, @Nullable SqlNode current, SqlValidatorScope scope,
+      @Nullable String contextClause) {
+    try {
+      super.checkRollUp(grandParent, parent, current, scope, contextClause);
+    } catch (CalciteException e) {
+      Util.swallow(e, TRACER);
     }
   }
 
