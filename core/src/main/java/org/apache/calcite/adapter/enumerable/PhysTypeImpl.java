@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -327,13 +328,10 @@ public class PhysTypeImpl implements PhysType {
       final Expression fieldComparator = generateCollatorExpression(fieldType.getCollation());
       Expression arg0 = fieldReference(parameterV0, index);
       Expression arg1 = fieldReference(parameterV1, index);
-      switch (Primitive.flavor(fieldClass(index))) {
-      case OBJECT:
+      if (Primitive.flavor(fieldClass(index)) == Primitive.Flavor.OBJECT
+          && !isComposite(fieldType)) {
         arg0 = EnumUtils.convert(arg0, Comparable.class);
         arg1 = EnumUtils.convert(arg1, Comparable.class);
-        break;
-      default:
-        break;
       }
       final boolean nullsFirst =
           collation.nullDirection
@@ -345,17 +343,13 @@ public class PhysTypeImpl implements PhysType {
           Expressions.statement(
               Expressions.assign(
                   parameterC,
-                  Expressions.call(
-                      Utilities.class,
+                  generateComparison(fieldType,
                       fieldNullable(index)
                           ? (nullsFirst != descending
                           ? "compareNullsFirst"
                           : "compareNullsLast")
                           : "compare",
-                      Expressions.list(
-                          arg0,
-                          arg1)
-                          .appendIfNotNull(fieldComparator)))));
+                      arg0, arg1, fieldComparator))));
       body.add(
           Expressions.ifThen(
               Expressions.notEqual(
@@ -455,13 +449,10 @@ public class PhysTypeImpl implements PhysType {
       final Expression fieldComparator = generateCollatorExpression(fieldType.getCollation());
       Expression arg0 = fieldReference(parameterV0, index);
       Expression arg1 = fieldReference(parameterV1, index);
-      switch (Primitive.flavor(fieldClass(index))) {
-      case OBJECT:
+      if (Primitive.flavor(fieldClass(index)) == Primitive.Flavor.OBJECT
+          && !isComposite(fieldType)) {
         arg0 = EnumUtils.convert(arg0, Comparable.class);
         arg1 = EnumUtils.convert(arg1, Comparable.class);
-        break;
-      default:
-        break;
       }
       final boolean descending =
           fieldCollation.getDirection()
@@ -470,13 +461,9 @@ public class PhysTypeImpl implements PhysType {
           Expressions.statement(
               Expressions.assign(
                   parameterC,
-                  Expressions.call(
-                      Utilities.class,
+                  generateComparison(fieldType,
                       compareMethodNameFunction.apply(fieldCollation),
-                      Expressions.list(
-                          arg0,
-                          arg1)
-                          .appendIfNotNull(fieldComparator)))));
+                      arg0, arg1, fieldComparator))));
       body.add(
           Expressions.ifThen(
               Expressions.notEqual(
@@ -538,10 +525,55 @@ public class PhysTypeImpl implements PhysType {
       // merge join keys must be sorted in ascending order, nulls last
       assert fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST;
       assert fieldCollation.getDirection() == RelFieldCollation.Direction.ASCENDING;
-      return fieldNullable(fieldCollation.getFieldIndex())
+      final int index = fieldCollation.getFieldIndex();
+      // Even a non-null ROW can have NULL fields that prevent a join match.
+      return fieldNullable(index) || rowType.getFieldList().get(index).getType().isStruct()
           ? "compareNullsLastForMergeJoin"
           : "compare";
     });
+  }
+
+  private static boolean isComposite(RelDataType type) {
+    return type.isStruct()
+        || type.getComponentType() != null
+        || type.getSqlTypeName() == SqlTypeName.MAP;
+  }
+
+  /** ROW, ARRAY, MULTISET and MAP sort keys are not Comparable.
+   * Use the same element-wise comparator as the single-key sort path. */
+  private static Expression generateComparison(RelDataType type, String method,
+      Expression left, Expression right, @Nullable Expression collator) {
+    if (isComposite(type)) {
+      // Composite types have no collation of their own, so collator is unused here.
+      final String compositeMethod;
+      switch (method) {
+      case "compare":
+        compositeMethod = "compareComposite";
+        break;
+      case "compareNullsFirst":
+        compositeMethod = "compareCompositeNullsFirst";
+        break;
+      case "compareNullsLast":
+        compositeMethod = "compareCompositeNullsLast";
+        break;
+      case "compareNullsLastForMergeJoin":
+        compositeMethod = "compareCompositeNullsLastForMergeJoin";
+        // Make sure merge join does not match ROW(1, NULL) = ROW(1, NULL);
+        // this is the same check that hash join applies through generateNullAwareAccessor
+        if (type.isStruct()) {
+          final ParameterExpression row = Expressions.parameter(Object.class, "row");
+          return Expressions.call(Utilities.class, compositeMethod, left, right,
+              Expressions.lambda(Predicate1.class,
+                  structIsNullOrContainsNullExpression(row, type), row));
+        }
+        break;
+      default:
+        throw new AssertionError("unexpected comparison method: " + method);
+      }
+      return Expressions.call(Utilities.class, compositeMethod, left, right);
+    }
+    return Expressions.call(Utilities.class, method,
+        Expressions.list(left, right).appendIfNotNull(collator));
   }
 
   @Override public RelDataType getRowType() {
