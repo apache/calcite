@@ -9998,6 +9998,8 @@ public class SqlOperatorTest {
             + "<CHARACTER>, <CHARACTER>\\)", false);
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    // Expected string and NULL results below were verified against
+    // MySQL Community Server 8.4.13 (official mysql:8.4 Docker image).
     f.checkString("substring_index('www.apache.org', '.', 2)",
         "www.apache", "VARCHAR(14) NOT NULL");
     f.checkString("substring_index('www.apache.org', '.', 1)",
@@ -10006,6 +10008,16 @@ public class SqlOperatorTest {
         "www.apache.org", "VARCHAR(14) NOT NULL");
     f.checkString("substring_index('www.apache.org', '.', -1)",
         "org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -2)",
+        "apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -3)",
+        "www.apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -10)",
+        "www.apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('a.b.c', '.', -2)",
+        "b.c", "VARCHAR(5) NOT NULL");
+    f.checkString("substring_index('a--b--c', '--', -2)",
+        "b--c", "VARCHAR(7) NOT NULL");
 
     f.checkString("substring_index('aBc', 'B', -1)",
         "c", "VARCHAR(3) NOT NULL");
