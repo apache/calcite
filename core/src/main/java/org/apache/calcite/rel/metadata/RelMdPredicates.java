@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -546,6 +547,19 @@ public class RelMdPredicates
   public RelOptPredicateList getPredicates(Sort sort, RelMetadataQuery mq) {
     RelNode input = sort.getInput();
     return mq.getPulledUpPredicates(input);
+  }
+
+  /**
+   * Infers predicates for a Window.
+   */
+  public RelOptPredicateList getPredicates(Window window, RelMetadataQuery mq) {
+    // A Window preserves its input fields and appends its aggregate results,
+    // so predicates on the input fields remain valid without remapping.
+    final RelOptPredicateList inputPredicates =
+        mq.getPulledUpPredicates(window.getInput());
+    // Inferred predicates belong to an input Join, not to the Window.
+    return RelOptPredicateList.of(window.getCluster().getRexBuilder(),
+        inputPredicates.pulledUpPredicates);
   }
 
   /**
