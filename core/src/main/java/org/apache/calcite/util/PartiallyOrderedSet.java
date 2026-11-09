@@ -50,7 +50,7 @@ import static java.util.Objects.requireNonNull;
  * <ul>
  *     <li>reflexive: e.lte(e) returns true;</li>
  *     <li>anti-symmetric: if e.lte(f) returns true,
- *     then f.lte(e) returns false only if e = f;</li>
+ *     then f.lte(e) returns true only if e = f;</li>
  *     <li>transitive: if e.lte(f) returns true and
  *     f.lte(g) returns true, then e.lte(g) must return true.</li>
  * </ul>
