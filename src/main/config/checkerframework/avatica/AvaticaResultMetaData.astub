@@ -20,7 +20,7 @@ import org.checkerframework.checker.nullness.qual.*;
 
 class AvaticaResultSetMetaData {
   AvaticaResultSetMetaData(
-    AvaticaStatement statement,
+    @Nullable AvaticaStatement statement,
     @Nullable Object query,
     Meta.Signature signature);
 }
