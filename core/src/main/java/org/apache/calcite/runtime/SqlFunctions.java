@@ -7757,13 +7757,7 @@ public class SqlFunctions {
 
   /** Find the string from right to left. */
   private static int rfind(String string, String delim, int start) {
-    while (start >= 0) {
-      if (string.indexOf(delim, start) >= 0) {
-        return start;
-      }
-      start -= 1;
-    }
-    return -1;
+    return string.lastIndexOf(delim, start);
   }
 
   /** Support the SLICE function. */
