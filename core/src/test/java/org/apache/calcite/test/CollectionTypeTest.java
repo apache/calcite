@@ -16,14 +16,17 @@
  */
 package org.apache.calcite.test;
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -36,16 +39,21 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -64,6 +72,142 @@ class CollectionTypeTest {
   private static final String ARRAY_OF_ROWS_QUERY =
       "SELECT ARRAY[ROW(MOD(\"ID\", 2), CAST(NULL AS INTEGER))] AS a,\n"
           + "\"ARRAYFIELD\"[1] AS n FROM \"T\"";
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7919">[CALCITE-7919]
+   * Enumerable comparators fail with ClassCastException on ROW, ARRAY, MULTISET and MAP keys</a>.
+   * Tests sorting by composite keys in enumerable operators. */
+  @ParameterizedTest
+  @MethodSource("compositeSortCases")
+  void testSortCompositeKeys(String key, String order, boolean limit,
+      String[] expected) {
+    withNestedTable()
+        .query("SELECT id FROM " + compositeKeyQuery(key)
+            + " AS t ORDER BY k " + order + ", id DESC"
+            + (limit ? " OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY" : ""))
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          if (limit) {
+            planner.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+            planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          }
+        })
+        .explainContains(limit ? "EnumerableLimitSort" : "EnumerableSort")
+        .returnsOrdered(limit ? Arrays.copyOfRange(expected, 1, 4) : expected);
+  }
+
+  private static List<Arguments> compositeSortCases() {
+    final List<Arguments> cases = new ArrayList<>();
+    for (String key : compositeKeys()) {
+      for (boolean limit : new boolean[]{false, true}) {
+        cases.add(
+            Arguments.of(key, "ASC NULLS FIRST", limit,
+            new String[]{"ID=4", "ID=2", "ID=0", "ID=1", "ID=3"}));
+        cases.add(
+            Arguments.of(key, "ASC NULLS LAST", limit,
+            new String[]{"ID=2", "ID=0", "ID=1", "ID=3", "ID=4"}));
+        cases.add(
+            Arguments.of(key, "DESC NULLS FIRST", limit,
+            new String[]{"ID=4", "ID=3", "ID=1", "ID=2", "ID=0"}));
+        cases.add(
+            Arguments.of(key, "DESC NULLS LAST", limit,
+            new String[]{"ID=3", "ID=1", "ID=2", "ID=0", "ID=4"}));
+      }
+    }
+    return cases;
+  }
+
+  private static List<String> compositeKeys() {
+    // IDs 0 and 2 produce equal maps with different entry insertion orders.
+    return Arrays.asList("ARRAY[a, b]", "ROW(a, b)", "ARRAY[ROW(a, b)]",
+        "ARRAY[ARRAY[a, b]]", "ROW(ARRAY[a], ARRAY[b])",
+        "MULTISET[a, b]",
+        "CASE WHEN id = 2 THEN MAP[1, b, 0, a] ELSE MAP[0, a, 1, b] END");
+  }
+
+  private static String compositeKeyQuery(String key) {
+    return compositeKeyQuery(key, true);
+  }
+
+  private static String compositeKeyQuery(String key, boolean nullableKey) {
+    // IDs 0 and 2 have equal keys; ID 3 has a null field; ID 4 optionally has a null key.
+    return "(SELECT id, " + (nullableKey ? "CASE WHEN id = 4 THEN NULL ELSE " + key + " END" : key)
+        + " AS k\n"
+        + "FROM (SELECT \"ID\" AS id, MOD(\"ID\", 2) AS a,\n"
+        + "CASE WHEN \"ID\" = 3 THEN NULL ELSE 0 END AS b FROM \"T\"))";
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7919">[CALCITE-7919]
+   * Enumerable comparators fail with ClassCastException on ROW, ARRAY, MULTISET and MAP keys</a>.
+   * Tests window ordering by composite keys. */
+  @ParameterizedTest
+  @MethodSource("compositeKeys")
+  void testWindowCompositeKeys(String key) {
+    withNestedTable()
+        .query("SELECT id, ROW_NUMBER() OVER (ORDER BY k NULLS FIRST, id DESC) AS rn\n"
+            + "FROM " + compositeKeyQuery(key) + " AS t")
+        .explainContains("EnumerableWindow")
+        .returnsUnordered("ID=4; RN=1", "ID=2; RN=2", "ID=0; RN=3",
+            "ID=1; RN=4", "ID=3; RN=5");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7919">[CALCITE-7919]
+   * Enumerable comparators fail with ClassCastException on ROW, ARRAY, MULTISET and MAP keys</a>.
+   * Tests that merge and hash joins produce the same results for composite keys. */
+  @ParameterizedTest
+  @MethodSource("compositeJoinCases")
+  void testMergeJoinCompositeKeys(String key, boolean matchesNullField, boolean nullableKey) {
+    final String data = compositeKeyQuery(key, nullableKey);
+    for (boolean leftJoin : new boolean[]{false, true}) {
+      final List<String> expected =
+          new ArrayList<>(Arrays.asList("LID=0; RID=0", "LID=1; RID=1", "LID=2; RID=2"));
+      if (matchesNullField) {
+        expected.add("LID=3; RID=3");
+      } else if (leftJoin) {
+        expected.add("LID=3; RID=null");
+      }
+      if (!nullableKey) {
+        expected.add("LID=4; RID=4");
+      } else if (leftJoin) {
+        expected.add("LID=4; RID=null");
+      }
+      for (boolean mergeJoin : new boolean[]{false, true}) {
+        withNestedTable()
+            .query("SELECT l.id AS lid, r.id AS rid\n"
+                + "FROM " + data + " AS l\n"
+                + (leftJoin ? "LEFT JOIN " : "JOIN ") + data
+                + " AS r ON l.id = r.id AND l.k = r.k")
+            .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+              if (mergeJoin) {
+                planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+                planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+              } else {
+                planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+                planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+              }
+            })
+            .explainContains(mergeJoin ? "EnumerableMergeJoin" : "EnumerableHashJoin")
+            .returnsUnordered(expected.toArray(new String[0]));
+      }
+    }
+  }
+
+  private static List<Arguments> compositeJoinCases() {
+    final List<Arguments> cases = new ArrayList<>();
+    for (String key : compositeKeys()) {
+      // NULL fields prevent ROW equality, but NULL elements in collections do not.
+      cases.add(Arguments.of(key, !key.equals("ROW(a, b)"), true));
+    }
+    cases.add(Arguments.of("ROW(a, ROW(b))", false, true));
+    cases.add(Arguments.of("ROW(a, CASE WHEN b IS NULL THEN NULL ELSE ROW(b) END)", false, true));
+    cases.add(Arguments.of("ROW(a, CASE WHEN b IS NULL THEN NULL ELSE ARRAY[b] END)", false, true));
+    // A non-null ROW may still have nullable fields. ID 4 must match after the NULL field at ID 3.
+    cases.add(Arguments.of("ROW(a, b)", false, false));
+    cases.add(Arguments.of("ROW(a, ROW(b))", false, false));
+    cases.add(Arguments.of("ROW(ARRAY[a], ARRAY[b])", true, false));
+    return cases;
+  }
 
   @Test void testDistinctArrayOfRows() {
     withNestedTable()

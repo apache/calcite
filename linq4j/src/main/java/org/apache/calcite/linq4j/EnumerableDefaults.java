@@ -5424,6 +5424,30 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Compares merge join keys, optionally rejecting equal keys containing NULL fields.
+   * Checks fields only after comparing keys, so unequal keys retain their sort order. */
+  public static <T> int compareObjectsNullsLastForMergeJoin(@Nullable T v0,
+      @Nullable T v1, Comparator<? super T> comparator,
+      @Nullable Predicate1<? super T> containsNull) {
+    if (v0 == null && v1 == null) {
+      throw new BothValuesAreNullException();
+    }
+    if (v0 == null) {
+      return 1;
+    }
+    if (v1 == null) {
+      return -1;
+    }
+    final int c = comparator.compare(v0, v1);
+    // Equal keys have matching NULL fields, so checking one side is enough.
+    if (c == 0 && containsNull != null && containsNull.apply(v0)) {
+      // A ROW containing NULL cannot match: use the same signal as two NULL keys
+      // so merge join advances without emitting a match.
+      throw new BothValuesAreNullException();
+    }
+    return c;
+  }
+
   public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1) {
     return compareNullsLastForMergeJoin(v0, v1, null);
   }
