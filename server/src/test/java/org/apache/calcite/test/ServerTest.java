@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.server.DdlExecutorImpl;
 import org.apache.calcite.server.ServerDdlExecutor;
 import org.apache.calcite.sql.SqlNode;
@@ -49,6 +51,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -56,6 +59,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -63,6 +67,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for server and DDL.
@@ -80,6 +86,21 @@ class ServerTest {
                 "true")
             .set(CalciteConnectionProperty.FUN, "standard,oracle")
             .build());
+  }
+
+  private static void assertFails(Statement statement, String sql, String message) {
+    final SQLException e =
+        assertThrows(SQLException.class, () -> statement.executeUpdate(sql));
+    assertThat(e.getMessage(), containsString(message));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Collection<Object> rows(Connection connection, String tableName)
+      throws SQLException {
+    return (Collection<Object>) (
+        (ModifiableTable) requireNonNull(
+        connection.unwrap(CalciteConnection.class).getRootSchema().tables().get(tableName)))
+        .getModifiableCollection();
   }
 
   /** Contains calls to all overloaded {@code execute} methods in
@@ -147,6 +168,143 @@ class ServerTest {
       // Update zero rows (no predicate match)
       count = s.executeUpdate("update t set j = 100 where i = 99");
       assertThat(count, is(0));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7627">[CALCITE-7627]
+   * Enumerable DML should reject assignments that may lose data</a>. */
+  @Test void testEnumerableCharacterAssignment() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table dept (deptno integer not null, name varchar(10))");
+
+      // Reject an overlength VARCHAR value.
+      assertFails(s, "insert into dept values (10, 'Engineering')",
+          "exceeds precision 10 of VARCHAR(10)");
+      // Keep a cast already present in the input plan.
+      assertThat(
+          s.executeUpdate(
+          "insert into dept values (10, upper('Engineering'))"), is(1));
+
+      // Count trailing spaces toward VARCHAR precision.
+      assertFails(s, "insert into dept values (10, '1234567890  ')",
+          "exceeds precision 10 of VARCHAR(10)");
+
+      // Keep explicit CAST semantics.
+      assertThat(
+          s.executeUpdate("insert into dept values "
+          + "(20, cast('Engineering' as varchar(10)))"), is(1));
+      // Accept NULL.
+      assertThat(s.executeUpdate("insert into dept values (40, null)"), is(1));
+
+      // Check UPDATE assignments.
+      assertFails(s, "update dept set name = 'Engineering' where deptno = 20",
+          "exceeds precision 10 of VARCHAR(10)");
+
+      // Check runtime values even when source and target types match.
+      s.execute("create table same_names (name varchar(10))");
+      rows(c, "SAME_NAMES").add("Engineering");
+      assertFails(s, "insert into dept select 30, name from same_names",
+          "exceeds precision 10 of VARCHAR(10)");
+
+      // Store values produced by existing casts unchanged.
+      try (ResultSet r =
+          s.executeQuery("select name from dept where name is not null order by deptno")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), is("ENGINEERIN"));
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), is("Engineerin"));
+        assertThat(r.next(), is(false));
+      }
+
+      // Reject an overlength CHAR value.
+      s.execute("create table fixed_names (name char(5))");
+      s.execute("create table same_fixed_names (name char(5))");
+      rows(c, "SAME_FIXED_NAMES").add("abcdef");
+      assertFails(s, "insert into fixed_names select * from same_fixed_names",
+          "exceeds precision 5 of CHAR(5)");
+    }
+  }
+
+  @Test void testEnumerableBinaryAssignment() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table bytes (b binary(4), vb varbinary(2))");
+      // Accept values within BINARY and VARBINARY bounds.
+      assertThat(
+          s.executeUpdate(
+          "insert into bytes values (x'0102', x'0304')"), is(1));
+
+      // Reject a BINARY value that exceeds its target precision.
+      s.execute("create table same_bytes (b binary(4), vb varbinary(2))");
+      rows(c, "SAME_BYTES").add(new Object[] {
+          ByteString.of("0102030405", 16), ByteString.of("06", 16)});
+      assertFails(s, "insert into bytes select * from same_bytes",
+          "exceeds precision 4 of BINARY(4)");
+
+      // Keep accepted binary values unchanged.
+      try (ResultSet r = s.executeQuery("select b, vb from bytes")) {
+        assertThat(r.next(), is(true));
+        assertArrayEquals(new byte[] {1, 2}, r.getBytes(1));
+        assertArrayEquals(new byte[] {3, 4}, r.getBytes(2));
+        assertThat(r.next(), is(false));
+      }
+    }
+  }
+
+  @Test void testEnumerableExactNumericAssignment() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table numbers (d decimal(5, 2), i integer)");
+      // Keep input-plan DECIMAL rounding.
+      assertThat(s.executeUpdate("insert into numbers values (12.345, 1)"), is(1));
+
+      s.execute("create table wide_numbers (i bigint)");
+      s.executeUpdate("insert into wide_numbers values (42), (null), (2147483648)");
+      // Convert an in-range BIGINT value to INTEGER.
+      assertThat(
+          s.executeUpdate(
+          "insert into numbers select 1, i from wide_numbers where i = 42"), is(1));
+      // Accept a NULL numeric value.
+      assertThat(
+          s.executeUpdate(
+          "insert into numbers select 1, i from wide_numbers where i is null"), is(1));
+      // Reject an out-of-range BIGINT value.
+      assertFails(s, "insert into numbers select 1, i from wide_numbers "
+              + "where i = 2147483648",
+          "Value 2147483648 out of range");
+
+      s.execute("create table same_numbers (d decimal(5, 2))");
+      final Collection<Object> sameNumbers = rows(c, "SAME_NUMBERS");
+      // Apply target scale even when DECIMAL types match.
+      sameNumbers.add(new BigDecimal("1.234"));
+      assertThat(
+          s.executeUpdate(
+          "insert into numbers select d, 2 from same_numbers"), is(1));
+      sameNumbers.clear();
+      // Check runtime DECIMAL values even when declared types match.
+      sameNumbers.add(new BigDecimal("1000.00"));
+      assertFails(s, "insert into numbers select d, 1 from same_numbers",
+          "Value 1000.00 cannot be represented as a DECIMAL(5, 2)");
+
+      // Read back the converted numeric values.
+      try (ResultSet r =
+          s.executeQuery("select d, i from numbers order by i nulls last")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getBigDecimal(1), is(new BigDecimal("12.35")));
+        assertThat(r.getInt(2), is(1));
+        assertThat(r.next(), is(true));
+        assertThat(r.getBigDecimal(1), is(new BigDecimal("1.23")));
+        assertThat(r.getInt(2), is(2));
+        assertThat(r.next(), is(true));
+        assertThat(r.getBigDecimal(1), is(new BigDecimal("1.00")));
+        assertThat(r.getInt(2), is(42));
+        assertThat(r.next(), is(true));
+        assertThat(r.getBigDecimal(1), is(new BigDecimal("1.00")));
+        assertThat(r.getObject(2), nullValue());
+        assertThat(r.next(), is(false));
+      }
     }
   }
 
