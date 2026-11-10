@@ -15974,14 +15974,14 @@ class RelToSqlConverterDMTest {
     final RelNode input = relBuilder().scan("EMP").build();
     final RelDataType argumentType =
         input.getRowType().getFieldList().get(1).getType();
-    final RelCollation collation = RelCollations.of(
-        new RelFieldCollation(0), new RelFieldCollation(5));
-    final AggregateCall call = AggregateCall.create(
-        SqlStdOperatorTable.PERCENTILE_DISC, false, false, false,
+    final RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(5));
+    final AggregateCall call =
+        AggregateCall.create(SqlStdOperatorTable.PERCENTILE_DISC, false, false, false,
         ImmutableList.of(), ImmutableList.of(1), -1, null, collation,
         argumentType, "percentile_disc");
-    final LogicalAggregate aggregate = LogicalAggregate.create(input,
-        ImmutableList.of(), ImmutableBitSet.of(), null, ImmutableList.of(call));
+    final LogicalAggregate aggregate =
+        LogicalAggregate.create(input, ImmutableList.of(), ImmutableBitSet.of(), null, ImmutableList.of(call));
 
     final RelDataType collationType =
         call.createBinding(aggregate).getCollationType();
