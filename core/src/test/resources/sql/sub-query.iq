@@ -11331,3 +11331,95 @@ from dept;
 !ok
 
 !set expand false
+
+# [CALCITE-7929] RelDecorrelator replaces an uncorrelated EXISTS with TRUE
+# when the query also has a correlated sub-query.
+# The expected output of each of the next 5 queries was validated in two
+# ways: PostgreSQL 14 with the same EMP and DEPT rows gives the same
+# result, and so does Calcite with the top-down decorrelator.
+
+# No employee earns more than 10000, so E is FALSE in each row
+select deptno,
+  exists (select 1 from emp where sal > 10000) as e,
+  exists (select 1 from emp where emp.deptno = dept.deptno) as ec
+from dept;
++--------+-------+-------+
+| DEPTNO | E     | EC    |
++--------+-------+-------+
+|     10 | false | true  |
+|     20 | false | true  |
+|     30 | false | true  |
+|     40 | false | false |
++--------+-------+-------+
+(4 rows)
+
+!ok
+
+# Same sub-queries in WHERE: the uncorrelated EXISTS is FALSE, so no rows
+select deptno
+from dept
+where exists (select 1 from emp where sal > 10000)
+  and exists (select 1 from emp where emp.deptno = dept.deptno);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# GROUP BY a constant over an empty input gives no group, so C is NULL.
+# PostgreSQL rejects GROUP BY 'a', so it ran with GROUP BY 'a'::text.
+select deptno,
+  (select count(*) from emp where sal > 10000 group by 'a') as c,
+  exists (select 1 from emp where emp.deptno = dept.deptno) as ec
+from dept;
++--------+---+-------+
+| DEPTNO | C | EC    |
++--------+---+-------+
+|     10 |   | true  |
+|     20 |   | true  |
+|     30 |   | true  |
+|     40 |   | false |
++--------+---+-------+
+(4 rows)
+
+!ok
+
+# The uncorrelated EXISTS inside the correlated sub-query is FALSE,
+# so EC is FALSE in each row
+select deptno,
+  exists (select 1 from emp where emp.deptno = dept.deptno
+          and exists (select 1 from emp where sal > 10000)) as ec
+from dept;
++--------+-------+
+| DEPTNO | EC    |
++--------+-------+
+|     10 | false |
+|     20 | false |
+|     30 | false |
+|     40 | false |
++--------+-------+
+(4 rows)
+
+!ok
+
+# ROLLUP mixes a constant key and a non-constant key. The sub-query is
+# uncorrelated, so the constant key must stay; dropping it made the
+# grouping sets invalid. PostgreSQL ran it with ROLLUP('a'::text, job).
+select deptno,
+  (select count(*) from (select job from emp
+                         group by rollup('a', job)) t) as c,
+  exists (select 1 from emp where emp.deptno = dept.deptno) as ec
+from dept;
++--------+---+-------+
+| DEPTNO | C | EC    |
++--------+---+-------+
+|     10 | 7 | true  |
+|     20 | 7 | true  |
+|     30 | 7 | true  |
+|     40 | 7 | false |
++--------+---+-------+
+(4 rows)
+
+!ok
