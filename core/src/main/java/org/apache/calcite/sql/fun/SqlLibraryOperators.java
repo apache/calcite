@@ -1895,6 +1895,15 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.TO_ARRAY, OperandTypes.ANY_NUMERIC)
           .withDistinct(Optionality.OPTIONAL)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
+  /**
+   * the "APPROX_PERCENTILE" function.
+   */
+  @LibraryOperator(libraries = {SqlLibrary.SNOWFLAKE})
+  public static final SqlAggFunction APPROX_PERCENTILE =
+      SqlBasicAggFunction.create("APPROX_PERCENTILE", SqlKind.APPROX_PERCENTILE,
+              ReturnTypes.ARG0_NULLABLE, OperandTypes.NUMERIC_NUMERIC)
+          .withDistinct(Optionality.OPTIONAL)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
 
   /** The "ARRAY_MAX(array)" function. */
   @LibraryOperator(libraries = {SPARK})

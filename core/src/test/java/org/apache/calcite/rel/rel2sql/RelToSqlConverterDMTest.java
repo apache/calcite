@@ -15968,4 +15968,36 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(rel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
+
+  @Test void testApproxPercentileAggregate() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.APPROX_PERCENTILE,
+            builder.field("SAL"), builder.literal(0.5));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), aggCall.as("median_sal"))
+        .build();
+
+    final String expectedSnowflakeSql = "SELECT APPROX_PERCENTILE(\"SAL\", 0.5) AS \"median_sal\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowflakeSql));
+  }
+
+  @Test void testApproxPercentileAggregateWithGroupBy() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.APPROX_PERCENTILE,
+            builder.field("SAL"), builder.literal(0.001));
+    final RelNode root = builder
+        .aggregate(builder.groupKey("DEPTNO"), aggCall.as("low_sal"))
+        .build();
+
+    final String expectedSnowflakeSql = "SELECT \"DEPTNO\", "
+        + "APPROX_PERCENTILE(\"SAL\", 0.001) AS \"low_sal\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowflakeSql));
+  }
 }
