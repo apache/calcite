@@ -24,6 +24,7 @@ import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CommentTrait;
 import org.apache.calcite.plan.GroupByWithQualifyHavingRankRelTrait;
+import org.apache.calcite.plan.MergeSortProjectTrait;
 import org.apache.calcite.plan.QualifyRelTrait;
 import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
@@ -3889,6 +3890,192 @@ class RelToSqlConverterDMTest {
     sql(query)
         .withBigQuery()
         .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a negated, column-scaled interval added to a timestamp. The
+   * interval operand is a nested multiply, {@code (INTERVAL * col) * -1}. */
+  @Test public void testTimestampPlusNegatedColumnScaledInterval() {
+    String query = "select \"hire_date\" + ((INTERVAL '1' HOUR * \"store_id\") * -1)"
+        + " from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date, INTERVAL store_id HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testTimestampPlusNegatedColumnScaledIntervalFactorFirst() {
+    String query = "select \"hire_date\" + (-1 * (INTERVAL '1' MINUTE * \"store_id\"))"
+        + " from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date, INTERVAL store_id MINUTE)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testTimestampMinusNegatedColumnScaledInterval() {
+    String query = "select \"hire_date\" - ((INTERVAL '1' HOUR * \"store_id\") * -1)"
+        + " from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date, INTERVAL store_id HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testTimestampPlusDoubledColumnScaledInterval() {
+    String query = "select \"hire_date\" + ((INTERVAL '2' HOUR * \"store_id\") * 3)"
+        + " from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date, INTERVAL store_id * 3 * 2 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: the sign of a negative interval literal is kept. */
+  @Test public void testTimestampPlusNegativeIntervalLiteralTimesColumn() {
+    String query = "select \"hire_date\" + (INTERVAL -'1' HOUR * \"store_id\") from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date, INTERVAL store_id HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a negative interval literal with a quantity other than 1. */
+  @Test public void testTimestampPlusNegativeIntervalLiteralTimesColumnQuantityTwo() {
+    String query = "select \"hire_date\" + (INTERVAL -'2' HOUR * \"store_id\") from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date, INTERVAL store_id * 2 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a negative interval literal inside a negated multiply adds the column. */
+  @Test public void testTimestampPlusNegatedNegativeIntervalLiteral() {
+    String query = "select \"hire_date\" + ((INTERVAL -'1' HOUR * \"store_id\") * -1) from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date, INTERVAL store_id * -1 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: only one -1 factor flips the function. */
+  @Test public void testTimestampPlusTwiceNegatedColumnScaledInterval() {
+    String query = "select \"hire_date\" + (((INTERVAL '1' HOUR * \"store_id\") * -1) * -1) from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date, INTERVAL store_id * -1 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a DATE operand flips DATE_ADD to DATE_SUB. */
+  @Test public void testDatePlusNegatedColumnScaledInterval() {
+    String query = "select \"birth_date\" + ((INTERVAL '1' DAY * \"store_id\") * -1) from \"employee\"";
+    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id DAY)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a factor with lower precedence than * keeps its brackets. */
+  @Test public void testTimestampPlusColumnScaledIntervalWithSumFactor() {
+    String query = "select \"hire_date\""
+        + " + ((INTERVAL '1' HOUR * (\"store_id\" + \"department_id\")) * 2) from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date, INTERVAL (store_id + department_id) * 2 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a sum factor keeps its brackets when it is followed by the interval quantity. */
+  @Test public void testTimestampPlusNegatedSumScaledInterval() {
+    String query = "select \"hire_date\""
+        + " + ((INTERVAL '2' HOUR * (\"store_id\" + \"department_id\")) * -1) from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_SUB(hire_date,"
+        + " INTERVAL (store_id + department_id) * 2 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: the direct shape also keeps the brackets of a sum factor. */
+  @Test public void testTimestampPlusSumScaledInterval() {
+    String query = "select \"hire_date\""
+        + " + (INTERVAL '2' HOUR * (\"store_id\" + \"department_id\")) from \"employee\"";
+    final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date,"
+        + " INTERVAL (store_id + department_id) * 2 HOUR)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a DATE minus a negated interval flips DATE_SUB to DATE_ADD. */
+  @Test public void testDateMinusNegatedColumnScaledInterval() {
+    String query = "select \"birth_date\" - ((INTERVAL '1' DAY * \"store_id\") * -1)"
+        + " from \"employee\"";
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  /** RAVEN-2563: a prefix minus on 1 (-(1)) counts as a factor of -1. */
+  @Test public void testTimestampPlusColumnScaledIntervalTimesPrefixMinusOne() {
+    final RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexNode timestamp =
+        rexBuilder.makeTimestampLiteral(new TimestampString(2022, 2, 18, 8, 23, 45), 0);
+    final RexNode interval =
+        rexBuilder.makeIntervalLiteral(new BigDecimal(3600000),
+            new SqlIntervalQualifier(TimeUnit.HOUR, null, SqlParserPos.ZERO));
+    final RexNode scaled =
+        relBuilder.call(SqlStdOperatorTable.MULTIPLY, interval, relBuilder.field("EMPNO"));
+    final RexNode minusOne =
+        rexBuilder.makeCall(SqlStdOperatorTable.UNARY_MINUS, relBuilder.literal(1));
+    final RexNode negated = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, scaled, minusOne);
+    final RelNode root = relBuilder
+        .project(rexBuilder.makeCall(SqlStdOperatorTable.PLUS, timestamp, negated))
+        .build();
+    final String expectedBigQuery = "SELECT DATETIME_SUB(CAST('2022-02-18 08:23:45' AS DATETIME),"
+        + " INTERVAL EMPNO HOUR) AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  /** RAVEN-2563: TIMESTAMP_SUB has no opposite function here, so it keeps the -1 factor. */
+  @Test public void testTimestampWithLocalTimeZoneAndNegatedColumnScaledInterval() {
+    final RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexLiteral timestamp =
+        rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+            new TimestampString(2022, 2, 18, 8, 23, 45), 0);
+    final RexNode interval =
+        rexBuilder.makeIntervalLiteral(new BigDecimal(3600000),
+            new SqlIntervalQualifier(TimeUnit.HOUR, null, SqlParserPos.ZERO));
+    final RexNode scaled =
+        relBuilder.call(SqlStdOperatorTable.MULTIPLY, interval, relBuilder.field("EMPNO"));
+    final RexNode negated =
+        relBuilder.call(SqlStdOperatorTable.MULTIPLY, scaled, relBuilder.literal(-1));
+    final RelNode root = relBuilder
+        .project(relBuilder.call(SqlStdOperatorTable.MINUS, timestamp, negated),
+            relBuilder.call(SqlStdOperatorTable.PLUS, timestamp, negated))
+        .build();
+    final String expectedBigQuery = "SELECT TIMESTAMP_SUB(TIMESTAMP '2022-02-18 08:23:45',"
+        + " INTERVAL EMPNO * -1 HOUR) AS `$f0`,"
+        + " DATETIME_SUB(TIMESTAMP '2022-02-18 08:23:45', INTERVAL EMPNO HOUR) AS `$f1`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
   @Test public void testDatePlusIntervalMonthFunctionWithCol() {
@@ -10134,7 +10321,7 @@ class RelToSqlConverterDMTest {
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall =
-        builder.call(SqlLibraryOperators.ORACLE_TO_DATE, builder.call(CURRENT_DATE));
+        builder.call(SqlLibraryOperators.TO_DATE, builder.call(CURRENT_DATE));
     RelNode root = builder
         .project(oracleToDateCall)
         .build();
@@ -10573,13 +10760,13 @@ class RelToSqlConverterDMTest {
   @Test public void testOracleNextDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY, builder.call(CURRENT_DATE),
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
                 builder.literal(DayOfWeek.SATURDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
         .build();
-    final String expectedOracle = "SELECT ORACLE_NEXT_DAY(CURRENT_DATE, 'SATURDAY') \"next_day\"\n"
+    final String expectedOracle = "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') \"next_day\"\n"
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
@@ -12566,6 +12753,30 @@ class RelToSqlConverterDMTest {
                                 + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
                                 + " (SELECT first_name AS FNAME\nFROM RUNDATE)";
     assertThat(actualSql, isLinux(expectedSql));
+  }
+
+  /** A Sort carrying {@link MergeSortProjectTrait} is not wrapped in a sub-query for its
+   * sort-only column, and its ORDER BY item is rendered as the underlying expression. */
+  @Test public void testSortWithMergeSortProjectTrait() {
+    final RelBuilder builder = foodmartRelBuilder();
+    final RelNode sort = builder.scan("employee")
+        .project(builder.field("full_name"), builder.field("birth_date"),
+            builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.YEAR),
+                builder.field("birth_date")))
+        .sortLimit(0, 5, builder.desc(builder.field(2)))
+        .build();
+    final RelNode sortWithTrait =
+        sort.copy(sort.getTraitSet().plus(new MergeSortProjectTrait(ImmutableList.of(2))),
+            sort.getInputs());
+    final RelNode root = builder.push(sortWithTrait)
+        .project(builder.field(0), builder.field(1))
+        .build();
+
+    final String expectedSql = "SELECT full_name, birth_date\n"
+        + "FROM foodmart.employee\n"
+        + "ORDER BY EXTRACT(YEAR FROM birth_date) DESC NULLS FIRST\n"
+        + "LIMIT 5";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
   /** When a column of a CTE has the same name as the CTE and the dialect does not support

@@ -296,6 +296,8 @@ public class CTERelToSqlUtil {
                 unpivot.measureList, unpivot.axisList, unpivot.inList);
 
         ((SqlSelect) sqlNode).setFrom(unpivotNode);
+      } else {
+        updatePivotSubQuerySource(((SqlUnpivot) fromNode).query);
       }
     } else if (fromNode instanceof SqlPivot) {
       // Replace inline CTE body in the UNPIVOT's query with just the CTE identifier
@@ -308,8 +310,24 @@ public class CTERelToSqlUtil {
                 pivot.axisList, pivot.inList);
 
         ((SqlSelect) sqlNode).setFrom(pivotNode);
+      } else {
+        updatePivotSubQuerySource(((SqlPivot) fromNode).query);
       }
     }
+  }
+
+  /**
+   * Replaces inline CTE bodies inside a PIVOT / UNPIVOT source that is a subquery
+   * ({@code FROM (SELECT * FROM cte) AS t UNPIVOT (....)}) with the CTE identifier.
+   * The alias, when present, is kept as it is.
+   */
+  private static void updatePivotSubQuerySource(SqlNode query) {
+    SqlNode source = query;
+    if (source instanceof SqlBasicCall
+        && ((SqlBasicCall) source).getOperator() instanceof SqlAsOperator) {
+      source = ((SqlBasicCall) source).operand(0);
+    }
+    updateSqlNode(source);
   }
 
   /**

@@ -27,6 +27,8 @@ import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.CommentTraitDef;
 import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
+import org.apache.calcite.plan.MergeSortProjectTrait;
+import org.apache.calcite.plan.MergeSortProjectTraitDef;
 import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
@@ -1967,6 +1969,14 @@ public abstract class SqlImplementor {
     }
   }
 
+  /** Returns the {@link MergeSortProjectTrait} on {@code rel}, or null. */
+  protected static @Nullable MergeSortProjectTrait mergeSortProjectTrait(
+      @Nullable RelNode rel) {
+    return rel == null
+        ? null
+        : rel.getTraitSet().getTrait(MergeSortProjectTraitDef.instance);
+  }
+
   /** Result of implementing a node. */
   public class Result {
     final SqlNode node;
@@ -2096,6 +2106,7 @@ public abstract class SqlImplementor {
 //        final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
 //            && dialect.getConformance().isHavingAlias() || keepColumnAlias;
         final boolean aliasRef = isAliasRefNeeded(keepColumnAlias, rel);
+        final @Nullable MergeSortProjectTrait mergeSortProject = mergeSortProjectTrait(rel);
         newContext = new Context(dialect, selectList.size()) {
           @Override public SqlImplementor implementor() {
             return SqlImplementor.this;
@@ -2134,6 +2145,12 @@ public abstract class SqlImplementor {
           }
 
           @Override public SqlNode orderField(int ordinal) {
+            if (mergeSortProject != null && mergeSortProject.isSortOnlyField(ordinal)) {
+              // This column exists only to give the collation an ordinal to reference and will
+              // not survive into the emitted SELECT list, so neither an ordinal nor an alias
+              // would resolve. Inline the underlying expression instead.
+              return field(ordinal, false);
+            }
             // If the field expression is an unqualified column identifier
             // and matches a different alias, use an ordinal.
             // For example, given
@@ -2614,8 +2631,10 @@ public abstract class SqlImplementor {
         if (areGroupByWithExprAlias((Project) rel, (Sort) relInput)) {
           return false;
         }
+        // Columns that RelBuilder.sortLimit materialised only so the collation had an ordinal to
+        // reference are not part of the SELECT list; not projecting them is not a reason to wrap.
         return !areAllNamedInputFieldsProjected(((Project) rel).getProjects(), rel.getRowType(),
-            relInput.getRowType());
+            relInput.getRowType(), mergeSortProjectTrait(relInput));
       }
 
       // If old and new clause are equal and belong to below set,
@@ -2883,9 +2902,20 @@ public abstract class SqlImplementor {
     private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,
         RelDataType projectRelDataType,
         RelDataType inputRelDataType) {
+      return areAllNamedInputFieldsProjected(projects, projectRelDataType, inputRelDataType, null);
+    }
+
+    private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,
+        RelDataType projectRelDataType,
+        RelDataType inputRelDataType,
+        @Nullable MergeSortProjectTrait mergeSortProject) {
       Map<Integer, List<String>> fieldsProjected = fieldsProjected(projects, projectRelDataType);
       int inputFieldIndex = 0;
       for (RelDataTypeField inputField : inputRelDataType.getFieldList()) {
+        if (mergeSortProject != null && mergeSortProject.isSortOnlyField(inputFieldIndex)) {
+          inputFieldIndex++;
+          continue;
+        }
         if (!inputField.getName().startsWith(SqlUtil.GENERATED_EXPR_ALIAS_PREFIX)
             && !(fieldsProjected.containsKey(inputFieldIndex)
             && fieldsProjected.get(inputFieldIndex).contains(inputField.getName()))) {

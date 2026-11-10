@@ -2314,15 +2314,6 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_TO_DATE =
-      new SqlFunction("TO_DATE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
-          null,
-          OperandTypes.STRING_STRING,
-          SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction UNISTR =
       new SqlFunction("UNISTR",
           SqlKind.OTHER_FUNCTION,
@@ -3705,7 +3696,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TRUNC",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP,
+          ReturnTypes.DATE,
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME,
               SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
@@ -3851,23 +3842,12 @@ public abstract class SqlLibraryOperators {
               number -> number == 2),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {HIVE, SPARK})
+  @LibraryOperator(libraries = {HIVE, SPARK, ORACLE})
   public static final SqlFunction NEXT_DAY =
       new SqlFunction(
           "NEXT_DAY",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE,
-          null,
-          OperandTypes.family(SqlTypeFamily.ANY,
-              SqlTypeFamily.STRING),
-          SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_NEXT_DAY =
-      new SqlFunction(
-          "ORACLE_NEXT_DAY",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.DATE_NULLABLE,
           null,
           OperandTypes.family(SqlTypeFamily.ANY,
               SqlTypeFamily.STRING),
