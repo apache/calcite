@@ -636,6 +636,42 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newSort, frame.oldToNewOutputs, frame.corDefOutputs);
   }
 
+  /** Returns whether an aggregate call gives the same result for no rows
+   * and for one row of NULL values. */
+  private static boolean isCallSameForNoRowsAndNullRow(AggregateCall aggCall) {
+    final SqlAggFunction function = aggCall.getAggregation();
+    switch (function.getKind()) {
+    case SUM:
+    case SUM0:
+    case MIN:
+    case MAX:
+    case AVG:
+    case ANY_VALUE:
+    case SINGLE_VALUE:
+      // Built-in functions that give NULL (SUM0 gives 0) for both
+      return true;
+    case OTHER_FUNCTION:
+      // A user-defined function that skips NULL inputs skips the row of
+      // NULL values, so it sees no rows in both cases
+      return !aggCall.getArgList().isEmpty() && function.skipsNullInputs();
+    default:
+      // Other built-in functions can give different results. COUNT(*)
+      // gives 0 for no rows and 1 for a row. ARRAY_AGG gives an empty array
+      // for no rows, and NULL or [NULL] for a row, depending on whether it
+      // keeps NULL values.
+      return false;
+    }
+  }
+
+  /** Returns whether an Aggregate gives the same result for no input rows
+   * and for one input row of NULL values. An Aggregate with GROUP BY keys
+   * does not: it gives no group for no rows, but one group for a row. */
+  static boolean isSameForNoRowsAndNullRow(Aggregate aggregate) {
+    return aggregate.getGroupSet().isEmpty()
+        && aggregate.getAggCallList().stream()
+            .allMatch(RelDecorrelator::isCallSameForNoRowsAndNullRow);
+  }
+
   public @Nullable Frame decorrelateRel(LogicalAggregate rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
     return decorrelateRel((Aggregate) rel, isCorVarDefined, parentPropagatesNullValues);
@@ -656,7 +692,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
     assert !cm.mapRefRelToCorRef.containsKey(rel);
 
     final RelNode oldInput = rel.getInput();
-    final Frame frame = getInvoke(oldInput, isCorVarDefined, rel, parentPropagatesNullValues);
+    // This Aggregate is the parent of its input. The input can give no row
+    // in place of a row of NULL values only if this Aggregate gives the
+    // same result for both. Example, for an outer table t:
+    //   SELECT COUNT(*) FROM (SELECT COUNT(*) FROM s
+    //     WHERE s.k = t.k GROUP BY ROLLUP(s.a))
+    // For a row of t that matches no row of s, the () group of ROLLUP
+    // gives one row, so the result is 1, not 0.
+    final boolean aggregatePropagatesNullValues = parentPropagatesNullValues
+        && isSameForNoRowsAndNullRow(rel);
+    final Frame frame =
+        getInvoke(oldInput, isCorVarDefined, rel, aggregatePropagatesNullValues);
     if (frame == null) {
       // If input has not been rewritten, do not rewrite this rel.
       return null;

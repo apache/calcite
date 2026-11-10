@@ -11242,3 +11242,92 @@ order by e.ename;
 (14 rows)
 
 !ok
+
+# [CALCITE-7930] Correlated sub-query with ROLLUP or GROUPING SETS loses the
+# () group when the sub-query input is empty
+# The next 4 queries belong to CALCITE-7930: 2 queries, each run with
+# expand false and with expand true, because the top-down decorrelator
+# fails in both modes.
+# G is the number of groups for each department. DEPT 40 has no employees,
+# so only the () group remains, and G is 1.
+!set expand false
+
+# Query 1 of 4: ROLLUP(job), expand false.
+# Validated: PostgreSQL 14 gives the same rows.
+select deptno,
+  (select count(*) from
+     (select count(*) as n from emp where emp.deptno = dept.deptno
+      group by rollup(job)) as t) as g
+from dept;
++--------+---+
+| DEPTNO | G |
++--------+---+
+|     10 | 4 |
+|     20 | 4 |
+|     30 | 4 |
+|     40 | 1 |
++--------+---+
+(4 rows)
+
+!ok
+
+# Query 2 of 4: GROUPING SETS ((job), (mgr), ()), expand false.
+# Validated: PostgreSQL 14 gives the same rows.
+select deptno,
+  (select count(*) from
+     (select count(*) as n from emp where emp.deptno = dept.deptno
+      group by grouping sets ((job), (mgr), ())) as t) as g
+from dept;
++--------+---+
+| DEPTNO | G |
++--------+---+
+|     10 | 7 |
+|     20 | 8 |
+|     30 | 6 |
+|     40 | 1 |
++--------+---+
+(4 rows)
+
+!ok
+
+!set expand true
+
+# Query 3 of 4: ROLLUP(job), expand true.
+# Validated: PostgreSQL 14 gives the same rows.
+select deptno,
+  (select count(*) from
+     (select count(*) as n from emp where emp.deptno = dept.deptno
+      group by rollup(job)) as t) as g
+from dept;
++--------+---+
+| DEPTNO | G |
++--------+---+
+|     10 | 4 |
+|     20 | 4 |
+|     30 | 4 |
+|     40 | 1 |
++--------+---+
+(4 rows)
+
+!ok
+
+# Query 4 of 4: GROUPING SETS ((job), (mgr), ()), expand true.
+# Validated: PostgreSQL 14 gives the same rows.
+select deptno,
+  (select count(*) from
+     (select count(*) as n from emp where emp.deptno = dept.deptno
+      group by grouping sets ((job), (mgr), ())) as t) as g
+from dept;
++--------+---+
+| DEPTNO | G |
++--------+---+
+|     10 | 7 |
+|     20 | 8 |
+|     30 | 6 |
+|     40 | 1 |
++--------+---+
+(4 rows)
+
+!ok
+
+!set expand false
