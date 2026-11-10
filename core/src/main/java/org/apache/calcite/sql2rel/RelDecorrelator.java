@@ -726,10 +726,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int newPos = 0;
 
     final List<Integer> groupKeyIndices = rel.getGroupSet().asList();
+    // If decorrelation adds no correlation key, keep the constant keys:
+    // GROUP BY TRUE gives no row for an empty input, but GROUP BY ()
+    // gives one row.
+    final boolean keepConstantKeys = frame.corDefOutputs.isEmpty();
     final NavigableMap<Integer, RexLiteral> omittedConstants = new TreeMap<>();
     for (int i = 0; i < oldGroupKeyCount; i++) {
       final int idx = groupKeyIndices.get(i);
-      final RexLiteral constant = projectedLiteral(newInput, idx);
+      final RexLiteral constant =
+          keepConstantKeys ? null : projectedLiteral(newInput, idx);
       if (constant != null) {
         // Exclude constants. Aggregate({true}) occurs because Aggregate({})
         // would generate 1 row even when applied to an empty table.
