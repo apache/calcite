@@ -551,7 +551,16 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
   }
 
   public RelNode unnestInternal(Aggregate aggregate, boolean allowEmptyOutputFromRewrite) {
-    RelNode newInput = unnest(aggregate.getInput(), allowEmptyOutputFromRewrite);
+    // The rewrite of the input can give an empty output in place of a row
+    // of NULL values only if this Aggregate gives the same result for both.
+    // Example, for an outer table t:
+    //   SELECT COUNT(*) FROM (SELECT COUNT(*) FROM s
+    //     WHERE s.k = t.k GROUP BY ROLLUP(s.a))
+    // For a row of t that matches no row of s, the () group of ROLLUP
+    // gives one row, so the result is 1, not 0.
+    final boolean allowEmptyInputFromRewrite = allowEmptyOutputFromRewrite
+        && RelDecorrelator.isSameForNoRowsAndNullRow(aggregate);
+    RelNode newInput = unnest(aggregate.getInput(), allowEmptyInputFromRewrite);
     UnnestedQuery inputUnnestedQuery =
         requireNonNull(mapRelToUnnestedQuery.get(aggregate.getInput()));
     builder.push(newInput);
