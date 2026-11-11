@@ -358,7 +358,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       final RelDataTypeField field = rowType.getFieldList().get(i);
       final String name = field.getName();
       final RelDataType type = field.getType();
-      final RelDataType targetType = i == columnIndex ? desiredType : type;
+      // Implicit casts preserve the source column's nullability.
+      final RelDataType targetType = i == columnIndex
+          ? factory.createTypeWithNullability(desiredType, type.isNullable())
+          : type;
       fieldList.add(name, targetType);
     }
     updateInferredType(query, factory.createStructType(fieldList));
