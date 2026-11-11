@@ -217,9 +217,8 @@ public class CorrelateProjectExtractorTest {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
    * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
    *
-   * <p>Extract A + 1 while leaving an equal expression inside the non-deterministic
-   * lambda untouched. Both original outer fields are still required there,
-   * and duplicate outer rows must retain their inner rows. */
+   * <p>Extracting an expression must not replace a matching expression inside
+   * a skipped lambda. Fields still referenced by the lambda must be retained. */
   @Test void testNonDeterministicLambda() throws Exception {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();

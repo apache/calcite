@@ -78,8 +78,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Test for {@link RelFieldTrimmer}. */
 class RelFieldTrimmerTest {
-  /** Scope-local trimming must not renumber fields captured by expressions
-   * that the ordinary correlation remapper does not rewrite, such as Match. */
+  /** Trimming must leave the correlation input unchanged.
+   * Match measures hold references that the correlation remapper does not rewrite. */
   @Test void testTrimWithinScopePreservesCorrelation() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RexBuilder rexBuilder = builder.getRexBuilder();
@@ -109,8 +109,8 @@ class RelFieldTrimmerTest {
     assertThat(measure.getReferenceExpr().getType(), is(left.getRowType()));
   }
 
-  /** Rebuilding a consumer must not capture its outer reference in a local
-   * binding that reuses the same correlation id. */
+  /** Trimming must not bind an outer reference to a nested Project
+   * that defines the same correlation id. */
   @Test void testTrimWithinScopeDoesNotMergeBindingProject() throws Exception {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RexBuilder rexBuilder = builder.getRexBuilder();
@@ -996,6 +996,5 @@ class RelFieldTrimmerTest {
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(trimmed, hasTree(expected));
   }
-
 
 }

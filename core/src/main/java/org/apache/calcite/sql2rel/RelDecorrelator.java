@@ -289,8 +289,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /** Trims the right input, preserving its output fields and the left input.
-   * Submits an equivalent Correlate if the plan changes and the trimmed right
-   * input is deterministic. */
+   *
+   * <p>If the RHS changes and passes the determinism check, creates an equivalent
+   * Correlate. Passes it to the rule's planner through
+   * {@link RelOptRuleCall#transformTo(RelNode)}. */
   private void trimRightInput(RelOptRuleCall call, Correlate correlate, RelNode right) {
     final RelNode trimmed = RelFieldTrimmer.trimPreservingBindings(right, relBuilder);
     if (!right.deepEquals(trimmed) && RelOptUtil.isDeterministic(trimmed)) {
@@ -1068,13 +1070,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *
    * @param parentPropagatesNullValues True if the parent RelNode produces null
    *                                   when all of its inputs fields are null.
+   * @return Rewritten frame, or null if the rewrite is not supported
    */
   public @Nullable Frame getInvoke(RelNode r, boolean isCorVarDefined,
       @Nullable RelNode parent, boolean parentPropagatesNullValues) {
     final Frame frame;
     if (!(r instanceof Correlate) && !r.getVariablesSet().isEmpty()) {
-      // Local bindings need their own field remapping. Only the Correlate
-      // visitor implements that here.
+      // Input rewrites can change field positions. References through the node's
+      // correlation variables would still use the old positions.
       frame = null;
     } else {
       frame = dispatcher.invoke(r, isCorVarDefined, parentPropagatesNullValues);
@@ -1972,8 +1975,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return null;
       }
     }
-    // An empty correlation-output map does not prove that all references to
-    // this binding have been rewritten.
+    // The replacement Join does not define this binding.
+    // Reject right inputs that may still use it.
     if (CorrelationReferences.mayUse(right, rel.getCorrelationId())) {
       return null;
     }

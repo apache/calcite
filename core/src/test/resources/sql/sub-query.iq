@@ -11245,8 +11245,9 @@ order by e.ename;
 
 
 !if (use_old_decorr) {
-# Test case for [CALCITE-7914] Correlation keys must use the values already
-# computed by the outer Project.
+# Test case for [CALCITE-7914] RelDecorrelator produces wrong results for
+# non-deterministic inputs
+# Decorrelation must not recompute the outer RAND() value used as a correlation key.
 select (select count(*) from (values 1) s(x) where t.r < s.x) as p
 from (select rand() as r) t;
 +---+
@@ -11258,13 +11259,15 @@ from (select rand() as r) t;
 
 !ok
 
-# Test case for [CALCITE-7914] Removing unused inner expressions must preserve
-# the outer key needed by scalar decorrelation and its nested field references.
+# Test case for [CALCITE-7914] RelDecorrelator produces wrong results for
+# non-deterministic inputs
+# Removing unused inner expressions must preserve the outer key and nested
+# field references needed by the scalar rewrite.
 select c.p
 from (select k, cast(row(rand()) as row(v double)) as r
       from (values 1, 2) t(k)) t
 left join lateral (
-  select count(nullif(t.r.v, 1e0)) + 1 as p
+  select count(nullif(t.r.v, d.deptno)) + 1 as p
   from (select deptno, rand() as unused, t.r.v as unused_outer from dept) d
   where d.deptno > 0
 ) c on true;
@@ -11279,7 +11282,7 @@ left join lateral (
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], expr#5=[CAST($t4):BIGINT], P=[$t5])
   EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT($2) FILTER $3])
-    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:RecordType(DOUBLE V)], expr#6=[CAST($t1):RecordType(DOUBLE V)], expr#7=[CASE($t4, $t5, $t6)], expr#8=[$t7.V], expr#9=[IS NOT NULL($t3)], expr#10=[null:DOUBLE], expr#11=[1.0E0:DOUBLE], expr#12=[CASE($t4, $t10, $t11)], expr#13=[=($t8, $t12)], expr#14=[AND($t13, $t9)], expr#15=[IS NOT TRUE($t14)], expr#16=[AND($t9, $t15)], proj#0..1=[{exprs}], $f4=[$t8], $f5=[$t16])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:RecordType(DOUBLE V)], expr#6=[CAST($t1):RecordType(DOUBLE V)], expr#7=[CASE($t4, $t5, $t6)], expr#8=[$t7.V], expr#9=[IS NOT NULL($t3)], expr#10=[null:DOUBLE], expr#11=[CAST($t2):DOUBLE NOT NULL], expr#12=[CASE($t4, $t10, $t11)], expr#13=[=($t8, $t12)], expr#14=[AND($t13, $t9)], expr#15=[IS NOT TRUE($t14)], expr#16=[AND($t9, $t15)], proj#0..1=[{exprs}], $f4=[$t8], $f5=[$t16])
       EnumerableNestedLoopJoin(condition=[true], joinType=[left])
         EnumerableCalc(expr#0=[{inputs}], expr#1=[RAND()], expr#2=[ROW($t1)], expr#3=[CAST($t2):RecordType(DOUBLE NOT NULL V) NOT NULL], K=[$t0], R=[$t3])
           EnumerableValues(tuples=[[{ 1 }, { 2 }]])
@@ -11287,8 +11290,9 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], expr#5=[C
           EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
-# Test case for [CALCITE-7914] An unused RAND expression does not prevent sharing
-# a deterministic aggregate result between equal outer bindings.
+# Test case for [CALCITE-7914] RelDecorrelator produces wrong results for
+# non-deterministic inputs
+# Removing the unused RAND() lets equal outer bindings share the aggregate.
 select (select count(*)
         from (select deptno, rand() as unused from dept) d
         where d.deptno > t.k) as p

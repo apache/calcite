@@ -2732,13 +2732,13 @@ public class RelDecorrelatorTest {
     assertThat(inputChecker.invalidCount(), is(0));
 
     final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
-    // The validity checker resolves references against their enclosing bindings;
-    // a flat set of used correlation ids would miss this shadowing case.
     final RelValidityChecker outputChecker = new RelValidityChecker();
     outputChecker.go(after);
     assertThat(outputChecker.invalidCount(), is(0));
   }
 
+  /** Decorrelation must preserve NULL for unmatched rows when the projection
+   * contains a scalar sub-query. */
   @Test void testScalarSubQueryKeepsNullExtension() throws Exception {
     final RelBuilder builder = RelBuilder.create(Frameworks.newConfigBuilder().build());
     final RexBuilder rexBuilder = builder.getRexBuilder();

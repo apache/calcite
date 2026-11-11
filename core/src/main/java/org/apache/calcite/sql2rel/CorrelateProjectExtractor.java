@@ -108,6 +108,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     RelNode left = correlate.getLeft().accept(this);
     RelNode right = correlate.getRight().accept(this);
     int oldLeft = left.getRowType().getFieldCount();
+    // Find the correlated expressions from the right side that can be moved to the left
     final Map<RexNode, Integer> expressions = new LinkedHashMap<>();
     final CorrelatedExpressionSelector collector =
         new CorrelatedExpressionSelector(correlate.getCorrelationId()) {
@@ -117,6 +118,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
           }
         };
     visitCorrelationScope(right, correlate.getCorrelationId(), collector);
+    // Early exit condition
     if (expressions.isEmpty()) {
       if (correlate.getLeft().equals(left) && correlate.getRight().equals(right)) {
         return correlate;
@@ -154,7 +156,9 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
             return rexBuilder.makeFieldAccess(variable, oldLeft + slot);
           }
         };
+    // Transform the expressions in the right side using the mapping constructed earlier.
     right = visitCorrelationScope(right, correlate.getCorrelationId(), replacements);
+    // References in skipped expressions still need their original left fields.
     final ImmutableBitSet declared = correlate.getRequiredColumns()
         .union(ImmutableBitSet.range(oldLeft, newLeft));
     final ImmutableBitSet requiredColumns =
@@ -187,7 +191,11 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     return builder.build();
   }
 
-  /** Applies the visitor within the specified correlation scope. */
+  /** Applies the visitor within the scope of an outer correlation binding.
+   *
+   * <p>The scope is the part of {@code root} where {@code id} refers to the
+   * binding defined outside {@code root}. References to nested bindings
+   * with the same id are excluded. */
   private static RelNode visitCorrelationScope(RelNode root, CorrelationId id,
       RexShuttle visitor) {
     return root.accept(new RelHomogeneousShuttle() {
@@ -208,12 +216,20 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     });
   }
 
-  /** Selects outermost deterministic computations over one correlation.
+  /** Selects deterministic expressions for evaluation on the outer input.
    *
-   * <p>A rejected call does not prevent selecting a movable operand. Lambda
-   * bodies and sub-query plans do not supply candidates; a complete call
-   * containing a deterministic lambda may still be selected. Replacement checks
-   * each occurrence because operator equality does not compare determinism. */
+   * <p>The collector stores each selected {@link RexNode} with its offset among
+   * the fields added to the left input. A Project computes these fields.
+   * The replacement visitor replaces their uses on the right with
+   * {@link RexFieldAccess} references.
+   *
+   * <p>Selected expressions go to {@link #selected(RexNode)} without visiting
+   * their operands. Other calls have their operands checked separately.
+   * Lambda bodies and sub-query plans are skipped. A complete call containing
+   * a deterministic lambda can still be selected.
+   *
+   * <p>Each occurrence is checked because equal operators may declare different
+   * determinism. */
   private abstract static class CorrelatedExpressionSelector extends RexShuttle {
     private final CorrelationId id;
     private final SimpleCorrelationDetector detector;
@@ -270,7 +286,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
    * +($0, $cor0.DEPTNO) -> FALSE
    * }</pre>
    *
-   * <p>A subexpression built only from literals and dynamic parameters, such
+   * <p>A deterministic subexpression built only from literals and dynamic parameters, such
    * as {@code ARRAY(null:INTEGER)} above, is neutral: it neither qualifies nor
    * disqualifies the enclosing call.
    */
