@@ -30,15 +30,29 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.ConditionalCorrelate;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
@@ -85,6 +99,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
@@ -285,6 +300,119 @@ public abstract class RelOptUtil {
       }
     }
     return result;
+  }
+
+  /** Checks a relation, its inputs and sub-queries for deterministic operators.
+   *
+   * <p>A deterministic call returns the same result for the same operands
+   * within one query execution. Operators declare this through
+   * {@link SqlOperator#isDeterministic()}.
+   *
+   * <p>Returns false for unknown relational operators and non-repeatable
+   * {@link Sample} operators. Planner wrappers are not expanded. Input order is not checked.
+   * An unordered FETCH can still return different rows.
+   */
+  public static boolean isDeterministic(RelNode rel) {
+    if (rel instanceof Sample
+        && !((Sample) rel).getSamplingParameters().isRepeatable()) {
+      return false;
+    }
+    if (rel instanceof Aggregate
+        || rel instanceof Window
+        || rel instanceof Match
+        || rel instanceof Project
+        || rel instanceof Filter
+        || rel instanceof Calc
+        || rel instanceof Join
+        || rel instanceof Correlate
+        || rel instanceof Sort
+        || rel instanceof SetOp
+        || rel instanceof Exchange
+        || rel instanceof TableScan
+        || rel instanceof Values
+        || rel instanceof TableFunctionScan
+        || rel instanceof Snapshot
+        || rel instanceof Collect
+        || rel instanceof Uncollect
+        || rel instanceof Sample) {
+      try {
+        if (!tryVisitExpressions(rel, DeterminismChecker.INSTANCE)) {
+          return false;
+        }
+        if (rel instanceof Aggregate) {
+          for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+            if (!call.getAggregation().isDeterministic()) {
+              return false;
+            }
+          }
+        }
+        for (RelNode input : rel.getInputs()) {
+          if (!isDeterministic(input)) {
+            return false;
+          }
+        }
+        return true;
+      } catch (Util.FoundOne e) {
+        Util.swallow(e, null);
+      }
+    }
+    return false;
+  }
+
+  /** Applies a shuttle to one relational node's expression fields.
+   * Relational inputs are not visited.
+   *
+   * <p>The shuttle controls visits to expression children and sub-query plans.
+   * Rewritten expressions are ignored. An expression may be visited more than once.
+   *
+   * @param rel Relational expression whose fields to visit
+   * @param visitor Visitor used for read-only analysis
+   * @return True if this method can visit expressions for the node type, even
+   *     if none are present; false otherwise, without invoking the visitor
+   */
+  public static boolean tryVisitExpressions(RelNode rel, RexShuttle visitor) {
+    if (rel instanceof Aggregate) {
+      for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+        visitor.apply(call.rexList);
+      }
+    } else if (rel instanceof AsofJoin) {
+      visitor.apply(((AsofJoin) rel).getMatchCondition());
+    } else if (rel instanceof ConditionalCorrelate) {
+      visitor.apply(((ConditionalCorrelate) rel).getCondition());
+    } else if (rel instanceof Match) {
+      final Match match = (Match) rel;
+      match.getMeasures().values().forEach(e -> e.accept(visitor));
+      match.getPatternDefinitions().values().forEach(e -> e.accept(visitor));
+      visitor.apply(match.getPattern());
+      visitor.apply(match.getAfter());
+      visitor.apply(match.getInterval());
+    } else if (rel instanceof Window) {
+      for (Window.Group group : ((Window) rel).groups) {
+        visitor.apply(group.aggCalls);
+        visitor.apply(group.lowerBound.getOffset());
+        visitor.apply(group.upperBound.getOffset());
+      }
+    } else if (rel instanceof TableModify) {
+      visitor.apply(((TableModify) rel).getSourceExpressionList());
+    } else if (!(rel instanceof Project
+        || rel instanceof Filter
+        || rel instanceof Calc
+        || rel instanceof Join
+        || rel instanceof Correlate
+        || rel instanceof Sort
+        || rel instanceof SetOp
+        || rel instanceof Exchange
+        || rel instanceof TableScan
+        || rel instanceof Values
+        || rel instanceof TableFunctionScan
+        || rel instanceof Snapshot
+        || rel instanceof Collect
+        || rel instanceof Uncollect
+        || rel instanceof Sample)) {
+      return false;
+    }
+    rel.accept(visitor);
+    return true;
   }
 
   /**
@@ -4567,6 +4695,33 @@ public abstract class RelOptUtil {
               .filter(hint -> hint.inheritPath.isEmpty())
               .collect(Collectors.toList());
       return hintable.withHints(resetHints);
+    }
+  }
+
+  /** Checks calls and sub-queries for determinism.
+   * Throws {@link Util.FoundOne} if a check fails. */
+  private static class DeterminismChecker extends RexShuttle {
+    static final DeterminismChecker INSTANCE = new DeterminismChecker();
+
+    @Override public RexNode visitCall(RexCall call) {
+      if (!call.getOperator().isDeterministic()) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitCall(call);
+    }
+
+    @Override public SqlAggFunction visitOverAggFunction(SqlAggFunction op) {
+      if (!op.isDeterministic()) {
+        throw Util.FoundOne.NULL;
+      }
+      return op;
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      if (!isDeterministic(subQuery.rel)) {
+        throw Util.FoundOne.NULL;
+      }
+      return super.visitSubQuery(subQuery);
     }
   }
 

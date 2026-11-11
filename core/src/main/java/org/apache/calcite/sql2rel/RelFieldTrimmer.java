@@ -161,6 +161,22 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   //~ Methods ----------------------------------------------------------------
 
+  /** Trims unused fields without changing the inputs that supply correlation values.
+   * A LogicalCorrelate keeps its left input and trims only its right input.
+   * Other nodes that define bindings are kept unchanged.
+   * All root output fields are retained. */
+  static RelNode trimPreservingBindings(RelNode root, RelBuilder relBuilder) {
+    // Rebuilding a parent Project must not inline a binding node below it.
+    final RelBuilder builder = relBuilder.transform(config -> config.withBloat(-1));
+    try {
+      final RelNode trimmed = new CorrelationInputPreservingTrimmer(builder).trim(root);
+      return builder.push(trimmed).convert(root.getRowType(), true).build();
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return root;
+    }
+  }
+
   /**
    * Trims unused fields from a relational expression.
    *
@@ -335,7 +351,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param fieldsUsed Bitmap of fields needed by the consumer
    * @return New relational expression and its field mapping
    */
-  protected final TrimResult dispatchTrimFields(
+  protected TrimResult dispatchTrimFields(
       RelNode rel,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
@@ -1577,6 +1593,54 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   //~ Inner Classes ----------------------------------------------------------
+
+  /** Trims fields without changing correlation inputs. */
+  private static final class CorrelationInputPreservingTrimmer extends RelFieldTrimmer {
+    CorrelationInputPreservingTrimmer(RelBuilder relBuilder) {
+      super(null, relBuilder);
+    }
+
+    @Override protected TrimResult dispatchTrimFields(RelNode rel,
+        ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+      if (!extraFields.isEmpty()) {
+        throw Util.FoundOne.NULL;
+      }
+      if (rel instanceof LogicalCorrelate) {
+        return trimCorrelate((LogicalCorrelate) rel, fieldsUsed);
+      }
+      if (!rel.getVariablesSet().isEmpty()) {
+        return result(rel, Mappings.createIdentity(rel.getRowType().getFieldCount()));
+      }
+      return super.dispatchTrimFields(rel, fieldsUsed, extraFields);
+    }
+
+    @Override protected TrimResult result(RelNode rel, Mapping mapping) {
+      // Binding inputs are unchanged, so skip the superclass's correlation remapping.
+      return new TrimResult(rel, mapping);
+    }
+
+    private TrimResult trimCorrelate(LogicalCorrelate correlate, ImmutableBitSet fieldsUsed) {
+      final RelNode left = correlate.getLeft();
+      final int leftFieldCount = left.getRowType().getFieldCount();
+      final RelNode right = correlate.getRight();
+      final ImmutableBitSet rightFieldsUsed = fieldsUsed
+          .intersect(
+              ImmutableBitSet.range(leftFieldCount,
+              leftFieldCount + right.getRowType().getFieldCount()))
+          .shift(-leftFieldCount);
+      final TrimResult rightResult =
+          dispatchTrimFields(right, rightFieldsUsed, Collections.emptySet());
+      final Mapping leftMapping = Mappings.createIdentity(leftFieldCount);
+      final Mapping mapping = correlate.getJoinType().projectsRight()
+          ? Mappings.concatenateMappings(ImmutableList.of(leftMapping, rightResult.right))
+          : leftMapping;
+      assert mapping.getSourceCount() == correlate.getRowType().getFieldCount();
+      final RelNode newCorrelate = rightResult.left == right
+          ? correlate
+          : correlate.copy(correlate.getTraitSet(), ImmutableList.of(left, rightResult.left));
+      return result(newCorrelate, mapping);
+    }
+  }
 
   /**
    * Result of an attempt to trim columns from a relational expression.
