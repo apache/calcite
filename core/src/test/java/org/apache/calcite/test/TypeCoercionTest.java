@@ -270,6 +270,57 @@ class TypeCoercionTest {
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
   }
 
+  /** Type widening must preserve the nullability of nested set operations. */
+  @Test void testSetOperationCoercionNullability() {
+    final String notNullInt = "select x from (values (1)) as t(x)";
+    final String nullableInt =
+        "select x from (values (1), (cast(null as integer))) as t(x)";
+    final String nullableBigint =
+        "select x from (values (cast(1 as bigint)), (cast(null as bigint))) as t(x)";
+
+    // union
+    sql(notNullInt + " union " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " union " + nullableInt + " union " + nullableBigint)
+        .columnType("BIGINT");
+    sql(nullableInt + " union " + nullableInt + " union " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " union all " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " union all " + nullableInt + " union all " + nullableBigint)
+        .columnType("BIGINT");
+    sql(nullableInt + " union all " + nullableInt + " union all " + nullableBigint)
+        .columnType("BIGINT");
+
+    // intersect
+    sql(notNullInt + " intersect " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " intersect " + nullableInt + " intersect " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " intersect " + nullableInt + " intersect " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " intersect all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " intersect all " + nullableInt + " intersect all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " intersect all " + nullableInt + " intersect all " + nullableBigint)
+        .columnType("BIGINT");
+
+    // except
+    sql(notNullInt + " except " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " except " + nullableInt + " except " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " except " + nullableInt + " except " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " except all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " except all " + nullableInt + " except all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " except all " + nullableInt + " except all " + nullableBigint)
+        .columnType("BIGINT");
+  }
+
   /** Test arithmetic expressions with string type arguments. */
   @Test void testArithmeticExpressionsWithStrings() {
     SqlValidatorFixture f = validatorFixture();
