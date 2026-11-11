@@ -222,6 +222,55 @@ from dept,
 
 !ok
 
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL sees two items before the ',' (v1 and dept) and the item on the
+# left of the join (v2). Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select v1.v as v1, dept.deptno, emp.ename, v2.v as v2
+from (values ('A'), ('M')) as v1 (v),
+  dept,
+  (values ('A'), ('M')) as v2 (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v2.v in emp.ename) > 0
+    and v1.v = 'A') as emp;
++----+--------+-------+----+
+| V1 | DEPTNO | ENAME | V2 |
++----+--------+-------+----+
+| A  |     10 | CLARK | A  |
+| A  |     20 | SMITH | M  |
++----+--------+-------+----+
+(2 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL on the right of a join uses a column of the join's left input (v.v)
+# two times. Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select dept.deptno, emp.ename, v.v
+from dept,
+  (values ('A'), ('M')) as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0
+    and position(v.v in emp.ename) < 4) as emp;
++--------+-------+---+
+| DEPTNO | ENAME | V |
++--------+-------+---+
+|     10 | CLARK | A |
+|     20 | SMITH | M |
++--------+-------+---+
+(2 rows)
+
+!ok
+
 # [CALCITE-7928] A nested inner LATERAL join need only carry the outer
 # correlation domain on its right. Preserve duplicates and NULL domain values.
 with dept (deptno) as (values (10), (10), (20), (cast(null as integer))),
@@ -272,55 +321,6 @@ order by dept.deptno, v.v;
 |        |   |            |       |
 +--------+---+------------+-------+
 (4 rows)
-
-!ok
-
-# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
-# LATERAL sees two items before the ',' (v1 and dept) and the item on the
-# left of the join (v2). Same result on PostgreSQL 14.
-with dept (deptno, dname)
-    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
-  emp (empno, deptno, ename)
-    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
-select v1.v as v1, dept.deptno, emp.ename, v2.v as v2
-from (values ('A'), ('M')) as v1 (v),
-  dept,
-  (values ('A'), ('M')) as v2 (v)
-  cross join lateral (select * from emp
-    where emp.deptno = dept.deptno
-    and position(v2.v in emp.ename) > 0
-    and v1.v = 'A') as emp;
-+----+--------+-------+----+
-| V1 | DEPTNO | ENAME | V2 |
-+----+--------+-------+----+
-| A  |     10 | CLARK | A  |
-| A  |     20 | SMITH | M  |
-+----+--------+-------+----+
-(2 rows)
-
-!ok
-
-# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
-# LATERAL on the right of a join uses a column of the join's left input (v.v)
-# two times. Same result on PostgreSQL 14.
-with dept (deptno, dname)
-    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
-  emp (empno, deptno, ename)
-    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
-select dept.deptno, emp.ename, v.v
-from dept,
-  (values ('A'), ('M')) as v (v)
-  cross join lateral (select * from emp
-    where emp.deptno = dept.deptno
-    and position(v.v in emp.ename) > 0
-    and position(v.v in emp.ename) < 4) as emp;
-+--------+-------+---+
-| DEPTNO | ENAME | V |
-+--------+-------+---+
-|     10 | CLARK | A |
-|     20 | SMITH | M |
-+--------+-------+---+
-(2 rows)
 
 !ok
 
