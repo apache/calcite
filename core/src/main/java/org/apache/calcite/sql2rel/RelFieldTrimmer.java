@@ -161,9 +161,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Trims unused computations without changing correlation input interfaces.
-   * A LogicalCorrelate keeps its left input while its right output can be trimmed.
-   * Other binding nodes are kept intact. Every root output field is retained. */
+  /** Trims unused fields without changing the inputs that supply correlation values.
+   * A LogicalCorrelate keeps its left input and trims only its right input.
+   * Other nodes that define bindings are kept unchanged.
+   * All root output fields are retained. */
   static RelNode trimPreservingBindings(RelNode root, RelBuilder relBuilder) {
     // Rebuilding a parent Project must not inline a binding node below it.
     final RelBuilder builder = relBuilder.transform(config -> config.withBloat(-1));
@@ -171,7 +172,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       final RelNode trimmed = new CorrelationInputPreservingTrimmer(builder).trim(root);
       return builder.push(trimmed).convert(root.getRowType(), true).build();
     } catch (Util.FoundOne e) {
-      // Adding dynamic fields would change the interface being preserved.
       Util.swallow(e, null);
       return root;
     }
@@ -1615,7 +1615,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     @Override protected TrimResult result(RelNode rel, Mapping mapping) {
-      // Binding input interfaces have not changed; this mapping describes output only.
+      // Binding inputs are unchanged, so skip the superclass's correlation remapping.
       return new TrimResult(rel, mapping);
     }
 

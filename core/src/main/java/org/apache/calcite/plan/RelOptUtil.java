@@ -302,18 +302,15 @@ public abstract class RelOptUtil {
     return result;
   }
 
-  /** Returns whether a relational expression, its inputs and sub-queries are
-   * deterministic according to their operator declarations.
+  /** Checks a relation, its inputs and sub-queries for deterministic operators.
    *
-   * <p>Assumes parameters, correlation bindings, query context and table contents
-   * stay fixed within the query. Function calls use
-   * {@link SqlOperator#isDeterministic()}, which allows query-stable functions
-   * such as {@code CURRENT_TIMESTAMP}. A {@link Sample} must declare repeatability.
-   * Unknown relational operators return false. Planner wrappers are not expanded.
+   * <p>A deterministic call returns the same result for the same operands
+   * within one query execution. Operators declare this through
+   * {@link SqlOperator#isDeterministic()}.
    *
-   * <p>Input order must also be stable where it affects the result. This method
-   * does not establish that property, for example for an unordered FETCH.
-   * It does not trim fields or modify the expression.
+   * <p>Returns false for unknown relational operators and non-repeatable
+   * {@link Sample} operators. Planner wrappers are not expanded. Input order is not checked.
+   * An unordered FETCH can still return different rows.
    */
   public static boolean isDeterministic(RelNode rel) {
     if (rel instanceof Sample
@@ -362,22 +359,16 @@ public abstract class RelOptUtil {
     return false;
   }
 
-  /** Visits a supported node's expression fields for read-only analysis.
+  /** Applies a shuttle to one relational node's expression fields.
+   * Relational inputs are not visited.
    *
-   * <p>Does not visit relational inputs, expand planner wrappers, visit
-   * literal-only data (such as {@link Values} tuples and {@link Window}
-   * constants), or apply rewritten expressions. The visitor controls traversal
-   * inside expressions, including sub-query plans. The same expression may be
-   * visited more than once.
-   *
-   * <p>An unsupported operator family returns false without invoking the
-   * visitor. A supported operator may have no expressions to visit. Exceptions
-   * thrown by the visitor are propagated.
+   * <p>The shuttle controls visits to expression children and sub-query plans.
+   * Rewritten expressions are ignored. An expression may be visited more than once.
    *
    * @param rel Relational expression whose fields to visit
    * @param visitor Visitor used for read-only analysis
-   * @return Whether the operator family is supported; true after visiting its
-   *     expression fields, false without invoking the visitor
+   * @return True if this method can visit expressions for the node type, even
+   *     if none are present; false otherwise, without invoking the visitor
    */
   public static boolean tryVisitExpressions(RelNode rel, RexShuttle visitor) {
     if (rel instanceof Aggregate) {
@@ -4707,8 +4698,8 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Checks operator declarations and expression operands for determinism
-   * without rewriting expressions. */
+  /** Checks calls and sub-queries for determinism.
+   * Throws {@link Util.FoundOne} if a check fails. */
   private static class DeterminismChecker extends RexShuttle {
     static final DeterminismChecker INSTANCE = new DeterminismChecker();
 

@@ -36,11 +36,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Set;
 
-/** Conservatively analyzes references to correlation bindings outside a
- * relational tree without changing it.
+/** Checks for references to correlation bindings outside a relational tree.
  *
- * <p>Local bindings hide references only within their scope. Regions with
- * unknown expression coverage or binding scopes may contain outer references. */
+ * <p>Records whether outer bindings may be referenced and which declared
+ * fields may still be needed.
+ *
+ * <p>A local binding hides the outer binding with the same id in its scope.
+ * A region that cannot be analyzed may contain outer references.
+ * All declared fields are kept in that case. */
 final class CorrelationReferences {
   /** Correlation to inspect, or null to match any free correlation. */
   private final @Nullable CorrelationId targetId;
