@@ -13024,6 +13024,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7928">
+   * [CALCITE-7928] Excessive planning time for nested lateral joins with the
+   * top-down decorrelator</a>. */
+  @Test void testTopDownGeneralDecorrelateForNestedLateralJoin() {
+    final String sql = "with dept (deptno, dname) as (\n"
+        + "  values (10, 'ACCOUNTING'), (20, 'RESEARCH')),\n"
+        + "emp (empno, deptno, ename) as (\n"
+        + "  values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))\n"
+        + "select * from dept, (values 'A', 'M') as v (v)\n"
+        + "cross join lateral (select * from emp\n"
+        + "  where emp.deptno = dept.deptno\n"
+        + "  and position(v.v in emp.ename) > 0) as emp";
+
+    sql(sql)
+        .withRule(CoreRules.PROJECT_MERGE, CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
   @Test void testTopDownGeneralDecorrelateForTwoLevelCorrelate() {
     final String sql = "select empno from emp where "
         + "exists(select * from emp_b where emp.ename = emp_b.ename and "
