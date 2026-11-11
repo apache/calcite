@@ -28,6 +28,43 @@ github:
     # We prefer linear history, so creating merge commits is disabled in UI
     merge:   false
     rebase:  true
+  rulesets:
+    - name: PR checks
+      target: branch
+      enforcement: active
+      bypass_actors: []
+      conditions:
+        ref_name:
+          include: [refs/heads/main]
+          exclude: []
+      rules:
+        - type: required_status_checks
+          parameters:
+            strict_required_status_checks_policy: false
+            # Keep contexts in sync with the check names reported on PRs.
+            # Jenkins pr-head is deliberately not required.
+            required_status_checks:
+              - context: Check PR title
+                integration_id: 15368 # GitHub Actions
+              - context: Check single commit
+                integration_id: 15368 # GitHub Actions
+              - context: Validation
+                integration_id: 15368 # GitHub Actions
+              # Randomized test job names vary; require their stable aggregate.
+              - context: Test matrix
+                integration_id: 15368 # GitHub Actions
+              - context: ErrorProne (JDK 11, latest Guava)
+                integration_id: 15368 # GitHub Actions
+              - context: CheckerFramework (JDK 11)
+                integration_id: 15368 # GitHub Actions
+              - context: CheckerFramework (JDK 11, oldest Guava)
+                integration_id: 15368 # GitHub Actions
+              - context: Druid Tests
+                integration_id: 15368 # GitHub Actions
+              - context: SonarCloud
+                integration_id: 57789 # GitHub Code Scanning
+              - context: SonarCloud Code Analysis
+                integration_id: 12526 # SonarQube Cloud
 notifications:
     commits:      commits@calcite.apache.org
     issues:       issues@calcite.apache.org
