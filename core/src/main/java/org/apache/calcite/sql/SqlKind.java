@@ -880,6 +880,9 @@ public enum SqlKind {
   /** {@code APPROX_QUANTILES} function. */
   APPROX_QUANTILES,
 
+  /** {@code APPROX_PERCENTILE} function. */
+  APPROX_PERCENTILE,
+
   /** {@code SORT_ARRAY} function (Spark semantics). */
   SORT_ARRAY,
 
@@ -1114,6 +1117,9 @@ public enum SqlKind {
 
   /** The {@code REGR_COUNT} aggregate function. */
   REGR_COUNT,
+
+  /** The {@code REGR_SLOPE} aggregate function. */
+  REGR_SLOPE,
 
   /** The {@code REGR_SXX} aggregate function. */
   REGR_SXX,

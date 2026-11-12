@@ -27,6 +27,8 @@ import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.CommentTraitDef;
 import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
+import org.apache.calcite.plan.MergeSortProjectTrait;
+import org.apache.calcite.plan.MergeSortProjectTraitDef;
 import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
@@ -1236,7 +1238,7 @@ public abstract class SqlImplementor {
       List<SqlNode> orderNodes = Expressions.list();
       if (rexWindow.orderKeys != null) {
         for (RexFieldCollation rfc : rexWindow.orderKeys) {
-          addOrderItem(orderNodes, program, rfc, rexOver.op);
+          addOrderItem(orderNodes, program, rfc, rexOver.op, rexWindow.isRows());
         }
       }
       final SqlNodeList orderList =
@@ -1289,7 +1291,7 @@ public abstract class SqlImplementor {
           window);
     }
 
-    private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc) {
+    private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc, boolean isRows) {
       SqlNode node = toSql(program, rfc.left);
       switch (rfc.getDirection()) {
       case DESCENDING:
@@ -1299,8 +1301,9 @@ public abstract class SqlImplementor {
       default:
         break;
       }
-      if (rfc.getNullDirection()
-              != dialect.defaultNullDirection(rfc.getDirection())) {
+      if (rfc.getNullDirection() != dialect.defaultNullDirection(rfc.getDirection())
+          || (dialect.retainRedundantWindowNullDirection(isRows)
+          && rfc.getNullDirection() == RelFieldCollation.NullDirection.LAST)) {
         switch (rfc.getNullDirection()) {
         case FIRST:
           node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
@@ -1386,7 +1389,8 @@ public abstract class SqlImplementor {
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
     private void addOrderItem(List<SqlNode> orderByList,
-        @Nullable RexProgram program, RexFieldCollation field, @Nullable SqlOperator operator) {
+        @Nullable RexProgram program, RexFieldCollation field, @Nullable SqlOperator operator,
+        boolean isRows) {
       SqlNode node = toSql(program, field.left);
       SqlNode nullDirectionNode = null;
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
@@ -1394,7 +1398,7 @@ public abstract class SqlImplementor {
             field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
         nullDirectionNode =
             dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(node, first,
-                field.getDirection().isDescending(), operator);
+                field.getDirection().isDescending(), operator, isRows);
       }
       if (nullDirectionNode != null) {
         orderByList.add(nullDirectionNode);
@@ -1408,7 +1412,7 @@ public abstract class SqlImplementor {
         }
         orderByList.add(node);
       } else {
-        orderByList.add(toSql(program, field));
+        orderByList.add(toSql(program, field, isRows));
       }
     }
 
@@ -1875,6 +1879,12 @@ public abstract class SqlImplementor {
           if (mappedSqlNode != null) {
             return mappedSqlNode;
           }
+          boolean needsQualForSameTableAndColName =
+              alias.getKey().equals(field.getName())
+                  && !dialect.supportsIdenticalTableAndColumnName();
+          if (needsQualForSameTableAndColName) {
+            return new SqlIdentifier(ImmutableList.of(alias.getKey(), field.getName()), POS);
+          }
           return new SqlIdentifier(!qualified || alias.getKey().startsWith("unnest$")
               ? ImmutableList.of(field.getName())
               : ImmutableList.of(alias.getKey(), field.getName()),
@@ -1957,6 +1967,14 @@ public abstract class SqlImplementor {
     @Override public SqlNode field(int ordinal, boolean useAlias) {
       throw new IllegalStateException("Shouldn't be here");
     }
+  }
+
+  /** Returns the {@link MergeSortProjectTrait} on {@code rel}, or null. */
+  protected static @Nullable MergeSortProjectTrait mergeSortProjectTrait(
+      @Nullable RelNode rel) {
+    return rel == null
+        ? null
+        : rel.getTraitSet().getTrait(MergeSortProjectTraitDef.instance);
   }
 
   /** Result of implementing a node. */
@@ -2088,6 +2106,7 @@ public abstract class SqlImplementor {
 //        final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
 //            && dialect.getConformance().isHavingAlias() || keepColumnAlias;
         final boolean aliasRef = isAliasRefNeeded(keepColumnAlias, rel);
+        final @Nullable MergeSortProjectTrait mergeSortProject = mergeSortProjectTrait(rel);
         newContext = new Context(dialect, selectList.size()) {
           @Override public SqlImplementor implementor() {
             return SqlImplementor.this;
@@ -2126,6 +2145,12 @@ public abstract class SqlImplementor {
           }
 
           @Override public SqlNode orderField(int ordinal) {
+            if (mergeSortProject != null && mergeSortProject.isSortOnlyField(ordinal)) {
+              // This column exists only to give the collation an ordinal to reference and will
+              // not survive into the emitted SELECT list, so neither an ordinal nor an alias
+              // would resolve. Inline the underlying expression instead.
+              return field(ordinal, false);
+            }
             // If the field expression is an unqualified column identifier
             // and matches a different alias, use an ordinal.
             // For example, given
@@ -2149,6 +2174,12 @@ public abstract class SqlImplementor {
                   }
                 }
               }
+            } else if (node instanceof SqlIdentifier
+                && ((SqlIdentifier) node).names.size() == 2
+                && hasSameNames(((SqlIdentifier) node).names, false)
+                && !dialect.supportsIdenticalTableAndColumnName()) {
+              return SqlLiteral.createExactNumeric(
+                  Integer.toString(ordinal + 1), SqlParserPos.ZERO);
             }
             return node;
           }
@@ -2216,6 +2247,14 @@ public abstract class SqlImplementor {
         }
       }
       return false;
+    }
+
+    private boolean hasSameNames(List<String> names, boolean caseSensitive) {
+      if (!caseSensitive) {
+        return names.stream()
+            .allMatch(s -> s.equalsIgnoreCase(names.get(0)));
+      }
+      return names.stream().allMatch(s -> s.equals(names.get(0)));
     }
 
     public boolean isQualifyFilter(RelNode relNode) {
@@ -2592,8 +2631,10 @@ public abstract class SqlImplementor {
         if (areGroupByWithExprAlias((Project) rel, (Sort) relInput)) {
           return false;
         }
+        // Columns that RelBuilder.sortLimit materialised only so the collation had an ordinal to
+        // reference are not part of the SELECT list; not projecting them is not a reason to wrap.
         return !areAllNamedInputFieldsProjected(((Project) rel).getProjects(), rel.getRowType(),
-            relInput.getRowType());
+            relInput.getRowType(), mergeSortProjectTrait(relInput));
       }
 
       // If old and new clause are equal and belong to below set,
@@ -2861,9 +2902,20 @@ public abstract class SqlImplementor {
     private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,
         RelDataType projectRelDataType,
         RelDataType inputRelDataType) {
+      return areAllNamedInputFieldsProjected(projects, projectRelDataType, inputRelDataType, null);
+    }
+
+    private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,
+        RelDataType projectRelDataType,
+        RelDataType inputRelDataType,
+        @Nullable MergeSortProjectTrait mergeSortProject) {
       Map<Integer, List<String>> fieldsProjected = fieldsProjected(projects, projectRelDataType);
       int inputFieldIndex = 0;
       for (RelDataTypeField inputField : inputRelDataType.getFieldList()) {
+        if (mergeSortProject != null && mergeSortProject.isSortOnlyField(inputFieldIndex)) {
+          inputFieldIndex++;
+          continue;
+        }
         if (!inputField.getName().startsWith(SqlUtil.GENERATED_EXPR_ALIAS_PREFIX)
             && !(fieldsProjected.containsKey(inputFieldIndex)
             && fieldsProjected.get(inputFieldIndex).contains(inputField.getName()))) {
