@@ -178,9 +178,15 @@ from dept,
 # [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
 # LATERAL on the right of a join sees the item on the left of the join (v)
 # and the item before the ',' (dept). Same result on PostgreSQL 14.
-# Note: this test can lead to CI timeout with the new decorrelator,
-# so it is only enabled with the old one; to be investigated in CALCITE-7928.
-!if (use_old_decorr) {
+#
+# [CALCITE-7928] Volcano optimizer takes a very long time for a cross join
+# lateral query
+# The top-down decorrelator gives the planner a plan with 5 joins.
+# On this plan, the join reordering rules and PROJECT_MERGE make many
+# duplicate Projects, and planning can take more than one minute.
+# Without PROJECT_MERGE, planning takes less than one second.
+!set planner-rules "
+-PROJECT_MERGE"
 with dept (deptno, dname)
     as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
   emp (empno, deptno, ename)
@@ -200,7 +206,7 @@ from dept,
 (2 rows)
 
 !ok
-!}
+!set planner-rules original
 
 # As above, with LEFT JOIN; a row of v that has no match in emp still appears
 # once for each dept, with a null ENAME. Same result on PostgreSQL 14.
