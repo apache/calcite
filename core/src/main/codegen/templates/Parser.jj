@@ -4776,7 +4776,8 @@ SqlNode LambdaExpression() :
 {
     parameters = SimpleIdentifierOrListOrEmpty()
     <LAMBDA> { s = span(); }
-    expression = Expression(ExprContext.ACCEPT_NON_QUERY)
+    // The validator rejects sub-queries in the body
+    expression = Expression(ExprContext.ACCEPT_SUB_QUERY)
     {
         return new SqlLambda(s.end(this), parameters, expression);
     }

@@ -49,10 +49,11 @@ public class SqlLambdaScope extends ListScope {
     lambdaExpr.getParameters().forEach(param -> parameterTypes.put(param.toString(), any));
   }
 
-  /** True if the identifier matches one of the parameter names. */
+  /** True if the identifier matches one of the parameter names. In a
+   * compound identifier such as 'x.name', checks the first component. */
   public boolean isParameter(SqlIdentifier id) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
-    final String name = id.getSimple();
+    final String name = id.names.get(0);
     return parameterTypes.keySet().stream()
         .anyMatch(paramName -> nameMatcher.matches(paramName, name));
   }

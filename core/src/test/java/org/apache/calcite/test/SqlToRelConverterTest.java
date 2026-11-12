@@ -383,6 +383,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7933">[CALCITE-7933]
+   * Correlated subqueries with lambdas that capture columns are incorrectly
+   * compiled</a>. */
+  @Test void testLambdaInSubQueryReadsEnclosingColumn() {
+    final String sql = "select t.x,\n"
+        + "  (select count(*) from (values (5, array[1, 5])) as s(y, b)\n"
+        + "   where \"EXISTS\"(s.b, e -> e = t.x)) as c\n"
+        + "from (values (1), (7)) as t(x)";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withSql(sql)
+        .withDecorrelate(false)
+        .ok();
+  }
+
   @Test void testDotLiteralAfterRow() {
     final String sql = "select row(1,2).\"EXPR$1\" from emp";
     sql(sql).ok();

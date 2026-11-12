@@ -271,3 +271,291 @@ from (select ROW(deptno, 1) as r from emp where ename = 'Jane') as t;
 (1 row)
 
 !ok
+
+# [CALCITE-7933] Correlated subqueries with lambdas that capture columns are
+# incorrectly compiled
+#
+# The results of the tests in this section were validated with Spark 3.5.9
+# and DuckDB 2.0.0. Spark runs each query with array(...) for array[...].
+# In DuckDB, EXISTS(a, e -> p) is spark_exists(list_transform(a, lambda e: p)),
+# where the macro spark_exists has the rule of Spark: TRUE if one element
+# gives TRUE, else NULL if one element gives NULL, else FALSE.
+
+# The lambda in the WHERE clause of a scalar sub-query compares the array
+# elements with t.x of the enclosing query.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select (select count(*) from (values (array[1, 2])) as s(b)
+        where "EXISTS"(s.b, e -> e = t.x)) as c
+from (values (1)) as t(x);
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# Same, but the first column of the sub-query input has the type of t.x.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select t.x,
+  (select count(*) from (values (5, array[1, 5]), (6, array[1])) as s(y, b)
+   where "EXISTS"(s.b, e -> e = t.x)) as c
+from (values (1), (7)) as t(x);
++---+---+
+| X | C |
++---+---+
+| 1 | 2 |
+| 7 | 0 |
++---+---+
+(2 rows)
+
+!ok
+
+# The lambda is in the SELECT list of the sub-query.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select t.x,
+  (select "EXISTS"(s.b, e -> e = t.x) from (values (array[1, 5])) as s(b)) as c
+from (values (1), (7)) as t(x);
++---+-------+
+| X | C     |
++---+-------+
+| 1 | true  |
+| 7 | false |
++---+-------+
+(2 rows)
+
+!ok
+
+# The lambda references a column of the sub-query (s.y) and a column of the
+# enclosing query (t.x).
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select t.x,
+  (select count(*) from (values (1, array[1, 5]), (4, array[1])) as s(y, b)
+   where "EXISTS"(s.b, e -> e = t.x + s.y)) as c
+from (values (0), (1)) as t(x);
++---+---+
+| X | C |
++---+---+
+| 0 | 1 |
+| 1 | 0 |
++---+---+
+(2 rows)
+
+!ok
+
+# The inner lambda of a nested lambda references a column of the enclosing
+# query.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select t.x,
+  (select count(*) from (values (array[1, 2])) as s(b)
+   where "EXISTS"(s.b, e -> "EXISTS"(array[3], f -> e + f = t.x))) as c
+from (values (4), (6)) as t(x);
++---+---+
+| X | C |
++---+---+
+| 4 | 1 |
+| 6 | 0 |
++---+---+
+(2 rows)
+
+!ok
+
+# The lambda is in a sub-query of a sub-query, and references a column of the
+# outermost query.
+# Result validated with DuckDB 2.0.0. Spark 3.5.9 rejects this query,
+# because it cannot resolve t.x two query levels up.
+select t.x,
+  (select count(*) from (values (10), (20)) as u(z)
+   where exists (select 1 from (values (array[1, 5])) as s(b)
+                 where "EXISTS"(s.b, e -> e = t.x))) as c
+from (values (1), (7)) as t(x);
++---+---+
+| X | C |
++---+---+
+| 1 | 2 |
+| 7 | 0 |
++---+---+
+(2 rows)
+
+!ok
+
+# The lambda is in a correlated EXISTS sub-query in the WHERE clause.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select t.x
+from (values (1), (7)) as t(x)
+where exists (select 1 from (values (array[1, 5])) as s(b)
+              where "EXISTS"(s.b, e -> e = t.x));
++---+
+| X |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# The lambda in a JOIN ON condition reads a column of the other input.
+# The inputs have more than one row, so the condition is not folded.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select *
+from (values (array[1, 2, 3]), (array[4])) as t1(arr)
+inner join (values (1), (4)) as t2(v) on "EXISTS"(arr, x -> x = t2.v);
++-----------+---+
+| ARR       | V |
++-----------+---+
+| [1, 2, 3] | 1 |
+| [4]       | 4 |
++-----------+---+
+(2 rows)
+
+!ok
+
+# The lambda is in the FROM clause, in a LATERAL sub-query, and references a
+# column of the preceding FROM item.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select *
+from (values (1), (5)) as b(v),
+  lateral (select "EXISTS"(array[1, 2], e -> e = b.v) as r
+           from (values (0)) as z(z));
++---+-------+
+| V | R     |
++---+-------+
+| 1 | true  |
+| 5 | false |
++---+-------+
+(2 rows)
+
+!ok
+
+# The lambda in the SELECT list of an aggregate query reads a GROUP BY
+# column. K2 is column 1 of the FROM clause, but column 0 of the
+# aggregate result.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k2, k3, "EXISTS"(array[1, 2], e -> e = k2) as r
+from (values (0, 1, 5), (0, 1, 5), (0, 3, 2)) as t(k1, k2, k3)
+group by k2, k3;
++----+----+-------+
+| K2 | K3 | R     |
++----+----+-------+
+|  1 |  5 | true  |
+|  3 |  2 | false |
++----+----+-------+
+(2 rows)
+
+!ok
+
+# The aggregate result has only one column.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k2, "EXISTS"(array[1, 2], e -> e = k2) as r
+from (values (0, 1), (0, 1), (0, 3)) as t(k1, k2)
+group by k2;
++----+-------+
+| K2 | R     |
++----+-------+
+|  1 | true  |
+|  3 | false |
++----+-------+
+(2 rows)
+
+!ok
+
+# The lambda in the HAVING clause reads a GROUP BY column.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k2, count(*) as c
+from (values (0, 1, 5), (0, 1, 5), (0, 3, 2)) as t(k1, k2, k3)
+group by k2, k3
+having "EXISTS"(array[1, 2], e -> e = k3);
++----+---+
+| K2 | C |
++----+---+
+|  3 | 1 |
++----+---+
+(1 row)
+
+!ok
+
+# A nested lambda reads a GROUP BY column.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k2,
+  "EXISTS"(array[array[1], array[4]], a -> "EXISTS"(a, e -> e = k2)) as r
+from (values (0, 1, 5), (0, 3, 2)) as t(k1, k2, k3)
+group by k2, k3;
++----+-------+
+| K2 | R     |
++----+-------+
+|  1 | true  |
+|  3 | false |
++----+-------+
+(2 rows)
+
+!ok
+
+# The lambda reads a GROUP BY expression.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k2 + 1 as p, "EXISTS"(array[2, 3], e -> e = k2 + 1) as r
+from (values (0, 1, 5), (0, 3, 2)) as t(k1, k2, k3)
+group by k2 + 1;
++---+-------+
+| P | R     |
++---+-------+
+| 2 | true  |
+| 4 | false |
++---+-------+
+(2 rows)
+
+!ok
+
+# With ROLLUP, K3 is null in the subtotal rows.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k2, k3, "EXISTS"(array[2], e -> e = k3) as r
+from (values (0, 1, 5), (0, 3, 2)) as t(k1, k2, k3)
+group by rollup(k2, k3);
++----+----+-------+
+| K2 | K3 | R     |
++----+----+-------+
+|  1 |  5 | false |
+|  1 |    |       |
+|  3 |  2 | true  |
+|  3 |    |       |
+|    |    |       |
++----+----+-------+
+(5 rows)
+
+!ok
+
+# A lambda in a sub-query reads a GROUP BY column of the enclosing query.
+# Result validated with DuckDB 2.0.0. Spark 3.5.9 rejects this query,
+# because a correlated scalar sub-query in an aggregate query must be in
+# GROUP BY or in an aggregate function.
+select k2,
+  (select count(*) from (values (array[1, 3]), (array[1])) as s(b)
+   where "EXISTS"(s.b, e -> e = t.k2)) as c
+from (values (0, 1, 5), (0, 1, 5), (0, 3, 2)) as t(k1, k2, k3)
+group by k2, k3;
++----+---+
+| K2 | C |
++----+---+
+|  1 | 2 |
+|  3 | 1 |
++----+---+
+(2 rows)
+
+!ok
+
+# A lambda in ORDER BY can read its parameter, but not a column.
+# The parameter E has the same name as a select item, and E in the
+# lambda is the parameter. The lambda reads the column A only through
+# its array argument.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x as e from (values (1, array[1]), (3, array[2])) as t(x, a)
+order by "EXISTS"(a, e -> e = 2) desc, "EXISTS"(array[1, 2], e -> e = 1);
++---+
+| E |
++---+
+| 3 |
+| 1 |
++---+
+(2 rows)
+
+!ok
