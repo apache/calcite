@@ -4924,6 +4924,37 @@ public abstract class SqlLibraryOperators {
               OperandTypes.BOOLEAN)
           .withFunctionType(SqlFunctionCategory.SYSTEM);
 
+  /**
+   * The {@code KURTOSIS(numeric)} aggregate function.
+   *
+   * <p>Returns the sample excess kurtosis of the non-null input values, or NULL when there are
+   * fewer than four of them. Source-neutral: Snowflake, Teradata and Oracle all expose this
+   * construct, so the operator is named for the construct rather than for any target builtin.
+   * No target dialect in this fork has a builtin of this name, so each target's renderer owns
+   * how it is expressed.
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction KURTOSIS =
+      SqlBasicAggFunction
+          .create("KURTOSIS", SqlKind.KURTOSIS,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  /**
+   * The {@code SKEW(numeric)} aggregate function.
+   *
+   * <p>Returns the sample skewness of the non-null input values, or NULL when there are fewer
+   * than three of them. Source-neutral, for the same reason as {@link #KURTOSIS}.
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction SKEW =
+      SqlBasicAggFunction
+          .create("SKEW", SqlKind.SKEW,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction DAYOFWEEKISO =
       new SqlFunction(

@@ -15078,6 +15078,41 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 
+  /** Test case for the {@code KURTOSIS} aggregate function (RSFB-5064).
+   *
+   * <p>The operator is source-neutral and no target has a builtin of this name, so rel2sql
+   * renders it verbatim; each target's own converter is responsible for expanding it. */
+  @Test public void testKurtosisAggFunction() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(
+            builder.groupKey(), builder.aggregateCall(SqlLibraryOperators.KURTOSIS,
+            builder.field("SAL")).as("kurtosis_sal"))
+        .build();
+
+    final String expectedSql = "SELECT KURTOSIS(\"SAL\") AS \"kurtosis_sal\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
+  /** Test case for the {@code SKEW} aggregate function (RSFB-5064). */
+  @Test public void testSkewAggFunction() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(
+            builder.groupKey(), builder.aggregateCall(SqlLibraryOperators.SKEW,
+            builder.field("SAL")).as("skew_sal"))
+        .build();
+
+    final String expectedSql = "SELECT SKEW(\"SAL\") AS \"skew_sal\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testBoolOrAggFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode boolOrAgg =
