@@ -706,6 +706,14 @@ class TableFunctionTest {
         });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7935">[CALCITE-7935]
+   * Support table function calls without parentheses</a>. */
+  @Test void testUserDefinedTableFunctionWithoutParentheses() {
+    with().query("select * from table(\"s\".\"fibonacci\") fetch first 7 rows only")
+        .returnsUnordered("N=1", "N=1", "N=2", "N=3", "N=5", "N=8", "N=13");
+  }
+
   @Test void testUserDefinedTableFunction7() {
     final String q = "select *\n"
         + "from table(\"s\".\"fibonacci2\"(20))\n"

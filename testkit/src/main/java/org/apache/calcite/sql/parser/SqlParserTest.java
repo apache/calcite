@@ -5227,6 +5227,20 @@ public class SqlParserTest {
             + "FROM TABLE(`RAMP`(3, 4))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7935">[CALCITE-7935]
+   * Support table function calls without parentheses</a>. */
+  @Test void testCollectionTableWithoutParentheses() {
+    sql("select * from table(my_func)")
+        .ok("SELECT *\nFROM TABLE(`MY_FUNC`())");
+    sql("select * from table(\"s\".\"my_func\") as t(c)")
+        .ok("SELECT *\nFROM TABLE(`s`.`my_func`()) AS `T` (`C`)");
+    sql("select * from lateral table(my_func)")
+        .ok("SELECT *\nFROM LATERAL TABLE(`MY_FUNC`())");
+    sql("select * from table(specific my_func)")
+        .ok("SELECT *\nFROM TABLE(SPECIFIC `MY_FUNC`())");
+  }
+
   @Test void testDescriptor() {
     sql("select * from table(ramp(descriptor(column_name)))")
         .ok("SELECT *\n"
