@@ -2324,6 +2324,38 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(2));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7934">[CALCITE-7934]
+   * Aggregate uniqueness metadata uses incorrect column ordinals</a>. */
+  @Test void testAggregateUniquenessAfterAggregateProjectMerge() {
+    sql("select sal, max(empno) from emp group by sal")
+        .withRelTransform(RelMetadataTest::applyAggregateProjectMerge)
+        .withRelTransform(rel -> {
+          assertThat(rel, is(instanceOf(Aggregate.class)));
+          assertThat(((Aggregate) rel).getGroupSet(), is(bitSetOf(5)));
+          return rel;
+        })
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1));
+
+    sql("select ename, sal, count(*) from emp where sal = 1000 group by ename, sal")
+        .withRelTransform(RelMetadataTest::applyAggregateProjectMerge)
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    sql("select ename, sal, count(*) from emp\n"
+        + "group by grouping sets ((ename), (ename, sal))")
+        .withRelTransform(RelMetadataTest::applyAggregateProjectMerge)
+        .assertThatUniqueKeysAre(true, bitSetOf(0, 1));
+  }
+
+  private static RelNode applyAggregateProjectMerge(RelNode rel) {
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    return planner.findBestExp();
+  }
+
   /**
    * All columns are unique. Should not include () because there are multiple rows.
    */

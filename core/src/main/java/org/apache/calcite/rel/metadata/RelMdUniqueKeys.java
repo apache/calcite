@@ -337,20 +337,34 @@ public class RelMdUniqueKeys
     if (Aggregate.isSimple(rel)) {
       final ImmutableBitSet groupKeys = rel.getGroupSet();
       RelOptPredicateList pulledUpPredicates = mq.getPulledUpPredicates(rel);
-      ImmutableBitSet reducedGroupKeys =
-          groupKeys.except(getConstantColumnSet(pulledUpPredicates));
+      final ImmutableBitSet reducedOutputGroupKeys =
+          ImmutableBitSet.range(rel.getGroupCount())
+              .except(getConstantColumnSet(pulledUpPredicates));
+      final ImmutableBitSet.Builder inputGroupKeys = ImmutableBitSet.builder();
+      for (int outputKey : reducedOutputGroupKeys) {
+        inputGroupKeys.set(groupKeys.nth(outputKey));
+      }
+      final ImmutableBitSet reducedInputGroupKeys = inputGroupKeys.build();
 
       final Set<ImmutableBitSet> preciseUniqueKeys;
       final Set<ImmutableBitSet> inputUniqueKeys =
           mq.getUniqueKeys(rel.getInput(), ignoreNulls);
       if (inputUniqueKeys == null) {
-        preciseUniqueKeys = ImmutableSet.of(reducedGroupKeys);
+        preciseUniqueKeys = ImmutableSet.of(reducedOutputGroupKeys);
       } else {
         // Try to find more precise unique keys.
         final Set<ImmutableBitSet> keysInGroupBy = inputUniqueKeys.stream()
-            .filter(reducedGroupKeys::contains).collect(Collectors.toSet());
+            .filter(reducedInputGroupKeys::contains)
+            .map(inputKey -> {
+              final ImmutableBitSet.Builder outputKey = ImmutableBitSet.builder();
+              for (int inputColumn : inputKey) {
+                outputKey.set(groupKeys.indexOf(inputColumn));
+              }
+              return outputKey.build();
+            })
+            .collect(Collectors.toSet());
         preciseUniqueKeys = keysInGroupBy.isEmpty()
-            ? ImmutableSet.of(reducedGroupKeys)
+            ? ImmutableSet.of(reducedOutputGroupKeys)
             : keysInGroupBy;
       }
 
@@ -374,7 +388,7 @@ public class RelMdUniqueKeys
       return filterSupersets(Sets.union(preciseUniqueKeys, keysBuilder), limit);
     } else if (ignoreNulls && limit > 0) {
       // group by keys form a unique key
-      return ImmutableSet.of(rel.getGroupSet());
+      return ImmutableSet.of(ImmutableBitSet.range(rel.getGroupCount()));
     } else {
       // If the aggregate has grouping sets, all group by keys might be null which means group by
       // keys do not form a unique key.
@@ -415,10 +429,11 @@ public class RelMdUniqueKeys
       Aggregate rel) {
     checkArgument(Aggregate.isSimple(rel));
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
-    if (rel.getGroupSet().get(inputColumn)) {
-      builder.set(inputColumn);
+    final int groupKey = rel.getGroupSet().indexOf(inputColumn);
+    if (groupKey >= 0) {
+      builder.set(groupKey);
     }
-    final int aggCallsOffset = rel.getGroupSet().length();
+    final int aggCallsOffset = rel.getGroupCount();
     for (int i = 0, size = rel.getAggCallList().size(); i < size; i++) {
       AggregateCall call = rel.getAggCallList().get(i);
       if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())
