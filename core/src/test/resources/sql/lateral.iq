@@ -178,9 +178,6 @@ from dept,
 # [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
 # LATERAL on the right of a join sees the item on the left of the join (v)
 # and the item before the ',' (dept). Same result on PostgreSQL 14.
-# Note: this test can lead to CI timeout with the new decorrelator,
-# so it is only enabled with the old one; to be investigated in CALCITE-7928.
-!if (use_old_decorr) {
 with dept (deptno, dname)
     as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
   emp (empno, deptno, ename)
@@ -200,7 +197,6 @@ from dept,
 (2 rows)
 
 !ok
-!}
 
 # As above, with LEFT JOIN; a row of v that has no match in emp still appears
 # once for each dept, with a null ENAME. Same result on PostgreSQL 14.
@@ -272,6 +268,61 @@ from dept,
 |     20 | SMITH | M |
 +--------+-------+---+
 (2 rows)
+
+!ok
+
+# [CALCITE-7936] Top-down decorrelator should avoid redundant domain joins
+# for nested LATERAL queries
+# A nested inner LATERAL join need only carry the outer correlation domain
+# on its right. Preserve duplicates and NULL domain values.
+with dept (deptno) as (values (10), (10), (20), (cast(null as integer))),
+  emp (deptno, ename)
+    as (values (10, 'CLARK'), (20, 'SMITH'), (cast(null as integer), 'ADAMS'))
+select dept.deptno, v.v, emp.ename
+from dept,
+  (values ('A'), ('A'), ('M'), ('Z'), (cast(null as char(1)))) as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno is not distinct from dept.deptno
+    and position(v.v in emp.ename) > 0) as emp
+order by dept.deptno, v.v, emp.ename;
++--------+---+-------+
+| DEPTNO | V | ENAME |
++--------+---+-------+
+|     10 | A | CLARK |
+|     10 | A | CLARK |
+|     10 | A | CLARK |
+|     10 | A | CLARK |
+|     20 | M | SMITH |
+|        | A | ADAMS |
+|        | A | ADAMS |
+|        | M | ADAMS |
++--------+---+-------+
+(8 rows)
+
+!ok
+
+# As above, but equality predicates allow the right input to derive both
+# correlation keys directly from emp, without joining the domain.
+with dept (deptno) as (values (10), (cast(null as integer))),
+  emp (deptno, empno) as (values (10, 1), (10, cast(null as integer)),
+    (cast(null as integer), 1), (cast(null as integer), cast(null as integer)),
+    (20, 1), (10, 3))
+select dept.deptno, v.v, emp.deptno as emp_deptno, emp.empno
+from dept,
+  (values (1), (cast(null as integer))) as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno is not distinct from dept.deptno
+    and emp.empno is not distinct from v.v) as emp
+order by dept.deptno, v.v;
++--------+---+------------+-------+
+| DEPTNO | V | EMP_DEPTNO | EMPNO |
++--------+---+------------+-------+
+|     10 | 1 |         10 |     1 |
+|     10 |   |         10 |       |
+|        | 1 |            |     1 |
+|        |   |            |       |
++--------+---+------------+-------+
+(4 rows)
 
 !ok
 

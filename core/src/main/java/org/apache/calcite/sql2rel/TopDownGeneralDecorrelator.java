@@ -317,13 +317,19 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     }
 
     final Correlate correlate = (Correlate) rel;
+    // For an inner Correlate whose left input does not reference the outer domain,
+    // only the right input needs to carry that domain.
+    final boolean omitLeftDomain = hasParent && correlate.getJoinType() == JoinRelType.INNER
+        && !requireNonNull(hasCorrelatedExpressions.get(correlate.getLeft()));
     final RelNode newLeft;
     if (hasParent) {
       // if the current decorrelator has a parent, it means that the Correlate must have
       // correlation from above.
       assert hasCorrelatedExpressions.containsKey(correlate)
           && hasCorrelatedExpressions.get(correlate);
-      newLeft = unnest(correlate.getLeft(), allowEmptyOutputFromRewrite);
+      newLeft = omitLeftDomain
+          ? decorrelateQuery(correlate.getLeft(), builder)
+          : unnest(correlate.getLeft(), allowEmptyOutputFromRewrite);
     } else {
       // otherwise, start a new decorrelation for the left side.
       newLeft = decorrelateQuery(correlate.getLeft(), builder);
@@ -346,7 +352,24 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       corDefOutputs.putAll(leftInfo.corDefOutputs);
     }
     leftInfo = new UnnestedQuery(correlate.getLeft(), newLeft, corDefOutputs, oldToNewOutputs);
-    dedupFreeVarsNode = DedupFreeVarsNode.create(newLeft, leftInfo, corDefs, builder);
+    if (omitLeftDomain) {
+      // Include the outer domain when constructing the domain for the right input,
+      // even though the left input of the resulting join does not carry it.
+      RelNode domainInput = builder.push(newLeft).push(dedupFreeVarsNode.r)
+          .join(JoinRelType.INNER).build();
+      int offset = newLeft.getRowType().getFieldCount();
+      for (CorDef corDef : corDefs) {
+        if (!corDefOutputs.containsKey(corDef)) {
+          corDefOutputs.put(corDef, offset++);
+        }
+      }
+      UnnestedQuery domainInfo =
+          new UnnestedQuery(correlate.getLeft(), domainInput, corDefOutputs, oldToNewOutputs);
+      dedupFreeVarsNode = DedupFreeVarsNode.create(domainInput, domainInfo, corDefs, builder);
+      mapRelToUnnestedQuery.put(correlate.getLeft(), leftInfo);
+    } else {
+      dedupFreeVarsNode = DedupFreeVarsNode.create(newLeft, leftInfo, corDefs, builder);
+    }
 
     // decorrelate right side
     detectCorrelatedExpressions(correlate.getRight());
@@ -374,7 +397,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     builder.push(newLeft).push(newRight);
     RexNode unnestedJoinCondition =
         UnnestedQuery.createUnnestedJoinCondition(correlate.getCondition(), leftInfo, rightInfo,
-            true, builder, corDefs);
+            true, builder, leftInfo.corDefOutputs.navigableKeySet());
     RelNode unnestedRel = builder.join(correlate.getJoinType(), unnestedJoinCondition).build();
 
     if (!hasParent) {
@@ -1147,15 +1170,15 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
         unnestedJoinNode = builder.project(projects).build();
         break;
       case INNER:
-        // when inner join, we can use either side that contains D for mapping.
-        if (!leftUnnestedQuery.corDefOutputs.isEmpty()) {
-          corDefOutputs.putAll(leftUnnestedQuery.corDefOutputs);
-        } else if (!rightUnnestedQuery.corDefOutputs.isEmpty()) {
-          rightUnnestedQuery.corDefOutputs.forEach((corDef, index) ->
-              corDefOutputs.put(corDef, index + newLeftFieldCount));
-        } else {
-          throw new IllegalArgumentException("The UnnestInfo for both sides of Join/Correlate that "
-              + "has correlation should not all be empty.");
+        // Each free variable can come from either side. A nested inner Correlate
+        // may carry outer variables only on the right.
+        for (CorDef corDef : corDefs) {
+          Integer index = leftUnnestedQuery.corDefOutputs.get(corDef);
+          if (index == null) {
+            int rightIndex = requireNonNull(rightUnnestedQuery.corDefOutputs.get(corDef));
+            index = rightIndex + newLeftFieldCount;
+          }
+          corDefOutputs.put(corDef, index);
         }
         break;
       default:
@@ -1172,7 +1195,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
      * @param rightInfo                 UnnestedQuery of the right side
      * @param needNaturalJoinCondition  whether need to add the natural join condition for domain D
      * @param builder                   RelBuilder
-     * @param corDefs                   the CorDef in the current decorrelator context
+     * @param corDefs                   free variables to equate between the two inputs
      * @return the new join condition
      */
     private static RexNode createUnnestedJoinCondition(
@@ -1194,12 +1217,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
               requireNonNull(newIndex, "newIndex") + newLeftFieldCount));
 
       TreeMap<CorDef, Integer> temporaryCorDefOutputs = new TreeMap<>();
-      if (!leftInfo.corDefOutputs.isEmpty()) {
-        temporaryCorDefOutputs.putAll(leftInfo.corDefOutputs);
-      } else if (!rightInfo.corDefOutputs.isEmpty()) {
-        rightInfo.corDefOutputs.forEach((corDef, index) ->
-            temporaryCorDefOutputs.put(corDef, index + newLeftFieldCount));
-      } else {
+      rightInfo.corDefOutputs.forEach((corDef, index) ->
+          temporaryCorDefOutputs.put(corDef, index + newLeftFieldCount));
+      temporaryCorDefOutputs.putAll(leftInfo.corDefOutputs);
+      if (temporaryCorDefOutputs.isEmpty()) {
         throw new IllegalArgumentException("The UnnestInfo for both sides of Join/Correlate that "
             + "has correlation should not all be empty.");
       }

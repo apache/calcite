@@ -21704,6 +21704,56 @@ LogicalProject(JOB=[$0], PROFITMARGIN=[$2], count=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTopDownGeneralDecorrelateForNestedLateralJoin">
+    <Resource name="sql">
+      <![CDATA[with dept (deptno, dname) as (
+  values (10, 'ACCOUNTING'), (20, 'RESEARCH')),
+emp (empno, deptno, ename) as (
+  values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select * from dept, (values 'A', 'M') as v (v)
+cross join lateral (select * from emp
+  where emp.deptno = dept.deptno
+  and position(v.v in emp.ename) > 0) as emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], DNAME=[$1], V=[$2], EMPNO=[$3], DEPTNO0=[$4], ENAME=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 10, 'ACCOUNTING' }, { 20, 'RESEARCH  ' }]])
+    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+      LogicalValues(tuples=[[{ 'A' }, { 'M' }]])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$1], ENAME=[$2])
+        LogicalFilter(condition=[AND(=($1, $cor0.DEPTNO), >(POSITION($cor1.V, $2), 0))])
+          LogicalValues(tuples=[[{ 7369, 20, 'SMITH' }, { 7782, 10, 'CLARK' }, { 7499, 30, 'ALLEN' }]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalValues(tuples=[[{ 10, 'ACCOUNTING' }, { 20, 'RESEARCH  ' }]])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 'A' }, { 'M' }]])
+    LogicalFilter(condition=[AND(=($1, $cor0.DEPTNO), >(POSITION($cor1.V, $2), 0))])
+      LogicalValues(tuples=[[{ 7369, 20, 'SMITH' }, { 7782, 10, 'CLARK' }, { 7499, 30, 'ALLEN' }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[$1], V=[$2], EXPR$00=[$3], EXPR$10=[$4], EXPR$2=[$5])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $6)], joinType=[inner])
+    LogicalValues(tuples=[[{ 10, 'ACCOUNTING' }, { 20, 'RESEARCH  ' }]])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[inner])
+      LogicalValues(tuples=[[{ 'A' }, { 'M' }]])
+      LogicalJoin(condition=[AND(=($1, $3), >(POSITION($4, $2), 0))], joinType=[inner])
+        LogicalValues(tuples=[[{ 7369, 20, 'SMITH' }, { 7782, 10, 'CLARK' }, { 7499, 30, 'ALLEN' }]])
+        LogicalProject(EXPR$0=[$1], V=[$0])
+          LogicalJoin(condition=[true], joinType=[inner])
+            LogicalValues(tuples=[[{ 'A' }, { 'M' }]])
+            LogicalProject(EXPR$0=[$0])
+              LogicalValues(tuples=[[{ 10, 'ACCOUNTING' }, { 20, 'RESEARCH  ' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTopDownGeneralDecorrelateForProjectExists">
     <Resource name="sql">
       <![CDATA[SELECT dept.deptno, EXISTS ( SELECT 1 FROM emp e WHERE e.deptno = dept.deptno ) AS has_employees FROM dept]]>
