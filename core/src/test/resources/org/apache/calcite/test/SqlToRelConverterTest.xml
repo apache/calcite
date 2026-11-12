@@ -5570,6 +5570,26 @@ LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2), (X) -> =(X, ROW($7, $5).EXPR$0))])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLambdaInSubQueryReadsEnclosingColumn">
+    <Resource name="sql">
+      <![CDATA[select t.x,
+  (select count(*) from (values (5, array[1, 5])) as s(y, b)
+   where "EXISTS"(s.b, e -> e = t.x)) as c
+from (values (1), (7)) as t(x)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0], C=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 1 }, { 7 }]])
+    LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+      LogicalProject($f0=[0])
+        LogicalFilter(condition=[EXISTS($1, (E) -> =(E, $cor0.X))])
+          LogicalProject(Y=[5], B=[ARRAY(1, 5)])
+            LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLateral">
     <Resource name="plan">
       <![CDATA[

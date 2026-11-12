@@ -21,13 +21,18 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -199,6 +204,52 @@ public class CorrelateProjectExtractorTest {
         + "        LogicalFilter(condition=[=($0, $cor0.$f8)])\n"
         + "          LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalFilter(condition=[=($0, $cor1.$f11)])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7933">[CALCITE-7933]
+   * Correlated subqueries with lambdas that capture columns are incorrectly
+   * compiled</a>. */
+  @Test void testCorrelationCallInLambdaInFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final RexLambdaRef e =
+        new RexLambdaRef(0, "E",
+            builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
+    RelNode before = builder.scan("EMP")
+        .variable(v::set)
+        .scan("DEPT")
+        .filter(
+            builder.call(SqlLibraryOperators.EXISTS,
+                builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                    builder.field(0)),
+                builder.getRexBuilder().makeLambdaCall(
+                    builder.equals(e,
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.literal(10),
+                            builder.field(v.get(), "DEPTNO"))),
+                    ImmutableList.of(e))))
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .build();
+
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[EXISTS(ARRAY($0), (E) -> =(E, +(10, $cor0.DEPTNO)))])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelNode after = before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
+    final String planAfter = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[$9], DNAME=[$10], LOC=[$11])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{8}])\n"
+        // The call 10 + $cor0.DEPTNO moves to the left input as $f8
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+(10, $7)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        // The comparison reads the lambda parameter E, so it stays in the
+        // lambda; E has a value only inside the lambda
+        + "    LogicalFilter(condition=[EXISTS(ARRAY($0), (E) -> =(E, $cor0.$f8))])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(after, hasTree(planAfter));
   }

@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
@@ -358,6 +359,11 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     }
 
     @Override public Boolean visitLocalRef(RexLocalRef localRef) {
+      return Boolean.FALSE;
+    }
+
+    @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+      // A lambda parameter has a value only inside its lambda
       return Boolean.FALSE;
     }
 

@@ -2587,7 +2587,11 @@ public class SqlToRelConverter {
     }
 
     final Blackboard lambdaBb = createBlackboard(scope, nameToNodeMap, false);
-    lambdaBb.setRoot(castNonNull(bb.inputs));
+    lambdaBb.setRoot(castNonNull(bb.inputs), bb.root, false);
+    lambdaBb.inputScope = bb.inputScope;
+    // In an aggregate query, a GROUP BY expression in the lambda reads the
+    // Aggregate result
+    lambdaBb.agg = bb.agg;
     replaceSubQueries(lambdaBb, call.getExpression(), RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
     final RexNode expr = lambdaBb.convertExpression(call.getExpression());
     return rexBuilder.makeLambdaCall(expr, parameters);
@@ -5832,6 +5836,13 @@ public class SqlToRelConverter {
      * statement.
      */
     public final SqlValidatorScope scope;
+
+    /**
+     * Scope of the query that owns {@link #inputs}. It is {@link #scope},
+     * except in the blackboard of a lambda, which has the inputs of the
+     * blackboard that contains the lambda.
+     */
+    SqlValidatorScope inputScope;
     private final @Nullable Map<String, RexNode> nameToNodeMap;
     public @Nullable RelNode root;
 
@@ -5903,6 +5914,7 @@ public class SqlToRelConverter {
     protected Blackboard(@Nullable SqlValidatorScope scope,
         @Nullable Map<String, RexNode> nameToNodeMap, boolean top) {
       this.scope = requireNonNull(scope, "scope");
+      this.inputScope = this.scope;
       this.nameToNodeMap = nameToNodeMap;
       this.top = top;
     }
@@ -6150,14 +6162,7 @@ public class SqlToRelConverter {
       // We assume that the order of the from clause items has been
       // preserved.
       final SqlValidatorScope ancestorScope = resolve.scope;
-      boolean isParent = ancestorScope != scope;
-      // When in a lambda scope, external references to tables that are part
-      // of the current blackboard's inputs should be resolved locally, not
-      // as correlation variables. The lambda blackboard inherits inputs from
-      // its parent blackboard.
-      if (isParent && scope instanceof SqlLambdaScope && inputs != null) {
-        isParent = false;
-      }
+      final boolean isParent = ancestorScope != inputScope;
       if ((inputs != null) && !isParent) {
         // For a ListScope, use the row types of the scope's children, not the
         // leaves of the inputs: the leaves can include sub-queries that were
