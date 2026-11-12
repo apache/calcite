@@ -10686,10 +10686,11 @@ class RelToSqlConverterDMTest {
     RelNode root = relBuilder
         .project(projectNode)
         .build();
-    final String expecteSql = "SELECT ARRAY_CONSTRUCT_COMPACT(\"ENAME\", \"JOB\") AS \"$f0\"\n"
+    final String expectedSql = "SELECT ARRAY_CONSTRUCT_COMPACT(\"ENAME\", \"JOB\") AS \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
 
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expecteSql));
+    assertThat(projectNode.getType().toString(), is("VARCHAR(10) ARRAY"));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testSnowflakeJaroWinklerSimilarity() {
