@@ -32,46 +32,47 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlConstantValueAggFunction;
+import org.apache.calcite.sql.SqlEmptyAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Planner rule that eliminates aggregate functions of GROUP BY keys.
+ * Planner rule that reduces aggregate functions whose arguments are constant
+ * within each group. Such arguments include GROUP BY keys, deterministic
+ * expressions of those keys, and constants (including query constants such as
+ * CURRENT_DATE) even in a global aggregate.
  *
  * <p>For example,
  * {@code SELECT sal, max(sal) FROM emp GROUP BY sal}
  * can be simplified to
  * {@code SELECT sal, sal FROM emp GROUP BY sal}.
  *
- * <p>Currently supports the following aggregate functions when their
- * arguments exist in the aggregate's group set or are deterministic
- * expressions involving only group set columns and constants:
- * <ul>
- *   <li>{@code MAX} - the GROUP BY key value itself</li>
- *   <li>{@code MIN} - the GROUP BY key value itself</li>
- *   <li>{@code AVG} - the GROUP BY key value itself</li>
- *   <li>{@code ANY_VALUE} - the GROUP BY key value itself</li>
- *   <li>Functions implementing {@link SqlConstantValueAggFunction} such as
- *       {@code STDDEV_POP}, {@code STDDEV_SAMP}, {@code VAR_POP}, {@code VAR_SAMP}
- *       - return their constant result</li>
- * </ul>
+ * <p>MIN, MAX, AVG and ANY_VALUE return the argument value for a non-empty
+ * group. Functions implementing {@link SqlConstantValueAggFunction}, such as
+ * STDDEV_POP, STDDEV_SAMP, VAR_POP and VAR_SAMP, declare their constant result
+ * and the minimum number of non-null values needed to produce it.
+ * Empty-input results are described independently by {@link SqlEmptyAggFunction}.
  *
- * <p>Aggregate functions that implement {@link SqlConstantValueAggFunction}
- * declare what value to return when applied to constant (GROUP BY key) arguments.
- * This enables the rule to optimize them without hard-coded type checks.
- *
- * <p>Note: This optimization preserves NULL semantics correctly. For aggregate
- * functions like MAX, MIN, and ANY_VALUE, NULL values in the source columns or
- * expressions are handled the same way before and after the transformation:
- * nulls are ignored by the aggregation, and if all grouped values are NULL,
- * the result is NULL.
+ * <p>A global aggregate produces a row even on empty input. Therefore,
+ * {@code SELECT MIN(1) FROM emp} becomes
+ * {@code SELECT CASE WHEN COUNT(*) = 0 THEN NULL ELSE 1 END FROM emp},
+ * rather than an unconditional constant. Sample variance and standard
+ * deviation also need a count, since fewer than two non-null values yield NULL.
+ * Counts respect DISTINCT when the minimum is greater than one, and identical
+ * counts are shared. Ordinary non-empty groups need no count when one value
+ * suffices; nullable arguments still preserve their NULL semantics.
  *
  * @see CoreRules#AGGREGATE_REDUCE_FUNCTIONS_ON_GROUP_KEYS
  */
@@ -93,6 +94,7 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     final RelBuilder relBuilder = call.builder();
 
     final List<AggregateCall> newCalls = new ArrayList<>();
+    final Map<AggregateCall, RexNode> aggCallMapping = new HashMap<>();
     final List<RexNode> projects = new ArrayList<>();
     final List<String> fieldNames =
         new ArrayList<>(aggregate.getRowType().getFieldNames());
@@ -103,18 +105,16 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     }
 
     boolean changed = false;
-    int newCallOrdinal = 0;
     for (AggregateCall oldCall : oldCalls) {
-      final @Nullable RexNode reduced = reduce(aggregate, oldCall, rexBuilder);
+      final @Nullable RexNode reduced =
+          reduce(aggregate, oldCall, rexBuilder, newCalls, aggCallMapping);
       if (reduced != null) {
         projects.add(reduced);
         changed = true;
       } else {
-        newCalls.add(oldCall);
         projects.add(
-            rexBuilder.makeInputRef(
-                oldCall.getType(), groupCount + newCallOrdinal));
-        newCallOrdinal++;
+            rexBuilder.addAggCall(oldCall, groupCount, newCalls, aggCallMapping,
+                aggregate.getInput()::fieldIsNullable));
       }
     }
 
@@ -135,15 +135,18 @@ public class AggregateReduceFunctionsOnGroupKeysRule
   }
 
   /**
-   * Tries to reduce an aggregate call to a reference to a group-by key
-   * or to an expression involving only group-by keys and constants.
+   * Tries to reduce an aggregate call to an expression over group-by keys
+   * and constants, adding counts when empty or single-value inputs need
+   * to be distinguished.
    *
    * @return the reduced expression, or null if cannot reduce
    */
   private static @Nullable RexNode reduce(
       Aggregate aggregate,
       AggregateCall call,
-      RexBuilder rexBuilder) {
+      RexBuilder rexBuilder,
+      List<AggregateCall> newCalls,
+      Map<AggregateCall, RexNode> aggCallMapping) {
     if (!Aggregate.isSimple(aggregate)) {
       return null;
     }
@@ -172,89 +175,105 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     }
     final int arg = argList.get(0);
 
-    // Case 1: argument directly references a group-by key
+    final RexNode argument;
     if (aggregate.getGroupSet().get(arg)) {
       final int groupIndex = aggregate.getGroupSet().asList().indexOf(arg);
-      RexNode ref = RexInputRef.of(groupIndex, aggregate.getRowType().getFieldList());
-
-      // For functions that return a constant value when applied to constant (GROUP BY key)
-      // arguments, delegate to the function's own implementation
-      if (isConstantValueAgg) {
-        final @Nullable RexNode constantResult =
-            ((SqlConstantValueAggFunction) call.getAggregation())
-                .getConstantResult(rexBuilder, call.getType());
-        if (constantResult != null) {
-          // Handle NULL semantics: if the GROUP BY key is nullable and the constant value
-          // is non-null (e.g., 0 for STDDEV functions), wrap in CASE to return NULL when
-          // the key is NULL, since aggregate functions skip NULL inputs
-          if (ref.getType().isNullable()) {
-            return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref),
-                rexBuilder.makeNullLiteral(call.getType()),
-                constantResult);
-          }
-          return constantResult;
-        }
+      argument = RexInputRef.of(groupIndex, aggregate.getRowType().getFieldList());
+    } else {
+      RelNode input = aggregate.getInput();
+      if (input instanceof HepRelVertex) {
+        input = ((HepRelVertex) input).getCurrentRel();
       }
-
-      // For other aggregate functions (MAX, MIN, AVG, ANY_VALUE),
-      // the value of a constant is the constant itself
-      if (!ref.getType().equals(call.getType())) {
-        ref = rexBuilder.makeCast(call.getParserPosition(), call.getType(), ref);
+      if (!(input instanceof Project)) {
+        return null;
       }
-      return ref;
+      final Project project = (Project) input;
+      if (arg < 0 || arg >= project.getProjects().size()) {
+        return null;
+      }
+      final RexNode expr = project.getProjects().get(arg);
+      if (!RexUtil.isDeterministic(expr)) {
+        return null;
+      }
+      // Constants have no input refs, so they also pass this check when the
+      // group set is empty.
+      final @Nullable RexNode translated =
+          translateToGroupRefs(expr, project, aggregate);
+      if (translated == null) {
+        return null;
+      }
+      argument = translated;
     }
 
-    // Case 2: argument is an expression in a Project below the Aggregate
-    RelNode input = aggregate.getInput();
-    if (input instanceof HepRelVertex) {
-      input = ((HepRelVertex) input).getCurrentRel();
-    }
-    if (!(input instanceof Project)) {
-      return null;
-    }
-    final Project project = (Project) input;
-    if (arg < 0 || arg >= project.getProjects().size()) {
-      return null;
-    }
-    final RexNode expr = project.getProjects().get(arg);
-    if (!RexUtil.isDeterministic(expr)) {
-      return null;
-    }
-    // Check that all columns referenced in the expression are group-by keys.
-    // This ensures that the expression value is constant within each group.
-    final @Nullable RexNode translated =
-        translateToGroupRefs(expr, project, aggregate);
-    if (translated == null) {
-      return null;
-    }
-
-    // For functions that return a constant value when applied to constant expressions,
-    // delegate to the function's own implementation
+    RexNode result = argument;
+    int minCount = 1;
     if (isConstantValueAgg) {
+      final SqlConstantValueAggFunction function =
+          (SqlConstantValueAggFunction) call.getAggregation();
       final @Nullable RexNode constantResult =
-          ((SqlConstantValueAggFunction) call.getAggregation())
-              .getConstantResult(rexBuilder, call.getType());
+          function.getConstantResult(rexBuilder, call.getType());
       if (constantResult != null) {
-        // Handle NULL semantics: if the expression is nullable and the constant value
-        // is non-null (e.g., 0 for STDDEV functions), wrap in CASE to return NULL when
-        // the expression evaluates to NULL, since aggregate functions skip NULL inputs
-        if (translated.getType().isNullable()) {
-          return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, translated),
-              rexBuilder.makeNullLiteral(call.getType()),
-              constantResult);
-        }
-        return constantResult;
+        result = constantResult;
+        minCount = function.getMinCountForConstantResult();
+      } else if (kind != SqlKind.AVG && kind != SqlKind.MIN
+          && kind != SqlKind.MAX && kind != SqlKind.ANY_VALUE) {
+        return null;
       }
     }
 
-    // For other aggregate functions (MAX, MIN, AVG, ANY_VALUE),
-    // return the translated expression
-    if (!translated.getType().equals(call.getType())) {
-      return rexBuilder.makeCast(call.getParserPosition(), call.getType(), translated);
+    final RexNode emptyResult;
+    if (aggregate.getGroupCount() == 0 || argument.getType().isNullable()) {
+      final @Nullable RexNode empty = call.getAggregation().getEmptyResult(rexBuilder, call);
+      if (empty == null) {
+        return null;
+      }
+      emptyResult = empty;
+    } else {
+      // Ordinary groups with a non-nullable operand cannot have empty input.
+      // A positive count below the statistical minimum still yields NULL.
+      emptyResult = rexBuilder.makeNullLiteral(call.getType());
     }
-    return translated;
+
+    final @Nullable RexNode condition;
+    RexNode fallback = emptyResult;
+    if (aggregate.getGroupCount() == 0 || minCount > 1) {
+      // COUNT ignores NULL arguments. DISTINCT only affects the threshold
+      // when more than one value is required. addAggCall also turns a count
+      // of a non-nullable argument into COUNT(*) and reuses existing counts.
+      final AggregateCall countCall =
+          AggregateCall.create(call.getParserPosition(), SqlStdOperatorTable.COUNT,
+              call.isDistinct() && minCount > 1, false, false,
+              ImmutableList.of(), call.getArgList(), -1, null, RelCollations.EMPTY,
+              aggregate.hasEmptyGroup(), aggregate.getInput(), null, null);
+      final RexNode count =
+          rexBuilder.addAggCall(countCall, aggregate.getGroupCount(), newCalls,
+              aggCallMapping, aggregate.getInput()::fieldIsNullable);
+      condition =
+          rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, count,
+              rexBuilder.makeExactLiteral(BigDecimal.valueOf(minCount), count.getType()));
+      if (minCount > 1 && !RexUtil.isNullLiteral(emptyResult, true)) {
+        // Empty input and a positive count below the minimum need not have
+        // the same result.
+        final RexNode isEmpty =
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, count,
+                rexBuilder.makeExactLiteral(BigDecimal.ZERO, count.getType()));
+        fallback =
+            rexBuilder.makeCall(SqlStdOperatorTable.CASE, isEmpty,
+                emptyResult, rexBuilder.makeNullLiteral(call.getType()));
+      }
+    } else if (argument.getType().isNullable()
+        && (result != argument || !RexUtil.isNullLiteral(emptyResult, true))) {
+      condition = rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, argument);
+    } else {
+      condition = null;
+    }
+    if (condition != null) {
+      result = rexBuilder.makeCall(SqlStdOperatorTable.CASE, condition, fallback, result);
+    }
+    if (!result.getType().equals(call.getType())) {
+      result = rexBuilder.makeCast(call.getParserPosition(), call.getType(), result);
+    }
+    return result;
   }
 
   /**

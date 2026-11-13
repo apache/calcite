@@ -99,7 +99,7 @@ public class SqlAvgAggFunction extends SqlAggFunction
 
   @Override public @Nullable RexNode getConstantResult(RexBuilder rexBuilder,
       RelDataType returnType) {
-    // Only statistical functions (variance and standard deviation) return 0 for constant values.
+    // Statistical functions return 0 once the minimum number of values is met.
     // AVG and other functions should not be optimized through this interface.
     switch (kind) {
     case STDDEV_POP:
@@ -109,6 +109,16 @@ public class SqlAvgAggFunction extends SqlAggFunction
       return rexBuilder.makeLiteral(0, returnType, true);
     default:
       return null;
+    }
+  }
+
+  @Override public int getMinCountForConstantResult() {
+    switch (kind) {
+    case STDDEV_SAMP:
+    case VAR_SAMP:
+      return 2;
+    default:
+      return 1;
     }
   }
 }

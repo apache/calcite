@@ -23,12 +23,14 @@ import org.apache.calcite.rex.RexNode;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Aggregate function that returns a constant value when applied to constant
- * (GROUP BY key) arguments.
+ * Aggregate function that returns a constant result for sufficiently many
+ * identical non-null arguments, and NULL for a positive number of arguments
+ * below that minimum. Empty-input results are described separately by
+ * {@link SqlEmptyAggFunction}.
  *
- * <p>For example, statistical functions like STDDEV_POP, STDDEV_SAMP, VAR_POP,
- * VAR_SAMP always return 0 when applied to a constant value, since there is
- * no variation in a set of identical values.
+ * <p>For example, STDDEV_POP and VAR_POP return 0 for one or more identical
+ * non-null values. STDDEV_SAMP and VAR_SAMP require at least two such values.
+ * NULL arguments are ignored; DISTINCT, if present, is applied before counting.
  *
  * <p>This interface allows optimization rules to identify and reduce such
  * aggregate functions without hard-coded checks for specific function types.
@@ -36,14 +38,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public interface SqlConstantValueAggFunction {
   /**
    * Generates the constant result expression when this aggregate function is
-   * applied to arguments that are constant within each group (i.e., GROUP BY keys
-   * or expressions derived only from GROUP BY keys).
+   * applied to arguments that are constant within each group (GROUP BY keys,
+   * deterministic expressions of those keys, or constants), with at least
+   * {@link #getMinCountForConstantResult()} non-null values.
    *
    * <p>For example:
    * <ul>
    *   <li>{@code STDDEV_POP(constant)} returns {@code 0}
-   *   <li>{@code VAR_SAMP(constant)} returns {@code 0}
-   *   <li>{@code STDDEV_SAMP(constant)} returns {@code 0}
+   *   <li>{@code VAR_SAMP(constant)} returns {@code 0} for at least two values
+   *   <li>{@code STDDEV_SAMP(constant)} returns {@code 0} for at least two values
    * </ul>
    *
    * @param rexBuilder Rex builder for creating the result expression
@@ -52,4 +55,15 @@ public interface SqlConstantValueAggFunction {
    *     does not return a constant value for constant arguments
    */
   @Nullable RexNode getConstantResult(RexBuilder rexBuilder, RelDataType returnType);
+
+  /**
+   * Returns the minimum number of identical non-null values required for
+   * {@link #getConstantResult} to apply. Must be positive.
+   * With a positive number of non-null values below this count, the aggregate
+   * returns NULL. For no non-null values, use {@link SqlEmptyAggFunction}.
+   * This contract applies when {@code getConstantResult} returns an expression.
+   */
+  default int getMinCountForConstantResult() {
+    return 1;
+  }
 }

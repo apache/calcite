@@ -321,6 +321,180 @@ LogicalAggregate(group=[{0}], COMM_MAX=[MAX($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConstantAggregatesWithGroupBy">
+    <Resource name="sql">
+      <![CDATA[select deptno, min(1), stddev_pop(1), stddev_samp(1)
+from emp group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)], EXPR$2=[STDDEV_POP($1)], EXPR$3=[STDDEV_SAMP($1)])
+  LogicalProject(DEPTNO=[$7], $f1=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[1], EXPR$2=[0], EXPR$3=[CASE(<($1, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+    LogicalProject(DEPTNO=[$7], $f1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctStatisticalFunctionOfGroupByKey">
+    <Resource name="sql">
+      <![CDATA[select comm, stddev_samp(distinct comm), var_samp(distinct comm)
+from empnullables group by comm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_SAMP(DISTINCT $0)], EXPR$2=[VAR_SAMP(DISTINCT $0)])
+  LogicalProject(COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(COMM=[$0], EXPR$1=[CASE(<($1, 2), null:INTEGER, 0)], EXPR$2=[CASE(<($1, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $0)])
+    LogicalProject(COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilteredConstantAggregateNoChange">
+    <Resource name="sql">
+      <![CDATA[select min(1) filter (where deptno < 0) from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0) FILTER $1])
+  LogicalProject($f0=[1], $f1=[<($7, 0)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGlobalConstantAggregates">
+    <Resource name="sql">
+      <![CDATA[select min(1), max(1), avg(1), any_value(1),
+stddev_pop(1), stddev_samp(1), var_pop(1), var_samp(1)
+from emp where deptno < 0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)], EXPR$2=[AVG($0)], EXPR$3=[ANY_VALUE($0)], EXPR$4=[STDDEV_POP($0)], EXPR$5=[STDDEV_SAMP($0)], EXPR$6=[VAR_POP($0)], EXPR$7=[VAR_SAMP($0)])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[<($7, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[CASE(<($0, 1), null:INTEGER, 1)], EXPR$1=[CASE(<($0, 1), null:INTEGER, 1)], EXPR$2=[CASE(<($0, 1), null:INTEGER, 1)], EXPR$3=[CASE(<($0, 1), null:INTEGER, 1)], EXPR$4=[CASE(<($0, 1), null:INTEGER, 0)], EXPR$5=[CASE(<($0, 2), null:INTEGER, 0)], EXPR$6=[CASE(<($0, 1), null:INTEGER, 0)], EXPR$7=[CASE(<($0, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{}], agg#0=[COUNT()])
+    LogicalProject($f0=[1])
+      LogicalFilter(condition=[<($7, 0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGlobalConstantAggregatesReuseCount">
+    <Resource name="sql">
+      <![CDATA[select count(*), min(1), stddev_samp(1) from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[MIN($0)], EXPR$2=[STDDEV_SAMP($0)])
+  LogicalProject($f0=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[CASE(<($0, 1), null:INTEGER, 1)], EXPR$2=[CASE(<($0, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+    LogicalProject($f0=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGlobalConstantAggregatesWithOtherCalls">
+    <Resource name="sql">
+      <![CDATA[select sum(sal), min(1), count(*), stddev_samp(1), max(sal)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[MIN($1)], EXPR$2=[COUNT()], EXPR$3=[STDDEV_SAMP($1)], EXPR$4=[MAX($0)])
+  LogicalProject(SAL=[$5], $f1=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[CASE(<($1, 1), null:INTEGER, 1)], EXPR$2=[$1], EXPR$3=[CASE(<($1, 2), null:INTEGER, 0)], EXPR$4=[$2])
+  LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], agg#1=[COUNT()], EXPR$4=[MAX($0)])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGlobalDistinctConstantAggregates">
+    <Resource name="sql">
+      <![CDATA[select avg(distinct 1), stddev_pop(distinct 1),
+stddev_samp(distinct 1), var_samp(distinct 1) from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[AVG(DISTINCT $0)], EXPR$1=[STDDEV_POP(DISTINCT $0)], EXPR$2=[STDDEV_SAMP(DISTINCT $0)], EXPR$3=[VAR_SAMP(DISTINCT $0)])
+  LogicalProject($f0=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[CASE(<($0, 1), null:INTEGER, 1)], EXPR$1=[CASE(<($0, 1), null:INTEGER, 0)], EXPR$2=[CASE(<($1, 2), null:INTEGER, 0)], EXPR$3=[CASE(<($1, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT(DISTINCT $0)])
+    LogicalProject($f0=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGlobalNonConstantAggregateNoChange">
+    <Resource name="sql">
+      <![CDATA[select min(sal), stddev_samp(sal) from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[STDDEV_SAMP($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGlobalNullAggregates">
+    <Resource name="sql">
+      <![CDATA[select min(cast(null as integer)),
+stddev_pop(cast(null as integer)),
+stddev_samp(cast(null as integer)) from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[STDDEV_POP($0)], EXPR$2=[STDDEV_SAMP($0)])
+  LogicalProject($f0=[null:INTEGER])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[CASE(<($0, 1), null:INTEGER, 0)], EXPR$2=[CASE(<($0, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{}], agg#0=[COUNT($0)])
+    LogicalProject($f0=[null:INTEGER])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultipleStatisticalFunctions">
     <Resource name="sql">
       <![CDATA[select sal, stddev_samp(sal) as sd, stddev_pop(sal) as sdp,
@@ -338,8 +512,8 @@ LogicalProject(SAL=[$0], SD=[$2], SDP=[$3], VP=[$4], VS=[$5])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], SD=[$2], SDP=[$3], VP=[$4], VS=[$5])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CAST(0):INTEGER], SDP=[0], VP=[0], VS=[CAST(0):INTEGER])
-    LogicalAggregate(group=[{0, 1}])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CASE(<($2, 2), null:INTEGER, 0)], SDP=[0], VP=[0], VS=[CASE(<($2, 2), null:INTEGER, 0)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -359,8 +533,8 @@ LogicalAggregate(group=[{0}], SD=[STDDEV_SAMP($1)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(COMM=[$0], SD=[CASE(IS NULL($0), null:INTEGER, 0)])
-  LogicalAggregate(group=[{0}])
+LogicalProject(COMM=[$0], SD=[CASE(<($1, 2), null:INTEGER, 0)])
+  LogicalAggregate(group=[{0}], agg#0=[COUNT($1)])
     LogicalProject(COMM=[$6], $f1=[+($6, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
@@ -426,8 +600,8 @@ LogicalProject(SAL=[$0], SD=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], SD=[$2])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CAST(0):INTEGER])
-    LogicalAggregate(group=[{0, 1}])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], SD=[CASE(<($2, 2), null:INTEGER, 0)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -472,8 +646,8 @@ LogicalProject(SAL=[$0], VS=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], VS=[$2])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[CAST(0):INTEGER])
-    LogicalAggregate(group=[{0, 1}])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[CASE(<($2, 2), null:INTEGER, 0)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -569,8 +743,8 @@ LogicalProject(SAL=[$0], VS=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(SAL=[$0], VS=[$2])
-  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[CAST(0):INTEGER])
-    LogicalAggregate(group=[{0, 1}])
+  LogicalProject(SAL=[$0], DEPTNO=[$1], VS=[CASE(<($2, 2), null:INTEGER, 0)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
       LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[*($5, $7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
