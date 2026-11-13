@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -1177,6 +1178,18 @@ public class ExpressionTest {
             .getFunction()
             .apply("1234");
     assertThat(x, is(1234));
+  }
+
+  /** A lambda with no parameters can be called through the function that
+   * {@link FunctionExpression#getFunction()} returns, although the JDK calls
+   * the proxy's invocation handler with a null argument array. The call used
+   * to throw NullPointerException. */
+  @Test void testLambdaWithoutParametersViaGetFunction() {
+    String x =
+        Expressions.<Function0<String>>lambda(Expressions.constant("abc"))
+            .getFunction()
+            .apply();
+    assertThat(x, is("abc"));
   }
 
   @Test void testBlockBuilder() {
