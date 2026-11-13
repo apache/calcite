@@ -10429,6 +10429,14 @@ public class SqlParserTest {
     sql("select higher_order_func(x -> higher_order_func(y -> x + y, 1), 1) from t")
         .ok("SELECT `HIGHER_ORDER_FUNC`(`X` -> `HIGHER_ORDER_FUNC`(`Y` -> (`X` + `Y`), 1), 1)\n"
             + "FROM `T`");
+
+    // The parser accepts a sub-query in any position of a lambda body
+    sql("select higher_order_func(x -> (select 1) = x, 1) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(`X` -> ((SELECT 1) = `X`), 1)\n"
+            + "FROM `T`");
+    sql("select higher_order_func(x -> exists (select 1), 1) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(`X` -> (EXISTS (SELECT 1)), 1)\n"
+            + "FROM `T`");
   }
 
   /**

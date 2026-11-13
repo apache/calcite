@@ -9319,6 +9319,176 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7933">[CALCITE-7933]
+   * Correlated subqueries with lambdas that capture columns are incorrectly
+   * compiled</a>. A lambda body is evaluated for each element of an array,
+   * so it cannot contain an aggregate or a windowed aggregate. */
+  @Test void testAggregateInLambda() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    final String aggError =
+        "Aggregate expression is illegal in lambda expression";
+    s.withSql("select \"EXISTS\"(array[1, 2], e -> e = ^max(deptno)^)\n"
+            + "from emp")
+        .fails(aggError);
+    s.withSql("select deptno,\n"
+            + "  \"EXISTS\"(array[1, 2], e -> e = ^grouping(deptno)^)\n"
+            + "from emp group by deptno")
+        .fails(aggError);
+    s.withSql("select deptno from emp group by deptno\n"
+            + "having \"EXISTS\"(array[1, 2], e -> e = ^count(*)^)")
+        .fails(aggError);
+    // The aggregate is in the inner lambda of a nested lambda
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> \"EXISTS\"(array[3], f -> f = ^min(deptno)^))\n"
+            + "from emp")
+        .fails(aggError);
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> e = ^sum(deptno) over ()^)\n"
+            + "from emp")
+        .fails("Windowed aggregate expression is illegal in lambda expression");
+
+    // The lambda is in the argument of an aggregate
+    s.withSql("select max(\"EXISTS\"(array[deptno], e -> e = empno)) from emp")
+        .ok();
+    // In an aggregate query, the parameter is a row, and the lambda reads
+    // one of its fields
+    s.withSql("select deptno,\n"
+            + "  \"EXISTS\"(array[row(1, 2)], r -> r.expr$0 = 1)\n"
+            + "from emp group by deptno")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7933">[CALCITE-7933]
+   * Correlated subqueries with lambdas that capture columns are incorrectly
+   * compiled</a>. A lambda body cannot contain a sub-query. */
+  @Test void testSubQueryInLambda() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    final String error = "Sub-query is illegal in lambda expression";
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> e = ^(select max(deptno) from dept)^)\n"
+            + "from emp")
+        .fails(error);
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> e in (^select deptno from dept^))\n"
+            + "from emp")
+        .fails(error);
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> e in (^select deptno from dept union select 1^))\n"
+            + "from emp")
+        .fails(error);
+    // The sub-query reads the lambda parameter
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> exists ^(select 1 from dept where deptno = e)^)\n"
+            + "from emp")
+        .fails(error);
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> ^(select count(*) from dept where deptno = e)^ = 2)\n"
+            + "from emp")
+        .fails(error);
+    // The sub-query reads a column of the enclosing query
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> e = ^(select max(deptno) from dept"
+            + " where deptno <= emp.deptno)^)\n"
+            + "from emp")
+        .fails(error);
+    // The sub-query is in the array argument of the inner lambda
+    s.withSql("select \"EXISTS\"(array[1, 2],\n"
+            + "  e -> \"EXISTS\"(array(^select deptno from dept^), f -> f = e))\n"
+            + "from emp")
+        .fails(error);
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[1, 2],"
+            + " e -> e in (^select deptno from dept^))")
+        .fails(error);
+
+    // The sub-query is in the array argument, not in the lambda body
+    s.withSql("select \"EXISTS\"(array(select deptno from dept), e -> e = 10)\n"
+            + "from emp")
+        .ok();
+    // The lambda is in a sub-query
+    s.withSql("select (select count(*) from dept\n"
+            + "  where \"EXISTS\"(array[deptno], e -> e = emp.deptno))\n"
+            + "from emp")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7933">[CALCITE-7933]
+   * Correlated subqueries with lambdas that capture columns are incorrectly
+   * compiled</a>. A lambda in an ORDER BY item can read only lambda
+   * parameters, but a lambda in a select item that ORDER BY references
+   * can read columns. */
+  @Test void testLambdaInOrderBy() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    final String error =
+        "Lambda expression in ORDER BY clause can read only lambda parameters";
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^deptno^)")
+        .fails(error);
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^emp.deptno^)")
+        .fails(error);
+    // The lambda reads a select item by alias
+    s.withSql("select empno as x from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^x^)")
+        .fails(error);
+    // The inner lambda reads a column
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[array[1]],"
+            + " a -> \"EXISTS\"(a, e -> e = ^deptno^))")
+        .fails(error);
+    s.withSql("select deptno from emp group by deptno\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^deptno^)")
+        .fails(error);
+    s.withSql("select empno from emp union all select deptno from dept\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^empno^)")
+        .fails(error);
+
+    // The lambda reads only its parameter
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = 1) desc")
+        .ok();
+    // The parameter has the same name as a select item
+    s.withSql("select empno as e from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = 1)")
+        .ok();
+    // The parameter is a row, and the lambda reads one of its fields
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[row(1, 2)], r -> r.expr$0 = 1)")
+        .ok();
+    // The inner lambda reads a parameter of the outer lambda
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[array[1]],"
+            + " a -> \"EXISTS\"(a, e -> e = cardinality(a)))")
+        .ok();
+    // The array argument is a column; the lambda reads only its parameter
+    s.withSql("select empno from emp\n"
+            + "order by \"EXISTS\"(array[deptno], e -> e = 1)")
+        .ok();
+
+    // ORDER BY references a select item by alias, or by ordinal
+    s.withSql("select empno, \"EXISTS\"(array[1, 2], e -> e = deptno) as r\n"
+            + "from emp order by r")
+        .ok();
+    s.withSql("select empno, \"EXISTS\"(array[1, 2], e -> e = deptno) as r\n"
+            + "from emp order by 2")
+        .ok();
+    // The lambda is in a sub-query
+    s.withSql("select empno from emp\n"
+            + "order by (select \"EXISTS\"(array[1, 2], e -> e = emp.deptno))")
+        .ok();
+    // The lambda is in the ORDER BY of a window
+    s.withSql("select empno,\n"
+            + "  row_number() over (order by \"EXISTS\"(array[1, 2], e -> e = deptno))\n"
+            + "from emp")
+        .ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6242">[CALCITE-6242]
    * Enhance lambda closure parsing</a>.
    * Tests that lambda parameter names follow the same case-sensitivity

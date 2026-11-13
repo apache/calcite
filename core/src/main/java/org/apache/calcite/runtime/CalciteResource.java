@@ -285,6 +285,18 @@ public interface CalciteResource {
   @BaseMessage("Duplicate lambda parameter ''{0}''")
   ExInst<SqlValidatorException> duplicateLambdaParameter(String paramName);
 
+  @BaseMessage("Sub-query is illegal in lambda expression")
+  ExInst<SqlValidatorException> subQueryIllegalInLambda();
+
+  @BaseMessage("Aggregate expression is illegal in lambda expression")
+  ExInst<SqlValidatorException> aggregateIllegalInLambda();
+
+  @BaseMessage("Windowed aggregate expression is illegal in lambda expression")
+  ExInst<SqlValidatorException> windowedAggregateIllegalInLambda();
+
+  @BaseMessage("Lambda expression in ORDER BY clause can read only lambda parameters")
+  ExInst<SqlValidatorException> lambdaInOrderByCanReadOnlyParameters();
+
   @BaseMessage("Operand {0} must be a query")
   ExInst<SqlValidatorException> needQueryOp(String a0);
 
