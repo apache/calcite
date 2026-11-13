@@ -10889,6 +10889,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " RecordType\\(INTEGER I\\)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7935">[CALCITE-7935]
+   * Support table function calls without parentheses</a>. */
+  @Test void testCollectionTableWithoutParentheses() {
+    final SqlValidatorFixture f = fixture()
+        .withOperatorTable(MockSqlOperatorTable.standard().extend());
+    f.withSql("select * from table(row_func)")
+        .type("RecordType(BIGINT NOT NULL NOT_NULL_FIELD, BIGINT NULLABLE_FIELD) NOT NULL");
+    f.withSql("select * from lateral table(row_func) as t(a, b)")
+        .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");
+    f.withSql("select * from table(^ramp^)")
+        .fails("Invalid number of arguments to function 'RAMP'. Was expecting 1 arguments");
+    f.withSql("select * from table(^nonexistent^)")
+        .fails("No match found for function signature NONEXISTENT\\(\\)");
+  }
+
   /** Tests that Calcite gives an error if a table function is used anywhere
    * that a scalar expression is expected. */
   @Test void testTableFunctionAsExpression() {

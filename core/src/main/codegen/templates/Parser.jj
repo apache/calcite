@@ -2889,6 +2889,7 @@ SqlNode TableFunctionCall() :
 {
     final Span s;
     final SqlNode call;
+    final SqlIdentifier name;
     SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
 }
 {
@@ -2899,7 +2900,16 @@ SqlNode TableFunctionCall() :
             funcType = SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
         }
     ]
-    call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    (
+        LOOKAHEAD(CompoundIdentifier() <RPAREN>)
+        name = CompoundIdentifier()
+        {
+            call = createCall(name, name.getParserPosition(), funcType, null,
+                ImmutableList.<SqlNode>of());
+        }
+    |
+        call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    )
     <RPAREN>
     {
         return SqlStdOperatorTable.COLLECTION_TABLE.createCall(s.end(this), call);
