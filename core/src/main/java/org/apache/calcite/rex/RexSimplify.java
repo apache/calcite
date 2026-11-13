@@ -2704,7 +2704,10 @@ public class RexSimplify {
       //      would not have the padding
 
       RexNode intExpr = ((RexCall) operand).operands.get(0);
-      if ((intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
+      // As for a direct cast, a dynamic parameter's declared type does not
+      // justify removing casts that may be needed by the runtime or adapter.
+      if (intExpr.getKind() != SqlKind.DYNAMIC_PARAM
+          && (intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
           || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
           && sameTypeOrNarrowsNullability(e.getType(), intExpr.getType())) {
         // Remove both casts (A-like cases): the outer type is the source type,
@@ -2713,7 +2716,8 @@ public class RexSimplify {
         // parses the padded text back
         return intExpr;
       }
-      if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
+      if (intExpr.getKind() != SqlKind.DYNAMIC_PARAM
+          && RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
           && canRemoveInnerCast(intExpr.getType(), operand.getType(), e.getType())) {
         return rexBuilder.makeCast(e.getParserPosition(), e.getType(), intExpr);
       }

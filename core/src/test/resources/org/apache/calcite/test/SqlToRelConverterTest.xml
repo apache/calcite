@@ -2421,7 +2421,7 @@ LogicalProject(FAKE2=[ITEM($0, 'fake_col2')])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[CAST(?0):CHAR(1)])
+LogicalProject(EXPR$0=[CAST(CAST(?0):INTEGER):CHAR(1)])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>

@@ -82,6 +82,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -2936,6 +2937,20 @@ class RexProgramTest extends RexProgramTestBase {
 
   @Test void testSimplifyDynamicParam() {
     checkSimplify(or(vBool(), vBool()), "?0.bool0");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7927">[CALCITE-7927]
+   * RexSimplify removes required casts around nested dynamic parameters</a>. */
+  @Test void testSimplifyNestedDynamicParamCasts() {
+    final RelDataType charType = typeFactory.createSqlType(SqlTypeName.CHAR, 1);
+    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 1);
+    final RexNode parameter = rexBuilder.makeDynamicParam(charType, 0);
+    final RexNode innerCast = rexBuilder.makeAbstractCast(varcharType, parameter, false);
+    assertAll(
+        () -> checkSimplifyUnchanged(rexBuilder.makeAbstractCast(charType, innerCast, false)),
+        () -> checkSimplifyUnchanged(rexBuilder.makeAbstractCast(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR), innerCast, false)));
   }
 
   /** Unit test for
