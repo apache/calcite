@@ -79,9 +79,22 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDateTimeFormat;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -199,6 +212,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16206,7 +16220,7 @@ class RelToSqlConverterDMTest {
     final SqlWith sqlWith = (SqlWith) SqlParser.create(sql).parseQuery();
     final List<SqlNode> sqlNodes = new ArrayList<>();
     CTERelToSqlUtil.fetchSqlWithItems(sqlWith, sqlNodes);
-    assertThat(sqlNodes.size(), is(1));
+    assertThat(sqlNodes, hasSize(1));
     assertThat(((SqlWithItem) sqlNodes.get(0)).name.toString(), is("R"));
   }
 }
