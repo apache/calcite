@@ -36,6 +36,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 
@@ -57,6 +58,23 @@ class DruidDateRangeRulesTest {
             f.le(f.timestampLiteral(2011, Calendar.JANUARY, 1), f.ts),
             f.le(f.ts, f.timestampLiteral(2012, Calendar.FEBRUARY, 2))),
         is("[2011-01-01T00:00:00.000Z/2012-02-02T00:00:00.001Z]"));
+  }
+
+  @Test void testOrWithUnextractableRange() {
+    final Fixture2 f = new Fixture2();
+    final RexNode range = f.lt(f.ts, f.timestampLiteral(2020, Calendar.JANUARY, 1));
+    final RexNode extract = f.eq(f.exDay, f.literal(15));
+    assertThat(DruidDateTimeUtils.createInterval(f.or(range, extract)), nullValue());
+    assertThat(DruidDateTimeUtils.createInterval(f.or(extract, range)), nullValue());
+  }
+
+  @Test void testOrWithEmptyRange() {
+    final Fixture2 f = new Fixture2();
+    final RexNode timestamp = f.timestampLiteral(2020, Calendar.JANUARY, 1);
+    final RexNode empty = f.and(f.lt(f.ts, timestamp), f.ge(f.ts, timestamp));
+    checkDateRangeNoSimplify(f,
+        f.or(empty, f.eq(f.ts, timestamp)),
+        is("[2020-01-01T00:00:00.000Z/2020-01-01T00:00:00.001Z]"));
   }
 
   @Test void testExtractYearAndDayFromDateColumn() {
