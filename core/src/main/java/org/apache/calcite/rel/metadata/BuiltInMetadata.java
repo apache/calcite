@@ -553,7 +553,8 @@ public abstract class BuiltInMetadata {
      *
      * @return set of expressions with lineage resolved, or null if this information
      * cannot be determined (e.g. origin of an expression is an aggregation
-     * in an {@link org.apache.calcite.rel.core.Aggregate} operator)
+     * in an {@link org.apache.calcite.rel.core.Aggregate} operator), or if the
+     * candidate expansion exceeds the provider's work budget
      */
     @Nullable Set<RexNode> getExpressionLineage(RexNode expression);
 
