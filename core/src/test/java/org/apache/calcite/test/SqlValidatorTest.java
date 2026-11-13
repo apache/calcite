@@ -13599,6 +13599,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(tumble(table orders, descriptor(^orders.rowtime^), "
         + "interval '2' hour))")
         .fails("The argument of DESCRIPTOR must be an identifier");
+    // DESCRIPTOR enforces that each argument is an identifier even when the
+    // enclosing function is not a window table function and does not check its
+    // column names itself.
+    sql("select descriptor_consumer(descriptor(ename, deptno)) from emp")
+        .withOperatorTable(MockSqlOperatorTable.standard().extend())
+        .ok();
+    sql("select descriptor_consumer(descriptor(^1 + 2^)) from emp")
+        .withOperatorTable(MockSqlOperatorTable.standard().extend())
+        .fails("The argument of DESCRIPTOR must be an identifier");
   }
 
   @Test void testTumbleTableFunction() {

@@ -94,6 +94,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new DedupFunction(),
                 new TableFunctionReturnTableFunction(),
                 new MyFunction(),
+                new DescriptorConsumerFunction(),
                 new MyAvgAggFunction(),
                 new RowFunction(),
                 new NotATableFunction(),
@@ -530,6 +531,26 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       final RelDataTypeFactory typeFactory =
           opBinding.getTypeFactory();
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
+    }
+  }
+
+  /** A scalar function that takes a single DESCRIPTOR argument. Unlike the
+   * window table functions, it does not validate the column names itself; it
+   * relies on {@code DESCRIPTOR} enforcing that each argument is an
+   * identifier. */
+  public static class DescriptorConsumerFunction extends SqlFunction {
+    public DescriptorConsumerFunction() {
+      super("DESCRIPTOR_CONSUMER",
+          new SqlIdentifier("DESCRIPTOR_CONSUMER", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.family(SqlTypeFamily.COLUMN_LIST),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      return opBinding.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
     }
   }
 
