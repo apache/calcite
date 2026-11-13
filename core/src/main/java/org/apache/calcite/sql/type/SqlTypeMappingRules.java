@@ -16,19 +16,12 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.util.Util;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -61,32 +54,26 @@ public abstract class SqlTypeMappingRules {
   /** Keeps state while building the type mappings. */
   public static class Builder {
     final Map<SqlTypeName, ImmutableSet<SqlTypeName>> map;
-    final LoadingCache<Set<SqlTypeName>, ImmutableSet<SqlTypeName>> sets;
+    final Map<ImmutableSet<SqlTypeName>, ImmutableSet<SqlTypeName>> sets;
 
     /** Creates an empty {@link Builder}. */
     Builder() {
       this.map = new HashMap<>();
-      this.sets =
-          CacheBuilder.newBuilder()
-              .build(CacheLoader.from(set -> Sets.immutableEnumSet(set)));
+      this.sets = new HashMap<>();
     }
 
-    /** Add a map entry to the existing {@link Builder} mapping. */
+    /** Add a map entry to the existing {@link Builder} mapping.
+     *
+     * <p>Copies {@code fromTypes}, so the caller may modify the set after
+     * this method returns. */
     void add(SqlTypeName toType, Set<SqlTypeName> fromTypes) {
-      try {
-        map.put(toType, sets.get(fromTypes));
-      } catch (UncheckedExecutionException | ExecutionException e) {
-        throw Util.throwAsRuntime("populating SqlTypeAssignmentRules", Util.causeOrSelf(e));
-      }
+      map.put(toType,
+          sets.computeIfAbsent(Sets.immutableEnumSet(fromTypes), k -> k));
     }
 
     /** Put all the type mappings to the {@link Builder}. */
     void addAll(Map<SqlTypeName, ImmutableSet<SqlTypeName>> typeMapping) {
-      try {
-        map.putAll(typeMapping);
-      } catch (UncheckedExecutionException e) {
-        throw Util.throwAsRuntime("populating SqlTypeAssignmentRules", Util.causeOrSelf(e));
-      }
+      map.putAll(typeMapping);
     }
 
     /** Copy the map values from key {@code typeName} and
