@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
@@ -64,7 +65,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * RelMdColumnUniqueness supplies a default implementation of
@@ -406,18 +406,19 @@ public class RelMdColumnUniqueness
 
       if (Aggregate.isSimple(rel)) {
         // Map columns to input columns
-        ImmutableBitSet inputCols = ImmutableBitSet.builder()
-            .addAll(columns.intersect(rel.getGroupSet()))
-            .addAll(columns.toList()
-                .stream()
-                .map(col -> col - rel.getGroupSet().length())
-                .filter(col -> col >= 0)
-                .map(col -> rel.getAggCallList().get(col))
-                .filter(call -> PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind()))
-                .map(call -> call.getArgList().get(0))
-                .collect(Collectors.toSet()))
-            .build();
-        return mq.areColumnsUnique(rel.getInput(), inputCols, ignoreNulls);
+        final ImmutableBitSet.Builder inputColumns = ImmutableBitSet.builder();
+        for (int column : columns) {
+          if (column < rel.getGroupCount()) {
+            inputColumns.set(rel.getGroupSet().nth(column));
+          } else {
+            final AggregateCall call =
+                rel.getAggCallList().get(column - rel.getGroupCount());
+            if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())) {
+              inputColumns.set(call.getArgList().get(0));
+            }
+          }
+        }
+        return mq.areColumnsUnique(rel.getInput(), inputColumns.build(), ignoreNulls);
       }
 
       final ImmutableBitSet commonKeys = columns.intersect(groupKey);
