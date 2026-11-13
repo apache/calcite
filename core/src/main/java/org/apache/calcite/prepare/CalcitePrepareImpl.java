@@ -767,6 +767,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         config);
   }
 
+  public static List<ColumnMetaData> getColumnMetaDataList(
+      JavaTypeFactory typeFactory, RelDataType rowType) {
+    return getColumnMetaDataList(typeFactory, rowType, rowType,
+        Collections.nCopies(rowType.getFieldCount(), null));
+  }
+
   private static List<ColumnMetaData> getColumnMetaDataList(
       JavaTypeFactory typeFactory, RelDataType x, RelDataType jdbcType,
       List<? extends @Nullable List<String>> originList) {

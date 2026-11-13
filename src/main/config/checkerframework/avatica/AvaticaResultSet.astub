@@ -21,10 +21,10 @@ import org.checkerframework.checker.nullness.qual.*;
 import java.sql.*;
 
 class AvaticaResultSet {
-  AvaticaResultSet(AvaticaStatement statement,
+  AvaticaResultSet(@Nullable AvaticaStatement statement,
     @Nullable QueryState state,
     Meta.Signature signature,
     ResultSetMetaData resultSetMetaData,
     TimeZone timeZone,
-    Meta.Frame firstFrame);
+    @Nullable Meta.Frame firstFrame);
 }
