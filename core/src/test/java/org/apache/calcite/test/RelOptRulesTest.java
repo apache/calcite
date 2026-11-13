@@ -6847,6 +6847,387 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Query over a UNION ALL where each branch pads the other branch's measure
+   * with NULL, as produced by a "metrics" view. */
+  private static String nullPaddedUnion(String select, String tail) {
+    return "select " + select + " from (\n"
+        + "  select deptno, sum(sal) as m, cast(null as integer) as b\n"
+        + "  from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer), sum(empno)\n"
+        + "  from emp group by deptno) as v" + tail;
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Without GROUP BY, the branch whose measure is constant NULL is removed. */
+  @Test void testAggregateUnionNullBranchGlobal() {
+    sql(nullPaddedUnion("sum(m)", ""))
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>As {@link #testAggregateUnionNullBranchGlobal()} but selects the measure
+   * of the second branch. */
+  @Test void testAggregateUnionNullBranchGlobalOtherMeasure() {
+    sql(nullPaddedUnion("sum(b)", ""))
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>With GROUP BY the unused branch still contributes group keys, so it is
+   * kept, but its redundant GROUP BY is removed. */
+  @Test void testAggregateUnionNullBranchGroupBy() {
+    sql(nullPaddedUnion("deptno, sum(m)", " group by deptno"))
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Same as {@link #testAggregateUnionNullBranchGroupBy()} under the Volcano
+   * planner, where union inputs are sub-sets. */
+  @Test void testAggregateUnionNullBranchGroupByInVolcano() {
+    sql(nullPaddedUnion("deptno, sum(m)", " group by deptno"))
+        .withTrim(true)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH);
+          p.addRule(CoreRules.PROJECT_MERGE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
+        })
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>COUNT(col) ignores NULLs, so the unused branch is removed. */
+  @Test void testAggregateUnionNullBranchCount() {
+    sql(nullPaddedUnion("count(m)", ""))
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>COUNT(a, b) skips a row if any argument is NULL, so a branch where one
+   * argument is always NULL contributes nothing and is removed. */
+  @Test void testAggregateUnionNullBranchCountMultipleArgs() {
+    final String sql = "select count(k, m) from (\n"
+        + "  select mgr as k, sum(sal) as m, cast(null as integer) as b\n"
+        + "  from emp group by mgr\n"
+        + "  union all\n"
+        + "  select mgr, cast(null as integer), sum(empno)\n"
+        + "  from emp group by mgr) as v";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Both branches are needed: negative test. */
+  @Test void testAggregateUnionNullBranchBothMeasures() {
+    sql(nullPaddedUnion("sum(m), sum(b)", ""))
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>COUNT(*) counts rows of every branch: negative test. */
+  @Test void testAggregateUnionNullBranchCountStar() {
+    sql(nullPaddedUnion("count(*)", ""))
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Branches combined with UNION (not UNION ALL) are not touched: negative
+   * test. */
+  @Test void testAggregateUnionNullBranchUnionDistinct() {
+    final String sql = "select sum(m) from (\n"
+        + "  select sum(sal) as m from emp group by deptno\n"
+        + "  union\n"
+        + "  select cast(null as integer) from dept group by deptno) as v";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>If every branch is NULL, one branch is kept. */
+  @Test void testAggregateUnionNullBranchAllNull() {
+    final String sql = "select sum(x) from (\n"
+        + "  select cast(null as integer) as x from emp\n"
+        + "  union all\n"
+        + "  select cast(null as integer) from dept) as v";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Same as {@link #testAggregateUnionNullBranchGlobal()} under the Volcano
+   * planner, where union inputs are sub-sets. */
+  @Test void testAggregateUnionNullBranchGlobalInVolcano() {
+    sql(nullPaddedUnion("sum(m)", ""))
+        .withTrim(true)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH);
+          p.addRule(CoreRules.PROJECT_MERGE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
+        })
+        .check();
+  }
+
+  /** Applies the rule, plus rules that tidy its output, to {@code sql}. */
+  private RelOptFixture nullBranchSql(String sql) {
+    return sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE, CoreRules.UNION_MERGE);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>A branch padded with a non-NULL constant contributes to the aggregate:
+   * negative test. */
+  @Test void testAggregateUnionNullBranchNonNullConstant() {
+    final String sql = "select sum(m) from (\n"
+        + "  select deptno, sum(sal) as m from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, 0 from emp group by deptno) as v";
+    nullBranchSql(sql).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>A nullable column that is not constant NULL keeps the branch: negative
+   * test. */
+  @Test void testAggregateUnionNullBranchNullableColumn() {
+    final String sql = "select sum(m) from (\n"
+        + "  select deptno, sum(sal) as m from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, mgr from emp) as v";
+    nullBranchSql(sql).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>ANY_VALUE is not known to ignore NULLs: negative test. */
+  @Test void testAggregateUnionNullBranchUnsupportedAggregate() {
+    nullBranchSql(nullPaddedUnion("any_value(m)", "")).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>An irrelevant branch with no pure GROUP BY to remove: negative test. */
+  @Test void testAggregateUnionNullBranchGroupByNothingToRemove() {
+    final String sql = "select deptno, sum(m) from (\n"
+        + "  select deptno, sum(sal) as m from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer) from emp) as v\n"
+        + "group by deptno";
+    nullBranchSql(sql).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>A ROLLUP in an irrelevant branch is not a simple GROUP BY, so it is kept:
+   * negative test. */
+  @Test void testAggregateUnionNullBranchRollupBranch() {
+    final String sql = "select deptno, sum(m) from (\n"
+        + "  select deptno, sum(sal) as m from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer)\n"
+        + "  from emp group by rollup(deptno)) as v\n"
+        + "group by deptno";
+    nullBranchSql(sql).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>One of three branches is irrelevant and removed. */
+  @Test void testAggregateUnionNullBranchThreeBranchesRemoveOne() {
+    final String sql = "select sum(m) from (\n"
+        + "  select deptno, sum(sal) as m from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, sum(empno) from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer) from emp group by deptno) as v";
+    nullBranchSql(sql).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Two of three branches are irrelevant; the union disappears. */
+  @Test void testAggregateUnionNullBranchThreeBranchesRemoveTwo() {
+    final String sql = "select sum(m) from (\n"
+        + "  select deptno, sum(sal) as m from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer) from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer) from dept group by deptno) as v";
+    nullBranchSql(sql).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>MIN, MAX and AVG ignore NULLs, so the unused branch is removed. */
+  @Test void testAggregateUnionNullBranchMinMaxAvg() {
+    nullBranchSql(nullPaddedUnion("min(m), max(m), avg(m)", "")).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>SUM0 ignores NULLs, so the unused branch is removed. */
+  @Test void testAggregateUnionNullBranchSum0() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelDataType nullableInt =
+          b.getTypeFactory().createTypeWithNullability(
+              b.getTypeFactory().createSqlType(SqlTypeName.INTEGER), true);
+      b.scan("EMP").project(b.alias(b.field("SAL"), "M"));
+      b.scan("DEPT")
+          .project(
+              b.alias(b.getRexBuilder().makeNullLiteral(nullableInt), "M"));
+      return b.union(true, 2)
+          .aggregate(b.groupKey(),
+              b.aggregateCall(SqlStdOperatorTable.SUM0, b.field("M")).as("S"))
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>COUNT(DISTINCT col) ignores NULLs, so the unused branch is removed; the
+   * argument is kept. */
+  @Test void testAggregateUnionNullBranchCountDistinct() {
+    nullBranchSql(nullPaddedUnion("count(distinct m)", "")).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>DISTINCT is kept when the unused branch is removed. */
+  @Test void testAggregateUnionNullBranchSumDistinct() {
+    nullBranchSql(nullPaddedUnion("sum(distinct m)", "")).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>FILTER is kept when the unused branch is removed. */
+  @Test void testAggregateUnionNullBranchFilter() {
+    final String sql = "select sum(m) filter (where f) from (\n"
+        + "  select deptno, sum(sal) as m, cast(null as integer) as b,\n"
+        + "    deptno > 10 as f\n"
+        + "  from emp group by deptno\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer), sum(empno), deptno > 10\n"
+        + "  from emp group by deptno) as v";
+    nullBranchSql(sql).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>With ROLLUP the branch is kept, but its pure GROUP BY is removed. */
+  @Test void testAggregateUnionNullBranchRollup() {
+    nullBranchSql(
+        nullPaddedUnion("deptno, sum(m)", " group by rollup(deptno)")).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>With GROUPING SETS (deptno, ()) the branch is kept, because it still
+   * supplies the deptno groups; only its pure GROUP BY is removed. */
+  @Test void testAggregateUnionNullBranchGroupingSets() {
+    nullBranchSql(
+        nullPaddedUnion("deptno, sum(m)",
+            " group by grouping sets (deptno, ())")).check();
+  }
+
   @Test void testPullConstantThroughUnionSameTypeNullableField() {
     final String sql = "select deptno, ename from empnullables where deptno = 1\n"
         + "union all\n"
