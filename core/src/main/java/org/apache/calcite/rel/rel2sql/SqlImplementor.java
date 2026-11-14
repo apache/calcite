@@ -84,6 +84,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
@@ -131,6 +132,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
@@ -816,16 +818,20 @@ public abstract class SqlImplementor {
           assert lastAccess != null;
           SqlNode node = correlAliasContext.field(lastAccess.getField().getIndex());
           int positionOfCoRelationVariable = getPositionOfCoRelationVariable(variable.id);
-          AliasContext aliasContext = (AliasContext) correlAliasContext;
-          Integer firstFieldListSize =
-              aliasContext.aliases.values().iterator().next().getFieldList().size();
+          // A GroupKeyCorrelationContext already gives the exact column; only an
+          // AliasContext needs the look-up by name.
+          if (correlAliasContext instanceof AliasContext) {
+            AliasContext aliasContext = (AliasContext) correlAliasContext;
+            Integer firstFieldListSize =
+                aliasContext.aliases.values().iterator().next().getFieldList().size();
 
-          if (!isNodeMatching(node, lastAccess)
-              || (positionOfCoRelationVariable != 0 && aliasContext.aliases.size() > 1)) {
-            List<SqlNode> fieldList =
-                getSqlNodeList(aliasContext, positionOfCoRelationVariable, firstFieldListSize);
-            SqlNode newNode = getSqlNodeByName(fieldList, lastAccess);
-            node = newNode != null ? newNode : node;
+            if (!isNodeMatching(node, lastAccess)
+                || (positionOfCoRelationVariable != 0 && aliasContext.aliases.size() > 1)) {
+              List<SqlNode> fieldList =
+                  getSqlNodeList(aliasContext, positionOfCoRelationVariable, firstFieldListSize);
+              SqlNode newNode = getSqlNodeByName(fieldList, lastAccess);
+              node = newNode != null ? newNode : node;
+            }
           }
           names.add(node);
           break;
@@ -2092,6 +2098,9 @@ public abstract class SqlImplementor {
           && isQualifyNodeContainsWindowFunction(((Filter) rel).getCondition(), selectNodeList)) {
         needNew = true;
       }
+      if (needsSubSelectForCorrelation(rel)) {
+        needNew = true;
+      }
       // Additional condition than apache calcite
       if ((!isPivotPresent && needNew) || (
           isCorrelated(rel) && ((subQueryAliasTrait != null) || !(rel instanceof Project)))) {
@@ -2220,6 +2229,19 @@ public abstract class SqlImplementor {
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
           needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
+    }
+
+    /** Returns whether a correlated Project over an Aggregate must wrap the
+     * Aggregate's SELECT in a sub-select. Without the wrap the Project merges
+     * into that SELECT, and a correlation can then refer only to a group key
+     * column (see {@link #correlatedGroupKeyNodes}). A correlation to any
+     * other field (an aggregate result, for example) needs the sub-select
+     * alias. */
+    private boolean needsSubSelectForCorrelation(RelNode rel) {
+      final Aggregate aggregate = aggregateUnderCorrelatedProject(rel);
+      return aggregate != null
+          && node instanceof SqlSelect
+          && correlatedGroupKeyNodes((Project) rel, aggregate, (SqlSelect) node) == null;
     }
 
     private boolean isAliasRefNeeded(boolean keepColumnAlias, RelNode rel) {
@@ -3428,6 +3450,135 @@ public abstract class SqlImplementor {
       tableName = alias;
     }
     return tableName;
+  }
+
+  /** Returns the Aggregate under a correlated Project, looking through
+   * the Filters of a HAVING clause; null if there is none or if the
+   * Aggregate has grouping sets. */
+  protected static @Nullable Aggregate aggregateUnderCorrelatedProject(RelNode rel) {
+    if (!(rel instanceof Project) || rel.getVariablesSet().isEmpty()) {
+      return null;
+    }
+    RelNode input = rel.getInput(0);
+    while (input instanceof Filter) {
+      input = ((Filter) input).getInput();
+    }
+    if (input instanceof Aggregate
+        && ((Aggregate) input).getGroupType() == Aggregate.Group.SIMPLE) {
+      return (Aggregate) input;
+    }
+    return null;
+  }
+
+  /** For a correlated Project that merges into the SELECT of its Aggregate,
+   * returns the SQL of each field that the Project's sub-queries take from
+   * the correlation variable. Each one must be a group key column. It is
+   * qualified with the alias of the SELECT's FROM item, because an
+   * unqualified name could bind to a column of the sub-query's own table.
+   *
+   * <p>Returns null if some field cannot be written this way; the caller
+   * then wraps the Aggregate's SELECT in a sub-select.
+   *
+   * <p>Example: {@code SELECT COUNT(*), (SELECT p.title FROM position p
+   * WHERE p.title = e.first_name) FROM employee e GROUP BY e.first_name}.
+   * The correlation refers to {@code e.first_name}, not to the alias of
+   * the Aggregate result, which is never written. */
+  protected static @Nullable Map<Integer, SqlNode> correlatedGroupKeyNodes(
+      Project project, Aggregate aggregate, SqlSelect select) {
+    final SqlNodeList selectList = select.getSelectList();
+    final int fieldCount = aggregate.getRowType().getFieldCount();
+    if (selectList == null || selectList.size() != fieldCount) {
+      return null;
+    }
+    final SqlNode from = select.getFrom();
+    final @Nullable String fromAlias = from == null ? null : SqlValidatorUtil.alias(from);
+    final Map<Integer, SqlNode> keyNodes = new HashMap<>();
+    for (int ordinal : correlatedFields(project)) {
+      if (ordinal >= aggregate.getGroupCount()) {
+        return null;
+      }
+      SqlNode item = selectList.get(ordinal);
+      if (item.getKind() == SqlKind.AS) {
+        item = ((SqlCall) item).operand(0);
+      }
+      if (!(item instanceof SqlIdentifier) || ((SqlIdentifier) item).isStar()) {
+        return null;
+      }
+      final SqlIdentifier column = (SqlIdentifier) item;
+      if (!column.isSimple()) {
+        keyNodes.put(ordinal, column.clone(POS));
+      } else if (fromAlias != null) {
+        keyNodes.put(ordinal,
+            new SqlIdentifier(ImmutableList.of(fromAlias, column.getSimple()), POS));
+      } else {
+        return null;
+      }
+    }
+    return keyNodes;
+  }
+
+  /** Returns the fields of the Project's input that its sub-queries take
+   * from the Project's correlation variables. */
+  private static ImmutableBitSet correlatedFields(Project project) {
+    final List<RexSubQuery> subQueries = new ArrayList<>();
+    final RexVisitorImpl<Void> collector = new RexVisitorImpl<Void>(true) {
+      @Override public Void visitSubQuery(RexSubQuery subQuery) {
+        subQueries.add(subQuery);
+        return super.visitSubQuery(subQuery);
+      }
+    };
+    project.getProjects().forEach(rex -> rex.accept(collector));
+    final ImmutableBitSet.Builder fields = ImmutableBitSet.builder();
+    for (CorrelationId id : project.getVariablesSet()) {
+      for (RexSubQuery subQuery : subQueries) {
+        fields.addAll(RelOptUtil.correlationColumns(id, subQuery.rel));
+      }
+    }
+    return fields.build();
+  }
+
+  /** Saves the correlation context of a Project. For a Project over an
+   * Aggregate there are two cases. If the Project merged into the SELECT of
+   * the Aggregate, the correlation uses the group key columns of that SELECT.
+   * If that SELECT became a sub-select, the correlation uses the sub-select's
+   * alias. In every other case it uses the input's alias. */
+  protected void parseCorrelTableOfProject(Project project, Result x, Builder builder) {
+    Context context = x.qualifiedContext();
+    final Aggregate aggregate = aggregateUnderCorrelatedProject(project);
+    if (aggregate != null && builder.select == x.node) {
+      final Map<Integer, SqlNode> keyNodes =
+          correlatedGroupKeyNodes(project, aggregate, builder.select);
+      if (keyNodes != null) {
+        context =
+            new GroupKeyCorrelationContext(aggregate.getRowType().getFieldCount(), keyNodes);
+      }
+    } else if (aggregate != null && builder.aliases != null) {
+      context = aliasContext(builder.aliases, true);
+    }
+    for (CorrelationId id : project.getVariablesSet()) {
+      correlTableMap.put(id, context);
+    }
+  }
+
+  /** Correlation context of a Project that merged into the SELECT of its
+   * Aggregate. It knows only the group key columns that the Project's
+   * sub-queries use. */
+  private class GroupKeyCorrelationContext extends BaseContext {
+    private final Map<Integer, SqlNode> keyNodes;
+
+    GroupKeyCorrelationContext(int fieldCount, Map<Integer, SqlNode> keyNodes) {
+      super(SqlImplementor.this.dialect, fieldCount);
+      this.keyNodes = keyNodes;
+    }
+
+    @Override public SqlNode field(int ordinal) {
+      return requireNonNull(keyNodes.get(ordinal),
+          () -> "field " + ordinal + " is not a correlated group key");
+    }
+
+    @Override public SqlNode field(int ordinal, boolean useAlias) {
+      return field(ordinal);
+    }
   }
 
   boolean isCorrelated(RelNode rel) {

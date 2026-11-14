@@ -854,7 +854,7 @@ public class RelToSqlConverter extends SqlImplementor
               null, null, null, null, null, null, null, SqlNodeList.EMPTY);
       result = result(select, ImmutableList.of(Clause.SELECT), e, null);
     } else {
-      parseCorrelTable(e, x);
+      parseCorrelTableOfProject(e, x, builder);
       if ((!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
           || style.isExpandProjection()) && !unpivotRelToSqlUtil.isStarInUnPivot(e, x)) {
         final List<SqlNode> selectList = new ArrayList<>();

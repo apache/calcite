@@ -12074,6 +12074,115 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
+  /** A correlated scalar sub-query in the SELECT list of a GROUP BY query (RORAB-3780).
+   * The Project merges into the Aggregate's SELECT, so the correlation must use the FROM
+   * table of that SELECT, not the alias of the Aggregate result (t0), which is never written. */
+  @Test void testCorrelatedScalarQueryInSelectListOverAggregate() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee")
+        .project(builder.field("first_name"))
+        .aggregate(builder.groupKey(builder.field("first_name")),
+            builder.countStar("cnt"));
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    RexNode correlatedScalarSubQuery = RexSubQuery.scalar(builder
+        .scan("position")
+        .filter(builder
+            .equals(
+                builder.field("position_title"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, 0)))
+        .project(builder.field("position_title"))
+        .build());
+    RelNode root = builder
+        .project(
+            ImmutableSet.of(builder.field("cnt"), correlatedScalarSubQuery),
+            ImmutableSet.of("cnt", "title"),
+            false,
+            ImmutableSet.of(correlationId))
+        .build();
+    final String expectedSql = "SELECT COUNT(*) AS cnt, (SELECT position_title\n"
+        + "FROM foodmart.position\n"
+        + "WHERE position_title = employee.first_name) AS title\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY first_name";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  /** Same as {@link #testCorrelatedScalarQueryInSelectListOverAggregate} with a HAVING
+   * filter between the Project and the Aggregate (RORAB-3780). Here the GROUP BY query
+   * becomes a sub-select (t1), so the correlation must use that alias, not the alias of
+   * the Filter's input (t0). */
+  @Test void testCorrelatedScalarQueryInSelectListOverAggregateWithHaving() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee")
+        .project(builder.field("first_name"))
+        .aggregate(builder.groupKey(builder.field("first_name")),
+            builder.countStar("cnt"))
+        .filter(builder.greaterThan(builder.field("cnt"), builder.literal(1)));
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    RexNode correlatedScalarSubQuery = RexSubQuery.scalar(builder
+        .scan("position")
+        .filter(builder
+            .equals(
+                builder.field("position_title"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, 0)))
+        .project(builder.field("position_title"))
+        .build());
+    RelNode root = builder
+        .project(
+            ImmutableSet.of(builder.field("cnt"), correlatedScalarSubQuery),
+            ImmutableSet.of("cnt", "title"),
+            false,
+            ImmutableSet.of(correlationId))
+        .build();
+    final String expectedSql = "SELECT cnt, (SELECT position_title\n"
+        + "FROM foodmart.position\n"
+        + "WHERE position_title = t1.first_name) AS title\n"
+        + "FROM (SELECT first_name, COUNT(*) AS cnt\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY first_name\n"
+        + "HAVING cnt > 1) AS t1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  /** A correlation to an aggregate result cannot use a column of the GROUP BY query's
+   * FROM table, so the GROUP BY query becomes a sub-select with an alias (RORAB-3780). */
+  @Test void testCorrelatedScalarQueryInSelectListOnAggregateResult() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee")
+        .project(builder.field("first_name"))
+        .aggregate(builder.groupKey(builder.field("first_name")),
+            builder.countStar("cnt"));
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    RexNode correlatedScalarSubQuery = RexSubQuery.scalar(builder
+        .scan("position")
+        .filter(builder
+            .equals(
+                builder.field("position_id"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, 1)))
+        .project(builder.field("position_title"))
+        .build());
+    RelNode root = builder
+        .project(
+            ImmutableSet.of(builder.field("first_name"), correlatedScalarSubQuery),
+            ImmutableSet.of("first_name", "title"),
+            false,
+            ImmutableSet.of(correlationId))
+        .build();
+    final String expectedSql = "SELECT first_name, (SELECT position_title\n"
+        + "FROM foodmart.position\n"
+        + "WHERE position_id = t0.cnt) AS title\n"
+        + "FROM (SELECT first_name, COUNT(*) AS cnt\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY first_name) AS t0";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testUnparsingOfPercentileCont() {
     final RelBuilder builder = relBuilder();
     builder.push(builder.scan("EMP").build());
