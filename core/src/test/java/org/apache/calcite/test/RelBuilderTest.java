@@ -5475,6 +5475,28 @@ public class RelBuilderTest {
         hasTree(expectedWithoutSimplify));
   }
 
+  @Test void testFilterNonFlatMixedOperatorsWithoutSimplify() {
+    final Function<RelBuilder, RelNode> f = b -> {
+      final RexBuilder rexBuilder = b.getRexBuilder();
+      b.scan("EMP");
+      final RexNode and =
+          rexBuilder.makeCall(SqlStdOperatorTable.AND,
+              rexBuilder.makeCall(SqlStdOperatorTable.AND,
+                  b.greaterThan(b.field("SAL"), b.literal(1000)),
+                  b.greaterThan(b.field("COMM"), b.literal(100))),
+              b.equals(b.field("DEPTNO"), b.literal(10)));
+      return b.filter(
+          rexBuilder.makeCall(SqlStdOperatorTable.OR, and,
+              b.greaterThan(b.field("EMPNO"), b.literal(7000))))
+          .build();
+    };
+    final String expected = ""
+        + "LogicalFilter(condition=[OR(AND(>($5, 1000), >($6, 100), =($7, 10)), >($0, 7000))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
+        hasTree(expected));
+  }
+
   /** Tests filter builder with correlation variables. */
   @Test void testFilterWithCorrelationVariables() {
     final RelBuilder builder = RelBuilder.create(config().build());

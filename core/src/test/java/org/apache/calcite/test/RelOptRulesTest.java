@@ -3706,6 +3706,42 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7939">[CALCITE-7939]
+   * Non-flat AND/OR conditions cause AssertionError in Filter when created by
+   * FilterProjectTransposeRule or RelBuilder.filter</a>. */
+  @Test void testFilterProjectTransposeBloatCountsFlattenedCondition() {
+    final Function<RelBuilder, RelNode> relFn = b -> b.scan("EMP")
+        .project(
+            b.alias(
+                b.or(b.greaterThan(b.field("SAL"), b.literal(1000)),
+                    b.greaterThan(b.field("COMM"), b.literal(100))),
+                "P"),
+            b.field("EMPNO"))
+        .filter(
+            b.and(
+                b.or(b.field("P"),
+                    b.greaterThan(b.field("EMPNO"), b.literal(7000))),
+                b.or(b.field("P"),
+                    b.lessThan(b.field("EMPNO"), b.literal(100)))))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE.config
+            .withBloat(2).toRule())
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7939">[CALCITE-7939]
+   * Non-flat AND/OR conditions cause AssertionError in Filter when created by
+   * FilterProjectTransposeRule or RelBuilder.filter</a>. */
+  @Test void testFilterProjectTransposeNonFlatOrUnderAnd() {
+    final String sql = "select * from (\n"
+        + "  select sal > 1000 or comm > 100 as p, empno from emp)\n"
+        + "where (p or empno > 7000) and empno < 9000";
+    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE).check();
+  }
+
   private static final String NOT_STRONG_EXPR =
       "case when e.sal < 11 then 11 else -1 * e.sal end";
 
@@ -8103,6 +8139,28 @@ class RelOptRulesTest extends RelOptTestBase {
         + "    sum(100) over (partition by  deptno order by sal) as col1\n"
         + "  from emp)";
     sql(sql).withRule(CoreRules.PROJECT_MERGE).checkUnchanged();
+  }
+
+  @Test void testProjectMergeFlattensNonFlatExpression() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RexBuilder rexBuilder = b.getRexBuilder();
+      b.scan("EMP");
+      final RexNode and =
+          rexBuilder.makeCall(SqlStdOperatorTable.AND,
+              rexBuilder.makeCall(SqlStdOperatorTable.AND,
+                  b.greaterThan(b.field("SAL"), b.literal(1000)),
+                  b.greaterThan(b.field("COMM"), b.literal(100))),
+              b.equals(b.field("DEPTNO"), b.literal(10)));
+      final RexNode empno = b.field("EMPNO");
+      final RelNode bottom =
+          LogicalProject.create(b.build(), ImmutableList.of(),
+              ImmutableList.of(and, empno), ImmutableList.of("A", "EMPNO"),
+              ImmutableSet.of());
+      return LogicalProject.create(bottom, ImmutableList.of(),
+          ImmutableList.of(rexBuilder.makeInputRef(bottom, 0)),
+          ImmutableList.of("A"), ImmutableSet.of());
+    };
+    relFn(relFn).withRule(CoreRules.PROJECT_MERGE).check();
   }
 
   @Test void testAggregateProjectPullUpConstants() {
