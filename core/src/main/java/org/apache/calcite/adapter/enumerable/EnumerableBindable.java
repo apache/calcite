@@ -21,9 +21,7 @@ import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Node;
 import org.apache.calcite.interpreter.Row;
-import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -38,8 +36,6 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that converts an enumerable input to interpretable
@@ -73,16 +69,9 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
   }
 
   @Override public Node implement(final InterpreterImplementor implementor) {
-    return () -> {
-      final Sink sink =
-          requireNonNull(implementor.relSinks.get(EnumerableBindable.this),
-              () -> "relSinks.get is null for " + EnumerableBindable.this).get(0);
-      final Enumerable<@Nullable Object[]> enumerable = bind(implementor.dataContext);
-      final Enumerator<@Nullable Object[]> enumerator = enumerable.enumerator();
-      while (enumerator.moveNext()) {
-        sink.send(Row.asCopy(enumerator.current()));
-      }
-    };
+    implementor.compiler.enumerable(this,
+        bind(implementor.dataContext).select(values -> Row.asCopy(values)));
+    return () -> { };
   }
 
   /**
