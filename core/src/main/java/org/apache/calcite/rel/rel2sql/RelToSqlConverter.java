@@ -228,9 +228,27 @@ public class RelToSqlConverter extends SqlImplementor
         if (selectItem.getKind() == SqlKind.AS) {
           selectItem = ((SqlCall) selectItem).operand(0);
         }
-        return selectItem.clone(id.getParserPosition());
+        return qualify(selectItem.clone(id.getParserPosition()));
       }
       return id;
+    }
+
+    /**
+     * Adds the outer table alias to unqualified identifiers, so that they cannot be captured by a
+     * same-named column of an inner relation.
+     */
+    private SqlNode qualify(SqlNode node) {
+      SqlNode result = node.accept(new SqlShuttle() {
+        @Override public SqlNode visit(SqlIdentifier id) {
+          if (id.names.size() == 1 && !id.isStar()) {
+            return new SqlIdentifier(
+                ImmutableList.of(tableAlias, id.names.get(0)),
+                id.getParserPosition());
+          }
+          return id;
+        }
+      });
+      return requireNonNull(result, "result");
     }
   }
 
