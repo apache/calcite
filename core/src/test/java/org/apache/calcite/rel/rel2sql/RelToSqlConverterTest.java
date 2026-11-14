@@ -13744,4 +13744,48 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7883">[CALCITE-7883]
+   * RelToSqlConverter strips outer alias in semi/anti join condition,
+   * so unqualified column binds to the inner relation</a>. */
+  @Test void testIntersectToSemiJoinKeepsOuterQualifier() {
+    final String query = "select \"department_id\", \"supervisor_id\" from \"employee\"\n"
+        + "intersect\n"
+        + "select \"department_id\", \"department_id\" from \"department\"";
+
+    final String expected = "SELECT \"department_id\", CAST(\"supervisor_id\" AS INTEGER) "
+        + "AS \"supervisor_id\"\n"
+        + "FROM \"foodmart\".\"employee\" AS \"t0\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"department_id\", \"department_id\" AS \"department_id0\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t1\"\n"
+        + "WHERE \"t0\".\"department_id\" IS NOT DISTINCT FROM \"t1\".\"department_id\" "
+        + "AND CAST(\"t0\".\"supervisor_id\" AS INTEGER) IS NOT DISTINCT FROM \"t1\".\"department_id0\")\n"
+        + "GROUP BY \"department_id\", CAST(\"supervisor_id\" AS INTEGER)";
+    sql(query)
+        .optimize(RuleSets.ofList(CoreRules.INTERSECT_TO_SEMI_JOIN), null)
+        .ok(expected);
+  }
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7883">[CALCITE-7883]
+   * RelToSqlConverter strips the outer alias in an anti-join condition,
+   * so an unqualified column is captured by the inner relation</a>. */
+  @Test void testExceptToAntiJoinKeepsOuterQualifier() {
+    final String query = "select \"department_id\", \"supervisor_id\" from \"employee\"\n"
+        + "except\n"
+        + "select \"department_id\", \"department_id\" from \"department\"";
+    // condition qualifies the outer columns with the outer alias.
+    final String expected = "SELECT \"department_id\", \"supervisor_id\"\n"
+        + "FROM \"foodmart\".\"employee\" AS \"t\"\n"
+        + "WHERE NOT EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"department_id\", \"department_id\" AS \"department_id0\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\"\n"
+        + "WHERE \"t\".\"department_id\" = \"t0\".\"department_id\" "
+        + "AND \"t\".\"supervisor_id\" = \"t0\".\"department_id0\")\n"
+        + "GROUP BY \"department_id\", \"supervisor_id\"";
+    sql(query)
+        .optimize(RuleSets.ofList(CoreRules.MINUS_TO_ANTI_JOIN), null)
+        .ok(expected);
+  }
 }
