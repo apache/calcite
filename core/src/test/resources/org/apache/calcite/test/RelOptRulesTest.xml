@@ -6512,6 +6512,45 @@ LogicalProject(X1=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterProjectTransposeBloatCountsFlattenedCondition">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[AND(OR($0, >($1, 7000)), OR($0, <($1, 100)))])
+  LogicalProject(P=[OR(>($5, 1000), >($6, 100))], EMPNO=[$0])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(P=[OR(>($5, 1000), >($6, 100))], EMPNO=[$0])
+  LogicalFilter(condition=[AND(OR(>($5, 1000), >($6, 100), >($0, 7000)), OR(>($5, 1000), >($6, 100), <($0, 100)))])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterProjectTransposeNonFlatOrUnderAnd">
+    <Resource name="sql">
+      <![CDATA[select * from (
+  select sal > 1000 or comm > 100 as p, empno from emp)
+where (p or empno > 7000) and empno < 9000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(P=[$0], EMPNO=[$1])
+  LogicalFilter(condition=[AND(OR($0, >($1, 7000)), <($1, 9000))])
+    LogicalProject(P=[OR(>($5, 1000), >($6, 100))], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(P=[$0], EMPNO=[$1])
+  LogicalProject(P=[OR(>($5, 1000), >($6, 100))], EMPNO=[$0])
+    LogicalFilter(condition=[AND(OR(>($5, 1000), >($6, 100), >($0, 7000)), <($0, 9000))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterProjectTransposePreventedByCorrelation">
     <Resource name="sql">
       <![CDATA[SELECT e.empno
@@ -12987,6 +13026,21 @@ LogicalJoin(condition=[true], joinType=[inner])
     LogicalValues(tuples=[[{ 0 }]])
   LogicalProject
     LogicalValues(tuples=[[{  }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectMergeFlattensNonFlatExpression">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(A=[$0])
+  LogicalProject(A=[AND(AND(>($5, 1000), >($6, 100)), =($7, 10))], EMPNO=[$0])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(A=[AND(>($5, 1000), >($6, 100), =($7, 10))])
+  LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>

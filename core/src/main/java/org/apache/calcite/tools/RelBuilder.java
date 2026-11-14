@@ -1966,6 +1966,7 @@ public class RelBuilder {
       for (RexNode predicate : predicates) {
         RexNode simple = simplifier.removeNullabilityCast(predicate);
         simple = RexSimplify.simplifyComparisonWithNull(simple, getRexBuilder());
+        simple = flattenDeep(getRexBuilder(), simple);
         simplified.add(simple);
       }
       conjunctionPredicates =
@@ -1985,6 +1986,18 @@ public class RelBuilder {
             conjunctionPredicates, ImmutableSet.copyOf(variablesSet));
     stack.push(new Frame(filter, frame.fields));
     return this;
+  }
+
+  /** Flattens nested AND/OR calls at any depth. */
+  private static RexNode flattenDeep(RexBuilder rexBuilder, RexNode node) {
+    if (RexUtil.isFlat(node)) {
+      return node;
+    }
+    return node.accept(new RexShuttle() {
+      @Override public RexNode visitCall(RexCall call) {
+        return RexUtil.flatten(rexBuilder, super.visitCall(call));
+      }
+    });
   }
 
   /** Creates a {@link Project} of the given

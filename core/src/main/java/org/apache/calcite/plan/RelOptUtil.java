@@ -3340,7 +3340,7 @@ public abstract class RelOptUtil {
   /**
    * Converts an expression that is based on the output fields of a
    * {@link Project} to an equivalent expression on the Project's
-   * input fields.
+   * input fields. Nested AND/OR calls in the result are flattened.
    *
    * @param node The expression to be converted
    * @param project Project underneath the expression
@@ -3353,7 +3353,7 @@ public abstract class RelOptUtil {
   /**
    * Converts a list of expressions that are based on the output fields of a
    * {@link Project} to equivalent expressions on the Project's
-   * input fields.
+   * input fields. Nested AND/OR calls in the result are flattened.
    *
    * @param nodes The expressions to be converted
    * @param project Project underneath the expression
@@ -3403,9 +3403,14 @@ public abstract class RelOptUtil {
   }
 
   private static RexShuttle pushShuttle(final Project project) {
+    final RexBuilder rexBuilder = project.getCluster().getRexBuilder();
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
         return project.getProjects().get(ref.getIndex());
+      }
+
+      @Override public RexNode visitCall(RexCall call) {
+        return RexUtil.flatten(rexBuilder, super.visitCall(call));
       }
     };
   }
