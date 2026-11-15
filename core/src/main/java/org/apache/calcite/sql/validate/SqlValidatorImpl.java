@@ -701,18 +701,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (String name : commonColumnNames) {
       if (matcher.matches(identifier.getSimple(), name)) {
-        final List<SqlNode> qualifiedNode = new ArrayList<>();
-        for (ScopeChild child : requireNonNull(scope, "scope").children) {
-          if (matcher.indexOf(child.namespace.getRowType().getFieldNames(), name) >= 0) {
-            final SqlIdentifier exp =
-                new SqlIdentifier(
-                    ImmutableList.of(child.name, name),
-                    identifier.getParserPosition());
-            qualifiedNode.add(exp);
-          }
-        }
-
-        assert qualifiedNode.size() == 2;
+        // Take the column from each input of this join, not from every table
+        // of the FROM clause; an input that is a NATURAL or USING join on the
+        // column gives one column, as in 'a JOIN b USING (x) JOIN c USING (x)'
+        final List<SqlNode> qualifiedNode =
+            ImmutableList.of(
+                joinInputColumn(join, true, name, identifier, scope),
+                joinInputColumn(join, false, name, identifier, scope));
 
         // COALESCE is only needed for FULL JOIN; for RIGHT JOIN use the right
         // column (always non-null), and for INNER/LEFT JOIN use the left column.
@@ -768,6 +763,38 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       return identifier;
     }
+  }
+
+  /** Returns the column {@code name} of the left or right input of a join. */
+  private SqlNode joinInputColumn(SqlJoin join, boolean left, String name,
+      SqlIdentifier identifier, SelectScope scope) {
+    final SqlNode input = left ? join.getLeft() : join.getRight();
+    final SqlIdentifier id =
+        new SqlIdentifier(name, identifier.getParserPosition());
+    final List<ScopeChild> children;
+    if (input instanceof SqlJoin) {
+      // A NATURAL or USING join on the column gives one column
+      final SqlNode expanded =
+          expandExprFromJoin((SqlJoin) input, id, scope, false);
+      if (expanded != id) {
+        return expanded;
+      }
+      children = ((ListScope) getJoinScope(input)).children;
+    } else {
+      // The tables of the left input come first in the join's scope
+      final List<ScopeChild> joinChildren =
+          ((ListScope) getJoinScope(join)).children;
+      children =
+          ImmutableList.of(left ? joinChildren.get(0) : Util.last(joinChildren));
+    }
+    final SqlNameMatcher matcher = catalogReader.nameMatcher();
+    for (ScopeChild child : children) {
+      if (matcher.indexOf(child.namespace.getRowType().getFieldNames(), name) >= 0) {
+        return new SqlIdentifier(ImmutableList.of(child.name, name),
+            identifier.getParserPosition());
+      }
+    }
+    throw new AssertionError("column " + name + " not found in " + input);
   }
 
   private static void validateQualifiedCommonColumn(SqlJoin join,
