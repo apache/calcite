@@ -411,4 +411,24 @@ PLAN VARCHAR NOT NULL
 !type
 !set hep-rules original
 
+# [CALCITE-7938] AggregateRemoveRule can cause failed planning because of collation mismatch
+!set hep-rules "
++CoreRules.AGGREGATE_PROJECT_MERGE,
++CoreRules.AGGREGATE_REMOVE"
+
+select count(*) as s
+from (values (true, 1), (true, 2)) as t(col1, col2)
+where col1
+group by col2;
++---+
+| S |
++---+
+| 1 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+!set hep-rules original
+
 # End hep.iq
