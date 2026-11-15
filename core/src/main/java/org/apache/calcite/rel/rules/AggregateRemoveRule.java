@@ -160,7 +160,9 @@ public class AggregateRemoveRule
       relBuilder.project(relBuilder.fields(aggregate.getGroupSet()));
     }
     call.getPlanner().prune(aggregate);
-    call.transformTo(relBuilder.build());
+    final RelNode replacement = relBuilder.build().stripped();
+    call.transformTo(
+        replacement.copy(aggregate.getTraitSet(), replacement.getInputs()));
   }
 
   /** Rule configuration. */
