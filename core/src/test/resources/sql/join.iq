@@ -576,6 +576,83 @@ order by deptno, ename;
 
 !ok
 
+# [CALCITE-7940] AssertionError when selecting a common column of three tables joined with USING.
+# Same result on PostgreSQL 18.6, DuckDB 2.0.0, Oracle 26ai.
+select deptno, count(*) as c
+from emp
+join dept using (deptno)
+join dept as d2 using (deptno)
+group by deptno
+order by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 5 |
+|     30 | 6 |
++--------+---+
+(3 rows)
+
+!ok
+
+# [CALCITE-7940] AssertionError when selecting a common column of three tables joined with USING.
+# The right input is a FULL JOIN; its common column is
+# COALESCE(c.x, d.x), and d has no row for x = 2
+# Same result on PostgreSQL 18.6, DuckDB 2.0.0, Oracle 26ai.
+select x
+from (values (1), (2)) as a (x)
+join (values (1), (2)) as b (x) using (x)
+join ((values (1), (2)) as c (x)
+  full join (values (1)) as d (x) using (x)) using (x)
+order by x;
++---+
+| X |
++---+
+| 1 |
+| 2 |
++---+
+(2 rows)
+
+!ok
+
+# [CALCITE-7940] AssertionError when selecting a common column of three tables joined with USING.
+# FULL JOIN of three tables; the common column is
+# COALESCE(COALESCE(a.x, b.x), c.x)
+# Same result on PostgreSQL 18.6, DuckDB 2.0.0, Oracle 26ai.
+select x
+from (values (1)) as a (x)
+full join (values (2)) as b (x) using (x)
+full join (values (3)) as c (x) using (x)
+order by x;
++---+
+| X |
++---+
+| 1 |
+| 2 |
+| 3 |
++---+
+(3 rows)
+
+!ok
+
+# [CALCITE-7940] AssertionError when selecting a common column of three tables joined with USING.
+# Same result on PostgreSQL 18.6, DuckDB 2.0.0, Oracle 26ai.
+select *
+from (values (1, 'a')) as a (x, p)
+full join (values (2, 'b')) as b (x, q) using (x)
+full join (values (3, 'c')) as c (x, r) using (x)
+order by x;
++---+---+---+---+
+| X | P | Q | R |
++---+---+---+---+
+| 1 | a |   |   |
+| 2 |   | b |   |
+| 3 |   |   | c |
++---+---+---+---+
+(3 rows)
+
+!ok
+
 # Push aggregate through join
 select distinct dept.deptno, emp.deptno
 from "scott".emp join "scott".dept using (deptno);

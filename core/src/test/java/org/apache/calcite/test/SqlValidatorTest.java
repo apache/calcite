@@ -6925,6 +6925,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql3).type(type3);
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7940">[CALCITE-7940]
+   * AssertionError when selecting a common column of three tables joined with USING</a>. */
+  @Test void testJoinUsingThreeWayCommonColumn() {
+    sql("select deptno from emp\n"
+        + "join dept using (deptno)\n"
+        + "join dept as d2 using (deptno)").ok();
+    sql("select deptno from emp\n"
+        + "full join dept using (deptno)\n"
+        + "join dept as d2 using (deptno)").ok();
+    sql("select deptno from emp\n"
+        + "natural join dept\n"
+        + "natural join dept as d2").ok();
+    sql("select deptno, count(*) from emp\n"
+        + "join dept using (deptno)\n"
+        + "join dept as d2 using (deptno)\n"
+        + "group by deptno\n"
+        + "order by deptno").ok();
+    // Inputs that wrap a table
+    sql("select deptno from emp\n"
+        + "join dept as d tablesample bernoulli(50) using (deptno)\n"
+        + "join unnest(array[10]) as u (deptno) using (deptno)").ok();
+  }
+
   @Test void testWhere() {
     sql("select * from emp where ^sal^")
         .fails("WHERE clause must be a condition");
