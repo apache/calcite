@@ -411,4 +411,38 @@ PLAN VARCHAR NOT NULL
 !type
 !set hep-rules original
 
+!set hep-rules "
++CoreRules.AGGREGATE_PROJECT_MERGE,
++CoreRules.AGGREGATE_REMOVE"
+
+select distinct count(*) filter (where col1) as s
+from (values
+    (true, 1),
+    (true, 2)) as t(col1, col2)
+group by col2;
++---+
+| S |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+select distinct count(ename) as s
+from (
+  select ename, empno
+  from emp
+  limit 1000) as t
+group by empno;
++---+
+| S |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+!set hep-rules original
+
 # End hep.iq
