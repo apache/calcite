@@ -10106,6 +10106,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // the field name when aliased. The field name "A" survives
     // star-expansion. The alias "D" still names the column and
     // qualifies the field.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
+        .type("RecordType(INTEGER NOT NULL A) NOT NULL");
     sql("select d, d.a\n"
         + "from unnest(cast(array[row(1)] as row(a integer) array)) as d")
         .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL A) NOT NULL");
