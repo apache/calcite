@@ -11500,4 +11500,16 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NULL($t2)], expr#4=[0:BIGINT], e
             EnumerableAggregate(group=[{0}])
               EnumerableValues(tuples=[[{ 1 }, { 1 }]])
 !plan
+
+# Test case for [CALCITE-7914] RelDecorrelator produces wrong results for
+# non-deterministic inputs
+# RAND() must be evaluated for each joined row.
+select count(*) from (values 1) as t(k),
+  lateral (select a.x from (values 1, 2) as a(x)
+    where a.x + t.k > 0) as s
+where rand() < 0.5;
+EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[+($t0, $t1)], expr#3=[0], expr#4=[>($t2, $t3)], expr#5=[RAND()], expr#6=[0.5E0:DOUBLE], expr#7=[<($t5, $t6)], expr#8=[AND($t4, $t7)], X=[$t0], $condition=[$t8])
+    EnumerableValues(tuples=[[{ 1 }, { 2 }]])
+!plan
 !}

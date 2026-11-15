@@ -77,10 +77,11 @@ public class FilterCorrelateRule
     final List<RexNode> rightFilters = new ArrayList<>();
 
     // Do not consider moving predicates that contain correlation variables
+    // or non-deterministic calls.
     final List<RexNode> ineligible = new ArrayList<>();
     final List<RexNode> eligible = new ArrayList<>();
     for (RexNode f : aboveFilters) {
-      if (RexUtil.containsCorrelation(f)) {
+      if (RexUtil.containsCorrelation(f) || !RexUtil.isDeterministic(f)) {
         ineligible.add(f);
       } else {
         eligible.add(f);
