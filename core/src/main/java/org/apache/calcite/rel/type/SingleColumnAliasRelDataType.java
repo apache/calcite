@@ -47,11 +47,34 @@ public class SingleColumnAliasRelDataType implements RelDataType {
   private final RelDataType original;
   private final RelDataType alias;
 
+  /**
+   * Creates a SingleColumnAliasRelDataType.
+   *
+   * @param original Row type whose fields are exposed; a struct with at
+   *     least one field
+   * @param alias Struct with exactly one field, named after the alias, whose
+   *     type is that of the first field of {@code original}
+   *
+   * @throws IllegalArgumentException if either type does not have the
+   *     required shape
+   */
   public SingleColumnAliasRelDataType(RelDataType original, RelDataType alias) {
-    checkArgument(original.isStruct() && original.getFieldCount() >= 1);
-    checkArgument(alias.isStruct() && alias.getFieldCount() == 1);
+    checkArgument(original.isStruct() && original.getFieldCount() >= 1,
+        "original must be a struct with at least one field: %s", original);
+    checkArgument(alias.isStruct() && alias.getFieldCount() == 1,
+        "alias must be a struct with exactly one field: %s", alias);
     this.original = original;
     this.alias = alias;
+  }
+
+  /** Returns the wrapped type whose fields are exposed. */
+  public RelDataType getOriginal() {
+    return original;
+  }
+
+  /** Returns the single-field type that supplies the extra alias name. */
+  public RelDataType getAlias() {
+    return alias;
   }
 
   @Override public boolean isStruct() {

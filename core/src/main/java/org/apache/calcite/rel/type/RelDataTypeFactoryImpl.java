@@ -390,7 +390,13 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final boolean nullable) {
     requireNonNull(type, "type");
     RelDataType newType;
-    if (type.isNullable() == nullable) {
+    if (type instanceof SingleColumnAliasRelDataType) {
+      // Preserve the alias wrapper, applying nullability to both wrapped types.
+      final SingleColumnAliasRelDataType aliasType = (SingleColumnAliasRelDataType) type;
+      return new SingleColumnAliasRelDataType(
+          createTypeWithNullability(aliasType.getOriginal(), nullable),
+          createTypeWithNullability(aliasType.getAlias(), nullable));
+    } else if (type.isNullable() == nullable) {
       newType = type;
     } else if (type instanceof RelRecordType) {
       // REVIEW: angel 18-Aug-2005 dtbug 336 workaround

@@ -10158,6 +10158,58 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  with ordinality as ordinality")
         .type("RecordType(INTEGER NOT NULL ORDINALITY) NOT NULL");
 
+    // On the null-generating side of an outer join, the alias and the field
+    // are nullable.
+    sql("select d, d.a\n"
+        + "from dept\n"
+        + "left join unnest(cast(array[row(1)] as row(a integer) array)) as d on true")
+        .type("RecordType(INTEGER D, INTEGER A) NOT NULL");
+    sql("select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "right join dept on true")
+        .type("RecordType(INTEGER D, INTEGER A) NOT NULL");
+    sql("select d, d.a\n"
+        + "from dept\n"
+        + "left join unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d on true")
+        .type("RecordType(INTEGER D, INTEGER A) NOT NULL");
+    sql("select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d\n"
+        + "right join dept on true")
+        .type("RecordType(INTEGER D, INTEGER A) NOT NULL");
+
+    // The element's field name is generated (EXPR$0), not declared, so the
+    // alias names the column, as it does for any other single-column UNNEST.
+    sql("select * from unnest(array[row(1)]) as d")
+        .type("RecordType(INTEGER NOT NULL D) NOT NULL");
+    sql("select * from unnest(array[row(1)]) with ordinality as d")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL ORDINALITY) NOT NULL");
+    sql("select *\n"
+        + "from unnest(\n"
+        + "  (select array[row(1)] from (values (1)))) as d")
+        .type("RecordType(INTEGER NOT NULL D) NOT NULL");
+    // Two such UNNESTs keep distinct column names, so NATURAL JOIN has no
+    // common column and is a cross join.
+    sql("select * from unnest(array[row(1)]) as a\n"
+        + "natural join unnest(array[row(2)]) as b")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL B) NOT NULL");
+
+    // Edge case: generated names are recognized by their "EXPR$" prefix, so a
+    // declared field whose name starts with "EXPR$" is treated as generated
+    // and the alias names the column.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(\"EXPR$x\" integer) array)) as d")
+        .type("RecordType(INTEGER NOT NULL D) NOT NULL");
+
+    // Workaround: a column list renames the column, so 'AS d (d)' makes the
+    // alias the column name again.
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d (d)")
+        .type("RecordType(INTEGER NOT NULL D) NOT NULL");
+    sql("select *\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d (d, o)")
+        .type("RecordType(INTEGER NOT NULL D, INTEGER NOT NULL O) NOT NULL");
+
     // UNNEST MULTISET gets the same treatment.
     sql("select *\n"
         + "from unnest(cast(multiset[row(1)] as row(a integer) multiset)) as d")

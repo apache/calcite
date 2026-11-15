@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUnnestOperator;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
@@ -107,22 +108,16 @@ public class AliasNamespace extends AbstractNamespace {
       final boolean keepsElementFieldName = node.getKind() == SqlKind.UNNEST
           && keepsElementFieldName((SqlCall) node);
       if (rowType.getFieldCount() == 1) {
-        final RelDataType singleColumnAlias = validator.getTypeFactory().builder()
-            .kind(rowType.getStructKind())
-            .add(((SqlIdentifier) operands.get(1)).getSimple(),
-                rowType.getFieldList().get(0).getType())
-            .build();
+        final RelDataType dataColumnAlias =
+            aliasDataColumn(rowType, (SqlIdentifier) operands.get(1));
         aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE || keepsElementFieldName
-            ? new SingleColumnAliasRelDataType(rowType, singleColumnAlias) : singleColumnAlias;
+            ? new SingleColumnAliasRelDataType(rowType, dataColumnAlias) : dataColumnAlias;
       } else if (node.getKind() == SqlKind.UNNEST && rowType.getFieldCount() == 2
           && ((SqlUnnestOperator) ((SqlBasicCall) node).getOperator()).withOrdinality) {
         // WITH ORDINALITY: data column, ordinality column. The data
         // column is named after the alias, same as the single-column case.
-        final RelDataType dataColumnAlias = validator.getTypeFactory().builder()
-            .kind(rowType.getStructKind())
-            .add(((SqlIdentifier) operands.get(1)).getSimple(),
-                rowType.getFieldList().get(0).getType())
-            .build();
+        final RelDataType dataColumnAlias =
+            aliasDataColumn(rowType, (SqlIdentifier) operands.get(1));
         aliasedType = keepsElementFieldName
             ? new SingleColumnAliasRelDataType(rowType, dataColumnAlias)
             : validator.getTypeFactory().builder()
@@ -169,6 +164,15 @@ public class AliasNamespace extends AbstractNamespace {
     }
   }
 
+  /** Returns a single-field struct holding the first column of
+   * {@code rowType}, named after the alias. */
+  private RelDataType aliasDataColumn(RelDataType rowType, SqlIdentifier alias) {
+    return validator.getTypeFactory().builder()
+        .kind(rowType.getStructKind())
+        .add(alias.getSimple(), rowType.getFieldList().get(0).getType())
+        .build();
+  }
+
   /**
    * Returns whether UNNEST expands the collection's ROW element into one
    * column per field. Such a column keeps its field name, and the alias
@@ -181,7 +185,16 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType componentType = operandType.getComponentType();
     return componentType != null
         && SqlUnnestOperator.expandsStructIntoColumns(componentType,
-            validator.config().conformance().allowAliasUnnestItems());
+            validator.config().conformance().allowAliasUnnestItems())
+        && !hasGeneratedFirstFieldName(componentType);
+  }
+
+  /** Returns whether the first field of a ROW element has a generated name,
+   * such as {@code EXPR$0} for {@code ROW(1)}. The alias then names the
+   * column, because a generated name is not worth keeping. */
+  private static boolean hasGeneratedFirstFieldName(RelDataType componentType) {
+    final List<RelDataTypeField> fields = componentType.getFieldList();
+    return !fields.isEmpty() && SqlUtil.isGeneratedAlias(fields.get(0).getName());
   }
 
   private static String getString(RelDataType rowType) {
