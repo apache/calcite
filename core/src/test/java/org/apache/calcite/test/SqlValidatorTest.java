@@ -65,6 +65,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
@@ -85,6 +86,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -5070,6 +5073,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // various kinds of measure expressions
     sql("select deptno, empno + 1 as measure e1 from emp").ok();
     sql("select *, empno + 1 as measure e1 from emp").ok();
+    // Guards against validating measure expressions in the SELECT scope when expanding ORDER BY,
+    // which would fail because measures can reference aliases (e.g. d1) defined in SELECT.
+    sql("select deptno + 1 as d1, d1 + 2 as measure d3\n"
+        + "from emp order by d3").ok();
 
     // an aggregate function in a measure does not make it an aggregate query
     sql("select *, sum(empno) as measure e1 from emp").ok();
@@ -5536,6 +5543,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Table does not exist
     sql("select ^sales.bad^.deptno from sales.dept as d1, sales.dept")
         .fails("Table 'SALES.BAD' not found");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7830">[CALCITE-7830]
+   *  UPDATE fails with IndexOutOfBoundsException when a SET value's
+   *  type doesn't match the column</a>. */
+  @Test void testUpdateTypeMismatchGetNthExprRepro() {
+    sql("UPDATE emp SET deptno = ^true^")
+        .fails("Cannot assign to target field 'DEPTNO' of type INTEGER "
+            + "from source field 'EXPR\\$0' of type BOOLEAN");
   }
 
   /** Test case for
@@ -6254,6 +6271,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp natural join dept")
         .withValidatorIdentifierExpansion(false)
         .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7880">[CALCITE-7880]
+   * Unqualified common column of JOIN USING has the left column's type,
+   * so arithmetic on it can overflow</a>.
+   *
+   * <p>A common column has the same widened type with and without
+   * identifier expansion enabled. */
+  @Test void testJoinUsingMixedNumericCommonColumn() {
+    final String from = " from (values (cast(2147483647 as integer))) as l(k)"
+        + " join (values (cast(2147483647 as bigint))) as r(k) using (k)";
+    sql("select k" + from).columnType("BIGINT NOT NULL");
+    sql("select k" + from)
+        .withValidatorIdentifierExpansion(false)
+        .columnType("BIGINT NOT NULL");
+    sql("select k + 1" + from)
+        .withValidatorIdentifierExpansion(true)
+        .columnType("BIGINT NOT NULL");
   }
 
   /** Tests that an unqualified common column in ORDER BY is valid for
@@ -8302,6 +8338,84 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  ()").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6537">[CALCITE-6537]
+   * Add syntax to allow non-aggregated rows to be used in GROUPING SETS</a>. */
+  @Test void testGroupingSetsStarConformance() {
+    // Under DEFAULT conformance, "*" is not a valid grouping element.
+    sql("select deptno, ename, sum(sal)\n"
+        + "from emp\n"
+        + "group by grouping sets ((deptno), (^*^))")
+        .fails("(?s).*Encountered.*\\*.*");
+
+    // Under LENIENT conformance, "*" expands to a ROW of every input column,
+    // so the non-aggregated SELECT columns are grouped in the detail set.
+    sql("select deptno, ename, sum(sal)\n"
+        + "from emp\n"
+        + "group by grouping sets ((deptno), (*))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // ROLLUP and CUBE accept "*" too.
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by rollup(deptno, *)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by cube(deptno, *)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /** More tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6537">[CALCITE-6537]
+   * Add syntax to allow non-aggregated rows to be used in GROUPING SETS</a>.
+   *
+   * <p>Under LENIENT conformance, "*" is allowed as a complete grouping
+   * set, as an element of a grouping set, and as an argument of ROLLUP or
+   * CUBE, including grouping constructs nested within GROUPING SETS. It may
+   * not appear at the top level of GROUP BY, nor inside other expressions.
+   */
+  @Test void testGroupingSetsStarNested() {
+    // "*" as a complete grouping set
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets (*)")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" as an element of a grouping set
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ((deptno, *))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" as an argument of ROLLUP nested within GROUPING SETS
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ((deptno), rollup(ename, *))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" inside a tuple that is a ROLLUP argument
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by rollup((deptno, *))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" as a grouping set within GROUP BY DISTINCT
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by distinct grouping sets ((deptno), (*))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+
+    // "*" at the top level of GROUP BY is not allowed
+    sql("select deptno, ename, sum(sal) from emp\n"
+        + "group by ^*^")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Encountered.*\\*.*");
+
+    // "*" inside another expression is not expanded; validation fails
+    sql("select sum(sal) from emp\n"
+        + "group by grouping sets (abs(^*^))")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Unknown identifier '\\*'.*");
+    sql("select sum(sal) from emp\n"
+        + "group by grouping sets (deptno + ^*^)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Unknown identifier '\\*'.*");
+  }
+
   @Test void testRollup() {
     // DEPTNO is not null in database, but rollup introduces nulls
     sql("select deptno, count(*) as c, sum(sal) as s\n"
@@ -8479,6 +8593,72 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // causes us to flag the intermediate level
     sql("select sum(^max(min(empno))^) from emp")
         .fails(ERR_NESTED_AGG);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7744">[CALCITE-7744]</a>
+   * ORDER BY agg(col) on a query where an alias shadows col produces an invalid
+   * plan containing an aggregate call in a Project. */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "^max(sal)^",
+      "^max(sal)^ desc",
+      "sal + ^max(sal)^",
+      "^sum(sal + 1)^",
+      "^max(1 + sal)^",
+      "^max(sal + sal)^",
+      "^max(\"SAL\")^ nulls last"
+  })
+  void testOrderByAggregateAliasShadowingRejected(String orderBy) {
+    final String error = "Aggregate expressions cannot be nested: 'SAL' is a "
+        + "SELECT-list alias for an aggregate expression";
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by " + orderBy)
+        .fails(error);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "^max(sal)^",
+      "^max(2 * sal)^",
+      "case when true then ^sum(sal + 1)^ else 0 end"
+  })
+  void testOrderByAliasRejectsAggregateExpressions(String orderBy) {
+    sql("select max(sal) + 1 as sal, deptno, job from emp\n"
+        + "group by deptno, job order by " + orderBy)
+        .fails("Aggregate expressions cannot be nested: 'SAL' is a "
+            + "SELECT-list alias for an aggregate expression");
+  }
+
+  @Test void testOrderByAggregateAliasFilterRejected() {
+    sql("select max(sal) as sal, deptno, job from emp\n"
+        + "group by deptno, job order by count(*) filter (where ^sal > 1000^)")
+        .fails("FILTER must not contain aggregate expression");
+    sql("select max(sal) as m, deptno, job from emp\n"
+        + "group by deptno, job order by max(sal)").ok();
+  }
+
+  @Test void testOrderByAggregateAliasWithinDistinctRejected() {
+    sql("select max(sal) as m, deptno from emp group by deptno\n"
+        + "order by ^sum(sal)^ within distinct (m)")
+        .fails("WITHIN DISTINCT must not contain aggregate expression");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "select deptno in (select deptno from dept) as b from emp order by b",
+      "select exists (select 1 from dept d where d.deptno = e.deptno) as b "
+          + "from emp e order by b",
+      "select sal > all (select sal from emp) as b from emp order by b",
+      "select sal + ? as x from emp order by x + 1",
+      "select current_date as d, empno from emp order by d",
+      "select deptno + 1 as d1, d1 + 2 as measure d3 from emp order by d3 + 1",
+      "select (select min(deptno) from dept) as b from emp order by b",
+      "select sal + ? as x from emp order by 1 desc",
+      "select current_timestamp as d, empno from emp order by 1",
+      "select deptno + 1 as d1, d1 + 2 as measure d3 from emp order by d3"
+  })
+  void testOrderByAliasPreservesValidatedExpressions(String query) {
+    sql(query).ok();
   }
 
   @Test void testNestedAggOver() {
@@ -10352,6 +10532,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT ARG_MAX('b', 5) FROM emp").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7858">[CALCITE-7858]
+   * ARG_MIN, ARG_MAX, MIN_BY and MAX_BY should reject a non-comparable
+   * key</a>.
+   *
+   * <p>The type of column {@code HOME_ADDRESS} is a structured type whose
+   * comparability is {@code NONE}. */
+  @Test void testArgMinMaxNonComparableKey() {
+    final String expected = "Cannot apply '%s' to arguments of type "
+        + "'%s\\(<INTEGER>, <>\\)'\\. "
+        + "Supported form\\(s\\): %s\\(<ANY>, <COMPARABLE_TYPE>\\)";
+    sql("select ^arg_min(empno, home_address)^ from emp_address")
+        .fails(String.format(Locale.ROOT, expected, "ARG_MIN", "ARG_MIN", "ARG_MIN"));
+    sql("select ^arg_max(empno, home_address)^ from emp_address")
+        .fails(String.format(Locale.ROOT, expected, "ARG_MAX", "ARG_MAX", "ARG_MAX"));
+    sql("select ^max_by(empno, home_address)^ from emp_address")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .fails(String.format(Locale.ROOT, expected, "MAX_BY", "MAX_BY", "MAX_BY"));
+    sql("select ^min_by(empno, home_address)^ from emp_address")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .fails(String.format(Locale.ROOT, expected, "MIN_BY", "MIN_BY", "MIN_BY"));
+
+    // The value (the first argument) need not be comparable
+    sql("select arg_min(home_address, empno) from emp_address").ok();
+    sql("select max_by(home_address, empno) from emp_address")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .ok();
+  }
+
   @Test void testModeFunction() {
     sql("select MODE(sal) from emp").ok();
     sql("select MODE(sal) over (order by empno) from emp").ok();
@@ -10546,6 +10755,260 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'NONEXISTENT' not found");
   }
 
+  @Test void testExplicitTableWithOrderBy() {
+    final String empRecordType =
+        "RecordType(INTEGER NOT NULL EMPNO,"
+            + " VARCHAR(20) NOT NULL ENAME,"
+            + " VARCHAR(10) NOT NULL JOB,"
+            + " INTEGER MGR,"
+            + " TIMESTAMP(0) NOT NULL HIREDATE,"
+            + " INTEGER NOT NULL SAL,"
+            + " INTEGER NOT NULL COMM,"
+            + " INTEGER NOT NULL DEPTNO,"
+            + " BOOLEAN NOT NULL SLACKER) NOT NULL";
+
+    sql("table emp order by empno")
+        .type(empRecordType)
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMP`.`EMPNO`");
+
+    sql("table emp order by empno desc")
+        .type(empRecordType)
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMP`.`EMPNO` DESC");
+
+    sql("table emp order by empno offset 2 rows fetch next 5 rows only")
+        .type(empRecordType)
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "ORDER BY `EMP`.`EMPNO`\n"
+            + "OFFSET 2 ROWS\n"
+            + "FETCH NEXT 5 ROWS ONLY");
+
+    sql("(select empno from emp fetch next 5 rows only) order by empno")
+        .type("RecordType(INTEGER NOT NULL EMPNO) NOT NULL")
+        .rewritesTo("SELECT *\n"
+            + "FROM (SELECT `EMPNO`\n"
+            + "FROM `EMP`\n"
+            + "FETCH NEXT 5 ROWS ONLY)\n"
+            + "ORDER BY `EXPR$0`.`EMPNO`");
+  }
+
+  /** Tests that a pipe operator's expressions are checked for rolled-up
+   * columns, as the clauses of the {@code SELECT} they stand for are. */
+  @Test void testPipeRolledUpColumn() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // |> WHERE rejects a rolled-up column of the enclosing query as a
+    // standard sub-query does.
+    sql("select empno from emp_r as e\n"
+        + "where exists (from dept |> where deptno = ^e.slackingmin^)")
+        .withConformance(lenient)
+        .fails("Rolled up column 'SLACKINGMIN' is not allowed in EQUALS");
+    // A column that is not rolled up is fine.
+    sql("select empno from emp_r as e\n"
+        + "where exists (from dept |> where deptno = e.deptno)")
+        .withConformance(lenient)
+        .ok();
+  }
+
+  /** Tests that a pipeline is checked for stream/relation modality. */
+  @Test void testPipeModality() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // "FROM orders" is "SELECT * FROM orders", which cannot read a stream.
+    sql("from ^orders^")
+        .withConformance(lenient)
+        .fails("Cannot convert stream 'ORDERS' to relation");
+    // A pipeline read as a relation cannot read a stream.
+    sql("select * from (select stream * from orders\n"
+        + "^|> where productid = 1^)")
+        .withConformance(lenient)
+        .fails("Cannot convert stream 'EXPR\\$0' to relation");
+  }
+
+  @Test void testPipeSyntaxType() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("from emp")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+    sql("from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+    sql("select ename, sal from emp |> where sal > 100")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, INTEGER NOT NULL SAL)"
+            + " NOT NULL");
+  }
+
+  @Test void testPipeSyntaxScope() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // |> WHERE cannot see table aliases in SELECT.
+    sql("select * from emp as e |> where ^e^.deptno = 10")
+        .withConformance(lenient)
+        .fails("Table 'E' not found");
+    // Table aliases in FROM stay visible through a chain of |> WHERE.
+    sql("from emp as e |> where e.deptno = 10 |> where e.sal > 1000")
+        .withConformance(lenient)
+        .ok();
+    // |> WHERE can see both CTEs and table aliases in FROM.
+    sql("with e as (select * from emp)\n"
+        + "from e as x |> where x.deptno in (select deptno from e)")
+        .withConformance(lenient)
+        .ok();
+    sql("with e as (select * from emp)\n"
+        + "select * from e order by empno |> where deptno in (select deptno from e)")
+        .withConformance(lenient)
+        .ok();
+    // |> WHERE cannot see CTEs of a WITH in parentheses.
+    sql("(with e as (select * from emp) select * from emp)\n"
+        + "|> where deptno in (select deptno from ^e^)")
+        .withConformance(lenient)
+        .fails("Object 'E' not found");
+    sql("(with e as (select * from emp) select * from emp) order by empno\n"
+        + "|> where deptno in (select deptno from ^e^)")
+        .withConformance(lenient)
+        .fails("Object 'E' not found");
+    sql("(with dept as (select 1 as x from emp) select * from emp)\n"
+        + "|> where deptno in (select dept.deptno from dept)")
+        .withConformance(lenient)
+        .ok();
+  }
+
+  /** Tests a pipe query used as an expression sub-query: the operand of
+   * {@code EXISTS} or {@code IN}, or a scalar sub-query. Such a query is
+   * validated in a scope of its own, so nothing that walks the enclosing
+   * query's expressions may descend into it. */
+  @Test void testPipeQueryAsSubQuery() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select ename, (select name from dept |> where deptno = 10) as dn\n"
+        + "from emp")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) DN)"
+            + " NOT NULL");
+    // An unknown column inside the sub-query is still reported, and the
+    // sub-query's columns are not visible outside it.
+    sql("select * from emp\n"
+        + "where exists (from dept |> where ^nonexistent^ = 1)")
+        .withConformance(lenient)
+        .fails("Column 'NONEXISTENT' not found in any table");
+    sql("select * from emp where exists (from dept) and ^name^ = 'x'")
+        .withConformance(lenient)
+        .fails("Column 'NAME' not found in any table");
+    // The usual arity rules apply; DEPT has two columns.
+    sql("select * from emp where ^deptno in (from dept^)")
+        .withConformance(lenient)
+        .fails("Values passed to IN operator must have compatible types");
+    sql("select ^(from dept |> where deptno = 10)^ from emp")
+        .withConformance(lenient)
+        .fails("Cannot apply '\\$SCALAR_QUERY' to arguments of type.*");
+    // A set operation whose first query is in pipe syntax reports a type
+    // mismatch at that query, which has no select list to point into.
+    sql("^(select slacker from emp |> where slacker)^\n"
+        + "union all select hiredate from emp")
+        .withConformance(lenient)
+        .fails("Type mismatch in column 1 of UNION ALL");
+  }
+
+  /** Tests that implicit type coercion applies to a query in pipe syntax as
+   * it does to the equivalent SELECT. */
+  @Test void testPipeQueryTypeCoercion() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("(from dept) union all select name, deptno from dept")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR NOT NULL DEPTNO,"
+            + " VARCHAR NOT NULL NAME) NOT NULL");
+    sql("select 'a' as x union all (select deptno from dept |> where true)")
+        .withConformance(lenient)
+        .type("RecordType(VARCHAR NOT NULL X) NOT NULL");
+  }
+
+  /** Tests a query in pipe syntax as the operand of the {@code ARRAY} and
+   * {@code MAP} query constructors. */
+  @Test void testPipeQueryInArrayAndMap() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("select array(select ename from emp |> where deptno = 10)\n"
+        + "from dept")
+        .withConformance(lenient)
+        .columnType("VARCHAR(20) NOT NULL ARRAY NOT NULL");
+    sql("select map(from dept |> where deptno = 10) from emp")
+        .withConformance(lenient)
+        .columnType("(INTEGER NOT NULL, VARCHAR(10) NOT NULL) MAP NOT NULL");
+  }
+
+  @Test void testPipeQueryAsInsertSource() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // The validator looks up the scope of an INSERT source that is not a
+    // SELECT, so a pipe query must have one.
+    sql("insert into emp from emp |> where deptno = 10")
+        .withConformance(lenient)
+        .ok();
+    sql("insert into emp (from emp |> where deptno = 10)")
+        .withConformance(lenient)
+        .ok();
+  }
+
+  @Test void testPipeWhereBaseQueries() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("table emp |> where deptno = 10")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+    // The validator rewrites the sub-query's ORDER BY into a different node,
+    // which replaces the FROM query's operand.
+    sql("from (select * from emp order by empno)")
+        .withConformance(lenient)
+        .type(EMP_RECORD_TYPE);
+  }
+
+  @Test void testPipeValidationErrors() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    sql("from ^nonexistent^ |> where x = 1")
+        .withConformance(lenient)
+        .fails("Object 'NONEXISTENT' not found");
+    sql("from emp |> where deptno = 10 |> where ^nonexistent^ = 1")
+        .withConformance(lenient)
+        .fails("Column 'NONEXISTENT' not found in any table");
+    sql("from emp |> where ^empno^")
+        .withConformance(lenient)
+        .fails("WHERE clause must be a condition");
+    sql("from emp |> where ^count(*)^ > 1")
+        .withConformance(lenient)
+        .fails("Aggregate expression is illegal in WHERE clause");
+    sql("from emp |> where ^rank() over (order by sal)^ = 1")
+        .withConformance(lenient)
+        .fails("Windowed aggregate expression is illegal in WHERE clause");
+    sql("from emp, dept |> where ^deptno^ = 10")
+        .withConformance(lenient)
+        .fails("Column 'DEPTNO' is ambiguous");
+    sql("select ename from emp |> where ^empno^ > 1")
+        .withConformance(lenient)
+        .fails("Column 'EMPNO' not found in any table");
+    sql("from emp as e |> where e.^nonexistent^ = 1")
+        .withConformance(lenient)
+        .fails("Column 'NONEXISTENT' not found in table 'E'");
+  }
+
+  /** Tests pipe syntax under a conformance level that requires a
+   * {@code FROM} clause, which an operator's surrogate SELECT has:
+   * a {@link org.apache.calcite.sql.SqlPipeInput}. */
+  @Test void testPipeUnderFromRequiredConformance() {
+    final SqlConformance fromRequired =
+        new SqlDelegatingConformance(SqlConformanceEnum.STRICT_2003) {
+          @Override public boolean isPipeSyntaxAllowed() {
+            return true;
+          }
+        };
+    assertThat(fromRequired.isFromRequired(), is(true));
+    sql("from dept |> where deptno = 10")
+        .withConformance(fromRequired)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME)"
+            + " NOT NULL");
+    // A SELECT that the user writes without a FROM clause is still rejected.
+    sql("^select 1^")
+        .withConformance(fromRequired)
+        .fails("SELECT must have a FROM clause");
+  }
+
   @Test void testCollectionTable() {
     sql("select * from table(ramp(3))")
         .type("RecordType(INTEGER NOT NULL I) NOT NULL");
@@ -10665,9 +11128,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6266">[CALCITE-6266]
    * SqlValidatorException with LATERAL TABLE and JOIN</a>. */
   @Test void testCollectionTableWithLateral3() {
-    // The cause of [CALCITE-6266] was that CROSS JOIN had higher precedence
-    // than ",", and therefore "table(ramp(deptno)" was being associated with
-    // "values".
+    // CROSS JOIN binds tighter than ",", so "table(ramp(deptno))" is joined
+    // with "values"; LATERAL still sees "dept", which is before the comma.
     sql("select *\n"
         + "from dept,\n"
         + "  lateral table(ramp(deptno))\n"
@@ -10691,6 +11153,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
         + "  ^emp^")
         .fails("Duplicate relation name 'EMP' in FROM clause");
+    // LATERAL on the right of a join sees the items on the left of the join
+    // and the items before the comma
+    sql("select *\n"
+        + "from dept,\n"
+        + "  emp cross join lateral (select * from bonus\n"
+        + "    where bonus.ename = emp.ename and bonus.job = dept.name)")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7911">[CALCITE-7911]
+   * FROM a, b JOIN c is parsed incorrectly</a>. */
+  @Test void testJoinOnAfterComma() {
+    // "emp, dept join bonus on c" means "emp, (dept join bonus on c)",
+    // so c sees dept and bonus, but not emp
+    sql("select *\n"
+        + "from emp, dept join bonus on dept.name = bonus.job")
+        .ok();
+    sql("select *\n"
+        + "from emp, dept join bonus on ^emp^.ename = bonus.ename")
+        .fails("Table 'EMP' not found");
   }
 
   /** Test case for
@@ -11362,6 +11845,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("select dpt.skill.desc from dept_nested as dpt")
         .assertFieldOrigin(is("{CATALOG.SALES.DEPT_NESTED.SKILL.DESC}"));
+  }
+
+  /** Tests that a query written in pipe syntax reports the origins of its
+   * columns, as the {@code SELECT} it stands for does. */
+  @Test void testPipeFieldOrigin() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    // "FROM dept" is "SELECT * FROM dept", and has its origins.
+    sql("from dept")
+        .withConformance(lenient)
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.DEPT.DEPTNO, CATALOG.SALES.DEPT.NAME}"));
+    // |> WHERE keeps the origins of its input's columns.
+    sql("from dept |> where deptno = 10")
+        .withConformance(lenient)
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.DEPT.DEPTNO, CATALOG.SALES.DEPT.NAME}"));
   }
 
   @Test void testBrackets() {
@@ -14830,6 +15329,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of must-filter columns when a table is aliased with a
+   * column list, {@code AS t (c1, ..., cN)}, which is implemented by
+   * {@link org.apache.calcite.sql.validate.AliasNamespace}. The renaming is
+   * positional, so filter requirements must be preserved ordinal for
+   * ordinal.
+   */
+  @Test void testMustFilterColumnsWithAliasColumnList() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Aliasing with a column list must not drop the must-filter fields
+    // ("a" renames EMPNO, "c" renames JOB)
+    fixture.withSql("^select * from emp as t(a, b, c, d, e, f, g, h, i)^")
+        .fails(missingFilters("A", "C"));
+    fixture.withSql("^select a, c from emp as t(a, b, c, d, e, f, g, h, i)^")
+        .fails(missingFilters("A", "C"));
+
+    // Filters on the renamed columns are filters on the underlying must-filter columns
+    fixture.withSql("select * from emp as t(a, b, c, d, e, f, g, h, i)\n"
+            + "where a = 1 and c = 'doctor'")
+        .ok();
+
+    // "b" renames the bypass field ENAME; filtering on it defuses the requirement
+    fixture.withSql("select * from emp as t(a, b, c, d, e, f, g, h, i)\n"
+            + "where b = '1'")
+        .ok();
+
+    // An enclosing query can still defuse the propagated requirement
+    fixture.withSql("select * from (\n"
+            + "  select * from emp as t(a, b, c, d, e, f, g, h, i))\n"
+            + "where a = 1 and c = 'doctor'")
+        .ok();
+  }
+
+  /**
    * Tests validation of must-filter columns.
    *
    * <p>If a table that implements
@@ -15040,6 +15576,95 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  sum(sal) over (order by mgr)\n"
             + "from emp^")
         .fails(missingFilters("JOB"));
+  }
+
+  /**
+   * Tests validation of must-filter columns in set operations.
+   */
+  @Test void testMustFilterColumnsInSetOp() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    final List<String> ops = Arrays.asList("union", "union all", "intersect", "except");
+    for (String op : ops) {
+      // Wrapping a query in a set operation must not drop the operands'
+      // must-filter requirements
+      fixture.withSql("^select empno, job from emp\n"
+              + op + "\n"
+              + "select empno, job from emp^")
+          .fails(missingFilters("EMPNO", "JOB"));
+
+      // Valid if every operand applies the filters itself
+      fixture.withSql("select empno, job from emp\n"
+              + "where empno = 1 and job = 'doctor'\n"
+              + op + "\n"
+              + "select empno, job from emp\n"
+              + "where empno = 2 and job = 'undertaker'")
+          .ok();
+
+      // Valid because an enclosing query can still defuse the propagated
+      // requirement by filtering on the set operation's columns
+      fixture.withSql("select * from (\n"
+              + "select empno, job from emp\n"
+              + op + "\n"
+              + "select empno, job from emp)\n"
+              + "where empno = 1 and job = 'doctor'")
+          .ok();
+
+      // Valid because ENAME is a bypass field of EMP; filtering on it defuses
+      // the requirement inside each operand
+      fixture.withSql("select empno, job from emp where ename = '1'\n"
+              + op + "\n"
+              + "select empno, job from emp where ename = '2'")
+          .ok();
+
+      // Not valid because bypass field ENAME is not filtered in all operands
+      fixture.withSql("^select empno, job from emp where ename = '1'\n"
+              + op + "\n"
+              + "select empno, job from emp^")
+          .fails(missingFilters("EMPNO", "JOB"));
+    }
+  }
+
+  /**
+   * Tests validation of must-filter columns in set operations where one of
+   * the operands has no must-filter requirements. Such an operand must not
+   * prevent the other operands' remnant requirements from being defused by
+   * filtering a bypass field on the set operation's output.
+   */
+  @Test void testMustFilterColumnsInSetOpWithUnrestrictedOperand() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    final List<String> ops = Arrays.asList("union", "union all", "intersect", "except");
+    for (String op : ops) {
+      // Not valid because the remnant requirement on EMP.JOB is not defused
+      fixture.withSql("^select * from (\n"
+              + "select ename from emp where empno = 1\n"
+              + op + "\n"
+              + "select name from bonus) as x^")
+          .fails(missingFilters("JOB"));
+
+      // Valid because ENAME is a bypass field of the only operand that has
+      // requirements (BONUS has none), so filtering on it defuses the remnant
+      // requirement on EMP.JOB
+      fixture.withSql("select * from (\n"
+              + "select ename from emp where empno = 1\n"
+              + op + "\n"
+              + "select name from bonus) as x\n"
+              + "where x.ename = 'doctor'")
+          .ok();
+      fixture.withSql("select * from (\n"
+              + "select name from bonus\n"
+              + op + "\n"
+              + "select ename from emp where empno = 1) as x\n"
+              + "where x.name = 'doctor'")
+          .ok();
+    }
   }
 
   /**
@@ -15395,11 +16020,394 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(missingFilters("JOB"));
   }
 
+  /**
+   * Tests that must-filter columns cannot be bypassed by wrapping the
+   * protected table in a construct that transforms its rows (PIVOT,
+   * UNPIVOT, MATCH_RECOGNIZE or a table function) for which the filter
+   * requirement cannot be re-expressed in terms of the output columns.
+   * Validation fails closed: the filters must be applied within the input
+   * query itself.
+   */
+  @Test void testMustFilterColumnsFailClosedForRowTransforms() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // PIVOT
+    fixture.withSql("select * from ^emp^\n"
+            + "pivot (sum(sal) as ss for job in ('CLERK' as c))")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "pivot (sum(sal) as ss for deptno in (10 as d10))")
+        .ok();
+
+    // UNPIVOT
+    fixture.withSql("select * from ^emp^\n"
+            + "unpivot (remuneration\n"
+            + "  for remuneration_type in (comm as 'commission', sal as 'salary'))")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "unpivot (remuneration\n"
+            + "  for remuneration_type in (comm as 'commission', sal as 'salary'))")
+        .ok();
+
+    // MATCH_RECOGNIZE
+    fixture.withSql("select * from ^emp^\n"
+            + "match_recognize (\n"
+            + "  measures A.empno as e\n"
+            + "  pattern (A)\n"
+            + "  define A as A.empno > 0\n"
+            + ") as t")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "match_recognize (\n"
+            + "  measures A.empno as e\n"
+            + "  pattern (A)\n"
+            + "  define A as A.empno > 0\n"
+            + ") as t")
+        .ok();
+
+    // Table functions pass their input tables' rows through (e.g. TUMBLE)
+    fixture.withSql("select * from table(\n"
+            + "^tumble(table emp, descriptor(hiredate), interval '2' hour)^)")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from table(\n"
+            + "tumble((select * from emp where empno = 1 and job = 'doctor'),\n"
+            + "  descriptor(hiredate), interval '2' hour))")
+        .ok();
+  }
+
+  /**
+   * Tests that a must-filter obligation carried out of a subquery (a
+   * "remnant" obligation) can only be defused by filtering a bypass field of
+   * the table instance that produced it, not by filtering a bypass field of
+   * another instance of the same table that happens to carry the same alias.
+   */
+  @Test void testMustFilterRemnantMatchesTableInstance() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // The subquery leaves a remnant obligation on EMP.JOB (JOB is neither
+    // filtered nor selected, but the bypass field ENAME is selected);
+    // filtering ENAME on a second join instance of EMP, aliased "EMP" just
+    // like the table inside the subquery, must not defuse the subquery's
+    // remnant obligation: the filter constrains none of the subquery's rows
+    fixture.withSql("^select x.ename\n"
+            + "from (select ename from emp where empno = 1) as x\n"
+            + "join emp as emp on true\n"
+            + "where emp.ename = 'doctor'^")
+        .fails(missingFilters("JOB"));
+
+    // Filtering the bypass field of the subquery itself defuses the remnant
+    fixture.withSql("select x.ename\n"
+            + "from (select ename from emp where empno = 1) as x\n"
+            + "where x.ename = 'doctor'")
+        .ok();
+
+    // A query whose only outstanding obligation is a remnant imported from a
+    // subquery must propagate it to the top-level check
+    fixture.withSql("^select * from (\n"
+            + "  select sal from (\n"
+            + "    select ename, sal from emp where empno = 1))^")
+        .fails(missingFilters("JOB"));
+  }
+
+  /**
+   * Tests that, when a subquery joins several tables that each leave a
+   * remnant must-filter obligation, filtering the bypass field of one table
+   * defuses only that table's remnant obligation, not the other tables'.
+   */
+  @Test void testMustFilterRemnantMatchesSourceTable() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // The subquery leaves a remnant obligation on EMP.JOB (defusable via the
+    // bypass field ENAME) and another on DEPT.NAME (defusable via the bypass
+    // field DEPTNO). Filtering ENAME must not defuse DEPT.NAME.
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.ename = 'doctor'^")
+        .fails(missingFilters("NAME"));
+
+    // Likewise, filtering DEPTNO must not defuse EMP.JOB
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.deptno = 10^")
+        .fails(missingFilters("JOB"));
+
+    // Valid because both bypass fields are filtered
+    fixture.withSql("select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.ename = 'doctor' and x.deptno = 10")
+        .ok();
+
+    // DEPT.NAME is still a must-filter field of the subquery; filtering the
+    // bypass field ENAME of EMP must not defuse it
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.name from emp as e, dept as d\n"
+            + "  where e.empno = 1 and e.job = 'a') as x\n"
+            + "where x.ename = 'doctor'^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select * from (\n"
+            + "  select e.ename, d.name from emp as e, dept as d\n"
+            + "  where e.empno = 1 and e.job = 'a') as x\n"
+            + "where x.name = 'doctor'")
+        .ok();
+  }
+
+  @Test void testMustFilterColumnsInPipeQuery() {
+    final SqlValidatorFixture fixture = fixture()
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // "FROM emp" is "SELECT * FROM emp", and requires the same filters.
+    fixture.withSql("^from emp^")
+        .fails(missingFilters("EMPNO", "JOB"));
+
+    // A |> WHERE defuses them, exactly as a WHERE clause does.
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "^|> where empno = 1^")
+        .fails(missingFilters("JOB"));
+
+    // With two tables in the FROM clause, each contributes the fields at its
+    // own offset in the input table.
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor' and name = 'x'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "^|> where empno = 1 and job = 'doctor'^")
+        .fails(missingFilters("NAME"));
+
+    // In a pipeline of several steps, each step owes only what the previous
+    // steps have not defused.
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1 and job = 'doctor'\n"
+            + "|> where sal > 1000")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1\n"
+            + "|> where job = 'doctor'")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1\n"
+            + "^|> where sal > 1000^")
+        .fails(missingFilters("JOB"));
+
+    // A bypass field defuses the requirements in the step that filters it,
+    // and in all later steps.
+    fixture.withSql("from emp\n"
+            + "|> where ename = 'x'\n"
+            + "|> where sal > 1000")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1\n"
+            + "|> where ename = 'x'")
+        .ok();
+
+    // With two tables and several steps, each table's fields are found at its
+    // own offset in each step's input, and a bypass field defuses only the
+    // requirements of its own table.
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor'\n"
+            + "|> where name = 'x'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor'\n"
+            + "^|> where sal > 1000^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("from emp, dept\n"
+            + "|> where name = 'x'\n"
+            + "^|> where empno = 1^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("from emp, dept\n"
+            + "|> where ename = 'x'\n"
+            + "|> where name = 'y'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "|> where ename = 'x'\n"
+            + "^|> where sal > 1000^")
+        .fails(missingFilters("NAME"));
+
+    // A pipeline in a sub-query is defused by the enclosing query, and
+    // enforced at the top if it is not.
+    fixture.withSql("select * from (from emp |> where sal > 1000)\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("^select * from (from emp |> where sal > 1000)^")
+        .fails(missingFilters("EMPNO", "JOB"));
+  }
+
   /** Returns a message that the particular columns are not filtered. */
   private static String missingFilters(String... args) {
     return "SQL statement did not contain filters on the following fields: \\["
         + String.join(", ", new TreeSet<>(Arrays.asList(args)))
         + "\\]";
+  }
+
+  @Test void testMustFilterColumnsInDml() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // --- INSERT ---
+    fixture.withSql("insert into dept ^select empno, job from emp^")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("insert into dept\n"
+            + "^select empno, ename from emp where empno = 1^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("insert into dept\n"
+            + "select empno, job from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("insert into dept\n"
+            + "select empno, job from emp\n"
+            + "where ename = 'doctor'")
+        .ok();
+
+    // --- UPDATE ---
+    fixture.withSql("update emp set sal = 100")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("update emp set sal = 100 where deptno = 10")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("update emp set sal = 100 where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("update emp set sal = 100\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("update emp set sal = 100 where ename = 'foo'")
+        .ok();
+
+    // --- DELETE ---
+    fixture.withSql("delete from emp")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("delete from emp where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("delete from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("delete from emp\n"
+            + "where ename = 'doctor'")
+        .ok();
+
+    // --- MERGE ---
+    fixture.withSql("merge into dept d\n"
+            + "using emp e on d.deptno = e.deptno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (deptno, name) values (e.deptno, e.ename)")
+        .fails(missingFilters("EMPNO", "JOB", "NAME"));
+    fixture.withSql("merge into dept d\n"
+            + "using (select * from emp where empno = 1 and job = 'doctor') e\n"
+            + "on d.deptno = e.deptno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (deptno, name) values (e.deptno, e.ename)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("merge into bonus b\n"
+            + "using (select * from emp where empno = 1 and job = 'doctor') e\n"
+            + "on b.empno = e.empno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (empno, name) values (e.empno, e.ename)")
+        .ok();
+  }
+
+  @Test void testMustFilterColumnsInExpressionSubQueries() {
+    final SqlValidatorFixture fixture = fixture()
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Scalar sub-query in the SELECT list
+    fixture.withSql("select ^(select name from dept)^\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select (select name from dept where name = 'accounting')\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+
+    // Valid because DEPTNO is a bypass field of DEPT
+    fixture.withSql("select (select name from dept where deptno = 1)\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+
+    // Sub-query as an IN operand in the WHERE clause
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno in (^select deptno from dept^) and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno in (select deptno from dept where name = 'accounting')\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Sub-query as an EXISTS operand in the WHERE clause
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno = 1 and exists ^(select name from dept)^\n"
+            + "and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno = 1\n"
+            + "and exists (select name from dept where name = 'accounting')\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Sub-query in VALUES
+    fixture.withSql("insert into bonus (empno, name)\n"
+            + "values (1, ^(select name from dept)^)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("insert into bonus (empno, name)\n"
+            + "values (1, (select name from dept where name = 'accounting'))")
+        .ok();
+
+    // Sub-query in QUALIFY
+    fixture.withSql("select empno, ename, sum(deptno) over myWindow as sumDeptNo\n"
+            + "from emp WHERE empno > 1 and job = 'doctor'\n"
+            + "window myWindow as (partition by ename order by empno)\n"
+            + "qualify sumDeptNo in (^select deptno from dept^)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, ename, sum(deptno) over myWindow as sumDeptNo\n"
+            + "from emp WHERE empno > 1 and job = 'doctor'\n"
+            + "window myWindow as (partition by ename order by empno)\n"
+            + "qualify sumDeptNo in (select deptno from dept where name = 'accounting')")
+        .ok();
+  }
+
+  /**
+   * Tests that a must-filter requirement inside a sub-query used as the
+   * operand of UNNEST (via an ARRAY query constructor) is enforced, rather
+   * than being silently dropped.
+   */
+  @Test void testMustFilterColumnsInUnnestSubQuery() {
+    final SqlValidatorFixture fixture = fixture()
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    fixture.withSql("select * from unnest(array(^select name from dept^))")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select * from bonus as b\n"
+            + "cross join unnest(array(^select name from dept^))")
+        .fails(missingFilters("NAME"));
+
+    fixture.withSql("select * from unnest(\n"
+            + "array(select name from dept where name = 'accounting'))")
+        .ok();
+    // Valid because DEPTNO is a bypass field of DEPT
+    fixture.withSql("select * from unnest(\n"
+            + "array(select name from dept where deptno = 10))")
+        .ok();
   }
 
   @Test void testAccessingNestedFieldsOfNullableRecord() {
@@ -15578,5 +16586,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Struct array + scalar array: all result columns (including struct fields) are nullable.
     sql("select * from unnest(array[(1, 'a'), (2, 'b')], array[10, 20]) as t(p, q, r)")
         .type("RecordType(INTEGER P, CHAR(1) Q, INTEGER R) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7792">[CALCITE-7792]
+   * Failed namespace validation breaks SqlAdvisorValidator hints and can
+   * overflow the stack in getRowType()</a>.
+   *
+   * <p>After validateImpl() fails, a later getRowType() re-throws the stored
+   * error instead of recursing. */
+  @Test void testNamespaceRethrowsStoredFailure() throws Exception {
+    final String sql = "select * from (select bad_col from emp) as t";
+    final SqlNode topNode = fixture().factory.createParser(sql).parseQuery();
+
+    // Grab the inner SELECT's SqlNode before validation, so we can look up its
+    // namespace after the expected failure.
+    final SqlSelect outerSelect = (SqlSelect) topNode;
+    final SqlCall asCall = (SqlCall) outerSelect.getFrom();
+    final SqlNode innerSelect = asCall.operand(0);
+
+    final SqlValidator validator = fixture().factory.createValidator();
+
+    // First validation attempt fails with a clear error about the bad column.
+    final Exception firstFailure =
+        assertThrows(Exception.class, () -> validator.validate(topNode));
+    assertThat(firstFailure.getMessage(), containsString("BAD_COL"));
+
+    final SqlValidatorNamespace namespace = validator.getNamespace(innerSelect);
+    assertThat(namespace, notNullValue());
+
+    // getRowType() call re-throws the stored error rather than recursing into a null rowType.
+    final Exception secondFailure =
+        assertThrows(Exception.class, namespace::getRowType);
+    assertThat(secondFailure.getMessage(), containsString("BAD_COL"));
   }
 }

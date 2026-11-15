@@ -130,7 +130,9 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.SubtractChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.CYCLE_PATH_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.LITERAL_AGG;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.RECURSIVE_PATH_APPEND;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOSD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOSH;
@@ -1108,8 +1110,10 @@ public class RexImpTable implements RexImplementorTable {
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.SEMI_STRICT);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_APPEND, BuiltInMethod.ARRAY_APPEND.method, NullPolicy.ARG0);
+      defineMethod(RECURSIVE_PATH_APPEND, BuiltInMethod.ARRAY_APPEND.method, NullPolicy.ARG0);
+      defineMethod(CYCLE_PATH_CONTAINS, BuiltInMethod.CYCLE_PATH_CONTAINS.method, NullPolicy.NONE);
       defineMethod(ARRAY_COMPACT, BuiltInMethod.ARRAY_COMPACT.method, NullPolicy.STRICT);
-      defineMethod(ARRAY_CONTAINS, BuiltInMethod.LIST_CONTAINS.method, NullPolicy.SEMI_STRICT);
+      defineMethod(ARRAY_CONTAINS, BuiltInMethod.ARRAY_CONTAINS.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_JOIN, BuiltInMethod.ARRAY_TO_STRING.method,
@@ -5050,9 +5054,25 @@ public class RexImpTable implements RexImplementorTable {
           Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
           Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
               Expressions.condition(
-                  Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
-                      left.valueVariable, right.valueVariable),
+                  equalExpression(left.valueVariable, right.valueVariable),
                   BOXED_TRUE_EXPR, BOXED_FALSE_EXPR)));
+    }
+
+    /** Returns an expression that compares two non-null values for
+     * equality.
+     *
+     * <p>{@link BigDecimal#equals} is sensitive to scale (for example,
+     * {@code 1.10} is not equal to {@code 1.1}), so {@code BigDecimal} values
+     * are compared using {@link SqlFunctions#eq(BigDecimal, BigDecimal)}, as
+     * the {@code =} operator compares them. Other values are compared using
+     * {@link java.util.Objects#equals}. */
+    private static Expression equalExpression(Expression left,
+        Expression right) {
+      if (left.getType() == BigDecimal.class
+          && right.getType() == BigDecimal.class) {
+        return Expressions.call(BuiltInMethod.EQ_DECIMAL.method, left, right);
+      }
+      return Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method, left, right);
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,

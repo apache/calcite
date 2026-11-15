@@ -51,8 +51,11 @@ public class PigTableScan extends TableScan implements PigRel {
     final String alias = implementor.getPigRelationAlias(this);
     final String schema = '(' + getSchemaForPigStatement(implementor)
         + ')';
-    final String statement = alias + " = LOAD '" + pigTable.getFilePath()
-        + "' USING PigStorage() AS " + schema + ';';
+    // Escape the file path so that quotes or backslashes in it (e.g. in a
+    // Windows path) cannot break out of the string literal
+    final String statement = alias + " = LOAD "
+        + PigUtils.quoteStringLiteral(pigTable.getFilePath())
+        + " USING PigStorage() AS " + schema + ';';
     implementor.addStatement(statement);
   }
 

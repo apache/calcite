@@ -408,7 +408,7 @@ class FileAdapterTest {
           DriverManager.getConnection("jdbc:calcite:", info);
       connection.close();
       throw new AssertionError("expected error");
-    } catch (RuntimeException e) {
+    } catch (SQLException e) {
       Throwable cause = e;
       while (cause.getCause() != null) {
         cause = cause.getCause();

@@ -568,6 +568,45 @@ class AggregationAndSortTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4985">[CALCITE-4985]
+   * Elasticsearch adapter fails to prepare a statement with dynamic
+   * parameters in a filter</a>.
+   */
+  @Test void testPrepareWithDynamicParam() {
+    // Bound variables are not known at planning time, so the filter is not
+    // pushed down to Elasticsearch; it is evaluated by Calcite at runtime
+    // once the parameter is bound.
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat5 = ?")
+        .consumesPreparedStatement(p -> p.setInt(1, 1))
+        .returns("cat1=a\n");
+
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat5 = ?")
+        .consumesPreparedStatement(p -> p.setInt(1, 2))
+        .returns("cat1=b\n");
+
+    // multiple dynamic parameters
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat5 = ? and cat2 = ?")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 1);
+          p.setString(2, "g");
+        })
+        .returns("cat1=a\n");
+
+    // parameter that matches no document
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select cat1 from view where cat5 = ?")
+        .consumesPreparedStatement(p -> p.setInt(1, 42))
+        .returnsCount(0);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4232">[CALCITE-4232]
    * Elasticsearch IN Query is not supported</a>.
    */

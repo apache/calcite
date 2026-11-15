@@ -39,6 +39,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -47,6 +48,7 @@ import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -90,6 +92,44 @@ public class GeodeRules {
     return SqlValidatorUtil.uniquify(rowType.getFieldNames(), true);
   }
 
+  /** Shape of ITEM string keys that may be embedded in a {@code path.key}
+   * OQL expression. OQL has no way to quote identifiers, so any other key
+   * (quotes, spaces, operators, parentheses) could change the structure of
+   * the statement sent to Geode and must never be pushed down. */
+  private static final Pattern OQL_ITEM_KEY =
+      Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
+
+  /** Returns whether an ITEM string key may be embedded in OQL text. */
+  static boolean isSafeItemKey(String key) {
+    return OQL_ITEM_KEY.matcher(key).matches();
+  }
+
+  /** Returns whether every ITEM call (if any) inside {@code node} uses a
+   * string key that is safe to embed in OQL text. Push-down rules use this
+   * to keep expressions with unsafe keys on the Calcite side, where they
+   * are evaluated after the scan instead of being concatenated into the
+   * OQL statement. */
+  static boolean hasOnlySafeItemKeys(RexNode node) {
+    try {
+      node.accept(new RexVisitorImpl<Void>(true) {
+        @Override public Void visitCall(RexCall call) {
+          if (call.getOperator() == SqlStdOperatorTable.ITEM) {
+            final RexNode op1 = call.getOperands().get(1);
+            if (op1 instanceof RexLiteral
+                && ((RexLiteral) op1).getValue2() instanceof String
+                && !isSafeItemKey((String) ((RexLiteral) op1).getValue2())) {
+              throw Util.FoundOne.NULL;
+            }
+          }
+          return super.visitCall(call);
+        }
+      });
+      return true;
+    } catch (Util.FoundOne e) {
+      return false;
+    }
+  }
+
   /**
    * Translator from {@link RexNode} to strings in Geode's expression language.
    */
@@ -115,7 +155,16 @@ public class GeodeRules {
           if (op1.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
             return stripQuotes(strings.get(0)) + "[" + ((RexLiteral) op1).getValue2() + "]";
           } else if (op1.getType().getSqlTypeName() == SqlTypeName.CHAR) {
-            return stripQuotes(strings.get(0)) + "." + ((RexLiteral) op1).getValue2();
+            final String key = String.valueOf(((RexLiteral) op1).getValue2());
+            // The key becomes part of the OQL text, so restrict it to a
+            // plain identifier; anything else could alter the structure of
+            // the statement. The push-down rules refuse to match such
+            // expressions, so this check is defense-in-depth.
+            if (!isSafeItemKey(key)) {
+              throw new IllegalArgumentException("Geode adapter cannot push "
+                  + "ITEM key '" + key + "' into OQL: not a plain identifier");
+            }
+            return stripQuotes(strings.get(0)) + "." + key;
           }
         }
       }
@@ -147,6 +196,12 @@ public class GeodeRules {
       for (RexNode e : project.getProjects()) {
         if (e.getType().getSqlTypeName() == SqlTypeName.GEOMETRY) {
           // For spatial Functions Drop to Calcite Enumerable
+          return false;
+        }
+        if (!hasOnlySafeItemKeys(e)) {
+          // An ITEM key inside this projection would be concatenated into
+          // the OQL SELECT list; keep the projection on the Calcite side,
+          // where it is evaluated after the scan.
           return false;
         }
       }
@@ -267,6 +322,13 @@ public class GeodeRules {
       // Get the condition from the filter operation
       LogicalFilter filter = call.rel(0);
       RexNode condition = filter.getCondition();
+
+      if (!hasOnlySafeItemKeys(condition)) {
+        // An ITEM key inside the condition would be concatenated into the
+        // OQL WHERE clause; keep the filter on the Calcite side, where it
+        // is evaluated after the scan.
+        return false;
+      }
 
       List<String> fieldNames = GeodeRules.geodeFieldNames(filter.getInput().getRowType());
 

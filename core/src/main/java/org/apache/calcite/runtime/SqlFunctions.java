@@ -131,7 +131,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -144,6 +143,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -207,34 +207,6 @@ public class SqlFunctions {
   // @see http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/tip/src/share/classes/java/util/ArrayList.java#l229
   // Note: this variable handling is inspired by Apache Spark
   private static final int MAX_ARRAY_LENGTH = Integer.MAX_VALUE - 15;
-
-  private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
-
-  /** Like {@link #LIST_AS_ENUMERABLE}, for a collection whose struct elements
-   * are kept whole: each element is converted to an Object[] struct value. */
-  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
-      STRUCT_LIST_AS_ENUMERABLE =
-          a0 -> a0 == null ? Linq4j.emptyEnumerable()
-              : Linq4j.asEnumerable(a0).<@Nullable Object>select(SqlFunctions::structValue);
-
-  /** Single NULL element, the outer-mode result for an empty or NULL
-   * collection. */
-  private static final List<@Nullable Object> SINGLE_NULL =
-      Collections.singletonList(null);
-
-  /** Like {@link #LIST_AS_ENUMERABLE}, but for outer join mode: an empty or NULL
-   * collection yields one NULL element rather than no elements. */
-  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
-      OUTER_LIST_AS_ENUMERABLE =
-          a0 -> a0 == null || a0.isEmpty() ? Linq4j.asEnumerable(SINGLE_NULL)
-              : Linq4j.asEnumerable(a0);
-
-  /** Like {@link #STRUCT_LIST_AS_ENUMERABLE}, but for outer join mode. */
-  private static final Function1<List<Object>, Enumerable<@Nullable Object>>
-      OUTER_STRUCT_LIST_AS_ENUMERABLE =
-          a0 -> a0 == null || a0.isEmpty() ? Linq4j.asEnumerable(SINGLE_NULL)
-              : Linq4j.asEnumerable(a0).<@Nullable Object>select(SqlFunctions::structValue);
 
   /** Converts one element of a collection of structs to its Object[] struct
    * value. Elements arrive as List or as Object[]; null elements stay null. */
@@ -1296,57 +1268,46 @@ public class SqlFunctions {
     return substring(c, clamp(s));
   }
 
-  /** SQL SUBSTRING(string FROM ... FOR ...) function. */
-  public static String substring(String c, int s, int l) {
-    int lc = c.length();
-    long e = (long) s + (long) l;
+  /** Returns the 0-based begin index of {@code SUBSTRING(value FROM s FOR l)}
+   * for a value of length {@code lc}. */
+  private static int substringBegin(int lc, long s) {
+    return (int) Math.min(Math.max(s, 1) - 1, lc);
+  }
+
+  /** Returns the 0-based end index (exclusive) of
+   * {@code SUBSTRING(value FROM s FOR l)} for a value of length {@code lc}.
+   * It is never less than {@link #substringBegin}. */
+  private static int substringEnd(int lc, long s, long l) {
     if (l < 0) {
       throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
-    // Prevent overflow in addition
-    if (s > lc || e < 1L) {
-      return "";
+    if (s < 1) {
+      // Remove the positions before 1; s <= 0 and l >= 0, so s + l cannot overflow
+      l = Math.max(s + l, 1) - 1;
+      s = 1;
     }
-    final int s0 = Math.max(s - 1, 0);
-    final long e0 = Math.min(e - 1, (long) lc);
-    // We know that e0 cannot exceed Integer.MAX_VALUE, since it's smaller than lc
-    return c.substring(s0, (int) e0);
+    if (s > lc) {
+      return lc;
+    }
+    return (int) (s - 1 + Math.min(l, lc - s + 1));
+  }
+
+  /** SQL SUBSTRING(string FROM ... FOR ...) function. */
+  public static String substring(String c, long s, long l) {
+    final int lc = c.length();
+    return c.substring(substringBegin(lc, s), substringEnd(lc, s, l));
+  }
+
+  public static String substring(String c, int s, int l) {
+    return substring(c, (long) s, (long) l);
   }
 
   public static String substring(String c, int s, long l) {
-    if (s < 0) {
-      if (l > 0 && l + s > 0) {
-        l += s;
-        return substring(c, 0, l);
-      }
-    }
-    int l0 = clamp(l);
-    return SqlFunctions.substring(c, s, l0);
+    return substring(c, (long) s, l);
   }
 
   public static String substring(String c, long s, int l) {
-    if (s < 0) {
-      s += l;
-      if (s > 0) {
-        return substring(c, 0, s);
-      } else {
-        return "";
-      }
-    }
-    int s0 = clamp(s);
-    return SqlFunctions.substring(c, s0, l);
-  }
-
-  public static String substring(String c, long s, long l) {
-    if (s < 0) {
-      if (l > 0) {
-        l += s;
-        return substring(c, 0, clamp(l));
-      }
-    }
-    int s0 = clamp(s);
-    int l0 = clamp(l);
-    return SqlFunctions.substring(c, s0, l0);
+    return substring(c, s, (long) l);
   }
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */
@@ -1361,19 +1322,26 @@ public class SqlFunctions {
     return c.substring(s0);
   }
 
+  public static ByteString substring(ByteString c, long s) {
+    return substring(c, clamp(s));
+  }
+
   /** SQL SUBSTRING(binary FROM ... FOR ...) function for binary. */
+  public static ByteString substring(ByteString c, long s, long l) {
+    final int lc = c.length();
+    return c.substring(substringBegin(lc, s), substringEnd(lc, s, l));
+  }
+
   public static ByteString substring(ByteString c, int s, int l) {
-    int lc = c.length();
-    int e = s + l;
-    if (l < 0) {
-      throw RESOURCE.illegalNegativeSubstringLength().ex();
-    }
-    if (s > lc || e < 1) {
-      return ByteString.EMPTY;
-    }
-    final int s0 = Math.max(s - 1, 0);
-    final int e0 = Math.min(e - 1, lc);
-    return c.substring(s0, e0);
+    return substring(c, (long) s, (long) l);
+  }
+
+  public static ByteString substring(ByteString c, int s, long l) {
+    return substring(c, (long) s, l);
+  }
+
+  public static ByteString substring(ByteString c, long s, int l) {
+    return substring(c, s, (long) l);
   }
 
   /** SQL FORMAT_NUMBER(value, decimalOrFormat) function. */
@@ -2570,6 +2538,27 @@ public class SqlFunctions {
     return b1 == null || b0 != null && b0.compareTo(b1) < 0;
   }
 
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN} on ARRAY keys. */
+  public static boolean ltNullable(@Nullable List<?> b0,
+      @Nullable List<?> b1) {
+    return b1 == null || b0 != null && lt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN} on MAP keys. */
+  public static boolean ltNullable(@Nullable Map<?, ?> b0,
+      @Nullable Map<?, ?> b1) {
+    return b1 == null || b0 != null && lt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN} on ROW keys. */
+  public static boolean ltNullable(@Nullable Object @Nullable [] b0,
+      @Nullable Object @Nullable [] b1) {
+    return b1 == null || b0 != null && lt(b0, b1);
+  }
+
   public static boolean lt(byte b0, byte b1) {
     return b0 < b1;
   }
@@ -2704,6 +2693,27 @@ public class SqlFunctions {
    * (or {@code b1} is null). Helper for {@code ARG_MAX}. */
   public static <T extends Comparable<T>> boolean gtNullable(T b0, T b1) {
     return b1 == null || b0 != null && b0.compareTo(b1) > 0;
+  }
+
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX} on ARRAY keys. */
+  public static boolean gtNullable(@Nullable List<?> b0,
+      @Nullable List<?> b1) {
+    return b1 == null || b0 != null && gt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX} on MAP keys. */
+  public static boolean gtNullable(@Nullable Map<?, ?> b0,
+      @Nullable Map<?, ?> b1) {
+    return b1 == null || b0 != null && gt(b0, b1);
+  }
+
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX} on ROW keys. */
+  public static boolean gtNullable(@Nullable Object @Nullable [] b0,
+      @Nullable Object @Nullable [] b1) {
+    return b1 == null || b0 != null && gt(b0, b1);
   }
 
   public static boolean gt(byte b0, byte b1) {
@@ -5285,14 +5295,35 @@ public class SqlFunctions {
 
   /** CAST(VARCHAR AS BOOLEAN). */
   public static boolean toBoolean(String s) {
-    s = trim(true, true, " ", s);
-    if (s.equalsIgnoreCase("TRUE")) {
+    s = s.trim();
+    if (equalsIgnoreAsciiCase(s, "TRUE")) {
       return true;
-    } else if (s.equalsIgnoreCase("FALSE")) {
+    } else if (equalsIgnoreAsciiCase(s, "FALSE")) {
       return false;
     } else {
       throw RESOURCE.invalidCharacterForCast(s).ex();
     }
+  }
+
+  /** Returns 'true' is s equals and upper-case word 'upper', ignoring
+   * only the case of ASCII characters. */
+  private static boolean equalsIgnoreAsciiCase(String s, String upper) {
+    if (s.length() != upper.length()) {
+      return false;
+    }
+    // We restrict the comparison to ASCII characters: for
+    // example, U+017F (long s) upper-cased is 'S', but we do
+    // not want to match it.
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (c >= 'a' && c <= 'z') {
+        c = (char) (c - 'a' + 'A');
+      }
+      if (c != upper.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static boolean toBoolean(Number number) {
@@ -5308,7 +5339,10 @@ public class SqlFunctions {
     if (number instanceof Float) {
       return ((Float) number).floatValue() != 0f;
     }
-    return !number.equals(0);
+    if (number instanceof BigInteger) {
+      return ((BigInteger) number).signum() != 0;
+    }
+    return number.longValue() != 0;
   }
 
   public static boolean toBoolean(Object o) {
@@ -5318,12 +5352,14 @@ public class SqlFunctions {
         : (Boolean) cannotConvert(o, boolean.class);
   }
 
-  // Don't need parseByte etc. - Byte.parseByte is sufficient.
+  public static byte toByte(String s) {
+    return parseByte(Primitive.checkNumericString(s.trim()));
+  }
 
   public static byte toByte(Object o) {
     return o instanceof Byte ? (Byte) o
         : o instanceof Number ? toByte((Number) o)
-        : parseByte(o.toString());
+        : toByte(o.toString());
   }
 
   public static byte toByte(Number number) {
@@ -5339,7 +5375,7 @@ public class SqlFunctions {
   }
 
   public static short toShort(String s) {
-    return parseShort(s.trim());
+    return parseShort(Primitive.checkNumericString(s.trim()));
   }
 
   public static short toShort(Number number) {
@@ -5448,7 +5484,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(String s) {
-    return parseInt(s.trim());
+    return parseInt(Primitive.checkNumericString(s.trim()));
   }
 
   public static int toInt(Number number) {
@@ -5552,7 +5588,7 @@ public class SqlFunctions {
     if (s.startsWith("199") && s.contains(":")) {
       return Timestamp.valueOf(s).getTime();
     }
-    return parseLong(s.trim());
+    return parseLong(Primitive.checkNumericString(s.trim()));
   }
 
   public static long toLong(Number number) {
@@ -5575,7 +5611,7 @@ public class SqlFunctions {
   }
 
   public static float toFloat(String s) {
-    return parseFloat(s.trim());
+    return parseFloat(Primitive.checkApproxNumericString(s.trim()));
   }
 
   public static float toFloat(Number number) {
@@ -5590,7 +5626,7 @@ public class SqlFunctions {
   }
 
   public static double toDouble(String s) {
-    return parseDouble(s.trim());
+    return parseDouble(Primitive.checkApproxNumericString(s.trim()));
   }
 
   public static double toDouble(Number number) {
@@ -5610,7 +5646,7 @@ public class SqlFunctions {
           "Cannot convert null string to BigDecimal");
     }
     try {
-      return new BigDecimal(s.trim());
+      return new BigDecimal(Primitive.checkNumericString(s.trim()));
     } catch (NumberFormatException e) {
       NumberFormatException ex =
           new NumberFormatException("Invalid value for BigDecimal: \"" + s + "\"");
@@ -5695,11 +5731,17 @@ public class SqlFunctions {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
 
+  /** CAST(VARCHAR AS DATE). */
+  public static int stringToDate(String s) {
+    // Trim here, because Avatica rejects some characters below U+0020
+    return DateTimeUtils.dateStringToUnixDate(s.trim());
+  }
+
   public static @PolyNull Integer toTimeWithLocalTimeZone(@PolyNull String v) {
     if (v == null) {
       return castNonNull(null);
     }
-    return new TimeWithTimeZoneString(v)
+    return new TimeWithTimeZoneString(v.trim())
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimeString()
         .getMillisOfDay();
@@ -6357,7 +6399,7 @@ public class SqlFunctions {
     if (v == null) {
       return castNonNull(null);
     }
-    return new TimestampWithTimeZoneString(v)
+    return new TimestampWithTimeZoneString(v.trim())
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
@@ -7093,12 +7135,12 @@ public class SqlFunctions {
     final List bigger = list2;
     boolean hasNull = false;
     if (!smaller.isEmpty() && !bigger.isEmpty()) {
-      final Set smallestSet = new HashSet(smaller);
+      final Set<@Nullable Object> smallestSet = toDeepEqualityHashSet(smaller);
       hasNull = smallestSet.remove(null);
       for (Object element : bigger) {
         if (element == null) {
           hasNull = true;
-        } else if (smallestSet.contains(element)) {
+        } else if (smallestSet.contains(wrapForDeepEquality(element))) {
           return true;
         }
       }
@@ -7145,6 +7187,18 @@ public class SqlFunctions {
     return result;
   }
 
+  /** Tests whether a recursive CTE path contains a key tuple.
+   * Implements the condition of {@code CASE WHEN key IN (path) THEN ...}:
+   * only TRUE comparisons close a cycle; UNKNOWN does not. */
+  public static boolean cyclePathContains(List<?> path, Object key) {
+    for (Object previous : path) {
+      if (Boolean.TRUE.equals(rowEq(previous, key))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Support the ARRAY_APPEND function. */
   public static List arrayAppend(List list, Object element) {
     final List result = new ArrayList(list.size() + 1);
@@ -7153,23 +7207,17 @@ public class SqlFunctions {
     return result;
   }
 
-  /** Support the ARRAY_DISTINCT function.
-   *
-   * <p>Note: If the list does not contain null,
-   * {@link Util#distinctList(List)} is probably faster. */
+  /** Support the ARRAY_DISTINCT function. */
   public static List distinct(List list) {
-    Set result = new LinkedHashSet<>(list);
-    return new ArrayList<>(result);
+    return unwrapDeepEqualitySet(toDeepEqualityLinkedHashSet(list));
   }
 
   /** Support the ARRAY_MAX function. */
-  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMax(
-      List<? extends T> list) {
-
+  public static @Nullable <T> T arrayMax(List<? extends T> list) {
     T max = null;
     for (int i = 0; i < list.size(); i++) {
       T item = list.get(i);
-      if (item != null && (max == null || item.compareTo(max) > 0)) {
+      if (item != null && (max == null || compareNullable(item, max, "ARRAY_MAX") > 0)) {
         max = item;
       }
     }
@@ -7177,13 +7225,11 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_MIN function. */
-  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMin(
-      List<? extends T> list) {
-
+  public static @Nullable <T> T arrayMin(List<? extends T> list) {
     T min = null;
     for (int i = 0; i < list.size(); i++) {
       T item = list.get(i);
-      if (item != null && (min == null || item.compareTo(min) < 0)) {
+      if (item != null && (min == null || compareNullable(item, min, "ARRAY_MIN") < 0)) {
         min = item;
       }
     }
@@ -7198,11 +7244,24 @@ public class SqlFunctions {
     return result;
   }
 
+  /** Support the ARRAY_CONTAINS function. */
+  public static boolean arrayContains(List list, Object element) {
+    for (Object value : list) {
+      if (Functions.deepEquals(value, element)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Support the ARRAY_POSITION function. */
   public static Long arrayPosition(List list, Object element) {
-    final int index = list.indexOf(element);
-    if (index != -1) {
-      return index + 1L;
+    long position = 1;
+    for (Object value : list) {
+      if (Functions.deepEquals(value, element)) {
+        return position;
+      }
+      position++;
     }
     return 0L;
   }
@@ -7211,7 +7270,7 @@ public class SqlFunctions {
   public static List arrayRemove(List list, Object element) {
     final List result = new ArrayList();
     for (Object obj : list) {
-      if (obj == null || !obj.equals(element)) {
+      if (obj == null || !Functions.deepEquals(obj, element)) {
         result.add(obj);
       }
     }
@@ -7232,9 +7291,11 @@ public class SqlFunctions {
 
   /** Support the ARRAY_EXCEPT function. */
   public static List arrayExcept(List list1, List list2) {
-    final Set result = new LinkedHashSet<>(list1);
-    result.removeAll(list2);
-    return new ArrayList<>(result);
+    final Set<@Nullable Object> result = toDeepEqualityLinkedHashSet(list1);
+    for (Object element : list2) {
+      result.remove(wrapForDeepEquality(element));
+    }
+    return unwrapDeepEqualitySet(result);
   }
 
   /** Support the ARRAY_INSERT function. */
@@ -7334,17 +7395,106 @@ public class SqlFunctions {
 
   /** Support the ARRAY_INTERSECT function. */
   public static List arrayIntersect(List list1, List list2) {
-    final Set result = new LinkedHashSet<>(list1);
-    result.retainAll(list2);
-    return new ArrayList<>(result);
+    final Set<@Nullable Object> remaining = toDeepEqualityHashSet(list2);
+    final List<@Nullable Object> result = new ArrayList<>();
+    for (Object element : list1) {
+      if (remaining.remove(wrapForDeepEquality(element))) {
+        result.add(element);
+      }
+    }
+    return result;
   }
 
   /** Support the ARRAY_UNION function. */
   public static List arrayUnion(List list1, List list2) {
-    final Set result = new LinkedHashSet<>();
-    result.addAll(list1);
-    result.addAll(list2);
-    return new ArrayList<>(result);
+    final Set<@Nullable Object> result = toDeepEqualityLinkedHashSet(list1);
+    for (Object element : list2) {
+      result.add(wrapForDeepEquality(element));
+    }
+    return unwrapDeepEqualitySet(result);
+  }
+
+  /** Creates a set using deep equality, preserving element encounter order. */
+  private static Set<@Nullable Object> toDeepEqualityLinkedHashSet(List<?> list) {
+    return toDeepEqualitySet(list, LinkedHashSet::new);
+  }
+
+  /** Creates a hash set using deep equality. */
+  private static Set<@Nullable Object> toDeepEqualityHashSet(List<?> list) {
+    return toDeepEqualitySet(list, HashSet::new);
+  }
+
+  /** Creates a set using deep equality and the supplied factory. */
+  private static Set<@Nullable Object> toDeepEqualitySet(List<?> list,
+      Supplier<? extends Set<@Nullable Object>> setSupplier) {
+    final Set<@Nullable Object> set = setSupplier.get();
+    for (Object value : list) {
+      set.add(wrapForDeepEquality(value));
+    }
+    return set;
+  }
+
+  /** Counts element occurrences using deep equality. */
+  private static Map<@Nullable Object, Integer> toDeepEqualityCounts(List<?> list) {
+    final Map<@Nullable Object, Integer> counts = new HashMap<>();
+    for (Object value : list) {
+      counts.merge(wrapForDeepEquality(value), 1, Integer::sum);
+    }
+    return counts;
+  }
+
+  /** Wraps composite values, which may contain ROW values, but leaves scalar
+   * values and null unchanged. */
+  private static @Nullable Object wrapForDeepEquality(@Nullable Object value) {
+    if (value == null) {
+      return null;
+    } else if (value instanceof List || value instanceof Map || value.getClass().isArray()) {
+      return new DeepEqualityWrapper(value);
+    }
+    return value;
+  }
+
+  /** Creates a list of the set's elements in iteration order, replacing
+   * deep-equality wrappers with their original values. */
+  private static List<@Nullable Object> unwrapDeepEqualitySet(Set<@Nullable Object> set) {
+    final List<@Nullable Object> values = new ArrayList<>(set.size());
+    for (Object element : set) {
+      values.add(element instanceof DeepEqualityWrapper
+          ? ((DeepEqualityWrapper) element).value : element);
+    }
+    return values;
+  }
+
+  /** A wrapper providing deep equality and hashing for composite values.
+   * Assumes values are immutable. */
+  private static final class DeepEqualityWrapper {
+    private final Object value;
+    // Benign races may compute the same hash more than once.
+    private int hashCode;
+
+    private DeepEqualityWrapper(Object value) {
+      this.value = value;
+    }
+
+    @Override public boolean equals(@Nullable Object obj) {
+      return this == obj
+          || obj instanceof DeepEqualityWrapper
+          && Functions.deepEquals(value, ((DeepEqualityWrapper) obj).value);
+    }
+
+    @Override public int hashCode() {
+      int hash = hashCode;
+      if (hash == 0) {
+        hash = Functions.deepHashCode(value);
+        // Zero means not yet computed; cache a computed zero as 1 to avoid
+        // recomputing it on every call.
+        if (hash == 0) {
+          hash = 1;
+        }
+        hashCode = hash;
+      }
+      return hash;
+    }
   }
 
   /** Transforms a list, applying a function to each element. */
@@ -7383,9 +7533,11 @@ public class SqlFunctions {
 
   /** Support the SORT_ARRAY function. */
   public static List sortArray(List list, boolean ascending) {
-    Comparator comparator = ascending
-        ? Comparator.nullsFirst(Comparator.naturalOrder())
-        : Comparator.nullsLast(Comparator.reverseOrder());
+    final Comparator<@Nullable Object> naturalComparator =
+        (a, b) -> compareNullable(a, b, "SORT_ARRAY");
+    final Comparator<@Nullable Object> comparator = ascending
+        ? Comparator.nullsFirst(naturalComparator)
+        : Comparator.nullsLast(naturalComparator.reversed());
     list.sort(comparator);
     return list;
   }
@@ -7577,13 +7729,7 @@ public class SqlFunctions {
 
   /** Find the string from right to left. */
   private static int rfind(String string, String delim, int start) {
-    while (start >= 0) {
-      if (string.indexOf(delim, start) >= 0) {
-        return start;
-      }
-      start -= 1;
-    }
-    return -1;
+    return string.lastIndexOf(delim, start);
   }
 
   /** Support the SLICE function. */
@@ -7608,61 +7754,66 @@ public class SqlFunctions {
   }
 
   /** Support the MEMBER OF function. */
-  public static boolean memberOf(@Nullable Object object, Collection collection) {
-    return collection.contains(object);
+  public static boolean memberOf(@Nullable Object object, List<?> list) {
+    for (Object value : list) {
+      if (Functions.deepEquals(value, object)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Support the MULTISET INTERSECT DISTINCT function. */
-  public static <E> Collection<E> multisetIntersectDistinct(Collection<E> c1,
-      Collection<E> c2) {
-    final Set<E> result = new HashSet<>(c1);
-    result.retainAll(c2);
-    return new ArrayList<>(result);
+  public static List multisetIntersectDistinct(List c1, List c2) {
+    return arrayIntersect(c1, c2);
   }
 
   /** Support the MULTISET INTERSECT ALL function. */
-  public static <E> Collection<E> multisetIntersectAll(Collection<E> c1,
-      Collection<E> c2) {
-    final List<E> result = new ArrayList<>(c1.size());
-    final List<E> c2Copy = new ArrayList<>(c2);
-    for (E e : c1) {
-      if (c2Copy.remove(e)) {
+  public static List multisetIntersectAll(List c1, List c2) {
+    final Map<@Nullable Object, Integer> counts = toDeepEqualityCounts(c2);
+    final List result = new ArrayList();
+    for (Object e : c1) {
+      counts.computeIfPresent(wrapForDeepEquality(e), (key, count) -> {
         result.add(e);
-      }
+        return count == 1 ? null : count - 1;
+      });
     }
+
     return result;
   }
 
   /** Support the MULTISET EXCEPT ALL function. */
-  @SuppressWarnings("JdkObsolete")
-  public static <E> Collection<E> multisetExceptAll(Collection<E> c1,
-      Collection<E> c2) {
-    // TOOD: use Multisets?
-    final List<E> result = new LinkedList<>(c1);
-    for (E e : c2) {
-      result.remove(e);
+  public static List multisetExceptAll(List c1, List c2) {
+    final Map<@Nullable Object, Integer> counts = toDeepEqualityCounts(c2);
+    final List result = new ArrayList();
+    for (Object e : c1) {
+      counts.compute(wrapForDeepEquality(e), (key, count) -> {
+        if (count == null) {
+          result.add(e);
+          return null;
+        }
+        return count == 1 ? null : count - 1;
+      });
     }
     return result;
   }
 
   /** Support the MULTISET EXCEPT DISTINCT function. */
-  public static <E> Collection<E> multisetExceptDistinct(Collection<E> c1,
-      Collection<E> c2) {
-    final Set<E> result = new HashSet<>(c1);
-    result.removeAll(c2);
-    return new ArrayList<>(result);
+  public static List multisetExceptDistinct(List c1, List c2) {
+    final Set<@Nullable Object> result = toDeepEqualityHashSet(c1);
+    for (Object e : c2) {
+      result.remove(wrapForDeepEquality(e));
+    }
+    return unwrapDeepEqualitySet(result);
   }
 
   /** Support the IS A SET function. */
-  public static boolean isASet(Collection collection) {
-    if (collection instanceof Set) {
-      return true;
-    }
+  public static boolean isASet(List<?> list) {
     // capacity calculation is in the same way like for new HashSet(Collection)
     // however return immediately in case of duplicates
-    Set set = new HashSet(Math.max((int) (collection.size() / .75f) + 1, 16));
-    for (Object e : collection) {
-      if (!set.add(e)) {
+    final Set<@Nullable Object> set = new HashSet<>(Math.max((int) (list.size() / .75f) + 1, 16));
+    for (Object e : list) {
+      if (!set.add(wrapForDeepEquality(e))) {
         return false;
       }
     }
@@ -7670,16 +7821,15 @@ public class SqlFunctions {
   }
 
   /** Support the SUBMULTISET OF function. */
-  @SuppressWarnings("JdkObsolete")
-  public static boolean submultisetOf(Collection possibleSubMultiset,
-      Collection multiset) {
+  public static boolean submultisetOf(List<?> possibleSubMultiset, List<?> multiset) {
     if (possibleSubMultiset.size() > multiset.size()) {
       return false;
     }
-    // TODO: use Multisets?
-    Collection multisetLocal = new LinkedList(multiset);
+    final Map<@Nullable Object, Integer> counts = toDeepEqualityCounts(multiset);
     for (Object e : possibleSubMultiset) {
-      if (!multisetLocal.remove(e)) {
+      final Integer remaining =
+          counts.computeIfPresent(wrapForDeepEquality(e), (key, count) -> count - 1);
+      if (remaining == null || remaining < 0) {
         return false;
       }
     }
@@ -7687,23 +7837,20 @@ public class SqlFunctions {
   }
 
   /** Support the MULTISET UNION function. */
-  public static Collection multisetUnionDistinct(Collection collection1,
-      Collection collection2) {
-    // capacity calculation is in the same way like for new HashSet(Collection)
-    Set resultCollection =
-        new HashSet(Math.max((int) ((collection1.size() + collection2.size()) / .75f) + 1, 16));
-    resultCollection.addAll(collection1);
-    resultCollection.addAll(collection2);
-    return new ArrayList(resultCollection);
+  public static List multisetUnionDistinct(List list1, List list2) {
+    final Set<@Nullable Object> result = toDeepEqualityHashSet(list1);
+    for (Object element : list2) {
+      result.add(wrapForDeepEquality(element));
+    }
+    return unwrapDeepEqualitySet(result);
   }
 
   /** Support the MULTISET UNION ALL function. */
-  public static Collection multisetUnionAll(Collection collection1,
-      Collection collection2) {
-    List resultCollection = new ArrayList(collection1.size() + collection2.size());
-    resultCollection.addAll(collection1);
-    resultCollection.addAll(collection2);
-    return resultCollection;
+  public static List multisetUnionAll(List list1, List list2) {
+    final List result = new ArrayList(list1.size() + list2.size());
+    result.addAll(list1);
+    result.addAll(list2);
+    return result;
   }
 
   /** Support the ARRAY_REVERSE function. */
@@ -7797,6 +7944,8 @@ public class SqlFunctions {
   /**
    * Function that, given a certain List containing single-item structs (i.e. arrays / lists with
    * a single item), builds an Enumerable that returns those single items inside the structs.
+   *
+   * <p>Calcite no longer uses this function.
    */
   public static Function1<List<Object>, Enumerable<@Nullable Object>> flatList() {
     // A NULL collection unnests to no rows, like an empty one.
@@ -7806,196 +7955,242 @@ public class SqlFunctions {
   }
 
   /**
-   * Variant of {@link #flatList} for outer mode: an empty or {@code NULL}
-   * collection yields one {@code NULL} element rather than no elements.
-   */
-  public static Function1<List<Object>, Enumerable<@Nullable Object>> flatListOuter() {
-    return inputList -> inputList == null || inputList.isEmpty()
-        ? Linq4j.asEnumerable(SINGLE_NULL)
-        : Linq4j.asEnumerable(inputList)
-            .<@Nullable Object>select(v -> structAccess(v, 0, null));
-  }
-
-  /**
-   * Returns a function that, given a row containing one or more collection
-   * fields, produces an {@link Enumerable} of combined element rows using
-   * <em>zip</em> (positional pairing) semantics.
+   * Returns a function that implements the runtime of an
+   * {@link org.apache.calcite.rel.core.Uncollect}: for each input row it
+   * yields an enumerable of output rows, each holding the pass-through
+   * fields (in ascending input-index order) followed by the expanded
+   * elements of the collection fields.
    *
-   * <p>This is the standard semantics for SQL {@code UNNEST(a, b, ...)}: the
-   * i-th output row pairs element {@code a[i]} with element {@code b[i]}.
-   * Shorter collections are padded with {@code NULL}.
+   * <p>Multiple collections combine with <em>zip</em> (positional pairing)
+   * semantics: the i-th output row pairs element {@code a[i]} with element
+   * {@code b[i]}, and shorter collections are padded with {@code NULL}. This
+   * is the standard semantics for SQL {@code UNNEST(a, b, ...)}.
    *
    * <p>When {@code outer}, a row whose collections are all empty or
-   * {@code NULL} still produces one output row, with every element column set
-   * to {@code NULL}. This is the LEFT JOIN semantics of {@code Uncollect}.
+   * {@code NULL} still produces one output row, with every element column
+   * (and the ordinality column) set to {@code NULL} and the pass-through
+   * fields preserved. This is the LEFT JOIN semantics of {@code Uncollect}.
+   *
+   * @param passthroughIndices indices of the input fields to pass through,
+   *                           in ascending order
+   * @param collectionIndices  indices of the input fields that are collections,
+   *                           in the order their expansions appear in the output
+   * @param fieldCounts        output column count for each collection (-1 for a
+   *                           collection of scalars or of structs kept whole)
+   * @param inputTypes         type of elements in each unnested collection
+   *                           (SCALAR, LIST, STRUCT, or MAP)
+   * @param withOrdinality     whether to append a 1-based ORDINALITY column
+   * @param inputFieldCount    total number of fields in each input row; when 1,
+   *                           the input arrives in SCALAR row format (the row
+   *                           IS the field value)
+   * @param isOuter            if {@code true}, emit one NULL-padded row when all
+   *                           collections are null or empty (LEFT JOIN semantics);
+   *                           if {@code false}, drop the input row (INNER semantics)
    */
-  public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatZip(
-      final int[] fieldCounts, final boolean withOrdinality,
-      final FlatProductInputType[] inputTypes, final boolean outer) {
-    if (fieldCounts.length == 1) {
-      if (!withOrdinality && inputTypes[0] == FlatProductInputType.SCALAR) {
-        // Simple unnest without ordinality
-        //noinspection unchecked
-        return outer ? (Function1) OUTER_LIST_AS_ENUMERABLE
-            : (Function1) LIST_AS_ENUMERABLE;
-      } else if (!withOrdinality && inputTypes[0] == FlatProductInputType.STRUCT) {
-        // A single collection of structs kept whole, without ordinality: the
-        // output row type has a single (ROW-typed) column, so PhysTypeImpl
-        // optimizes the row format down to SCALAR, under which rows are bare
-        // struct values rather than singleton lists.
-        //noinspection unchecked
-        return (Function1) (outer ? OUTER_STRUCT_LIST_AS_ENUMERABLE
-            : STRUCT_LIST_AS_ENUMERABLE);
-      } else {
-        // unnest with ordinality for a single column
-        return row -> z2(new Object[] { row }, fieldCounts, withOrdinality, inputTypes, outer);
-      }
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public static Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>>
+      flatUncollect(
+          final int[] passthroughIndices,
+          final int[] collectionIndices, final int[] fieldCounts,
+          final FlatProductInputType[] inputTypes,
+          final boolean withOrdinality,
+          final int inputFieldCount,
+          final boolean isOuter) {
+    // Output-column width contributed by each collection (A value of -1, indicating a
+    // collection of scalars or of structs kept whole, contributes 1 output column).
+    final int[] widths = new int[collectionIndices.length];
+    int totalElemWidth = 0;
+    for (int i = 0; i < collectionIndices.length; i++) {
+      widths[i] = fieldCounts[i] < 0 ? 1 : fieldCounts[i];
+      totalElemWidth += widths[i];
     }
-    return lists -> z2((Object[]) lists, fieldCounts, withOrdinality, inputTypes, outer);
+    final int expandedOutputFieldCount = totalElemWidth + (withOrdinality ? 1 : 0);
+    final int outputFieldCount = passthroughIndices.length + expandedOutputFieldCount;
+
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> rows =
+        flatUncollectRows(passthroughIndices, collectionIndices, inputTypes,
+            withOrdinality, inputFieldCount, isOuter, widths, totalElemWidth,
+            outputFieldCount);
+
+    if (outputFieldCount == 1) {
+      // A one-field output row type (no pass-through fields, one collection
+      // field expanding to a single column, no ordinality) makes
+      // PhysTypeImpl optimize the row format down to SCALAR, under which
+      // rows are bare values rather than singleton lists; unwrap to match.
+      // The unwrapped value need not itself be Comparable (e.g. a struct
+      // kept whole), so operate on raw types to avoid an incorrect checkcast.
+      final Function1<Object, Enumerable> scalarRows = inputRowObj -> {
+        final Enumerable rawRows = rows.apply(inputRowObj);
+        return rawRows.select(row -> requireNonNull((List) row, "row").get(0));
+      };
+      return (Function1) scalarRows;
+    }
+    return rows;
   }
 
-  /**
-   * Helper for {@link #flatZip}: unpacks each collection in {@code lists}
-   * into an enumerator and combines them using zip (positional) semantics,
-   * padding shorter collections with {@code NULL}.
-   *
-   * @param lists        one element per collection (scalar list, struct list, or map)
-   * @param fieldCounts  output column count for each collection (-1 for a collection
-   *                     of scalars or of structs kept whole)
-   * @param withOrdinality whether to append a 1-based ordinality column
-   * @param inputTypes   type of elements in each collection (SCALAR, LIST, STRUCT, or MAP)
-   * @param outer        whether to emit one all-NULL row when every collection is
-   *                     empty or NULL, rather than no rows
-   */
-  @SuppressWarnings("rawtypes")
-  private static Enumerable<FlatLists.ComparableList<Comparable>> z2(
-      Object[] lists, int[] fieldCounts, boolean withOrdinality,
-      FlatProductInputType[] inputTypes, boolean outer) {
-    final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
-    final int[] widths = new int[lists.length];
-    int totalFieldCount = 0;
-    for (int i = 0; i < lists.length; i++) {
-      final int fieldCount = fieldCounts[i];
-      final FlatProductInputType inputType = inputTypes[i];
-      final Object inputObject = lists[i];
-      if (inputObject == null) {
-        // A NULL collection contributes no elements, like an empty one. Under
-        // outer mode the wrapper below turns "no elements at all" into the
-        // single NULL-padded row.
-        enumerators.add(Linq4j.emptyEnumerator());
-        widths[i] = fieldCount < 0 ? 1 : fieldCount;
-        totalFieldCount += widths[i];
-        continue;
+  /** Helper for {@link #flatUncollect}; returns the row-producing function
+   * before the single-output-column unwrapping. */
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private static Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>>
+      flatUncollectRows(
+          final int[] passthroughIndices,
+          final int[] collectionIndices,
+          final FlatProductInputType[] inputTypes,
+          final boolean withOrdinality,
+          final int inputFieldCount,
+          final boolean outer,
+          final int[] widths,
+          final int totalElemWidth,
+          final int outputFieldCount) {
+    return inputRowObj -> {
+      // When there is exactly one input field, JavaRowFormat.optimize() always
+      // picks SCALAR format, meaning inputRowObj IS the field value, not a row.
+      final List<Object> inputRow = inputFieldCount == 1
+          ? Collections.singletonList(inputRowObj)
+          : rowToList(inputRowObj);
+
+      // For outer (LEFT JOIN) semantics: if every collection is null or empty,
+      // emit one row with pass-through fields preserved and NULL for all
+      // element columns and the ordinality column.
+      if (outer) {
+        boolean allEmpty = true;
+        for (int collectionIndex : collectionIndices) {
+          if (!collectionIsNullOrEmpty(inputRow.get(collectionIndex))) {
+            allEmpty = false;
+            break;
+          }
+        }
+        if (allEmpty) {
+          final Object[] out = new Object[outputFieldCount];
+          int outCol = 0;
+          for (int i : passthroughIndices) {
+            out[outCol++] = inputRow.get(i);
+          }
+          return Linq4j.singletonEnumerable(
+              (FlatLists.ComparableList) FlatLists.of(Arrays.asList(out)));
+        }
       }
-      switch (inputType) {
-      case SCALAR:
-        @SuppressWarnings("unchecked") List<Comparable> list =
-            (List<Comparable>) inputObject;
-        enumerators.add(Linq4j.transform(Linq4j.enumerator(list), FlatLists::of));
-        widths[i] = 1;
-        break;
-      case STRUCT:
-        // A struct element kept whole occupies a single output column, like a
-        // scalar element, but its value must be converted to Object[].
-        @SuppressWarnings("unchecked") List<Object> structList =
-            (List<Object>) inputObject;
-        @SuppressWarnings("unchecked") Enumerator<List<Comparable>> structEnumerator =
-            (Enumerator) Linq4j.transform(Linq4j.enumerator(structList),
-                (Object e) -> FlatLists.ofSingle(structValue(e)));
-        enumerators.add(structEnumerator);
-        widths[i] = 1;
-        break;
-      case LIST:
-        @SuppressWarnings("unchecked") List<List<Comparable>> listList =
-            (List<List<Comparable>>) inputObject;
-        enumerators.add(Linq4j.enumerator(listList));
-        widths[i] = fieldCount;
-        break;
-      case MAP:
-        @SuppressWarnings("unchecked") Map<Comparable, Comparable> map =
-            (Map<Comparable, Comparable>) inputObject;
-        Enumerator<Map.Entry<Comparable, Comparable>> enumerator =
-            Linq4j.enumerator(map.entrySet());
-        enumerators.add(Linq4j.transform(enumerator, e -> FlatLists.of(e.getKey(), e.getValue())));
-        widths[i] = 2;
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown input type: " + inputType);
+
+      // Build one enumerator per collection, in collectionIndices order.
+      final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
+      for (int q = 0; q < collectionIndices.length; q++) {
+        enumerators.add(
+            collectionEnumerator(inputRow.get(collectionIndices[q]), inputTypes[q]));
       }
-      totalFieldCount += (fieldCount < 0) ? 1 : fieldCount;
-    }
-    if (withOrdinality) {
-      ++totalFieldCount;
-    }
-    final int fieldCount = totalFieldCount;
-    if (!outer) {
+
+      final Enumerable<FlatLists.ComparableList<Comparable>> elemRows =
+          new AbstractEnumerable<ComparableList<Comparable>>() {
+            @Override public Enumerator<ComparableList<Comparable>> enumerator() {
+              return new ZipPaddedEnumerator(
+                  enumerators, widths, totalElemWidth + (withOrdinality ? 1 : 0),
+                  withOrdinality);
+            }
+          };
+
+      // For each element row from elemRows, prepend the pass-through input
+      // fields to produce the final output row. A field in both sets emits
+      // first its raw value and then its element columns.
       return new AbstractEnumerable<FlatLists.ComparableList<Comparable>>() {
         @Override public Enumerator<FlatLists.ComparableList<Comparable>> enumerator() {
-          return new ZipPaddedEnumerator(enumerators, widths, fieldCount, withOrdinality);
+          final Enumerator<FlatLists.ComparableList<Comparable>> elemEnum =
+              elemRows.enumerator();
+          return new Enumerator<FlatLists.ComparableList<Comparable>>() {
+            @Override public FlatLists.ComparableList<Comparable> current() {
+              final Object[] out = new Object[outputFieldCount];
+              int outIdx = 0;
+              // Pass-through fields first (in input-index order).
+              for (int i : passthroughIndices) {
+                out[outIdx++] = inputRow.get(i);
+              }
+              // Expanded element columns follow.
+              final List elemRow = elemEnum.current();
+              for (int e = 0; e < totalElemWidth; e++) {
+                out[outIdx++] = elemRow.get(e);
+              }
+              if (withOrdinality) {
+                out[outIdx] = elemRow.get(totalElemWidth);
+              }
+              return (FlatLists.ComparableList) FlatLists.of(Arrays.asList(out));
+            }
+
+            @Override public boolean moveNext() {
+              return elemEnum.moveNext();
+            }
+
+            @Override public void reset() {
+              elemEnum.reset();
+            }
+
+            @Override public void close() {
+              elemEnum.close();
+            }
+          };
         }
       };
-    }
-    @SuppressWarnings("unchecked") final FlatLists.ComparableList<Comparable> nullRow =
-        (FlatLists.ComparableList) FlatLists.of(Collections.nCopies(fieldCount, null));
-    return new AbstractEnumerable<FlatLists.ComparableList<Comparable>>() {
-      @Override public Enumerator<FlatLists.ComparableList<Comparable>> enumerator() {
-        return new DefaultIfEmptyEnumerator(
-            new ZipPaddedEnumerator(enumerators, widths, fieldCount, withOrdinality),
-            nullRow);
-      }
     };
   }
 
-  /** Enumerator that yields the rows of another enumerator, or a single
-   * default row if that enumerator yields none.
-   *
-   * <p>This is the {@code defaultIfEmpty} operation of LINQ. It implements
-   * the outer (LEFT JOIN) semantics of {@code Uncollect}, where the default
-   * row is all NULL. */
-  @SuppressWarnings("rawtypes")
-  private static class DefaultIfEmptyEnumerator
-      implements Enumerator<FlatLists.ComparableList<Comparable>> {
-    private final Enumerator<FlatLists.ComparableList<Comparable>> inner;
-    private final FlatLists.ComparableList<Comparable> defaultRow;
-    /** Whether {@link #inner} has yielded at least one row. */
-    private boolean innerMoved;
-    /** Whether {@link #defaultRow} is the row currently being returned. */
-    private boolean onDefaultRow;
-
-    DefaultIfEmptyEnumerator(
-        Enumerator<FlatLists.ComparableList<Comparable>> inner,
-        FlatLists.ComparableList<Comparable> defaultRow) {
-      this.inner = inner;
-      this.defaultRow = defaultRow;
+  /** Converts an input row (Object[], List, or scalar) to a {@link List}. */
+  @SuppressWarnings("unchecked")
+  private static List<Object> rowToList(Object rowObj) {
+    if (rowObj instanceof List) {
+      return (List<Object>) rowObj;
+    } else if (rowObj instanceof Object[]) {
+      return Arrays.asList((Object[]) rowObj);
+    } else {
+      return Collections.singletonList(rowObj);
     }
+  }
 
-    @Override public boolean moveNext() {
-      if (onDefaultRow) {
-        return false;
-      }
-      if (inner.moveNext()) {
-        innerMoved = true;
-        return true;
-      }
-      if (innerMoved) {
-        return false;
-      }
-      onDefaultRow = true;
+  /** Returns whether {@code collection} is {@code null} or empty. */
+  private static boolean collectionIsNullOrEmpty(@Nullable Object collection) {
+    if (collection == null) {
       return true;
     }
-
-    @Override public FlatLists.ComparableList<Comparable> current() {
-      return onDefaultRow ? defaultRow : inner.current();
+    if (collection instanceof Collection) {
+      return ((Collection<?>) collection).isEmpty();
     }
-
-    @Override public void reset() {
-      inner.reset();
-      innerMoved = false;
-      onDefaultRow = false;
+    if (collection instanceof Map) {
+      return ((Map<?, ?>) collection).isEmpty();
     }
+    if (collection instanceof Object[]) {
+      return ((Object[]) collection).length == 0;
+    }
+    return false;
+  }
 
-    @Override public void close() {
-      inner.close();
+  /** Creates an enumerator over element rows for a single collection field.
+   * Returns an empty enumerator for a {@code null} collection, so under outer
+   * mode the all-empty check above is what produces the NULL-padded row. */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static Enumerator<List<Comparable>> collectionEnumerator(
+      @Nullable Object collection, FlatProductInputType inputType) {
+    if (collection == null) {
+      return Linq4j.emptyEnumerator();
+    }
+    switch (inputType) {
+    case SCALAR:
+      return (Enumerator) Linq4j.transform(
+          Linq4j.enumerator((List) collection), FlatLists::of);
+    case STRUCT:
+      // A struct element kept whole occupies a single output column, like a
+      // scalar element, but its value must be converted to Object[].
+      return (Enumerator) Linq4j.transform(
+          Linq4j.enumerator((List) collection),
+          (Object e) -> FlatLists.ofSingle(structValue(e)));
+    case LIST:
+      final List<List<Comparable>> listColl =
+          collection instanceof Object[]
+              ? (List) Arrays.asList((Object[]) collection)
+              : (List<List<Comparable>>) collection;
+      return Linq4j.enumerator(listColl);
+    case MAP:
+      final Map<Comparable, Comparable> map = (Map<Comparable, Comparable>) collection;
+      return Linq4j.transform(
+          Linq4j.enumerator(map.entrySet()),
+          e -> FlatLists.of(e.getKey(), e.getValue()));
+    default:
+      throw new IllegalArgumentException("Unknown input type: " + inputType);
     }
   }
 
@@ -8244,7 +8439,7 @@ public class SqlFunctions {
     JSON_KEYS, JSON_KEYS_AND_VALUES, JSON_VALUES
   }
 
-  /** Type of argument passed into {@link #flatZip}. */
+  /** Type of argument passed into {@link #flatUncollect}. */
   public enum FlatProductInputType {
     SCALAR, LIST, MAP, STRUCT
   }

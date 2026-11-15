@@ -49,6 +49,13 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-43-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7907">CALCITE-7907</a>]
+  Extend `UnionToDistinctRule` to match `Union` instead of `LogicalUnion`.
+  The default configuration of `UnionToDistinctRule` (`CoreRules.UNION_TO_DISTINCT`)
+  has changed: the rule's matching scope has increased. Projects that need the
+  previous behavior can use
+  `UnionToDistinctRule.Config.DEFAULT.withOperandFor(LogicalUnion.class)`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7580">CALCITE-7580</a>]
   Remove Gandiva dependency from Arrow adapter. Arrow adapter projection and
   filter evaluation now run in Java, and the `arrow-gandiva` dependency is no
@@ -77,7 +84,9 @@ operator-supplied.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7713">CALCITE-7713</a>]
 Class loading from model files has been disabled by default. Any attempt to load
 classes from model files will lead to `SecurityException` unless an appropriate
-pattern is set in `calcite.model.classes.allowed` system property.
+pattern is set in `calcite.model.classes.allowed` system property. This also applies
+to the JDBC driver that `DriverManager` chooses for `jdbcUrl` when a JDBC schema
+does not specify `jdbcDriver`.
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7716">CALCITE-7716</a>]
 `UUID` values are now ordered as unsigned 128-bit values, as SQL requires.
@@ -114,10 +123,26 @@ check the width of each group, and turned `1-2-3-4-5` into
 requires exactly 16 bytes; a longer value used to be truncated. Blanks are not
 trimmed.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7860">CALCITE-7860</a>]
+The file adapter now dereferences only local `file:` sources by default. Table
+`url` operands naming remote URLs (`http`, `https`, `ftp`, ...; including `file://localhost/`,
+and `jar:` even when it wraps a local file) are rejected with `IllegalArgumentException`
+unless they match the new `calcite.file.urls.allowed` system property. See
+[Enabling remote fetches]({{ site.baseurl }}/docs/file_adapter.html#enabling-remote-fetches).
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7760">CALCITE-7760</a>]
 The Spark engine now requires the operator-level opt-in system property
 `-Dcalcite.enable.spark=true`. The `spark` connection property alone no longer
 activates it; a connection using `spark=true` without the opt-in will fail.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7781">CALCITE-7781</a>]
+The fallback `SqlDialect` for an unrecognized JDBC product name now doubles
+backslashes when quoting string literals, so a value cannot terminate the
+literal early on a backend that treats `\` as an in-string escape character
+(the MySQL family, among others). Deployments whose unrecognized backend
+follows SQL-standard literal lexing may restore the legacy behavior with
+`-Dcalcite.sql.dialect.unknown.escapes.backslash=false`; the robust fix is
+to add a `SqlDialect` implementation for the product.
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7787">CALCITE-7787</a>]
 The Geode schema operand `pdxSerializablePackagePath` (honored by `GeodeSchemaFactory`
@@ -136,6 +161,13 @@ still qualifies the field (`d.a`). When the field name is generated (for example
 `allowAliasUnnestItems` is true, such as `PRESTO` and `BIG_QUERY`, are unaffected.
 To keep the alias as the output column name, write `AS d (d)`; a `USING (d)`
 join can still refer to the column by the alias, but its output keeps the field name.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7906">CALCITE-7906</a>]
+`LikePattern`, which handles the patterns passed to JDBC `DatabaseMetaData` methods such as
+`getTables` and `getColumns` and to `Lookup.getNames`, now supports the `_` wildcard (any single
+character) as well as `%`, as the JDBC specification requires. Previously `_` matched only itself.
+For example, the pattern `EMP_DEPT` now also matches `EMPXDEPT`. To match a literal `_`, escape it
+as `\_`. The public method `LikePattern.likeToRegex` has been removed as part of this improvement.
 
 #### New features
 {: #new-features-1-43-0}

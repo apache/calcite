@@ -122,6 +122,22 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.uuid.unsigned.comparison", true);
 
   /**
+   * Whether the fallback dialect that
+   * {@link org.apache.calcite.sql.SqlDialectFactory} uses for an
+   * unrecognized database product doubles backslashes when quoting string
+   * literals.
+   *
+   * <p>The unrecognized backend's string-lexing rules are unknown, so the
+   * default is to double backslashes: this keeps a value from terminating a
+   * generated string literal early on a backend that treats backslash as an
+   * in-string escape character (the MySQL family, among others). Set to
+   * "false" to restore the legacy behavior for backends known to follow the
+   * SQL standard.
+   */
+  public static final CalciteSystemProperty<Boolean> UNKNOWN_DIALECT_ESCAPES_BACKSLASH =
+      booleanProperty("calcite.sql.dialect.unknown.escapes.backslash", true);
+
+  /**
    * Whether to include a GraphViz representation when dumping the state of the
    * Volcano planner.
    */
@@ -515,6 +531,31 @@ public final class CalciteSystemProperty<T> {
    */
   public static final CalciteSystemProperty<String> MODEL_BASE_DIRECTORY =
       stringProperty("calcite.model.baseDirectory", "");
+
+  /**
+   * Regular expression that a remote URL in a file adapter table {@code url}
+   * operand must match for the adapter to dereference it (for example
+   * {@code -Dcalcite.file.urls.allowed=https://data\.example\.com/.*}).
+   * Empty by default: only local {@code file:} sources are dereferenced.
+   *
+   * <p>The expression uses {@link java.util.regex.Pattern} syntax and must
+   * match the whole URL, as written in the operand. Use {@code |} to allow
+   * several sites, for example
+   * {@code https://data\.example\.com/.*|http://data\.example\.com:8080/.*}.
+   * Matching is case-sensitive (use {@code (?i)} to ignore case), and the URL
+   * is not normalized first: default ports, {@code .} and {@code ..} segments
+   * and percent-encoding are compared as written. Escape each {@code .} in a
+   * host name, and end the host with {@code /} (or {@code :port/}),
+   * otherwise {@code example\.com.*} also matches {@code example.com.other.org}.
+   *
+   * <p>Only {@code file:} URLs that do not name a host (not even {@code localhost})
+   * are considered local and are always allowed. The check applies only to the URL
+   * named in the operand. Redirects returned by the server are followed without
+   * being re-checked, so an allowed URL that redirects can cause the adapter to
+   * fetch from a URL that does not match the expression.
+   */
+  public static final CalciteSystemProperty<String> FILE_URLS_ALLOWED =
+      stringProperty("calcite.file.urls.allowed", "");
 
   /**
    * Whether the Kafka adapter forwards the {@code consumer.params} model

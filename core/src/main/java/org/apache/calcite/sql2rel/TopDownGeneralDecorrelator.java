@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -232,14 +233,32 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     prePlanner.setRoot(rel);
     RelNode preparedRel = prePlanner.findBestExp();
 
+    // Extract computations over correlated variables from the right side of
+    // a Correlate into its left input, like RelDecorrelator does. Rewrites
+    // that require the right side to access correlated fields directly (such
+    // as CorrelateUncollectMergeRule) can then apply.
+    preparedRel = preparedRel.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
+
+    // Merge each Correlate over an Uncollect into a generalized Uncollect
+    // before the main pass: correlateElimination does not support Uncollect,
+    // and one such Correlate would otherwise make the whole query bail out.
+    HepProgram uncollectProgram = HepProgram.builder()
+        .addRuleInstance(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .build();
+    HepPlanner uncollectPlanner =
+        new HepPlanner(uncollectProgram, null, true, null, RelOptCostImpl.FACTORY);
+    uncollectPlanner.setRoot(preparedRel);
+    preparedRel = uncollectPlanner.findBestExp();
+
     // start decorrelating
-    RelNode decorrelateNode = rel;
+    RelNode decorrelateNode = preparedRel;
     if (canDecorrelateOffsetFetch(preparedRel, false)) {
       TopDownGeneralDecorrelator decorrelator = createEmptyDecorrelator(builder);
       try {
         decorrelateNode = decorrelator.correlateElimination(preparedRel, true);
       } catch (UnsupportedOperationException e) {
-        // if the correlation exists in an unsupported operator, retain the original plan.
+        // The correlation exists in an unsupported operator. Retain the
+        // prepared plan
       }
     }
 
@@ -250,6 +269,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
                 CoreRules.FILTER_INTO_JOIN,
                 CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
                 CoreRules.PROJECT_MERGE,
+                CoreRules.PROJECT_UNCOLLECT_MERGE,
                 CoreRules.PROJECT_REMOVE))
         .build();
     HepPlanner postPlanner = new HepPlanner(postProgram);
@@ -330,7 +350,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
 
     // decorrelate right side
     detectCorrelatedExpressions(correlate.getRight());
-    allowEmptyOutputFromRewrite &= correlate.getJoinType() != JoinRelType.LEFT_MARK;
+    allowEmptyOutputFromRewrite &= correlate.getJoinType() == JoinRelType.LEFT;
     RelNode newRight = unnest(correlate.getRight(), allowEmptyOutputFromRewrite);
     UnnestedQuery rightInfo = requireNonNull(mapRelToUnnestedQuery.get(correlate.getRight()));
 
@@ -531,7 +551,16 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
   }
 
   public RelNode unnestInternal(Aggregate aggregate, boolean allowEmptyOutputFromRewrite) {
-    RelNode newInput = unnest(aggregate.getInput(), allowEmptyOutputFromRewrite);
+    // The rewrite of the input can give an empty output in place of a row
+    // of NULL values only if this Aggregate gives the same result for both.
+    // Example, for an outer table t:
+    //   SELECT COUNT(*) FROM (SELECT COUNT(*) FROM s
+    //     WHERE s.k = t.k GROUP BY ROLLUP(s.a))
+    // For a row of t that matches no row of s, the () group of ROLLUP
+    // gives one row, so the result is 1, not 0.
+    final boolean allowEmptyInputFromRewrite = allowEmptyOutputFromRewrite
+        && RelDecorrelator.isSameForNoRowsAndNullRow(aggregate);
+    RelNode newInput = unnest(aggregate.getInput(), allowEmptyInputFromRewrite);
     UnnestedQuery inputUnnestedQuery =
         requireNonNull(mapRelToUnnestedQuery.get(aggregate.getInput()));
     builder.push(newInput);
@@ -748,7 +777,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     } else {
       // when neither the left nor the right side has correlation,
       // but the join condition has correlation, domain D is pushed down to the left by default.
-      newLeft = unnest(join.getLeft(), allowEmptyOutputFromRewrite);
+      newLeft = unnest(join.getLeft(), join.getJoinType() == JoinRelType.RIGHT);
       pushDownToLeft = true;
       leftInfo = requireNonNull(mapRelToUnnestedQuery.get(join.getLeft()));
     }
@@ -770,8 +799,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       rightInfo =
           new UnnestedQuery(join.getRight(), newRight, new TreeMap<>(), rightOldToNewOutputs);
     } else {
-      allowEmptyOutputFromRewrite &= join.getJoinType() != JoinRelType.LEFT_MARK;
-      newRight = unnest(join.getRight(), allowEmptyOutputFromRewrite);
+      newRight = unnest(join.getRight(), join.getJoinType() == JoinRelType.LEFT);
       pushDownToRight = true;
       rightInfo = requireNonNull(mapRelToUnnestedQuery.get(join.getRight()));
     }

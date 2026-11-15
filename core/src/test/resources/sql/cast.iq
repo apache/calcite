@@ -2024,6 +2024,18 @@ select cast(mod(deptno, 3) as BOOLEAN), mod(deptno, 3) from emp;
 
 !ok
 
+# Test case for [CALCITE-7839] CAST(CAST(0 AS TINYINT) AS BOOLEAN) should not evaluate to TRUE
+values (cast(cast(0 as tinyint) as boolean), cast(cast(0 as smallint) as boolean),
+  cast(cast(0 as bigint) as boolean), cast(cast(5 as bigint) as boolean));
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| false  | false  | false  | true   |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+
 # Test case for [CALCITE-7653] ARRAY[NULL] produces uncompilable Java code
 values (cast(array[null] as integer array));
 +--------+
@@ -2103,5 +2115,158 @@ FROM (VALUES (0)) AS t(zero);
 (1 row)
 
 !ok
+
+# Test case for [CALCITE-7840] REAL literals should be represented with reduced precision
+values (cast(0.1e0 as real) = cast(0.1 as real),
+  cast(cast(0.1e0 as real) as double) = cast(cast(0.1 as real) as double),
+  cast(0.1e0 as real) = 0.1e0);
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+| true   | true   | false  |
++--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test case for [CALCITE-7870] RexSimplify removes some casts which change
+# semantics
+SELECT CAST(CAST(deptno AS DOUBLE) AS VARCHAR) AS d1,
+  CAST(CAST(deptno AS DECIMAL(5, 2)) AS VARCHAR) AS d2,
+  CAST(CAST(sal AS DECIMAL(10, 4)) AS VARCHAR) AS d3,
+  CAST(CAST(deptno AS INTEGER) AS VARCHAR) AS d4
+FROM emp
+WHERE empno = 7369;
++------+-------+----------+----+
+| D1   | D2    | D3       | D4 |
++------+-------+----------+----+
+| 20.0 | 20.00 | 800.0000 | 20 |
++------+-------+----------+----+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST(deptno AS BIGINT) AS VARBINARY) AS b1,
+  CAST(CAST(CAST(deptno AS DOUBLE) / 3e0 AS VARCHAR(3)) AS VARCHAR) AS s1,
+  CAST(CAST(CAST(deptno AS DOUBLE) / 3e0 AS VARCHAR(3)) AS DOUBLE) AS s2
+FROM emp
+WHERE empno = 7369;
++------------------+-----+-----+
+| B1               | S1  | S2  |
++------------------+-----+-----+
+| 0000000000000014 | 6.6 | 6.6 |
++------------------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST(deptno AS VARCHAR) AS BOOLEAN) AS b
+FROM emp
+WHERE empno = 7369;
+Invalid character for cast: 20
+!error
+
+SELECT CAST(CAST(deptno AS VARCHAR) AS TIMESTAMP) AS t
+FROM emp
+WHERE empno = 7369;
+Invalid DATE value, '20'
+!error
+
+SELECT CAST(CAST(deptno AS VARCHAR) AS BIGINT) AS b1,
+  CAST(CAST(deptno AS VARCHAR) AS DOUBLE) AS b2
+FROM emp
+WHERE empno = 7369;
++----+------+
+| B1 | B2   |
++----+------+
+| 20 | 20.0 |
++----+------+
+(1 row)
+
+!ok
+
+SELECT CAST(CAST(sal / 3 AS REAL) AS VARCHAR) AS r1,
+  CAST(CAST(CAST(sal / 3 AS REAL) AS DOUBLE) AS VARCHAR) AS r2
+FROM emp
+WHERE empno = 7369;
++-----------+-------------------+
+| R1        | R2                |
++-----------+-------------------+
+| 266.66666 | 266.6666564941406 |
++-----------+-------------------+
+(1 row)
+
+!ok
+
+# The inner casts to DOUBLE are removed; the results do not change
+SELECT CAST(CAST(CAST(deptno AS REAL) AS DOUBLE) AS BOOLEAN) AS b1,
+  CAST(CAST(CAST(deptno - 20 AS REAL) AS DOUBLE) AS BOOLEAN) AS b2
+FROM emp
+WHERE empno = 7369;
++------+-------+
+| B1   | B2    |
++------+-------+
+| true | false |
++------+-------+
+(1 row)
+
+!ok
+
+# A VARIANT keeps the type of its value, so the inner casts must stay
+SELECT TYPEOF(CAST(CAST(deptno AS SMALLINT) AS VARIANT)) AS t1,
+  TYPEOF(CAST(deptno AS VARIANT)) AS t2,
+  CAST(CAST(deptno AS SMALLINT) AS VARIANT) = CAST(deptno AS VARIANT) AS e,
+  TYPEOF(CAST(CAST(ename AS VARCHAR(20)) AS VARIANT)) AS t3
+FROM emp
+WHERE empno = 7369;
++----------+---------+-------+---------+
+| T1       | T2      | E     | T3      |
++----------+---------+-------+---------+
+| SMALLINT | TINYINT | false | VARCHAR |
++----------+---------+-------+---------+
+(1 row)
+
+!ok
+
+!use scott-negative-scale
+SELECT CAST(CAST(CAST(deptno * 1000 AS DECIMAL(2, -3)) AS VARCHAR(3)) AS VARCHAR) AS n1
+FROM emp
+WHERE empno = 7369;
++-----+
+| N1  |
++-----+
+| 200 |
++-----+
+(1 row)
+
+!ok
+
+# Test case for [CALCITE-6091] CASE WHEN with ARRAY/MAP types and NULL ELSE
+# branch should not truncate element type
+!use scott
+
+SELECT CASE WHEN true THEN ARRAY['abc'] WHEN false THEN ARRAY['d'] ELSE null END AS c;
++-------+
+| C     |
++-------+
+| [abc] |
++-------+
+(1 row)
+
+!ok
+C CHAR(3) ARRAY
+!type
+
+SELECT CASE WHEN true THEN ARRAY[1, 2] WHEN false THEN ARRAY[3] ELSE null END AS c;
++--------+
+| C      |
++--------+
+| [1, 2] |
++--------+
+(1 row)
+
+!ok
+C INTEGER ARRAY
+!type
 
 # End cast.iq

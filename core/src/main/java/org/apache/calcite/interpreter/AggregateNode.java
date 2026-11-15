@@ -395,6 +395,15 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     public void end(Sink sink) throws InterruptedException {
+      if (accumulators.isEmpty() && grouping.isEmpty()) {
+        // The empty grouping set (the grand total) produces a row even when
+        // the input is empty, just as a query with no GROUP BY does.
+        final AccumulatorList list = new AccumulatorList();
+        for (AccumulatorFactory factory : accumulatorFactories) {
+          list.add(factory.get());
+        }
+        accumulators.put(Row.of(), list);
+      }
       for (Map.Entry<Row, AccumulatorList> e : accumulators.entrySet()) {
         final Row key = e.getKey();
         final AccumulatorList list = e.getValue();

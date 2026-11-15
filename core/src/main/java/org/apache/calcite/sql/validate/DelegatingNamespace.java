@@ -96,6 +96,10 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     return namespace.getMonotonicExprs();
   }
 
+  @Override public FilterRequirement getFilterRequirement() {
+    return namespace.getFilterRequirement();
+  }
+
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return namespace.getMonotonicity(columnName);
   }

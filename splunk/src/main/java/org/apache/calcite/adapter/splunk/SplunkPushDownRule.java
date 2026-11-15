@@ -42,12 +42,14 @@ import org.apache.calcite.util.NlsString;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Planner rule to push filters and projections to Splunk.
@@ -57,6 +59,25 @@ public class SplunkPushDownRule
     extends RelRule<SplunkPushDownRule.Config> {
   private static final Logger LOGGER =
       StringUtils.getClassTracer(SplunkPushDownRule.class);
+
+  /**
+   * Shape of field names that may be copied verbatim into the SPL search
+   * string. SPL has no generic identifier-quoting mechanism, so a name
+   * outside this set is never pushed down; the corresponding filter or
+   * projection is evaluated by Calcite instead. The set is deliberately
+   * broad enough to cover the common Splunk shapes (leading underscore as
+   * in {@code _raw}, dotted paths, {@code {}} for multivalued fields,
+   * {@code $} in Calcite-generated aliases such as {@code EXPR$0}, and
+   * {@code -} in host-style names) so pushdown is preserved for legitimate
+   * inputs.
+   */
+  private static final Pattern SAFE_FIELD_NAME =
+      Pattern.compile("[A-Za-z0-9_.:@#{}$\\-]+");
+
+  /** Returns whether a field name may be embedded verbatim in SPL text. */
+  static boolean isSafeFieldName(String name) {
+    return name != null && SAFE_FIELD_NAME.matcher(name).matches();
+  }
 
   private static final Set<SqlKind> SUPPORTED_OPS =
       ImmutableSet.of(
@@ -193,10 +214,15 @@ public class SplunkPushDownRule
     }
     LOGGER.debug("pre transformTo fieldNames: {}", getFieldsString(topRow));
 
-    call.transformTo(
+    final RelNode rel =
         appendSearchString(
             filterString, splunkRel, topProj, bottomProj,
-            topRow, null));
+            topRow, null);
+    if (rel == null) {
+      // A field-rename side is not a safe SPL name; leave the plan in place.
+      return;
+    }
+    call.transformTo(rel);
   }
 
   /**
@@ -206,8 +232,12 @@ public class SplunkPushDownRule
    * @param splunkRel Relational expression
    * @param topProj Top projection
    * @param bottomProj Bottom projection
+   *
+   * @return the rewritten scan, or null if a field rename involves a name
+   *     that cannot be safely embedded in SPL text (see
+   *     {@link #isSafeFieldName})
    */
-  protected RelNode appendSearchString(
+  protected @Nullable RelNode appendSearchString(
       String toAppend,
       SplunkTableScan splunkRel,
       LogicalProject topProj,
@@ -269,6 +299,16 @@ public class SplunkPushDownRule
     }
 
     if (!renames.isEmpty()) {
+      // SPL provides no generic identifier-quoting mechanism, so refuse to
+      // push down a rename when either side would not be a safe SPL name
+      // (see isSafeFieldName). Returning null signals the caller to leave
+      // the original plan in place.
+      for (int r = 0; r < renames.size(); r++) {
+        if (!isSafeFieldName(renames.left(r))
+            || !isSafeFieldName(renames.right(r))) {
+          return null;
+        }
+      }
       updateSearchStr.append("| rename ");
       renames.forEach((left, right) ->
           updateSearchStr.append(left).append(" AS ")
@@ -309,7 +349,7 @@ public class SplunkPushDownRule
   // TODO: refactor this to use more tree like parsing, need to also
   //      make sure we use parens properly - currently precedence
   //      rules are simply left to right
-  private static boolean getFilter(SqlOperator op, List<RexNode> operands,
+  static boolean getFilter(SqlOperator op, List<RexNode> operands,
       StringBuilder s, List<String> fieldNames) {
     if (!valid(op.getKind())) {
       return false;
@@ -364,6 +404,13 @@ public class SplunkPushDownRule
         }
         int fieldIndex = ((RexInputRef) operand).getIndex();
         String name = fieldNames.get(fieldIndex);
+        // Refuse pushdown when the field name is not a safe SPL name (see
+        // isSafeFieldName): SPL provides no generic identifier-quoting
+        // mechanism, so anything else could shift the boundaries of the
+        // emitted command.
+        if (!isSafeFieldName(name)) {
+          return false;
+        }
         s.append(name);
       } else { // RexLiteral
         String tmp = toString(like, (RexLiteral) operand);

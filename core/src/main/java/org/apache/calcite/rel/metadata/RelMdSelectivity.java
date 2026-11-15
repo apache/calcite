@@ -180,13 +180,28 @@ public class RelMdSelectivity
     final List<RexNode> notPushable = new ArrayList<>();
     final List<RexNode> pushable = new ArrayList<>();
     RelOptUtil.splitFilters(
-        rel.getGroupSet(),
+        ImmutableBitSet.range(rel.getGroupCount()),
         predicate,
         pushable,
         notPushable);
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     RexNode childPred =
         RexUtil.composeConjunction(rexBuilder, pushable, true);
+
+    if (childPred != null) {
+      // Convert aggregate-output references to the corresponding input fields.
+      final int[] adjustments = new int[rel.getGroupCount()];
+      int j = 0;
+      for (int i : rel.getGroupSet()) {
+        adjustments[j] = i - j;
+        j++;
+      }
+      childPred =
+          childPred.accept(
+              new RelOptUtil.RexInputConverter(rexBuilder,
+              rel.getRowType().getFieldList(),
+              rel.getInput().getRowType().getFieldList(), adjustments));
+    }
 
     Double selectivity = mq.getSelectivity(rel.getInput(), childPred);
     if (selectivity == null) {

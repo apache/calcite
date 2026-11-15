@@ -195,11 +195,19 @@ query:
       [ LIMIT [ start, ] { count | ALL } ]
       [ OFFSET { start | expression } { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count | '(' expression ')' ] { ROW | ROWS } ONLY ]
+      [ pipeOperator ]*
+  |   FROM tableExpression [ pipeOperator ]*
+
+pipeOperator:
+      '|>' WHERE booleanExpression
 
 withItem:
       name
       [ '(' column [, column ]* ')' ]
       AS '(' query ')'
+      [ SEARCH { DEPTH | BREADTH } FIRST BY column [, column ]* SET orderColumn ]
+      [ CYCLE column [, column ]* SET markColumn
+          [ TO cycleValue DEFAULT nonCycleValue ] USING pathColumn ]
 
 orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
@@ -229,6 +237,14 @@ in each group as determined by the `ORDER BY` clause. This is recognized only
 when the Babel parser is enabled. It sets the generated parser configuration flag
 `includeDistinctOn` to `true`. When using `DISTINCT ON`, the expressions in the
 `DISTINCT ON` clause must match the beginning of the `ORDER BY` clause.
+
+A trailing comma at the end of the SELECT list, as in GoogleSQL (BigQuery), is
+accepted for compatibility with programmatically generated queries. This is
+recognized only when the Babel parser is enabled. It sets the generated parser
+configuration flag `includeSelectListTrailingComma` to `true`. The trailing
+comma is not preserved in the parse tree. A trailing comma is likewise accepted
+at the end of the column definition list of a `CREATE TABLE` statement parsed
+by the Babel parser.
 
 For example:
 
@@ -419,6 +435,12 @@ be present.
 in those same conformance levels, any *column* in *insert* may be replaced by
 *columnDecl*, which has a similar effect to including it in an EXTEND clause.
 
+In *tableExpression*, JOIN binds tighter than comma, as in the SQL standard:
+"FROM a, b JOIN c ON c.x = b.x" is equivalent to
+"FROM a, (b JOIN c ON c.x = b.x)", so the ON condition can reference
+`b` and `c` but not `a`. A LATERAL item can reference the items to its left,
+also those before a comma.
+
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.
 
@@ -480,6 +502,25 @@ becomes a grouping key; for example,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isFromRequired--).
 
+*pipeOperator* and a standalone `FROM` are only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isPipeSyntaxAllowed--).
+A standalone `FROM` is a query, equivalent to `SELECT *` over that `FROM`
+clause. Any query may be followed by pipe operators, each of which takes the
+query before it as its input table and produces a new table. Pipe syntax is
+based on
+[GoogleSQL's pipe syntax](https://github.com/google/googlesql/blob/master/docs/pipe-syntax.md).
+
+A pipe operator sees only the columns of its input table (and, in a sub-query,
+those of enclosing queries). Table aliases in a standalone `FROM` remain
+visible to the operators that follow it.
+
+For example:
+
+{% highlight sql %}
+FROM emp AS e
+|> WHERE e.deptno = 10
+{% endhighlight %}
+
 MINUS is equivalent to EXCEPT,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isMinusAllowed--).
@@ -521,6 +562,109 @@ FROM left_table LEFT ASOF JOIN right_table
 MATCH_CONDITION left_table.timecol <= right_table.timecol
 ON left_table.col = right_table.col
 ```
+
+### Search ordering in recursive queries
+
+`SEARCH` generates a column that can be used to order the output of a recursive
+query. `SEARCH DEPTH FIRST` orders a node before its descendants and those
+descendants before the next sibling. `SEARCH BREADTH FIRST` orders by depth,
+then by the specified columns within each level. The columns in `BY` are
+compared in their listed order. For a generated search column named `seq`,
+with `ORDER BY seq ASC`, nested NULL key values compare after non-NULL values.
+`ORDER BY seq DESC` reverses the ordering of the entire search key.
+`NULLS FIRST` and `NULLS LAST` have no effect because `seq` itself is never NULL.
+
+For example:
+
+{% highlight sql %}
+WITH RECURSIVE
+  edges(src, dst) AS (VALUES (0, 2), (0, 1), (1, 4), (2, 3)),
+  walk(node) AS (
+    VALUES (0)
+    UNION ALL
+    SELECT e.dst FROM walk AS w JOIN edges AS e ON e.src = w.node
+  ) SEARCH DEPTH FIRST BY node SET search_order
+SELECT node FROM walk ORDER BY search_order;
+{% endhighlight %}
+
+This returns `0, 1, 4, 2, 3`. Changing `DEPTH` to `BREADTH` returns
+`0, 1, 2, 3, 4`. `SEARCH` does not itself sort the result or control the
+physical evaluation order; use an explicit `ORDER BY` on the generated column.
+Rows with equal search keys have no guaranteed relative order.
+
+The depth-first column is an array of key rows representing the path. The
+breadth-first column is a row containing the depth (starting at zero) and the
+current keys. The generated column is appended to the WITH item's output,
+including `SELECT *`, but is not part of its declared column list and cannot
+be referenced in the recursive term.
+
+The generated search column participates in duplicate elimination by `UNION`
+(or `UNION DISTINCT`). Therefore, the same node may appear more than once if
+its search keys differ, for example because it is reached through different
+paths with `DEPTH FIRST` or at different depths with `BREADTH FIRST`.
+Rows that are identical in all columns, including the search column, are
+still eliminated as duplicates.
+
+`SEARCH` requires `WITH RECURSIVE` and a binary `UNION` or `UNION ALL` whose
+recursive operand is a `SELECT` with exactly one direct reference to the
+WITH item on a non-null-generating side of a join. Aggregation, `DISTINCT`,
+and window functions in that operand are not supported. The `BY` columns
+must be distinct columns of the WITH item, and the generated column's name
+must not conflict with any other output column.
+
+`SEARCH` can be combined with `CYCLE`, in that order. The search column is
+followed by the cycle mark and path columns. Search ordering alone does not
+detect or stop cycles.
+
+### Cycle detection in recursive queries
+
+`CYCLE` tracks the specified columns along each path through a recursive
+common table expression. It adds two columns after the query's original
+columns: a cycle mark and a path, represented as an array of rows containing
+the key values. The path includes the current row. A row that repeats a key
+on its own path receives the cycle mark and is returned, but is not used in
+the next recursive iteration. Reaching the same key through a different
+path does not by itself constitute a cycle.
+
+For example, this graph contains the cycle A, B, C, A:
+
+```sql
+WITH RECURSIVE
+  edges(src, dst) AS (
+    VALUES ('A', 'B'), ('B', 'C'), ('C', 'A')
+  ),
+  walk(node) AS (
+    VALUES ('A')
+    UNION ALL
+    SELECT e.dst
+    FROM walk AS w JOIN edges AS e ON e.src = w.node
+  ) CYCLE node SET is_cycle TO 'Y' DEFAULT 'N' USING cycle_path
+SELECT node, is_cycle, cycle_path
+FROM walk;
+```
+
+The result contains A, B, C, and A again; only the last row is marked `Y`.
+Its path is `[{A}, {B}, {C}, {A}]`.
+
+Cycle columns must be distinct columns of the CTE. The generated mark and
+path names must be distinct from each other and from the original columns;
+they are not included in the CTE's explicit column list. Mark values must
+be distinct, non-null Boolean literals (`TRUE` and `FALSE`) or compatible
+character string literals of length one, such as `'Y'` and `'N'`.
+If `TO cycleValue DEFAULT nonCycleValue` is omitted, the mark values default
+to `TRUE` and `FALSE`, respectively: `CYCLE node SET is_cycle USING cycle_path`.
+Key comparisons use SQL row equality:
+a comparison that is UNKNOWN because of a null key does not close a cycle.
+
+In the current implementation, the generated mark and path columns cannot
+be referenced in the recursive term. They are available to queries that
+read the CTE's result, such as the outer `SELECT` in the example above.
+
+`CYCLE` requires `WITH RECURSIVE` and a binary `UNION` or `UNION ALL` whose
+recursive operand is a `SELECT` with exactly one direct reference to the
+CTE. That reference cannot be on the null-generating side of an outer join.
+Aggregation, `DISTINCT`, and window functions in the recursive `SELECT`
+are not supported. Enumerable execution supports both forms of `UNION`.
 
 ## Keywords
 

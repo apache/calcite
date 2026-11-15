@@ -41,14 +41,9 @@ user-friendly.
 ## Download source, build, and run tests
 
 Prerequisites are Git,
-and Java (JDK 8u220 or later, 11 preferred) on your path.
-
-Note: early OpenJDK 1.8 versions (e.g. versions before 1.8u202) are known to have issues with
-producing bytecode for type annotations (see [JDK-8187805](https://bugs.openjdk.java.net/browse/JDK-8187805),
-[JDK-8187805](https://bugs.openjdk.java.net/browse/JDK-8187805),
-[JDK-8210273](https://bugs.openjdk.java.net/browse/JDK-8210273),
-[JDK-8160928](https://bugs.openjdk.java.net/browse/JDK-8160928),
-[JDK-8144185](https://bugs.openjdk.java.net/browse/JDK-8144185) ), so make sure you use up to date Java.
+and Java (JDK 8, 11, 17, 21 or 24) on your path.
+The build compiles the code with JDK 25; see
+[the JDK that compiles Calcite]({{ site.baseurl }}/docs/howto.html#the-jdk-that-compiles-calcite).
 
 Create a local copy of the Git repository, `cd` to its root directory,
 then build using Gradle:
@@ -236,7 +231,10 @@ Note: only main code is verified for now, so nullness annotation is not enforced
 
 To execute the Checker Framework locally please use the following command:
 
-    ./gradlew -PenableCheckerframework :linq4j:classes :core:classes
+    ./gradlew -PjdkBuildVersion=11 -PenableCheckerframework :linq4j:classes :core:classes
+
+`-PjdkBuildVersion=11` compiles with JDK 11, as CI does; see
+[the JDK that compiles Calcite]({{ site.baseurl }}/docs/howto.html#the-jdk-that-compiles-calcite).
 
 Here's a small introduction to null-safe programming:
 

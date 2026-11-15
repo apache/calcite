@@ -88,15 +88,14 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       } else if (expr.equals(name)) {
         fields.add(name);
       } else if (expr.matches("\"literal\":.+")) {
-        scriptFields.add(ElasticsearchRules.quote(name)
+        scriptFields.add(quoteName(name)
                 + ":{\"script\": "
                 + expr.split(":")[1] + "}");
       } else {
-        scriptFields.add(ElasticsearchRules.quote(name)
+        scriptFields.add(quoteName(name)
                 + ":{\"script\":"
                 // _source (ES2) vs params._source (ES5)
-                + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
-                + expr.replace("\"", "") + "\"}");
+                + quoteScript(implementor, expr.replace("\"", "")) + "}");
       }
     }
 
@@ -111,7 +110,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       List<String> newList = fields.stream()
           // _id field is available implicitly
           .filter(f -> !ElasticsearchConstants.ID.equals(f))
-          .map(ElasticsearchRules::quote)
+          .map(ElasticsearchProject::quoteName)
           .collect(Collectors.toList());
 
       final String findString = String.join(", ", newList);
@@ -119,10 +118,9 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     } else {
       // if scripted fields are present, ES ignores _source attribute
       for (String field : fields) {
-        scriptFields.add(ElasticsearchRules.quote(field) + ":{\"script\": "
+        scriptFields.add(quoteName(field) + ":{\"script\": "
                 // _source (ES2) vs params._source (ES5)
-                + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
-                + field + "\"}");
+                + quoteScript(implementor, field) + "}");
       }
       query.append("\"script_fields\": {")
           .append(String.join(", ", scriptFields))
@@ -131,5 +129,25 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
 
     implementor.list.removeIf(l -> l.startsWith("\"_source\""));
     implementor.add("{" + query + "}");
+  }
+
+  /** Renders a name as a JSON string. The value is routed through
+   * {@link ElasticsearchRules#escapeJsonString} so that a name
+   * containing {@code "} or {@code \} stays confined to the surrounding
+   * JSON string. */
+  private static String quoteName(String name) {
+    return ElasticsearchRules.quote(ElasticsearchRules.escapeJsonString(name));
+  }
+
+  /** Renders the scripted-field script that reads {@code path} from the
+   * document source as a JSON string. The path is routed through
+   * {@link ElasticsearchRules#scriptedFieldAccess} so that a field name
+   * containing script punctuation is emitted as a subscript string rather
+   * than concatenated into the script source. */
+  private static String quoteScript(Implementor implementor, String path) {
+    return ElasticsearchRules.quote(
+        ElasticsearchRules.escapeJsonString(
+            ElasticsearchRules.scriptedFieldAccess(
+                implementor.elasticsearchTable.scriptedFieldPrefix(), path)));
   }
 }

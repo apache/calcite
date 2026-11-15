@@ -150,6 +150,23 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6091">[CALCITE-6091]
+   * CASE WHEN with ARRAY/MAP types and NULL ELSE branch should not truncate
+   * element type</a>. */
+  @Test void testLeastRestrictiveForArraysWithNull() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    // Simulates: CASE WHEN true THEN ARRAY['abc'] WHEN false THEN ARRAY['d'] ELSE NULL END
+    // Types: ARRAY<CHAR(3)>, ARRAY<CHAR(1)>, NULL
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.arraySqlChar10, f.arraySqlChar1, f.sqlNull));
+    assertThat(leastRestrictive, notNullValue());
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ARRAY));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
   @Test void testLeastRestrictiveForMultisets() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
@@ -183,6 +200,22 @@ class SqlTypeFactoryTest {
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
             Lists.newArrayList(f.mapSqlChar10Nullable, f.mapSqlChar1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MAP));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getKeyType().getPrecision(), is(10));
+    assertThat(leastRestrictive.getValueType().getPrecision(), is(10));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6091">[CALCITE-6091]
+   * CASE WHEN with MAP types and NULL ELSE branch should not fail type inference</a>. */
+  @Test void testLeastRestrictiveForMapsWithNull() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    // Simulates: CASE WHEN ... THEN MAP[...] WHEN ... THEN MAP[...] ELSE NULL END
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.mapSqlChar10Nullable, f.mapSqlChar1, f.sqlNull));
+    assertThat(leastRestrictive, notNullValue());
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MAP));
     assertThat(leastRestrictive.isNullable(), is(true));
     assertThat(leastRestrictive.getKeyType().getPrecision(), is(10));

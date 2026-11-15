@@ -20,15 +20,47 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.junit.jupiter.api.Test;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test cases for {@link org.apache.calcite.rel.metadata.RelMdSelectivity}.
  */
 class RelMdSelectivityTest {
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7687">[CALCITE-7687]
+   * Aggregate selectivity estimation uses incorrect column references</a>. */
+  @Test void testAggregateSelectivityWithPredicate() {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build())
+        .transform(c -> c.withPruneInputOfAggregate(false));
+    final Aggregate aggregate = (Aggregate) builder
+        .scan("EMP")
+        .project(
+            builder.field("EMPNO"),
+            builder.field("DEPTNO"))
+        .filter(
+            builder.equals(
+                builder.field("DEPTNO"),
+                builder.literal(10)))
+        .aggregate(
+            builder.groupKey("DEPTNO"),
+            builder.countStar("C"))
+        .peek();
+
+    final RexNode predicate =
+        builder.equals(builder.field("DEPTNO"), builder.literal(10));
+
+    assertThat(aggregate.getCluster().getMetadataQuery()
+        .getSelectivity(aggregate, predicate), is(1D));
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4414">[CALCITE-4414]

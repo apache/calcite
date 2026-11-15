@@ -87,11 +87,12 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
     this(isLead ? SqlKind.LEAD : SqlKind.LAG);
   }
 
-  // Result is NOT NULL if NOT NULL default value is provided
+  // Result is NOT NULL only if a default value is given and no operand is nullable
   private static RelDataType transformType(SqlOperatorBinding binding,
       RelDataType type) {
     SqlTypeTransform transform =
-        binding.getOperandCount() < 3 || binding.getOperandType(2).isNullable()
+        binding.getOperandCount() < 3
+            || binding.collectOperandTypes().stream().anyMatch(RelDataType::isNullable)
             ? SqlTypeTransforms.FORCE_NULLABLE
             : SqlTypeTransforms.TO_NOT_NULLABLE;
     return transform.transformType(binding, type);

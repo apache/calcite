@@ -52,7 +52,7 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = FILTER t BY (tc0 > 'abc');"));
   }
@@ -67,9 +67,53 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = FILTER t BY (tc0 == 'a\\'b');"));
+  }
+
+  @Test void testLoadPathWithSingleQuote() {
+    // A LOAD path containing a single quote must be escaped per Pig Latin
+    // string-literal rules so it does not break out of the '...' literal in
+    // the generated LOAD statement
+    CalciteAssert.that()
+        .with(MODEL)
+        .query("select * from \"tq\"")
+        .runs()
+        .queryContains(
+            pigScriptChecker("tq = LOAD '"
+                + getEscapedFullPathForTestDataFile("data'quote.txt")
+                + "' USING PigStorage() AS (tqc0:chararray, tqc1:chararray);"));
+  }
+
+  @Test void testInvalidTableName() {
+    // A table name is used as a relation alias, which cannot be quoted or
+    // escaped in Pig Latin, so script generation is rejected instead of
+    // producing a script that Pig cannot parse
+    CalciteAssert.that()
+        .with(MODEL)
+        .query("select * from \"bad-name\"")
+        .throws_("Invalid Pig Latin identifier: 'bad-name'");
+  }
+
+  @Test void testInvalidColumnName() {
+    // Field names cannot be quoted or escaped in Pig Latin, so script
+    // generation is rejected instead of producing a script that Pig cannot
+    // parse
+    CalciteAssert.that()
+        .with(MODEL)
+        .query("select * from \"badcolumn\"")
+        .throws_("Invalid Pig Latin identifier: 'bad$column'");
+  }
+
+  @Test void testUnaliasedAggregateCall() {
+    // 'EXPR$0' (the name Calcite derives for an unaliased aggregate call) is
+    // not a valid Pig Latin identifier and cannot be used after AS; the query
+    // has to be re-written with an explicit alias instead
+    CalciteAssert.that()
+        .with(MODEL)
+        .query("select count(\"tc0\") from \"t\"")
+        .throws_("Invalid Pig Latin identifier: 'EXPR$0'");
   }
 
   @Test void testImplWithMultipleFilters() {
@@ -82,7 +126,7 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = FILTER t BY (tc0 > 'abc') AND (tc1 == '3');"));
   }
@@ -97,7 +141,7 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = GROUP t BY (tc0);\n"
                 + "t = FOREACH t {\n"
@@ -115,7 +159,7 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = GROUP t ALL;\n"
                 + "t = FOREACH t {\n"
@@ -133,7 +177,7 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = GROUP t BY (tc0, tc1);\n"
                 + "t = FOREACH t {\n"
@@ -151,7 +195,7 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
                 + "t = GROUP t BY (tc1);\n"
                 + "t = FOREACH t {\n"
@@ -173,9 +217,9 @@ class PigAdapterTest extends AbstractPigTest {
         .runs()
         .queryContains(
             pigScriptChecker("t = LOAD '"
-                + getFullPathForTestDataFile("data.txt")
+                + getEscapedFullPathForTestDataFile("data.txt")
                 + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
-                + "s = LOAD '" + getFullPathForTestDataFile("data2.txt")
+                + "s = LOAD '" + getEscapedFullPathForTestDataFile("data2.txt")
                 + "' USING PigStorage() AS (sc0:chararray, sc1:chararray);\n"
                 + "t = JOIN t BY tc1 , s BY sc0;"));
   }

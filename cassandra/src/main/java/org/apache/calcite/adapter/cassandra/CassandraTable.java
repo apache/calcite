@@ -38,6 +38,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.util.Util;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.google.common.collect.ImmutableList;
@@ -173,7 +174,13 @@ public class CassandraTable extends AbstractQueryableTable
 
           @Override public String next() {
             Map.Entry<String, String> entry = selectIterator.next();
-            return entry.getKey() + " AS " + entry.getValue();
+            // Route both the column reference and the alias through
+            // CqlIdentifier so that a name containing punctuation or the
+            // {@code "} delimiter cannot shift the boundaries of the
+            // emitted CQL statement.
+            return CqlIdentifier.fromInternal(entry.getKey()).asCql(true)
+                + " AS "
+                + CqlIdentifier.fromInternal(entry.getValue()).asCql(true);
           }
 
           @Override public void remove() {
@@ -194,14 +201,16 @@ public class CassandraTable extends AbstractQueryableTable
     StringBuilder queryBuilder = new StringBuilder("SELECT ");
     queryBuilder
         .append(selectString)
-        .append(" FROM \"");
+        .append(" FROM ");
 
+    // Route the keyspace and column-family names through CqlIdentifier so
+    // that a name containing punctuation or the {@code "} delimiter cannot
+    // shift the boundaries of the emitted CQL statement
     keyspace.ifPresent(s ->
-        queryBuilder.append(s).append("\".\""));
+        queryBuilder.append(CqlIdentifier.fromInternal(s).asCql(true)).append("."));
 
     queryBuilder
-        .append(columnFamily)
-        .append("\"")
+        .append(CqlIdentifier.fromInternal(columnFamily).asCql(true))
         .append(whereClause);
 
     if (!order.isEmpty()) {

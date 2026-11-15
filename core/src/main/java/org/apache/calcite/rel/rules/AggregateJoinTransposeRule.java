@@ -265,7 +265,7 @@ public class AggregateJoinTransposeRule
                 projects.add(singleton);
                 side.split.put(aggCall.i, projects.size() - 1);
               } else {
-                side.split.put(aggCall.i, index);
+                side.split.put(aggCall.i, belowAggregateKey.indexOf(index));
               }
             } else {
               projects.add(singleton);

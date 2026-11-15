@@ -51,14 +51,7 @@ public class RelCollations {
    * implementation choice is to apply operations that preserve order.
    */
   @Deprecated // to be removed before 2.0
-  public static final RelCollation PRESERVE =
-      RelCollationTraitDef.INSTANCE.canonize(
-          new RelCollationImpl(
-              ImmutableList.of(new RelFieldCollation(-1))) {
-            @Override public String toString() {
-              return "PRESERVE";
-            }
-          });
+  public static final RelCollation PRESERVE = RelCollationImpl.PRESERVE;
 
   private RelCollations() {}
 

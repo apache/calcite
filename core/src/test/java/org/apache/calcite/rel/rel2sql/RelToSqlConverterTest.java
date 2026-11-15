@@ -28,12 +28,15 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.rules.AggregateGroupingSetsToUnionRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -52,8 +55,10 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -118,6 +123,7 @@ import org.opentest4j.TestAbortedException;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -656,13 +662,13 @@ class RelToSqlConverterTest {
         + "match_condition \"employee\".\"department_id\" <= \"product\".\"product_id\"\n"
         + "on \"employee\".\"salary\" = \"product\".\"gross_weight\"";
     final String expected = "SELECT \"t\".\"full_name\"\nFROM "
-        + "((SELECT \"employee_id\", \"full_name\", \"first_name\", \"last_name\", \"position_id\", "
+        + "(SELECT \"employee_id\", \"full_name\", \"first_name\", \"last_name\", \"position_id\", "
         + "\"position_title\", \"store_id\", \"department_id\", \"birth_date\", \"hire_date\", "
         + "\"end_date\", \"salary\", \"supervisor_id\", \"education_level\", \"marital_status\", "
         + "\"gender\", \"management_role\", CAST(\"salary\" AS DOUBLE) AS \"salary0\"\n"
-        + "FROM \"foodmart\".\"employee\") AS \"t\" ASOF JOIN \"foodmart\".\"product\" "
+        + "FROM \"foodmart\".\"employee\") AS \"t\"\nASOF JOIN \"foodmart\".\"product\" "
         + "MATCH_CONDITION \"t\".\"department_id\" <= \"product\".\"product_id\" ON "
-        + "\"t\".\"salary0\" = \"product\".\"gross_weight\")";
+        + "\"t\".\"salary0\" = \"product\".\"gross_weight\"";
     sql(sql).ok(expected);
   }
 
@@ -1091,6 +1097,60 @@ class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"COMM\" IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6068">[CALCITE-6068]
+   * Whitespaces are removed from filter values</a>. */
+  @Test void testSelectWhereInTrailingWhitespace() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("ENAME"), b.literal("value 1 "), b.literal("value 2 ")))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" IN ('value 1 ', 'value 2 ')";
+    relFn(relFn).ok(expected);
+  }
+
+  /** Values of different lengths in the IN list, each with trailing
+   * whitespace, must be preserved as-is. */
+  @Test void testSelectWhereInTrailingWhitespace2() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("ENAME"), b.literal("value 1 "), b.literal("value 2  ")))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" IN ('value 1 ', 'value 2  ')";
+    relFn(relFn).ok(expected);
+  }
+
+  /** End-to-end: IN values with trailing whitespace survive the
+   * SQL → RelNode → SQL round trip. */
+  @Test void testSelectWhereInTrailingWhitespace3() {
+    sql("select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "where \"brand_name\" in ('value 1 ', 'value 2 ')")
+        .ok("SELECT \"product_id\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "WHERE \"brand_name\" = 'value 1 ' OR \"brand_name\" = 'value 2 '");
+  }
+
+  /** The OR form of the same filter (which RelBuilder simplifies to SEARCH)
+   * must also preserve trailing whitespace; this is the workaround mentioned
+   * in CALCITE-6068 that used to be trimmed as well. */
+  @Test void testSelectWhereInTrailingWhitespace4() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.equals(b.field("ENAME"), b.literal("value 1 ")),
+                b.equals(b.field("ENAME"), b.literal("value 2 "))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" IN ('value 1 ', 'value 2 ')";
     relFn(relFn).ok(expected);
   }
 
@@ -1971,6 +2031,32 @@ class RelToSqlConverterTest {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7756">[CALCITE-7756]
+   * Invalid unparse for VARCHAR without precision in MssqlSqlDialect</a>.
+   */
+  @Test void testCastToVarcharNoPrecisionMssql() {
+    final String query = "select cast(\"full_name\" as varchar)\n"
+        + "from \"employee\"";
+    final String expected = "SELECT CAST([full_name] AS VARCHAR(MAX))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7756">[CALCITE-7756]
+   * Invalid unparse for VARCHAR without precision in MssqlSqlDialect</a>.
+   */
+  @Test void testCastToVarcharWithPrecisionMssql() {
+    final String query = "select cast(\"full_name\" as varchar(100))\n"
+        + "from \"employee\"";
+    final String expected = "SELECT CAST([full_name] AS VARCHAR(100))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4706">[CALCITE-4706]
    * JDBC adapter generates casts exceeding Redshift's data types bounds</a>.
    */
@@ -2720,6 +2806,35 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7838">[CALCITE-7838]
+   * HsqldbSqlDialect incorrectly claims to support nested aggregations</a>.
+   *
+   * <p>The inner aggregate is wrapped in an expression, so the outer aggregate
+   * must read it from a sub-SELECT on dialects that do not support nested
+   * aggregate functions. Oracle can do it in a single SELECT. */
+  @Test void testNestedAggregatesOverExpression() {
+    final String query = "select\n"
+        + "    SUM(\"net_weight1\") as \"net_weight_converted\"\n"
+        + "  from ("
+        + "    select\n"
+        + "       SUM(\"net_weight\") + 1 as \"net_weight1\"\n"
+        + "    from \"foodmart\".\"product\"\n"
+        + "    group by \"product_id\")";
+    final String expectedOracle =
+        "SELECT SUM(SUM(\"net_weight\") + 1) \"net_weight_converted\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "GROUP BY \"product_id\"";
+    final String expectedHsqldb =
+        "SELECT SUM(net_weight1) AS net_weight_converted\n"
+            + "FROM (SELECT SUM(net_weight) + 1 AS net_weight1\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_id) AS t1";
+    sql(query)
+        .withOracle().ok(expectedOracle)
+        .withHsqldb().ok(expectedHsqldb);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
    * JDBC adapter throws NullPointerException while generating GROUP BY query
    * for MySQL</a>.
@@ -3444,7 +3559,9 @@ class RelToSqlConverterTest {
             + "CAST(employee_id AS STRING), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-            + "CAST(employee_id AS TIMESTAMP), "
+            // CAST('7369' AS TIMESTAMP) is an error,
+            // but CAST(7369 AS TIMESTAMP) is 1970-01-01 00:00:07
+            + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
             + "CAST(employee_id AS FLOAT64), "
             + "CAST(employee_id AS NUMERIC), "
             + "CAST(CAST(employee_id AS STRING) AS DATE), "
@@ -3921,8 +4038,13 @@ class RelToSqlConverterTest {
   @Test void testHiveAndSparkTrimWithBothSpecialCharacter() {
     final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
         + "from \"foodmart\".\"reserve_employee\"";
+    // Hive and Spark recognize backslash escape sequences inside single-quoted
+    // string constants, so each backslash produced by escapeSpecialChar is
+    // doubled by the dialect. The emitted regex therefore contains \\$\\@\\*A
+    // rather than \$\@\*A; when Hive/Spark parse the literal they collapse
+    // it back to \$\@\*A, which is what the REGEXP_REPLACE engine sees.
     final String expected = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
-        + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
+        + " '^(\\\\$\\\\@\\\\*A)*|(\\\\$\\\\@\\\\*A)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withHive().ok(expected)
@@ -8664,6 +8786,39 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7905">[CALCITE-7905]
+   * AnsiSqlDialect does not check hint names and options for block-comment delimiters</a>. */
+  @Test void testTableScanHintsWithCommentDelimiter() {
+    final RelBuilder builder = relBuilder();
+    builder.getCluster().setHintStrategies(HintStrategyTable.builder()
+        .hintStrategy("PLACEHOLDER", HintPredicates.TABLE_SCAN)
+        .build());
+    // Each entry maps the text expected in the error message to a hint that contains it
+    final Map<String, RelHint> hints = ImmutableMap.<String, RelHint>builder()
+        // hint name, no options
+        .put("PLACE*/HOLDER", RelHint.builder("PLACE*/HOLDER").build())
+        // key-value options, in the value and in the key
+        .put("f */ g", RelHint.builder("PLACEHOLDER").hintOption("a", "f */ g").build())
+        .put("h /* i", RelHint.builder("PLACEHOLDER").hintOption("h /* i", "b").build())
+        // list options
+        .put("b */ c", RelHint.builder("PLACEHOLDER").hintOption("b */ c").build())
+        .put("d /* e", RelHint.builder("PLACEHOLDER").hintOption("a").hintOption("d /* e").build())
+        .build();
+    for (Map.Entry<String, RelHint> entry : hints.entrySet()) {
+      final RelNode root = builder
+          .scan("orders")
+          .hints(entry.getValue())
+          .project(builder.field("PRODUCT"))
+          .build();
+
+      final IllegalArgumentException e =
+          assertThrows(IllegalArgumentException.class, () ->
+              toSql(root, new AnsiSqlDialect(SqlDialect.EMPTY_CONTEXT)));
+      assertThat(e.getMessage(), containsString(entry.getKey()));
+    }
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
    * RelToSqlConverter should only generate "*" if field names match</a>. */
   @Test void testPreserveAlias() {
@@ -8797,6 +8952,68 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected).
         withPostgresql().ok(expectedPostgresql).
         withHsqldb().ok(expectedHsqldb);
+  }
+
+  /** Tests that a generalized {@link org.apache.calcite.rel.core.Uncollect}
+   * (pass-through fields) converts to SQL via {@code LATERAL UNNEST}. */
+  @Test void testGeneralizedUncollect() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.field("ENAME")))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), false, true, false)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[\"ENAME\"] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\",\n"
+        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f1\")";
+    relFn(relFn).ok(expected);
+  }
+
+  /** As {@link #testGeneralizedUncollect()}, with outer (LEFT JOIN)
+   * semantics. */
+  @Test void testGeneralizedUncollectOuter() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.field("ENAME")))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), false, true, true)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[\"ENAME\"] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f1\") ON TRUE";
+    relFn(relFn).ok(expected);
+  }
+
+  /** As {@link #testGeneralizedUncollect()}, with ORDINALITY, using PRESTO conformance. */
+  @Test void testGeneralizedUncollectUnexpandedStruct() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                b.call(SqlStdOperatorTable.ROW, b.field("EMPNO"),
+                    b.field("ENAME"))))
+        .uncollect(ImmutableBitSet.of(0), ImmutableBitSet.of(1), true, false, false)
+        .build();
+    final String expected = "SELECT \"$cor0\".\"DEPTNO\", \"t10\".\"$f1\","
+        + " \"t10\".\"ORDINALITY\"\n"
+        + "FROM (SELECT \"DEPTNO\", ARRAY[ROW(\"EMPNO\", \"ENAME\")] AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"$cor0\",\n"
+        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f1\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) WITH ORDINALITY"
+        + " AS \"t10\" (\"$f1\", \"ORDINALITY\")";
+    relFn(relFn).ok(expected);
+    // Validation fails if the alias list does not have exactly 2 columns
+    sql(expected)
+        .schema(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL)
+        .parserConfig(
+            SqlParser.config().withConformance(SqlConformanceEnum.PRESTO))
+        .exec();
   }
 
   @Test void testWithinGroup1() {
@@ -9308,6 +9525,20 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
 
     sql(bitQuery).withClickHouse().ok(clickHouseExpected);
+  }
+
+  /** ClickHouse applies the same backslash escape sequences inside
+   * back-tick-quoted identifiers as inside string literals, so
+   * {@link SqlDialect#quoteIdentifier(StringBuilder, String)} must double it. */
+  @Test void testClickHouseQuoteIdentifierWithBackslash() {
+    final SqlDialect dialect = DatabaseProduct.CLICKHOUSE.getDialect();
+    assertThat(dialect.quoteIdentifier("x\\"), is("`x\\\\`"));
+    assertThat(dialect.quoteIdentifier("\\x"), is("`\\\\x`"));
+    assertThat(dialect.quoteIdentifier("x\\y"), is("`x\\\\y`"));
+    assertThat(dialect.quoteIdentifier("x\\\\"), is("`x\\\\\\\\`"));
+    // A back-tick is still escaped as `` after backslashes are doubled
+    assertThat(dialect.quoteIdentifier("x`y"), is("`x``y`"));
+    assertThat(dialect.quoteIdentifier("x\\`y"), is("`x\\\\``y`"));
   }
 
   @Test void testClickHouseArrayFunctions() {
@@ -9905,17 +10136,25 @@ class RelToSqlConverterTest {
     });
   }
 
-  /** Test case for the MySQL-family backslash-escape bypass:
-   * dialects whose backend treats {@code \} as an in-string escape
+  /** Dialects whose backend treats {@code \} as an in-string escape
    * character must double it in
-   * {@link SqlDialect#quoteStringLiteral(StringBuilder, String, String)}. */
+   * {@link SqlDialect#quoteStringLiteral(StringBuilder, String, String)},
+   * so that a value ending in a backslash cannot terminate the emitted
+   * literal early. */
   @Test void testDialectQuoteStringLiteralWithBackslash() {
     dialects().forEach((dialect, databaseProduct) -> {
       final boolean escapesBackslash =
           databaseProduct == DatabaseProduct.BIG_QUERY
               || databaseProduct == DatabaseProduct.MYSQL
               || databaseProduct == DatabaseProduct.STARROCKS
-              || databaseProduct == DatabaseProduct.DORIS;
+              || databaseProduct == DatabaseProduct.DORIS
+              || databaseProduct == DatabaseProduct.HIVE
+              || databaseProduct == DatabaseProduct.SPARK
+              || databaseProduct == DatabaseProduct.SNOWFLAKE
+              || databaseProduct == DatabaseProduct.FIREBOLT
+              || databaseProduct == DatabaseProduct.CLICKHOUSE
+              || databaseProduct == DatabaseProduct.NETEZZA
+              || databaseProduct == DatabaseProduct.INFOBRIGHT;
 
       // Trailing backslash
       assertThat(dialect.quoteStringLiteral("x\\"),
@@ -9933,6 +10172,20 @@ class RelToSqlConverterTest {
       assertThat(dialect.quoteStringLiteral("x\\\\"),
           escapesBackslash ? is("'x\\\\\\\\'") : is("'x\\\\'"));
     });
+  }
+
+  /** BigQuery applies the same backslash escape sequences inside
+   * back-tick-quoted identifiers as inside string literals, so
+   * {@link SqlDialect#quoteIdentifier(StringBuilder, String)} must double it. */
+  @Test void testBigQueryQuoteIdentifierWithBackslash() {
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    assertThat(dialect.quoteIdentifier("x\\"), is("`x\\\\`"));
+    assertThat(dialect.quoteIdentifier("\\x"), is("`\\\\x`"));
+    assertThat(dialect.quoteIdentifier("x\\y"), is("`x\\\\y`"));
+    assertThat(dialect.quoteIdentifier("x\\\\"), is("`x\\\\\\\\`"));
+    // A back-tick is still escaped as \` after backslashes are doubled
+    assertThat(dialect.quoteIdentifier("x`y"), is("`x\\`y`"));
+    assertThat(dialect.quoteIdentifier("x\\`y"), is("`x\\\\\\`y`"));
   }
 
   @Test void testSelectCountStar() {
@@ -12513,6 +12766,86 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4592">[CALCITE-4592]
+   * RelToSqlConverter#visit(Join e) does not populate correlation context</a>.
+   * A scalar sub-query in the projection above a join references the
+   * correlation variable ($cor0) set by the join, as in the JIRA use case
+   * {@code SELECT c.id, (SELECT p.amount FROM p WHERE c.id = p.id)
+   * FROM c LEFT JOIN p ON c.id = p.id}.
+   *
+   * <p>The plan is built programmatically because the standard sql-to-rel
+   * conversion attaches the correlation id to the Project above the join,
+   * not to the Join itself; a Join that owns the correlation id (e.g. built
+   * via RelBuilder or produced by planner rules) throws
+   * {@code NullPointerException: variable $cor0 is not found} on Calcite
+   * 1.26, where visit(Join) did not populate the correlation context. */
+  @Test void testJoinCorrelate() {
+    final RelBuilder relBuilder = relBuilder();
+    final CorrelationId correlationId = relBuilder.getCluster().createCorrel();
+
+    final RelNode empTable = relBuilder.scan("EMP").peek();
+    final RelNode deptTable = relBuilder.scan("DEPT").peek();
+
+    final RexInputRef empDeptNo = relBuilder.field(2, 0, "DEPTNO"); // EMP.DEPTNO
+    final RexInputRef deptDeptNo = relBuilder.field(2, 1, "DEPTNO"); // DEPT.DEPTNO
+    final RexNode joinCond =
+        relBuilder.call(SqlStdOperatorTable.EQUALS, empDeptNo, deptDeptNo);
+    final RelNode join =
+        LogicalJoin.create(empTable, deptTable, ImmutableList.of(), joinCond,
+            ImmutableSet.of(correlationId), JoinRelType.INNER);
+
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexNode correlationVariable =
+        rexBuilder.makeCorrel(join.getRowType(), correlationId);
+    final RexNode correlatedCondition =
+        relBuilder.call(SqlStdOperatorTable.EQUALS,
+            rexBuilder.makeFieldAccess(correlationVariable, empDeptNo.getIndex()),
+            RexInputRef.of(
+                // resolves to 0 (DEPT.DEPTNO); computed dynamically in case
+                // the schema changes
+                deptDeptNo.getIndex() - empTable.getRowType().getFieldCount(),
+                deptTable.getRowType()));
+
+    final RelNode scalarProject = relBuilder.filter(correlatedCondition)
+        .project(
+            RexInputRef.of(deptTable.getRowType().getFieldCount() - 1,
+            deptTable.getRowType()))
+        .build();
+
+    final List<RexNode> projections = new ArrayList<>();
+    for (int i = 0; i < join.getRowType().getFieldCount() - 1; i++) { // skip last field
+      projections.add(RexInputRef.of(i, join.getRowType()));
+    }
+    projections.add(RexSubQuery.scalar(scalarProject)); // project last field as subquery
+
+    // RelNode Tree is as below.
+    //     Project with subquery
+    //         |
+    //       Join (variablesSet contains $cor0)
+    //       /  \
+    //    EMP    DEPT
+    //             ^
+    //             |
+    //       sub query (correlated Filter + scalar Project)
+    final RelNode projectWithSubQuery =
+        new LogicalProject(join.getCluster(),
+        join.getTraitSet(),
+        ImmutableList.of(),
+        join,
+        projections,
+        join.getRowType(),
+        ImmutableSet.of());
+    final String expected = "SELECT \"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\", \"EMP\""
+        + ".\"MGR\", \"EMP\".\"HIREDATE\", \"EMP\".\"SAL\", \"EMP\".\"COMM\", \"EMP\".\"DEPTNO\", "
+        + "\"DEPT\".\"DEPTNO\" AS \"DEPTNO0\", \"DEPT\".\"DNAME\", (SELECT \"LOC\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE \"EMP\".\"DEPTNO\" = \"DEPTNO\") AS \"LOC\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "INNER JOIN \"scott\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    assertThat(toSql(projectWithSubQuery), isLinux(expected));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
@@ -13175,10 +13508,10 @@ class RelToSqlConverterTest {
     assertThat(
         generated, isLinux("SELECT \"product1\".\"product_id\"\n"
         + "FROM (SELECT \"$cor0\".\"product_id\", \"t1\".\"EXPR$0\" AS \"mx\"\n"
-        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
-        + "LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\") AS \"t2\"\n"
+        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\" ON TRUE) AS \"t2\"\n"
         + "RIGHT JOIN \"foodmart\".\"product\" AS \"product1\""
         + " ON \"t2\".\"product_id\" = \"product1\".\"product_id\"\n"
         + "WHERE EXISTS (SELECT 1\n"
@@ -13196,10 +13529,10 @@ class RelToSqlConverterTest {
         isLinux("SELECT COALESCE(\"t2\".\"product_id\","
             + " \"product1\".\"product_id\") AS \"product_id\"\n"
             + "FROM (SELECT \"$cor0\".\"product_id\", \"t1\".\"EXPR$0\" AS \"mx\"\n"
-            + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
-            + "LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
+            + "FROM \"foodmart\".\"product\" AS \"$cor0\"\n"
+            + "LEFT JOIN LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
             + "FROM \"foodmart\".\"product\"\n"
-            + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\") AS \"t2\"\n"
+            + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\" ON TRUE) AS \"t2\"\n"
             + "FULL JOIN \"foodmart\".\"product\" AS \"product1\""
             + " ON \"t2\".\"product_id\" = \"product1\".\"product_id\"\n"
             + "WHERE EXISTS (SELECT 1\n"
@@ -13218,10 +13551,10 @@ class RelToSqlConverterTest {
     assertThat(
         generated, isLinux("SELECT \"t2\".\"product_id\"\n"
         + "FROM (SELECT \"$cor0\".\"product_id\", \"t1\".\"EXPR$0\" AS \"mx\"\n"
-        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
-        + "LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\"\n"
+        + "LEFT JOIN LATERAL (SELECT MAX(\"product_id\") AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\") AS \"t2\"\n"
+        + "WHERE \"product_id\" = \"$cor0\".\"product_id\") AS \"t1\" ON TRUE) AS \"t2\"\n"
         + "FULL JOIN \"foodmart\".\"product\" AS \"product1\""
         + " ON \"t2\".\"product_id\" = \"product1\".\"product_id\"\n"
         + "WHERE EXISTS (SELECT 1\n"
@@ -13472,5 +13805,49 @@ class RelToSqlConverterTest {
     String expected = "SELECT CAST((DATE '2029-05-07' - DATE '2029-05-06') AS INTEGER)\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7883">[CALCITE-7883]
+   * RelToSqlConverter strips outer alias in semi/anti join condition,
+   * so unqualified column binds to the inner relation</a>. */
+  @Test void testIntersectToSemiJoinKeepsOuterQualifier() {
+    final String query = "select \"department_id\", \"supervisor_id\" from \"employee\"\n"
+        + "intersect\n"
+        + "select \"department_id\", \"department_id\" from \"department\"";
+
+    final String expected = "SELECT \"department_id\", CAST(\"supervisor_id\" AS INTEGER) "
+        + "AS \"supervisor_id\"\n"
+        + "FROM \"foodmart\".\"employee\" AS \"t0\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"department_id\", \"department_id\" AS \"department_id0\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t1\"\n"
+        + "WHERE \"t0\".\"department_id\" IS NOT DISTINCT FROM \"t1\".\"department_id\" "
+        + "AND CAST(\"t0\".\"supervisor_id\" AS INTEGER) IS NOT DISTINCT FROM \"t1\".\"department_id0\")\n"
+        + "GROUP BY \"department_id\", CAST(\"supervisor_id\" AS INTEGER)";
+    sql(query)
+        .optimize(RuleSets.ofList(CoreRules.INTERSECT_TO_SEMI_JOIN), null)
+        .ok(expected);
+  }
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7883">[CALCITE-7883]
+   * RelToSqlConverter strips the outer alias in an anti-join condition,
+   * so an unqualified column is captured by the inner relation</a>. */
+  @Test void testExceptToAntiJoinKeepsOuterQualifier() {
+    final String query = "select \"department_id\", \"supervisor_id\" from \"employee\"\n"
+        + "except\n"
+        + "select \"department_id\", \"department_id\" from \"department\"";
+    // condition qualifies the outer columns with the outer alias.
+    final String expected = "SELECT \"department_id\", \"supervisor_id\"\n"
+        + "FROM \"foodmart\".\"employee\" AS \"t\"\n"
+        + "WHERE NOT EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"department_id\", \"department_id\" AS \"department_id0\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\"\n"
+        + "WHERE \"t\".\"department_id\" = \"t0\".\"department_id\" "
+        + "AND \"t\".\"supervisor_id\" = \"t0\".\"department_id0\")\n"
+        + "GROUP BY \"department_id\", \"supervisor_id\"";
+    sql(query)
+        .optimize(RuleSets.ofList(CoreRules.MINUS_TO_ANTI_JOIN), null)
+        .ok(expected);
   }
 }

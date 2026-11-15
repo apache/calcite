@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 
 import org.junit.jupiter.api.Test;
 
@@ -42,5 +43,30 @@ public class SqlDialectsTest {
         is(metaData.getDatabaseProductName()));
     assertThat(context.databaseMajorVersion(),
         is(metaData.getDatabaseMajorVersion()));
+  }
+
+  /** The fallback dialect for an unrecognized database product doubles
+   * backslashes when quoting string literals: the backend's lexer is
+   * unknown, so a trailing backslash must not be able to consume the
+   * closing quote and shift the string boundary. */
+  @Test void testUnknownProductFallbackEscapesBackslash() {
+    SqlDialect dialect =
+        SqlDialectFactoryImpl.ansiFallback(AnsiSqlDialect.DEFAULT_CONTEXT);
+    // Quote doubling.
+    assertThat(dialect.quoteStringLiteral("can't run"), is("'can''t run'"));
+    // Backslashes are doubled defensively.
+    assertThat(dialect.quoteStringLiteral("x\\"), is("'x\\\\'"));
+    assertThat(dialect.quoteStringLiteral("x\\' extra"),
+        is("'x\\\\'' extra'"));
+  }
+
+  /** An unrecognized JDBC product name (Calcite's own driver has no entry in
+   * {@link SqlDialectFactoryImpl}) resolves to the fallback dialect. */
+  @Test void testFactoryFallbackEscapesBackslash() throws SQLException {
+    Connection connection =
+        DriverManager.getConnection(Driver.CONNECT_STRING_PREFIX);
+    SqlDialect dialect =
+        new SqlDialectFactoryImpl().create(connection.getMetaData());
+    assertThat(dialect.quoteStringLiteral("x\\"), is("'x\\\\'"));
   }
 }

@@ -338,7 +338,7 @@
   pronouns: he/him
   org: Cloudera
   role: PMC
-  homepage: https://people.apache.org/~zabetak/
+  homepage: https://zabetak.github.io/
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
@@ -400,6 +400,11 @@
 - name: Weiqing Zhou
   apacheId: zwq
   githubId: zzwqqq
+  org:
+  role: Committer
+- name: Xiaojun Wu
+  apacheId: dwrite
+  githubId: dwrite
   org:
   role: Committer
 - name: Xiong Duan

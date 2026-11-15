@@ -37,7 +37,11 @@ dependencies {
 
     testImplementation("org.apache.logging.log4j:log4j-api")
     testImplementation("org.apache.logging.log4j:log4j-core")
-    testImplementation("org.codelibs.elasticsearch.module:lang-painless")
+    // See https://github.com/elastic/elasticsearch/issues/18131.
+    testImplementation("org.codelibs.elasticsearch.module:lang-painless") {
+        because("Elasticsearch doesn't export painless script artifact to maven central, " +
+                "so using 3rd party version (codelibs) only for test.")
+    }
     testImplementation("org.elasticsearch.plugin:transport-netty4-client")
     testImplementation("org.elasticsearch:elasticsearch")
     testImplementation(project(":testkit"))

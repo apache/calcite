@@ -49,6 +49,18 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
       SqlValidatorImpl.Status.UNVALIDATED;
 
   /**
+   * If {@link #validate} threw, the stored exception is re-thrown by
+   * {@link #getRowType()} so callers surface the real error instead of
+   * recursing forever into a null {@link #rowType}.
+   *
+   * <p>Status is set to {@link SqlValidatorImpl.Status#VALID} on failure,
+   * not {@code UNVALIDATED}.  This prevents unsafe re-entry into
+   * {@link #validateImpl(RelDataType)} which may have already partially mutated
+   * shared validator state.
+   */
+  private @Nullable RuntimeException validationFailure;
+
+  /**
    * Type of the output row, which comprises the name and type of each output
    * column. Set on validate.
    */
@@ -89,15 +101,22 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   @Override public final void validate(RelDataType targetRowType) {
     switch (status) {
     case UNVALIDATED:
+      status = SqlValidatorImpl.Status.IN_PROGRESS;
       try {
-        status = SqlValidatorImpl.Status.IN_PROGRESS;
         checkArgument(rowType == null,
             "Namespace.rowType must be null before validate has been called");
         RelDataType type = validateImpl(targetRowType);
         requireNonNull(type, "validateImpl() returned null");
         setType(type);
-      } finally {
         status = SqlValidatorImpl.Status.VALID;
+      } catch (RuntimeException e) {
+        // Mark VALID so later calls do not re-enter validateImpl(),
+        // which may have already partially mutated shared validator state.
+        // Store the exception so getRowType() re-throws the real error
+        // instead of recursing into a null rowType.
+        status = SqlValidatorImpl.Status.VALID;
+        validationFailure = e;
+        throw e;
       }
       break;
     case IN_PROGRESS:
@@ -122,6 +141,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   @Override public RelDataType getRowType() {
     if (rowType == null) {
+      if (validationFailure != null) {
+        throw validationFailure;
+      }
       validator.validateNamespace(this, validator.unknownType);
       requireNonNull(rowType, "validate must set rowType");
     }
@@ -168,6 +190,24 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   @Override public FilterRequirement getFilterRequirement() {
     return requireNonNull(filterRequirement,
         "filterRequirement (maybe validation is not complete?)");
+  }
+
+  /** Requires that a source namespace has no pending "must-filter" obligations.
+   *
+   * <p>Namespaces such as PIVOT, UNPIVOT, MATCH_RECOGNIZE and table function
+   * calls transform the rows of their source in a way that does not preserve
+   * column positions, and therefore cannot re-express the source's
+   * {@link FilterRequirement} in terms of their own output columns. Rather
+   * than silently dropping the requirement (which would let a query read a
+   * {@link SemanticTable}'s rows with the must-filter enforcement bypassed),
+   * such namespaces fail closed: the source's must-filter fields have to be
+   * filtered (or defused by a bypass field) within the source query itself.
+   *
+   * @param sourceNs Namespace whose rows this namespace transforms
+   * @param node     Node to which a validation error should be attached
+   */
+  protected void checkFilterRequirementSatisfied(SqlValidatorNamespace sourceNs, SqlNode node) {
+    validator.checkFilterRequirementSatisfied(sourceNs, node);
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {

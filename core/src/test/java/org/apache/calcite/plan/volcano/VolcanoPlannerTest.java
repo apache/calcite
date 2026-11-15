@@ -19,6 +19,7 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.enumerable.EnumerableUnion;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -28,6 +29,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -37,10 +39,14 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
@@ -69,6 +75,7 @@ import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -168,6 +175,45 @@ class VolcanoPlannerTest {
 
     // Expect inputs to remain identical
     assertThat(result.getInput(1), is(result.getInput(0)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4597">[CALCITE-4597]
+   * Allow RelNodes to have an empty row type (zero fields)</a>. */
+  @Test void testEmptyRowTypePolicy() {
+    // Under the default policy, DISCOURAGED, registering a relational
+    // expression with an empty row type succeeds
+    final VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    final RelOptCluster cluster = newCluster(planner);
+    final RelDataType emptyRowType = cluster.getTypeFactory().builder().build();
+    final LogicalValues emptyValues =
+        LogicalValues.create(cluster, emptyRowType,
+            ImmutableList.of(ImmutableList.of()));
+    planner.setRoot(emptyValues);
+
+    // Under the ALLOWED policy, registration also succeeds
+    final VolcanoPlanner planner2 =
+        new VolcanoPlanner(null, Contexts.of(EmptyRowTypePolicy.ALLOWED));
+    planner2.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    final RelOptCluster cluster2 = newCluster(planner2);
+    final LogicalValues emptyValues2 =
+        LogicalValues.create(cluster2, emptyRowType,
+            ImmutableList.of(ImmutableList.of()));
+    planner2.setRoot(emptyValues2);
+
+    // Under the FORBIDDEN policy, registration throws
+    final VolcanoPlanner planner3 =
+        new VolcanoPlanner(null, Contexts.of(EmptyRowTypePolicy.FORBIDDEN));
+    planner3.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    final RelOptCluster cluster3 = newCluster(planner3);
+    final LogicalValues emptyValues3 =
+        LogicalValues.create(cluster3, emptyRowType,
+            ImmutableList.of(ImmutableList.of()));
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> planner3.setRoot(emptyValues3),
+        "expected empty row type to be forbidden");
+    assertThat(e.getMessage(), containsString("empty row type"));
   }
 
   @Test void testPlanToDot() {

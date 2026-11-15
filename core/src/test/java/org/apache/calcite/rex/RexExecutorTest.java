@@ -136,6 +136,13 @@ class RexExecutorTest {
     });
   }
 
+  @Test void testSubstringIndexNegativeCount() {
+    checkConstant("b.c", rexBuilder ->
+        rexBuilder.makeCall(SqlLibraryOperators.SUBSTRING_INDEX,
+            rexBuilder.makeLiteral("a.b.c"), rexBuilder.makeLiteral("."),
+            rexBuilder.makeExactLiteral(BigDecimal.valueOf(-2))));
+  }
+
   /** Reduces several expressions to constants. */
   @Test void testConstant2() {
     // Same as testConstant; 10 -> 10

@@ -42,6 +42,7 @@ import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -66,6 +67,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
@@ -166,6 +168,7 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -688,6 +691,67 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7854">[CALCITE-7854]
+   * FilterProjectTransposeRule throws NullPointerException when the Filter has
+   * a distribution trait and the Project's input has none</a>.
+   *
+   * <p>The pushed Filter gets the default distribution. The rule used to put
+   * a null distribution into the new trait set and failed with
+   * NullPointerException. */
+  @Test void testFilterProjectTransposeRuleInputWithoutDistribution() {
+    assertThat(pushedFilterDistribution(null), is(RelDistributions.ANY));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7854">[CALCITE-7854]
+   * FilterProjectTransposeRule throws NullPointerException when the Filter has
+   * a distribution trait and the Project's input has none</a>.
+   *
+   * <p>The pushed Filter takes the input's distribution, not the one the
+   * original Filter had. */
+  @Test void testFilterProjectTransposeRuleInputWithDistribution() {
+    assertThat(pushedFilterDistribution(RelDistributions.SINGLETON),
+        is(RelDistributions.SINGLETON));
+  }
+
+  /** Applies {@link CoreRules#FILTER_PROJECT_TRANSPOSE} to
+   * Filter(Project(Scan EMP)) and returns the distribution of the pushed
+   * Filter.
+   *
+   * <p>The planner behind {@link RelBuilderTest#config()} does not register
+   * {@link RelDistributionTraitDef}, so distributions are added through
+   * {@link RelTraitSet#plus}: the Filter has {@code hash[0]}, and the scan has
+   * {@code inputDistribution}, or no distribution trait when it is null. */
+  private static @Nullable RelDistribution pushedFilterDistribution(
+      @Nullable RelDistribution inputDistribution) {
+    final RelBuilder b = RelBuilder.create(RelBuilderTest.config().build());
+    final TableScan scan = (TableScan) b.scan("EMP").build();
+    final RelNode input = inputDistribution == null
+        ? scan
+        : new LogicalTableScan(scan.getCluster(),
+            scan.getTraitSet().plus(inputDistribution), scan.getHints(),
+            scan.getTable());
+    final Filter filter = (Filter) b.push(input)
+        .project(b.field("SAL"))
+        .filter(b.equals(b.field(0), b.literal(11500)))
+        .build();
+    final RelNode in =
+        filter.copy(
+            filter.getTraitSet().plus(RelDistributions.hash(ImmutableList.of(0))),
+            filter.getInput(), filter.getCondition());
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(in);
+    final RelNode result = hepPlanner.findBestExp();
+
+    final RelNode pushedFilter = result.getInput(0);
+    assertThat(pushedFilter, instanceOf(Filter.class));
+    return pushedFilter.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6873">[CALCITE-6873]
    * FilterProjectTransposeRule should not push the Filter past the Project
    * when the Filter contains a Subquery with correlation</a>. */
@@ -765,6 +829,151 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withPreRule(CoreRules.PROJECT_REMOVE)
         .withRule(CoreRules.UNNEST_DECORRELATE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} and
+   * {@link CoreRules#PROJECT_UNCOLLECT_MERGE} together convert a Correlate
+   * over an Uncollect of a struct-element array into a single, generalized
+   * Uncollect with pruned passthrough fields. */
+  @Test void testCorrelateUncollectMergeStructArray() {
+    final String sql = "select t2.ename\n"
+        + "from DEPT_NESTED as t1,\n"
+        + "unnest(t1.employees) as t2";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} and
+   * {@link CoreRules#PROJECT_UNCOLLECT_MERGE} together convert a Correlate
+   * over a scalar-array Uncollect into a single, generalized Uncollect while
+   * preserving a non-collection left field referenced by the outer project. */
+  @Test void testCorrelateUncollectMergeScalarArray() {
+    final String sql = "select t1.name, t2.admin\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) as t2(admin)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} preserves a
+   * referenced ORDINALITY column when {@code WITH ORDINALITY} is used. */
+  @Test void testCorrelateUncollectMergeOrdinality() {
+    final String sql = "select t2.admin, t2.rn\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) WITH ORDINALITY as t2(admin, rn)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires
+   * when the outer project references the collection-typed field directly.
+   * The collection field appears in both {@code passthrough} and
+   * {@code collectionFields}, so both its raw value and its element columns
+   * are included in the output. */
+  @Test void testCorrelateUncollectMergePassthroughCollectionRef() {
+    final String sql = "select t1.admins, t2.admin\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) as t2(admin)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires on a bare
+   * Correlate, with no Project above it; every left field passes through to
+   * the merged Uncollect's output. */
+  @Test void testCorrelateUncollectMergeWithoutProject() {
+    final String sql = "select *\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) as t2(admin)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires when the
+   * unnested collections are not in ascending field-index order: the merged
+   * Uncollect expands them in ascending order, and a projection on top
+   * restores the original column order. */
+  @Test void testCorrelateUncollectMergeOutOfOrderCollections() {
+    final String sql = "select t1.name\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins, t1.employees) as t2";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** As {@link #testCorrelateUncollectMergeOutOfOrderCollections()}, with two
+   * scalar arrays built by a subquery rather than table columns, and with the
+   * outer project selecting the element columns in unnest order. */
+  @Test void testCorrelateUncollectMergeOutOfOrderScalarArrays() {
+    final String sql = "with t1 as (select array['a', 'b'] as sa, array[1, 2] as ia)\n"
+        + "select u.x, u.y\n"
+        + "from t1, unnest(t1.ia, t1.sa) as u(x, y)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires when the
+   * same collection is unnested twice. The merged Uncollect unnests it once;
+   * the projection on top duplicates its element column, casting to nullable
+   * (zipping two collections makes the element columns nullable). */
+  @Test void testCorrelateUncollectMergeRepeatedCollection() {
+    final String sql = "select t2.a, t2.b\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins, t1.admins) as t2(a, b)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires in
+   * PRESTO conformance, where each element stays a single ROW-typed column. The
+   * merged Uncollect inherits {@code expandStructFields=false}. */
+  @Test void testCorrelateUncollectMergeUnexpandedStruct() {
+    final String sql = "select d.deptno, e.empno\n"
+        + "from dept_nested_expanded as d,\n"
+        + "unnest(d.employees) as e";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.PRESTO)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#PROJECT_UNCOLLECT_MERGE} drops the
+   * ORDINALITY column when the project does not reference it. */
+  @Test void testProjectUncollectMergeDropOrdinality() {
+    final String sql = "select t1.name, t2.admin\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) WITH ORDINALITY as t2(admin, rn)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_UNCOLLECT_MERGE)
         .check();
   }
 
@@ -4455,6 +4664,20 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7901">[CALCITE-7901]
+   * UnionMergeRule merges EXCEPT ALL into an enclosing EXCEPT DISTINCT</a>. */
+  @Test void testMergeMinusAllUnderDistinct() {
+    final String sql = "select * from emp where deptno = 10\n"
+        + "except all\n"
+        + "select * from emp where deptno = 20\n"
+        + "except\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_MERGE)
+        .checkUnchanged();
+  }
+
   /** Tests {@link CoreRules#MINUS_MERGE}
    * does not merge {@code Minus(a, Minus(b, c))}
    * into {@code Minus(a, b, c)}, which would be incorrect. */
@@ -4654,6 +4877,24 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where e1.deptno = d.deptno and e2.deptno = d.deptno\n"
         + "and d.deptno = case when e1.sal > 1000 then e2.empno else e1.empno end";
     sql(sql).withPre(preProgram).withProgram(program).check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7833">[CALCITE-7833]
+   * MULTI_JOIN_OPTIMIZE_BUSHY may turn an outer join into an inner join</a>. */
+  @Test void testBushyJoinRuleSkipsFullOuterJoin() {
+    sql("select * from emp full join dept on emp.deptno = dept.deptno")
+        .withPreRule(CoreRules.JOIN_TO_MULTI_JOIN)
+        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
+        .checkUnchanged();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7833">[CALCITE-7833]
+   * MULTI_JOIN_OPTIMIZE_BUSHY may turn an outer join into an inner join</a>. */
+  @Test void testBushyJoinRuleSkipsLeftJoinOnTrue() {
+    sql("select * from emp left join dept on true")
+        .withPreRule(CoreRules.JOIN_TO_MULTI_JOIN)
+        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
+        .checkUnchanged();
   }
 
   @Test void testConvertMultiJoinRule() {
@@ -5009,6 +5250,31 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5285">[CALCITE-5285]
+   * CalcReduceExpressionsRule creates a Calc equivalent to the input when
+   * reduceExpressions returns true but the output expressions have not
+   * changed</a>. The rule should not fire if only intermediate (non-output)
+   * expressions were simplified. */
+  @Test void testCalcReduceExpressionsNoChangeInOutput() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .addRuleInstance(CoreRules.CALC_REDUCE_EXPRESSIONS)
+        .build();
+    // FLOOR(CAST(sal AS BIGINT) / 1): reduceExpressions simplifies the
+    // intermediate '/ 1' sub-expression but does not rewrite the FLOOR
+    // node that is the project output, so the output is unchanged and
+    // the rule must not fire a second time.
+    final String sql = "select floor(cast(sal as bigint) / 1)\n"
+        + "from emp";
+    // planAfter is intentionally identical to what PROJECT_TO_CALC produces;
+    // CALC_REDUCE_EXPRESSIONS does not transform the Calc because the output
+    // expressions are unchanged.
+    sql(sql)
+        .withProgram(program)
         .check();
   }
 
@@ -7917,6 +8183,23 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp as A\n"
         + "join (select distinct sal from sales.emp) as B\n"
         + "on A.sal=B.sal\n";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .check();
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7851">[CALCITE-7851]
+   * AggregateJoinTransposeRule references wrong column when an aggregate argument is a group key
+   * of a unique join input</a>.
+   */
+  @Test void testPushAggregateThroughJoinAggArgIsGroupKeyOfUniqueSide() {
+    final String sql = "select d.id1, d.id2, d.age, sum(d.age), min(d.age)\n"
+        + "from sales.double_pk as d\n"
+        + "join sales.emp as e on d.id1 = e.deptno\n"
+        + "group by d.id1, d.id2, d.age";
     sql(sql)
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
         .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)

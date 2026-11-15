@@ -446,8 +446,38 @@ public enum Primitive {
     if (value == null) {
       return null;
     }
-    BigDecimal result = new BigDecimal(value.trim());
+    BigDecimal result = new BigDecimal(checkNumericString(value.trim()));
     return checkOverflow(result, precision, scale, roundingMode);
+  }
+
+  /** Returns a string unchanged if each of its characters can occur in a SQL
+   * numeric literal, otherwise throws.
+   *
+   * <p>This function is more strict than e.g., Double.parseDouble
+   *  which accepts "1.5d" and "0x1p3". */
+  public static String checkNumericString(String s) {
+    for (int i = 0; i < s.length(); i++) {
+      final char c = s.charAt(i);
+      if ((c < '0' || c > '9')
+          && c != '+' && c != '-' && c != '.' && c != 'e' && c != 'E') {
+        throw new NumberFormatException("For input string: \"" + s + "\"");
+      }
+    }
+    return s;
+  }
+
+  /** An extension of {@link Primitive#checkNumericString} which also
+   * accepts special floating-point values. */
+  public static String checkApproxNumericString(String s) {
+    switch (s) {
+    case "NaN":
+    case "Infinity":
+    case "+Infinity":
+    case "-Infinity":
+      return s;
+    default:
+      return checkNumericString(s);
+    }
   }
 
   /**

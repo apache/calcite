@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -100,7 +101,10 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     List<String> groupByFields = new ArrayList<>();
 
     for (int group : groupSet) {
-      groupByFields.add(inputFields.get(group));
+      // OQL provides no way to quote identifiers, so the group key must
+      // match a strict allowlist before it can be copied verbatim into the
+      // generated statement.
+      groupByFields.add(GeodeUtils.checkSafeOqlIdentifier(inputFields.get(group)));
     }
 
     geodeImplementContext.addGroupBy(groupByFields);
@@ -111,7 +115,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
 
       List<String> aggCallFieldNames = new ArrayList<>();
       for (int i : aggCall.getArgList()) {
-        aggCallFieldNames.add(inputFields.get(i));
+        aggCallFieldNames.add(GeodeUtils.checkSafeOqlIdentifier(inputFields.get(i)));
       }
       String functionName = aggCall.getAggregation().getName();
 
@@ -119,13 +123,14 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
       // 'count(*)' but allows it for count('any column name'). So we are
       // converting the count(*) into count (first input ColumnName).
       if ("COUNT".equalsIgnoreCase(functionName) && aggCallFieldNames.isEmpty()) {
-        aggCallFieldNames.add(inputFields.get(0));
+        aggCallFieldNames.add(GeodeUtils.checkSafeOqlIdentifier(inputFields.get(0)));
       }
 
       String oqlAggregateCall =
           Util.toString(aggCallFieldNames, functionName + "(", ", ", ")");
 
-      aggregateFunctionMap.put(aggCall.getName(), oqlAggregateCall);
+      aggregateFunctionMap.put(GeodeUtils.checkSafeOqlIdentifier(aggCall.getName()),
+          oqlAggregateCall);
     }
 
     geodeImplementContext.addAggregateFunctions(aggregateFunctionMap.build());

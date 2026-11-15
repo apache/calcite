@@ -17,8 +17,12 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlHint;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWriter;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A <code>SqlDialect</code> implementation for an unknown ANSI compatible database.
@@ -44,10 +48,26 @@ public class AnsiSqlDialect extends SqlDialect {
   /** Converts table scan hints.*/
   @Override public void unparseTableScanHints(SqlWriter writer,
       SqlNodeList hints, int leftPrec, int rightPrec) {
+    for (SqlNode node : hints) {
+      final SqlHint hint = (SqlHint) node;
+      checkHintText(hint.getName());
+      hint.getOptionList().forEach(AnsiSqlDialect::checkHintText);
+      hint.getOptionKVPairs().forEach((k, v) -> {
+        checkHintText(k);
+        checkHintText(v);
+      });
+    }
     writer.newlineAndIndent();
     writer.keyword("/*+");
     hints.unparse(writer, 0, 0);
     writer.keyword("*/");
+  }
+
+  /** Throws if a hint name or option contains a block-comment delimiter;
+   * hints are written inside a block comment, which has no escape syntax. */
+  private static void checkHintText(String s) {
+    checkArgument(!s.contains("*/") && !s.contains("/*"),
+        "Hint name or option contains a block-comment delimiter: %s", s);
   }
 
 }

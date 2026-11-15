@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
@@ -67,8 +68,10 @@ public class ProjectSetOpTransposeRule
     final Project origProject = call.rel(0);
     final SetOp setOp = call.rel(1);
 
-    // cannot push project past a distinct
-    if (!setOp.all) {
+    // INTERSECT ALL and EXCEPT ALL compare rows on all fields,
+    // so only a permutation of all fields can be pushed past them
+    if (!setOp.all
+        || setOp.kind != SqlKind.UNION && origProject.getPermutation() == null) {
       return;
     }
 

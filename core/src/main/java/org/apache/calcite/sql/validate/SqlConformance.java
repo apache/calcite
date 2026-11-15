@@ -747,4 +747,46 @@ public interface SqlConformance {
   default boolean isCorrelatedAggregateAllowed() {
     return false;
   }
+
+  /**
+   * Whether {@code *} is allowed as a grouping element in
+   * {@code GROUPING SETS}, {@code ROLLUP} and {@code CUBE} sub-clauses of
+   * {@code GROUP BY}, to produce non-aggregated (detail) rows.
+   *
+   * <p>By analogy with {@code COUNT(*)}, a grouping set containing {@code *}
+   * groups by every input column, so no rows are merged (except identical
+   * duplicate rows) and each input row appears in the output.
+   *
+   * <p>The star may appear only in well-defined positions: as a complete
+   * grouping set ({@code GROUPING SETS (*)}), as an element of a grouping
+   * set ({@code GROUPING SETS ((deptno), (*))}), or as an argument of
+   * {@code ROLLUP} or {@code CUBE} ({@code ROLLUP (deptno, *)}), including
+   * grouping constructs nested within {@code GROUPING SETS}. It may not
+   * appear at the top level of {@code GROUP BY}, nor inside other
+   * expressions.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  default boolean isGroupingSetsStarAllowed() {
+    return false;
+  }
+
+  /**
+   * Whether SQL pipe syntax is allowed.
+   *
+   * <p>Pipe SQL is not part of the SQL standard, but is supported by some
+   * databases, notably those using GoogleSQL and Spark SQL.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  default boolean isPipeSyntaxAllowed() {
+    return false;
+  }
 }

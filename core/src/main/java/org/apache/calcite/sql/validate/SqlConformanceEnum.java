@@ -572,4 +572,25 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean isGroupingSetsStarAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean isPipeSyntaxAllowed() {
+    switch (this) {
+    case BABEL:
+    case BIG_QUERY:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

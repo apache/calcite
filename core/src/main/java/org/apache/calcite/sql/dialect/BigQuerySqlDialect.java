@@ -127,6 +127,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
   }
 
+  @Override public StringBuilder quoteIdentifier(StringBuilder buf, String val) {
+    // BigQuery applies the same backslash escape sequences inside back-tick
+    // quoted identifiers as inside string literals, so a backslash in an
+    // identifier must be doubled or it would escape the closing back-tick and
+    // shift the identifier boundary.
+    return super.quoteIdentifier(buf, escapeBackslash(val));
+  }
+
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
             && RexUtil.isLiteral(call.getOperands().get(0), false)

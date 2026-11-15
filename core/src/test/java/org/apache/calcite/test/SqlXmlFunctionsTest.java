@@ -94,6 +94,44 @@ class SqlXmlFunctionsTest {
     assertXmlTransformFailed(XML, xsltExternalEntity, Matchers.expectThrowable(expected));
   }
 
+  @Test void testXmlTransformDocumentFunctionDenied() {
+    String xslt = "<xsl:stylesheet version=\"1.0\""
+        + " xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">"
+        + "<xsl:template match=\"/\">"
+        + "<xsl:copy-of select=\"document('file:///dev/null')\"/>"
+        + "</xsl:template></xsl:stylesheet>";
+    String message = "Invalid input for XMLTRANSFORM xml: '" + XML + "'";
+    CalciteException expected = new CalciteException(message, null);
+    assertXmlTransformFailed(XML, xslt, Matchers.expectThrowable(expected));
+  }
+
+  @Test void testXmlTransformXslIncludeDenied() {
+    String xslt = "<xsl:stylesheet version=\"1.0\""
+        + " xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">"
+        + "<xsl:include href=\"file:///dev/null\"/>"
+        + "</xsl:stylesheet>";
+    String message = "Illegal xslt specified : '" + xslt + "'";
+    CalciteException expected = new CalciteException(message, null);
+    assertXmlTransformFailed(XML, xslt, Matchers.expectThrowable(expected));
+  }
+
+  @Test void testXmlTransformXslImportDenied() {
+    String xslt = "<xsl:stylesheet version=\"1.0\""
+        + " xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">"
+        + "<xsl:import href=\"file:///dev/null\"/>"
+        + "</xsl:stylesheet>";
+    String message = "Illegal xslt specified : '" + xslt + "'";
+    CalciteException expected = new CalciteException(message, null);
+    assertXmlTransformFailed(XML, xslt, Matchers.expectThrowable(expected));
+  }
+
+  @Test void testXmlTransformDoctypeDenied() {
+    String xml = "<!DOCTYPE document [<!ENTITY a \"b\">]><document>&a;</document>";
+    String message = "Invalid input for XMLTRANSFORM xml: '" + xml + "'";
+    CalciteException expected = new CalciteException(message, null);
+    assertXmlTransformFailed(xml, XSLT, Matchers.expectThrowable(expected));
+  }
+
   @Test void testXmlTransform() {
     assertXmlTransform(null, "", nullValue());
     assertXmlTransform("", null, nullValue());

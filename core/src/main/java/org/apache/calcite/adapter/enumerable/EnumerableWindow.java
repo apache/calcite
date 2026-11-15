@@ -1004,6 +1004,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     Expression val =
         translator.translate(new RexInputRef(orderKey, keyType), desiredKeyType);
     if (!bound.isCurrentRow()) {
+      final Expression key = val;
       RexNode node = bound.getOffset();
       Expression offs = translator.translate(node);
       // TODO: support date + interval somehow
@@ -1011,6 +1012,16 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         val = Expressions.add(val, offs);
       } else {
         val = Expressions.subtract(val, offs);
+      }
+      if (keyType.isNullable()) {
+        // A null key's finite RANGE bounds are the edges of its peer group.
+        // Keep the offset arithmetic inside the non-null branch, and box its
+        // result so that the conditional expression does not unbox null.
+        final Type boundType = Primitive.box(val.getType());
+        val =
+            Expressions.condition(Expressions.equal(key, Expressions.constant(null)),
+            Expressions.constant(null, boundType),
+            EnumUtils.convert(val, boundType));
       }
     }
     return Expressions.call(

@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
@@ -38,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -265,10 +267,15 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
     resultBlock.add(physType.record(results));
     if (getGroupType() != Group.SIMPLE) {
       final List<Expression> list = new ArrayList<>();
+      boolean hasEmptyGroup = false;
       for (ImmutableBitSet set : groupSets) {
-        list.add(
+        final Expression keySelector =
             inputPhysType.generateSelector(parameter, groupSet.asList(),
-                set.asList(), keyPhysType.getFormat()));
+                set.asList(), keyPhysType.getFormat());
+        list.add(keySelector);
+        if (set.isEmpty()) {
+          hasEmptyGroup = true;
+        }
       }
       final Expression keySelectors_ =
           builder.append("keySelectors",
@@ -280,20 +287,72 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
                   resultBlock.toBlock(),
                   requireNonNull(key_, "key_"),
                   acc_));
+      final Expressions.FluentList<Expression> arguments =
+          Expressions.list(childExp,
+              keySelectors_,
+              Expressions.call(lambdaFactory,
+                  BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
+              Expressions.call(lambdaFactory,
+                  BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
+              Expressions.call(lambdaFactory,
+                  BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
+                  resultSelector));
+      final Method groupByMultipleMethod;
+      if (hasEmptyGroup) {
+        // The key of the empty grouping set is a constant: each grouping
+        // column is defaulted (null, or the default value of its primitive
+        // type) and each indicator is true. It is built directly, mirroring
+        // the key that the selector generated for that grouping set
+        // computes for any input row. Passing it to groupByMultiple lets
+        // the empty grouping set produce its single row when the input is
+        // empty, just as a query with no GROUP BY produces a row over an
+        // empty input.
+        //
+        // For example, for the query
+        //
+        //   SELECT deptno, COUNT(*) AS c
+        //   FROM emp WHERE FALSE
+        //   GROUP BY ROLLUP(deptno)
+        //
+        // where deptno is an INT column, the generated code ends in a call
+        // to groupByMultiple whose last argument is the constant key of the
+        // empty grouping set (the key selectors, the lambda factory and the
+        // result selector are anonymous classes, elided here):
+        //
+        //   return EnumerableDefaults.groupByMultiple(
+        //       Linq4j.asEnumerable(new Integer[] {}),
+        //       Arrays.asList(keySelector0, keySelector1),
+        //       lambdaFactory.accumulatorInitializer(),
+        //       lambdaFactory.accumulatorAdder(),
+        //       lambdaFactory.resultSelector(resultSelector),
+        //       FlatLists.of(0, true));
+        //
+        // Here, '0' is the default value of the deptno column, and 'true'
+        // is its indicator, true because deptno is not in the empty
+        // grouping set.
+        final List<Expression> keyExpressions = new ArrayList<>();
+        for (int j = 0; j < groupCount; j++) {
+          final Primitive primitive =
+              Primitive.of(keyPhysType.fieldClass(j));
+          keyExpressions.add(
+              Expressions.constant(
+                  primitive != null ? primitive.defaultValue : null));
+        }
+        for (int j = 0; j < groupCount; j++) {
+          keyExpressions.add(Expressions.constant(true));
+        }
+        final Expression emptyGroupKey =
+            builder.append("emptyGroupKey",
+                keyPhysType.record(keyExpressions));
+        arguments.add(emptyGroupKey);
+        groupByMultipleMethod = BuiltInMethod.GROUP_BY_MULTIPLE2.method;
+      } else {
+        groupByMultipleMethod = BuiltInMethod.GROUP_BY_MULTIPLE.method;
+      }
       builder.add(
           Expressions.return_(null,
-              Expressions.call(
-                  BuiltInMethod.GROUP_BY_MULTIPLE.method,
-                  Expressions.list(childExp,
-                      keySelectors_,
-                      Expressions.call(lambdaFactory,
-                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
-                      Expressions.call(lambdaFactory,
-                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
-                      Expressions.call(lambdaFactory,
-                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
-                          resultSelector))
-                      .appendIfNotNull(keyPhysType.comparer()))));
+              Expressions.call(groupByMultipleMethod,
+                  arguments.appendIfNotNull(keyPhysType.comparer()))));
     } else if (groupCount == 0) {
       final Expression resultSelector =
           builder.append(

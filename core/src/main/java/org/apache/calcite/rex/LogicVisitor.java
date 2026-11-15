@@ -150,6 +150,21 @@ public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
   }
 
   @Override public @Nullable Logic visitOver(RexOver over, @Nullable Logic arg) {
+    // The value, not just the truth, of the operands and of the window
+    // matters, so visit them with TRUE_FALSE_UNKNOWN.
+    final Logic logic = Logic.TRUE_FALSE_UNKNOWN;
+    for (RexNode operand : over.getOperands()) {
+      operand.accept(this, logic);
+    }
+    final RexWindow window = over.getWindow();
+    for (RexNode partitionKey : window.partitionKeys) {
+      partitionKey.accept(this, logic);
+    }
+    for (RexFieldCollation orderKey : window.orderKeys) {
+      orderKey.left.accept(this, logic);
+    }
+    window.getLowerBound().accept(this, logic);
+    window.getUpperBound().accept(this, logic);
     return end(over, arg);
   }
 

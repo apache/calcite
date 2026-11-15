@@ -190,6 +190,8 @@ public class ToLogicalConverter extends RelShuttleImpl {
       final RelNode input = visit(uncollect.getInput());
       return Uncollect.create(input.getTraitSet(), input,
           uncollect.withOrdinality, uncollect.getItemAliases(),
+          uncollect.getPassthroughFieldIndices(),
+          uncollect.getCollectionFieldIndices(),
           uncollect.expandStructFields, uncollect.isOuter);
     }
 

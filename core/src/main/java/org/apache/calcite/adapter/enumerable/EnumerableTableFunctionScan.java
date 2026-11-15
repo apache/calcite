@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -109,12 +110,15 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     // Non-array user-specified types are not supported yet
     final JavaRowFormat format;
     Type elementType = getElementType();
-    if (elementType == null) {
+    final boolean arrayRows = elementType instanceof Class
+        && Object[].class.isAssignableFrom((Class<?>) elementType);
+    if (arrayRows && getRowType().getFieldCount() == 1) {
+      format = JavaRowFormat.SCALAR;
+    } else if (elementType == null) {
       format = JavaRowFormat.ARRAY;
     } else if (getRowType().getFieldCount() == 1 && isQueryable()) {
       format = JavaRowFormat.SCALAR;
-    } else if (elementType instanceof Class
-        && Object[].class.isAssignableFrom((Class<?>) elementType)) {
+    } else if (arrayRows) {
       format = JavaRowFormat.ARRAY;
     } else {
       format = JavaRowFormat.CUSTOM;
@@ -127,7 +131,11 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
             (JavaTypeFactory) getCluster().getTypeFactory(),
             bb, null, implementor.getConformance());
     t = t.setCorrelates(implementor.allCorrelateVariables);
-    bb.add(Expressions.return_(null, t.translate(getCall())));
+    Expression expression = t.translate(getCall());
+    if (arrayRows && format == JavaRowFormat.SCALAR) {
+      expression = Expressions.call(BuiltInMethod.SLICE0.method, expression);
+    }
+    bb.add(Expressions.return_(null, expression));
     return implementor.result(physType, bb.toBlock());
   }
 

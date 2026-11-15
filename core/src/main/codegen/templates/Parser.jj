@@ -55,6 +55,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFromQuery;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlHint;
@@ -84,6 +85,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPipeWhere;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
@@ -106,6 +108,8 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.SqlCycleClause;
+import org.apache.calcite.sql.SqlSearchClause;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -185,6 +189,34 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     private boolean allowRowValueStar() {
         return rowValueStarCount > 0;
+    }
+
+    /**
+     * Whether {@code *} is currently allowed as a bare grouping element in
+     * GROUPING SETS / ROLLUP / CUBE. Set while parsing a grouping element
+     * when the {@code isGroupingSetsStarAllowed} conformance is on.
+     *
+     * <p>Note that the validator expands such a star only in the
+     * well-defined positions of the syntax: a complete grouping set, an
+     * element of a grouping set, or an argument of ROLLUP or CUBE (including
+     * grouping constructs nested within GROUPING SETS). A star nested inside
+     * other expressions, say {@code ABS(*)}, parses too, but the validator
+     * does not expand it, and validation fails because {@code *} is not a
+     * known column.
+     */
+    private int groupingStarCount;
+
+    private void pushGroupingStar() {
+        groupingStarCount++;
+    }
+
+    private void popGroupingStar() {
+        assert groupingStarCount > 0;
+        groupingStarCount--;
+    }
+
+    private boolean allowGroupingStar() {
+        return groupingStarCount > 0;
     }
 
     /**
@@ -660,6 +692,7 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 
 SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
 {
+    final boolean with = getToken(1).kind == WITH;
     SqlNode e;
     final List<Object> list = new ArrayList<Object>();
 }
@@ -671,13 +704,16 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
         LOOKAHEAD(2)
         e = Query(exprContext)
         e = OrderByLimitOpt(e)
+        e = PipeOpt(e, with)
         { return e; }
     |
         e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
         ( e = JoinTable(e) )*
         { list.add(e); }
         ( AddSetOpQuery(list, exprContext) )*
-        { return SqlParserUtil.toTree(list); }
+        { e = SqlParserUtil.toTree(list); }
+        e = PipeOpt(e, false)
+        { return e; }
     )
 }
 
@@ -714,11 +750,13 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
  */
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
+    final boolean with = getToken(1).kind == WITH;
     SqlNode e;
 }
 {
     e = QueryOrExpr(exprContext)
     e = OrderByLimitOpt(e)
+    e = PipeOpt(e, with)
     { return e; }
 }
 
@@ -870,7 +908,7 @@ void LimitClause(Span s, SqlNode[] offsetFetch) :
 }
 
 /**
- * Parses a leaf in a query expression (SELECT, VALUES or TABLE).
+ * Parses a leaf in a query expression (SELECT, VALUES, TABLE or FROM).
  */
 SqlNode LeafQuery(ExprContext exprContext) :
 {
@@ -886,6 +924,138 @@ SqlNode LeafQuery(ExprContext exprContext) :
     e = TableConstructor() { return e; }
 |
     e = ExplicitTable(getPos()) { return e; }
+|
+    e = FromQuery() { return e; }
+}
+
+/**
+ * Parses a standalone FROM clause. Only valid under conformance levels
+ * that allow pipe syntax.
+ */
+SqlNode FromQuery() :
+{
+    final SqlNode fromClause;
+    final Span s;
+}
+{
+    <FROM> {
+        s = span();
+        if (!this.conformance.isPipeSyntaxAllowed()) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.pipeSyntaxNotAllowed());
+        }
+    }
+    fromClause = FromClause()
+    // Report helpful error messages for common mistakes. (Generally, FROM
+    // must be followed by pipe operators.)
+    [
+        LOOKAHEAD(1)
+        (
+            <WHERE> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.pipeClauseNotAllowed("WHERE", "|> WHERE"));
+            }
+        |
+            <ORDER> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("ORDER BY"));
+            }
+        |
+            <LIMIT> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("LIMIT"));
+            }
+        |
+            <OFFSET> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("OFFSET"));
+            }
+        |
+            <FETCH> {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryClauseNotAllowed("FETCH"));
+            }
+        |
+            ( <UNION> | <INTERSECT> | <EXCEPT> | <SET_MINUS> ) {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.fromQueryInSetOpNotAllowed());
+            }
+        )
+    ]
+    { return new SqlFromQuery(s.end(this), fromClause); }
+}
+
+/**
+ * Parses zero or more pipe operators that follow the query {@code e}.
+ *
+ * <p>The flag {@code with} signifies whether {@code e} is a WITH that is not
+ * in parentheses, or an ORDER BY of such a WITH. If so, the operators are
+ * applied to the body of the WITH, so that they can reference its CTEs.
+ */
+SqlNode PipeOpt(SqlNode e, boolean with) :
+{
+    SqlWith w = null;
+}
+{
+    {
+        if (with && getToken(1).kind == PIPE) {
+            if (e instanceof SqlOrderBy) {
+                final SqlOrderBy orderBy = (SqlOrderBy) e;
+                w = (SqlWith) orderBy.query;
+                orderBy.setOperand(0, w.body);
+            } else {
+                w = (SqlWith) e;
+                e = w.body;
+            }
+        }
+    }
+    ( e = PipeOperator(e) )*
+    {
+        if (w != null) {
+            w.setOperand(1, e);
+            return w;
+        }
+        return e;
+    }
+}
+
+/**
+ * Parses one pipe operation.
+ */
+SqlNode PipeOperator(SqlNode e) :
+{
+    final Span s;
+}
+{
+    <PIPE> {
+        s = span();
+        if (!this.conformance.isPipeSyntaxAllowed()) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.pipeSyntaxNotAllowed());
+        }
+        if (!e.isA(SqlKind.QUERY)) {
+            // A pipe operator applies only to a query.
+            checkNonQueryExpression(ExprContext.ACCEPT_QUERY);
+        }
+    }
+    (
+        e = PipeWhere(s, e)
+    )
+    { return e; }
+}
+
+/**
+ * Parses a {@code |> WHERE} operation.
+ */
+SqlNode PipeWhere(Span s, SqlNode e) :
+{
+    final SqlNode condition;
+}
+{
+    <WHERE> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    {
+        return new SqlPipeWhere(s.end(this), e, condition);
+    }
 }
 
 /**
@@ -1272,7 +1442,12 @@ SqlNode SqlStmt() :
         stmt = SqlTruncate()
     |
 </#if>
-        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_NONCURSOR) {
+            if (!stmt.isA(SqlKind.QUERY)) {
+                throw SqlUtil.newContextException(stmt.getParserPosition(),
+                    RESOURCE.invalidStatement());
+            }
+        }
     |
         stmt = SqlExplain()
     |
@@ -1485,7 +1660,16 @@ SqlSelect SqlSelect() :
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
     AddSelectItem(selectList)
+<#if parser.includeSelectListTrailingComma!default.parser.includeSelectListTrailingComma>
+    // GoogleSQL (BigQuery) allows a trailing comma at the end of the SELECT
+    // list, e.g. "SELECT a, b, FROM t". With LOOKAHEAD(2), the loop is exited
+    // when the token after ',' cannot begin a select item; the optional ','
+    // below then consumes the trailing comma.
+    ( LOOKAHEAD(2) <COMMA> AddSelectItem(selectList) )*
+    [ <COMMA> ]
+<#else>
     ( <COMMA> AddSelectItem(selectList) )*
+</#if>
 <#if parser.includeSelectBy!false>
     ( by = SqlSelectBy() | { by = null; } )
 <#else>
@@ -2266,39 +2450,43 @@ SqlNode FromClause() :
     SqlLiteral joinType;
 }
 {
-    e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
+    e = Join()
     (
         // Comma joins should only occur at top-level in the FROM clause.
+        // JOIN binds tighter than comma, as required by the SQL standard:
+        // "FROM a, b JOIN c" means "FROM a, (b JOIN c)".
         // Valid:
         //  * FROM a, b
         //  * FROM (a CROSS JOIN b), c
         // Not valid:
         //  * FROM a CROSS JOIN (b, c)
-        LOOKAHEAD(1)
-        e = JoinOrCommaTable(e)
+        LOOKAHEAD(2)
+        <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
+        e2 = Join() {
+            e = new SqlJoin(joinType.getParserPosition(),
+                e,
+                SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+                joinType,
+                e2,
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+                null);
+        }
     )*
     { return e; }
 }
 
-SqlNode JoinOrCommaTable(SqlNode e) :
+/** Parses a table reference followed by zero or more joins. */
+SqlNode Join() :
 {
-    SqlNode e2;
-    SqlLiteral joinType;
+    SqlNode e;
 }
 {
-    LOOKAHEAD(2)
-    <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
-    e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN) {
-        return new SqlJoin(joinType.getParserPosition(),
-            e,
-            SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-            joinType,
-            e2,
-            JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
-            null);
-    }
-|
-    e2 = JoinTable(e) { return e2; }
+    e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
+    (
+        LOOKAHEAD(2)
+        e = JoinTable(e)
+    )*
+    { return e; }
 }
 
 /** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
@@ -2901,11 +3089,23 @@ SqlNodeList GroupBy() :
 List<SqlNode> GroupingElementList() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
+    final boolean starAllowed =
+        this.conformance.isGroupingSetsStarAllowed();
 }
 {
+    {
+        if (starAllowed) {
+            pushGroupingStar();
+        }
+    }
     AddGroupingElement(list)
     ( LOOKAHEAD(2) <COMMA> AddGroupingElement(list) )*
-    { return list; }
+    {
+        if (starAllowed) {
+            popGroupingStar();
+        }
+        return list;
+    }
 }
 
 void AddGroupingElement(List<SqlNode> list) :
@@ -2913,6 +3113,8 @@ void AddGroupingElement(List<SqlNode> list) :
     final List<SqlNode> subList;
     final SqlNodeList nodes;
     final Span s;
+    final boolean starAllowed =
+        this.conformance.isGroupingSetsStarAllowed();
 }
 {
     LOOKAHEAD(2)
@@ -2922,20 +3124,40 @@ void AddGroupingElement(List<SqlNode> list) :
             SqlStdOperatorTable.GROUPING_SETS.createCall(s.end(this), subList));
     }
 |   <ROLLUP> { s = span(); }
-    <LPAREN> nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+    <LPAREN> {
+        if (starAllowed) {
+            pushGroupingStar();
+        }
+    }
+    nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
     <RPAREN> {
+        if (starAllowed) {
+            popGroupingStar();
+        }
         list.add(
             SqlStdOperatorTable.ROLLUP.createCall(s.end(this), nodes.getList()));
     }
 |   <CUBE> { s = span(); }
-    <LPAREN> nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+    <LPAREN> {
+        if (starAllowed) {
+            pushGroupingStar();
+        }
+    }
+    nodes = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
     <RPAREN> {
+        if (starAllowed) {
+            popGroupingStar();
+        }
         list.add(
             SqlStdOperatorTable.CUBE.createCall(s.end(this), nodes.getList()));
     }
 |   LOOKAHEAD(3)
     <LPAREN> { s = span(); } <RPAREN> {
         list.add(new SqlNodeList(s.end(this)));
+    }
+|   LOOKAHEAD({ allowGroupingStar() && getToken(1).kind == STAR })
+    <STAR> {
+        list.add(SqlIdentifier.star(getPos()));
     }
 |   AddExpression(list, ExprContext.ACCEPT_SUB_QUERY)
 }
@@ -3905,6 +4127,18 @@ void AddSetOpQuery(List<Object> list, ExprContext exprContext) :
         pos = getPos();
         checkQueryExpression(exprContext);
     }
+    [
+        // Deliberately require parentheses, as GoogleSQL does.
+        LOOKAHEAD(1)
+        <FROM> {
+            if (!this.conformance.isPipeSyntaxAllowed()) {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.pipeSyntaxNotAllowed());
+            }
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.fromQueryInSetOpNotAllowed());
+        }
+    ]
     e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY) {
         list.add(new SqlParserUtil.ToTreeListItem(op, pos));
         list.add(e);
@@ -3929,13 +4163,67 @@ void AddWithItem(List<SqlWithItem> list, SqlLiteral recursive) :
     final SqlIdentifier id;
     final SqlNodeList columnList;
     final SqlNode definition;
+    SqlSearchClause search = null;
+    SqlCycleClause cycle = null;
 }
 {
     id = SimpleIdentifier()
     ( columnList = ParenthesizedSimpleIdentifierList() | { columnList = null; } )
     <AS>
     definition = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
-    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive)); }
+    [ search = SearchClause() ]
+    [ cycle = CycleClause() ]
+    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive,
+        search, cycle)); }
+}
+
+SqlSearchClause SearchClause() :
+{
+    final Span s;
+    final SqlSearchClause.SearchMode mode;
+    final List<SqlNode> columns = new ArrayList<SqlNode>();
+    SqlIdentifier column;
+    final SqlIdentifier orderColumn;
+}
+{
+    <SEARCH> { s = span(); }
+    ( <DEPTH> { mode = SqlSearchClause.SearchMode.DEPTH; }
+    | <BREADTH> { mode = SqlSearchClause.SearchMode.BREADTH; } )
+    <FIRST> <BY>
+    column = SimpleIdentifier() { columns.add(column); }
+    ( <COMMA> column = SimpleIdentifier() { columns.add(column); } )*
+    <SET> orderColumn = SimpleIdentifier()
+    { return new SqlSearchClause(s.end(this), SqlLiteral.createSymbol(mode, s.pos()),
+        new SqlNodeList(columns, s.pos()), orderColumn); }
+}
+
+SqlCycleClause CycleClause() :
+{
+    final Span s;
+    final List<SqlNode> columns = new ArrayList<SqlNode>();
+    SqlIdentifier column;
+    final SqlIdentifier markColumn;
+    final SqlNode markValue;
+    final SqlNode defaultValue;
+    final SqlIdentifier pathColumn;
+}
+{
+    <CYCLE> { s = span(); }
+    column = SimpleIdentifier() { columns.add(column); }
+    ( <COMMA> column = SimpleIdentifier() { columns.add(column); } )*
+    <SET> markColumn = SimpleIdentifier()
+    (
+        <TO> markValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+        <DEFAULT_> defaultValue = Expression(ExprContext.ACCEPT_NON_QUERY)
+    |
+        {
+            markValue = SqlLiteral.createBoolean(true, markColumn.getParserPosition());
+            defaultValue = SqlLiteral.createBoolean(false, markColumn.getParserPosition());
+        }
+    )
+    <USING> pathColumn = SimpleIdentifier()
+    { return new SqlCycleClause(s.end(this), new SqlNodeList(columns, s.pos()),
+        markColumn, markValue, defaultValue, pathColumn); }
 }
 
 /**
@@ -4824,6 +5112,15 @@ SqlNode AtomicRowExpression() :
         |
             { return starId; }
         )
+    |
+        // Parses a bare "*" grouping element appearing inside a tuple or
+        // argument list of GROUPING SETS / ROLLUP / CUBE. (A star nested
+        // inside other expressions, say ABS(*), parses too, but the
+        // validator does not expand it and validation fails.)
+        LOOKAHEAD({ allowGroupingStar() && getToken(1).kind == STAR })
+        <STAR> {
+            return SqlIdentifier.star(getPos());
+        }
     |
         e = NewSpecification()
     |
@@ -9560,6 +9857,7 @@ void NonReservedKeyWord2of3() :
 |   < QUOTE: "'" >
 |   < DOUBLE_QUOTE: "\"" >
 |   < VERTICAL_BAR: "|" >
+|   < PIPE: "|>" >
 |   < CARET: "^" >
 |   < AMPERSAND: "&" >
 |   < LEFTSHIFT: "<<" >

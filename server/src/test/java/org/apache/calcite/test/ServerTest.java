@@ -262,6 +262,27 @@ class ServerTest {
     }
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5796">[CALCITE-5796]
+   * DELETE statement is not effective</a>. */
+  @Test void testDeleteAllRowsWithoutWhereClause() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (i int not null, j int not null)");
+      s.executeUpdate("insert into t values (1, 10)");
+      s.executeUpdate("insert into t values (2, 20)");
+      s.executeUpdate("insert into t values (3, 30)");
+
+      final int count = s.executeUpdate("delete from t");
+      assertThat(count, is(3));
+
+      try (ResultSet r = s.executeQuery("select count(*) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(0));
+      }
+    }
+  }
+
   @Test void testStatement() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement();

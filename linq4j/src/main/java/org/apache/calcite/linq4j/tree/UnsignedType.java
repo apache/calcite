@@ -134,7 +134,7 @@ public enum UnsignedType {
     if (s == null) {
       return null;
     }
-    return Unsigned.ubyte(s);
+    return Unsigned.ubyte(Primitive.checkNumericString(s.trim()));
   }
 
   // To UShort
@@ -192,7 +192,7 @@ public enum UnsignedType {
     if (s == null) {
       return null;
     }
-    return Unsigned.ushort(s);
+    return Unsigned.ushort(Primitive.checkNumericString(s.trim()));
   }
 
   // UInteger
@@ -246,7 +246,7 @@ public enum UnsignedType {
     if (s == null) {
       return null;
     }
-    return Unsigned.uint(s);
+    return Unsigned.uint(Primitive.checkNumericString(s.trim()));
   }
 
   // ULong
@@ -304,7 +304,7 @@ public enum UnsignedType {
     if (s == null) {
       return null;
     }
-    return Unsigned.ulong(s);
+    return Unsigned.ulong(Primitive.checkNumericString(s.trim()));
   }
   public static @Nullable UShort toUShort(Object o) {
     if (o == null) {

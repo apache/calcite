@@ -888,6 +888,61 @@ EnumerableNestedLoopJoin(condition=[true], joinType=[anti])
 !plan
 !}
 
+# Test case for https://issues.apache.org/jira/browse/CALCITE-7904
+# SingleValuesOptimizationRules give wrong results for ASOF and SEMI joins and fail for LEFT ASOF join
+# (SEMI join with a single-row VALUES as its left input must return at most one row)
+select * from (values (10)) as t(x)
+where exists (select 1 from "hr"."emps");
++----+
+| X  |
++----+
+| 10 |
++----+
+(1 row)
+
+!ok
+
+# As above, correlated
+select * from (values (10)) as t(x)
+where exists (select 1 from "hr"."emps" as e where e."deptno" = t.x);
++----+
+| X  |
++----+
+| 10 |
++----+
+(1 row)
+
+!ok
+
+# SEMI join with a single-row VALUES as its right input
+select "deptno" from "hr"."depts"
+where exists (select 1 from (values (1)) as t(x));
++--------+
+| deptno |
++--------+
+|     10 |
+|     30 |
+|     40 |
++--------+
+(3 rows)
+
+!ok
+
+# As above, correlated
+select "empid", "name" from "hr"."emps"
+where exists (select 1 from (values (10)) as t(x) where t.x = "emps"."deptno")
+order by "empid";
++-------+-----------+
+| empid | name      |
++-------+-----------+
+|   100 | Bill      |
+|   110 | Theodore  |
+|   150 | Sebastian |
++-------+-----------+
+(3 rows)
+
+!ok
+
 # EXISTS
 select * from "hr"."emps"
 where exists (

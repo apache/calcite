@@ -201,8 +201,8 @@ public class RexImplicationChecker {
       break;
     }
 
-    final InputUsageFinder firstUsageFinder = new InputUsageFinder();
-    final InputUsageFinder secondUsageFinder = new InputUsageFinder();
+    final InputUsageFinder firstUsageFinder = new InputUsageFinder(builder);
+    final InputUsageFinder secondUsageFinder = new InputUsageFinder(builder);
 
     RexUtil.apply(firstUsageFinder, ImmutableList.of(), first);
     RexUtil.apply(secondUsageFinder, ImmutableList.of(), second);
@@ -445,9 +445,11 @@ public class RexImplicationChecker {
   private static class InputUsageFinder extends RexVisitorImpl<Void> {
     final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> usageMap =
         new HashMap<>();
+    final RexBuilder builder;
 
-    InputUsageFinder() {
+    InputUsageFinder(RexBuilder builder) {
       super(true);
+      this.builder = builder;
     }
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
@@ -470,9 +472,25 @@ public class RexImplicationChecker {
       case IS_NOT_NULL:
         updateUnaryOpUsage(call);
         break;
+      case NOT:
+        return visitNot(call);
       default:
       }
       return super.visitCall(call);
+    }
+
+    /** Rewrites {@code NOT(a = b)} to its positive form {@code a <> b}; for anything
+     * else, leaves the usage unrecorded so {@code checkSupport()} declines rather
+     * than guess. */
+    private @Nullable Void visitNot(RexCall call) {
+      final RexNode operand = call.getOperands().get(0);
+      if (operand instanceof RexCall) {
+        final RexNode negated = RexUtil.negate(builder, (RexCall) operand);
+        if (negated != null) {
+          return negated.accept(this);
+        }
+      }
+      return null;
     }
 
     private void updateUnaryOpUsage(RexCall call) {

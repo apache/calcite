@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -283,12 +284,28 @@ public abstract class SingleValuesOptimizationRules {
           jn -> jn.getJoinType() == JoinRelType.ANTI
           || jn.getJoinType() == JoinRelType.FULL;
 
+      // [LEFT] ASOF joins enforce a MATCH_CONDITION predicate that is carried outside join's
+      // condition (see AsofJoin#getMatchCondition()). This transformation would silently delete
+      // that predicate, leading to wrong results. The instanceof check is deliberately redundant
+      // with the join-type check so that potential Join subclasses carrying extra semantic state
+      // are never silently rewritten.
+      Predicate<Join> isAsofJoin =
+          jn -> jn instanceof AsofJoin
+          || jn.getJoinType() == JoinRelType.ASOF
+          || jn.getJoinType() == JoinRelType.LEFT_ASOF;
+
       if (isLeft) {
         return jn -> !(jn.getJoinType() == JoinRelType.LEFT
             || jn.getJoinType() == JoinRelType.LEFT_MARK
+            // SEMI is not transformable when the single-row Values is the left: the join emits
+            // at most one row, but the rewritten plan would emit one row per matching right row
+            || jn.getJoinType() == JoinRelType.SEMI
+            || isAsofJoin.test(jn)
             || isFullOrAntiJoin.test(jn));
       } else {
-        return jn -> !(jn.getJoinType() == JoinRelType.RIGHT || isFullOrAntiJoin.test(jn));
+        return jn -> !(jn.getJoinType() == JoinRelType.RIGHT
+            || isAsofJoin.test(jn)
+            || isFullOrAntiJoin.test(jn));
       }
     }
 

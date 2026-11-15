@@ -109,6 +109,17 @@ public class MssqlSqlDialect extends SqlDialect {
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       // SQL Server's timezone-aware date/time type.
       return createDatetimeCastSpec("DATETIMEOFFSET", type);
+    case VARCHAR:
+      // SQL Server interprets a bare VARCHAR in a CAST as VARCHAR(30).
+      // Fix the precision to VARCHAR(MAX) if it is unspecified, so that the
+      // CAST does not truncate the value.
+      if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec("VARCHAR(MAX)",
+              SqlTypeName.VARCHAR, SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
+      }
+      return super.getCastSpec(type);
     default:
       return super.getCastSpec(type);
     }

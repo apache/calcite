@@ -1894,6 +1894,100 @@ public class SqlOperatorTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7865">[CALCITE-7865]
+   * CASTS from string trim in inconsistent ways</a>. */
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFromStringTrim(CastType castType, SqlOperatorFixture f) {
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+    // Target type, and a valid string for that type
+    final String[][] casts = {
+        {"TINYINT", "1"},
+        {"SMALLINT", "1"},
+        {"INTEGER", "1"},
+        {"BIGINT", "1"},
+        {"TINYINT UNSIGNED", "1"},
+        {"SMALLINT UNSIGNED", "1"},
+        {"INTEGER UNSIGNED", "1"},
+        {"BIGINT UNSIGNED", "1"},
+        {"REAL", "1.5"},
+        {"DOUBLE", "1.5"},
+        {"DECIMAL(5, 2)", "1.5"},
+        {"BOOLEAN", "true"},
+        {"DATE", "2020-01-02"},
+        {"TIME", "10:11:12"},
+        {"TIMESTAMP", "2020-01-02 10:11:12"},
+        {"TIME WITH LOCAL TIME ZONE", "10:11:12 UTC"},
+        {"TIMESTAMP WITH LOCAL TIME ZONE", "2020-01-02 10:11:12 UTC"},
+        {"INTERVAL DAY", "3"},
+    };
+    for (String[] cast : casts) {
+      final String type = cast[0];
+      final String value = cast[1];
+      // Each cast removes leading and trailing characters up to U+0020,
+      // as String.trim does
+      for (String c : new String[] {"\\0009", "\\000A", "\\001F", "\\0020"}) {
+        f.checkBoolean("cast(U&'" + c + value + c + "' as " + type + ")"
+            + " = cast('" + value + "' as " + type + ")", true);
+      }
+      if (castType != CastType.CAST) {
+        // No cast removes U+00A0 (no-break space), which is above U+0020
+        f.checkNull("cast(U&'\\00A0" + value + "' as " + type + ")");
+      }
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7866">[CALCITE-7866]
+   * CASTS from string values accept Java idioms which are not legal in
+   * SQL</a>. */
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFromStringJavaIdiom(CastType castType, SqlOperatorFixture f) {
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+    // Negative tests: casts should fail
+    // A string that is legal in Java but not in SQL, and the target type
+    final String[][] casts = {
+        // Type suffix on a Java number
+        {"1.5d", "DOUBLE"},
+        {"1.5f", "REAL"},
+        // Hexadecimal floating-point number
+        {"0x1p3", "DOUBLE"},
+        // Character.digit accepts U+0667, ARABIC-INDIC DIGIT SEVEN
+        {"\\0667", "TINYINT"},
+        {"\\0667", "SMALLINT"},
+        {"\\0667", "INTEGER"},
+        {"\\0667", "BIGINT"},
+        {"\\0667", "INTEGER UNSIGNED"},
+        {"\\0667", "BIGINT UNSIGNED"},
+        {"\\0667", "DECIMAL(5, 2)"},
+        {"\\0667", "INTERVAL DAY"},
+        // equalsIgnoreCase upper-cases U+017F, LATIN SMALL LETTER LONG S, to S
+        {"fal\\017Fe", "BOOLEAN"},
+    };
+    for (String[] cast : casts) {
+      final String value = cast[0];
+      final String type = cast[1];
+      final String expression = "cast(U&'" + value + "' as " + type + ")";
+      if (castType == CastType.CAST) {
+        f.checkFails(expression,
+            type.equals("BOOLEAN")
+                ? "Invalid character for cast.*"
+                : WRONG_FORMAT_MESSAGE,
+            true);
+      } else {
+        f.checkNull(expression);
+      }
+    }
+
+    // Each part of the SQL syntax for a number still converts
+    f.checkBoolean("cast('+1.5E+1' as double) = 15", true);
+    f.checkBoolean("cast('-.25e1' as real) = -2.5e0", true);
+    f.checkBoolean("cast('5.' as decimal(5, 2)) = 5", true);
+    f.checkBoolean("cast('+7' as tinyint) = 7", true);
+  }
+
   @Test void testCastToDecimal() {
     final SqlOperatorFixture f = fixture();
     // test the minimum scale is 0
@@ -5949,26 +6043,24 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL)
         .setFor(SqlLibraryOperators.TO_TIMESTAMP_PG);
 
-    if (Bug.CALCITE_7494_FIXED) {
-      f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
-          "2022-06-03 18:34:56 UTC",
-          "TIMESTAMP_TZ(0) NOT NULL");
-      f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
-          "0001-01-01 18:43:56 UTC",
-          "TIMESTAMP_TZ(0) NOT NULL");
-      f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
-          "2022-06-03 18:34:56 UTC",
-          "TIMESTAMP_TZ(0) NOT NULL");
-      f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
-          "2022-06-03 18:34:56 UTC",
-          "TIMESTAMP_TZ(0) NOT NULL");
-      f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
-          "2022-06-03 18:34:56 UTC",
-          "TIMESTAMP_TZ(0) NOT NULL");
-      f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
-          "2022-06-03 18:34:56 UTC",
-          "TIMESTAMP_TZ(0) NOT NULL");
-    }
+    f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "2022-06-03 18:34:56 UTC",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "0001-01-01 18:43:56 UTC",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
+        "2022-06-03 18:34:56 UTC",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
+        "2022-06-03 18:34:56 UTC",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
+        "2022-06-03 18:34:56 UTC",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
+        "2022-06-03 18:34:56 UTC",
+        "TIMESTAMP_TZ(0) NOT NULL");
     f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
         "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for timestamp "
             + "string: 'ABCD'.",
@@ -8590,7 +8682,9 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
-  /** Tests {@code ARRAY_MAX} function from Spark, Hive. */
+  /** Tests {@code ARRAY_MAX} function from Spark, Hive, including
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
   @Test void testArrayMaxFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ARRAY_MAX);
     f0.checkFails("^array_max(array[1, 2])^",
@@ -8601,6 +8695,18 @@ public class SqlOperatorTest {
       f.checkScalar("array_max(array[1, 2])", "2", "INTEGER");
       f.checkScalar("array_max(array[1, 2, null])", "2", "INTEGER");
       f.checkScalar("array_max(array[1])", "1", "INTEGER");
+      f.checkScalar("array_max(array[row(1, 'Foo'), row(2, 'Bar')])", "{2, Bar}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_max(array[row(1, 'Bar'), row(1, 'Foo'), null])", "{1, Foo}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_max(array[row(1, row(2, 'Bar')), row(1, row(2, 'Foo'))])",
+          "{1, {2, Foo}}",
+          "RecordType(INTEGER EXPR$0, RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) EXPR$1)");
+      f.checkScalar("array_max(array[row(1, 2), row(1, null)])", "{1, null}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkScalar("array_max(array[row(1, 2)])", "{1, 2}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkNull("array_max(array[cast(null as row(x integer, y integer))])");
       f.checkType("array_max(array())", "UNKNOWN");
       f.checkNull("array_max(array())");
       f.checkNull("array_max(cast(null as integer array))");
@@ -8615,7 +8721,9 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
-  /** Tests {@code ARRAY_MIN} function from Spark, Hive. */
+  /** Tests {@code ARRAY_MIN} function from Spark, Hive, including
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
   @Test void testArrayMinFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ARRAY_MIN);
     f0.checkFails("^array_min(array[1, 2])^",
@@ -8624,6 +8732,18 @@ public class SqlOperatorTest {
         ImmutableList.of(SqlLibrary.HIVE, SqlLibrary.SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalar("array_min(array[1, 2])", "1", "INTEGER");
+      f.checkScalar("array_min(array[row(2, 'Bar'), row(1, 'Foo')])", "{1, Foo}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_min(array[null, row(1, 'Foo'), row(1, 'Bar')])", "{1, Bar}",
+          "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1)");
+      f.checkScalar("array_min(array[row(1, row(2, 'Foo')), row(1, row(2, 'Bar'))])",
+          "{1, {2, Bar}}",
+          "RecordType(INTEGER EXPR$0, RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) EXPR$1)");
+      f.checkScalar("array_min(array[row(1, null), row(1, 2)])", "{1, 2}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkScalar("array_min(array[row(1, 2)])", "{1, 2}",
+          "RecordType(INTEGER EXPR$0, INTEGER EXPR$1)");
+      f.checkNull("array_min(array[cast(null as row(x integer, y integer))])");
       f.checkScalar("array_min(array[1, 2, null])", "1", "INTEGER");
       f.checkType("array_min(array())", "UNKNOWN");
       f.checkNull("array_min(array())");
@@ -9321,6 +9441,31 @@ public class SqlOperatorTest {
     f.checkScalar("sort_array(array())", "[]",
         "UNKNOWN NOT NULL ARRAY NOT NULL");
     f.checkNull("sort_array(null)");
+    f.checkScalar("sort_array(array[row(2, 'Bar'), row(1, 'Foo')])",
+        "[{1, Foo}, {2, Bar}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, CHAR(3) NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, 'Foo'), null, row(1, 'Bar')])",
+        "[null, {1, Bar}, {1, Foo}]",
+        "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, 'Bar'), null, row(1, 'Foo')], false)",
+        "[{1, Foo}, {1, Bar}, null]",
+        "RecordType(INTEGER EXPR$0, CHAR(3) EXPR$1) ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, row(2, 'Foo')), row(1, row(2, 'Bar'))])",
+        "[{1, {2, Bar}}, {1, {2, Foo}}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, "
+            + "RecordType(INTEGER NOT NULL EXPR$0, CHAR(3) NOT NULL EXPR$1) NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, row(2, 'Bar')), row(1, row(2, 'Foo'))], false)",
+        "[{1, {2, Foo}}, {1, {2, Bar}}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, "
+            + "RecordType(INTEGER NOT NULL EXPR$0, CHAR(3) NOT NULL EXPR$1) NOT NULL EXPR$1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, null), row(1, 2)])",
+        "[{1, 2}, {1, null}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[row(1, 2), row(1, null)], false)",
+        "[{1, null}, {1, 2}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
 
     // elements cast
     f.checkScalar("sort_array(array[cast(1 as tinyint), 2])", "[1, 2]",
@@ -9853,6 +9998,8 @@ public class SqlOperatorTest {
             + "<CHARACTER>, <CHARACTER>\\)", false);
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    // Expected string and NULL results below were verified against
+    // MySQL Community Server 8.4.13 (official mysql:8.4 Docker image).
     f.checkString("substring_index('www.apache.org', '.', 2)",
         "www.apache", "VARCHAR(14) NOT NULL");
     f.checkString("substring_index('www.apache.org', '.', 1)",
@@ -9861,6 +10008,16 @@ public class SqlOperatorTest {
         "www.apache.org", "VARCHAR(14) NOT NULL");
     f.checkString("substring_index('www.apache.org', '.', -1)",
         "org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -2)",
+        "apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -3)",
+        "www.apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -10)",
+        "www.apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('a.b.c', '.', -2)",
+        "b.c", "VARCHAR(5) NOT NULL");
+    f.checkString("substring_index('a--b--c', '--', -2)",
+        "b--c", "VARCHAR(7) NOT NULL");
 
     f.checkString("substring_index('aBc', 'B', -1)",
         "c", "VARCHAR(3) NOT NULL");
@@ -18257,6 +18414,10 @@ public class SqlOperatorTest {
       // Nullable without GROUP BY even for non-nullable arguments, since the
       // input may be empty
       f.checkColumnType("select arg_min(1, 2) from (values (1))", "INTEGER");
+      // Test cases for [CALCITE-7862]
+      // ARG_MIN and ARG_MAX fail when the key is an ARRAY, MAP or ROW
+      f.checkAgg("arg_min(x, array[mod(x, 3), x])", xValues, isSingle("3"));
+      f.checkAgg("arg_max(x, array[mod(x, 3), x])", xValues, isSingle("5"));
     };
 
     final Consumer<SqlOperatorFixture> consumer2 = f -> {
@@ -18266,6 +18427,9 @@ public class SqlOperatorTest {
       // ARG_MIN ignores nullability of second argument
       f.checkAggType("min_by(1, cast(null as integer))", "INTEGER");
       f.checkAggType("max_by(1, cast(null as integer))", "INTEGER");
+      // Test cases for [CALCITE-7862]
+      f.checkAgg("min_by(x, array[mod(x, 3), x])", xValues, isSingle("3"));
+      f.checkAgg("max_by(x, array[mod(x, 3), x])", xValues, isSingle("5"));
     };
 
     consumer.accept(f0);

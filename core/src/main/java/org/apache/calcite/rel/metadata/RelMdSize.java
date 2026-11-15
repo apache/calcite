@@ -74,6 +74,10 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
   /** Bytes per character (2). */
   public static final int BYTES_PER_CHARACTER = Character.SIZE / Byte.SIZE;
 
+  /** Maximum estimated average size, in bytes, of a CHARACTER or BINARY
+   * family value whose length can be large or is not specified. */
+  public static final double MAX_STRING_VALUE_SIZE = 100d;
+
   //~ Constructors -----------------------------------------------------------
 
   protected RelMdSize() {}
@@ -306,6 +310,11 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
    * is nullable.
    */
   public @Nullable Double averageTypeValueSize(RelDataType type) {
+    if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+        && SqlTypeUtil.inCharOrBinaryFamilies(type)) {
+      // Unspecified precision: use the same estimate as for large precisions
+      return MAX_STRING_VALUE_SIZE;
+    }
     switch (type.getSqlTypeName()) {
     case BOOLEAN:
     case TINYINT:
@@ -347,12 +356,13 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case BINARY:
       return (double) type.getPrecision();
     case VARBINARY:
-      return Math.min((double) type.getPrecision(), 100d);
+      return Math.min((double) type.getPrecision(), MAX_STRING_VALUE_SIZE);
     case CHAR:
       return (double) type.getPrecision() * BYTES_PER_CHARACTER;
     case VARCHAR:
       // Even in large (say VARCHAR(2000)) columns most strings are small
-      return Math.min((double) type.getPrecision() * BYTES_PER_CHARACTER, 100d);
+      return Math.min((double) type.getPrecision() * BYTES_PER_CHARACTER,
+          MAX_STRING_VALUE_SIZE);
     case ROW:
       double average = 0.0;
       for (RelDataTypeField field : type.getFieldList()) {

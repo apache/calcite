@@ -51,6 +51,18 @@ public interface CalciteResource {
   @BaseMessage("VALUE is not allowed under the current SQL conformance level")
   ExInst<CalciteException> valueNotAllowed();
 
+  @BaseMessage("Pipe syntax is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> pipeSyntaxNotAllowed();
+
+  @BaseMessage("{0} clause is not allowed after a FROM query; use ''{1}''")
+  ExInst<CalciteException> pipeClauseNotAllowed(String a0, String a1);
+
+  @BaseMessage("{0} clause is not allowed after a FROM query")
+  ExInst<CalciteException> fromQueryClauseNotAllowed(String a0);
+
+  @BaseMessage("A FROM query must be in parentheses to be an operand of UNION, INTERSECT or EXCEPT")
+  ExInst<CalciteException> fromQueryInSetOpNotAllowed();
+
   @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
@@ -84,6 +96,12 @@ public interface CalciteResource {
 
   @BaseMessage("Non-query expression encountered in illegal context")
   ExInst<CalciteException> illegalNonQueryExpression();
+
+  /** Invalid statement, e.g. {@code "1 + 1"} is not a valid statement
+   * because a statement must be a query (SELECT, VALUES, TABLE)
+   * or a statement keyword (INSERT, UPDATE, DELETE, ...). */
+  @BaseMessage("Invalid SQL statement: query or other statement expected")
+  ExInst<CalciteException> invalidStatement();
 
   @BaseMessage("Query expression encountered in illegal context")
   ExInst<CalciteException> illegalQueryExpression();
@@ -408,6 +426,9 @@ public interface CalciteResource {
 
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
+
+  @BaseMessage("Aggregate expressions cannot be nested: ''{0}'' is a SELECT-list alias for an aggregate expression")
+  ExInst<SqlValidatorException> orderByAliasNestedAgg(String a0);
 
   @BaseMessage("Measure expressions can only occur within AGGREGATE function")
   ExInst<SqlValidatorException> measureIllegal();
@@ -934,6 +955,25 @@ public interface CalciteResource {
 
   @BaseMessage("A recursive query only supports binary UNION [ALL] operator")
   ExInst<SqlValidatorException> recursiveWithMustHaveTwoChildUnionSetOp();
+
+  @BaseMessage("{0} requires WITH RECURSIVE")
+  ExInst<SqlValidatorException> recursiveClauseRequiresRecursive(String clause);
+
+  @BaseMessage("{0} requires a UNION [ALL] with a recursive SELECT containing exactly one direct reference to its WITH item")
+  ExInst<SqlValidatorException> recursiveClauseRequiresRecursiveSelect(String clause);
+
+  @BaseMessage("{0} is not supported with aggregation, DISTINCT, or window functions in the recursive SELECT")
+  ExInst<SqlValidatorException> recursiveClauseSelectNotSupported(String clause);
+
+  @BaseMessage("{0} column ''{1}'' is not a column of WITH item ''{2}''")
+  ExInst<SqlValidatorException> recursiveClauseColumnNotFound(String clause,
+      String column, String withItem);
+
+  @BaseMessage("{0} generated column ''{1}'' conflicts with another column")
+  ExInst<SqlValidatorException> recursiveClauseColumnConflict(String clause, String column);
+
+  @BaseMessage("CYCLE mark and default must be distinct, non-null Boolean or compatible single-character string literals")
+  ExInst<SqlValidatorException> cycleInvalidMarkValues();
 
   @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")
   ExInst<SqlValidatorException> firstColumnOfOrderByMustBeTimestamp();

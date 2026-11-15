@@ -270,6 +270,57 @@ class TypeCoercionTest {
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
   }
 
+  /** Type widening must preserve the nullability of nested set operations. */
+  @Test void testSetOperationCoercionNullability() {
+    final String notNullInt = "select x from (values (1)) as t(x)";
+    final String nullableInt =
+        "select x from (values (1), (cast(null as integer))) as t(x)";
+    final String nullableBigint =
+        "select x from (values (cast(1 as bigint)), (cast(null as bigint))) as t(x)";
+
+    // union
+    sql(notNullInt + " union " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " union " + nullableInt + " union " + nullableBigint)
+        .columnType("BIGINT");
+    sql(nullableInt + " union " + nullableInt + " union " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " union all " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " union all " + nullableInt + " union all " + nullableBigint)
+        .columnType("BIGINT");
+    sql(nullableInt + " union all " + nullableInt + " union all " + nullableBigint)
+        .columnType("BIGINT");
+
+    // intersect
+    sql(notNullInt + " intersect " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " intersect " + nullableInt + " intersect " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " intersect " + nullableInt + " intersect " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " intersect all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " intersect all " + nullableInt + " intersect all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " intersect all " + nullableInt + " intersect all " + nullableBigint)
+        .columnType("BIGINT");
+
+    // except
+    sql(notNullInt + " except " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " except " + nullableInt + " except " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " except " + nullableInt + " except " + nullableBigint)
+        .columnType("BIGINT");
+    sql(notNullInt + " except all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(notNullInt + " except all " + nullableInt + " except all " + nullableBigint)
+        .columnType("BIGINT NOT NULL");
+    sql(nullableInt + " except all " + nullableInt + " except all " + nullableBigint)
+        .columnType("BIGINT");
+  }
+
   /** Test arithmetic expressions with string type arguments. */
   @Test void testArithmeticExpressionsWithStrings() {
     SqlValidatorFixture f = validatorFixture();
@@ -482,6 +533,36 @@ class TypeCoercionTest {
     f.comparisonCommonType(f.recordType("a", f.arrayType(f.nullableIntType)),
         f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.nullableIntType)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7847">[CALCITE-7847]
+   * Implicit coercion casts MULTISET operands of a comparison to ARRAY, and
+   * loses the nullability of ROW operands</a>. The comparison common type of
+   * two ROW values is nullable if either of them is nullable. */
+  @Test void testComparisonCommonTypeOfRowIsNullableIfEitherIs() {
+    final Fixture f = fixture();
+    f.comparisonCommonType(f.nullable(f.recordType("a", f.intType)),
+        f.recordType("a", f.charType), f.nullable(f.recordType("a", f.intType)));
+    f.comparisonCommonType(f.nullable(f.recordType("a", f.intType)),
+        f.nullable(f.recordType("a", f.charType)),
+        f.nullable(f.recordType("a", f.intType)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7847">[CALCITE-7847]
+   * Implicit coercion casts MULTISET operands of a comparison to ARRAY, and
+   * loses the nullability of ROW operands</a>. The comparison common type of
+   * two MULTISET values is a MULTISET, and of two ARRAY values an ARRAY. */
+  @Test void testComparisonCommonTypeOfMultisetIsMultiset() {
+    final Fixture f = fixture();
+    f.comparisonCommonType(f.multisetType(f.intType),
+        f.multisetType(f.charType), f.multisetType(f.intType));
+    f.comparisonCommonType(f.nullable(f.multisetType(f.intType)),
+        f.multisetType(f.charType), f.nullable(f.multisetType(f.intType)));
+    f.comparisonCommonType(f.arrayType(f.intType),
+        f.arrayType(f.charType), f.arrayType(f.intType));
+    f.comparisonCommonType(f.multisetType(f.intType), f.arrayType(f.intType), null);
   }
 
   /**
@@ -947,6 +1028,14 @@ class TypeCoercionTest {
       return typeFactory.createArrayType(type, -1);
     }
 
+    RelDataType multisetType(RelDataType type) {
+      return typeFactory.createMultisetType(type, -1);
+    }
+
+    RelDataType nullable(RelDataType type) {
+      return typeFactory.createTypeWithNullability(type, true);
+    }
+
     RelDataType mapType(RelDataType keyType, RelDataType valType) {
       return typeFactory.createMapType(keyType, valType);
     }
@@ -1055,18 +1144,24 @@ class TypeCoercionTest {
         RelDataType type2,
         @Nullable RelDataType expected) {
       RelDataType result = typeCoercion.commonTypeForBinaryComparison(type1, type2);
-      assertThat("Expected " + toStringNullable(expected)
-              + " as comparison common type for " + type1
-              + " and " + type2
-              + ", but found " + toStringNullable(result),
+      assertThat("Expected " + fullTypeString(expected)
+              + " as comparison common type for " + fullTypeString(type1)
+              + " and " + fullTypeString(type2)
+              + ", but found " + fullTypeString(result),
           result,
           sameInstance(expected));
       RelDataType result1 = typeCoercion.commonTypeForBinaryComparison(type2, type1);
-      assertThat("Expected " + toStringNullable(expected)
-              + " as common type for " + type2
-              + " and " + type1
-              + ", but found " + toStringNullable(result1),
+      assertThat("Expected " + fullTypeString(expected)
+              + " as common type for " + fullTypeString(type2)
+              + " and " + fullTypeString(type1)
+              + ", but found " + fullTypeString(result1),
           result1, sameInstance(expected));
+    }
+
+    /** Returns the full type string, which, unlike {@link RelDataType#toString},
+     * includes nullability. */
+    private String fullTypeString(@Nullable RelDataType type) {
+      return type == null ? "NULL" : type.getFullTypeString();
     }
 
     /** Decision method for finding a wider type. */

@@ -1558,6 +1558,15 @@ public class RexBuilder {
         }
       }
       break;
+    case DOUBLE:
+    case FLOAT:
+    case REAL:
+      if (o != null && type.getSqlTypeName() == SqlTypeName.REAL) {
+        // SQL REAL is the same as Java Float
+        // SQL FLOAT and DOUBLE ad the same as Java Double
+        o = (double) ((Number) o).floatValue();
+      }
+      break;
     default:
       break;
     }

@@ -48,6 +48,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -245,6 +246,78 @@ class UdfTest {
         "P=110");
     final int after = c.get();
     assertThat(after, is(before + 1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6245">[CALCITE-6245]
+   * A ValidationError occurs when a named parameter is used on a
+   * ScalarFunction or AggregateFunction</a>. */
+  @Test void testScalarFunctionWithParameter() {
+    final String sql = "select \"adhoc\".my_det_plus(x => \"deptno\", y => 100) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
+    final int before = c.get();
+    withUdf()
+        .with("caseSensitive", false)
+        .query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 1));
+    // Unquoted argument names in reverse order: the parser upper-cases 'x' and
+    // 'y' to 'X' and 'Y', and the arguments must still be permuted into the
+    // formal parameter order (x first, y second).
+    final String reverseSql = "select \"adhoc\".my_det_plus(y => 100, x => \"deptno\") as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    withUdf()
+        .with("caseSensitive", false)
+        .query(reverseSql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6245">[CALCITE-6245]
+   * A ValidationError occurs when a named parameter is used on a
+   * ScalarFunction or AggregateFunction</a>. */
+  @Test void testAggFunctionWithParameter() {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String sum = Smalls.MyStaticSumFunction.class.getName();
+    final String sum2 = Smalls.MySumFunction.class.getName();
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM',\n"
+        + "           className: '" + sum + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum2 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .withDefaultSchema("adhoc")
+        .with("caseSensitive", false);
+    with.withDefaultSchema(null)
+        .query(
+            "select \"adhoc\".my_sum(arg1  => \"deptno\") as p from \"adhoc\".EMPLOYEES\n")
+        .returns("P=50\n");
   }
 
   @Test void testUserDefinedFunctionB() {
@@ -487,6 +560,55 @@ class UdfTest {
         + " max(\"adhoc\".count_args(0, 0)) as p2\n"
         + "from \"adhoc\".EMPLOYEES limit 1")
         .returns("P0=0; P1=1; P2=2\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7845">[CALCITE-7845]
+   * Fix UDF/UDTF overload resolution with generic parameter types</a>. */
+  @Test void testUdfOverloadedWithObject() {
+    final ImmutableList<Class<?>> types =
+        ImmutableList.of(Object.class, String.class, Timestamp.class);
+    for (List<Class<?>> order : ImmutableList.of(types, types.reverse())) {
+      final CalciteAssert.AssertThat with = CalciteAssert.that().with(connection -> {
+        final SchemaPlus schema = connection.unwrap(CalciteConnection.class).getRootSchema()
+            .add("s", new AbstractSchema());
+        for (Class<?> type : order) {
+          schema.add(
+              "F", ScalarFunctionImpl.create(
+              Types.lookupMethod(Smalls.GenericOverloadFunction.class,
+                  "eval", String.class, type)));
+        }
+        schema.add(
+            "TS", ScalarFunctionImpl.create(
+            Types.lookupMethod(Smalls.AllTypesFunction.class, "toTimestampFun", Long.class)));
+        schema.add(
+            "O", ScalarFunctionImpl.create(
+            Types.lookupMethod(Smalls.GenericOverloadFunction.class, "objectValue")));
+        return connection;
+      });
+      with.query("values \"s\".f('x', 'text')").returnsValue("x:String");
+      with.query("values \"s\".f('x', timestamp '2024-01-02 03:04:05')")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', true)").returnsValue("x:Object");
+      with.query("values \"s\".f('x', 42)").returnsValue("x:Object");
+      with.query("values \"s\".f('x', cast(null as timestamp))")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', \"s\".ts(0))").returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', \"s\".o())").returnsValue("x:Object");
+      with.query("select \"s\".f('x', coalesce(v, \"s\".ts(0)))\n"
+          + "from (values (cast(null as timestamp))) as t(v)")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f(\"value\" => timestamp '2024-01-02 03:04:05', \"label\" => 'x')")
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', cast(? as timestamp))")
+          .consumesPreparedStatement(
+              p -> p.setTimestamp(1,
+              Timestamp.valueOf("2024-01-02 03:04:05")))
+          .returnsValue("x:Timestamp");
+      with.query("values \"s\".f('x', cast(? as integer))")
+          .consumesPreparedStatement(p -> p.setInt(1, 42))
+          .returnsValue("x:Object");
+    }
   }
 
   @Test void testUdfOverloadedNullable() {

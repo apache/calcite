@@ -23,6 +23,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree node that represents an {@code ORDER BY} on a query other than a
  * {@code SELECT} (e.g. {@code VALUES} or {@code UNION}).
@@ -41,10 +43,10 @@ public class SqlOrderBy extends SqlCall {
     }
   };
 
-  public final SqlNode query;
-  public final SqlNodeList orderList;
-  public final @Nullable SqlNode offset;
-  public final @Nullable SqlNode fetch;
+  public SqlNode query;
+  public SqlNodeList orderList;
+  public @Nullable SqlNode offset;
+  public @Nullable SqlNode fetch;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -72,6 +74,25 @@ public class SqlOrderBy extends SqlCall {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+    switch (i) {
+    case 0:
+      query = requireNonNull(operand, "operand");
+      break;
+    case 1:
+      orderList = requireNonNull((SqlNodeList) operand, "orderList");
+      break;
+    case 2:
+      offset = operand;
+      break;
+    case 3:
+      fetch = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
   /** Definition of {@code ORDER BY} operator. */
   private static class Operator extends SqlSpecialOperator {
     private Operator() {

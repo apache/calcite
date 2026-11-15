@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.apache.pig.scripting.Pig;
@@ -96,14 +95,13 @@ public class PigAggregate extends Aggregate implements PigRel {
    */
   private String getPigGroupBy(Implementor implementor) {
     final String relAlias = implementor.getPigRelationAlias(this);
-    final List<RelDataTypeField> allFields = getInput().getRowType().getFieldList();
     final List<Integer> groupedFieldIndexes = groupSet.asList();
     if (groupedFieldIndexes.size() < 1) {
       return relAlias + " = GROUP " + relAlias + " ALL;";
     } else {
       final List<String> groupedFieldNames = new ArrayList<>(groupedFieldIndexes.size());
       for (int fieldIndex : groupedFieldIndexes) {
-        groupedFieldNames.add(allFields.get(fieldIndex).getName());
+        groupedFieldNames.add(getInputFieldName(fieldIndex));
       }
       return relAlias + " = GROUP " + relAlias + " BY ("
           + String.join(", ", groupedFieldNames) + ");";
@@ -156,6 +154,9 @@ public class PigAggregate extends Aggregate implements PigRel {
   private String getPigAggregateCall(String relAlias, AggregateCall aggCall) {
     final PigAggFunction aggFunc = toPigAggFunc(aggCall);
     final String alias = aggCall.getName();
+    // The alias is used after AS, where it cannot be quoted or escaped in
+    // Pig Latin
+    PigUtils.checkValidIdentifier(alias);
     final String fields = String.join(", ", getArgNames(relAlias, aggCall));
     return aggFunc.name() + "(" + fields + ") AS " + alias;
   }
@@ -212,6 +213,10 @@ public class PigAggregate extends Aggregate implements PigRel {
   }
 
   private String getInputFieldName(int fieldIndex) {
-    return getInput().getRowType().getFieldList().get(fieldIndex).getName();
+    final String fieldName =
+        getInput().getRowType().getFieldList().get(fieldIndex).getName();
+    // Field names cannot be quoted or escaped in Pig Latin
+    PigUtils.checkValidIdentifier(fieldName);
+    return fieldName;
   }
 }

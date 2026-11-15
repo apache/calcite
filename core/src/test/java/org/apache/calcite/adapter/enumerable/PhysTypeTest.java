@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
@@ -40,6 +41,42 @@ import static org.hamcrest.Matchers.containsString;
  */
 public final class PhysTypeTest {
   private static final JavaTypeFactory TYPE_FACTORY = new JavaTypeFactoryImpl();
+
+  @Test void testArrayComparerForPlainStructsAndScalarCollections() {
+    final RelDataType integer = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType row = TYPE_FACTORY.builder().add("n", integer).build();
+    for (RelDataType columnType : ImmutableList.of(integer, row,
+        TYPE_FACTORY.builder().add("r", row).build(),
+        TYPE_FACTORY.createArrayType(integer, -1),
+        TYPE_FACTORY.createMapType(integer, integer),
+        TYPE_FACTORY.builder().add("a", TYPE_FACTORY.createArrayType(integer, -1)).build())) {
+      assertComparer(columnType, JavaRowFormat.ARRAY, BuiltInMethod.ARRAY_COMPARER);
+    }
+    // Formats without their own comparer still need the existing ROW fallback.
+    assertComparer(row, JavaRowFormat.LIST, BuiltInMethod.DEEP_COMPARER);
+    assertComparer(row, JavaRowFormat.SCALAR, BuiltInMethod.DEEP_COMPARER);
+  }
+
+  @Test void testDeepComparerForStructsInCollections() {
+    final RelDataType integer = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType row = TYPE_FACTORY.builder().add("n", integer).build();
+    final RelDataType array = TYPE_FACTORY.createArrayType(row, -1);
+    for (RelDataType columnType : ImmutableList.of(array,
+        TYPE_FACTORY.createMultisetType(row, -1),
+        TYPE_FACTORY.createMapType(integer, row),
+        TYPE_FACTORY.createMapType(row, integer),
+        TYPE_FACTORY.createArrayType(array, -1),
+        TYPE_FACTORY.builder().add("a", array).build())) {
+      assertComparer(columnType, JavaRowFormat.ARRAY, BuiltInMethod.DEEP_COMPARER);
+    }
+  }
+
+  private static void assertComparer(RelDataType columnType, JavaRowFormat format,
+      BuiltInMethod expected) {
+    final RelDataType rowType = TYPE_FACTORY.builder().add("v", columnType).build();
+    final PhysType physType = PhysTypeImpl.of(TYPE_FACTORY, rowType, format, false);
+    assertThat(columnType.toString(), physType.comparer(), is(Expressions.call(expected.method)));
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]

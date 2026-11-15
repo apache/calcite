@@ -395,7 +395,7 @@ public abstract class PruneEmptyRules {
           .withOperandFor(Sort.class, singleRel -> true);
       RemoveEmptySingleRuleConfig AGGREGATE = ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyAggregate")
-          .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal);
+          .withOperandFor(Aggregate.class, aggregate -> !aggregate.hasEmptyGroup());
       RemoveEmptySingleRuleConfig WINDOW = ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyWindow")
           .withOperandFor(Window.class, singleRel -> true);

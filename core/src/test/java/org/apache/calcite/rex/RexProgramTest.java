@@ -890,6 +890,19 @@ class RexProgramTest extends RexProgramTestBase {
             + " 'MED PKG':CHAR(8)]:CHAR(8))), AND(=(?0.j, 'Brand#14'), "
             + ">=(?0.h, 20), <=(?0.h, 30), SEARCH(?0.k, Sarg['LG BOX':CHAR(7),"
             + " 'LG CASE', 'LG PACK', 'LG PKG':CHAR(7)]:CHAR(7)))))");
+
+    final RexNode ref3 = rexBuilder.makeInputRef(intType, 3);
+    final RexNode ref6 = rexBuilder.makeInputRef(intType, 6);
+    final RexNode bool0 = rexBuilder.makeInputRef(booleanType, 0);
+    final RexNode bool1 = rexBuilder.makeInputRef(booleanType, 1);
+    final RexNode seven = literal(7);
+    checkPullFactors(eq(ref6, ref3), "=($6, $3)");
+    checkPullFactors(gt(ref6, ref3), ">($6, $3)");
+    checkPullFactors(le(seven, ref3), "<=(7, $3)");
+    checkPullFactors(
+        or(and(eq(ref6, ref3), bool0),
+            and(eq(ref3, ref6), bool1)),
+        "AND(=($6, $3), OR($0, $1))");
   }
 
   @Test void testSimplify() {
@@ -1881,6 +1894,43 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7867">[CALCITE-7867]
+   * RexSimplify takes cubic time on long IN and NOT IN lists</a>. An IN list
+   * on a NOT NULL operand turns into a large OR of equalities. */
+  @Test void testSimplifyLargeOrOfEqualitiesOnNotNullOperand() {
+    final int n = 2_000;
+    final List<RexNode> terms = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      terms.add(eq(vIntNotNull(), literal(i)));
+    }
+    final RexNode simplified = simplify.simplifyPreservingType(or(terms));
+    assertThat(simplified.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> sarg =
+        ((RexLiteral) ((RexCall) simplified).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(sarg.pointCount, is(n));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7867">[CALCITE-7867]
+   * RexSimplify takes cubic time on long IN and NOT IN lists</a>. A NOT IN
+   * list in a filter turns into a large AND of inequalities, even on a
+   * nullable operand. */
+  @Test void testSimplifyLargeAndOfNotEqualsAsFilter() {
+    final int n = 2_000;
+    final List<RexNode> terms = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      terms.add(ne(vInt(), literal(i)));
+    }
+    final RexNode simplified = simplify.simplifyUnknownAsFalse(and(terms));
+    assertThat(simplified.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> sarg =
+        ((RexLiteral) ((RexCall) simplified).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(sarg.isComplementedPoints(), is(true));
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
    * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
@@ -2364,6 +2414,28 @@ class RexProgramTest extends RexProgramTestBase {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-739">[CALCITE-739]
+   * Extend RexUtil.pullFactors to recognize additional common factors</a>. */
+  @Test void testSimplifyComparisonSymmetry() {
+    final RexNode ref3 = rexBuilder.makeInputRef(tInt(), 3);
+    final RexNode ref6 = rexBuilder.makeInputRef(tInt(), 6);
+    final RexNode bool0 = rexBuilder.makeInputRef(tBool(), 0);
+
+    // Contradiction detection: "$6 = $3 AND $3 != $6" is not satisfiable.
+    checkSimplifyFilter(and(eq(ref6, ref3), ne(ref3, ref6)), "false");
+
+    // Absorption law: "a AND (a OR b) => a" where "a" is written once as
+    // "$6 = $3" and once as "$3 = $6". The result keeps the first form.
+    checkSimplify(and(eq(ref6, ref3), or(eq(ref3, ref6), bool0)),
+        "=($6, $3)");
+
+    // Same, but with an order-sensitive operator: "a" is "$6 > $3",
+    // written inside the OR as "$3 < $6".
+    checkSimplify(and(gt(ref6, ref3), or(lt(ref3, ref6), bool0)),
+        ">($6, $3)");
+  }
+
   @Test void testSimplifyComparisonWithPredicates() {
     RelOptPredicateList relOptPredicateList =
         RelOptPredicateList.of(rexBuilder,
@@ -2435,6 +2507,64 @@ class RexProgramTest extends RexProgramTestBase {
     // "AND(IS NOT NULL(x), =(x, y)) => "=(x, y)"
     checkSimplify(and(isNotNull(vIntNotNull(0)), eq(vIntNotNull(0), vInt(1))),
         "=(?0.notNullInt0, ?0.int1)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5907">[CALCITE-5907]
+   * RexSimplify replaces a comparison with a BOOLEAN literal by a non-BOOLEAN
+   * operand</a>.
+   */
+  @Test void testSimplifyAndEqualityTrue() {
+    // "=(x, true)" simplifies to "x" only if x is BOOLEAN;
+    // otherwise the AND would get a non-BOOLEAN operand
+    //
+    // With paranoid mode on, a wrong simplification of these non-BOOLEAN
+    // inputs fails inside RexSimplify.verify with an exception that hides
+    // the result; turn it off so that checkSimplifyUnchanged prints the
+    // simplified expression
+    simplify = this.simplify.withParanoid(false);
+    checkSimplifyUnchanged(
+        and(eq(vVarchar(0), trueLiteral),
+            eq(vVarchar(1), trueLiteral)));
+    checkSimplifyUnchanged(
+        and(eq(vInt(0), trueLiteral),
+            eq(vInt(1), trueLiteral)));
+    // same, with NOT NULL variables
+    checkSimplifyUnchanged(
+        and(eq(vVarcharNotNull(0), trueLiteral),
+            eq(vVarcharNotNull(1), trueLiteral)));
+    checkSimplifyUnchanged(
+        and(eq(vIntNotNull(0), trueLiteral),
+            eq(vIntNotNull(1), trueLiteral)));
+    // literal on the left (swapped) form
+    checkSimplifyUnchanged(eq(trueLiteral, vVarchar(0)));
+    checkSimplifyUnchanged(
+        and(eq(trueLiteral, vVarchar(0)),
+            eq(trueLiteral, vVarchar(1))));
+    checkSimplifyUnchanged(
+        and(eq(falseLiteral, vVarchar(0)),
+            eq(falseLiteral, vVarchar(1))));
+    checkSimplifyUnchanged(
+        and(ne(falseLiteral, vVarchar(0)),
+            ne(falseLiteral, vVarchar(1))));
+    // "=($0, true)" stays when $0 has type ANY, since its value need not be
+    // BOOLEAN; ITEM on a MAP<VARCHAR, ANY> column, such as MongoDB's _MAP,
+    // has type ANY
+    final RexNode anyRef = input(typeFactory.createSqlType(SqlTypeName.ANY), 0);
+    checkSimplifyUnchanged(
+        and(eq(anyRef, trueLiteral), vBool(1)));
+    simplify = simplify.withParanoid(true);
+
+    // "=(x, true)" is simplified to "x" if x has BOOLEAN type
+    checkSimplifyFilter(
+        and(eq(vBool(0), trueLiteral),
+            eq(vBool(1), trueLiteral)),
+        "AND(?0.bool0, ?0.bool1)");
+    // same, with NOT NULL variables
+    checkSimplifyFilter(
+        and(eq(vBoolNotNull(0), trueLiteral),
+            eq(vBoolNotNull(1), trueLiteral)),
+        "AND(?0.notNullBool0, ?0.notNullBool1)");
   }
 
   @Test void testSimplifyEqualityAndNotEqualityWithOverlapping() {

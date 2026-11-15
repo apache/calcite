@@ -287,13 +287,15 @@ public class RelDecorrelatorTest {
     final String planAfter = ""
         + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "  LogicalProject(ENAME_FROM_DEPT=[$2])\n"
-        + "    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "    LogicalJoin(condition=[=($0, $1)], joinType=[left])\n"
         + "      LogicalValues(tuples=[[{ 7369 }, { 7499 }]])\n"
         + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
-        + "        LogicalProject(EMPNO1=[$11], EXPR$0=[||(||($1, ' from dept '), $12)])\n"
-        + "          LogicalJoin(condition=[AND(=($7, $9), =($8, $10))], joinType=[left])\n"
-        + "            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO0=[CAST($0):INTEGER NOT NULL])\n"
-        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalProject(EMPNO1=[$9], EXPR$0=[||(||($1, ' from dept '), $13)])\n"
+        + "          LogicalJoin(condition=[AND(=($7, $10), =($8, $11), IS NOT DISTINCT FROM($9, $12))], joinType=[left])\n"
+        + "            LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO0=[CAST($0):INTEGER NOT NULL])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "              LogicalValues(tuples=[[{ 7369 }, { 7499 }]])\n"
         + "            LogicalAggregate(group=[{0, 1, 2}], agg#0=[SINGLE_VALUE($3)])\n"
         + "              LogicalProject(DEPTNO0=[$3], EMPNO0=[$4], EMPNO=[$5], DNAME=[$1])\n"
         + "                LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
@@ -655,6 +657,43 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7915">[CALCITE-7915]
+   * RelDecorrelator does not recognize IS NOT DISTINCT FROM as correlation equivalent</a>. */
+  @Test void testCorrelationEquivalentIsNotDistinctFrom() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // Simplification is disabled to keep the IS NOT DISTINCT FROM condition
+    // intact (otherwise it would be rewritten in terms of = and IS NULL).
+    final RelBuilder noSimplify = builder.transform(c -> c.withSimplify(false));
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode before = noSimplify.scan("EMP")
+        .variable(v::set)
+        .scan("DEPT")
+        .filter(
+            noSimplify.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                noSimplify.field(0),
+                noSimplify.field(v.get(), "DEPTNO")))
+        .correlate(JoinRelType.LEFT, v.get().id, noSimplify.field(2, 0, "DEPTNO"))
+        .build();
+
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[IS NOT DISTINCT FROM($0, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+    // The correlation variable is bound to the local DEPTNO column (found
+    // through the IS NOT DISTINCT FROM condition), so no value generator is
+    // needed; the null-safe comparison is enforced by the join condition.
+    final String planAfter = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[IS NOT DISTINCT FROM($0, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   @Test void testCorrelationInSetOp0() {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
@@ -910,9 +949,12 @@ public class RelDecorrelatorTest {
         + "    LogicalProject(DEPTNO0=[$0], $f1=[true])\n"
         + "      LogicalAggregate(group=[{0}])\n"
         + "        LogicalProject(DEPTNO0=[$8])\n"
-        + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[CAST($8):TINYINT], ENAME0=[$9], EXPR$0=[CAST($10):BIGINT])\n"
-        + "            LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $9), =($7, $8))], joinType=[inner])\n"
-        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[$8], DEPTNO1=[CAST($9):TINYINT], ENAME0=[$10], EXPR$0=[CAST($11):BIGINT])\n"
+        + "            LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $10), IS NOT DISTINCT FROM($8, $9))], joinType=[inner])\n"
+        + "              LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "                LogicalProject(DEPTNO=[$0])\n"
+        + "                  LogicalTableScan(table=[[scott, DEPT]])\n"
         + "              LogicalFilter(condition=[>($2, 5)])\n"
         + "                LogicalAggregate(group=[{0, 1}], EXPR$0=[SUM($2)])\n"
         + "                  LogicalProject(DEPTNO=[$0], ENAME=[$1], X=[$2])\n"
@@ -1025,14 +1067,17 @@ public class RelDecorrelatorTest {
     // Verify plan
     final String planAfter = ""
         + "LogicalProject(DNAME=[$1])\n"
-        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[inner])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "    LogicalProject(DEPTNO0=[$0], $f1=[true])\n"
         + "      LogicalAggregate(group=[{0}])\n"
-        + "        LogicalProject(DEPTNO0=[$9])\n"
-        + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], ENAME0=[$8], DEPTNO0=[CAST($9):TINYINT], EXPR$0=[CAST($10):BIGINT])\n"
-        + "            LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $8)], joinType=[inner])\n"
-        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalProject(DEPTNO0=[$8])\n"
+        + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[$8], ENAME0=[$9], DEPTNO1=[CAST($10):TINYINT], EXPR$0=[CAST($11):BIGINT])\n"
+        + "            LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $9), IS NOT DISTINCT FROM($8, $10))], joinType=[inner])\n"
+        + "              LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "                LogicalProject(DEPTNO=[$0])\n"
+        + "                  LogicalTableScan(table=[[scott, DEPT]])\n"
         + "              LogicalFilter(condition=[>($2, 5)])\n"
         + "                LogicalAggregate(group=[{0, 1}], EXPR$0=[SUM($2)])\n"
         + "                  LogicalProject(ENAME=[$0], DEPTNO=[$1], X=[$2])\n"
@@ -2547,5 +2592,44 @@ public class RelDecorrelatorTest {
         + "          LogicalProject($f4=[$2.coords.latitude])\n"
         + "            LogicalTableScan(table=[[bookstore, authors]])\n";
     assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7753">[CALCITE-7753]
+   * CorrelateProjectExtractor corrupts plans with nested Correlates that reuse
+   * the same correlation id</a>. */
+  @Test void testNestedCorrelatesSharingCorrelationId() {
+    final RelBuilder builder = RelBuilder.create(config().build())
+        .transform(c -> c.withSimplify(false));
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    builder.scan("EMP").variable(v::set);
+    final RelNode emp = builder.build();
+
+    final RelNode inner = builder
+        .scan("EMP")
+        .scan("EMP")
+        .filter(builder.equals(builder.field(v.get(), "DEPTNO"), builder.field("DEPTNO")))
+        .correlate(JoinRelType.INNER, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .filter(builder.isNull(builder.field(v.get(), "COMM")))
+        .build();
+
+    final RelNode before = builder
+        .push(emp)
+        .push(inner)
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "COMM"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{6}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[IS NULL($cor0.COMM)])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelDecorrelator.decorrelateQuery(before, builder,
+        RuleSets.ofList(Collections.emptyList()),
+        RuleSets.ofList(Collections.emptyList()));
   }
 }

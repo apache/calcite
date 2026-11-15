@@ -109,6 +109,51 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(iNe30, iEq30);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7811">[CALCITE-7811]
+   * RexImplicationChecker incorrectly proves NOT(x = a) implies (x = a OR x = b)</a>. */
+  @Test void testNotOfEqualsDoesNotImplyEqualsOr() {
+    final Fixture f = new Fixture();
+    final RexNode sEqA = f.eq(f.str, f.charLiteral("a"));
+    final RexNode sEqB = f.eq(f.str, f.charLiteral("b"));
+    final RexNode sNeA = f.ne(f.str, f.charLiteral("a"));
+    final RexNode sNotEqA = f.not(sEqA);
+    final RexNode sEqAOrEqB = f.or(sEqA, sEqB);
+
+    f.checkNotImplies(sNeA, sEqAOrEqB);
+    f.checkNotImplies(sNotEqA, sEqAOrEqB);
+  }
+
+  /** {@code NOT(comparison)} must be rewritten to the equivalent negated comparison
+   * for every operator, in either direction. */
+  @Test void testNotOfComparison() {
+    final Fixture f = new Fixture();
+    final RexNode iGt10 = f.gt(f.i, f.literal(10));
+    final RexNode iLe10 = f.le(f.i, f.literal(10));
+    final RexNode iLt10 = f.lt(f.i, f.literal(10));
+    final RexNode iGe10 = f.ge(f.i, f.literal(10));
+    final RexNode iEq10 = f.eq(f.i, f.literal(10));
+    final RexNode iNe10 = f.ne(f.i, f.literal(10));
+
+    f.checkImplies(f.not(iGt10), iLe10);
+    f.checkImplies(iLe10, f.not(iGt10));
+    f.checkImplies(f.not(iLt10), iGe10);
+    f.checkImplies(iGe10, f.not(iLt10));
+    f.checkImplies(f.not(iNe10), iEq10);
+    f.checkImplies(iEq10, f.not(iNe10));
+
+    f.checkImplies(f.not(iLe10), f.gt(f.i, f.literal(5)));
+    f.checkImplies(f.gt(f.i, f.literal(20)), f.not(iLe10));
+    f.checkImplies(f.not(iGe10), f.lt(f.i, f.literal(20)));
+    f.checkImplies(f.lt(f.i, f.literal(5)), f.not(iGe10));
+
+    f.checkImplies(f.not(f.not(iGt10)), iGt10);
+    f.checkImplies(iGt10, f.not(f.not(iGt10)));
+
+    final RexNode iGt10AndLt30 = f.and(iGt10, f.lt(f.i, f.literal(30)));
+    f.checkNotImplies(f.not(iGt10AndLt30), iLe10);
+  }
+
   // Simple Tests for DataTypes
   @Test void testSimpleDec() {
     final Fixture f = new Fixture();

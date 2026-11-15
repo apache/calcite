@@ -23,15 +23,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * An item in a WITH clause of a query.
- * It has a name, an optional column list, and a query.
+ * It has a name, an optional column list, a query, and optional SEARCH and CYCLE clauses.
  */
 public class SqlWithItem extends SqlCall {
   public SqlIdentifier name;
   public @Nullable SqlNodeList columnList; // may be null
   public SqlLiteral recursive;
   public SqlNode query;
+  public @Nullable SqlSearchClause searchClause;
+  public @Nullable SqlCycleClause cycleClause;
 
   @Deprecated // to be removed before 2.0
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
@@ -43,11 +47,20 @@ public class SqlWithItem extends SqlCall {
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query,
       SqlLiteral recursive) {
+    this(pos, name, columnList, query, recursive, null, null);
+  }
+
+  public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
+      @Nullable SqlNodeList columnList, SqlNode query,
+      SqlLiteral recursive, @Nullable SqlSearchClause searchClause,
+      @Nullable SqlCycleClause cycleClause) {
     super(pos);
     this.name = name;
     this.columnList = columnList;
     this.recursive = recursive;
     this.query = query;
+    this.searchClause = searchClause;
+    this.cycleClause = cycleClause;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -58,7 +71,7 @@ public class SqlWithItem extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query, recursive);
+    return ImmutableNullableList.of(name, columnList, query, recursive, searchClause, cycleClause);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -75,6 +88,12 @@ public class SqlWithItem extends SqlCall {
       break;
     case 3:
       recursive = (SqlLiteral) operand;
+      break;
+    case 4:
+      searchClause = (SqlSearchClause) operand;
+      break;
+    case 5:
+      cycleClause = (SqlCycleClause) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -111,15 +130,24 @@ public class SqlWithItem extends SqlCall {
       }
       writer.keyword("AS");
       withItem.query.unparse(writer, MDX_PRECEDENCE, MDX_PRECEDENCE);
+      if (withItem.searchClause != null) {
+        withItem.searchClause.unparse(writer, 0, 0);
+      }
+      if (withItem.cycleClause != null) {
+        withItem.cycleClause.unparse(writer, 0, 0);
+      }
     }
 
     @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 4;
+      checkArgument(operands.length == 4 || operands.length == 6,
+          "Expected 4 or 6 operands, got %s", operands.length);
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
-          (SqlNodeList) operands[1], operands[2], (SqlLiteral) operands[3]);
+          (SqlNodeList) operands[1], operands[2], (SqlLiteral) operands[3],
+          operands.length == 6 ? (SqlSearchClause) operands[4] : null,
+          operands.length == 6 ? (SqlCycleClause) operands[5] : null);
     }
   }
 }

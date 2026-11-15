@@ -1760,7 +1760,10 @@ public abstract class SqlImplementor {
               new SqlDataTypeSpec(new SqlBasicTypeNameSpec(typeName, POS), POS);
           return SqlStdOperatorTable.CAST.createCall(POS, strLiteral, typeSpec);
         }
-        return SqlLiteral.createApproxNumeric(d.toString(), POS);
+        final String digits = literal.getType().getSqlTypeName() == SqlTypeName.REAL
+            ? Float.toString(d.floatValue())
+            : d.toString();
+        return SqlLiteral.createApproxNumeric(digits, POS);
       } else {
         final BigDecimal bd = castNonNull(literal.getValueAs(BigDecimal.class));
         if (!SqlUtil.isBoundedDecimal(bd)) {

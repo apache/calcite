@@ -193,4 +193,12 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean isCorrelatedAggregateAllowed() {
     return delegate.isCorrelatedAggregateAllowed();
   }
+
+  @Override public boolean isGroupingSetsStarAllowed() {
+    return delegate.isGroupingSetsStarAllowed();
+  }
+
+  @Override public boolean isPipeSyntaxAllowed() {
+    return delegate.isPipeSyntaxAllowed();
+  }
 }

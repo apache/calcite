@@ -149,7 +149,7 @@ public class Driver extends UnregisteredDriver {
             if (defaultName != null) {
               connection.setSchema(defaultName);
             }
-          } catch (IOException e) {
+          } catch (IOException | RuntimeException e) {
             throw new SQLException(e);
           }
         }

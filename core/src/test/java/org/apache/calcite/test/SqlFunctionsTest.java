@@ -19,6 +19,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -115,6 +116,113 @@ class SqlFunctionsTest {
 
   static <E> List<E> list() {
     return ImmutableList.of();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
+  @Test void testArrayComparisonWithSpecialFloatingPointValues() {
+    final List<Double> values =
+        list(Double.NaN, null, Double.NEGATIVE_INFINITY, 1D, Double.POSITIVE_INFINITY);
+    assertThat(SqlFunctions.arrayMax(values), is(Double.NaN));
+    assertThat(SqlFunctions.arrayMin(values), is(Double.NEGATIVE_INFINITY));
+    assertThat(SqlFunctions.sortArray(values, true),
+        is(list(null, Double.NEGATIVE_INFINITY, 1D, Double.POSITIVE_INFINITY, Double.NaN)));
+    assertThat(SqlFunctions.sortArray(values, false),
+        is(list(Double.NaN, Double.POSITIVE_INFINITY, 1D, Double.NEGATIVE_INFINITY, null)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
+   * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
+  @Test void testArrayRowComparisonWithSpecialFloatingPointValues() {
+    for (double special : new double[] {
+        Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+      final boolean specialFirst = Double.compare(special, 1D) < 0;
+      checkArrayRowComparison(FlatLists.ofComparable(list(special)),
+          FlatLists.ofComparable(list(1D)), specialFirst);
+      checkArrayRowComparison(new Object[] {special}, new Object[] {1D}, specialFirst);
+      checkArrayRowComparison(new Object[] {new Object[] {special}},
+          new Object[] {new Object[] {1D}}, specialFirst);
+    }
+    for (float special : new float[] {
+        Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY}) {
+      final boolean specialFirst = Float.compare(special, 1F) < 0;
+      checkArrayRowComparison(FlatLists.ofComparable(list(special)),
+          FlatLists.ofComparable(list(1F)), specialFirst);
+      checkArrayRowComparison(new Object[] {special}, new Object[] {1F}, specialFirst);
+      checkArrayRowComparison(new Object[] {new Object[] {special}},
+          new Object[] {new Object[] {1F}}, specialFirst);
+    }
+  }
+
+  private static void checkArrayRowComparison(Object specialRow, Object normalRow,
+      boolean specialFirst) {
+    final List<Object> rows = list(specialRow, normalRow, null);
+    final Object min = specialFirst ? specialRow : normalRow;
+    final Object max = specialFirst ? normalRow : specialRow;
+    assertSame(max, SqlFunctions.arrayMax(rows));
+    assertSame(min, SqlFunctions.arrayMin(rows));
+    assertThat(SqlFunctions.sortArray(new ArrayList<>(rows), true), is(list(null, min, max)));
+    assertThat(SqlFunctions.sortArray(new ArrayList<>(rows), false), is(list(max, min, null)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7836">[CALCITE-7836]
+   * Array functions return incorrect results for ROW elements</a>. */
+  @Test void testArrayFunctionsWithRows() {
+    // A custom Python script ran the SQL regression cases in sql/row-equality.iq
+    // against Apache Spark 3.5.5 (adapting ARRAY and ROW syntax) and confirmed
+    // all results. The cases below add Java representation, MAP and hash
+    // collision coverage that was not checked against Spark.
+    final Object[][] rows = {
+        {1, "Foo"},
+        {null, "Foo"},
+        {new Object[] {1, "Foo"}, 10},
+        {list(new Object[] {1, "Foo"}, new Object[] {2, null}), 10},
+        {Collections.singletonMap("key", new Object[] {1, null}), 10},
+        {-31}, // Deep hash code is zero.
+        {-30} // Deep hash code collides with the replacement for zero.
+    };
+    for (Object[] row : rows) {
+      // Copy the outer row; the nested containers are checked separately below.
+      checkArrayFunctionsWithRows(row, row.clone());
+    }
+    checkArrayFunctionsWithRows(new Object[] {new Object[] {1, null}, 10},
+        new Object[] {list(1, null), 10});
+    checkArrayFunctionsWithRows(
+        new Object[] {list(new Object[] {1, "Foo"}, new Object[] {2, null}), 10},
+        new Object[] {list(new Object[] {1, "Foo"}, new Object[] {2, null}), 10});
+    checkArrayFunctionsWithRows(
+        new Object[] {Collections.singletonMap("key", new Object[] {1, null})},
+        new Object[] {Collections.singletonMap("key", new Object[] {1, null})});
+    assertThat(SqlFunctions.distinct(list(new Object[] {-31}, new Object[] {-30})).size(),
+        is(2));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7836">[CALCITE-7836]
+   * Array functions return incorrect results for ROW elements</a>. */
+  @Test void testArrayFunctionsWithMixedValues() {
+    // These Java representation and mixed-type checks are Calcite-specific.
+    // SQL regression cases for all eight functions were checked separately
+    // against Apache Spark 3.5.5 using a custom Python script; see sql/row-equality.iq.
+    checkArrayFunctionsWithRows(1, 1);
+    checkArrayFunctionsWithRows("Foo", "Foo");
+    checkArrayFunctionsWithRows(new byte[] {1, 2}, new byte[] {1, 2});
+    checkArrayFunctionsWithRows(list(1, null), new Object[] {1, null});
+    checkArrayFunctionsWithRows(
+        Collections.singletonMap("key", new Object[] {1, null}),
+        Collections.singletonMap("key", new Object[] {1, null}));
+
+    final Object row = new Object[] {1, "Foo"};
+    final List<Object> input = new ArrayList<>(list(2, row, null, "Foo", 2));
+    final List<?> result = SqlFunctions.distinct(input);
+    input.clear();
+    assertThat(result, is(list(2, row, null, "Foo")));
+    assertThat(result.get(1), is(row));
+    assertThat(result.subList(1, 3), is(list(row, null)));
+    assertThat(Arrays.asList(result.toArray()), is(list(2, row, null, "Foo")));
   }
 
   @Test void testArraysOverlap() {
@@ -897,6 +1005,31 @@ class SqlFunctionsTest {
     assertThat(Utilities.compare(empty, empty), is(0));
   }
 
+  /** Composite null keys compare equally for sorting, but must not match in a merge join. */
+  @Test void testCompareCompositeNullKeys() {
+    final Object key = new Object[]{1, null};
+    final Predicate1<Object> containsNull = row -> ((Object[]) row)[1] == null;
+    assertThat(Utilities.compareCompositeNullsFirst(null, null), is(0));
+    assertThat(Utilities.compareCompositeNullsLast(null, null), is(0));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(null, key), is(1));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, null), is(-1));
+    assertThat(Utilities.compareCompositeNullsLast(key, new Object[]{1, null}), is(0));
+    // The exception class is private; obtain it from the scalar comparator
+    // and verify that composite comparisons use the same merge join signal.
+    final RuntimeException exception =
+        assertThrows(RuntimeException.class,
+            () -> Utilities.compareNullsLastForMergeJoin(null, null));
+    assertThrows(exception.getClass(),
+        () -> Utilities.compareCompositeNullsLastForMergeJoin(null, null));
+    assertThrows(exception.getClass(),
+        () -> Utilities.compareCompositeNullsLastForMergeJoin(key, new Object[]{1, null},
+            containsNull));
+    // A NULL field must not change the ordering of unequal keys.
+    final Object nextKey = new Object[]{2, null};
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(key, nextKey, containsNull), is(-1));
+    assertThat(Utilities.compareCompositeNullsLastForMergeJoin(nextKey, key, containsNull), is(1));
+  }
+
   @Test void testTruncateLong() {
     assertThat(SqlFunctions.truncate(12345L, 1000L), is(12000L));
     assertThat(SqlFunctions.truncate(12000L, 1000L), is(12000L));
@@ -1542,6 +1675,117 @@ class SqlFunctionsTest {
         isListOf("a", "c", "d"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testMultisetWithRows() {
+    final Object row = new Object[] {1, "Foo"};
+    final Object equalRow = new Object[] {1, "Foo"};
+    final Object otherRow = new Object[] {2, "Bar"};
+    final List<Object> left = list(row, equalRow, otherRow);
+    final List<Object> right = list(equalRow);
+    assertThat(SqlFunctions.memberOf(row, right), is(true));
+    assertThat(SqlFunctions.memberOf(otherRow, right), is(false));
+    assertThat(SqlFunctions.isASet(left), is(false));
+    assertThat(SqlFunctions.isASet(list(row, otherRow)), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(row, otherRow), left), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(row, equalRow), right), is(false));
+    assertThat(SqlFunctions.multisetIntersectAll(left, right), is(list(row)));
+    assertThat(SqlFunctions.multisetIntersectDistinct(left, right), is(list(row)));
+    assertThat(SqlFunctions.multisetExceptAll(left, right), is(list(equalRow, otherRow)));
+    assertThat(SqlFunctions.multisetExceptDistinct(left, right), is(list(otherRow)));
+    final List<?> union = SqlFunctions.multisetUnionDistinct(list(row, equalRow), right);
+    assertThat(union, hasSize(1));
+    assertSame(row, union.get(0));
+    assertThat(SqlFunctions.multisetUnionAll(left, right),
+        is(list(row, equalRow, otherRow, equalRow)));
+    assertThat(left, is(list(row, equalRow, otherRow)));
+    assertThat(right, is(list(equalRow)));
+
+    final List<?> distinct =
+        SqlFunctions.multisetUnionDistinct(Collections.singletonList(new Object[] {-31}),
+        Collections.singletonList(new Object[] {-30}));
+    assertThat(distinct, hasSize(2));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testMultisetIntersectAllCounts() {
+    final Object a1 = new Object[] {1, null};
+    final Object a2 = new Object[] {1, null};
+    final Object b = new Object[] {2, "Bar"};
+    final Object equalB = new Object[] {2, "Bar"};
+    final List<Object> left = list(a1, b, a2, null, new Object[] {1, null}, b, null);
+    final List<Object> right = list(equalB, a2, null, a1, null, null, "other");
+    assertThat(SqlFunctions.multisetIntersectAll(left, right), is(list(a1, b, a2, null, null)));
+    assertThat(SqlFunctions.multisetIntersectAll(right, left),
+        is(list(right.get(0), right.get(1), null, right.get(3), null)));
+
+    // Deep hash zero and its replacement collide, but represent different rows.
+    final Object zeroHash = new Object[] {-31};
+    final Object collision = new Object[] {-30};
+    assertThat(
+        SqlFunctions.multisetIntersectAll(list(zeroHash, collision, zeroHash),
+        list(new Object[] {-31}, new Object[] {-30}, new Object[] {-30})),
+        is(list(zeroHash, collision)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testMultisetExceptAllCounts() {
+    final Object a1 = new Object[] {1, null};
+    final Object a2 = new Object[] {1, null};
+    final Object a3 = new Object[] {1, null};
+    final Object b = new Object[] {2, "Bar"};
+    final Object equalB = new Object[] {2, "Bar"};
+    final List<Object> left = list(a1, b, a2, null, a3, b, null);
+    final List<Object> right = list(equalB, a2, null, a1, null, null, "other");
+    assertThat(SqlFunctions.multisetExceptAll(left, right), is(list(a3, b)));
+    assertThat(SqlFunctions.multisetExceptAll(right, left), is(list(null, "other")));
+    assertThat(SqlFunctions.multisetExceptAll(left, list()), is(left));
+    assertThat(SqlFunctions.multisetExceptAll(left, left), is(list()));
+    assertThat(left, is(list(a1, b, a2, null, a3, b, null)));
+    assertThat(right, is(list(equalB, a2, null, a1, null, null, "other")));
+
+    // Deep hash zero and its replacement collide, but represent different rows.
+    final Object zeroHash = new Object[] {-31};
+    final Object collision = new Object[] {-30};
+    assertThat(
+        SqlFunctions.multisetExceptAll(list(zeroHash, collision, zeroHash),
+        list(new Object[] {-31}, new Object[] {-30}, new Object[] {-30})),
+        is(Collections.singletonList(zeroHash)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7842">[CALCITE-7842]
+   * Multiset operators return incorrect results for ROW elements</a>. */
+  @Test void testSubmultisetOfCounts() {
+    final Object row = new Object[] {1, null};
+    final Object equalRow = new Object[] {1, null};
+    final Object other = new Object[] {2, null};
+    final List<Object> sub = list(row, equalRow, null);
+    final List<Object> multiset = list(equalRow, other, null);
+    assertThat(SqlFunctions.submultisetOf(sub, multiset), is(false));
+    assertThat(SqlFunctions.submultisetOf(sub, list(equalRow, row, null, other)), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(null, null), list(null, other)), is(false));
+    assertThat(SqlFunctions.submultisetOf(list(null, null), list(null, null)), is(true));
+    assertThat(SqlFunctions.submultisetOf(list(), list()), is(true));
+    assertThat(sub, is(list(row, equalRow, null)));
+    assertThat(multiset, is(list(equalRow, other, null)));
+
+    // Deep hash zero and its replacement collide, but represent different rows.
+    final Object zeroHash = new Object[] {-31};
+    final Object collision = new Object[] {-30};
+    assertThat(
+        SqlFunctions.submultisetOf(list(zeroHash, zeroHash),
+        list(new Object[] {-31}, collision)), is(false));
+    assertThat(
+        SqlFunctions.submultisetOf(list(zeroHash, collision),
+        list(new Object[] {-30}, new Object[] {-31})), is(true));
+  }
+
   @Test void testMd5() {
     assertThat("d41d8cd98f00b204e9800998ecf8427e", is(md5("")));
     assertThat("d41d8cd98f00b204e9800998ecf8427e", is(md5(ByteString.of("", 16))));
@@ -2162,20 +2406,33 @@ class SqlFunctionsTest {
             "2024-01-01 00:00:00", "Asia/Sanghai"));
   }
 
-  // Tests for ZipPaddedEnumerator, accessed via the public SqlFunctions.flatZip API.
+  // Tests for SqlFunctions.flatUncollect, the runtime of the Enumerable
+  // implementation of Uncollect. FIELD_IS_SCALAR marks a collection whose
+  // elements occupy a single output column.
+  static final int FIELD_IS_SCALAR = -1;
 
-  /** Invokes {@link SqlFunctions#flatZip} over scalar collections and collects output rows. */
+  // Tests for ZipPaddedEnumerator, accessed via the public
+  // SqlFunctions.flatUncollect API (no pass-through fields, all
+  // input fields are scalar collections).
+
+  /** Invokes {@link SqlFunctions#flatUncollect} over scalar
+   * collections (no pass-through fields) and collects output rows. */
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static List<List<Object>> zipScalars(
       boolean withOrdinality, List<Comparable>... inputs) {
     final int n = inputs.length;
+    final int[] collectionIndices = new int[n];
     final int[] fieldCounts = new int[n];
-    Arrays.fill(fieldCounts, 1);
     final SqlFunctions.FlatProductInputType[] types =
         new SqlFunctions.FlatProductInputType[n];
-    Arrays.fill(types, SCALAR);
+    for (int i = 0; i < n; i++) {
+      collectionIndices[i] = i;
+      fieldCounts[i] = FIELD_IS_SCALAR;
+      types[i] = SCALAR;
+    }
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(fieldCounts, withOrdinality, types, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, collectionIndices, fieldCounts, types, withOrdinality, n, false);
     final Object arg = n == 1 ? inputs[0] : inputs;
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row : fn.apply(arg)) {
@@ -2185,8 +2442,8 @@ class SqlFunctionsTest {
   }
 
   @Test void testZipPaddedSingleCollectionWithOrdinality() {
-    // Single scalar collection with ordinality uses ZipPaddedEnumerator, not
-    // the LIST_AS_ENUMERABLE shortcut.
+    // Single scalar collection with ordinality: two output columns
+    // (element, ordinality), so no single-column scalar unwrapping applies.
     List<List<Object>> rows = zipScalars(true, Arrays.asList(10, 20, 30));
     assertThat(rows, hasSize(3));
     assertThat(rows.get(0), is(list(10, 1)));
@@ -2248,8 +2505,9 @@ class SqlFunctionsTest {
     // → [1,2,10,20], [3,4,null,null]
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{2, 2}, false,
-            new SqlFunctions.FlatProductInputType[]{LIST, LIST}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1}, new int[]{2, 2},
+            new SqlFunctions.FlatProductInputType[]{LIST, LIST}, false, 2, false);
     final List<List<Comparable>> col1 =
         Arrays.asList(FlatLists.of(1, 2), FlatLists.of(3, 4));
     final List<List<Comparable>> col2 =
@@ -2277,10 +2535,12 @@ class SqlFunctionsTest {
     // the element as an Object[]; the scalar column i zips alongside.
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(
-            new int[]{-1, -1}, // one output column per collection
-            false,             // no ordinality
-            new SqlFunctions.FlatProductInputType[]{STRUCT, SCALAR}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{FIELD_IS_SCALAR, FIELD_IS_SCALAR}, // one output column per collection
+            new SqlFunctions.FlatProductInputType[]{STRUCT, SCALAR},
+            false, // no ordinality
+            2, false);
 
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row
@@ -2301,10 +2561,12 @@ class SqlFunctionsTest {
     // must be expanded to one null per ROW field rather than dereferencing the list.
     @SuppressWarnings({"rawtypes", "unchecked"})
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(
-            new int[]{2, -1}, // two columns from the struct, one scalar column
-            false,            // no ordinality
-            new SqlFunctions.FlatProductInputType[]{LIST, SCALAR}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{2, FIELD_IS_SCALAR}, // two columns from the struct, one scalar column
+            new SqlFunctions.FlatProductInputType[]{LIST, SCALAR},
+            false, // no ordinality
+            2, false);
 
     final List<List<Object>> rows = new ArrayList<>();
     for (FlatLists.ComparableList<Comparable> row
@@ -2320,16 +2582,16 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipSingleWholeStructCollection() {
+  @Test void testFlatUncollectSingleWholeStructCollection() {
     // Models the Trino semantics of
     //   UNNEST(ARRAY[ROW(1, 'x'), ROW(2, 'y')]) AS t(s):
     // the output has the single ROW-typed column s, which PhysTypeImpl stores
     // in SCALAR row format, so each output row is the bare Object[] struct
     // value rather than a singleton list.
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(
-            new int[]{-1}, false,
-            new SqlFunctions.FlatProductInputType[]{STRUCT}, false);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{STRUCT}, false, 1, false);
 
     final List<Object> rows = new ArrayList<>();
     for (Object row : (Enumerable) fn.apply(rowArray())) {
@@ -2345,15 +2607,16 @@ class SqlFunctionsTest {
     assertThat(((Enumerable) fn.apply(null)).any(), is(false));
   }
 
-  // Tests for the outer mode of flatZip (Uncollect.isOuter): an empty or
-  // NULL collection produces one all-NULL output row instead of none.
+  // Tests for the outer mode of flatUncollect (Uncollect.isOuter): an empty
+  // or NULL collection produces one all-NULL output row instead of none.
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterScalar() {
+  @Test void testFlatUncollectOuterScalar() {
     // Models SELECT u.x FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1}, false,
-            new SqlFunctions.FlatProductInputType[]{SCALAR}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR}, false, 1, true);
 
     // arr = [1, 2]
     assertThat(((Enumerable) fn.apply(Arrays.asList(1, 2))).toList(),
@@ -2367,12 +2630,13 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterWholeStruct() {
+  @Test void testFlatUncollectOuterWholeStruct() {
     // Models, under PRESTO conformance (struct elements kept whole),
     // SELECT u.s FROM t LEFT JOIN UNNEST(t.arr) AS u(s) ON TRUE.
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1}, false,
-            new SqlFunctions.FlatProductInputType[]{STRUCT}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{STRUCT}, false, 1, true);
 
     // arr = [ROW(1, 'x'), ROW(2, 'y')]
     final List<Object> rows = ((Enumerable) fn.apply(rowArray())).toList();
@@ -2387,12 +2651,13 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterWithOrdinality() {
+  @Test void testFlatUncollectOuterWithOrdinality() {
     // Models SELECT u.x, u.o
     //     FROM t LEFT JOIN UNNEST(t.arr) WITH ORDINALITY AS u(x, o) ON TRUE
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1}, true,
-            new SqlFunctions.FlatProductInputType[]{SCALAR}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR}, true, 1, true);
 
     // arr = [7, 8]
     final List<List<Object>> rows = new ArrayList<>();
@@ -2420,11 +2685,13 @@ class SqlFunctionsTest {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  @Test void testFlatZipOuterMultipleCollections() {
+  @Test void testFlatUncollectOuterMultipleCollections() {
     // Models SELECT u.x, u.y FROM t LEFT JOIN UNNEST(t.a, t.b) AS u(x, y) ON TRUE
     final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
-        SqlFunctions.flatZip(new int[]{-1, -1}, false,
-            new SqlFunctions.FlatProductInputType[]{SCALAR, SCALAR}, true);
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0, 1},
+            new int[]{FIELD_IS_SCALAR, FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR, SCALAR}, false, 2, true);
 
     // (a, b) = ([], [7]): zip pads a
     final List<List<Object>> rows = new ArrayList<>();
@@ -2443,19 +2710,226 @@ class SqlFunctionsTest {
     assertThat(rows, is(Collections.singletonList(Arrays.asList(null, null))));
   }
 
-  @Test void testFlatListOuter() {
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  @Test void testFlatUncollectOuterSingleFieldStruct() {
     // Models SELECT u.x FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
-    // for arr ROW(a INTEGER) ARRAY
-    final Function1<List<Object>, Enumerable<Object>> fn =
-        (Function1) SqlFunctions.flatListOuter();
+    // for arr ROW(a INTEGER) ARRAY: the single struct field expands to the
+    // single output column, so rows are bare values (SCALAR row format).
+    final Function1<Object, Enumerable<Object>> fn =
+        (Function1) SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0}, new int[]{1},
+            new SqlFunctions.FlatProductInputType[]{LIST}, false, 1, true);
     // arr = [ROW(1), ROW(2)]
-    assertThat(fn.apply(Arrays.asList(FlatLists.of(1), FlatLists.of(2))).toList(),
+    assertThat(((Enumerable) fn.apply(Arrays.asList(FlatLists.of(1), FlatLists.of(2)))).toList(),
         is(Arrays.asList(1, 2)));
     // arr = []
-    assertThat(fn.apply(Collections.emptyList()).toList(),
+    assertThat(((Enumerable) fn.apply(Collections.emptyList())).toList(),
         is(Collections.singletonList(null)));
     // arr = NULL
-    assertThat(fn.apply(null).toList(),
+    assertThat(((Enumerable) fn.apply(null)).toList(),
         is(Collections.singletonList(null)));
+  }
+
+  private static void checkArrayFunctionsWithRows(Object row, Object equalRow) {
+    // The Spark-validated SQL results are recorded in sql/row-equality.iq.
+    // This helper also exercises Java-specific inputs; its full set of inputs
+    // and assertions was not run against Spark.
+    final Object other = new Object[] {9, "Other"};
+    final List<Object> input = list(row, null, other, equalRow);
+    assertThat(SqlFunctions.arrayContains(input, equalRow), is(true));
+    assertThat(SqlFunctions.arrayContains(list(other), row), is(false));
+    assertThat(SqlFunctions.arrayPosition(input, equalRow), is(1L));
+    assertThat(SqlFunctions.arrayPosition(list(other), row), is(0L));
+    assertThat(SqlFunctions.arrayRemove(input, equalRow), is(list(null, other)));
+    assertThat(SqlFunctions.distinct(input), is(list(row, null, other)));
+    assertThat(SqlFunctions.arrayUnion(input, list(equalRow, other, null)),
+        is(list(row, null, other)));
+    assertThat(SqlFunctions.arrayIntersect(input, list(equalRow, null)),
+        is(list(row, null)));
+    assertThat(SqlFunctions.arrayIntersect(input, list(null, equalRow, null, equalRow)),
+        is(list(row, null)));
+    assertThat(SqlFunctions.arrayExcept(input, list(equalRow, null)), is(list(other)));
+    assertThat(arraysOverlap(input, list(equalRow)), is(true));
+    assertThat(arraysOverlap(list(row), list(other)), is(false));
+    assertThat(arraysOverlap(list(row, null), list(other)), is(nullValue()));
+    assertThat(arraysOverlap(list(), input), is(false));
+    assertThat(input, is(list(row, null, other, equalRow)));
+  }
+
+  // Tests for the pass-through mode of flatUncollect: designated input
+  // fields are copied unchanged into every output row.
+
+  /** Applies {@code fn} to a single input row and collects all output rows. */
+  private static List<List<Object>> collectRows(
+      Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn,
+      Object inputRow) {
+    final List<List<Object>> result = new ArrayList<>();
+    for (FlatLists.ComparableList<Comparable> row : fn.apply(inputRow)) {
+      result.add(new ArrayList<>(row));
+    }
+    return result;
+  }
+
+  /** Like {@link #collectRows}, but for the single-output-column case, where
+   * {@link SqlFunctions#flatUncollect} returns bare scalars
+   * (matching {@link org.apache.calcite.adapter.enumerable.JavaRowFormat#SCALAR})
+   * rather than singleton rows. */
+  @SuppressWarnings("rawtypes")
+  private static List<Object> collectScalarRows(
+      Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn,
+      Object inputRow) {
+    final List<Object> result = new ArrayList<>();
+    for (Object row : (Enumerable) fn.apply(inputRow)) {
+      result.add(row);
+    }
+    return result;
+  }
+
+  @Test void testFlatUncollectPassthroughInner() {
+    // Models SELECT t.name, u.x FROM t, UNNEST(t.arr) AS u(x)
+    //    TABLE t(name VARCHAR, arr INTEGER ARRAY)
+    // name passes through, arr is unnested, INNER semantics.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            2,
+            false);
+
+    // Non-empty collection: one output row per element.
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"a", Arrays.asList(10, 20, 30)});
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(list("a", 10)));
+    assertThat(rows.get(1), is(list("a", 20)));
+    assertThat(rows.get(2), is(list("a", 30)));
+    // Empty collection: row dropped.
+    assertThat(collectRows(fn, new Object[]{"b", Collections.emptyList()}), hasSize(0));
+    // Null collection: row dropped (null-safe).
+    assertThat(collectRows(fn, new Object[]{"c", null}), hasSize(0));
+  }
+
+  @Test void testFlatUncollectPassthroughOuter() {
+    // Models SELECT t.name, u.x FROM t LEFT JOIN UNNEST(t.arr) AS u(x) ON TRUE
+    // for TABLE t(name VARCHAR, arr INTEGER ARRAY)
+    // name passes through, arr is unnested, OUTER (LEFT JOIN) semantics.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            2,
+            true);
+
+    // Non-empty collection: same behaviour as INNER.
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"a", Arrays.asList(1, 2)});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("a", 1)));
+    assertThat(rows.get(1), is(list("a", 2)));
+
+    // Empty collection: one null row; passthrough field preserved.
+    List<List<Object>> emptyRows =
+        collectRows(fn, new Object[]{"b", Collections.emptyList()});
+    assertThat(emptyRows, hasSize(1));
+    assertThat(emptyRows.get(0), is(Arrays.asList("b", null)));
+
+    // Null collection: one null row; passthrough field preserved.
+    List<List<Object>> nullRows =
+        collectRows(fn, new Object[]{"c", null});
+    assertThat(nullRows, hasSize(1));
+    assertThat(nullRows.get(0), is(Arrays.asList("c", null)));
+  }
+
+  @Test void testFlatUncollectPassthroughOrdinality() {
+    // Models SELECT t.name, u.x, u.o
+    //     FROM t, UNNEST(t.arr) WITH ORDINALITY AS u(x, o)
+    // for TABLE t(name VARCHAR, arr INTEGER ARRAY)
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> innerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            true,
+            2,
+            false);
+
+    List<List<Object>> rows =
+        collectRows(innerFn, new Object[]{"a", Arrays.asList(10, 20)});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("a", 10, 1)));
+    assertThat(rows.get(1), is(list("a", 20, 2)));
+
+    // Models SELECT t.name, u.x, u.o
+    //     FROM t LEFT JOIN UNNEST(t.arr) WITH ORDINALITY AS u(x, o) ON TRUE
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{0}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            true,
+            2,
+            true);
+
+    List<List<Object>> outerEmpty =
+        collectRows(outerFn, new Object[]{"b", Collections.emptyList()});
+    assertThat(outerEmpty, hasSize(1));
+    assertThat(outerEmpty.get(0), is(Arrays.asList("b", null, null)));
+  }
+
+  @Test void testFlatUncollectDroppedField() {
+    // Models SELECT t.y, u.x FROM t, UNNEST(t.arr) AS u(x)
+    // for TABLE t(x VARCHAR, arr INTEGER ARRAY, y VARCHAR)
+    // column x is dropped from the output
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{2}, new int[]{1},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            3,
+            false);
+
+    List<List<Object>> rows =
+        collectRows(fn, new Object[]{"x", Arrays.asList(10, 20), "y"});
+    assertThat(rows, hasSize(2));
+    assertThat(rows.get(0), is(list("y", 10)));
+    assertThat(rows.get(1), is(list("y", 20)));
+  }
+
+  @Test void testFlatUncollectScalarRowFormat() {
+    // Models SELECT u.x FROM t, UNNEST(t.arr) AS u(x)
+    // for TABLE t(arr INTEGER ARRAY).
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> fn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            1,
+            false);
+
+    List<Object> rows = collectScalarRows(fn, Arrays.asList(10, 20, 30));
+    assertThat(rows, hasSize(3));
+    assertThat(rows.get(0), is(10));
+    assertThat(rows.get(1), is(20));
+    assertThat(rows.get(2), is(30));
+
+    // Empty in OUTER scalar format: one bare null row.
+    final Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>> outerFn =
+        SqlFunctions.flatUncollect(
+            new int[]{}, new int[]{0},
+            new int[]{FIELD_IS_SCALAR},
+            new SqlFunctions.FlatProductInputType[]{SCALAR},
+            false,
+            1,
+            true);
+
+    List<Object> outerEmpty = collectScalarRows(outerFn, Collections.emptyList());
+    assertThat(outerEmpty, hasSize(1));
+    assertThat(outerEmpty.get(0), is(nullValue()));
   }
 }

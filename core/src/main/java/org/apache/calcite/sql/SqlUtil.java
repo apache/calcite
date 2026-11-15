@@ -41,6 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
@@ -457,6 +458,22 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Unparses the item of a {@code FROM} clause using a
+   * {@link SqlWriter.FrameTypeEnum#FROM_LIST} frame.
+   *
+   * @param writer Writer
+   * @param from Item of the FROM clause
+   */
+  public static void unparseFromClause(SqlWriter writer, SqlNode from) {
+    final SqlWriter.Frame fromFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
+    from.unparse(writer,
+        SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
+        SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
+    writer.endList(fromFrame);
+  }
+
+  /**
    * Unparses a condition using a
    * {@link SqlWriter.FrameTypeEnum#WHERE_LIST} frame, which provides
    * predicate-list formatting.
@@ -519,6 +536,11 @@ public abstract class SqlUtil {
    * Looks up a (possibly overloaded) routine based on name and argument
    * types.
    *
+   * <p>Uses the overload resolution rules described in
+   * {@link #lookupSubjectRoutines}. If several routines remain, returns the
+   * first in the order supplied by the operator table; this method does not
+   * report an ambiguity error.
+   *
    * @param opTab         operator table to search
    * @param typeFactory   Type factory
    * @param funcName      name of function being invoked
@@ -570,6 +592,81 @@ public abstract class SqlUtil {
 
   /**
    * Looks up all subject routines matching the given name and argument types.
+   *
+   * <p>For user-defined scalar and table functions with
+   * {@link SqlSyntax#FUNCTION} syntax and fixed parameter metadata supplied by
+   * {@link SqlOperandMetadata}, Calcite resolves overloads using the following
+   * rules:
+   *
+   * <ol>
+   * <li>Collect candidates by function name, category and syntax using the
+   * operator table and {@code nameMatcher}. Keep only candidates whose operand
+   * count range accepts the number of supplied arguments.</li>
+   * <li>Match arguments to formal parameters by position, or by parameter name
+   * when {@code argNames} is supplied. Parameter names are matched
+   * case-insensitively. Reject candidates with an unknown parameter name or an
+   * incompatible argument type. Compatibility is determined by
+   * {@link SqlTypeUtil#canCastFrom(RelDataType, RelDataType, boolean)}, with the
+   * formal parameter as the target type and {@code coerce} controlling the
+   * permitted conversions.</li>
+   * <li>If {@code coerce} is true, return the compatible candidates without
+   * ranking them by type precedence. If fewer than two candidates remain,
+   * return them immediately as well.</li>
+   * <li>Otherwise, consider the supplied arguments from left to right, in call
+   * order. For each argument, obtain its
+   * {@link RelDataType#getPrecedenceList() type precedence list} and examine the
+   * corresponding parameter types of the remaining candidates. If any of those
+   * types belong to the list, keep only candidates with a parameter type of the
+   * highest precedence according to
+   * {@link RelDataTypePrecedenceList#compareTypePrecedence}. Discard parameter
+   * types outside the list in this case. If none belong to the list, that
+   * argument does not eliminate any candidates. Candidates eliminated for an
+   * earlier argument are not reconsidered for a later argument.</li>
+   * <li>After precedence filtering, retain candidates whose
+   * {@link SqlKind#getFunctionKind() function kind} matches the requested
+   * kind.</li>
+   * </ol>
+   *
+   * <p>Type compatibility and type precedence are separate checks. A parameter
+   * of type {@link SqlTypeName#ANY ANY} can accept a concrete argument even
+   * though it is outside that argument's precedence list. With Calcite's
+   * built-in SQL types, a compatible concrete parameter in that list therefore
+   * takes precedence over an {@code ANY} parameter. If no compatible concrete
+   * overload exists, an {@code ANY} overload can still be selected. Conversely,
+   * an argument of type {@code ANY} prefers an {@code ANY} parameter when one
+   * remains among the candidates. If no remaining parameter belongs to the
+   * argument's precedence list, the candidates remain tied at that position.
+   *
+   * <p>An untyped {@link SqlTypeName#NULL NULL} argument supplies no precedence
+   * preference between non-{@code NULL} parameter types. Other arguments may
+   * still distinguish the candidates. A typed null, such as
+   * {@code CAST(NULL AS TIMESTAMP)}, uses the precedence list of its declared
+   * type.
+   *
+   * <p>For example, given overloads {@code F(VARCHAR)}, {@code F(TIMESTAMP)} and
+   * {@code F(ANY)}, lookup with {@code coerce = false} resolves as follows,
+   * independently of candidate order:
+   *
+   * <pre>{@code
+   * F('text')                           -> F(VARCHAR)
+   * F(TIMESTAMP '2024-01-02 03:04:05')   -> F(TIMESTAMP)
+   * F(TRUE)                             -> F(ANY)
+   * F(CAST(NULL AS TIMESTAMP))           -> F(TIMESTAMP)
+   * }</pre>
+   *
+   * <p>For {@code F(NULL)}, all three overloads remain candidates. Filtering
+   * preserves the order supplied by the operator table, and
+   * {@link #lookupRoutine} returns the first surviving candidate. Thus candidate
+   * order can affect calls that remain tied, but not calls with a unique best
+   * match.
+   *
+   * <p>Overload resolution is static: SQL validation selects an overload
+   * based on the derived SQL types of the arguments, including nested calls
+   * and other expressions. Runtime argument values and the function's return
+   * type do not participate in overload selection.
+   *
+   * <p>Procedures are an exception to the rules above: they are filtered only
+   * by name and argument count, not by argument type.
    *
    * @param opTab       operator table to search
    * @param typeFactory Type factory
@@ -754,7 +851,7 @@ public abstract class SqlUtil {
     // parameters of all of these names.
     Map<Integer, Integer> map = new HashMap<>();
     for (Ord<String> argName : Ord.zip(argNames)) {
-      int i = paramNames.indexOf(argName.e);
+      int i = lookupParamNameCaseInsensitive(paramNames, argName.e);
       if (i < 0) {
         return null;
       }
@@ -764,6 +861,24 @@ public abstract class SqlUtil {
       Integer argIndex = map.get(index);
       return argIndex != null ? argTypes.get(argIndex) : null;
     });
+  }
+
+  /** Looks up a parameter name in a list of formal parameter names,
+   * case-insensitively.
+   *
+   * @param paramNames list of formal parameter names
+   * @param argName argument name to look up
+   * @return index of the first matching parameter, or -1 if not found
+   */
+  public static int lookupParamNameCaseInsensitive(List<String> paramNames,
+      String argName) {
+    for (int i = 0; i < paramNames.size(); i++) {
+      if (SqlNameMatchers.withCaseSensitive(false)
+          .matches(paramNames.get(i), argName)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -802,10 +917,11 @@ public abstract class SqlUtil {
               final List<RelDataType> paramTypes =
                   operandMetadata.paramTypes(typeFactory);
               int index = argNames != null
-                  ? paramNames.indexOf(argNames.get(argType.i))
+                  ? lookupParamNameCaseInsensitive(paramNames, argNames.get(argType.i))
                   : argType.i;
               final RelDataType paramType = paramTypes.get(index);
-              return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
+              return precList.containsType(paramType)
+                  && precList.compareTypePrecedence(paramType, bestMatch) >= 0;
             })
             .collect(Collectors.toList());
       }
@@ -828,8 +944,14 @@ public abstract class SqlUtil {
           operandMetadata.paramTypes(typeFactory);
       final List<String> paramNames = operandMetadata.paramNames();
       final RelDataType paramType = argNames != null
-          ? paramTypes.get(paramNames.indexOf(argNames.get(i)))
+          ? paramTypes.get(lookupParamNameCaseInsensitive(paramNames, argNames.get(i)))
           : paramTypes.get(i);
+      // A compatible parameter (for example ANY) need not belong to the
+      // argument's precedence list. Prefer a type in that list if one exists;
+      // otherwise leave the candidates unchanged.
+      if (!precList.containsType(paramType)) {
+        continue;
+      }
       if (bestMatch == null) {
         bestMatch = paramType;
       } else {
@@ -884,6 +1006,11 @@ public abstract class SqlUtil {
     case UNION:
       final List<SqlNode> operandList = ((SqlBasicCall) query).getOperandList();
       return getSelectListItem(operandList.get(0), i);
+
+    case FROM_QUERY:
+    case PIPE_CALL:
+      // A query in pipe syntax has no select list to point into.
+      return query;
 
     default:
       // Unexpected type of query.

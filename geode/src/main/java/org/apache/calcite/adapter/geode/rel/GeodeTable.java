@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
@@ -62,6 +63,30 @@ import static java.util.Objects.requireNonNull;
 public class GeodeTable extends AbstractQueryableTable implements TranslatableTable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeodeTable.class.getName());
+
+  /** An OQL identifier: the only shape accepted for a SQL-side alias that
+   * becomes part of the OQL statement text. */
+  private static final Pattern OQL_IDENTIFIER =
+      Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
+
+  /** A field path as produced by {@link GeodeRules.RexToGeodeTranslator},
+   * for example {@code primaryAddress.postalCode} or {@code loc[0]}.
+   * Possessive quantifiers avoid backtracking on inputs that almost, but
+   * do not quite, match. */
+  private static final Pattern OQL_FIELD_PATH =
+      Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*+"
+          + "(?:\\.[A-Za-z_$][A-Za-z0-9_$]*+|\\[[0-9]++\\])*+");
+
+  /** An aggregate call as produced by {@link GeodeAggregate},
+   * for example {@code SUM(pop)}. */
+  private static final Pattern OQL_AGGREGATE_CALL =
+      Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*\\((?:" + OQL_FIELD_PATH.pattern()
+          + "(?:, " + OQL_FIELD_PATH.pattern() + ")*)?\\)");
+
+  /** An ORDER BY entry as produced by {@link GeodeSort},
+   * for example {@code state ASC}. */
+  private static final Pattern OQL_ORDER_BY_ENTRY =
+      Pattern.compile(OQL_FIELD_PATH.pattern() + " (?:ASC|DESC)");
 
   private final String regionName;
   private final RelDataType rowType;
@@ -74,6 +99,51 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
 
   @Override public String toString() {
     return "GeodeTable {" + regionName + "}";
+  }
+
+  /** Checks that a string that is about to be concatenated into the OQL
+   * statement matches the expected shape, and returns it.
+   *
+   * <p>SQL quoted identifiers may contain arbitrary characters, so an
+   * unvalidated alias would let arbitrary OQL text (for example a nested
+   * query on a region that is not exposed by the schema, or a method
+   * invocation on a server object) be concatenated into the emitted
+   * statement. OQL has no identifier quoting mechanism, therefore values
+   * that do not look like a plain identifier/path are rejected rather than
+   * escaped.
+   *
+   * <p>The value must be non-null; a null argument is a caller bug and
+   * surfaces as {@link NullPointerException}.
+   *
+   * @throws IllegalArgumentException if the value does not match
+   */
+  private static String checkOql(Pattern pattern, String kind, String value) {
+    requireNonNull(value, kind);
+    if (!pattern.matcher(value).matches()) {
+      throw new IllegalArgumentException("Cannot use " + kind + " '" + value
+          + "' in a Geode OQL query; only plain identifiers are supported");
+    }
+    return value;
+  }
+
+  /** Validates an alias (output name) used in the OQL select list. */
+  static String checkOqlIdentifier(String alias) {
+    return checkOql(OQL_IDENTIFIER, "alias", alias);
+  }
+
+  /** Validates a field path used in the OQL select or GROUP BY list. */
+  static String checkOqlFieldPath(String field) {
+    return checkOql(OQL_FIELD_PATH, "field", field);
+  }
+
+  /** Validates an aggregate call used in the OQL select list. */
+  static String checkOqlAggregateCall(String aggregateCall) {
+    return checkOql(OQL_AGGREGATE_CALL, "aggregate call", aggregateCall);
+  }
+
+  /** Validates an ORDER BY entry ({@code field ASC|DESC}). */
+  static String checkOqlOrderByEntry(String entry) {
+    return checkOql(OQL_ORDER_BY_ENTRY, "ORDER BY field", entry);
   }
 
   /**
@@ -130,24 +200,30 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
       aggFuncMap = aggFuncMapBuilder.build();
     }
 
-    // Construct the list of fields to project
+    // Construct the list of fields to project. OQL provides no way to quote
+    // identifiers, so every field name, alias, and GROUP BY key that is copied
+    // verbatim into the generated statement is validated against a strict
+    // allowlist; anything else refuses pushdown.
     ImmutableList.Builder<String> selectBuilder = ImmutableList.builder();
     if (!groupByFields.isEmpty()) {
       // manually add GROUP BY to select clause (GeodeProjection was not visited)
       for (String groupByField : groupByFields) {
+        checkOqlFieldPath(groupByField);
         selectBuilder.add(groupByField + " AS " + groupByField);
       }
 
       if (!aggFuncMap.isEmpty()) {
         for (Map.Entry<String, String> e : aggFuncMap.entrySet()) {
-          selectBuilder.add(e.getValue() + " AS " + e.getKey());
+          selectBuilder.add(checkOqlAggregateCall(e.getValue())
+              + " AS " + checkOqlIdentifier(e.getKey()));
         }
       }
     } else {
       if (selectFields.isEmpty()) {
         if (!aggFuncMap.isEmpty()) {
           for (Map.Entry<String, String> e : aggFuncMap.entrySet()) {
-            selectBuilder.add(e.getValue() + " AS " + e.getKey());
+            selectBuilder.add(checkOqlAggregateCall(e.getValue())
+                + " AS " + checkOqlIdentifier(e.getKey()));
           }
         } else {
           selectBuilder.add("*");
@@ -155,11 +231,13 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
       } else {
         if (!aggFuncMap.isEmpty()) {
           for (Map.Entry<String, String> e : aggFuncMap.entrySet()) {
-            selectBuilder.add(e.getValue() + " AS " + e.getKey());
+            selectBuilder.add(checkOqlAggregateCall(e.getValue())
+                + " AS " + checkOqlIdentifier(e.getKey()));
           }
         } else {
           for (Map.Entry<String, String> field : selectFields) {
-            selectBuilder.add(field.getKey() + " AS " + field.getValue());
+            selectBuilder.add(checkOqlFieldPath(field.getKey())
+                + " AS " + checkOqlIdentifier(field.getValue()));
           }
         }
       }
@@ -186,6 +264,9 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
 
     if (!orderByFields.isEmpty()) {
+      for (String orderByField : orderByFields) {
+        checkOqlOrderByEntry(orderByField);
+      }
       queryBuilder.append(Util.toString(orderByFields, " ORDER BY ", ", ", ""));
     }
     if (limit != null) {

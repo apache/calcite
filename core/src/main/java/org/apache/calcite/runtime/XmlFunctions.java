@@ -86,6 +86,13 @@ public class XmlFunctions {
         } catch (TransformerConfigurationException e) {
           throw new IllegalStateException("Transformer Factory configuration failed", e);
         }
+        try {
+          transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+          transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+        } catch (IllegalArgumentException e) {
+          throw new IllegalStateException("Transformer Factory does not support restricting"
+              + " access to external DTDs and stylesheets", e);
+        }
         return transformerFactory;
       });
 
@@ -147,14 +154,18 @@ public class XmlFunctions {
     }
     try {
       final Source xsltSource = new StreamSource(new StringReader(xslt));
-      final Source xmlSource = new StreamSource(new StringReader(xml));
       final Transformer transformer =
           TRANSFORMER_FACTORY.get().newTransformer(xsltSource);
+      final Source xmlSource = new DOMSource(getDocumentNode(xml));
       final StringWriter writer = new StringWriter();
       final StreamResult result = new StreamResult(writer);
       transformer.setErrorListener(new InternalErrorListener());
       transformer.transform(xmlSource, result);
       return writer.toString();
+    } catch (IllegalArgumentException e) {
+      // getDocumentNode rejected the XML argument (e.g. it contains a
+      // DOCTYPE declaration, or is not well-formed).
+      throw RESOURCE.invalidInputForXmlTransform(xml).ex();
     } catch (TransformerConfigurationException e) {
       throw RESOURCE.illegalXslt(xslt).ex();
     } catch (TransformerException e) {

@@ -182,6 +182,10 @@ public interface RexImplicationCheckerFixtures {
       return rexBuilder.makeBetween(node, lower, upper);
     }
 
+    public RexNode not(RexNode node1) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.NOT, node1);
+    }
+
     public RexNode notNull(RexNode node1) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node1);
     }

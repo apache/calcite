@@ -33,6 +33,8 @@ adapters.
 
 Prerequisite is Java (JDK 8, 11, 17, 21 or 24)
 and Gradle (version 8.14.4) on your path.
+The build compiles the code with JDK 25;
+see [the JDK that compiles Calcite](#the-jdk-that-compiles-calcite).
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
@@ -52,6 +54,8 @@ tests  (but you should use the `gradle` command rather than
 
 Prerequisites are git
 and Java (JDK 8, 11, 17, 21 or 24) on your path.
+The build compiles the code with JDK 25;
+see [the JDK that compiles Calcite](#the-jdk-that-compiles-calcite).
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
@@ -75,6 +79,35 @@ then you can call `./gradlew generateSources` tasks manually.
 
 [Running tests](#running-tests) describes how to run more or fewer
 tests.
+
+## The JDK that compiles Calcite
+
+Gradle compiles Calcite with JDK 25 (the `jdkBuildVersion` property selects it)
+and passes `--release 8` to `javac`,
+so the classes run on Java 8 and use only the Java 8 API.
+Tests, javadoc, and other tasks that run Java use the JDK that runs Gradle,
+so `JAVA_HOME` selects the JDK the tests run on.
+
+Gradle finds JDK 25 when it is installed in a standard location,
+or in a directory listed in `org.gradle.java.installations.paths`
+(see [toolchain auto-detection](https://docs.gradle.org/8.14.4/userguide/toolchains.html#sec:auto_detection)).
+Otherwise, Gradle downloads it.
+The download works only when Gradle runs on Java 11 or later,
+so if you run Gradle on Java 8, install JDK 25 yourself.
+Without it, compilation fails with:
+
+{% highlight text %}
+Cannot find a Java installation on your machine (...) matching: {languageVersion=25, vendor=any vendor, implementation=vendor-specific, nativeImageCapable=false}. Some toolchain resolvers had internal failures: foojay (Requesting vendor list failed: error code: 1010
+{% endhighlight %}
+
+* `-PjdkBuildVersion=N` (integer, default `25`) selects the major version of
+  the JDK that compiles the code.
+  Error Prone 2.5.1 fails on JDK 25 with
+  `IllegalAccessError: class com.google.errorprone.JavacErrorDescriptionListener ... cannot access class com.sun.tools.javac.tree.JCTree$JCCompilationUnit`,
+  so run it and the Checker Framework with `-PjdkBuildVersion=11`, as CI does.
+* `-Porg.gradle.java.installations.auto-download=false`, also accepted in
+  `gradle.properties`, makes the build fail instead of downloading a JDK.
+  The error then ends with `Toolchain auto-provisioning is not enabled.`
 
 ## Gradle vs the Gradle Wrapper
 
@@ -125,7 +158,7 @@ $ ./gradlew check # verify code style, execute tests
 $ ./gradlew test # execute tests
 $ ./gradlew style # update code formatting (for auto-correctable cases) and verify style
 $ ./gradlew autostyleCheck checkstyleAll # report code style violations
-$ ./gradlew -PenableErrorprone classes # verify Java code with Error Prone compiler, requires Java 11
+$ ./gradlew -PenableErrorprone -PjdkBuildVersion=11 classes # verify Java code with Error Prone compiler on JDK 11
 {% endhighlight %}
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.
@@ -705,7 +738,8 @@ signing.gnupg.useLegacyGpg=
 
 Before you start:
 
-* Make sure you are using JDK 8. Note: you need Java 8u202 or later in case you use OpenJDK-based Java.
+* Make sure you are using JDK 8, and that JDK 25 is installed
+  (see [the JDK that compiles Calcite](#the-jdk-that-compiles-calcite)).
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
@@ -733,8 +767,8 @@ Before you start:
   Report to [private@calcite.apache.org](mailto:private@calcite.apache.org)
   if new critical vulnerabilities are found among dependencies.
   The task requires a JDK 11 or later so it doesn't appear when using older versions.
-* Make sure you are using JDK 8 for all subsequent steps. (Compiling with JDK 21 causes
-  [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
+* Make sure you are using JDK 8 for all subsequent steps, and that JDK 25 is installed
+  (see [the JDK that compiles Calcite](#the-jdk-that-compiles-calcite)).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.

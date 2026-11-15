@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -44,10 +45,12 @@ import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
@@ -1471,6 +1474,70 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4597">[CALCITE-4597]
+   * Allow RelNodes to have an empty row type (zero fields)</a>.
+   *
+   * <p>Under the default policy, {@link EmptyRowTypePolicy#DISCOURAGED},
+   * {@code RelBuilder} does not throw if it encounters a relational
+   * expression with an empty row type, but tries not to create one: a
+   * {@code GROUP BY ()} with no aggregate calls becomes "VALUES (true)". */
+  @Test void testEmptyRowTypePolicyDiscouraged() {
+    // Equivalent SQL:
+    //   SELECT * FROM emp GROUP BY ()
+    final RelBuilder builder = createBuilder();
+    final RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey())
+            .build();
+    assertThat(root, hasTree("LogicalValues(tuples=[[{ true }]])\n"));
+  }
+
+  /** As {@link #testEmptyRowTypePolicyDiscouraged()}, but under the
+   * {@link EmptyRowTypePolicy#ALLOWED} policy, and therefore a
+   * {@code GROUP BY ()} with no aggregate calls becomes a
+   * {@code VALUES} with an empty row type (zero fields). */
+  @Test void testEmptyRowTypePolicyAllowed() {
+    final RelBuilder builder =
+        createBuilder(c -> c.withPreventEmptyFieldList(false)
+            .withEmptyRowTypePolicy(EmptyRowTypePolicy.ALLOWED));
+    final RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey())
+            .build();
+    assertThat(root.getRowType().getFieldCount(), is(0));
+    assertThat(root, hasTree("LogicalValues(tuples=[[{  }]])\n"));
+  }
+
+  /** As {@link #testEmptyRowTypePolicyDiscouraged()}, but under the
+   * {@link EmptyRowTypePolicy#FORBIDDEN} policy: creating or pushing a
+   * relational expression with an empty row type throws. */
+  @Test void testEmptyRowTypePolicyForbidden() {
+    final RelBuilder builder =
+        createBuilder(c -> c.withPreventEmptyFieldList(false)
+            .withEmptyRowTypePolicy(EmptyRowTypePolicy.FORBIDDEN));
+
+    // Equivalent SQL:
+    //   SELECT * FROM emp GROUP BY ()
+    final RelBuilder scan = builder.scan("EMP");
+    final IllegalArgumentException e0 =
+        assertThrows(IllegalArgumentException.class,
+            () -> scan.aggregate(scan.groupKey()).build(),
+            "expected empty row type to be forbidden");
+    assertThat(e0.getMessage(), containsString("empty row type"));
+
+    // Pushing a relational expression with an empty row type is also
+    // forbidden
+    final RelDataType emptyRowType = builder.getTypeFactory().builder().build();
+    final RelNode emptyValues =
+        LogicalValues.create(builder.getCluster(), emptyRowType,
+            ImmutableList.of(ImmutableList.of()));
+    final IllegalArgumentException e1 =
+        assertThrows(IllegalArgumentException.class, () -> builder.push(emptyValues),
+        "expected empty row type to be forbidden");
+    assertThat(e1.getMessage(), containsString("empty row type"));
+  }
+
   @Test void testAggregate2() {
     // Equivalent SQL:
     //   SELECT COUNT(*) AS c, SUM(mgr + 1) AS s
@@ -2586,6 +2653,29 @@ public class RelBuilderTest {
             .nullable(true)
             .build();
     assertThat(root.getRowType(), hasRelDataType(expectedRowType));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7910">[CALCITE-7910]
+   * Minus and Intersect lose StructKind of nested ROW types in row type derivation</a>. */
+  @Test void testMinusPreservesNestedStructKind() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelDataType inner =
+        typeFactory.createStructType(StructKind.PEEK_FIELDS_NO_EXPAND,
+            ImmutableList.of(typeFactory.createSqlType(SqlTypeName.INTEGER),
+                typeFactory.createSqlType(SqlTypeName.VARCHAR)),
+            ImmutableList.of("_1", "_2"));
+    final RelDataType rowType =
+        new RelDataTypeFactory.Builder(typeFactory)
+            .add("a", SqlTypeName.BIGINT)
+            .add("b", inner)
+            .build();
+
+    final RelNode minus =
+        builder.values(rowType).values(rowType).minus(false).build();
+
+    assertThat(minus.getRowType(), is(rowType));
   }
 
   /** Test case for
@@ -4904,6 +4994,38 @@ public class RelBuilderTest {
           + "EMPNO=7788; ENAME=SCOTT; JOB=ANALYST; MGR=7566; HIREDATE=1987-04-19; SAL=3000.00; COMM=null; DEPTNO=20\n"
           + "EMPNO=7876; ENAME=ADAMS; JOB=CLERK; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00; COMM=null; DEPTNO=20\n"
           + "EMPNO=7902; ENAME=FORD; JOB=ANALYST; MGR=7566; HIREDATE=1981-12-03; SAL=3000.00; COMM=null; DEPTNO=20\n";
+      assertThat(s, is(result));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7826">[CALCITE-7826]
+   * IS NOT DISTINCT FROM gives wrong result in Enumerable convention when
+   * applied to DECIMAL values of different scales</a>. */
+  @Test void testIsNotDistinctFromDecimal() throws Exception {
+    // Equivalent SQL:
+    //   SELECT a, b, a = b AS eq, a IS NOT DISTINCT FROM b AS indf,
+    //     a IS DISTINCT FROM b AS idf
+    //   FROM (VALUES (1.10, 1.1)) AS t (a, b)
+    // but SqlToRelConverter and RelBuilder.isNotDistinctFrom expand IS [NOT]
+    // DISTINCT FROM, so we call the operators directly. "a" has type
+    // DECIMAL(3, 2) and "b" has type DECIMAL(2, 1).
+    final RelBuilder b = RelBuilder.create(config().build());
+    final RelNode root =
+        b.values(new String[] {"a", "b"},
+                new BigDecimal("1.10"), new BigDecimal("1.1"))
+            .project(b.field("a"), b.field("b"),
+                b.alias(b.equals(b.field("a"), b.field("b")), "eq"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                        b.field("a"), b.field("b")), "indf"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.IS_DISTINCT_FROM,
+                        b.field("a"), b.field("b")), "idf"))
+            .build();
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
+      String s = CalciteAssert.toString(preparedStatement.executeQuery());
+      final String result = "a=1.10; b=1.1; eq=true; indf=true; idf=false\n";
       assertThat(s, is(result));
     }
   }

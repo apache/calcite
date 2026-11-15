@@ -1631,6 +1631,43 @@ class RelWriterTest {
         .assertThatPlan(isLinux(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7608">[CALCITE-7608]
+   * Enhance Uncollect to support pass-through fields</a>. The input of the
+   * second Uncollect has two fields named "A"; the JSON plan must keep the
+   * one that is passed through. */
+  @Test void testUncollectDuplicateFieldNames() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder b = RelBuilder.create(config);
+    final RelNode rel = b.scan("EMP")
+        .project(b.field("EMPNO"),
+            b.alias(
+                b.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                    b.field("ENAME")), "A"))
+        // Output: EMPNO, A (the array), A (an element of the array)
+        .uncollect(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(1), false, true,
+            false)
+        // Pass through the element A, not the array A
+        .uncollect(ImmutableBitSet.of(0, 2), ImmutableBitSet.of(1), false, true,
+            false)
+        .build();
+    final String relJson =
+        RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
+            SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    final String roundTripType =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader =
+              new RelJsonReader(cluster, getSchema(rel), rootSchema);
+          try {
+            return reader.read(relJson).getRowType().getFullTypeString();
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+    // The second column is still a VARCHAR, not a VARCHAR ARRAY
+    assertThat(roundTripType, is(rel.getRowType().getFullTypeString()));
+  }
+
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
    * in this plan, or null if there are no scans. */
   private static RelOptSchema getSchema(RelNode rel) {

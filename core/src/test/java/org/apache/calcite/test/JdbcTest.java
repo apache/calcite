@@ -151,7 +151,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -1066,36 +1065,6 @@ public class JdbcTest {
     assertThat(resultSetMetaData.getColumnName(6), is("PK_NAME"));
     resultSet.close();
     connection.close();
-  }
-
-  /** Unit test for
-   * {@link LikePattern#likeToRegex(org.apache.calcite.avatica.Meta.Pat)}. */
-  @Test void testLikeToRegex() {
-    checkLikeToRegex(true, "%", "abc");
-    checkLikeToRegex(true, "abc", "abc");
-    checkLikeToRegex(false, "abc", "abcd"); // trailing char fails match
-    checkLikeToRegex(false, "abc", "0abc"); // leading char fails match
-    checkLikeToRegex(false, "abc", "aBc"); // case-sensitive match
-    checkLikeToRegex(true, "a[b]c", "a[b]c"); // nothing special about brackets
-    checkLikeToRegex(true, "a$c", "a$c"); // nothing special about dollar
-    checkLikeToRegex(false, "a$", "a"); // nothing special about dollar
-    checkLikeToRegex(true, "a%c", "ac");
-    checkLikeToRegex(true, "a%c", "abbbc");
-    checkLikeToRegex(false, "a%c", "acccd");
-
-    // escape using back-slash
-    checkLikeToRegex(true, "a\\%c", "a%c");
-    checkLikeToRegex(false, "a\\%c", "abc");
-    checkLikeToRegex(false, "a\\%c", "a\\%c");
-
-    // multiple wild-cards
-    checkLikeToRegex(true, "a%c%d", "abcdaaad");
-    checkLikeToRegex(false, "a%c%d", "abcdc");
-  }
-
-  private void checkLikeToRegex(boolean b, String pattern, String abc) {
-    final Pattern regex = LikePattern.likeToRegex(pattern);
-    assertTrue(b == regex.matcher(abc).matches());
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns},
@@ -2955,6 +2924,75 @@ public class JdbcTest {
         .returns("desc=SameName\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7880">[CALCITE-7880]
+   * Unqualified common column of JOIN USING has the left column's type,
+   * so arithmetic on it can overflow</a>. */
+  @ParameterizedTest
+  @MethodSource("joinUsingMixedNumericTypes")
+  void testJoinUsingMixedNumericCommonColumn(String join, String leftType,
+      String rightType) {
+    // Each input has one row with key 2147483647, so every join matches that
+    // pair. The common type is BIGINT and adding 1 must give 2147483648.
+    // SELECT * below checks the common type independently of the unqualified
+    // reference. sql/join.iq also checks the arithmetic using the qualified
+    // BIGINT input, which does not use common-column expansion.
+    final String from = " from (values (cast(2147483647 as " + leftType + "))) as l(k) "
+        + join + " (values (cast(2147483647 as " + rightType + "))) as r(k)"
+        + (join.startsWith("natural") ? "" : " using (k)");
+    final String nullability = join.contains("full") ? "" : " NOT NULL";
+    CalciteAssert.that()
+        .query("select k + 1 as x" + from)
+        .returns("X=2147483648\n")
+        .typeIs("[X BIGINT" + nullability + "]");
+    CalciteAssert.that()
+        .query("select *" + from)
+        .typeIs("[K BIGINT" + nullability + "]");
+    // A qualified reference still denotes the original input column.
+    CalciteAssert.that()
+        .query("select l.k" + from)
+        .typeIs("[K " + leftType.toUpperCase(Locale.ROOT)
+            + (join.contains("right") || join.contains("full") ? "" : " NOT NULL")
+            + "]");
+  }
+
+  private static Stream<Arguments> joinUsingMixedNumericTypes() {
+    return Stream.of("join", "left join", "right join", "full join",
+        "natural join", "natural left join", "natural right join", "natural full join")
+        .flatMap(
+            join -> Stream.of(arguments(join, "integer", "bigint"),
+            arguments(join, "bigint", "integer")));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7880">[CALCITE-7880]
+   * Unqualified common column of JOIN USING has the left column's type,
+   * so arithmetic on it can overflow</a>. */
+  @ParameterizedTest
+  @MethodSource("joinUsingMixedNumericNulls")
+  void testJoinUsingMixedNumericCommonColumnWithNulls(String join, String leftType,
+      String rightType, String[] expected) {
+    // Only key 2147483647 matches; NULL never matches NULL. LEFT also retains
+    // 2147483646 and NULL, while RIGHT retains 2147483645 and NULL. Adding 1
+    // to each retained key gives the expected rows listed by the method source.
+    final String sql = "select k + 1 as x from (values "
+        + "(cast(2147483647 as " + leftType + ")), (2147483646), (null)) as l(k) "
+        + join + " (values (cast(2147483647 as " + rightType
+        + ")), (2147483645), (null)) as r(k) using (k)";
+    CalciteAssert.that()
+        .query(sql)
+        .returnsUnordered(expected)
+        .typeIs("[X BIGINT]");
+  }
+
+  private static Stream<Arguments> joinUsingMixedNumericNulls() {
+    return Stream.of(
+        arguments("left join", "integer", "bigint",
+            new String[] {"X=2147483648", "X=2147483647", "X=null"}),
+        arguments("right join", "bigint", "integer",
+            new String[] {"X=2147483648", "X=2147483646", "X=null"}));
+  }
+
   @Test void testValuesMinus() {
     CalciteAssert.that()
         .query("values (-2-1)")
@@ -3391,6 +3429,67 @@ public class JdbcTest {
         .returns("store_id=1; grocery_sqft=17475\n"
             + "store_id=2; grocery_sqft=22271\n"
             + "store_id=0; grocery_sqft=null\n");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7744">[CALCITE-7744]</a>
+   * ORDER BY agg(col) on a query where an alias shadows col produces an invalid
+   * plan containing an aggregate call in a Project. */
+  @Test void testOrderByAggregateAliasShadowingRejected() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("SELECT max(sal) AS sal, deptno, job "
+            + "FROM emp GROUP BY deptno, job ORDER BY max(sal)")
+        .throws_("Aggregate expressions cannot be nested: 'SAL' is a "
+            + "SELECT-list alias for an aggregate expression");
+  }
+
+  static Stream<Arguments> orderByAliasQueries() {
+    return Stream.of(
+        arguments("select deptno in (select deptno from dept) as b from emp order by b",
+            String.join("", Collections.nCopies(14, "B=true\n"))),
+        arguments("select exists (select 1 from dept d where d.deptno = e.deptno) as b "
+                + "from emp e order by b",
+            String.join("", Collections.nCopies(14, "B=true\n"))),
+        arguments("select sal > all (select sal from emp) as b from emp order by b",
+            String.join("", Collections.nCopies(14, "B=false\n"))),
+        arguments("select deptno + 1 as d1, d1 + 2 as measure d3 from emp order by d3 + 1",
+            String.join("", Collections.nCopies(3, "D1=11; D3=13\n"))
+                + String.join("", Collections.nCopies(5, "D1=21; D3=23\n"))
+                + String.join("", Collections.nCopies(6, "D1=31; D3=33\n"))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("orderByAliasQueries")
+  void testOrderByAliasExecutesValidatedExpressions(String query, String expected) {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query(query)
+        .returns(expected);
+  }
+
+  @Test void testOrderByAliasExecutesBoundParameter() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select sal + ? as x from emp order by x + 1")
+        .consumesPreparedStatement(p -> p.setInt(1, 1))
+        .returns2("X=801\nX=951\nX=1101\nX=1251\nX=1251\nX=1301\nX=1501\n"
+            + "X=1601\nX=2451\nX=2851\nX=2976\nX=3001\nX=3001\nX=5001\n");
+  }
+
+  @Test void testOrderByAliasExecutesCurrentDate() throws SQLException {
+    try (Connection connection = CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT).connect();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery("select current_date as d, empno from emp order by d")) {
+      assertThat(resultSet.getMetaData().getColumnType(1), is(Types.DATE));
+      int count = 0;
+      while (resultSet.next()) {
+        assertNotNull(resultSet.getDate(1));
+        ++count;
+      }
+      assertThat(count, is(14));
+    }
   }
 
   /** Tests ORDER BY ... DESC. Nulls come first (they come last for ASC). */
@@ -3865,6 +3964,21 @@ public class JdbcTest {
     with.query(values + "order by x offset "
         + "cast(9223372036854775808 as decimal(20, 0)) + 1 rows")
         .returns("");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7608">[CALCITE-7608]
+   * Enhance Uncollect to support pass-through fields</a>. Uses both decorrelators. */
+  @Test void testUncollectPassthroughOverReflectiveScan() {
+    final String sql = "select *\n"
+        + "from \"hr\".\"depts\" d, unnest(d.\"employees\") as e";
+    for (boolean topDown : new boolean[] {false, true}) {
+      // The "employees" arrays of the 3 departments hold 3 employees in total
+      CalciteAssert.hr()
+          .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, topDown)
+          .query(sql)
+          .returnsCount(3);
+    }
   }
 
   /** Tests ORDER BY ... OFFSET ... FETCH. */
@@ -4760,7 +4874,7 @@ public class JdbcTest {
             + "   \"hr\".\"emps\"\n"
             + " )\n")
         .typeIs(
-            "[LAGX INTEGER NOT NULL]")
+            "[LAGX INTEGER]")
         .returnsUnordered(
             "LAGX=0",
             "LAGX=0",
@@ -6833,6 +6947,13 @@ public class JdbcTest {
     checkJdbcSchemaDirectConnection(
         "schemaFactory=org.apache.calcite.adapter.jdbc.JdbcSchema$Factory");
     checkJdbcSchemaDirectConnection("schemaType=JDBC");
+  }
+
+  @Test void testJdbcSchemaDirectConnectionInitWrapsRuntimeException() {
+    final SQLException e = assertThrows(SQLException.class, () ->
+        DriverManager.getConnection(
+            "jdbc:calcite:schemaType=JDBC;schema.jdbcUrl=jdbc:invalid:"));
+    assertThat(e.getCause(), instanceOf(RuntimeException.class));
   }
 
   private void checkJdbcSchemaDirectConnection(String s) throws SQLException {
@@ -9872,6 +9993,74 @@ public class JdbcTest {
           p.setString(1, value);
         })
         .returnsUnordered("EMPID=aa");
+  }
+
+  /** Tests top-level explicit tables ("TABLE t"), which are equivalent to
+   * "SELECT * FROM t". */
+  @Test void testTopLevelExplicitTable() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept")
+        .returnsUnordered(
+            "DEPTNO=10; DNAME=ACCOUNTING; LOC=NEW YORK",
+            "DEPTNO=20; DNAME=RESEARCH; LOC=DALLAS",
+            "DEPTNO=30; DNAME=SALES; LOC=CHICAGO",
+            "DEPTNO=40; DNAME=OPERATIONS; LOC=BOSTON");
+  }
+
+  @Test void testTopLevelExplicitTableOrderBy() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept order by deptno desc")
+        .returnsOrdered(
+            "DEPTNO=40; DNAME=OPERATIONS; LOC=BOSTON",
+            "DEPTNO=30; DNAME=SALES; LOC=CHICAGO",
+            "DEPTNO=20; DNAME=RESEARCH; LOC=DALLAS",
+            "DEPTNO=10; DNAME=ACCOUNTING; LOC=NEW YORK");
+  }
+
+  @Test void testTopLevelExplicitTableOrderByOffsetFetch() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept order by deptno desc\n"
+            + "offset 1 rows fetch next 2 rows only")
+        .returnsOrdered(
+            "DEPTNO=30; DNAME=SALES; LOC=CHICAGO",
+            "DEPTNO=20; DNAME=RESEARCH; LOC=DALLAS");
+  }
+
+  @Test void testTopLevelExplicitTableQualified() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept")
+        .returnsCount(4);
+  }
+
+  /** Control: already worked before the fix. */
+  @Test void testExplicitTableInFrom() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("select * from (table dept)")
+        .returnsCount(4);
+  }
+
+  @Test void testTopLevelExplicitTableUnion() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table dept union all table dept")
+        .returnsCount(8);
+  }
+
+  @Test void testTopLevelExplicitTableInWith() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("with t as (select * from dept) table t")
+        .returnsCount(4);
+  }
+
+  @Test void testExplainTopLevelExplicitTable() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("explain plan for table dept")
+        .returnsCount(1);
+  }
+
+  @Test void testTopLevelExplicitTableNotFound() {
+    CalciteAssert.that().with(CalciteAssert.Config.SCOTT)
+        .query("table nonexistent")
+        .throws_("Object 'NONEXISTENT' not found");
   }
 
   private static String sums(int n, boolean c) {

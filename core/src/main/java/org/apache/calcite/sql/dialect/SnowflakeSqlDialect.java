@@ -48,6 +48,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    // Snowflake recognizes backslash escape sequences inside single-quoted
+    // string constants, so a literal backslash must be doubled before the base
+    // method escapes the enclosing quote. Otherwise a value ending in a
+    // backslash terminates the literal early and the trailing text is parsed
+    // as SQL rather than data.
+    super.quoteStringLiteral(buf, charsetName, escapeBackslash(val));
+  }
+
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
     switch (call.getKind()) {

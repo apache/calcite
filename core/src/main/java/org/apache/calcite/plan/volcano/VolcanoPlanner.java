@@ -38,6 +38,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
@@ -1266,6 +1267,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       throw new AssertionError("Relational expression " + rel
           + " belongs to a different planner than is currently being used.");
     }
+    checkEmptyRowType(rel);
 
     // Now is a good time to ensure that the relational expression
     // implements the interface required by its calling convention.
@@ -1410,6 +1412,24 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     return subset;
+  }
+
+  /** Throws if the row type of {@code rel} is empty and the current
+   * {@link EmptyRowTypePolicy} is {@link EmptyRowTypePolicy#FORBIDDEN}.
+   *
+   * <p>The policy is read from the planner's
+   * {@link #getContext() context}; if the context does not contain an
+   * {@link EmptyRowTypePolicy}, the default is
+   * {@link EmptyRowTypePolicy#DISCOURAGED}. */
+  private void checkEmptyRowType(RelNode rel) {
+    final EmptyRowTypePolicy emptyRowTypePolicy =
+        getContext().maybeUnwrap(EmptyRowTypePolicy.class)
+            .orElse(EmptyRowTypePolicy.DISCOURAGED);
+    if (emptyRowTypePolicy == EmptyRowTypePolicy.FORBIDDEN
+        && rel.getRowType().getFieldCount() == 0) {
+      throw new IllegalArgumentException("empty row type is forbidden by "
+          + "the EmptyRowTypePolicy: " + rel);
+    }
   }
 
   private RelSubset addRelToSet(RelNode rel, RelSet set) {

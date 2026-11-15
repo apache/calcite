@@ -249,6 +249,9 @@ jdbcSchema: TODO
 
 `jdbcDriver` (optional string) is the name of the JDBC driver class. If not
 specified, uses whichever class the JDBC DriverManager chooses.
+Note: the class must pass the
+[`calcite.model.classes.allowed`]({{ site.apiRoot }}/org/apache/calcite/config/CalciteSystemProperty.html#MODEL_CLASSES_ALLOWED)
+system property.
 
 `jdbcUrl` (optional string) is the JDBC connect string, for example
 "jdbc:mysql://localhost/foodmart".

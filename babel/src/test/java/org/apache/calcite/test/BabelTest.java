@@ -421,6 +421,24 @@ class BabelTest {
         "EXPR$0=false\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5696">[CALCITE-5696]
+   * Support trailing comma in SELECT list for Babel parser (like BigQuery)</a>.
+   *
+   * <p>Verifies that queries with a trailing comma in the SELECT list are
+   * not only parsed but executed end to end, with the trailing comma dropped. */
+  @Test void testTrailingCommaInSelectList() {
+    checkSqlResult("standard",
+        "SELECT x, y, FROM (VALUES (1, 2)) as tbl(x, y)",
+        "X=1; Y=2\n");
+    checkSqlResult("standard",
+        "SELECT 1 AS one, 2 AS two, FROM (VALUES (0)) as tbl(z)",
+        "ONE=1; TWO=2\n");
+    checkSqlResult("standard,bigquery",
+        "SELECT x, y, FROM (VALUES (1, 2)) as tbl(x, y)",
+        "X=1; Y=2\n");
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6030">
    * [CALCITE-6030] DATE_PART is not handled by the RexToLixTranslator</a>. */
   @Test void testDatePart() {

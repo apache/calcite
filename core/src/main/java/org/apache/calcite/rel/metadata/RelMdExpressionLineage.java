@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -437,6 +438,22 @@ public class RelMdExpressionLineage
    */
   public @Nullable Set<RexNode> getExpressionLineage(Exchange rel,
       RelMetadataQuery mq, RexNode outputExpression) {
+    return mq.getExpressionLineage(rel.getInput(), outputExpression);
+  }
+
+  /**
+   * Expression lineage from {@link Window}.
+   *
+   * <p>If the expression references window function results, we cannot extract
+   * the lineage and we return null.
+   */
+  public @Nullable Set<RexNode> getExpressionLineage(Window rel,
+      RelMetadataQuery mq, RexNode outputExpression) {
+    final int inputFieldCount = rel.getInput().getRowType().getFieldCount();
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
+    if (inputFieldsUsed.nextSetBit(inputFieldCount) >= 0) {
+      return null;
+    }
     return mq.getExpressionLineage(rel.getInput(), outputExpression);
   }
 

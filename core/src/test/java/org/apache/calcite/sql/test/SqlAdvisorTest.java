@@ -22,6 +22,7 @@ import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.advise.SqlSimpleParser;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.StringAndPos;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.test.SqlValidatorFixture;
@@ -502,6 +503,17 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
     // unfortunately cannot complete this case: syntax is too broken
     sql = "select a.empno, b.deptno from dummy a join sales.^ on a.deptno=";
     f.withSql(sql).assertComplete(QUANTIFIERS, EXPR_KEYWORDS); // join
+  }
+
+  @Test void testPipeKeywordNeedsConformance() {
+    final String sql = "select * from dummy join sales.emp ^";
+    final List<String> pipeKeywords =
+        Collections.singletonList("KEYWORD(|>)");
+    fixture().withSql(sql)
+        .assertComplete(JOIN_KEYWORDS);
+    ((Fixture) fixture().withConformance(SqlConformanceEnum.LENIENT))
+        .withSql(sql)
+        .assertComplete(JOIN_KEYWORDS, pipeKeywords);
   }
 
   @Test void testJoinKeywords() {
@@ -1303,6 +1315,19 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
     fixture().withSql(sql).withLex(Lex.JAVA)
         .assertComplete("COLUMN(count)\n", "co",
             ImmutableMap.of("COLUMN(count)", "`count`"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7792">[CALCITE-7792]
+   * Failed namespace validation breaks SqlAdvisorValidator hints and can
+   * overflow the stack in getRowType()</a>.
+   *
+   * <p>The sub-query fails to validate, because the type of {@code ?} cannot
+   * be inferred, but the advisor still offers the columns it can resolve. */
+  @Test void testAdviceSubQueryWithDynamicParam() {
+    final String sql = "select ename^ from (select ?, ename from emp)";
+    fixture().withSql(sql)
+        .assertComplete("COLUMN(ENAME)\n", "ename");
   }
 
   @Test void testAdviceEmptyFrom() {

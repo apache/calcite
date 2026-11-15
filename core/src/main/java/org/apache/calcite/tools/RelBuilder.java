@@ -29,6 +29,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
+import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -141,6 +142,7 @@ import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
+import java.util.AbstractQueue;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,10 +152,12 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -195,7 +199,11 @@ import static java.util.Objects.requireNonNull;
 public class RelBuilder {
   protected final RelOptCluster cluster;
   protected final @Nullable RelOptSchema relOptSchema;
-  private final Deque<Frame> stack = new ArrayDeque<>();
+  /** Stack of relational expressions that are being built.
+   *
+   * <p>Checks each relational expression for an empty row type as it is
+   * pushed; see {@link FrameStack}. */
+  private final FrameStack stack = new FrameStack();
   private RexSimplify simplifier;
   private final Config config;
   private final RelOptTable.ViewExpander viewExpander;
@@ -376,6 +384,17 @@ public class RelBuilder {
   private void replaceTop(RelNode node) {
     final Frame frame = stack.pop();
     stack.push(new Frame(node, frame.fields));
+  }
+
+  /** Throws if the row type of {@code rel} is empty and the given
+   * {@code config}'s {@link Config#emptyRowTypePolicy()} is
+   * {@link EmptyRowTypePolicy#FORBIDDEN}. */
+  private static void checkEmptyRowType(Config config, RelNode rel) {
+    if (config.emptyRowTypePolicy() == EmptyRowTypePolicy.FORBIDDEN
+        && rel.getRowType().getFieldCount() == 0) {
+      throw new IllegalArgumentException("empty row type is forbidden by "
+          + "the emptyRowTypePolicy config: " + rel);
+    }
   }
 
   /** Pushes a collection of relational expressions. */
@@ -2412,16 +2431,60 @@ public class RelBuilder {
   public RelBuilder uncollect(List<String> itemAliases, boolean withOrdinality,
       boolean expandStructFields, boolean isOuter) {
     Frame frame = stack.pop();
+    final RelNode input = frame.rel;
     stack.push(
         new Frame(
           new Uncollect(
               cluster,
               cluster.traitSetOf(Convention.NONE),
-              frame.rel,
+              input,
               withOrdinality,
               requireNonNull(itemAliases, "itemAliases"),
+              ImmutableBitSet.of(),
+              ImmutableBitSet.range(input.getRowType().getFieldCount()),
               expandStructFields,
               isOuter)));
+    return this;
+  }
+
+  /**
+   * Creates an {@link Uncollect} that unnests the collection-typed fields at
+   * the given 0-based indices of the top-of-stack relation, with explicit
+   * control over which other fields pass through to the output.
+   *
+   * <p>Output columns: all passthrough fields first (in ascending input index
+   * order), then all collection-element columns (in ascending input index
+   * order); all other input fields are dropped.
+   *
+   * @param passthroughFieldIndices 0-based indices of the input fields
+   *                                to include in the output unchanged
+   * @param collectionFieldIndices  0-based indices of the collection-typed
+   *                                fields to unnest
+   * @param withOrdinality          whether to append an ORDINALITY column
+   * @param expandStructFields      if true, a collection whose element type is a struct
+   *                                produces one output column per struct field; if false,
+   *                                a single column typed as the whole element
+   * @param isOuter                 if true, preserves input rows with null/empty
+   *                                collections (LEFT JOIN); if false, drops them (INNER)
+   */
+  public RelBuilder uncollect(
+      ImmutableBitSet passthroughFieldIndices,
+      ImmutableBitSet collectionFieldIndices,
+      boolean withOrdinality,
+      boolean expandStructFields,
+      boolean isOuter) {
+    Frame frame = stack.pop();
+    stack.push(
+        new Frame(
+            Uncollect.create(
+                cluster.traitSetOf(Convention.NONE),
+                frame.rel,
+                withOrdinality,
+                Collections.emptyList(),
+                passthroughFieldIndices,
+                collectionFieldIndices,
+                expandStructFields,
+                isOuter)));
     return this;
   }
 
@@ -5142,6 +5205,10 @@ public class RelBuilder {
             }
           };
       final RelDataType type = op.inferReturnType(bind);
+      final RexNode currentRowValue = simplifyZeroOffset(type);
+      if (currentRowValue != null) {
+        return aliasMaybe(currentRowValue, alias);
+      }
       final ImmutableList<RexNode> newPartitionKeys =
           simplifyPartitionKeys(partitionKeys);
       final ImmutableList<RexFieldCollation> newSortKeys =
@@ -5208,6 +5275,26 @@ public class RelBuilder {
         }
       }
       return newSortKeys.build();
+    }
+
+    /** Replaces {@code LAG(x, 0)} and {@code LEAD(x, 0)}, with or without a
+     * default, by {@code x}. Returns null if the call cannot be replaced. */
+    private @Nullable RexNode simplifyZeroOffset(RelDataType type) {
+      if (op.getKind() != SqlKind.LAG && op.getKind() != SqlKind.LEAD) {
+        return null;
+      }
+      // Check if the offset is 0; (the default offset is 1)
+      if (operands.size() < 2
+          || !RexSimplify.checkLiteralValue(operands.get(1), BigDecimal.ZERO)) {
+        return null;
+      }
+      final RexNode value = operands.get(0);
+      // The result must be nullable
+      if (!type.isNullable() && value.getType().isNullable()) {
+        return null;
+      }
+      // Preserve the type of the call
+      return getRexBuilder().ensureType(pos, type, value, false);
     }
   }
 
@@ -5327,6 +5414,62 @@ public class RelBuilder {
     }
   }
 
+  /** Stack of {@link Frame}s.
+   *
+   * <p>Extends {@link AbstractQueue} so that it is a {@link Queue}, but also
+   * provides the {@code push}, {@code pop} and {@code peek} methods of
+   * {@link Deque}, so that callers can treat it as a stack.
+   *
+   * <p>When a frame is pushed, its relational expression is checked: an
+   * {@link IllegalArgumentException} is thrown if its row type is empty and
+   * {@link Config#emptyRowTypePolicy()} is
+   * {@link EmptyRowTypePolicy#FORBIDDEN}.
+   */
+  private class FrameStack extends AbstractQueue<Frame> {
+    final Deque<Frame> deque = new ArrayDeque<>();
+
+    @Override public Iterator<Frame> iterator() {
+      return deque.iterator();
+    }
+
+    @Override public int size() {
+      return deque.size();
+    }
+
+    @Override public boolean offer(Frame frame) {
+      checkEmptyRowType(castNonNull(config), frame.rel);
+      deque.push(frame);
+      return true;
+    }
+
+    @Override public @Nullable Frame poll() {
+      return deque.pollFirst();
+    }
+
+    /** Pushes a frame onto the top of the stack. */
+    public void push(Frame frame) {
+      offer(frame);
+    }
+
+    /** Pops the frame at the top of the stack.
+     *
+     * <p>Throws {@link java.util.NoSuchElementException} if the stack is
+     * empty. */
+    public Frame pop() {
+      return deque.pop();
+    }
+
+    /** Returns the frame at the top of the stack, or null if the stack is
+     * empty. */
+    @Override public @Nullable Frame peek() {
+      return deque.peekFirst();
+    }
+
+    @Override public void clear() {
+      deque.clear();
+    }
+  }
+
   /** Shuttle that shifts a predicate's inputs to the left, replacing early
    * ones with references to a
    * {@link RexCorrelVariable}. */
@@ -5435,6 +5578,23 @@ public class RelBuilder {
 
     /** Sets {@link #preventEmptyFieldList()}. */
     Config withPreventEmptyFieldList(boolean preventEmptyFieldList);
+
+    /** The policy that determines whether relational expressions may have an
+     * empty row type (a row type with zero fields); default
+     * {@link EmptyRowTypePolicy#DISCOURAGED}.
+     *
+     * <p>If the policy is {@link EmptyRowTypePolicy#FORBIDDEN}, methods throw
+     * an {@link IllegalArgumentException} if they create or are given a
+     * relational expression whose row type is empty.
+     *
+     * @see EmptyRowTypePolicy
+     */
+    @Value.Default default EmptyRowTypePolicy emptyRowTypePolicy() {
+      return EmptyRowTypePolicy.DISCOURAGED;
+    }
+
+    /** Sets {@link #emptyRowTypePolicy()}. */
+    Config withEmptyRowTypePolicy(EmptyRowTypePolicy emptyRowTypePolicy);
 
     /** Whether to push down join conditions; default false (but
      * {@link SqlToRelConverter#config()} by default sets this to true). */
