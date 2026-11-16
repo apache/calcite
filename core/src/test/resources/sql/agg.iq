@@ -4177,6 +4177,28 @@ EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-7944] ProjectAggregateMergeRule uses incorrect column ordinals for SUM0
+select deptno, coalesce(sum(cast(mgr as int)), 0) as m
+from emp
+group by deptno
+order by deptno;
++--------+-------+
+| DEPTNO | M     |
++--------+-------+
+|     10 | 15621 |
+|     20 | 38661 |
+|     30 | 46329 |
++--------+-------+
+(3 rows)
+
+!ok
+
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], DEPTNO=[$t7], $f1=[$t8])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # sum(mgr) return INTEGER, coalesce(sum(mgr),0) return BIGINT, so need CAST
 select coalesce(sum(cast(mgr as int)),cast(0 as bigint)) as m
 from emp;
