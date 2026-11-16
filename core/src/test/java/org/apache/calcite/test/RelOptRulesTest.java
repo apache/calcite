@@ -8412,6 +8412,18 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7944">[CALCITE-7944]
+   * ProjectAggregateMergeRule uses incorrect column ordinals for SUM0</a>. */
+  @Test void testProjectAggregateMergeSum0WithGroupKey() {
+    final String sql = "select deptno,\n"
+        + "  coalesce(sum(cast(mgr as tinyint)), 0) as ss0\n"
+        + "from sales.emp\n"
+        + "group by deptno";
+    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .check();
+  }
+
   /** Tests that ProjectAggregateMergeRule does nothing with non-numeric literals
    * and does not throw an exception. */
   @Test void testProjectAggregateMergeNonNumericLiteral() {

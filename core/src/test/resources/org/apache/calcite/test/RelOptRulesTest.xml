@@ -12398,6 +12398,30 @@ LogicalProject(EXPR$0=[*($0, 2)], SS0=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectAggregateMergeSum0WithGroupKey">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  coalesce(sum(cast(mgr as tinyint)), 0) as ss0
+from sales.emp
+group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], SS0=[CASE(IS NOT NULL($1), CAST($1):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($1)])
+    LogicalProject(DEPTNO=[$7], $f1=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], SS0=[CAST($1):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1)])
+    LogicalProject(DEPTNO=[$7], $f1=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectCalcMergeRule">
     <Resource name="sql">
       <![CDATA[select exists (select deptno from sales.emp)
