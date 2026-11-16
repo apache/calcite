@@ -310,18 +310,18 @@ public class SubQueryRemoveRule
             .join(JoinRelType.INNER);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
-                builder.equals(builder.field("c"), builder.literal(0)),
+                builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
                 builder.isNull(e.getOperands().get(0)),
                 literalUnknown,
                 builder.and(
-                    builder.notEquals(builder.field("d"), builder.field("c")),
-                    builder.lessThanOrEqual(builder.field("d"),
+                    builder.notEquals(builder.field(qAlias, "d"), builder.field(qAlias, "c")),
+                    builder.lessThanOrEqual(builder.field(qAlias, "d"),
                         builder.literal(1))),
                 builder.or(
                     builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                     literalUnknown),
-                builder.equals(builder.field("d"), builder.literal(1)),
+                builder.equals(builder.field(qAlias, "d"), builder.literal(1)),
                 builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                 literalTrue);
         break;
@@ -429,18 +429,18 @@ public class SubQueryRemoveRule
             builder.call(SqlStdOperatorTable.CASE,
                 builder.isNull(builder.field(qAlias, indicator)),
                 literalFalse,
-                builder.equals(builder.field("c"), builder.literal(0)),
+                builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
                 builder.isNull(e.getOperands().get(0)),
                 literalUnknown,
                 builder.and(
-                    builder.notEquals(builder.field("d"), builder.field("c")),
-                    builder.lessThanOrEqual(builder.field("dd"),
+                    builder.notEquals(builder.field(qAlias, "d"), builder.field(qAlias, "c")),
+                    builder.lessThanOrEqual(builder.field(qAlias, "dd"),
                         builder.literal(1))),
                 builder.or(
                     builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                     literalUnknown),
-                builder.equals(builder.field("dd"), builder.literal(1)),
+                builder.equals(builder.field(qAlias, "dd"), builder.literal(1)),
                 builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                 literalTrue);
         break;

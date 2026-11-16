@@ -3362,6 +3362,60 @@ from "scott".emp emp1;
 
 !ok
 
+# [CALCITE-7943] SubQueryRemoveRule gives wrong results for "<> SOME" and
+# "= ALL" when another sub-query comes first
+select empno, sal > all (select sal from emp where deptno = 10) as x,
+  comm <> some (select comm from emp where empno = 7499) as y
+from emp where deptno = 30;
++-------+-------+-------+
+| EMPNO | X     | Y     |
++-------+-------+-------+
+|  7499 | false | false |
+|  7521 | false | true  |
+|  7654 | false | true  |
+|  7698 | false |       |
+|  7844 | false | true  |
+|  7900 | false |       |
++-------+-------+-------+
+(6 rows)
+
+!ok
+
+# "= ALL" after an IN sub-query
+select empno, comm in (select comm from emp where deptno = 30) as s,
+  comm = all (select comm from emp where empno = 7499) as a
+from emp where deptno = 30;
++-------+------+-------+
+| EMPNO | S    | A     |
++-------+------+-------+
+|  7499 | true | true  |
+|  7521 | true | false |
+|  7654 | true | false |
+|  7698 |      |       |
+|  7844 | true | false |
+|  7900 |      |       |
++-------+------+-------+
+(6 rows)
+
+!ok
+
+# Correlated "<> SOME" after another sub-query
+select dname, 1000 > all (select comm from emp where emp.deptno = dept.deptno) as x,
+  300 <> some (select comm from emp
+               where emp.deptno = dept.deptno and emp.comm = 300) as y
+from dept;
++------------+-------+-------+
+| DNAME      | X     | Y     |
++------------+-------+-------+
+| ACCOUNTING |       | false |
+| OPERATIONS | true  | false |
+| RESEARCH   |       | false |
+| SALES      | false | false |
++------------+-------+-------+
+(4 rows)
+
+!ok
+
 WITH tb as (select array(SELECT * FROM (VALUES (TRUE), (NULL)) as x(a)) as a)
 SELECT TRUE = ALL (
     SELECT b
