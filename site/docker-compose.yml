@@ -17,14 +17,14 @@
 services:
   dev:
     image: jekyll/jekyll:4
-    command: sh -c "wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && ./download-avatars.sh && jekyll serve --host 0.0.0.0 --watch --force_polling"
+    command: sh -c "wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && bundle install && ./download-avatars.sh && bundle exec jekyll serve --host 0.0.0.0 --watch --force_polling"
     ports:
       - 4000:4000
     volumes:
       - .:/srv/jekyll
   build-site:
     image: jekyll/jekyll:4
-    command: sh -c "wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && ./download-avatars.sh && jekyll build && chmod 777 ./*"
+    command: sh -c "wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && bundle install && ./download-avatars.sh && bundle exec jekyll build && chmod 777 ./*"
     volumes:
       - .:/srv/jekyll
   generate-javadoc:
