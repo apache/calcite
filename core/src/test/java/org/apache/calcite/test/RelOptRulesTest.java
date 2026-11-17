@@ -10314,6 +10314,23 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(subQueryFilterRule).withLateDecorrelate(true).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2136">[CALCITE-2136]
+   * SubQueryRemoveRule.Project generated error plan</a>.
+   *
+   * <p>Verifies that a correlated scalar sub-query with an aggregate in the
+   * SELECT list is rewritten into a join that declares the correlation
+   * variable. It used to be referenced by the right input but declared by no
+   * relational expression, and execution failed with "Correlation variable
+   * $cor0 should be defined". */
+  @Test void testCorrelatedScalarSubQueryInProject() {
+    final String query = "SELECT t1.ename, "
+        + "(SELECT count(1) FROM emp t2 WHERE t2.ename = t1.ename) "
+        + "FROM emp t1";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7391">[CALCITE-7391]
    * FILTER_REDUCE_EXPRESSIONS crashes on expression where 123 in (SELECT NULL FROM emps)</a>. */
   @Test void testNullSelect2() {
