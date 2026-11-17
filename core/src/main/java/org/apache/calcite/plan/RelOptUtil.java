@@ -359,16 +359,18 @@ public abstract class RelOptUtil {
     return false;
   }
 
-  /** Applies a shuttle to one relational node's expression fields.
+  /** Applies a shuttle to the expression fields of {@code rel}.
    * Relational inputs are not visited.
    *
    * <p>The shuttle controls visits to expression children and sub-query plans.
-   * Rewritten expressions are ignored. An expression may be visited more than once.
+   * This method discards any replacements produced by the shuttle.
+   * An expression may be visited more than once.
    *
    * @param rel Relational expression whose fields to visit
    * @param visitor Visitor used for read-only analysis
-   * @return True if this method can visit expressions for the node type, even
-   *     if none are present; false otherwise, without invoking the visitor
+   * @return True if this method recognizes the kind of {@code rel}, even if
+   *     {@code rel} has no expressions. Otherwise false, without invoking
+   *     {@code visitor}
    */
   public static boolean tryVisitExpressions(RelNode rel, RexShuttle visitor) {
     if (rel instanceof Aggregate) {

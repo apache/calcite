@@ -313,7 +313,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return RelBuilder.proto(relBuilder);
   }
 
-  /** Returns whether this node's expressions are supported by the scalar
+  /** Returns whether {@code rel}'s expressions are supported by the scalar
    * correlation rewrite. Local bindings and sub-queries are not supported.
    * This checks expression structure only, not determinism. */
   private static boolean canRewriteScalarExpressions(RelNode rel) {

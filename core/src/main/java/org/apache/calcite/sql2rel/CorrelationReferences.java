@@ -143,7 +143,7 @@ final class CorrelationReferences {
       return !bound.contains(variable.id) && (targetId == null || targetId.equals(variable.id));
     }
 
-    /** Collects possible outer references from this node's expressions and
+    /** Collects possible outer references from {@code rel}'s expressions and
      * their sub-query plans. */
     private void collectReferences(RelNode rel) {
       if (isTargetBound()) {

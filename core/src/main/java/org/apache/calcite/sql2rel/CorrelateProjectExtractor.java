@@ -109,6 +109,7 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     RelNode right = correlate.getRight().accept(this);
     int oldLeft = left.getRowType().getFieldCount();
     // Find the correlated expressions from the right side that can be moved to the left
+    // Map values are offsets among the fields appended to the left input.
     final Map<RexNode, Integer> expressions = new LinkedHashMap<>();
     final CorrelatedExpressionSelector collector =
         new CorrelatedExpressionSelector(correlate.getCorrelationId()) {
@@ -216,17 +217,13 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     });
   }
 
-  /** Selects deterministic expressions for evaluation on the outer input.
+  /** Selects deterministic correlated expressions for evaluation on the outer input.
    *
-   * <p>The collector stores each selected {@link RexNode} with its offset among
-   * the fields added to the left input. A Project computes these fields.
-   * The replacement visitor replaces their uses on the right with
-   * {@link RexFieldAccess} references.
+   * <p>Each selected expression is passed to {@link #selected(RexNode)}.
+   * If a call cannot be selected, its operands are searched instead.
    *
-   * <p>Selected expressions go to {@link #selected(RexNode)} without visiting
-   * their operands. Other calls have their operands checked separately.
-   * Lambda bodies and sub-query plans are skipped. A complete call containing
-   * a deterministic lambda can still be selected.
+   * <p>The search enters lambda bodies, but expressions containing lambda
+   * parameter references are not selected. Sub-query plans are not searched.
    *
    * <p>Each occurrence is checked because equal operators may declare different
    * determinism. */
@@ -239,9 +236,12 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
       this.detector = new SimpleCorrelationDetector(id);
     }
 
-    /** Handles an expression that has passed the extraction checks.
+    /** Handles an expression selected for evaluation on the outer input.
      *
-     * @return Expression to use at this occurrence
+     * <p>Its subexpressions are not selected separately.
+     *
+     * @return Replacement for {@code expression}, or {@code expression}
+     *     to keep it unchanged
      */
     abstract RexNode selected(RexNode expression);
 
@@ -261,13 +261,11 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
 
   /**
    * A visitor classifying row expressions as simply correlated if they satisfy
-   * the conditions below. Lambda parameters are neutral and must be bound
-   * within the expression being analyzed.
+   * the conditions below.
    *
    * <ul>
    * <li>all correlation fields have the specified correlation id</li>
-   * <li>leaves are correlation fields, dynamic parameters, literals, or
-   * parameters bound by a contained lambda</li>
+   * <li>leaves are correlation fields, dynamic parameters, or literals</li>
    * <li>intermediate nodes are deterministic calls, field accesses, or lambdas
    * whose bodies satisfy these conditions</li>
    * </ul>
