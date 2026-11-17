@@ -3448,6 +3448,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /** Throws if an expression contains a sub-query, an aggregate, or a
+   * windowed aggregate, none of which a lambda body can contain.
+   *
+   * @param node      Expression in a lambda body
+   * @param errorNode Node to report, or null to report the illegal call
+   */
+  private void checkLegalInLambda(SqlNode node, @Nullable SqlNode errorNode) {
+    final SqlCall call =
+        findCallOutsideQueries(node,
+            c -> c.isA(SqlKind.QUERY)
+                || c.getKind() == SqlKind.OVER
+                || c.getOperator().isAggregator());
+    if (call != null) {
+      throw newValidationError(Util.first(errorNode, call),
+          call.isA(SqlKind.QUERY)
+              ? RESOURCE.subQueryIllegalInLambda()
+              : call.getKind() == SqlKind.OVER
+                  ? RESOURCE.windowedAggregateIllegalInLambda()
+                  : RESOURCE.aggregateIllegalInLambda());
+    }
+  }
+
   /**
    * Registers a query in a parent scope.
    *
@@ -7662,16 +7684,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     // A lambda body is evaluated for each element, not for a group of rows
-    final SqlCall agg =
-        findCallOutsideQueries(lambdaExpr.getExpression(),
-            call -> call.getKind() == SqlKind.OVER
-                || call.getOperator().isAggregator());
-    if (agg != null) {
-      throw newValidationError(agg,
-          agg.getKind() == SqlKind.OVER
-              ? RESOURCE.windowedAggregateIllegalInLambda()
-              : RESOURCE.aggregateIllegalInLambda());
-    }
+    checkLegalInLambda(lambdaExpr.getExpression(), null);
 
     deriveType(scope, lambdaExpr.getExpression());
     RelDataType type = deriveTypeImpl(scope, lambdaExpr);
@@ -9052,17 +9065,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
-      // A lambda can read only parameters; an expanded copy of a lambda
-      // has no scope. A parameter can have the same name as a select item.
-      if (getScope() instanceof SqlLambdaScope) {
-        for (SqlValidatorScope s = getScope(); s instanceof SqlLambdaScope;
-            s = ((SqlLambdaScope) s).getParent()) {
-          if (((SqlLambdaScope) s).isParameter(id)) {
-            return id;
-          }
+      // A lambda parameter can have the same name as a select item
+      for (SqlValidatorScope s = getScope(); s instanceof SqlLambdaScope;
+          s = ((SqlLambdaScope) s).getParent()) {
+        if (((SqlLambdaScope) s).isParameter(id)) {
+          return id;
         }
-        throw newValidationError(id,
-            RESOURCE.lambdaInOrderByCanReadOnlyParameters());
       }
 
       // Aliases, e.g. 'select a as x, b from t order by x'.
@@ -9076,6 +9084,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         RelDataTypeField field = nameMatcher.field(rowType, alias);
         if (field != null) {
           final SqlNode expanded = nthSelectItem(field.getIndex(), id.getParserPosition());
+          if (getScope() instanceof SqlLambdaScope) {
+            // The select item replaces the alias in the lambda body
+            checkLegalInLambda(expanded, id);
+          }
           setOriginal(expanded, id);
           return expanded;
         }
@@ -9102,6 +9114,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // these yet.
       if (call instanceof SqlSelect) {
         return call;
+      }
+      // The validator maps the lambda node to its scope, so keep the node,
+      // replace its body, and validate the lambda again
+      if (call instanceof SqlLambda) {
+        final SqlLambda lambda = (SqlLambda) call;
+        final SqlNode body = lambda.getExpression();
+        final SqlNode expandedBody =
+            requireNonNull(body.accept(this), "expandedBody");
+        if (expandedBody != body) {
+          lambda.setOperand(1, expandedBody);
+          validateLambda(lambda);
+        }
+        return lambda;
       }
       // Only visit expression arguments. For DOT calls (e.g. 'employees[1].detail'),
       // operand[1] is a field name, not a column reference, and must not be qualified.

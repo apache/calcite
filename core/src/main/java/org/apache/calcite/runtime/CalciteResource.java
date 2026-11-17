@@ -294,9 +294,6 @@ public interface CalciteResource {
   @BaseMessage("Windowed aggregate expression is illegal in lambda expression")
   ExInst<SqlValidatorException> windowedAggregateIllegalInLambda();
 
-  @BaseMessage("Lambda expression in ORDER BY clause can read only lambda parameters")
-  ExInst<SqlValidatorException> lambdaInOrderByCanReadOnlyParameters();
-
   @BaseMessage("Operand {0} must be a query")
   ExInst<SqlValidatorException> needQueryOp(String a0);
 
