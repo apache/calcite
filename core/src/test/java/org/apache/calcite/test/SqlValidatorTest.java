@@ -9417,37 +9417,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7933">[CALCITE-7933]
-   * Correlated subqueries with lambdas that capture columns are incorrectly
-   * compiled</a>. A lambda in an ORDER BY item can read only lambda
-   * parameters, but a lambda in a select item that ORDER BY references
-   * can read columns. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7941">[CALCITE-7941]
+   * Lambda expressions in ORDER BY positions do not support column
+   * references</a>. A lambda in an ORDER BY item can read columns, and select
+   * items by alias. The validator replaces an alias with its select item, so
+   * the select item must be legal in a lambda body. */
   @Test void testLambdaInOrderBy() {
     final SqlValidatorFixture s = fixture()
         .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
-    final String error =
-        "Lambda expression in ORDER BY clause can read only lambda parameters";
     s.withSql("select empno from emp\n"
-            + "order by \"EXISTS\"(array[1, 2], e -> e = ^deptno^)")
-        .fails(error);
+            + "order by \"EXISTS\"(array[1, 2], e -> e = deptno)")
+        .ok();
     s.withSql("select empno from emp\n"
-            + "order by \"EXISTS\"(array[1, 2], e -> e = ^emp.deptno^)")
-        .fails(error);
+            + "order by \"EXISTS\"(array[1, 2], e -> e = emp.deptno)")
+        .ok();
     // The lambda reads a select item by alias
-    s.withSql("select empno as x from emp\n"
-            + "order by \"EXISTS\"(array[1, 2], e -> e = ^x^)")
-        .fails(error);
+    s.withSql("select empno + 1 as x from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = x)")
+        .ok();
     // The inner lambda reads a column
     s.withSql("select empno from emp\n"
             + "order by \"EXISTS\"(array[array[1]],"
-            + " a -> \"EXISTS\"(a, e -> e = ^deptno^))")
-        .fails(error);
-    s.withSql("select deptno from emp group by deptno\n"
-            + "order by \"EXISTS\"(array[1, 2], e -> e = ^deptno^)")
-        .fails(error);
+            + " a -> \"EXISTS\"(a, e -> e = deptno))")
+        .ok();
     s.withSql("select empno from emp union all select deptno from dept\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = empno)")
+        .ok();
+    // The lambda reads a GROUP BY column, and a column that is not grouped
+    s.withSql("select deptno from emp group by deptno\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = deptno)")
+        .ok();
+    s.withSql("select deptno from emp group by deptno\n"
             + "order by \"EXISTS\"(array[1, 2], e -> e = ^empno^)")
-        .fails(error);
+        .fails("Expression 'EMP.EMPNO' is not being grouped");
+    // With DISTINCT, ORDER BY can read only the select items
+    s.withSql("select distinct deptno from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^empno^)")
+        .fails("Expression 'EMP.EMPNO' is not in the select clause");
 
     // The lambda reads only its parameter
     s.withSql("select empno from emp\n"
@@ -9487,6 +9493,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  row_number() over (order by \"EXISTS\"(array[1, 2], e -> e = deptno))\n"
             + "from emp")
         .ok();
+
+    // The alias of an aggregate, a windowed aggregate, or a sub-query
+    // would bring it into the lambda body
+    s.withSql("select deptno, count(*) as c from emp group by deptno\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^c^)")
+        .fails("Aggregate expression is illegal in lambda expression");
+    s.withSql("select empno, row_number() over (order by empno) as r from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^r^)")
+        .fails("Windowed aggregate expression is illegal in lambda expression");
+    s.withSql("select (select max(deptno) from dept) as m from emp\n"
+            + "order by \"EXISTS\"(array[1, 2], e -> e = ^m^)")
+        .fails("Sub-query is illegal in lambda expression");
   }
 
   /** Test case for

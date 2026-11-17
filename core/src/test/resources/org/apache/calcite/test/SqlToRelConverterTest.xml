@@ -5570,6 +5570,23 @@ LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2), (X) -> =(X, ROW($7, $5).EXPR$0))])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLambdaInOrderByReadsAlias">
+    <Resource name="sql">
+      <![CDATA[select k + 1 as z from (values (1), (2), (3)) as t(k)
+group by k + 1
+order by "EXISTS"(array[2, 3], e -> e = z) desc, z]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(Z=[$0])
+  LogicalSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
+    LogicalProject(Z=[$0], EXPR$1=[EXISTS(ARRAY(2, 3), (E) -> =(E, $0))])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(Z=[+($0, 1)])
+          LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLambdaInSubQueryReadsEnclosingColumn">
     <Resource name="sql">
       <![CDATA[select t.x,

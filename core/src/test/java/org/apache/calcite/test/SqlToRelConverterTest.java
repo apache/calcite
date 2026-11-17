@@ -399,6 +399,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7941">[CALCITE-7941]
+   * Lambda expressions in ORDER BY positions do not support column
+   * references</a>. The lambda reads the alias Z, which the validator
+   * replaces with the GROUP BY expression K + 1. */
+  @Test void testLambdaInOrderByReadsAlias() {
+    final String sql = "select k + 1 as z from (values (1), (2), (3)) as t(k)\n"
+        + "group by k + 1\n"
+        + "order by \"EXISTS\"(array[2, 3], e -> e = z) desc, z";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withSql(sql)
+        .ok();
+  }
+
   @Test void testDotLiteralAfterRow() {
     final String sql = "select row(1,2).\"EXPR$1\" from emp";
     sql(sql).ok();

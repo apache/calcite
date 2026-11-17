@@ -543,10 +543,8 @@ group by k2, k3;
 
 !ok
 
-# A lambda in ORDER BY can read its parameter, but not a column.
-# The parameter E has the same name as a select item, and E in the
-# lambda is the parameter. The lambda reads the column A only through
-# its array argument.
+# A lambda in ORDER BY. The parameter E has the same name as a select
+# item, and E in the lambda is the parameter.
 # Result validated with Spark 3.5.9 and DuckDB 2.0.0.
 select x as e from (values (1, array[1]), (3, array[2])) as t(x, a)
 order by "EXISTS"(a, e -> e = 2) desc, "EXISTS"(array[1, 2], e -> e = 1);
@@ -557,5 +555,176 @@ order by "EXISTS"(a, e -> e = 2) desc, "EXISTS"(array[1, 2], e -> e = 1);
 | 1 |
 +---+
 (2 rows)
+
+!ok
+
+# [CALCITE-7941] Lambda expressions in ORDER BY positions do not support
+# column references
+#
+# The tests in this section were run on Spark 3.5.9 and DuckDB 2.0.0, with
+# the translation of the [CALCITE-7933] section. Each test says which
+# results agree.
+
+# The query of the issue. K in the lambda is the alias of a select item and
+# a GROUP BY column. Only the groups K = 2 and K = 3 are in the array.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k from (values (1), (2), (3), (3)) as t(k)
+group by k
+order by "EXISTS"(array[2, 3], e -> e = k) desc, k;
++---+
+| K |
++---+
+| 2 |
+| 3 |
+| 1 |
++---+
+(3 rows)
+
+!ok
+
+# The lambda reads a column that is not in the select list.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x from (values (1, 10), (3, 2), (2, 30)) as t(x, y)
+order by "EXISTS"(array[2, 3], e -> e = y) desc, x;
++---+
+| X |
++---+
+| 3 |
+| 1 |
+| 2 |
++---+
+(3 rows)
+
+!ok
+
+# The lambda reads Z, the alias of X + 1.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x + 1 as z from (values (1), (3), (2)) as t(x)
+order by "EXISTS"(array[2, 3], e -> e = z) desc, z;
++---+
+| Z |
++---+
+| 2 |
+| 3 |
+| 4 |
++---+
+(3 rows)
+
+!ok
+
+# X is the alias of the column T.Y, so the lambda reads T.Y, as
+# ORDER BY X = 20 does. If the lambda read the column T.X, the rows would
+# sort in the opposite order.
+# Result validated with Spark 3.5.9. DuckDB 2.0.0 sorts the rows in the
+# opposite order: in an ORDER BY expression, with or without a lambda,
+# DuckDB prefers the column T.X to the alias X.
+select y as x, x as y from (values (1, 20), (20, 10)) as t(x, y)
+order by "EXISTS"(array[20], e -> e = x) desc;
++----+----+
+| X  | Y  |
++----+----+
+| 20 |  1 |
+| 10 | 20 |
++----+----+
+(2 rows)
+
+!ok
+
+# The inner lambda reads the alias Z and the parameter A of the outer lambda.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x + 1 as z from (values (1), (3), (2)) as t(x)
+order by "EXISTS"(array[array[1], array[2]],
+                  a -> "EXISTS"(a, e -> e + cardinality(a) = z)) desc, z;
++---+
+| Z |
++---+
+| 2 |
+| 3 |
+| 4 |
++---+
+(3 rows)
+
+!ok
+
+# The lambda reads P, the alias of the GROUP BY expression K + 1.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k + 1 as p from (values (1), (2), (2)) as t(k)
+group by k + 1
+order by "EXISTS"(array[3], e -> e = p) desc, p;
++---+
+| P |
++---+
+| 3 |
+| 2 |
++---+
+(2 rows)
+
+!ok
+
+# The lambda reads the GROUP BY column K, which is not in the select list.
+# If the lambda read C, no group would match.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select count(*) as c from (values (5), (6), (6)) as t(k)
+group by k
+order by "EXISTS"(array[6], e -> e = k) desc, c;
++---+
+| C |
++---+
+| 2 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+
+# The lambda reads a column of a UNION.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x from (values (1), (3)) as t(x)
+union all
+select 2
+order by "EXISTS"(array[2, 3], e -> e = x) desc, x;
++---+
+| X |
++---+
+| 2 |
+| 3 |
+| 1 |
++---+
+(3 rows)
+
+!ok
+
+# The lambda reads K, the common column of a FULL JOIN with USING. K is
+# COALESCE(T1.K, T2.K), so K is 3 in the row that only T2 has.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select * from (values (1, 10), (2, 20)) as t1(k, a)
+full join (values (2, 6), (3, 7)) as t2(k, b) using (k)
+order by "EXISTS"(array[3], e -> e = k) desc, k;
++---+----+---+
+| K | A  | B |
++---+----+---+
+| 3 |    | 7 |
+| 1 | 10 |   |
+| 2 | 20 | 6 |
++---+----+---+
+(3 rows)
+
+!ok
+
+# The lambda reads R, the alias of a select item that has a lambda. That
+# lambda reads the GROUP BY column K.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select k, "EXISTS"(array[2, 3], e -> e = k) as r
+from (values (1), (3), (2), (2)) as t(k)
+group by k
+order by "EXISTS"(array[false], f -> f = r) desc, k;
++---+-------+
+| K | R     |
++---+-------+
+| 1 | false |
+| 2 | true  |
+| 3 | true  |
++---+-------+
+(3 rows)
 
 !ok
