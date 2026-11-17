@@ -559,3 +559,92 @@ order by "EXISTS"(a, e -> e = 2) desc, "EXISTS"(array[1, 2], e -> e = 1);
 (2 rows)
 
 !ok
+
+# [CALCITE-7945] Lambda next to a window function produces an assertion
+# failure
+#
+# The results of the tests in this section were validated with Spark 3.5.9
+# and DuckDB 2.0.0, with the translation described for CALCITE-7933.
+
+# The lambda reads the column X, and the query has a window function.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x, row_number() over (order by x) as rn,
+  "EXISTS"(array[2, 3], e -> e = x) as r
+from (values (1), (3), (2)) as t(x);
++---+----+-------+
+| X | RN | R     |
++---+----+-------+
+| 1 |  1 | false |
+| 2 |  2 | true  |
+| 3 |  3 | true  |
++---+----+-------+
+(3 rows)
+
+!ok
+
+# The array argument of the lambda reads the window result, and the lambda
+# reads the column Z, which no other expression reads.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x,
+  "EXISTS"(array[row_number() over (order by x)], e -> e * 100 = z) as r
+from (values (1, 100), (2, 300), (3, 300)) as t(x, z);
++---+-------+
+| X | R     |
++---+-------+
+| 1 | true  |
+| 2 | false |
+| 3 | true  |
++---+-------+
+(3 rows)
+
+!ok
+
+# The same, but the inner lambda of a nested lambda reads the column Z.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x,
+  "EXISTS"(array[row_number() over (order by x)],
+    e -> "EXISTS"(array[100], f -> f = e * 100 and f = z)) as r
+from (values (1, 100), (2, 300), (3, 300)) as t(x, z);
++---+-------+
+| X | R     |
++---+-------+
+| 1 | true  |
+| 2 | false |
+| 3 | false |
++---+-------+
+(3 rows)
+
+!ok
+
+# The lambda reads the window result RN of a sub-query.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x, "EXISTS"(array[1, 2], e -> e = rn) as r
+from (select x, row_number() over (order by x) as rn
+      from (values (1), (3), (2)) as t(x)) as s;
++---+-------+
+| X | R     |
++---+-------+
+| 1 | true  |
+| 2 | true  |
+| 3 | false |
++---+-------+
+(3 rows)
+
+!ok
+
+# The same, but the inner lambda of a nested lambda reads RN.
+# Result validated with Spark 3.5.9 and DuckDB 2.0.0.
+select x,
+  "EXISTS"(array[1, 2], e -> "EXISTS"(array[0], f -> e + f = rn)) as r
+from (select x, row_number() over (order by x) as rn
+      from (values (1), (3), (2)) as t(x)) as s;
++---+-------+
+| X | R     |
++---+-------+
+| 1 | true  |
+| 2 | true  |
+| 3 | false |
++---+-------+
+(3 rows)
+
+!ok

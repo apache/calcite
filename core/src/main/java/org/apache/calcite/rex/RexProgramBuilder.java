@@ -910,9 +910,27 @@ public class RexProgramBuilder {
     }
 
     @Override public RexNode visitLambda(RexLambda lambda) {
-      // Lambda body references are at a different scope level.
-      // Do not validate or register lambda body indices against this program's input.
-      return lambda;
+      // The body reads the lambda parameters, thus it stays in the lambda.
+      final RegisterShuttle outer = this;
+      final RexNode body =
+          lambda.getExpression().accept(new RexShuttle() {
+            // A reference to an external value is rewritten:
+            // "e -> e = x" becomes "(E) -> =(E, $t0)".
+            @Override public RexNode visitInputRef(RexInputRef inputRef) {
+              return outer.visitInputRef(inputRef);
+            }
+
+            @Override public RexNode visitLocalRef(RexLocalRef localRef) {
+              return outer.visitLocalRef(localRef);
+            }
+
+            // A window aggregate cannot read the parameters, thus it is
+            // computed outside the lambda.
+            @Override public RexNode visitOver(RexOver over) {
+              return outer.visitOver(over);
+            }
+          });
+      return registerInternal(new RexLambda(lambda.getParameters(), body));
     }
   }
 

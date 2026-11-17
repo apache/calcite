@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -827,6 +828,12 @@ public abstract class CalcRelSplitter {
 
     protected abstract boolean canImplement(RexCall call);
 
+    /** Returns whether this type can compute a lambda, such as
+     * {@code (e) -> e = x}. The body of the lambda is computed with it. */
+    protected boolean canImplement(RexLambda lambda) {
+      return true;
+    }
+
     protected boolean supportsCondition() {
       return true;
     }
@@ -930,6 +937,13 @@ public abstract class CalcRelSplitter {
 
     @Override public Void visitLiteral(RexLiteral literal) {
       if (!relType.canImplement(literal)) {
+        throw CannotImplement.INSTANCE;
+      }
+      return null;
+    }
+
+    @Override public Void visitLambda(RexLambda lambda) {
+      if (!relType.canImplement(lambda)) {
         throw CannotImplement.INSTANCE;
       }
       return null;

@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -254,6 +255,10 @@ public abstract class ProjectToWindowRule
 
           @Override protected boolean canImplement(RexCall call) {
             return call instanceof RexOver;
+          }
+
+          @Override protected boolean canImplement(RexLambda lambda) {
+            return false;
           }
 
           @Override protected boolean supportsCondition() {
