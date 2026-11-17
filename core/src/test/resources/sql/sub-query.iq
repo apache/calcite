@@ -11243,6 +11243,34 @@ order by e.ename;
 
 !ok
 
+# [CALCITE-2136] SubQueryRemoveRule.Project generated error plan
+# This sql program was validated in PostgreSQL
+select t1.ename as name,
+  (select count(1) from emp t2 where t2.ename = t1.ename) as c
+from emp t1
+order by t1.ename;
++--------+---+
+| NAME   | C |
++--------+---+
+| ADAMS  | 1 |
+| ALLEN  | 1 |
+| BLAKE  | 1 |
+| CLARK  | 1 |
+| FORD   | 1 |
+| JAMES  | 1 |
+| JONES  | 1 |
+| KING   | 1 |
+| MARTIN | 1 |
+| MILLER | 1 |
+| SCOTT  | 1 |
+| SMITH  | 1 |
+| TURNER | 1 |
+| WARD   | 1 |
++--------+---+
+(14 rows)
+
+!ok
+
 # [CALCITE-7930] Correlated sub-query with ROLLUP or GROUPING SETS loses the
 # () group when the sub-query input is empty
 # The next 4 queries belong to CALCITE-7930: 2 queries, each run with

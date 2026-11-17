@@ -2649,6 +2649,33 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelatedScalarSubQueryInProject">
+    <Resource name="sql">
+      <![CDATA[SELECT t1.ename, (SELECT count(1) FROM emp t2 WHERE t2.ename = t1.ename) FROM emp t1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], ENAME=[$1], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[=($1, $cor0.ENAME)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$1], EXPR$1=[$9])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+      LogicalProject($f0=[1])
+        LogicalFilter(condition=[=($1, $cor0.ENAME)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelatedVariableAtSecondLevel">
     <Resource name="sql">
       <![CDATA[SELECT d1.name, d1.deptno +(
