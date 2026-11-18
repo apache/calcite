@@ -213,6 +213,9 @@ reporting {
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
+    dependsOn(subprojects.map { project ->
+        project.tasks.matching { it.name == "processJandexIndex" }
+    })
 
     val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
@@ -221,6 +224,8 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
+    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
+        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregate")))
 }
 
@@ -228,6 +233,9 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
  * CI uses this target to validate javadoc (e.g. checking for broken links). */
 val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
+    dependsOn(subprojects.map { project ->
+        project.tasks.matching { it.name == "processJandexIndex" }
+    })
 
     val sourceSets = subprojects
         .filter { it.name != "bom" }
@@ -236,6 +244,8 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
+    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
+        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregateIncludingTests")))
 }
 
@@ -827,7 +837,7 @@ allprojects {
                 // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
                 // checkers.add("org.checkerframework.checker.regex.RegexChecker")
                 // https://checkerframework.org/manual/#creating-debugging-options-progress
-                // extraJavacArgs.add("-Afilenames")
+                extraJavacArgs.add("-Afilenames")
                 extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
                 // Consider Java assert statements for nullness and other checks
                 extraJavacArgs.add("-AassumeAssertionsAreEnabled")
