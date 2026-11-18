@@ -202,6 +202,13 @@ public class RelOptCluster {
   }
 
   /**
+   * Returns the current RelMetadataQuery, or null if none exists; unlike
+   * {@link #getMetadataQuery()}, does not create one. */
+  public @Nullable RelMetadataQuery getMetadataQueryIfPresent() {
+    return mq;
+  }
+
+  /**
    * Returns the supplier of RelMetadataQuery.
    */
   public Supplier<RelMetadataQuery> getMetadataQuerySupplier() {
