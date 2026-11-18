@@ -68,7 +68,7 @@ public class Handler {
     case FOREACH:
       final Ast.ForeachStmt foreach = (Ast.ForeachStmt) node;
       builder.clear();
-      input = map.get(foreach.source.value);
+      input = get(foreach.source);
       builder.push(input);
       rexNodes = new ArrayList<>();
       for (Ast.Node exp : foreach.expList) {
@@ -80,7 +80,7 @@ public class Handler {
     case FOREACH_NESTED:
       final Ast.ForeachNestedStmt foreachNested = (Ast.ForeachNestedStmt) node;
       builder.clear();
-      input = map.get(foreachNested.source.value);
+      input = get(foreachNested.source);
       builder.push(input);
       System.out.println(input.getRowType());
       for (RelDataTypeField field : input.getRowType().getFieldList()) {
@@ -105,7 +105,7 @@ public class Handler {
     case FILTER:
       final Ast.FilterStmt filter = (Ast.FilterStmt) node;
       builder.clear();
-      input = map.get(filter.source.value);
+      input = get(filter.source);
       builder.push(input);
       RexNode rexNode = toRex(filter.condition);
       if (rexNode.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
@@ -118,7 +118,7 @@ public class Handler {
     case DISTINCT:
       final Ast.DistinctStmt distinct = (Ast.DistinctStmt) node;
       builder.clear();
-      input = map.get(distinct.source.value);
+      input = get(distinct.source);
       builder.push(input);
       builder.distinct(null, -1);
       register(distinct.target.value);
@@ -126,7 +126,7 @@ public class Handler {
     case ORDER:
       final Ast.OrderStmt order = (Ast.OrderStmt) node;
       builder.clear();
-      input = map.get(order.source.value);
+      input = get(order.source);
       builder.push(input);
       final List<RexNode> nodes = new ArrayList<>();
       for (Pair<Ast.Identifier, Ast.Direction> field : order.fields) {
@@ -138,7 +138,7 @@ public class Handler {
     case LIMIT:
       final Ast.LimitStmt limit = (Ast.LimitStmt) node;
       builder.clear();
-      input = map.get(limit.source.value);
+      input = get(limit.source);
       final int count = ((Number) limit.count.value).intValue();
       builder.push(input);
       builder.limit(0, count);
@@ -147,7 +147,7 @@ public class Handler {
     case GROUP:
       final Ast.GroupStmt group = (Ast.GroupStmt) node;
       builder.clear();
-      input = map.get(group.source.value);
+      input = get(group.source);
       builder.push(input).as(group.source.value);
       final List<RelBuilder.GroupKey> groupKeys = new ArrayList<>();
       final List<RexNode> keys = new ArrayList<>();
@@ -168,7 +168,7 @@ public class Handler {
       return this;
     case DUMP:
       final Ast.DumpStmt dump = (Ast.DumpStmt) node;
-      final RelNode relNode = map.get(dump.relation.value);
+      final RelNode relNode = get(dump.relation);
       dump(relNode);
       return this; // nothing to do; contains no algebra
     default:
@@ -399,5 +399,19 @@ public class Handler {
   /** Assigns the current relational expression to a given name. */
   private void register(String name) {
     map.put(name, builder.peek());
+  }
+
+  /** Returns the relational expression registered under the name of a given
+   * identifier.
+   *
+   * @throws IllegalArgumentException if no relational expression has that name
+   */
+  private RelNode get(Ast.Identifier id) {
+    final RelNode relNode = map.get(id.value);
+    if (relNode == null) {
+      throw new IllegalArgumentException("unknown relation '" + id.value
+          + "' at " + id.pos);
+    }
+    return relNode;
   }
 }

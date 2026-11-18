@@ -21,6 +21,10 @@ import org.apache.calcite.piglet.parser.ParseException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 /** Unit tests for Piglet. */
 class PigletTest {
   private static Fluent pig(String pig) {
@@ -107,6 +111,24 @@ class PigletTest {
         "LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n";
     final String out = "(1,a)\n(2,b)\n";
     pig(s).explainContains(expected).returns(out);
+  }
+
+  @Test void testFilterUnknownRelation() {
+    final String s = "A = LOAD 'DEPT';\n"
+        + "B = FILTER X BY DEPTNO;";
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class,
+            () -> pig(s).explainContains(""));
+    assertThat(e.getMessage(), is("unknown relation 'X' at line 2, column 12"));
+  }
+
+  @Test void testDumpUnknownRelation() {
+    final String s = "A = LOAD 'DEPT';\n"
+        + "DUMP X;";
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class,
+            () -> pig(s).explainContains(""));
+    assertThat(e.getMessage(), is("unknown relation 'X' at line 2, column 6"));
   }
 
   @Test void testForeach() throws ParseException {
