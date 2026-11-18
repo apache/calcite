@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  * artifact ever comes onto the classpath.
  *
  * <p>Unlike the real annotation, the target list omits
- * {@link ElementType#MODULE}, which does not exist when compiling with
+ * {@code ElementType.MODULE}, which does not exist when compiling with
  * {@code --release 8}.
  */
 @Documented
