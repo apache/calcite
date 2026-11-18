@@ -8074,6 +8074,33 @@ public class SqlParserTest {
         .ok("CAST(NULL AS GEOMETRY)");
   }
 
+  @Test void testGeographyConformance() {
+    for (SqlConformanceEnum conformance : SqlConformanceEnum.values()) {
+      if (conformance == SqlConformanceEnum.BABEL || conformance == SqlConformanceEnum.LENIENT) {
+        expr("cast(null as geography)")
+            .withConformance(conformance)
+            .ok("CAST(NULL AS GEOGRAPHY)");
+      } else {
+        expr("cast(null as ^geography^)")
+            .withConformance(conformance)
+            .fails("The GEOGRAPHY data type is not enabled in the current SQL conformance");
+      }
+    }
+  }
+
+  @Test void testGeographyUnsupportedSyntax() {
+    final SqlParserFixture f = fixture().withConformance(SqlConformanceEnum.LENIENT).expression();
+    f.sql("cast(null as geography^(^4326))").fails("(?s).*Encountered.*");
+    f.sql("cast(null as geography^(^2, 1))").fails("(?s).*Encountered.*");
+    f.sql("geography ^'POINT(1 2)'^").fails("(?s).*Encountered.*");
+  }
+
+  @Test void testGeographyMapEntryNullability() {
+    expr("cast(null as map<integer not null, geography null>)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok("CAST(NULL AS MAP< INTEGER NOT NULL, GEOGRAPHY NULL >)");
+  }
+
   @Test void testIntervalArithmetics() {
     expr("TIME '23:59:59' - interval '1' hour ")
         .ok("(TIME '23:59:59' - INTERVAL '1' HOUR)");

@@ -1014,6 +1014,27 @@ public abstract class SqlTypeUtil {
       return canAssignFrom(getComponentTypeOrThrow(toType), getComponentTypeOrThrow(fromType));
     }
 
+    if (containsGeography(toType) || containsGeography(fromType)) {
+      final SqlTypeName typeName = toType.getSqlTypeName();
+      if (typeName != fromType.getSqlTypeName()) {
+        return false;
+      }
+      if (typeName == SqlTypeName.MULTISET) {
+        return canAssignFrom(getComponentTypeOrThrow(toType), getComponentTypeOrThrow(fromType));
+      }
+      if (typeName == SqlTypeName.MAP) {
+        return canAssignFrom(requireNonNull(toType.getKeyType()),
+            requireNonNull(fromType.getKeyType()))
+            && canAssignFrom(requireNonNull(toType.getValueType()),
+                requireNonNull(fromType.getValueType()));
+      }
+      if (typeName == SqlTypeName.ROW) {
+        return toType.getFieldCount() == fromType.getFieldCount()
+            && Pair.zip(toType.getFieldList(), fromType.getFieldList()).stream()
+                .allMatch(p -> canAssignFrom(p.left.getType(), p.right.getType()));
+      }
+    }
+
     if (areCharacterSetsMismatched(toType, fromType)) {
       return false;
     }
@@ -1109,6 +1130,10 @@ public abstract class SqlTypeUtil {
     if (toTypeName == SqlTypeName.UNKNOWN) {
       return true;
     }
+    if (toTypeName == SqlTypeName.GEOGRAPHY || fromTypeName == SqlTypeName.GEOGRAPHY) {
+      return toTypeName == fromTypeName || fromTypeName == SqlTypeName.NULL
+          || fromTypeName == SqlTypeName.UNKNOWN;
+    }
     if (toType.getSqlTypeName() == SqlTypeName.UUID) {
       return fromType.getSqlTypeName() == SqlTypeName.NULL
           || fromType.getSqlTypeName() == SqlTypeName.UUID
@@ -1121,7 +1146,7 @@ public abstract class SqlTypeUtil {
             requireNonNull(toType.getComponentType(), "componentType"),
             requireNonNull(fromType.getComponentType(), "componentType"),
             typeMappingRule);
-      } else if (fromType.getFamily() == SqlTypeFamily.CHARACTER
+      } else if ((fromType.getFamily() == SqlTypeFamily.CHARACTER && !containsGeography(toType))
           || fromType.getSqlTypeName() == SqlTypeName.NULL
           || fromType.getSqlTypeName() == SqlTypeName.UNKNOWN) {
         // Cast from NULL, UNKNOWN, or string to array is legal
@@ -1139,7 +1164,7 @@ public abstract class SqlTypeUtil {
             requireNonNull(toType.getValueType(), "valueType"),
             requireNonNull(fromType.getValueType(), "valueType"),
             typeMappingRule);
-      } else if (fromType.getFamily() == SqlTypeFamily.CHARACTER
+      } else if ((fromType.getFamily() == SqlTypeFamily.CHARACTER && !containsGeography(toType))
           || fromType.getSqlTypeName() == SqlTypeName.NULL
           || fromType.getSqlTypeName() == SqlTypeName.UNKNOWN) {
         // Cast from NULL, UNKNOWN, or string to map is legal
@@ -1218,6 +1243,19 @@ public abstract class SqlTypeUtil {
       return false;
     }
     return typeMappingRule.canApplyFrom(toTypeName, fromTypeName);
+  }
+
+  /** Returns whether a type is GEOGRAPHY or contains a GEOGRAPHY leaf. */
+  public static boolean containsGeography(RelDataType type) {
+    final RelDataType componentType = type.getComponentType();
+    final RelDataType keyType = type.getKeyType();
+    final RelDataType valueType = type.getValueType();
+    return type.getSqlTypeName() == SqlTypeName.GEOGRAPHY
+        || componentType != null && containsGeography(componentType)
+        || keyType != null && containsGeography(keyType)
+        || valueType != null && containsGeography(valueType)
+        || type.isStruct() && type.getFieldList().stream()
+            .anyMatch(field -> containsGeography(field.getType()));
   }
 
   /**
@@ -1329,6 +1367,7 @@ public abstract class SqlTypeUtil {
     if (isAtomic(type) || isNull(type)
         || type.getSqlTypeName() == SqlTypeName.UNKNOWN
         || type.getSqlTypeName() == SqlTypeName.GEOMETRY
+        || type.getSqlTypeName() == SqlTypeName.GEOGRAPHY
         || SqlTypeUtil.isInterval(type)) {
       int precision =
           typeName.allowsPrec() ? type.getPrecision() : RelDataType.PRECISION_NOT_SPECIFIED;
@@ -1368,7 +1407,10 @@ public abstract class SqlTypeUtil {
           requireNonNull(type.getValueType(), () -> "valueType of " + type);
       final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
       final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
-      typeNameSpec = new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
+      final boolean preserveEntryNullability = containsGeography(type);
+      typeNameSpec =
+          new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO,
+              preserveEntryNullability);
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);
@@ -2349,6 +2391,9 @@ public abstract class SqlTypeUtil {
       break;
     }
     case GEOMETRY:
+      break;
+    case GEOGRAPHY:
+      builder.append("GEOGRAPHY");
       break;
     case MEASURE:
       builder.append("MEASURE");

@@ -135,6 +135,8 @@ public enum SqlTypeName {
   /** Spatial type. Though not standard, it is common to several DBs, so we
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
+  /** Geographic spatial type. */
+  GEOGRAPHY(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.GEOGRAPHY),
   MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
@@ -175,7 +177,7 @@ public enum SqlTypeName {
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIME_TZ,
           TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ,
           FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, UUID, VARIANT,
-          UTINYINT, USMALLINT, UINTEGER, UBIGINT);
+          UTINYINT, USMALLINT, UINTEGER, UBIGINT, GEOGRAPHY);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);

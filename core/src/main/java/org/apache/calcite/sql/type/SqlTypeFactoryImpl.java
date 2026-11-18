@@ -62,6 +62,9 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    if (typeName == SqlTypeName.GEOGRAPHY && precision != RelDataType.PRECISION_NOT_SPECIFIED) {
+      BasicSqlType.checkPrecScale(typeName, true, false);
+    }
     if (typeName.allowsScale()) {
       return createSqlType(typeName, precision, typeSystem.getDefaultScale(typeName));
     }
@@ -319,6 +322,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     int nullableCount = 0;
     int javaCount = 0;
     int anyCount = 0;
+    int geographyCount = 0;
 
     for (RelDataType type : types) {
       final SqlTypeName typeName = type.getSqlTypeName();
@@ -327,6 +331,9 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       }
       if (typeName == SqlTypeName.ANY) {
         anyCount++;
+      }
+      if (typeName == SqlTypeName.GEOGRAPHY) {
+        geographyCount++;
       }
       if (type.isNullable()) {
         ++nullableCount;
@@ -343,6 +350,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     if (anyCount > 0) {
       return createTypeWithNullability(createSqlType(SqlTypeName.ANY),
           nullCount > 0 || nullableCount > 0);
+    }
+    // Date/time shortcuts below can return before checking every input family.
+    if (geographyCount > 0 && geographyCount + nullCount < types.size()) {
+      return null;
     }
 
     for (int i = 0; i < types.size(); ++i) {

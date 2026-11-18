@@ -446,6 +446,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    EnumUtils.checkGeographyJoinKeys(this);
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);

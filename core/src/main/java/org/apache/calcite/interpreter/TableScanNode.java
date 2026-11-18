@@ -29,11 +29,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.GeographyTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ReflectUtil;
@@ -77,6 +79,10 @@ public class TableScanNode implements Node {
   static TableScanNode create(Compiler compiler, TableScan rel,
       ImmutableList<RexNode> filters, @Nullable ImmutableIntList projects) {
     final RelOptTable relOptTable = rel.getTable();
+    if (SqlTypeUtil.containsGeography(rel.getRowType())
+        && relOptTable.unwrap(GeographyTable.class) == null) {
+      throw new UnsupportedOperationException("Local GEOGRAPHY table scans are not supported");
+    }
     final ProjectableFilterableTable pfTable =
         relOptTable.unwrap(ProjectableFilterableTable.class);
     if (pfTable != null) {

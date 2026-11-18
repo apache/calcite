@@ -396,6 +396,13 @@ To customize what SQL extensions the parser should accept, implement
 or use one of the built-in values in
 [<code>enum SqlConformanceEnum</code>]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformanceEnum.html).
 
+The `BABEL` and `LENIENT` conformance levels enable
+[`GEOGRAPHY` type syntax](reference.html#geography). Custom conformance can opt in
+through
+[`allowGeography()`]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeography()).
+This flag applies independently of `allowGeometry()` and the choice of
+parser factory.
+
 To control how SQL is generated for an external database (usually via the JDBC
 adapter), use
 [<code>class SqlDialect</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlDialect.html).

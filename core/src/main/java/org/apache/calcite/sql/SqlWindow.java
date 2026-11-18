@@ -635,6 +635,8 @@ public class SqlWindow extends SqlCall {
       }
 
       partitionItem.validateExpr(validator, operandScope);
+      SqlValidatorUtil.validateGeographyHashKey(validator, partitionItem,
+          validator.deriveType(operandScope, partitionItem), "PARTITION BY");
     }
 
     for (SqlNode orderItem : orderList) {
@@ -650,6 +652,7 @@ public class SqlWindow extends SqlCall {
 
       try {
         orderItem.validateExpr(validator, scope);
+        SqlValidatorUtil.validateGeographyOrderKey(validator, scope, orderItem);
       } finally {
         validator.transform(config ->
             config.withColumnReferenceExpansion(savedColumnReferenceExpansion));

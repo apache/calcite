@@ -69,6 +69,31 @@ SELECT ST_PointFromText('POINT(-71.064544 42.28787)');
 1 row selected (0.323 seconds)
 {% endhighlight %}
 
+## GEOGRAPHY type
+
+The spatial function library provides two structural accessors for
+[`GEOGRAPHY`](reference.html#geography).
+
+| Signature | Result |
+| --- | --- |
+| `ST_IsEmpty(GEOGRAPHY)` → `BOOLEAN` | Returns true if the value is empty. A collection is empty if all its members are empty. |
+| `ST_GeometryType(GEOGRAPHY)` → `VARCHAR` | Returns the value's shape name, including for an empty value. |
+
+The shape names are `POINT`, `LINESTRING`, `POLYGON`, `MULTIPOINT`,
+`MULTILINESTRING`, `MULTIPOLYGON`, and `GEOMETRYCOLLECTION`.
+Both accessors return SQL NULL for a SQL NULL argument and a non-NULL
+result for an empty value. The result type is nullable when the argument
+type is nullable. The accessors leave the coordinates unchanged.
+
+For local execution, a table can implement
+[`GeographyTable`]({{ site.apiRoot }}/org/apache/calcite/schema/GeographyTable.html)
+and supply
+[`GeographyValue`]({{ site.apiRoot }}/org/apache/calcite/runtime/GeographyValue.html)
+objects backed by JTS. The accessors use the same shape names and emptiness
+rules as the corresponding `GEOMETRY` overloads. Measurement functions such
+as `ST_Area` accept geometry arguments. SQL WKT and WKB conversion
+functions operate on geometry.
+
 ## Query rewrites
 
 One class of rewrites uses
