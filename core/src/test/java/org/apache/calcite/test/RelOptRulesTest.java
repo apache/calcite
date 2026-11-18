@@ -154,6 +154,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -6766,7 +6767,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
    * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
    *
-   * <p>If every branch is NULL, one branch is kept. */
+   * <p>If every branch is NULL, the aggregate is replaced by a constant row. */
   @Test void testAggregateUnionNullBranchAllNull() {
     final String sql = "select sum(x) from (\n"
         + "  select cast(null as integer) as x from emp\n"
@@ -6776,6 +6777,124 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
             CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>If every branch is NULL, COUNT becomes 0 and SUM becomes NULL. */
+  @Test void testAggregateUnionNullBranchAllNullCountAndSum() {
+    final String sql = "select count(x), sum(x), min(x) from (\n"
+        + "  select cast(null as integer) as x from emp\n"
+        + "  union all\n"
+        + "  select cast(null as integer) from dept) as v";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>A branch whose column is NULL because of an {@code IS NULL} filter,
+   * rather than a NULL literal, is also removed. */
+  @Test void testAggregateUnionNullBranchIsNullFilter() {
+    final String sql = "select sum(x) from (\n"
+        + "  select sal as x from emp\n"
+        + "  union all\n"
+        + "  select mgr from emp where mgr is null) as v";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>WITHIN DISTINCT changes which rows count, so a branch of NULLs is not
+   * removed. */
+  @Test void testAggregateUnionNullBranchWithinDistinct() {
+    final String sql = "select sum(d2) within distinct (deptno) from (\n"
+        + "  select deptno, deptno * 2 as d2 from emp\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer) from dept) as v";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>A branch that is a global GROUP BY () returns one row even if its input
+   * is empty, so it must not be replaced by a projection of its input. */
+  @Test void testAggregateUnionNullBranchGlobalGroupByInBranch() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelDataType nullableInt =
+          b.getTypeFactory().createTypeWithNullability(
+              b.getTypeFactory().createSqlType(SqlTypeName.INTEGER), true);
+      final RelNode empty =
+          b.scan("EMP")
+              .filter(b.lessThan(b.field("EMPNO"), b.literal(0)))
+              .build();
+      // Build the nodes directly: RelBuilder would fold this shape into VALUES.
+      final RelNode globalAgg =
+          LogicalAggregate.create(empty, ImmutableList.of(),
+              ImmutableBitSet.of(), null, ImmutableList.of());
+      final RexBuilder rexBuilder = b.getRexBuilder();
+      b.push(
+          LogicalProject.create(globalAgg, ImmutableList.of(),
+              ImmutableList.of(rexBuilder.makeExactLiteral(BigDecimal.valueOf(99)),
+                  rexBuilder.makeNullLiteral(nullableInt)),
+              ImmutableList.of("K", "X"), ImmutableSet.of()));
+      b.scan("EMP").project(b.alias(b.field("DEPTNO"), "K"),
+          b.alias(b.field("SAL"), "X"));
+      return b.union(true, 2)
+          .aggregate(b.groupKey("K"),
+              b.aggregateCall(SqlStdOperatorTable.SUM, b.field("X")).as("S"))
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>If the removed branch determined the type of the union, the remaining
+   * branch is cast, so that the aggregate does not run at a narrower type. */
+  @Test void testAggregateUnionNullBranchTypeNarrowing() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelDataType nullableBigint =
+          b.getTypeFactory().createTypeWithNullability(
+              b.getTypeFactory().createSqlType(SqlTypeName.BIGINT), true);
+      b.scan("EMP")
+          .project(
+              b.alias(
+                  b.cast(b.field("EMPNO"), SqlTypeName.SMALLINT), "M"));
+      b.scan("DEPT")
+          .project(
+              b.alias(b.getRexBuilder().makeNullLiteral(nullableBigint), "M"));
+      return b.union(true, 2)
+          .aggregate(b.groupKey(),
+              b.aggregateCall(SqlStdOperatorTable.SUM, b.field("M")).as("S"))
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH)
         .check();
   }
 

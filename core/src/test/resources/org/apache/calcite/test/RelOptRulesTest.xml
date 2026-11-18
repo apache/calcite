@@ -1338,9 +1338,30 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalProject(X=[null:INTEGER])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalValues(tuples=[[{ null }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateUnionNullBranchAllNullCountAndSum">
+    <Resource name="sql">
+      <![CDATA[select count(x), sum(x), min(x) from (
+  select cast(null as integer) as x from emp
+  union all
+  select cast(null as integer) from dept) as v]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT($0)], EXPR$1=[SUM($0)], EXPR$2=[MIN($0)])
+  LogicalUnion(all=[true])
+    LogicalProject(X=[null:INTEGER])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[null:INTEGER])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[{ 0, null, null }]])
 ]]>
     </Resource>
   </TestCase>
@@ -1556,6 +1577,20 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionNullBranchGlobalGroupByInBranch">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(K=[99], X=[null:INTEGER])
+      LogicalAggregate(group=[{}])
+        LogicalFilter(condition=[<($0, 0)])
+          LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(K=[$7], X=[$5])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionNullBranchGlobalInVolcano">
     <Resource name="sql">
       <![CDATA[select sum(m) from (
@@ -1744,6 +1779,32 @@ LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionNullBranchIsNullFilter">
+    <Resource name="sql">
+      <![CDATA[select sum(x) from (
+  select sal as x from emp
+  union all
+  select mgr from emp where mgr is null) as v]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalUnion(all=[true])
+    LogicalProject(X=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[IS NULL($0)])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(X=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionNullBranchMinMaxAvg">
     <Resource name="sql">
       <![CDATA[select min(m), max(m), avg(m) from (
@@ -1890,8 +1951,9 @@ LogicalAggregate(group=[{}], S=[$SUM0($0)])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{}], S=[$SUM0($0)])
-  LogicalProject(M=[$5])
-    LogicalTableScan(table=[[scott, EMP]])
+  LogicalProject(M=[CAST($0):DECIMAL(12, 2)])
+    LogicalProject(M=[$5])
+      LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2007,6 +2069,26 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionNullBranchTypeNarrowing">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], S=[SUM($0)])
+  LogicalUnion(all=[true])
+    LogicalProject(M=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(M=[null:BIGINT])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{}], S=[SUM($0)])
+  LogicalProject(M=[CAST($0):BIGINT NOT NULL])
+    LogicalProject(M=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionNullBranchUnionDistinct">
     <Resource name="sql">
       <![CDATA[select sum(m) from (
@@ -2048,6 +2130,25 @@ LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($0)])
       LogicalAggregate(group=[{0}])
         LogicalProject(DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateUnionNullBranchWithinDistinct">
+    <Resource name="sql">
+      <![CDATA[select sum(d2) within distinct (deptno) from (
+  select deptno, deptno * 2 as d2 from emp
+  union all
+  select deptno, cast(null as integer) from dept) as v]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0) WITHIN DISTINCT ($1)])
+  LogicalProject(D2=[$1], DEPTNO=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$7], D2=[*($7, 2)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], EXPR$1=[null:INTEGER])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
