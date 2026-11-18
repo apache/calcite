@@ -119,6 +119,7 @@ public class SqlQuantifyOperator extends SqlInOperator {
       if (SqlTypeUtil.isCollection(rightType)) {
         RelDataType componentRightType = requireNonNull(rightType.getComponentType());
         RelDataType leftType = validator.deriveType(scope, left);
+        validateGeographyOrdering(validator, call, leftType, componentRightType);
         boolean isCompatibleType = isCompatibleType(componentRightType, leftType);
         SqlCall sqlCall =
             new SqlBasicCall(call.getOperator(),
@@ -152,6 +153,14 @@ public class SqlQuantifyOperator extends SqlInOperator {
       }
     }
     return null;
+  }
+
+  void validateGeographyOrdering(SqlValidator validator, SqlCall call,
+      RelDataType leftType, RelDataType rightType) {
+    if (comparisonKind != SqlKind.EQUALS && comparisonKind != SqlKind.NOT_EQUALS
+        && (SqlTypeUtil.containsGeography(leftType) || SqlTypeUtil.containsGeography(rightType))) {
+      throw validator.newValidationError(call, RESOURCE.geographyOrderKey());
+    }
   }
 
   private static boolean isCompatibleType(RelDataType leftType, RelDataType rightType) {

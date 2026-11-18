@@ -59,6 +59,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   BOOLEAN,
   INTERVAL_YEAR_MONTH,
   INTERVAL_DAY_TIME,
+  GEOGRAPHY,
 
   // Secondary families.
 
@@ -216,6 +217,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.INTERVAL_TYPES;
     case GEO:
       return SqlTypeName.GEOMETRY_TYPES;
+    case GEOGRAPHY:
+      return ImmutableList.of(SqlTypeName.GEOGRAPHY);
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:
@@ -278,6 +281,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
           new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));
     case GEO:
       return factory.createSqlType(SqlTypeName.GEOMETRY);
+    case GEOGRAPHY:
+      return factory.createSqlType(SqlTypeName.GEOGRAPHY);
     case MULTISET:
       return factory.createMultisetType(factory.createSqlType(SqlTypeName.ANY), -1);
     case ARRAY:

@@ -49,9 +49,12 @@ import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.JsonBuilder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -79,6 +82,29 @@ public class RelJsonTest {
     JsonBuilder builder = new JsonBuilder();
     Object jsonObj = RelJson.create().withJsonBuilder(builder).toJson(address);
     REPO.assertEquals("content", "${content}", builder.toJsonString(jsonObj));
+  }
+
+  @Test void testGeographyTypeMetadataRoundTrip() throws IOException {
+    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    final RelDataType nullable = factory.createTypeWithNullability(geography, true);
+    final RelDataType map =
+        factory.createMapType(factory.createSqlType(SqlTypeName.INTEGER), nullable);
+    final RelDataType row = factory.enforceTypeWithNullability(factory.builder()
+        .add("g", geography)
+        .add("a", factory.createArrayType(geography, -1))
+        .add("m", map)
+        .add("s", factory.createMultisetType(nullable, -1))
+        .build(), true);
+    final JsonBuilder builder = new JsonBuilder();
+    final RelJson relJson = RelJson.create().withJsonBuilder(builder);
+    final ObjectMapper mapper = new ObjectMapper();
+    final RelDataTypeFactory readFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    for (RelDataType type : Arrays.asList(geography, nullable, row)) {
+      final String json = builder.toJsonString(relJson.toJson((Object) type));
+      assertThat(json, containsString("\"GEOGRAPHY\""));
+      assertThat(relJson.toType(readFactory, mapper.readValue(json, Object.class)), is(type));
+    }
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7113">[CALCITE-7113]

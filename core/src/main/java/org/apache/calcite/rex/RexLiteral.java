@@ -239,6 +239,8 @@ public class RexLiteral extends RexNode {
     this.value = value;
     this.type = requireNonNull(type, "type");
     this.typeName = requireNonNull(typeName, "typeName");
+    checkArgument(value == null || type.getSqlTypeName() != SqlTypeName.GEOGRAPHY,
+        "Non-null GEOGRAPHY literals are not supported");
     checkArgument(valueMatchesType(value, typeName, true));
     checkArgument((value == null) == type.isNullable());
     checkArgument(typeName != SqlTypeName.ANY);
@@ -403,6 +405,8 @@ public class RexLiteral extends RexNode {
       return value instanceof List;
     case GEOMETRY:
       return value instanceof Geometry;
+    case GEOGRAPHY:
+      return false;
     case MAP:
       return value instanceof Map;
     case ANY:

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
@@ -41,6 +42,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
@@ -56,8 +58,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.GeographyValue;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.GeographyTable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -117,6 +122,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.locationtech.jts.io.WKTReader;
 
 import java.io.File;
 import java.io.IOException;
@@ -8421,6 +8427,148 @@ public class JdbcTest {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
         .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
+  }
+
+  @Test void testGeographyRuntimeBoundary() throws SQLException {
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:conformance=LENIENT;fun=spatial");
+         Statement statement = connection.createStatement()) {
+      try (ResultSet result = statement.executeQuery("select cast(null as geography) as g")) {
+        assertTrue(result.next());
+        assertThat(result.getObject(1), nullValue());
+        assertThat(result.getMetaData().getColumnType(1), is(Types.OTHER));
+        assertThat(result.getMetaData().getColumnTypeName(1), is("GEOGRAPHY"));
+      }
+      final String geometryArea =
+          "select ST_Area(ST_GeomFromText('POLYGON ((0 0, 2 0, 2 2, 0 0))'))";
+      try (ResultSet result = statement.executeQuery(geometryArea)) {
+        assertTrue(result.next());
+        assertThat(result.getDouble(1), is(2.0));
+      }
+      final String geographyArea = "select ST_Area(cast(null as geography))";
+      final SQLException area =
+          assertThrows(SQLException.class, () -> statement.executeQuery(geographyArea));
+      assertThat(area.getMessage(), containsString("ST_AREA(<GEOGRAPHY>)"));
+      final String textCast = "select cast('POINT (1 2)' as geography)";
+      final SQLException text =
+          assertThrows(SQLException.class, () -> statement.executeQuery(textCast));
+      assertThat(text.getMessage(), containsString("Cast function cannot convert"));
+      final String bytesCast = "select cast(X'0102' as geography)";
+      final SQLException bytes =
+          assertThrows(SQLException.class, () -> statement.executeQuery(bytesCast));
+      assertThat(bytes.getMessage(), containsString("Cast function cannot convert"));
+    }
+  }
+
+  @Test void testGeographyAccessors() throws Exception {
+    final Object[][] cases = {
+        {"POINT (1 2)", false, "POINT"},
+        {"POINT EMPTY", true, "POINT"},
+        {"LINESTRING (0 0, 1 1)", false, "LINESTRING"},
+        {"LINESTRING EMPTY", true, "LINESTRING"},
+        {"POLYGON ((0 0, 0 1, 1 0, 0 0))", false, "POLYGON"},
+        {"POLYGON EMPTY", true, "POLYGON"},
+        {"MULTIPOINT ((1 2), (2 3))", false, "MULTIPOINT"},
+        {"MULTIPOINT EMPTY", true, "MULTIPOINT"},
+        {"MULTIPOINT (EMPTY)", true, "MULTIPOINT"},
+        {"MULTILINESTRING ((0 0, 1 1))", false, "MULTILINESTRING"},
+        {"MULTILINESTRING EMPTY", true, "MULTILINESTRING"},
+        {"MULTILINESTRING (EMPTY)", true, "MULTILINESTRING"},
+        {"MULTIPOLYGON (((0 0, 0 1, 1 0, 0 0)))", false, "MULTIPOLYGON"},
+        {"MULTIPOLYGON EMPTY", true, "MULTIPOLYGON"},
+        {"MULTIPOLYGON (EMPTY)", true, "MULTIPOLYGON"},
+        {"GEOMETRYCOLLECTION (POINT EMPTY, POINT (1 2))", false, "GEOMETRYCOLLECTION"},
+        {"GEOMETRYCOLLECTION EMPTY", true, "GEOMETRYCOLLECTION"},
+        {"GEOMETRYCOLLECTION (POINT EMPTY, POLYGON EMPTY)", true, "GEOMETRYCOLLECTION"},
+        {null, null, null}
+    };
+    final WKTReader reader = new WKTReader();
+    final List<Object[]> rows = new ArrayList<>();
+    for (Object[] test : cases) {
+      final String wkt = (String) test[0];
+      rows.add(new Object[] {rows.size(),
+          wkt == null ? null : new GeographyValue(reader.read(wkt))});
+    }
+    for (boolean bindable : new boolean[] {false, true}) {
+      try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(bindable));
+           Connection connection =
+               DriverManager.getConnection("jdbc:calcite:conformance=LENIENT;fun=spatial");
+           Statement statement = connection.createStatement()) {
+        connection.unwrap(CalciteConnection.class).getRootSchema()
+            .add("GEOGRAPHIES", new GeographyAccessorTable(rows));
+        final String sql =
+            "select id, st_isempty(g), st_geometrytype(g) from geographies order by id";
+        try (ResultSet result = statement.executeQuery(sql)) {
+          for (int i = 0; i < cases.length; i++) {
+            assertTrue(result.next());
+            assertThat(result.getInt(1), is(i));
+            assertThat(result.getObject(2), is(cases[i][1]));
+            assertThat(result.getString(3), is(cases[i][2]));
+          }
+          assertFalse(result.next());
+        }
+        final String typedNull = "select st_isempty(cast(null as geography)),"
+            + " st_geometrytype(cast(null as geography)), st_isempty(null), st_geometrytype(null)";
+        try (ResultSet result = statement.executeQuery(typedNull)) {
+          assertTrue(result.next());
+          assertThat(result.getObject(1), nullValue());
+          assertThat(result.getString(2), nullValue());
+          assertThat(result.getObject(3), nullValue());
+          assertThat(result.getString(4), nullValue());
+        }
+        final String geometry = "select st_isempty('POINT EMPTY'),"
+            + " st_geometrytype(st_geomfromtext('LINESTRING EMPTY'))";
+        try (ResultSet result = statement.executeQuery(geometry)) {
+          assertTrue(result.next());
+          assertThat(result.getObject(1), is(true));
+          assertThat(result.getString(2), is("LINESTRING"));
+        }
+      }
+    }
+  }
+
+  /** Supplies opaque values in a column whose declared SQL type is GEOGRAPHY. */
+  private static class GeographyAccessorTable extends AbstractTable implements GeographyTable {
+    private final List<Object[]> rows;
+
+    GeographyAccessorTable(List<Object[]> rows) {
+      this.rows = rows;
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder().add("ID", SqlTypeName.INTEGER)
+          .add("G", SqlTypeName.GEOGRAPHY).nullable(true).build();
+    }
+
+    @Override public Enumerable<Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(rows);
+    }
+  }
+
+  @Test void testGeographyLocalScanRejected() throws SQLException {
+    for (boolean bindable : new boolean[] {false, true}) {
+      try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(bindable));
+           Connection connection = DriverManager.getConnection("jdbc:calcite:conformance=LENIENT");
+           Statement statement = connection.createStatement()) {
+        connection.unwrap(CalciteConnection.class).getRootSchema()
+            .add("PLACES", new GeographyScanTable());
+        final SQLException e =
+            assertThrows(SQLException.class, () -> statement.executeQuery("select g from places"));
+        assertThat(TestUtil.printStackTrace(e),
+            containsString("Local GEOGRAPHY table scans are not supported"));
+      }
+    }
+  }
+
+  /** Table that detects attempts to read a local GEOGRAPHY value. */
+  private static class GeographyScanTable extends AbstractTable implements ScannableTable {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder().add("G", SqlTypeName.GEOGRAPHY).build();
+    }
+
+    @Override public Enumerable<Object[]> scan(DataContext root) {
+      throw new AssertionError("A local GEOGRAPHY scan must be rejected before reading rows");
+    }
   }
 
   /** Unit test for LATERAL CROSS JOIN to table function. */

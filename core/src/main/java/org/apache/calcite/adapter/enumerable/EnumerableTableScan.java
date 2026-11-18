@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.GeographyTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
@@ -47,6 +48,7 @@ import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TransientTable;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
@@ -328,6 +330,9 @@ public class EnumerableTableScan
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    if (SqlTypeUtil.containsGeography(getRowType()) && table.unwrap(GeographyTable.class) == null) {
+      throw new UnsupportedOperationException("Local GEOGRAPHY table scans are not supported");
+    }
     // Note that representation is ARRAY. This assumes that the table
     // returns a Object[] for each record. Actually a Table<T> can
     // return any type T. And, if it is a JdbcTable, we'd like to be

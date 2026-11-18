@@ -539,6 +539,17 @@ public interface SqlConformance {
   boolean allowGeometry();
 
   /**
+   * Whether to allow the {@code GEOGRAPHY} data type.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL} and {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  default boolean allowGeography() {
+    return false;
+  }
+
+  /**
    * Whether the least restrictive type of a number of CHAR types of different
    * lengths should be a VARCHAR type. And similarly BINARY to VARBINARY.
    *

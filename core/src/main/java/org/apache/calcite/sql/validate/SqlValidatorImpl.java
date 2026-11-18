@@ -2478,6 +2478,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // a known type with the unknown type
       return;
     }
+    SqlValidatorUtil.validateGeographyMapKeys(this, node, type);
     nodeToTypeMap.put(node, type);
   }
 
@@ -4809,6 +4810,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // window name in the WINDOW clause etc.
     final RelDataType rowType =
         validateSelectList(selectItems, select, targetRowType);
+    if (select.isDistinct() && !select.isDistinctOn()) {
+      SqlValidatorUtil.validateGeographyHashKey(this,
+          requireNonNull(select.getModifierNode(SqlSelectKeyword.DISTINCT)), rowType, "DISTINCT");
+    }
     ns.setType(rowType);
     validateHavingClause(select);
 
@@ -5818,6 +5823,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlValidatorScope orderScope = getOrderScope(select);
     validateExpr(orderItem, orderScope);
+    final SqlNode key = SqlUtil.stripOrderModifiers(orderItem);
+    SqlValidatorUtil.validateGeographyOrderKey(this, key,
+        deriveType(orderScope, expandOrderExpr(select, key)));
   }
 
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
@@ -6090,9 +6098,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     default:
       if (groupItem instanceof SqlNodeList) {
+        for (SqlNode item : (SqlNodeList) groupItem) {
+          validateGroupItem(groupScope, aggregatingScope, item);
+        }
         break;
       }
       final RelDataType type = deriveType(groupScope, groupItem);
+      SqlValidatorUtil.validateGeographyHashKey(this, groupItem, type, "GROUP BY");
       setValidatedNodeType(groupItem, type);
     }
   }
@@ -7654,6 +7666,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlIdentifier identifier = (SqlIdentifier) node;
       identifier.validate(this, scope);
       RelDataType type = deriveType(scope, identifier);
+      SqlValidatorUtil.validateGeographyHashKey(this, identifier, type, "PARTITION BY");
       String name = identifier.names.get(1);
       typeBuilder.add(name, type);
     }
@@ -7661,6 +7674,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // parse ORDER BY column
     for (SqlNode node : matchRecognize.getOrderList()) {
       node.validate(this, scope);
+      SqlValidatorUtil.validateGeographyOrderKey(this, scope, node);
       SqlIdentifier identifier;
       if (node instanceof SqlBasicCall) {
         identifier = ((SqlBasicCall) node).operand(0);
@@ -8145,6 +8159,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         throw newValidationError(aggCall, RESOURCE.nestedAggIllegal());
       }
+      if (aggCall.getOperator().getSyntax() == SqlSyntax.ORDERED_FUNCTION
+          && param instanceof SqlNodeList) {
+        for (SqlNode key : (SqlNodeList) param) {
+          SqlValidatorUtil.validateGeographyOrderKey(this, scope, key);
+        }
+      }
     }
     if (filter != null) {
       if (a.findAgg(filter) != null) {
@@ -8159,6 +8179,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw newValidationError(aggCall,
               RESOURCE.aggregateInWithinDistinctIllegal());
         }
+        SqlValidatorUtil.validateGeographyHashKey(this, param,
+            deriveType(scope, param), "WITHIN DISTINCT");
       }
     }
     if (orderList != null) {
@@ -8167,10 +8189,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw newValidationError(aggCall,
               RESOURCE.aggregateInWithinGroupIllegal());
         }
+        SqlValidatorUtil.validateGeographyOrderKey(this, scope, param);
       }
     }
 
     final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
+    final SqlLiteral quantifier = aggCall.getFunctionQuantifier();
+    if ((quantifier != null && quantifier.getValue() == SqlSelectKeyword.DISTINCT
+        && op.getDistinctOptionality() != Optionality.IGNORED)
+        || op == SqlStdOperatorTable.APPROX_COUNT_DISTINCT || op.getKind() == SqlKind.MODE) {
+      final SqlCall args = op.getSyntax() == SqlSyntax.ORDERED_FUNCTION
+          ? ReturnTypes.stripOrderBy(ReturnTypes.stripSeparator(aggCall))
+          : aggCall;
+      for (SqlNode param : args.getOperandList()) {
+        if (!(param instanceof SqlIdentifier) || !((SqlIdentifier) param).isStar()) {
+          SqlValidatorUtil.validateGeographyHashKey(this, param,
+              deriveType(scope, param), op.getName());
+        }
+      }
+    }
     switch (op.requiresGroupOrder()) {
     case MANDATORY:
       if (orderList == null || orderList.isEmpty()) {
