@@ -166,6 +166,7 @@ import static org.apache.calcite.test.CalciteAssert.checkResult;
 import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -8522,6 +8523,58 @@ public class JdbcTest {
           assertTrue(result.next());
           assertThat(result.getObject(1), is(true));
           assertThat(result.getString(2), is("LINESTRING"));
+        }
+      }
+    }
+  }
+
+  @Test void testGeographyTableRuntimeBoundary() throws Exception {
+    final WKTReader reader = new WKTReader();
+    final List<Object[]> rows =
+        ImmutableList.of(new Object[] {1, new GeographyValue(reader.read("POINT (1 2)"))},
+        new Object[] {2, new GeographyValue(reader.read("POINT (3 4)"))},
+        new Object[] {3, null});
+    for (boolean bindable : new boolean[] {false, true}) {
+      try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(bindable));
+           Connection connection =
+               DriverManager.getConnection("jdbc:calcite:conformance=LENIENT;fun=spatial,spark");
+           Statement statement = connection.createStatement()) {
+        connection.unwrap(CalciteConnection.class).getRootSchema()
+            .add("GEOGRAPHIES", new GeographyAccessorTable(rows));
+        final String pair = " from geographies l cross join geographies r"
+            + " where l.id = 1 and r.id = 2";
+        for (String operator : ImmutableList.of("=", "is distinct from", "is not distinct from")) {
+          final String sql = "select l.g " + operator + " r.g" + pair;
+          final SQLException error =
+              assertThrows(SQLException.class, () -> statement.executeQuery(sql));
+          assertThat(TestUtil.printStackTrace(error),
+              containsString("Local GEOGRAPHY comparison is not supported"));
+        }
+        final String join = "select l.id from geographies l join geographies r"
+            + " on l.g = r.g where l.id = 1 and r.id = 2";
+        final SQLException joinError =
+            assertThrows(SQLException.class, () -> statement.executeQuery(join));
+        assertThat(TestUtil.printStackTrace(joinError),
+            anyOf(containsString("Local GEOGRAPHY comparison is not supported"),
+                containsString("Local GEOGRAPHY join keys are not supported")));
+        for (String expression : ImmutableList.of("array_distinct(array[l.g, r.g])",
+            "array_intersect(array[l.g], array[r.g])")) {
+          final String sql = "select " + expression + pair;
+          final SQLException error =
+              assertThrows(SQLException.class, () -> statement.executeQuery(sql));
+          assertThat(TestUtil.printStackTrace(error),
+              containsString("on collections containing GEOGRAPHY requires GEOGRAPHY equality"));
+        }
+        try (ResultSet result =
+            statement.executeQuery("select id, g is null, st_isempty(g)"
+                + " from geographies order by id")) {
+          for (int i = 1; i <= 3; i++) {
+            assertTrue(result.next());
+            assertThat(result.getInt(1), is(i));
+            assertThat(result.getBoolean(2), is(i == 3));
+            assertThat(result.getObject(3), is(i == 3 ? null : Boolean.FALSE));
+          }
+          assertFalse(result.next());
         }
       }
     }

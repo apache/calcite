@@ -1453,6 +1453,12 @@ supplied by a geography-aware table. Non-NULL SQL literals and non-NULL
 default values are unsupported.
 `GEOGRAPHY` has its own type identity and uses the JDBC type code `Types.OTHER`.
 
+Calcite preserves its generic cast eligibility rules for `ANY`, `UNKNOWN`,
+and `VARIANT`. Type-level eligibility does not establish an executable
+local conversion between geography and a VARIANT value. Likewise, JDBC
+`Types.OTHER` describes type metadata; non-NULL geography transport through
+JDBC or Avatica requires an adapter-specific value contract.
+
 ### Non-scalar types
 
 | Type     | Description                | Example type

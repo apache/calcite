@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -132,6 +133,42 @@ class ServerParserTest extends SqlParserTest {
       assertEquals(column.dataType.getNullable(), reparsedColumn.dataType.getNullable());
       assertEquals(expectedTypes[i], column.dataType.deriveType(validator));
       assertEquals(expectedTypes[i], reparsedColumn.dataType.deriveType(validator));
+    }
+  }
+
+  @Test void testOrdinaryMapNullabilityRoundTrip() {
+    for (boolean nullableKeys : new boolean[] {false, true}) {
+      final SqlParserFixture f = fixture().withConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+          .withFactory(factory ->
+          factory.withTypeSystem(system -> new DelegatingTypeSystem(system) {
+            @Override public boolean mapKeysCanBeNullable() {
+              return nullableKeys;
+            }
+          }));
+      final SqlValidator validator = f.factory.createValidator();
+      final String[] declarations = {
+          "map<integer, varchar(20)>",
+          "map<integer null, varchar(20) not null>",
+          "map<integer not null, varchar(20) null>"
+      };
+      for (int i = 0; i < declarations.length; i++) {
+        final SqlCreateTable original =
+            (SqlCreateTable) f.sql("create table t (m " + declarations[i] + ")").node();
+        final String sql = original.toSqlString(AnsiSqlDialect.DEFAULT).getSql();
+        final SqlCreateTable copy = (SqlCreateTable) f.sql(sql).node();
+        final SqlColumnDeclaration column =
+            (SqlColumnDeclaration) requireNonNull(original.columnList).get(0);
+        final SqlColumnDeclaration restored =
+            (SqlColumnDeclaration) requireNonNull(copy.columnList).get(0);
+        final RelDataType type = column.dataType.deriveType(validator);
+        assertEquals(type, restored.dataType.deriveType(validator));
+        assertEquals(i == 0 ? nullableKeys : i == 1,
+            requireNonNull(type.getKeyType()).isNullable());
+        assertEquals(i != 1, requireNonNull(type.getValueType()).isNullable());
+        assertEquals(SqlTypeName.INTEGER, requireNonNull(type.getKeyType()).getSqlTypeName());
+        assertEquals(SqlTypeName.VARCHAR, requireNonNull(type.getValueType()).getSqlTypeName());
+        assertEquals(20, requireNonNull(type.getValueType()).getPrecision());
+      }
     }
   }
 

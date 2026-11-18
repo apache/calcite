@@ -24,6 +24,8 @@ import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
@@ -194,6 +196,59 @@ class SqlTypeFactoryTest {
       assertTrue(SqlTypeUtil.canCastFrom(geography, generic, coerce));
       assertTrue(SqlTypeUtil.canCastFrom(generic, geography, coerce));
     }
+  }
+
+  @Test void testGeographyCustomCastRule() {
+    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    final RelDataType integer = factory.createSqlType(SqlTypeName.INTEGER);
+    final ImmutableMap.Builder<SqlTypeName, ImmutableSet<SqlTypeName>> rules =
+        ImmutableMap.builder();
+    for (SqlTypeName name : SqlTypeName.values()) {
+      rules.put(name, ImmutableSet.copyOf(SqlTypeName.values()));
+    }
+    final SqlTypeMappingRule permissive = () -> rules.build();
+    for (Function<RelDataType, RelDataType> container
+        : ImmutableList.<Function<RelDataType, RelDataType>>of(
+            leaf -> leaf,
+            leaf -> factory.createArrayType(leaf, -1),
+            leaf -> factory.createMapType(integer, leaf),
+            leaf -> factory.builder().add("V", leaf).build(),
+            leaf -> factory.createMultisetType(leaf, -1))) {
+      final RelDataType target = container.apply(geography);
+      assertTrue(SqlTypeUtil.canCastFrom(target, target, permissive));
+      assertTrue(
+          SqlTypeUtil.canCastFrom(target, factory.createSqlType(SqlTypeName.NULL),
+          permissive));
+      for (SqlTypeName name
+          : ImmutableList.of(SqlTypeName.GEOMETRY, SqlTypeName.VARCHAR, SqlTypeName.VARBINARY)) {
+        final RelDataType other = container.apply(factory.createSqlType(name));
+        assertFalse(SqlTypeUtil.canCastFrom(target, other, permissive));
+        assertFalse(SqlTypeUtil.canCastFrom(other, target, permissive));
+      }
+    }
+  }
+
+  @Test void testOrdinaryRowCommonTypeWithNull() {
+    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType row = factory.builder().add("I", SqlTypeName.INTEGER)
+        .add("S", SqlTypeName.VARCHAR, 20).nullable(true).build();
+    final RelDataType nullType = factory.createSqlType(SqlTypeName.NULL);
+    final RelDataType expected = factory.createTypeWithNullability(row, true);
+    assertFalse(row.isNullable());
+    assertFalse(row.getFieldList().get(0).getType().isNullable());
+    assertTrue(row.getFieldList().get(1).getType().isNullable());
+    for (List<RelDataType> inputs : ImmutableList.of(ImmutableList.of(row, nullType),
+        ImmutableList.of(nullType, row))) {
+      final RelDataType result = factory.leastRestrictive(inputs);
+      assertEquals(expected, result);
+      assertTrue(result.isNullable());
+      assertTrue(result.getFieldList().get(0).getType().isNullable());
+      assertTrue(result.getFieldList().get(1).getType().isNullable());
+    }
+    final RelDataType incompatible = factory.builder().add("I", SqlTypeName.INTEGER).build();
+    assertNull(factory.leastRestrictive(ImmutableList.of(row, nullType, incompatible)));
+    assertNull(factory.leastRestrictive(ImmutableList.of(incompatible, nullType, row)));
   }
 
   @Test void testLeastRestrictiveWithAny() {
