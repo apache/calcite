@@ -282,6 +282,9 @@ reporting {
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
+    dependsOn(subprojects.map { project ->
+        project.tasks.matching { it.name == "processJandexIndex" }
+    })
 
     val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
@@ -290,6 +293,8 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
+    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
+        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregate")))
 }
 
@@ -297,6 +302,9 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
  * CI uses this target to validate javadoc (e.g. checking for broken links). */
 val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
+    dependsOn(subprojects.map { project ->
+        project.tasks.matching { it.name == "processJandexIndex" }
+    })
 
     val sourceSets = subprojects
         .filter { it.name != "bom" }
@@ -305,6 +313,8 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
+    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
+        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregateIncludingTests")))
 }
 
@@ -976,6 +986,46 @@ allprojects {
                         // fails that job alone and leaves the test jobs reporting test failures
                         disable("NullAway")
                     }
+                }
+            }
+        }
+        if (enableCheckerframework) {
+            apply(plugin = "org.checkerframework")
+            dependencies {
+                "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
+                // CheckerFramework annotations might be used in the code as follows:
+                // dependencies {
+                //     "compileOnly"("org.checkerframework:checker-qual")
+                //     "testCompileOnly"("org.checkerframework:checker-qual")
+                // }
+                if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+                    // only needed for JDK 8
+                    "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8")
+                }
+            }
+            configure<org.checkerframework.gradle.plugin.CheckerFrameworkExtension> {
+                skipVersionCheck = true
+                // See https://checkerframework.org/manual/#introduction
+                checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
+                // Below checkers take significant time and they do not provide much value :-/
+                // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
+                // checkers.add("org.checkerframework.checker.regex.RegexChecker")
+                // https://checkerframework.org/manual/#creating-debugging-options-progress
+                extraJavacArgs.add("-Afilenames")
+                extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
+                // Consider Java assert statements for nullness and other checks
+                extraJavacArgs.add("-AassumeAssertionsAreEnabled")
+                // https://checkerframework.org/manual/#stub-using
+                extraJavacArgs.add("-Astubs=" +
+                        fileTree("$rootDir/src/main/config/checkerframework") {
+                            include("**/*.astub")
+                        }.asPath
+                )
+                if (project.path == ":core") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
+                }
+                if (project.path == ":server") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.ddl\\.")
                 }
             }
         }
