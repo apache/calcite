@@ -19,8 +19,11 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Throwables;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
@@ -37,8 +40,10 @@ import java.util.List;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for {@code PigRelOpVisitor}.
@@ -204,6 +209,17 @@ class PigRelOpTest extends PigRelTestBase {
         "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);";
     pig(script1)
         .assertRel(hasTree("LogicalTableScan(table=[[scott, DEPT]])\n"));
+  }
+
+  /** A table loaded with a Pig schema has a row type and no rows to read. */
+  @Test void testExecuteLoadWithSchema() throws IOException {
+    final RelNode rel =
+        converter.pigQuery2Rel("A = LOAD 'testSchema.testTable' as (a:int, b:chararray);")
+            .get(0);
+    final Throwable e =
+        assertThrows(Throwable.class, () -> RelRunners.run(rel).executeQuery());
+    assertThat(Throwables.getRootCause(e),
+        instanceOf(UnsupportedOperationException.class));
   }
 
   @Test void testFilter() {
