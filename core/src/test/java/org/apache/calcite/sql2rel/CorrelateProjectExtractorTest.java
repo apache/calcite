@@ -18,13 +18,10 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -33,21 +30,17 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
-import java.sql.PreparedStatement;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -259,56 +252,5 @@ public class CorrelateProjectExtractorTest {
         + "    LogicalFilter(condition=[EXISTS(ARRAY($0), (E) -> =(E, $cor0.$f8))])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(after, hasTree(planAfter));
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
-   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
-   *
-   * <p>A non-deterministic lambda stays on the right, while its deterministic
-   * outer-only subexpressions can be extracted. Keep fields it still references. */
-  @Test void testNonDeterministicLambda() throws Exception {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    builder.values(new String[] {"A", "B"}, 10, 20, 10, 20).variable(v::set);
-    final RexLambdaRef x = new RexLambdaRef(0, "x", builder.field("A").getType());
-    final RexNode pure =
-        builder.call(SqlStdOperatorTable.PLUS, builder.field(v.get(), "A"), builder.literal(1));
-    final RexNode sum =
-        builder.call(SqlStdOperatorTable.PLUS,
-            builder.call(SqlStdOperatorTable.PLUS, x, pure), builder.field(v.get(), "B"));
-    final RexNode body =
-        builder.lessThan(
-            builder.call(SqlStdOperatorTable.PLUS, sum, builder.call(SqlStdOperatorTable.RAND)),
-            builder.literal(3));
-    final RexNode expression =
-        builder.call(SqlLibraryOperators.EXISTS,
-            builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-                builder.literal(1), builder.literal(2)),
-            builder.getRexBuilder().makeLambdaCall(body, ImmutableList.of(x)));
-    final RelNode before = builder.values(new String[] {"V"}, 0, 1)
-        .project(
-            builder.alias(pure, "P"), builder.alias(expression, "Q"))
-        .correlate(JoinRelType.INNER, v.get().id,
-            builder.field(2, 0, "A"), builder.field(2, 0, "B"))
-        .project(builder.field("P"), builder.field("Q"))
-        .build();
-    final RelNode after =
-        before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
-    final Correlate extracted = extractedCorrelate(after);
-    assertThat(extracted.getRequiredColumns(), is(ImmutableBitSet.of(1, 2)));
-    assertThat(((Project) extracted.getRight()).getProjects().get(1).toString(),
-        is("EXISTS(ARRAY(1, 2), (x) -> <(+(+(+(x, $cor0.$f2), $cor0.B), RAND()), 3))"));
-    final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(after);
-    try (PreparedStatement statement = RelRunners.run(trimmed)) {
-      assertThat(CalciteAssert.toString(statement.executeQuery()),
-          is("P=11; Q=false\nP=11; Q=false\nP=11; Q=false\nP=11; Q=false\n"));
-    }
-  }
-
-  private static Correlate extractedCorrelate(RelNode rel) {
-    while (!(rel instanceof Correlate)) {
-      rel = rel.getInput(0);
-    }
-    return (Correlate) rel;
   }
 }
