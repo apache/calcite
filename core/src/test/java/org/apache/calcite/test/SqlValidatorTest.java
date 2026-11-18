@@ -24,8 +24,10 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
@@ -65,6 +67,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -1765,6 +1768,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       f.withSql("select case when g is null then g else null end" + from).columnType("GEOGRAPHY");
       f.withSql("select coalesce(g, cast(null as geography))" + from).columnType("GEOGRAPHY");
       f.withSql("select coalesce(g, n) from geo.places").columnType("GEOGRAPHY NOT NULL");
+      for (String column : ImmutableList.of("N", "G")) {
+        final String sql = "select coalesce(" + column + ", null) from geo.places";
+        final String control = "select coalesce("
+            + (column.equals("N") ? "empno" : "mgr") + ", null) from sales.emp";
+        if (!coerce && !rewrite) {
+          f.withSql(sql.replace(", null", ", ^null^")).fails("Illegal use of 'NULL'");
+          f.withSql(control.replace(", null", ", ^null^")).fails("Illegal use of 'NULL'");
+          continue;
+        }
+        final RelDataType validated =
+            f.tester.validateAndApply(f.factory, StringAndPos.of(sql),
+                (sap, validator, node) -> validator.getValidatedNodeType(node)
+                    .getFieldList().get(0).getType());
+        final RelDataType scalar =
+            f.tester.validateAndApply(f.factory, StringAndPos.of(control),
+                (sap, validator, node) -> validator.getValidatedNodeType(node)
+                    .getFieldList().get(0).getType());
+        assertEquals(SqlTypeName.GEOGRAPHY, validated.getSqlTypeName());
+        assertEquals(SqlTypeName.INTEGER, scalar.getSqlTypeName());
+        assertEquals(scalar.isNullable(), validated.isNullable());
+        final Project project = (Project) geographyRel(f, sql);
+        final Project scalarProject = (Project) geographyRel(f, control);
+        final RelDataType relType = project.getRowType().getFieldList().get(0).getType();
+        assertEquals(SqlTypeName.GEOGRAPHY, relType.getSqlTypeName());
+        assertEquals(scalarProject.getRowType().getFieldList().get(0).getType().isNullable(),
+            relType.isNullable());
+        assertEquals(scalarProject.getProjects().get(0).getType().isNullable(),
+            project.getProjects().get(0).getType().isNullable());
+        assertEquals(SqlTypeName.GEOGRAPHY,
+            project.getProjects().get(0).getType().getSqlTypeName());
+      }
+      final String nonNullCase =
+          "select case when g is null then n else n end from geo.places";
+      f.withSql(nonNullCase).columnType("GEOGRAPHY NOT NULL");
+      assertThat(geographyRel(f, nonNullCase).getRowType().getFieldList().get(0)
+          .getType().getFullTypeString(), is("GEOGRAPHY NOT NULL"));
       f.withSql("select n from geo.places union all select cast(null as geography)")
           .columnType("GEOGRAPHY");
       f.withSql("select cast(null as geography) union all select n from geo.places")
@@ -1777,6 +1816,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         f.withSql("select ^case when true then g else " + other + " end^" + from)
             .fails("Illegal mixing of types in CASE or COALESCE statement");
         f.withSql("select ^coalesce(g, " + other + ")^" + from)
+            .fails("(?s).* (?:types in CASE or COALESCE statement|of the same type).*");
+        f.withSql("select ^case when true then " + other + " else g end^" + from)
+            .fails("Illegal mixing of types in CASE or COALESCE statement");
+        f.withSql("select ^coalesce(" + other + ", g)^" + from)
             .fails("(?s).* (?:types in CASE or COALESCE statement|of the same type).*");
         f.withSql("select ^g^" + from + " union all select " + other)
             .fails("Type mismatch in column 1 of UNION ALL");
@@ -2041,6 +2084,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     assertThat(flattened.getRowType(), is(union.getRowType()));
     assertThat(flattened.getRowType().getFieldList().get(0).getType().getFullTypeString(),
         is("GEOGRAPHY"));
+  }
+
+  @Test void testGeographyFilterProjectTranspose() {
+    final RelNode input =
+        geographyRel(geographyFixture(true), "select g, n from geo.places");
+    final RexBuilder rex = input.getCluster().getRexBuilder();
+    final RelNode filter =
+        LogicalFilter.create(input,
+            rex.makeCall(SqlStdOperatorTable.IS_NULL, rex.makeInputRef(input, 0)));
+    final RelNode transformed = applyGeographyRule(filter, CoreRules.FILTER_PROJECT_TRANSPOSE);
+    assertTrue(transformed instanceof Project);
+    assertTrue(((Project) transformed).getInput() instanceof Filter);
+    assertThat(transformed.getRowType(), is(filter.getRowType()));
+    assertThat(transformed.getRowType().getFieldList().get(0).getType().getFullTypeString(),
+        is("GEOGRAPHY"));
+    assertThat(transformed.getRowType().getFieldList().get(1).getType().getFullTypeString(),
+        is("GEOGRAPHY NOT NULL"));
   }
 
   private static RelNode geographyRel(SqlValidatorFixture f, String sql) {

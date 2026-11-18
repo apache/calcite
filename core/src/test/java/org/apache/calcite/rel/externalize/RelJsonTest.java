@@ -19,6 +19,7 @@ package org.apache.calcite.rel.externalize;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
@@ -28,7 +29,11 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
@@ -45,6 +50,7 @@ import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.JsonBuilder;
@@ -61,6 +67,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for @{@link RelJson}.
@@ -105,6 +112,62 @@ public class RelJsonTest {
       assertThat(json, containsString("\"GEOGRAPHY\""));
       assertThat(relJson.toType(readFactory, mapper.readValue(json, Object.class)), is(type));
     }
+  }
+
+  @Test void testNullableOrdinaryRowMetadataRoundTrip() throws IOException {
+    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType fields = factory.builder().add("I", SqlTypeName.INTEGER)
+        .add("S", SqlTypeName.VARCHAR, 20).nullable(true).build();
+    final RelDataType row = factory.enforceTypeWithNullability(fields, true);
+    final JsonBuilder builder = new JsonBuilder();
+    final RelJson json = RelJson.create().withJsonBuilder(builder);
+    final String text = builder.toJsonString(json.toJson((Object) row));
+    final RelDataType copy = RelJsonReader.readType(factory, text);
+    assertThat(copy, is(row));
+    assertThat(copy.isNullable(), is(true));
+    assertThat(copy.getFieldList().get(0).getType().isNullable(), is(false));
+    assertThat(copy.getFieldList().get(1).getType().isNullable(), is(true));
+  }
+
+  @Test void testGeographyPlanRoundTrip() {
+    Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      final SchemaPlus schema = rootSchema.add("geo", new AbstractSchema());
+      schema.add("places", new AbstractTable() {
+        @Override public RelDataType getRowType(RelDataTypeFactory factory) {
+          final RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+          return factory.builder().add("N", geography).add("G", geography).nullable(true)
+              .add("A", factory.createArrayType(geography, -1)).nullable(true).build();
+        }
+      });
+      final RelBuilder builder =
+          RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(schema).build());
+      builder.scan("places");
+      final RelDataType geography =
+          builder.getTypeFactory().createSqlType(SqlTypeName.GEOGRAPHY);
+      final RexNode typedNull = builder.getRexBuilder().makeNullLiteral(geography);
+      final Project original =
+          (Project) builder.project(builder.field("N"), builder.field("G"), builder.field("A"),
+              typedNull).build();
+      final RelJsonWriter writer = new RelJsonWriter();
+      original.explain(writer);
+      try {
+        final RelJsonReader reader =
+            new RelJsonReader(original.getCluster(),
+                ((TableScan) original.getInput()).getTable().getRelOptSchema(), schema);
+        final Project restored = (Project) reader.read(writer.asString());
+        assertTrue(restored.getInput() instanceof TableScan);
+        assertThat(restored.getRowType(), is(original.getRowType()));
+        assertThat(restored.getInput().getRowType(), is(original.getInput().getRowType()));
+        for (int i = 0; i < original.getProjects().size(); i++) {
+          assertThat(restored.getProjects().get(i).getType(),
+              is(original.getProjects().get(i).getType()));
+        }
+        assertTrue(((RexLiteral) restored.getProjects().get(3)).isNull());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      return null;
+    });
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7113">[CALCITE-7113]
