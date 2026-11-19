@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.util.Util;
 
@@ -124,6 +125,17 @@ public class SqlNameMatchers {
 
     @Override public @Nullable RelDataTypeField field(RelDataType rowType, String fieldName) {
       return rowType.getField(fieldName, caseSensitive, false);
+    }
+
+    @Override public List<RelDataTypeField> fields(RelDataType rowType, String fieldName) {
+      if (rowType instanceof RelDataTypeImpl) {
+        return ((RelDataTypeImpl) rowType).getFields(fieldName, caseSensitive);
+      }
+      return SqlNameMatcher.super.fields(rowType, fieldName);
+    }
+
+    @Override public int fieldFrequency(RelDataType rowType, String fieldName) {
+      return fields(rowType, fieldName).size();
     }
 
     @Override public int frequency(Iterable<String> names, String name) {
