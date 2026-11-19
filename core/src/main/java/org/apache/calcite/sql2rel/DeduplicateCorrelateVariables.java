@@ -57,6 +57,16 @@ public class DeduplicateCorrelateVariables extends RelHomogeneousShuttle {
             ImmutableSet.copyOf(alternateIds)));
   }
 
+  /** Rewrites an expression, including operands and relational expressions of
+   * nested sub-queries, replacing alternate correlation variables with a
+   * canonical correlation variable. */
+  public static RexNode go(RexBuilder builder, CorrelationId canonicalId,
+      Iterable<? extends CorrelationId> alternateIds, RexNode node) {
+    return node.accept(
+        new DeduplicateCorrelateVariables(builder, canonicalId,
+            ImmutableSet.copyOf(alternateIds)).dedupRex);
+  }
+
   @Override public RelNode visit(RelNode other) {
     RelNode next = super.visit(other);
     return next.accept(dedupRex);
