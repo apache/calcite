@@ -40,6 +40,12 @@ data: {
       "JAR"
     ]
 
+    nonReservedKeywordsToRemove: [
+      "ADD"
+      "AFTER"
+      "BEFORE"
+    ]
+
     # List of methods for parsing custom SQL statements.
     # Return type of method implementation should be 'SqlNode'.
     # Example: "SqlShowDatabases()", "SqlShowTables()".
