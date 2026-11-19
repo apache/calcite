@@ -26,6 +26,136 @@ from emp;
 
 !update
 
+create view empm_comm as
+select *, avg(sal) as measure avg_sal, avg(comm) as measure avg_comm
+from emp;
+(0 rows modified)
+
+!update
+
+# AGGREGATE with GROUP BY of a column that includes NULLs
+select mgr, avg_comm from empm_comm
+group by mgr;
++------+----------+
+| MGR  | AVG_COMM |
++------+----------+
+| 7566 |          |
+| 7698 |   550.00 |
+| 7782 |          |
+| 7788 |          |
+| 7839 |          |
+| 7902 |          |
+|      |          |
++------+----------+
+(7 rows)
+
+!ok
+
+# AGGREGATE with GROUP BY of an expression
+SELECT (job || '_yo') as job_yo, avg_sal FROM empm
+GROUP BY (job || '_yo');
++--------------+---------+
+| JOB_YO       | AVG_SAL |
++--------------+---------+
+| ANALYST_yo   | 3000.00 |
+| CLERK_yo     | 1037.50 |
+| MANAGER_yo   | 2758.33 |
+| PRESIDENT_yo | 5000.00 |
+| SALESMAN_yo  | 1400.00 |
++--------------+---------+
+(5 rows)
+
+!ok
+
+# single GROUPING SETS group with AS MEASURE reference
+SELECT job, year(hiredate) as hire_year, avg_sal FROM empm
+GROUP BY GROUPING SETS
+(
+  (YEAR(hiredate), job)
+)
+ORDER BY job, YEAR(hiredate);
++-----------+-----------+---------+
+| JOB       | HIRE_YEAR | AVG_SAL |
++-----------+-----------+---------+
+| ANALYST   |      1981 | 3000.00 |
+| ANALYST   |      1987 | 3000.00 |
+| CLERK     |      1980 |  800.00 |
+| CLERK     |      1981 |  950.00 |
+| CLERK     |      1982 | 1300.00 |
+| CLERK     |      1987 | 1100.00 |
+| MANAGER   |      1981 | 2758.33 |
+| PRESIDENT |      1981 | 5000.00 |
+| SALESMAN  |      1981 | 1400.00 |
++-----------+-----------+---------+
+(9 rows)
+
+!ok
+
+# GROUP BY empty group for totals
+SELECT avg_sal FROM empm
+GROUP BY ();
++---------+
+| AVG_SAL |
++---------+
+| 2073.21 |
++---------+
+(1 row)
+
+!ok
+
+!if (fixed.fixed.calcite6561) {
+# GROUP BY a dimension with NULLs
+SELECT mgr, avg_sal FROM empm
+GROUP BY mgr;
++------+---------+
+| MGR  | AVG_SAL |
++------+---------+
+| 7566 | 3000.00 |
+| 7698 | 1310.00 |
+| 7782 | 1300.00 |
+| 7788 | 1100.00 |
+| 7839 | 2758.33 |
+| 7902 |  800.00 |
+|      | 5000.00 |
++------+---------+
+(7 rows)
+
+!ok
+!}
+
+!if (fixed.fixed.calcite6562) {
+# GROUP BY with multiple GROUPING SETS including total
+SELECT job, year(hiredate) as hire_year, avg_sal FROM empm
+GROUP BY GROUPING SETS
+(
+  (YEAR(hiredate), job),
+  (YEAR(hiredate)),
+  ()
+)
+ORDER BY job, YEAR(hiredate);
++-----------+-----------+---------+
+| JOB       | HIRE_YEAR | AVG_SAL |
++-----------+-----------+---------+
+| ANALYST   |      1981 | 3000.00 |
+| ANALYST   |      1987 | 3000.00 |
+| CLERK     |      1980 |  800.00 |
+| CLERK     |      1981 |  950.00 |
+| CLERK     |      1982 | 1300.00 |
+| CLERK     |      1987 | 1100.00 |
+| MANAGER   |      1981 | 2758.33 |
+| PRESIDENT |      1981 | 5000.00 |
+| SALESMAN  |      1981 | 1400.00 |
+|           |      1980 |  800.00 |
+|           |      1981 | 2282.50 |
+|           |      1982 | 1300.00 |
+|           |      1987 | 2050.00 |
+|           |           | 2073.21 |
++-----------+-----------+---------+
+(14 rows)
+
+!ok
+!}
+
 # Aggregate query with naked measure
 select job, avg_sal as a
 from empm
