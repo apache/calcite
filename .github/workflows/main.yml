@@ -167,6 +167,23 @@ jobs:
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
+  test-matrix:
+    # Keep this name stable: .asf.yaml requires it instead of individual matrix rows.
+    name: 'Test matrix'
+    needs: [matrix_prep, test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 'Verify all matrix jobs succeeded'
+        env:
+          MATRIX_PREP_RESULT: ${{ needs.matrix_prep.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          echo "Matrix preparation: $MATRIX_PREP_RESULT; tests: $TEST_RESULT"
+          test "$MATRIX_PREP_RESULT" = success
+          test "$TEST_RESULT" = success
+
   errorprone-guava-latest:
     name: 'ErrorProne (JDK 11, latest Guava)'
     runs-on: ubuntu-latest
