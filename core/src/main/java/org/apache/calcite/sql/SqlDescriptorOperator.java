@@ -47,6 +47,10 @@ public class SqlDescriptorOperator extends SqlOperator {
   @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
+    // Check that every operand is an identifier; a DESCRIPTOR is a list of
+    // column names. The operands are not typed as expressions, so this is
+    // where the operator rejects a non-identifier argument.
+    checkOperandTypes(new SqlCallBinding(validator, scope, call), true);
     return validator.getTypeFactory().createSqlType(SqlTypeName.COLUMN_LIST);
   }
 
@@ -54,12 +58,12 @@ public class SqlDescriptorOperator extends SqlOperator {
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     for (SqlNode operand : callBinding.getCall().getOperandList()) {
-      if (!(operand instanceof SqlIdentifier)
-          || ((SqlIdentifier) operand).isSimple()) {
+      if (!(operand instanceof SqlIdentifier)) {
         if (throwOnFailure) {
           throw SqlUtil.newContextException(operand.getParserPosition(),
-              RESOURCE.aliasMustBeSimpleIdentifier());
+              RESOURCE.descriptorMustBeIdentifier());
         }
+        return false;
       }
     }
     return true;
