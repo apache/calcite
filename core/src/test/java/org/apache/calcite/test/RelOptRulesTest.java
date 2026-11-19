@@ -123,6 +123,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -6961,6 +6962,33 @@ class RelOptRulesTest extends RelOptTestBase {
    * <p>ANY_VALUE is not known to ignore NULLs: negative test. */
   @Test void testAggregateUnionNullBranchUnsupportedAggregate() {
     nullBranchSql(nullPaddedUnion("any_value(m)", "")).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>ARRAY_AGG does not necessarily return NULL for no rows (some systems
+   * return an empty array), so it is not known to ignore a branch of NULLs:
+   * negative test. */
+  @Test void testAggregateUnionNullBranchArrayAgg() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RelDataType nullableInt =
+          b.getTypeFactory().createTypeWithNullability(
+              b.getTypeFactory().createSqlType(SqlTypeName.INTEGER), true);
+      b.scan("EMP").project(b.alias(b.field("SAL"), "M"));
+      b.scan("DEPT")
+          .project(
+              b.alias(b.getRexBuilder().makeNullLiteral(nullableInt), "M"));
+      return b.union(true, 2)
+          .aggregate(b.groupKey(),
+              b.aggregateCall(SqlLibraryOperators.ARRAY_AGG, b.field("M"))
+                  .as("A"))
+          .build();
+    };
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH)
+        .checkUnchanged();
   }
 
   /** Test case for

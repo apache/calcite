@@ -165,6 +165,10 @@ public class AggregateUnionNullBranchRule
     // The removed branches may have determined the type of the union,
     // for example, a BIGINT column that the remaining branch has as SMALLINT.
     // Cast back, so that the aggregate runs at its original input type.
+    // We do not call RelBuilder.convert(union.getRowType(), ...) directly,
+    // because it would also add a cast where the types differ only in
+    // nullability.  The remaining branch is often NOT NULL while the union
+    // column is nullable, which is a no op that clutters the plan.
     castToTypesOf(union, relBuilder);
     relBuilder.hints(aggregate.getHints());
     relBuilder.aggregate(relBuilder.groupKey(aggregate.getGroupSet()),
@@ -213,10 +217,14 @@ public class AggregateUnionNullBranchRule
     for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
       final SqlKind kind = aggregate.getAggCallList().get(i).getAggregation().getKind();
       final RelDataType type = fields.get(aggregate.getGroupCount() + i).getType();
-      literals.add(
-          kind == SqlKind.COUNT || kind == SqlKind.SUM0
-              ? rexBuilder.makeZeroLiteral(type)
-              : rexBuilder.makeNullLiteral(type));
+      // Only aggregates accepted by ignoresRowsWithNullColumns get here.
+      if (returnsZeroOnNoRows(kind)) {
+        literals.add(rexBuilder.makeZeroLiteral(type));
+      } else if (returnsNullOnNoRows(kind)) {
+        literals.add(rexBuilder.makeNullLiteral(type));
+      } else {
+        throw new AssertionError("unexpected aggregate kind " + kind);
+      }
     }
     return literals;
   }
@@ -299,18 +307,29 @@ public class AggregateUnionNullBranchRule
         || !call.rexList.isEmpty()) {
       return false;
     }
-    switch (call.getAggregation().getKind()) {
-    case SUM:
-    case SUM0:
-    case MIN:
-    case MAX:
-    case AVG:
-      return nullColumns.get(args.get(0));
-    case COUNT:
-      return args.stream().anyMatch(nullColumns::get);
-    default:
+    final SqlKind kind = call.getAggregation().getKind();
+    if (!returnsZeroOnNoRows(kind) && !returnsNullOnNoRows(kind)) {
+      // Unknown aggregate, including user-defined ones (for example ARRAY_AGG,
+      // which may return an empty array): we do not know that NULL inputs, or
+      // no input at all, leave its result unchanged.
       return false;
     }
+    return kind == SqlKind.COUNT
+        ? args.stream().anyMatch(nullColumns::get)
+        : nullColumns.get(args.get(0));
+  }
+
+  /** Returns whether an aggregate function of the given kind ignores NULL
+   * inputs and returns 0 when it has no rows to aggregate. */
+  private static boolean returnsZeroOnNoRows(SqlKind kind) {
+    return kind == SqlKind.COUNT || kind == SqlKind.SUM0;
+  }
+
+  /** Returns whether an aggregate function of the given kind ignores NULL
+   * inputs and returns NULL when it has no rows to aggregate. */
+  private static boolean returnsNullOnNoRows(SqlKind kind) {
+    return kind == SqlKind.SUM || kind == SqlKind.MIN || kind == SqlKind.MAX
+        || kind == SqlKind.AVG;
   }
 
   /** Replaces a pure GROUP BY {@link Aggregate} without any calls at the top of

@@ -1365,6 +1365,18 @@ LogicalValues(tuples=[[{ 0, null, null }]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionNullBranchArrayAgg">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], A=[ARRAY_AGG($0)])
+  LogicalUnion(all=[true])
+    LogicalProject(M=[$5])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(M=[null:INTEGER])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionNullBranchBothMeasures">
     <Resource name="sql">
       <![CDATA[select sum(m), sum(b) from (
