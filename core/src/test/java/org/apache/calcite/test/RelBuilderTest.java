@@ -27,6 +27,8 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.EmptyRowTypePolicy;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
@@ -47,6 +49,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -5456,6 +5459,63 @@ public class RelBuilderTest {
         + "LogicalFilter(condition=[=($2, 3)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(Util.toLinux(builder.toString()), is(expected3));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>Unions a SMALLINT column with a BIGINT NULL column and sums it. Without
+   * the rule the plan fails at run time, because the SMALLINT branch is not
+   * cast to the union's BIGINT type. After the rule removes the NULL branch,
+   * the remaining branch must be cast, so that the sum runs as BIGINT and does
+   * not overflow SMALLINT. */
+  @Test void testAggregateUnionNullBranchRunsAtUnionType() throws Exception {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final SchemaPlus root =
+          connection.unwrap(CalciteConnection.class).getRootSchema();
+      CalciteAssert.addSchema(root, CalciteAssert.SchemaSpec.SCOTT);
+      final RelBuilder b =
+          RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build());
+      final RelDataType nullableBigint =
+          b.getTypeFactory().createTypeWithNullability(
+              b.getTypeFactory().createSqlType(SqlTypeName.BIGINT), true);
+      b.scan("scott", "EMP")
+          .project(b.alias(b.cast(b.field("EMPNO"), SqlTypeName.SMALLINT), "M"));
+      b.scan("scott", "DEPT")
+          .project(b.alias(b.getRexBuilder().makeNullLiteral(nullableBigint), "M"));
+      final RelNode rel =
+          b.union(true, 2)
+              .aggregate(b.groupKey(),
+                  b.aggregateCall(SqlStdOperatorTable.SUM, b.field("M")).as("S"))
+              .build();
+
+      // The sum of the 14 EMPNO values exceeds SMALLINT. The unrewritten plan
+      // cannot run.
+      assertThrows(Exception.class, () -> {
+        try (PreparedStatement ps = RelRunners.run(rel)) {
+          ps.executeQuery();
+        }
+      });
+
+      final HepPlanner hepPlanner =
+          new HepPlanner(
+              HepProgram.builder()
+                  .addRuleInstance(CoreRules.AGGREGATE_UNION_NULL_BRANCH)
+                  .build());
+      hepPlanner.setRoot(rel);
+      final RelNode rewritten = hepPlanner.findBestExp();
+      final String expectedPlan = ""
+          + "LogicalAggregate(group=[{}], S=[SUM($0)])\n"
+          + "  LogicalProject(M=[CAST($0):BIGINT NOT NULL])\n"
+          + "    LogicalProject(M=[$0])\n"
+          + "      LogicalTableScan(table=[[scott, EMP]])\n";
+      assertThat(rewritten, hasTree(expectedPlan));
+      try (PreparedStatement ps = RelRunners.run(rewritten)) {
+        assertThat(CalciteAssert.toString(ps.executeQuery()),
+            is("S=108172\n"));
+      }
+    }
   }
 
   /**

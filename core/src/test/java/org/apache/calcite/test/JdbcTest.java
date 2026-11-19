@@ -1989,6 +1989,27 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7912">[CALCITE-7912]
+   * Prune UNION ALL branches that cannot affect an enclosing aggregate</a>.
+   *
+   * <p>WITHIN DISTINCT must not be affected by the rule: the result is 120,
+   * with or without it (an earlier version of the rule returned 620). */
+  @Test void testAggregateUnionNullBranchWithinDistinct() {
+    final String sql = "select sum(d2) within distinct (deptno) from (\n"
+        + "  select deptno, deptno * 2 as d2 from emp\n"
+        + "  union all\n"
+        + "  select deptno, cast(null as integer) from dept) as v";
+    final CalciteAssert.AssertThat that =
+        CalciteAssert.that().with(CalciteAssert.Config.SCOTT);
+    that.query(sql)
+        .returns("EXPR$0=120\n");
+    that.query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.addRule(CoreRules.AGGREGATE_UNION_NULL_BRANCH))
+        .returns("EXPR$0=120\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
   @Test void testJoinConditionOrExpansionRuleMultiOr() {
