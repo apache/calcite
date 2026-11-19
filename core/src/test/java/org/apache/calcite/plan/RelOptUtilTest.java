@@ -1204,6 +1204,32 @@ class RelOptUtilTest {
     assertThat(disjunctions, hasSize(depth));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7914">[CALCITE-7914]
+   * RelDecorrelator produces wrong results for non-deterministic inputs</a>.
+   * Query-stable calls are allowed, but both sub-query plans and operands
+   * must be checked for non-deterministic calls. */
+  @Test void testIsDeterministicSubQueries() {
+    final RelNode values = relBuilder.values(new String[] {"X"}, 1D).build();
+    final RelNode stable = relBuilder.push(values)
+        .project(relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP)).build();
+    final RelNode random = relBuilder.push(values)
+        .project(relBuilder.call(SqlStdOperatorTable.RAND)).build();
+
+    final RelNode stableSubQuery = relBuilder.push(values)
+        .project(RexSubQuery.scalar(stable)).build();
+    final RelNode randomSubQuery = relBuilder.push(values)
+        .project(RexSubQuery.scalar(random)).build();
+    assertThat(RelOptUtil.isDeterministic(stableSubQuery), is(true));
+    assertThat(RelOptUtil.isDeterministic(randomSubQuery), is(false));
+
+    final RelNode randomOperand = relBuilder.push(values)
+        .project(
+            RexSubQuery.in(values,
+                ImmutableList.of(relBuilder.call(SqlStdOperatorTable.RAND))))
+        .build();
+    assertThat(RelOptUtil.isDeterministic(randomOperand), is(false));
+  }
+
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions
    * are OK. */
   private static class MyConverterRule extends ConverterRule {
