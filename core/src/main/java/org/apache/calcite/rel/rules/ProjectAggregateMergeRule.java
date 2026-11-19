@@ -118,7 +118,8 @@ public class ProjectAggregateMergeRule
             final RexLiteral literal = (RexLiteral) operands.get(2);
             if (Objects.equals(literal.getValueAs(BigDecimal.class), BigDecimal.ZERO)) {
               int j = findSum0(cluster.getTypeFactory(), aggCall, aggCallList);
-              return cluster.getRexBuilder().makeInputRef(aggCallList.get(j).getType(), j);
+              return cluster.getRexBuilder().makeInputRef(aggCallList.get(j).getType(),
+                  aggregate.getGroupCount() + j);
             }
           }
           break;
