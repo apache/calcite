@@ -211,7 +211,8 @@ class PigRelOpTest extends PigRelTestBase {
         .assertRel(hasTree("LogicalTableScan(table=[[scott, DEPT]])\n"));
   }
 
-  /** A table loaded with a Pig schema has a row type and no rows to read. */
+  /** A table loaded with a Pig schema holds only that schema and cannot be
+   * scanned. */
   @Test void testExecuteLoadWithSchema() throws IOException {
     final RelNode rel =
         converter.pigQuery2Rel("A = LOAD 'testSchema.testTable' as (a:int, b:chararray);")

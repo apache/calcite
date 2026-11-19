@@ -72,6 +72,6 @@ public class PigTable extends AbstractTable implements ScannableTable {
 
   @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
     throw new UnsupportedOperationException(
-        "PigTable has a row type and no rows; it cannot be scanned");
+        "PigTable holds only the schema of a Pig relation and cannot read its data");
   }
 }
