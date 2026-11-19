@@ -1228,25 +1228,45 @@ public class RexSimplify {
   }
 
   private @Nullable RexNode simplifyIsNotNull(RexNode a) {
+    return simplifyIs(a, false);
+  }
+
+  private @Nullable RexNode simplifyIsNull(RexNode a) {
+    return simplifyIs(a, true);
+  }
+
+  /**
+   * Common implementation of {@link #simplifyIsNotNull} and {@link #simplifyIsNull}.
+   *
+   * @param a operand to simplify
+   * @param nullWanted whether to simplify {@code a IS NULL} ({@code true})
+   *                   or {@code a IS NOT NULL} ({@code false})
+   */
+  private @Nullable RexNode simplifyIs(RexNode a, boolean nullWanted) {
+    final SqlOperator op = nullWanted
+        ? SqlStdOperatorTable.IS_NULL
+        : SqlStdOperatorTable.IS_NOT_NULL;
     // Simplify the argument first,
     // call ourselves recursively to see whether we can make more progress.
     // For example, given
-    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NOT NULL" we first simplify the
-    // argument to "2", and only then we can simplify "2 IS NOT NULL" to "TRUE".
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS [NOT] NULL" we first simplify the
+    // argument to "2", and only then we can simplify "2 IS [NOT] NULL" to a
+    // literal.
     a = simplify(a, UNKNOWN);
     boolean isSafe = isSafeExpression(a);
+    SqlParserPos pos = RexUtil.getPos(a);
     if (!a.getType().isNullable() && isSafe) {
-      return rexBuilder.makeLiteral(true);
+      return rexBuilder.makeLiteral(!nullWanted);
     }
     RexNode simplifiedResult = null;
-    SqlParserPos pos = RexUtil.getPos(a);
     if (RexUtil.isLosslessCast(a)) {
       a = RexUtil.removeCast(a);
-      // to keep this simplification, we must return IS NOT NULL(a),
+      // to keep this simplification, we must return IS [NOT] NULL(a),
       // even if we cannot do anything else
-      simplifiedResult = rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, a);
+      simplifiedResult = rexBuilder.makeCall(pos, op, a);
     }
-    if (predicates.pulledUpPredicates.contains(a)) {
+    if (nullWanted ? RexUtil.isNull(a)
+        : predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
     }
     if (hasCustomNullabilityRules(a.getKind())) {
@@ -1258,10 +1278,11 @@ public class RexSimplify {
       if (!isSafe) {
         return simplifiedResult;
       }
-      return rexBuilder.makeLiteral(true);
+      return rexBuilder.makeLiteral(!nullWanted);
     case ANY:
-      // "f" is a strong operator, so "f(operand0, operand1) IS NOT NULL"
-      // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL";
+      // "f" is a strong operator, so "f(operand0, operand1) IS [NOT] NULL"
+      // simplifies to the disjunction (IS NULL) or conjunction (IS NOT NULL)
+      // of "operandX IS [NOT] NULL";
       // this branch PRESERVES the operand subtrees, so it only
       // needs SHALLOW safety of the outer operator
       if (!SafeRexVisitor.INSTANCE.isShallowSafe(a)) {
@@ -1269,82 +1290,35 @@ public class RexSimplify {
       }
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
-        final RexNode simplified = simplifyIsNotNull(operand);
+        final RexNode simplified = simplifyIs(operand, nullWanted);
         if (simplified == null) {
-          operands.add(
-              rexBuilder.makeCall(RexUtil.getPos(a), SqlStdOperatorTable.IS_NOT_NULL, operand));
-        } else if (simplified.isAlwaysFalse()) {
+          operands.add(rexBuilder.makeCall(RexUtil.getPos(a), op, operand));
+        } else if (!nullWanted && simplified.isAlwaysFalse()) {
           return rexBuilder.makeLiteral(false);
         } else {
           operands.add(simplified);
         }
       }
-      return RexUtil.composeConjunction(rexBuilder, operands);
+      return nullWanted
+          ? RexUtil.composeDisjunction(rexBuilder, operands, false)
+          : RexUtil.composeConjunction(rexBuilder, operands);
     case CUSTOM:
-      if (!isSafe) {
-        return simplifiedResult;
-      }
-      switch (a.getKind()) {
-      case LITERAL:
-        return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
-      default:
-        throw new AssertionError("every CUSTOM policy needs a handler, "
-            + a.getKind());
-      }
-    case AS_IS:
-    default:
-      return simplifiedResult;
-    }
-  }
-
-  private @Nullable RexNode simplifyIsNull(RexNode a) {
-    // Simplify the argument first,
-    // call ourselves recursively to see whether we can make more progress.
-    // For example, given
-    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
-    // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
-    SqlParserPos pos = RexUtil.getPos(a);
-    a = simplify(a, UNKNOWN);
-    boolean isSafe = isSafeExpression(a);
-    if (!a.getType().isNullable() && isSafe) {
-      return rexBuilder.makeLiteral(false);
-    }
-    RexNode simplifiedResult = null;
-    if (RexUtil.isLosslessCast(a)) {
-      a = RexUtil.removeCast(a);
-      // to keep this simplification, we must return IS NULL(a),
-      // even if we cannot do anything else
-      simplifiedResult = rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NULL, a);
-    }
-    if (RexUtil.isNull(a)) {
-      return rexBuilder.makeLiteral(true);
-    }
-    if (hasCustomNullabilityRules(a.getKind())) {
-      return simplifiedResult;
-    }
-    switch (Strong.policy(a)) {
-    case NOT_NULL:
-      // Drops the subtree; require full-tree safety so we don't hide runtime errors
-      if (!isSafe) {
-        return simplifiedResult;
-      }
-      return rexBuilder.makeLiteral(false);
-    case ANY:
-      // See symmetric comment in simplifyIsNotNull
-      if (!SafeRexVisitor.INSTANCE.isShallowSafe(a)) {
-        return simplifiedResult;
-      }
-      final List<RexNode> operands = new ArrayList<>();
-      for (RexNode operand : ((RexCall) a).getOperands()) {
-        final RexNode simplified = simplifyIsNull(operand);
-        if (simplified == null) {
-          operands.add(
-              rexBuilder.makeCall(RexUtil.getPos(a), SqlStdOperatorTable.IS_NULL, operand));
-        } else {
-          operands.add(simplified);
+      // LITERAL is the only kind with CUSTOM policy;
+      // for IS NULL both literal cases are already handled above
+      // (see RexUtil.isNull and the non-nullable check), so fall through
+      if (!nullWanted) {
+        if (!isSafe) {
+          return simplifiedResult;
+        }
+        switch (a.getKind()) {
+        case LITERAL:
+          return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
+        default:
+          throw new AssertionError("every CUSTOM policy needs a handler, "
+              + a.getKind());
         }
       }
-      return RexUtil.composeDisjunction(rexBuilder, operands, false);
+      // fall through
     case AS_IS:
     default:
       return simplifiedResult;

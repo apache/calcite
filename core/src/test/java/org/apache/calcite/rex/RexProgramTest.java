@@ -1132,6 +1132,34 @@ class RexProgramTest extends RexProgramTestBase {
         "IS NOT NULL(?0.int1)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7263">[CALCITE-7263]
+   * Combine RexSimplify.simplifyIsNull and simplifyIsNotNull</a>. */
+  @Test void testSimplifyIs() {
+    // "null is null" to "true"; "null is not null" to "false"
+    checkSimplify(isNull(nullInt), "true");
+    checkSimplify(isNotNull(nullInt), "false");
+
+    // "1 is null" to "false"; "1 is not null" to "true"
+    checkSimplify(isNull(literal(1)), "false");
+    checkSimplify(isNotNull(literal(1)), "true");
+
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) is null" to "false";
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) is not null" to "true":
+    // the argument is simplified first
+    checkSimplify(isNull(case_(falseLiteral, literal(1), literal(2))), "false");
+    checkSimplify(isNotNull(case_(falseLiteral, literal(1), literal(2))), "true");
+
+    // "(x * y) is null" simplifies to "x is null or y is null";
+    // "(x * y) is not null" simplifies to "x is not null and y is not null"
+    checkSimplify(isNull(mul(vInt(0), vInt(1))),
+        "OR(IS NULL(?0.int0), IS NULL(?0.int1))");
+    checkSimplify(isNotNull(mul(vInt(0), vInt(1))),
+        "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))");
+    checkSimplify(isNull(mul(vIntNotNull(0), vInt(1))), "IS NULL(?0.int1)");
+    checkSimplify(isNotNull(mul(vIntNotNull(0), vInt(1))), "IS NOT NULL(?0.int1)");
+  }
+
   @Test void simplifyStrong() {
     checkSimplify(ge(trueLiteral, falseLiteral), "true");
     checkSimplify3(ge(trueLiteral, nullBool), "null:BOOLEAN", "false", "true");
