@@ -355,7 +355,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
       for (RelNode rel : successors) {
         if (operand.getRule() instanceof TransformationRule
-            && rel.getConvention() != previous.getConvention()) {
+            && (rel.getConvention() != previous.getConvention()
+                || rel instanceof PhysicalNode)) {
           continue;
         }
         if (!operand.matches(rel)) {
