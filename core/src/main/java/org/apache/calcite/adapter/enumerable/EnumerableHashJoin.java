@@ -170,6 +170,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    EnumUtils.checkGeographyJoinKeys(this);
     switch (joinType) {
     case SEMI:
     case ANTI:

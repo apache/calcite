@@ -491,11 +491,21 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  private static SqlReturnTypeInference geographyOrderChecked(SqlReturnTypeInference inference) {
+    return binding -> {
+      if (binding.collectOperandTypes().stream().anyMatch(SqlTypeUtil::containsGeography)) {
+        throw binding.newError(RESOURCE.geographyOrderKey());
+      }
+      return inference.inferReturnType(binding);
+    };
+  }
+
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, HIVE})
   public static final SqlFunction GREATEST =
       SqlBasicFunction.create(SqlKind.GREATEST,
-          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          geographyOrderChecked(
+              ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE)),
           OperandTypes.SAME_VARIADIC);
 
   /** The "GREATEST(value, value)" function. Identical to the standard <code>GREATEST</code>
@@ -503,14 +513,16 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {POSTGRESQL, SPARK})
   public static final SqlFunction GREATEST_PG =
       SqlBasicFunction.create("GREATEST", SqlKind.GREATEST_PG,
-          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          geographyOrderChecked(
+              ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE)),
           OperandTypes.SAME_VARIADIC);
 
   /** The "LEAST(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, HIVE})
   public static final SqlFunction LEAST =
       SqlBasicFunction.create(SqlKind.LEAST,
-          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          geographyOrderChecked(
+              ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE)),
           OperandTypes.SAME_VARIADIC);
 
   /** The "LEAST(value, value)" function. Identical to the standard <code>LEAST</code>
@@ -518,7 +530,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {POSTGRESQL, SPARK})
   public static final SqlFunction LEAST_PG =
       SqlBasicFunction.create("LEAST", SqlKind.LEAST_PG,
-          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          geographyOrderChecked(
+              ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE)),
           OperandTypes.SAME_VARIADIC);
 
   /** The "CEIL(value)" function. Identical to the standard <code>CEIL</code> function
@@ -1642,14 +1655,14 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_MAX =
       SqlBasicFunction.create(SqlKind.ARRAY_MAX,
-          ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
+          geographyOrderChecked(ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE),
           OperandTypes.ARRAY_NONNULL);
 
   /** The "ARRAY_MIN(array)" function. */
   @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_MIN =
       SqlBasicFunction.create(SqlKind.ARRAY_MIN,
-          ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
+          geographyOrderChecked(ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE),
           OperandTypes.ARRAY_NONNULL);
 
   /** The "ARRAY_POSITION(array, element)" function. */
@@ -1761,7 +1774,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction SORT_ARRAY =
       SqlBasicFunction.create(SqlKind.SORT_ARRAY,
-          ReturnTypes.ARG0_NULLABLE,
+          geographyOrderChecked(ReturnTypes.ARG0_NULLABLE),
           OperandTypes.ARRAY.or(OperandTypes.ARRAY_BOOLEAN_LITERAL));
 
   private static RelDataType deriveTypeMapConcat(SqlOperatorBinding opBinding) {

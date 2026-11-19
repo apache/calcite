@@ -16,8 +16,14 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.ddl.SqlColumnDeclaration;
 import org.apache.calcite.sql.ddl.SqlCreateFunction;
 import org.apache.calcite.sql.ddl.SqlCreateSchema;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
@@ -29,12 +35,16 @@ import org.apache.calcite.sql.ddl.SqlDropTable;
 import org.apache.calcite.sql.ddl.SqlDropType;
 import org.apache.calcite.sql.ddl.SqlDropView;
 import org.apache.calcite.sql.ddl.SqlTruncateTable;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -42,6 +52,7 @@ import org.junit.jupiter.api.Test;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static java.util.Objects.requireNonNull;
@@ -85,6 +96,80 @@ class ServerParserTest extends SqlParserTest {
     String expected = "CREATE TABLE `TDEF` (`I` INTEGER NOT NULL,"
         + " `J` INTEGER DEFAULT 100)";
     sql(sql).ok(expected);
+  }
+
+  @Test void testCreateTableGeographyTypes() {
+    final SqlParserFixture f = fixture()
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withConfig(c -> c.withQuoting(Quoting.BACK_TICK));
+    final SqlCreateTable table = (SqlCreateTable) f.sql("create table t ("
+        + "a geography, b geography not null, c geography array, "
+        + "d map<integer, geography>, e row(g geography null, h geography not null) not null)")
+        .node();
+    final String unparsed = table.toSqlString(AnsiSqlDialect.DEFAULT).getSql();
+    final SqlCreateTable reparsed = (SqlCreateTable) f.sql(unparsed).node();
+
+    final SqlValidator validator = f.factory.createValidator();
+    final RelDataTypeFactory types = validator.getTypeFactory();
+    final RelDataType geography = types.createSqlType(SqlTypeName.GEOGRAPHY);
+    final RelDataType nullableGeography = types.createTypeWithNullability(geography, true);
+    final RelDataType map =
+        types.createMapType(types.createSqlType(SqlTypeName.INTEGER), nullableGeography);
+    final RelDataType row = types.builder().add("G", nullableGeography).add("H", geography).build();
+    final RelDataType[] expectedTypes = {
+        nullableGeography,
+        geography,
+        types.createTypeWithNullability(types.createArrayType(nullableGeography, -1), true),
+        types.createTypeWithNullability(map, true),
+        row
+    };
+    final SqlNodeList columns = requireNonNull(table.columnList);
+    final SqlNodeList reparsedColumns = requireNonNull(reparsed.columnList);
+    assertEquals(expectedTypes.length, columns.size());
+    assertEquals(columns.size(), reparsedColumns.size());
+    for (int i = 0; i < columns.size(); i++) {
+      final SqlColumnDeclaration column = (SqlColumnDeclaration) columns.get(i);
+      final SqlColumnDeclaration reparsedColumn = (SqlColumnDeclaration) reparsedColumns.get(i);
+      assertEquals(column.dataType.getNullable(), reparsedColumn.dataType.getNullable());
+      assertEquals(expectedTypes[i], column.dataType.deriveType(validator));
+      assertEquals(expectedTypes[i], reparsedColumn.dataType.deriveType(validator));
+    }
+  }
+
+  @Test void testOrdinaryMapNullabilityRoundTrip() {
+    for (boolean nullableKeys : new boolean[] {false, true}) {
+      final SqlParserFixture f = fixture().withConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+          .withFactory(factory ->
+          factory.withTypeSystem(system -> new DelegatingTypeSystem(system) {
+            @Override public boolean mapKeysCanBeNullable() {
+              return nullableKeys;
+            }
+          }));
+      final SqlValidator validator = f.factory.createValidator();
+      final String[] declarations = {
+          "map<integer, varchar(20)>",
+          "map<integer null, varchar(20) not null>",
+          "map<integer not null, varchar(20) null>"
+      };
+      for (int i = 0; i < declarations.length; i++) {
+        final SqlCreateTable original =
+            (SqlCreateTable) f.sql("create table t (m " + declarations[i] + ")").node();
+        final String sql = original.toSqlString(AnsiSqlDialect.DEFAULT).getSql();
+        final SqlCreateTable copy = (SqlCreateTable) f.sql(sql).node();
+        final SqlColumnDeclaration column =
+            (SqlColumnDeclaration) requireNonNull(original.columnList).get(0);
+        final SqlColumnDeclaration restored =
+            (SqlColumnDeclaration) requireNonNull(copy.columnList).get(0);
+        final RelDataType type = column.dataType.deriveType(validator);
+        assertEquals(type, restored.dataType.deriveType(validator));
+        assertEquals(i == 0 ? nullableKeys : i == 1,
+            requireNonNull(type.getKeyType()).isNullable());
+        assertEquals(i != 1, requireNonNull(type.getValueType()).isNullable());
+        assertEquals(SqlTypeName.INTEGER, requireNonNull(type.getKeyType()).getSqlTypeName());
+        assertEquals(SqlTypeName.VARCHAR, requireNonNull(type.getValueType()).getSqlTypeName());
+        assertEquals(20, requireNonNull(type.getValueType()).getPrecision());
+      }
+    }
   }
 
   @Test void testCreateOrReplaceSchema() {

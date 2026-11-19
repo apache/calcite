@@ -99,6 +99,48 @@ import static java.util.Objects.requireNonNull;
  * Utility methods related to validation.
  */
 public class SqlValidatorUtil {
+  /** Validates an ordering key after the caller has resolved its scope. */
+  public static void validateGeographyOrderKey(SqlValidator validator,
+      SqlValidatorScope scope, SqlNode item) {
+    final SqlNode key = SqlUtil.stripOrderModifiers(item);
+    validateGeographyOrderKey(validator, key, validator.deriveType(scope, key));
+  }
+
+  static void validateGeographyOrderKey(SqlValidator validator, SqlNode key, RelDataType type) {
+    if (SqlTypeUtil.containsGeography(type)) {
+      throw validator.newValidationError(key, RESOURCE.geographyOrderKey());
+    }
+  }
+
+  /** Validates a key for an operation that requires value equality and hashing. */
+  public static void validateGeographyHashKey(SqlValidator validator, SqlNode node,
+      RelDataType type, String context) {
+    if (SqlTypeUtil.containsGeography(type)) {
+      throw validator.newValidationError(node, RESOURCE.geographyHashKey(context));
+    }
+  }
+
+  /** Rejects GEOGRAPHY keys in any MAP contained in a validated type. */
+  static void validateGeographyMapKeys(SqlValidator validator, SqlNode node, RelDataType type) {
+    final RelDataType key = type.getKeyType();
+    if (key != null) {
+      validateGeographyHashKey(validator, node, key, "MAP");
+    }
+    final RelDataType value = type.getValueType();
+    if (value != null) {
+      validateGeographyMapKeys(validator, node, value);
+    }
+    final RelDataType component = type.getComponentType();
+    if (component != null) {
+      validateGeographyMapKeys(validator, node, component);
+    }
+    if (type.isStruct()) {
+      for (RelDataTypeField field : type.getFieldList()) {
+        validateGeographyMapKeys(validator, node, field.getType());
+      }
+    }
+  }
+
   private SqlValidatorUtil() {}
 
   //~ Methods ----------------------------------------------------------------

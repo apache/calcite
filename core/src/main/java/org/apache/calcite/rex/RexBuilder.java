@@ -2149,6 +2149,8 @@ public class RexBuilder {
 
   private static Comparable<?> zeroValue(RelDataType type) {
     switch (type.getSqlTypeName()) {
+    case GEOGRAPHY:
+      throw new UnsupportedOperationException("GEOGRAPHY has no non-null default value");
     case CHAR:
       return new NlsString(Spaces.of(type.getPrecision()), null, null);
     case VARCHAR:
@@ -2241,6 +2243,9 @@ public class RexBuilder {
       boolean allowCast, boolean trim) {
     if (value == null) {
       return makeCast(type, constantNull);
+    }
+    if (type.getSqlTypeName() == SqlTypeName.GEOGRAPHY) {
+      throw new UnsupportedOperationException("Non-null GEOGRAPHY literals are not supported");
     }
     if (type.isNullable()) {
       final RelDataType typeNotNull =

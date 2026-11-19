@@ -905,6 +905,7 @@ FRAC_SECOND,
 G,
 GENERAL,
 GENERATED,
+GEOGRAPHY,
 GEOMETRY,
 **GET**,
 **GLOBAL**,
@@ -1446,6 +1447,7 @@ name will have been converted to upper case also.
 | TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP WITH TIME ZONE '1969-07-20 20:17:40 America/Los Angeles'
 | UUID        | An 128-bit UUID           | Example: UUID '123e4567-e89b-12d3-a456-426655440000'. A string converts to a `UUID` if it holds 32 hexadecimal digits of either case, optionally enclosed in braces, optionally separated by a hyphen after any complete group of four digits; a binary converts if it is exactly 16 bytes. Anything else is an error. Blanks are not trimmed.
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1-5' YEAR TO MONTH, INTERVAL '45' DAY, INTERVAL '1 2:34:56.789' DAY TO SECOND
+| GEOGRAPHY | Geography type for validation and planning | Example: `CAST(NULL AS GEOGRAPHY)`
 | GEOMETRY | Geometry | Examples: ST_GeomFromText('POINT (30 10)')
 
 Where:
@@ -1464,10 +1466,52 @@ Note:
   it will rely on the supplied time zone to provide correct semantics.
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
+* GEOGRAPHY is available in `BABEL` and `LENIENT` conformance.
+  See [GEOGRAPHY](#geography) for the type and execution rules.
 * Interval literals may only use time units
   YEAR, QUARTER, MONTH, WEEK, DAY, HOUR, MINUTE and SECOND. In certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
   we also allow their plurals, YEARS, QUARTERS, MONTHS, WEEKS, DAYS, HOURS, MINUTES and SECONDS.
+
+### GEOGRAPHY
+
+Use `GEOGRAPHY` as a type name with
+[conformance that enables it]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeography()).
+It is a non-reserved keyword. Column names and aliases may use the word
+`geography` under default conformance as well.
+
+`CAST(NULL AS GEOGRAPHY)` produces a nullable `GEOGRAPHY` value.
+The type name takes no parameters, and SQL has no non-NULL geography literal
+syntax. Casts between geography and the same type are valid. Casts between
+geography and concrete geometry, character, or binary types are rejected in
+both directions. These concrete cast rules apply inside supported collection
+and row types as well.
+
+`CASE`, `COALESCE`, and `UNION ALL` preserve `GEOGRAPHY` when their
+concrete inputs are geography and their remaining inputs are NULL.
+Nullability follows the corresponding expression or set operation.
+Geography can be an element of an `ARRAY` or `MULTISET`, a `MAP` value,
+or a `ROW` field. A nested geography leaf retains its type and nullability.
+
+Equality between two geography expressions can be validated. Ordinary equality
+produces nullable `BOOLEAN` when an operand is nullable, while
+`IS [NOT] DISTINCT FROM` produces non-nullable `BOOLEAN`. Calcite's local
+execution rejects geography equality and equality-dependent collection
+operations. Ordering operators and ordering keys reject geography, including
+nested geography leaves. Geography is also rejected as a key for `DISTINCT`,
+`GROUP BY`, deduplicating set operations, window partitioning, and `MAP` keys.
+
+The local engine can return a typed NULL and run the
+[structural geography accessors](spatial.html#geography-type) on values
+supplied by a geography-aware table. Non-NULL SQL literals and non-NULL
+default values are unsupported.
+`GEOGRAPHY` has its own type identity and uses the JDBC type code `Types.OTHER`.
+
+Calcite preserves its generic cast eligibility rules for `ANY`, `UNKNOWN`,
+and `VARIANT`. Type-level eligibility does not establish an executable
+local conversion between geography and a VARIANT value. Likewise, JDBC
+`Types.OTHER` describes type metadata; non-NULL geography transport through
+JDBC or Avatica requires an adapter-specific value contract.
 
 ### Non-scalar types
 
@@ -1856,7 +1900,7 @@ typeName:
   |   compoundIdentifier
 
 mapTypeName:
-  MAP '<' type ',' type '>'
+  MAP '<' type [ NULL | NOT NULL ] ',' type [ NULL | NOT NULL ] '>'
 
 sqlTypeName:
       char [ precision ] [ charSet ]
@@ -1864,6 +1908,7 @@ sqlTypeName:
   |   DATE
   |   time
   |   timestamp
+  |   GEOGRAPHY
   |   GEOMETRY
   |   decimal [ precision [, scale] ]
   |   BOOLEAN

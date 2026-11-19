@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.runtime.GeographyValue;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
@@ -229,6 +230,8 @@ public class JavaTypeFactoryImpl
         return UuidValue.class;
       case GEOMETRY:
         return Geometry.class;
+      case GEOGRAPHY:
+        return GeographyValue.class;
       case SYMBOL:
         return Enum.class;
       case ANY:

@@ -377,7 +377,8 @@ public class RelJson {
       final Map<String, Object> map = (Map<String, Object>) o;
       final RelDataType type = getRelDataType(typeFactory, map);
       final boolean nullable = get(map, "nullable");
-      return typeFactory.createTypeWithNullability(type, nullable);
+      // ROW fields have their own serialized nullability.
+      return typeFactory.enforceTypeWithNullability(type, nullable);
     } else {
       final SqlTypeName sqlTypeName =
           requireNonNull(Util.enumVal(SqlTypeName.class, (String) o),

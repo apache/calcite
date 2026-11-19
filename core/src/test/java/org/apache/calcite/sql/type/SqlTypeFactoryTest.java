@@ -19,25 +19,37 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -45,6 +57,199 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Test for {@link SqlTypeFactoryImpl}.
  */
 class SqlTypeFactoryTest {
+
+  @Test void testGeographyTypeRegistration() {
+    RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    RelDataType geometry = factory.createSqlType(SqlTypeName.GEOMETRY);
+    RelDataType uuid = factory.createSqlType(SqlTypeName.UUID);
+
+    assertSame(SqlTypeName.GEOGRAPHY, SqlTypeName.get("GEOGRAPHY"));
+    assertSame(SqlTypeName.GEOGRAPHY, geography.getSqlTypeName());
+    assertSame(SqlTypeFamily.GEOGRAPHY, geography.getFamily());
+    assertEquals(Types.OTHER, geography.getSqlTypeName().getJdbcOrdinal());
+    assertNull(SqlTypeName.getNameForJdbcType(Types.OTHER));
+    assertNull(SqlTypeFamily.getFamilyForJdbcType(Types.OTHER));
+    assertFalse(SqlTypeName.GEOGRAPHY.allowsPrec());
+    assertFalse(SqlTypeName.GEOGRAPHY.allowsScale());
+    assertEquals(RelDataType.PRECISION_NOT_SPECIFIED, geography.getPrecision());
+    assertEquals(RelDataType.SCALE_NOT_SPECIFIED, geography.getScale());
+    assertTrue(SqlTypeFamily.GEOGRAPHY.contains(geography));
+    assertFalse(SqlTypeFamily.GEOGRAPHY.contains(geometry));
+    assertFalse(SqlTypeFamily.GEO.contains(geography));
+    assertSame(geography, SqlTypeFamily.GEOGRAPHY.getDefaultConcreteType(factory));
+    assertNotEquals(geometry, geography);
+    assertNotEquals(geometry.hashCode(), geography.hashCode());
+    assertNotSame(geometry, geography);
+    assertEquals(Types.OTHER, uuid.getSqlTypeName().getJdbcOrdinal());
+    assertNotEquals(uuid, geography);
+    assertNotSame(uuid, geography);
+  }
+
+  @Test void testGeographyTypeCopiesAndNullability() {
+    RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataTypeFactory otherFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    RelDataType nullable = factory.createTypeWithNullability(geography, true);
+
+    assertFalse(geography.isNullable());
+    assertTrue(nullable.isNullable());
+    assertSame(SqlTypeName.GEOGRAPHY, nullable.getSqlTypeName());
+    assertSame(SqlTypeFamily.GEOGRAPHY, nullable.getFamily());
+    assertSame(geography, factory.createTypeWithNullability(nullable, false));
+    assertNotEquals(geography, nullable);
+    assertEquals("GEOGRAPHY", geography.toString());
+    assertEquals("GEOGRAPHY NOT NULL", geography.getFullTypeString());
+    assertEquals("GEOGRAPHY", nullable.getFullTypeString());
+    assertEquals("GEOGRAPHY NOT NULL",
+        SqlTypeUtil.asSqlType(geography, SqlTypeUtil.NullabilityDisplay.DisplayNonNullability));
+
+    for (RelDataType type : ImmutableList.of(geography, nullable)) {
+      assertSame(type, factory.copyType(type));
+      RelDataType copy = otherFactory.copyType(type);
+      assertSame(SqlTypeName.GEOGRAPHY, copy.getSqlTypeName());
+      assertSame(SqlTypeFamily.GEOGRAPHY, copy.getFamily());
+      assertEquals(type.isNullable(), copy.isNullable());
+      assertEquals(type, copy);
+      assertEquals(type.hashCode(), copy.hashCode());
+      assertEquals(type.getFullTypeString(), copy.getFullTypeString());
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testNestedGeographyTypeCopies(boolean nullable) {
+    RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataTypeFactory otherFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType geography =
+        factory.createTypeWithNullability(factory.createSqlType(SqlTypeName.GEOGRAPHY), nullable);
+    RelDataType array = factory.createArrayType(geography, -1);
+    RelDataType multiset = factory.createMultisetType(geography, -1);
+    RelDataType map = factory.createMapType(factory.createSqlType(SqlTypeName.INTEGER), geography);
+    RelDataType row = factory.builder().add("g", geography).build();
+
+    assertEquals(geography, array.getComponentType());
+    assertEquals(geography, multiset.getComponentType());
+    assertEquals(geography, map.getValueType());
+    assertEquals(geography, row.getFieldList().get(0).getType());
+    assertEquals(geography, otherFactory.copyType(array).getComponentType());
+    assertEquals(geography, otherFactory.copyType(multiset).getComponentType());
+    assertEquals(geography, otherFactory.copyType(map).getValueType());
+    assertEquals(geography, otherFactory.copyType(row).getFieldList().get(0).getType());
+  }
+
+  @Test void testGeographyRejectsPrecisionAndScale() {
+    RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    assertSame(factory.createSqlType(SqlTypeName.GEOGRAPHY),
+        factory.createSqlType(SqlTypeName.GEOGRAPHY, RelDataType.PRECISION_NOT_SPECIFIED));
+    assertThrows(AssertionError.class, () -> factory.createSqlType(SqlTypeName.GEOGRAPHY, 1));
+    assertThrows(AssertionError.class, () -> factory.createSqlType(SqlTypeName.GEOGRAPHY, 1, 0));
+    assertThrows(AssertionError.class,
+        () -> factory.createSqlType(SqlTypeName.GEOGRAPHY,
+            RelDataType.PRECISION_NOT_SPECIFIED, 0));
+  }
+
+  @Test void testGeographyCommonTypes() {
+    RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    RelDataType nullableGeography = factory.createTypeWithNullability(geography, true);
+    RelDataType integer = factory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType date = factory.createSqlType(SqlTypeName.DATE);
+    RelDataType nullType = factory.createSqlType(SqlTypeName.NULL);
+    assertEquals(nullableGeography,
+        factory.leastRestrictive(ImmutableList.of(geography, nullType)));
+    assertNull(factory.leastRestrictive(ImmutableList.of(integer, date, geography)));
+
+    RelDataType geometry = factory.createSqlType(SqlTypeName.GEOMETRY);
+    for (Function<RelDataType, RelDataType> container
+        : ImmutableList.<Function<RelDataType, RelDataType>>of(
+            leaf -> factory.createArrayType(leaf, -1),
+            leaf -> factory.createMapType(integer, leaf),
+            leaf -> factory.builder().add("G", leaf).build(),
+            leaf -> factory.createMultisetType(leaf, -1))) {
+      RelDataType notNullLeaf = container.apply(geography);
+      RelDataType nullableLeaf = container.apply(nullableGeography);
+      RelDataType geometryLeaf = container.apply(geometry);
+      assertEquals(nullableLeaf,
+          factory.leastRestrictive(ImmutableList.of(notNullLeaf, nullableLeaf)));
+      assertNull(factory.leastRestrictive(ImmutableList.of(notNullLeaf, geometryLeaf)));
+      assertNull(factory.leastRestrictive(ImmutableList.of(geometryLeaf, notNullLeaf)));
+      assertTrue(SqlTypeUtil.canAssignFrom(notNullLeaf, nullableLeaf));
+      assertFalse(SqlTypeUtil.canAssignFrom(notNullLeaf, geometryLeaf));
+      assertFalse(SqlTypeUtil.canAssignFrom(geometryLeaf, notNullLeaf));
+    }
+
+    RelDataType record = factory.builder().add("G", geography).build();
+    RelDataType nullableField = factory.builder().add("G", nullableGeography).build();
+    RelDataType common =
+        factory.leastRestrictive(ImmutableList.of(nullType, nullableField, record));
+    assertEquals(factory.createTypeWithNullability(nullableField, true), common);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testGeographyGenericCastEligibility(boolean coerce) {
+    RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    for (RelDataType generic : ImmutableList.of(factory.createSqlType(SqlTypeName.ANY),
+        factory.createUnknownType(), factory.createSqlType(SqlTypeName.VARIANT))) {
+      assertTrue(SqlTypeUtil.canCastFrom(geography, generic, coerce));
+      assertTrue(SqlTypeUtil.canCastFrom(generic, geography, coerce));
+    }
+  }
+
+  @Test void testGeographyCustomCastRule() {
+    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    final RelDataType integer = factory.createSqlType(SqlTypeName.INTEGER);
+    final ImmutableMap.Builder<SqlTypeName, ImmutableSet<SqlTypeName>> rules =
+        ImmutableMap.builder();
+    for (SqlTypeName name : SqlTypeName.values()) {
+      rules.put(name, ImmutableSet.copyOf(SqlTypeName.values()));
+    }
+    final SqlTypeMappingRule permissive = () -> rules.build();
+    for (Function<RelDataType, RelDataType> container
+        : ImmutableList.<Function<RelDataType, RelDataType>>of(
+            leaf -> leaf,
+            leaf -> factory.createArrayType(leaf, -1),
+            leaf -> factory.createMapType(integer, leaf),
+            leaf -> factory.builder().add("V", leaf).build(),
+            leaf -> factory.createMultisetType(leaf, -1))) {
+      final RelDataType target = container.apply(geography);
+      assertTrue(SqlTypeUtil.canCastFrom(target, target, permissive));
+      assertTrue(
+          SqlTypeUtil.canCastFrom(target, factory.createSqlType(SqlTypeName.NULL),
+          permissive));
+      for (SqlTypeName name
+          : ImmutableList.of(SqlTypeName.GEOMETRY, SqlTypeName.VARCHAR, SqlTypeName.VARBINARY)) {
+        final RelDataType other = container.apply(factory.createSqlType(name));
+        assertFalse(SqlTypeUtil.canCastFrom(target, other, permissive));
+        assertFalse(SqlTypeUtil.canCastFrom(other, target, permissive));
+      }
+    }
+  }
+
+  @Test void testOrdinaryRowCommonTypeWithNull() {
+    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType row = factory.builder().add("I", SqlTypeName.INTEGER)
+        .add("S", SqlTypeName.VARCHAR, 20).nullable(true).build();
+    final RelDataType nullType = factory.createSqlType(SqlTypeName.NULL);
+    final RelDataType expected = factory.createTypeWithNullability(row, true);
+    assertFalse(row.isNullable());
+    assertFalse(row.getFieldList().get(0).getType().isNullable());
+    assertTrue(row.getFieldList().get(1).getType().isNullable());
+    for (List<RelDataType> inputs : ImmutableList.of(ImmutableList.of(row, nullType),
+        ImmutableList.of(nullType, row))) {
+      final RelDataType result = factory.leastRestrictive(inputs);
+      assertEquals(expected, result);
+      assertTrue(result.isNullable());
+      assertTrue(result.getFieldList().get(0).getType().isNullable());
+      assertTrue(result.getFieldList().get(1).getType().isNullable());
+    }
+    final RelDataType incompatible = factory.builder().add("I", SqlTypeName.INTEGER).build();
+    assertNull(factory.leastRestrictive(ImmutableList.of(row, nullType, incompatible)));
+    assertNull(factory.leastRestrictive(ImmutableList.of(incompatible, nullType, row)));
+  }
 
   @Test void testLeastRestrictiveWithAny() {
     SqlTypeFixture f = new SqlTypeFixture();

@@ -822,9 +822,11 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
+        literal = (RexLiteral) rex;
         return preservesLiteralTypes()
-            ? SqlImplementor.toSql(program, (RexLiteral) rex, dialect)
-            : SqlImplementor.toSql(program, (RexLiteral) rex);
+            || (literal.isNull() && SqlTypeUtil.containsGeography(literal.getType()))
+            ? SqlImplementor.toSql(program, literal, dialect)
+            : SqlImplementor.toSql(program, literal);
 
       case CASE:
         final RexCall caseCall = (RexCall) rex;

@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -449,7 +450,9 @@ public abstract class RelDataTypeImpl
   }
 
   @Override public RelDataTypeComparability getComparability() {
-    return RelDataTypeComparability.ALL;
+    return SqlTypeUtil.containsGeography(this)
+        ? RelDataTypeComparability.UNORDERED
+        : RelDataTypeComparability.ALL;
   }
 
   /**
