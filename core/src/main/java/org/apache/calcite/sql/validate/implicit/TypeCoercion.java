@@ -94,6 +94,11 @@ public interface TypeCoercion {
 
   /**
    * Determines common type for a comparison operator.
+   *
+   * <p>{@link org.apache.calcite.sql2rel.SqlToRelConverter} calls this method
+   * for each column of a {@code NATURAL JOIN} or {@code JOIN USING} without
+   * going through {@link #binaryComparisonCoercion}: it casts both columns to
+   * the returned type, and compares them uncast when it returns {@code null}.
    */
   @Nullable RelDataType commonTypeForBinaryComparison(
       @Nullable RelDataType type1, @Nullable RelDataType type2);
