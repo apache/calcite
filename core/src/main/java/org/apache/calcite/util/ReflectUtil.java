@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -588,6 +589,105 @@ public abstract class ReflectUtil {
       }
     }
     return false;
+  }
+
+  /** Derives whether the {@code i}th parameter of a method is nullable.
+   *
+   * <p>Nullness is a property of the parameter type, and is determined from
+   * <a href="https://jspecify.dev/">JSpecify</a> type-use annotations only:
+   *
+   * <ul>
+   *   <li>If the parameter type is annotated
+   *       {@code org.jspecify.annotations.Nullable}, returns true; if it is
+   *       annotated {@code org.jspecify.annotations.NonNull}, returns
+   *       false.</li>
+   *   <li>Otherwise, an unannotated reference type is non-null only inside a
+   *       null-marked scope: the innermost {@code @NullMarked} or
+   *       {@code @NullUnmarked} annotation on the method, an enclosing class,
+   *       the package, or the module decides. Outside a null-marked scope,
+   *       reference types are nullable, which is the historical default, so
+   *       user-defined functions without JSpecify annotations keep their
+   *       types.</li>
+   *   <li>Primitive types are never nullable.</li>
+   * </ul>
+   *
+   * <p>Note that nullness affects only the type reported for the parameter.
+   * The validator does not reject a call that passes NULL to a parameter whose
+   * type is NOT NULL.
+   */
+  public static boolean isParameterNullable(Method method, int i) {
+    final Class<?> type = method.getParameterTypes()[i];
+    if (type.isPrimitive()) {
+      return false;
+    }
+    // JSpecify @Nullable and @NonNull are TYPE_USE annotations, so they are
+    // not returned by getParameterAnnotations(); read the annotated parameter
+    // type instead. Matching is by fully qualified name, so this does not
+    // require a dependency on JSpecify.
+    for (Annotation annotation
+        : method.getAnnotatedParameterTypes()[i].getAnnotations()) {
+      final String name = annotation.annotationType().getName();
+      if (name.equals("org.jspecify.annotations.Nullable")) {
+        return true;
+      } else if (name.equals("org.jspecify.annotations.NonNull")) {
+        return false;
+      }
+    }
+    return !isNullMarked(method);
+  }
+
+  /** Returns whether {@code method} is in a JSpecify null-marked scope: the
+   * innermost {@code @NullMarked} or {@code @NullUnmarked} annotation on the
+   * method, an enclosing class, the package, or the module is
+   * {@code @NullMarked}. Returns false if there is no such annotation. */
+  private static boolean isNullMarked(Method method) {
+    Boolean marked = nullMarked(method);
+    if (marked != null) {
+      return marked;
+    }
+    for (Class<?> c = method.getDeclaringClass(); c != null;
+        c = c.getEnclosingClass()) {
+      marked = nullMarked(c);
+      if (marked != null) {
+        return marked;
+      }
+    }
+    final Class<?> declaringClass = method.getDeclaringClass();
+    final Package pkg = declaringClass.getPackage();
+    if (pkg != null) {
+      marked = nullMarked(pkg);
+      if (marked != null) {
+        return marked;
+      }
+    }
+    // Module annotations are reachable only via reflection, because the code
+    // targets Java 8, where Class.getModule() does not exist.
+    try {
+      final Object module =
+          Class.class.getMethod("getModule").invoke(declaringClass);
+      marked = nullMarked((AnnotatedElement) castNonNull(module));
+      if (marked != null) {
+        return marked;
+      }
+    } catch (ReflectiveOperationException e) {
+      // Running on Java 8, which has no modules
+    }
+    return false;
+  }
+
+  /** Returns TRUE if {@code element} is annotated JSpecify {@code @NullMarked},
+   * FALSE if it is annotated {@code @NullUnmarked}, and null if it has
+   * neither. */
+  private static @Nullable Boolean nullMarked(AnnotatedElement element) {
+    for (Annotation annotation : element.getAnnotations()) {
+      final String name = annotation.annotationType().getName();
+      if (name.equals("org.jspecify.annotations.NullMarked")) {
+        return true;
+      } else if (name.equals("org.jspecify.annotations.NullUnmarked")) {
+        return false;
+      }
+    }
+    return null;
   }
 
   /** Returns whether a parameter of a given type could possibly have an

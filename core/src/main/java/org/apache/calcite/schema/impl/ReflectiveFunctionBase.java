@@ -132,14 +132,23 @@ public abstract class ReflectiveFunctionBase implements Function {
       return add(type, name, false);
     }
 
+    /** Adds a parameter, deriving nullability from the Java type.
+     *
+     * <p>The parameter type is nullable unless the type is primitive. */
     public ParameterListBuilder add(final Class<?> type, final String name,
         final boolean optional) {
+      return add(type, name, optional, !type.isPrimitive());
+    }
+
+    private ParameterListBuilder add(final Class<?> type, final String name,
+        final boolean optional, final boolean nullable) {
       final int ordinal = builder.size();
       builder.add(
           new FunctionParameter() {
             @Override public String toString() {
               return ordinal + ": " + name + " " + type.getSimpleName()
-                  + (optional ? "?" : "");
+                  + (optional ? "?" : "")
+                  + (nullable ? "" : " NOT NULL");
             }
 
             @Override public int getOrdinal() {
@@ -151,7 +160,8 @@ public abstract class ReflectiveFunctionBase implements Function {
             }
 
             @Override public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return typeFactory.createJavaType(type);
+              final RelDataType javaType = typeFactory.createJavaType(type);
+              return typeFactory.createTypeWithNullability(javaType, nullable);
             }
 
             @Override public boolean isOptional() {
@@ -165,7 +175,8 @@ public abstract class ReflectiveFunctionBase implements Function {
       final Class<?>[] types = method.getParameterTypes();
       for (int i = 0; i < types.length; i++) {
         add(types[i], ReflectUtil.getParameterName(method, i),
-            ReflectUtil.isParameterOptional(method, i));
+            ReflectUtil.isParameterOptional(method, i),
+            ReflectUtil.isParameterNullable(method, i));
       }
       return this;
     }
