@@ -315,6 +315,12 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
     return asSql(prefix, suffix, AnsiSqlDialect.DEFAULT);
   }
 
+  /** As {@link #asSql(StringBuilder, boolean, boolean, SqlDialect)} but with
+   * SQL standard dialect. */
+  public void asSql(StringBuilder buf, boolean prefix, boolean suffix) {
+    asSql(buf, prefix, suffix, AnsiSqlDialect.DEFAULT);
+  }
+
   /**
    * Returns the string quoted for SQL, for example <code>_ISO-8859-1'is it a
    * plane? no it''s superman!'</code>.
@@ -329,16 +335,32 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       boolean suffix,
       SqlDialect dialect) {
     StringBuilder ret = new StringBuilder();
-    dialect.quoteStringLiteral(ret, prefix ? charsetName : null, getValue());
+    asSql(ret, prefix, suffix, dialect);
+    return ret.toString();
+  }
+
+  /**
+   * Appends this string quoted for SQL.
+   *
+   * @param buf Buffer to append to
+   * @param prefix if true, prefix the character set name
+   * @param suffix if true, suffix the collation clause
+   * @param dialect Dialect
+   */
+  public void asSql(
+      StringBuilder buf,
+      boolean prefix,
+      boolean suffix,
+      SqlDialect dialect) {
+    dialect.quoteStringLiteral(buf, prefix ? charsetName : null, getValue());
 
     // NOTE jvs 3-Feb-2005:  see FRG-78 for why this should go away
     if (false) {
       if (suffix && (null != collation)) {
-        ret.append(" ");
-        ret.append(collation.toString());
+        buf.append(" ");
+        buf.append(collation.toString());
       }
     }
-    return ret.toString();
   }
 
   /**
