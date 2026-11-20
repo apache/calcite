@@ -853,10 +853,10 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
-   * RelBuilder.fields(Iterable&lt;String&gt;) is slow if the input has many
-   * fields</a>. After a join, the input's field names repeat, and
-   * {@code fields} returns the first field with each name, as
-   * {@link RelBuilder#field(String)} does. */
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>. After a join,
+   * the input's field names repeat, and {@code fields} returns the first
+   * field with each name, as {@link RelBuilder#field(String)} does. */
   @Test void testFieldsByNameAfterJoin() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP")
@@ -874,10 +874,10 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
-   * RelBuilder.fields(Iterable&lt;String&gt;) is slow if the input has many
-   * fields</a>. The row type returns its dynamic star field for a name it
-   * does not have, but {@code fields} throws, as
-   * {@link RelBuilder#field(String)} does. */
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>. The row type
+   * returns its dynamic star field for a name it does not have, but
+   * {@code fields} throws, as {@link RelBuilder#field(String)} does. */
   @Test void testFieldsByNameWithDynamicStar() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
@@ -900,9 +900,10 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
-   * RelBuilder.fields(Iterable&lt;String&gt;) is slow if the input has many
-   * fields</a>. If the last field is "_extra", the row type returns a field
-   * for any name, but {@code fields} throws for a name it does not have, as
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>. If the last
+   * field is "_extra", the row type returns a field for any name, but
+   * {@code fields} throws for a name it does not have, as
    * {@link RelBuilder#field(String)} does. */
   @Test void testFieldsByNameWithExtraField() {
     final RelBuilder builder = RelBuilder.create(config().build());
@@ -924,8 +925,8 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
-   * RelBuilder.fields(Iterable&lt;String&gt;) is slow if the input has many
-   * fields</a>.
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>.
    *
    * <p>Looking up all fields of a 100,000-field input takes about 25 seconds
    * before the fix and 20 milliseconds after. */
