@@ -72,6 +72,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -741,11 +742,55 @@ public class RelBuilder {
 
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
+    final List<String> names = new ArrayList<>();
+    Iterables.addAll(names, fieldNames);
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (String fieldName : fieldNames) {
+    if (names.size() > 2) {
+      // A RelRecordType with more than 20 fields keeps a map from name to
+      // field; use it if the input has the row type's field names
+      final Frame frame = peek_(1, 0);
+      final RelDataType rowType = frame.rel.getRowType();
+      final List<RelDataTypeField> rowFields = rowType.getFieldList();
+      if (rowType instanceof RelRecordType
+          && rowFields.size() > 20
+          && sameFieldNames(frame.fields(), rowFields)) {
+        for (String fieldName : names) {
+          final RelDataTypeField field =
+              rowType.getField(fieldName, true, false);
+          // For a name it does not have, getField may return a field with
+          // index -1 ("_extra") or another name (a dynamic star)
+          if (field != null
+              && field.getIndex() >= 0
+              && field.getName().equals(fieldName)) {
+            builder.add(field(1, 0, field.getIndex()));
+          } else {
+            builder.add(field(fieldName));
+          }
+        }
+        return builder.build();
+      }
+    }
+    for (String fieldName : names) {
       builder.add(field(fieldName));
     }
     return builder.build();
+  }
+
+  /** Returns whether two lists of fields have the same names in the same
+   * order. */
+  private static boolean sameFieldNames(List<RelDataTypeField> fields1,
+      List<RelDataTypeField> fields2) {
+    if (fields1.size() != fields2.size()) {
+      return false;
+    }
+    for (int i = 0; i < fields1.size(); i++) {
+      final RelDataTypeField field1 = fields1.get(i);
+      final RelDataTypeField field2 = fields2.get(i);
+      if (field1 != field2 && !field1.getName().equals(field2.getName())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Returns references to fields identified by a mapping. */

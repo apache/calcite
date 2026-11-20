@@ -849,6 +849,86 @@ public class RelBuilderTest {
     }
   }
 
+  /** Tests {@link RelBuilder#fields(Iterable)} with more than two names. Like
+   * {@link RelBuilder#field(String)}, it returns the first field with each
+   * name, and throws the same error for an unknown name. */
+  @Test void testFieldsByName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // The input's names repeat; the join's row type makes them unique
+    builder.scan("EMP")
+        .scan("EMP")
+        .join(JoinRelType.INNER, builder.literal(true))
+        .scan("EMP")
+        .join(JoinRelType.INNER, builder.literal(true));
+    assertThat(builder.fields(ImmutableList.of("SAL", "ENAME", "DEPTNO", "SAL")),
+        hasToString("[$5, $1, $7, $5]"));
+    final String empFields =
+        "EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO";
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.fields(ImmutableList.of("SAL", "ENAME", "DEPTNO0")));
+    assertThat(e.getMessage(),
+        is("field [DEPTNO0] not found; input fields are: [" + empFields
+            + ", " + empFields + ", " + empFields + "]"));
+
+    // The input has its row type's names; the last field is a dynamic star
+    builder.clear();
+    builder.scan("EMP");
+    final List<RexNode> projects = new ArrayList<>();
+    final List<String> names = new ArrayList<>();
+    for (int i = 0; i < 30; i++) {
+      projects.add(builder.field(i % 8));
+      names.add("F" + i);
+    }
+    projects.add(
+        builder.getRexBuilder().makeNullLiteral(
+            builder.getTypeFactory().createSqlType(SqlTypeName.DYNAMIC_STAR)));
+    names.add("**");
+    builder.project(projects, names);
+    assertThat(builder.fields(ImmutableList.of("F29", "F0", "F29", "**")),
+        hasToString("[$29, $0, $29, $30]"));
+    e = assertThrows(IllegalArgumentException.class, () ->
+        builder.fields(ImmutableList.of("F1", "F2", "f3")));
+    assertThat(e.getMessage(),
+        is("field [f3] not found; input fields are: " + names));
+
+    // The last field is "_extra"
+    builder.clear();
+    builder.scan("EMP");
+    projects.set(30, builder.field(0));
+    names.set(30, "_extra");
+    builder.project(projects, names);
+    e = assertThrows(IllegalArgumentException.class, () ->
+        builder.fields(ImmutableList.of("F1", "F2", "f3")));
+    assertThat(e.getMessage(),
+        is("field [f3] not found; input fields are: " + names));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>.
+   *
+   * <p>Since this is a performance problem, the result does not change, but
+   * the call to {@code fields} takes about 5 seconds before the fix and
+   * 20 milliseconds after. */
+  @Test void testFieldsByNameOnWideInput() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final int n = 50_000;
+    builder.scan("EMP");
+    final List<RexNode> projects = new ArrayList<>();
+    final List<String> names = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      projects.add(builder.field(i % 8));
+      names.add("F" + i);
+    }
+    builder.project(projects, names);
+    final List<RexNode> fields = builder.fields(names);
+    assertThat(fields, hasSize(n));
+    assertThat(fields.get(0), hasToString("$0"));
+    assertThat(fields.get(n - 1), hasToString("$" + (n - 1)));
+  }
+
   @Test void testBadType() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {
