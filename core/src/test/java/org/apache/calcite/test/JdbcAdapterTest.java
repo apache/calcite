@@ -328,23 +328,86 @@ class JdbcAdapterTest {
             + "WHERE \"t0\".\"i\" IS NULL AND \"t\".\"ck\" >= \"t\".\"c\" OR \"t\".\"c\" = 0");
   }
 
-  @Test void testNotPushDownNotIn() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6401">[CALCITE-6401]
+   * JdbcAdapter cannot push down NOT IN sub-queries</a>. */
+  @Test void testPushDownNotInMultiColumn() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select * from dept where (deptno, dname) not in (select deptno, ename from emp)")
-        .explainContains("EnumerableNestedLoopJoin(condition=[AND(OR(IS NULL($5),"
-            + " =($0, $5)), OR(IS NULL($6), =($1, $6)))], joinType=[left])\n"
-            + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-            + "      JdbcToEnumerableConverter\n"
-            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
-            + "      EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])\n"
-            + "        JdbcToEnumerableConverter\n"
-            + "          JdbcProject($f2=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
-            + "            JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "    JdbcToEnumerableConverter\n"
-            + "      JdbcAggregate(group=[{0, 1}], i=[LITERAL_AGG(true)])\n"
-            + "        JdbcProject(DEPTNO=[$7], ENAME=[CAST($1):VARCHAR(14)])\n"
-            + "          JdbcFilter(condition=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
-            + "            JdbcTableScan(table=[[SCOTT, EMP]])\n\n");
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "    JdbcFilter(condition=[OR(=($3, 0), AND(IS NULL($7), >=($4, $3), IS NOT NULL($1)))])\n"
+            + "      JdbcJoin(condition=[AND(OR(IS NULL($5), =($0, $5)), OR(IS NULL($6), =($1, $6)))], joinType=[left])\n"
+            + "        JdbcJoin(condition=[true], joinType=[inner])\n"
+            + "          JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "          JdbcAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])\n"
+            + "            JdbcProject($f2=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
+            + "              JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "        JdbcAggregate(group=[{0, 1}], i=[LITERAL_AGG(true)])\n"
+            + "          JdbcProject(DEPTNO=[$7], ENAME=[CAST($1):VARCHAR(14)])\n"
+            + "            JdbcFilter(condition=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
+            + "              JdbcTableScan(table=[[SCOTT, EMP]])\n\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7124">[CALCITE-7124]
+   * JdbcAggregateRule should push aggregate functions FILTER clauses to
+   * underlying SQL via JDBC adapter</a>.
+   *
+   * <p>Tests that an aggregate with a FILTER clause is pushed down to the
+   * underlying SQL, and that a dialect without FILTER support (HSQLDB)
+   * receives an equivalent CASE expression. */
+  @Test void testAggregateFilterPushDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select sum(sal) filter (where deptno = 10) as s from emp")
+        .explainContains("JdbcAggregate(group=[{}], S=[SUM($0) FILTER $1])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT SUM(CASE WHEN CAST(\"DEPTNO\" AS INTEGER) = 10 IS TRUE THEN \"SAL\" "
+            + "ELSE NULL END) AS \"S\"\n"
+            + "FROM \"SCOTT\".\"EMP\"")
+        .returnsUnordered("S=8750.00");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7124">[CALCITE-7124]
+   * JdbcAggregateRule should push aggregate functions FILTER clauses to
+   * underlying SQL via JDBC adapter</a>.
+   *
+   * <p>Tests that COUNT(*) with a FILTER clause is pushed down as
+   * COUNT(CASE ...) to a dialect without FILTER support (HSQLDB). */
+  @Test void testAggregateCountFilterPushDownGrouped() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select deptno, count(*) filter (where sal > 1000) as c from emp"
+            + " group by deptno")
+        .explainContains("JdbcAggregate(group=[{0}], C=[COUNT() FILTER $1])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"DEPTNO\", COUNT(CASE WHEN CAST(\"SAL\" AS DECIMAL(12, 2)) > 1000.00 "
+            + "IS TRUE THEN 1 ELSE NULL END) AS \"C\"\n"
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "GROUP BY \"DEPTNO\"")
+        .returnsUnordered("DEPTNO=10; C=3", "DEPTNO=20; C=4", "DEPTNO=30; C=5");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7124">[CALCITE-7124]
+   * JdbcAggregateRule should push aggregate functions FILTER clauses to
+   * underlying SQL via JDBC adapter</a>.
+   *
+   * <p>Tests that an aggregate with a DISTINCT keyword and a FILTER clause
+   * is pushed down, and that the DISTINCT keyword is preserved in the
+   * generated SQL. */
+  @Test void testAggregateDistinctFilterPushDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select count(distinct deptno) filter (where sal > 1000) as c from emp")
+        .explainContains("JdbcAggregate(group=[{}], C=[COUNT(DISTINCT $0) FILTER $1])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT COUNT(DISTINCT CASE WHEN CAST(\"SAL\" AS DECIMAL(12, 2)) > 1000.00 "
+            + "IS TRUE THEN \"DEPTNO\" ELSE NULL END) AS \"C\"\n"
+            + "FROM \"SCOTT\".\"EMP\"")
+        .returnsUnordered("C=3");
   }
 
   /** Test case for
