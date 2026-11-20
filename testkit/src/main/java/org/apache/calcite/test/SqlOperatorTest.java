@@ -9327,6 +9327,8 @@ public class SqlOperatorTest {
       f.checkNull("array_union(cast(null as integer array), array[1])");
       f.checkNull("array_union(array[1], cast(null as integer array))");
       f.checkNull("array_union(cast(null as integer array), cast(null as integer array))");
+      f.checkScalarExact(
+          "cardinality(array_union(array[array[1.0]], array[array[1.00]]))", 1);
     };
     f0.forEachLibrary(libraries, consumer);
   }
@@ -13035,6 +13037,7 @@ public class SqlOperatorTest {
         + " multiset[cast(null as double)]", true);
     f.checkBoolean("cast(null as double) member of multiset[1.1]", false);
     f.checkBoolean("1.1 member of multiset[cast(null as double)]", false);
+    f.checkBoolean("1.00 member of multiset[1.0]", true);
   }
 
   @Test void testMultisetUnionOperator() {
