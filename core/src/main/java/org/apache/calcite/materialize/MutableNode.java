@@ -20,7 +20,7 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -69,7 +69,6 @@ class MutableNode {
   }
 
   /** Creates a non-root node. */
-  @SuppressWarnings("argument.type.incompatible")
   MutableNode(LatticeTable table, @Nullable MutableNode parent, @Nullable Step step) {
     this.table = requireNonNull(table, "table");
     this.parent = parent;

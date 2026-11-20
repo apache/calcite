@@ -44,6 +44,7 @@ val testPostgresql by configurations.creating(integrationTestConfig)
 val testMysql by configurations.creating(integrationTestConfig)
 
 dependencies {
+    api(project(":annotations"))
     api(project(":linq4j"))
 
     api("org.locationtech.jts:jts-core")
@@ -54,7 +55,7 @@ dependencies {
     api("com.google.guava:guava")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.apiguardian:apiguardian-api")
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("com.fasterxml.jackson.core:jackson-core")

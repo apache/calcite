@@ -19,7 +19,7 @@ package org.apache.calcite.schema;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Table that can be scanned without creating an intermediate relational

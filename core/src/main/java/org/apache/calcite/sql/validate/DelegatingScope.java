@@ -37,7 +37,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,7 +74,6 @@ public abstract class DelegatingScope implements SqlValidatorScope {
 
   /** Computes and stores information that cannot be computed on construction,
    * but only after sub-queries have been validated. */
-  @SuppressWarnings({"methodref.receiver.bound.invalid"})
   public final Supplier<AggregatingSelectScope.Resolved> resolved =
       Suppliers.memoize(this::resolve);
 
@@ -294,7 +293,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             RESOURCE.columnNotFound(columnName));
       case 1:
         tableName = map.keySet().iterator().next();
-        namespace = map.get(tableName).namespace;
+        namespace = requireNonNull(map.get(tableName), "tableName").namespace;
         break;
       default:
         throw validator.newValidationError(identifier,
@@ -422,7 +421,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       // change "e.empno" to "E.empno".
       if (fromNs.getEnclosingNode() != null
           && !(this instanceof MatchRecognizeScope)) {
-        @Nullable String alias =
+        String alias =
             SqlValidatorUtil.alias(fromNs.getEnclosingNode());
         if (alias != null
             && i > 0
@@ -694,7 +693,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       String name) {
     int n = 0;
     for (SqlNode s : getSelectList(select)) {
-      final @Nullable String alias = SqlValidatorUtil.alias(s);
+      final String alias = SqlValidatorUtil.alias(s);
       if (alias != null && nameMatcher.matches(alias, name)) {
         n++;
       }

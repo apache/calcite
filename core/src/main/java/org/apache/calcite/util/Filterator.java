@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -34,7 +34,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * @param <E> Element type
  */
-public class Filterator<E extends Object> implements Iterator<E> {
+public class Filterator<E> implements Iterator<E> {
   //~ Instance fields --------------------------------------------------------
 
   final Class<E> includeFilter;

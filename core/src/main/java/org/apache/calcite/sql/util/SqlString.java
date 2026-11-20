@@ -20,8 +20,7 @@ import org.apache.calcite.sql.SqlDialect;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -96,7 +95,6 @@ public class SqlString {
    *
    * @return indices of dynamic parameters
    */
-  @Pure
   public @Nullable ImmutableList<Integer> getDynamicParameters() {
     return dynamicParameters;
   }

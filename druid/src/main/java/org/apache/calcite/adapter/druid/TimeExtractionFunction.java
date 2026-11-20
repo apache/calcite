@@ -28,7 +28,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -68,12 +68,12 @@ public class TimeExtractionFunction implements ExtractionFunction {
           TimeUnitRange.SECOND);
 
   private final String format;
-  private final Granularity granularity;
+  private final @Nullable Granularity granularity;
   private final String timeZone;
-  private final String local;
+  private final @Nullable String local;
 
-  public TimeExtractionFunction(String format, Granularity granularity, String timeZone,
-      String local) {
+  public TimeExtractionFunction(String format, @Nullable Granularity granularity, String timeZone,
+      @Nullable String local) {
     this.format = format;
     this.granularity = granularity;
     this.timeZone = timeZone;
@@ -93,7 +93,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
   public String getFormat() {
     return format;
   }
-  public Granularity getGranularity() {
+  public @Nullable Granularity getGranularity() {
     return granularity;
   }
 
@@ -202,7 +202,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
     final RexCall rexCall = (RexCall) rexNode;
     final String castFormat = DruidSqlCastConverter
         .dateTimeFormatString(rexCall.getType().getSqlTypeName());
-    final String timeZoneId = timeZone == null ? null : timeZone.getID();
+    final String timeZoneId = timeZone.getID();
     if (castFormat == null) {
       // unknown format
       return null;

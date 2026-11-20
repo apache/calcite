@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.redis;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Define the data processing type of redis.
  */
@@ -43,7 +45,7 @@ public enum RedisDataFormat {
     this.typeName = typeName;
   }
 
-  public static RedisDataFormat fromTypeName(String typeName) {
+  public static @Nullable RedisDataFormat fromTypeName(String typeName) {
     for (RedisDataFormat type : RedisDataFormat.values()) {
       if (type.getTypeName().equals(typeName)) {
         return type;

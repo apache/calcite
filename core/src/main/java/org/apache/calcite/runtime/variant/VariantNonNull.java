@@ -24,11 +24,11 @@ import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 import org.apache.calcite.util.UuidValue;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
 import org.joou.UInteger;
 import org.joou.ULong;
 import org.joou.UShort;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -208,7 +208,7 @@ public class VariantNonNull extends VariantSqlValue {
         return this.value;
       } else {
         // Convert numeric values
-        @Nullable Primitive target = type.asPrimitive();
+        Primitive target = type.asPrimitive();
         switch (this.runtimeType) {
         case TINYINT: {
           byte b = (byte) value;
@@ -499,7 +499,7 @@ public class VariantNonNull extends VariantSqlValue {
           List<VariantSqlValue> list = (List<VariantSqlValue>) value;
           List<@Nullable Object> result = new ArrayList<>(list.size());
           for (VariantSqlValue o : list) {
-            @Nullable Object converted = o.cast(elementType);
+            Object converted = o.cast(elementType);
             result.add(converted);
           }
           return result;
@@ -515,8 +515,8 @@ public class VariantNonNull extends VariantSqlValue {
           LinkedHashMap<@Nullable Object, @Nullable Object> result =
               new LinkedHashMap<>(map.size());
           for (Map.Entry<VariantSqlValue, VariantSqlValue> e : map.entrySet()) {
-            @Nullable Object key = e.getKey().cast(keyType);
-            @Nullable Object value = e.getValue().cast(valueType);
+            Object key = e.getKey().cast(keyType);
+            Object value = e.getValue().cast(valueType);
             result.put(key, value);
           }
           return result;

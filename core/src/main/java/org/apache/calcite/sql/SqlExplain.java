@@ -19,8 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -31,7 +30,7 @@ import java.util.List;
 public class SqlExplain extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("EXPLAIN", SqlKind.EXPLAIN) {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
             SqlParserPos pos, @Nullable SqlNode... operands) {
           return new SqlExplain(pos, operands[0], (SqlLiteral) operands[1],
@@ -86,7 +85,7 @@ public class SqlExplain extends SqlCall {
     return ImmutableNullableList.of(explicandum, detailLevel, depth, format);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -109,7 +108,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Returns the underlying SQL statement to be explained.
    */
-  @Pure
   public SqlNode getExplicandum() {
     return explicandum;
   }
@@ -117,7 +115,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Return the detail level to be generated.
    */
-  @Pure
   public SqlExplainLevel getDetailLevel() {
     return detailLevel.getValueAs(SqlExplainLevel.class);
   }
@@ -125,7 +122,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Returns the level of abstraction at which this plan should be displayed.
    */
-  @Pure
   public Depth getDepth() {
     return depth.getValueAs(Depth.class);
   }
@@ -133,7 +129,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Returns the number of dynamic parameters in the statement.
    */
-  @Pure
   public int getDynamicParamCount() {
     return dynamicParameterCount;
   }
@@ -141,7 +136,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Returns whether physical plan implementation should be returned.
    */
-  @Pure
   public boolean withImplementation() {
     return getDepth() == Depth.PHYSICAL;
   }
@@ -149,7 +143,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Returns whether type should be returned.
    */
-  @Pure
   public boolean withType() {
     return getDepth() == Depth.TYPE;
   }
@@ -157,7 +150,6 @@ public class SqlExplain extends SqlCall {
   /**
    * Returns the desired output format.
    */
-  @Pure
   public SqlExplainFormat getFormat() {
     return format.getValueAs(SqlExplainFormat.class);
   }

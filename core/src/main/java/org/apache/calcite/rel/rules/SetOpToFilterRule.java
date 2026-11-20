@@ -30,8 +30,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -154,10 +154,10 @@ public class SetOpToFilterRule
     }
 
     int branchCount = 0;
-    for (Map.Entry<Pair<RelNode, @Nullable Integer>, List<@Nullable RexNode>> entry
+    for (Map.Entry<Pair<RelNode, Integer>, List<RexNode>> entry
         : sourceToConds.entrySet()) {
-      Pair<RelNode, @Nullable Integer> left = entry.getKey();
-      List<@Nullable RexNode> conds = entry.getValue();
+      Pair<RelNode, Integer> left = entry.getKey();
+      List<RexNode> conds = entry.getValue();
       // Single null condition indicates pass-through branch,
       // directly add its corresponding input to the new inputs list.
       if (conds.size() == 1 && conds.get(0) == null) {

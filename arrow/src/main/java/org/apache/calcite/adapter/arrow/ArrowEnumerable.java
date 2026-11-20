@@ -24,12 +24,14 @@ import org.apache.calcite.util.Util;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.types.pojo.Schema;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
  * Enumerable that reads from Arrow value-vectors.
  */
-class ArrowEnumerable extends AbstractEnumerable<Object> {
+class ArrowEnumerable extends AbstractEnumerable<@Nullable Object> {
   private final ArrowFileReader arrowFileReader;
   private final ImmutableIntList fields;
   private final List<List<List<String>>> conditions;
@@ -45,7 +47,7 @@ class ArrowEnumerable extends AbstractEnumerable<Object> {
     this.onClose = onClose;
   }
 
-  @Override public Enumerator<Object> enumerator() {
+  @Override public Enumerator<@Nullable Object> enumerator() {
     try {
       if (!conditions.isEmpty()) {
         return new ArrowFilterEnumerator(arrowFileReader, fields,

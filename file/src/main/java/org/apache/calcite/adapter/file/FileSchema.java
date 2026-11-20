@@ -30,7 +30,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -41,6 +41,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
@@ -187,7 +189,9 @@ class FileSchema extends AbstractSchema {
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Map<String, Object> tableDef) {
     final String tableName = (String) tableDef.get("name");
-    final String url = (String) tableDef.get("url");
+    final String url =
+        requireNonNull((String) tableDef.get("url"),
+            () -> "property 'url' is required for table " + tableName);
     checkUrlAllowed(url);
     final Source source0 = Sources.url(url);
     final Source source;
@@ -200,7 +204,7 @@ class FileSchema extends AbstractSchema {
   }
 
   private static boolean addTable(ImmutableMap.Builder<String, Table> builder,
-      Source source, String tableName, @Nullable Map<String, Object> tableDef) {
+      Source source, @Nullable String tableName, @Nullable Map<String, Object> tableDef) {
     final Source sourceSansGz = source.trim(".gz");
     final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
     if (sourceSansJson != null) {

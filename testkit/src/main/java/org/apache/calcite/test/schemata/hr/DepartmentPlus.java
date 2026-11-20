@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Timestamp;
 import java.util.List;

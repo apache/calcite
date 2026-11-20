@@ -18,4 +18,7 @@
 /**
  * Query provider based on an Elasticsearch2 DB.
  */
+@NullMarked
 package org.apache.calcite.adapter.elasticsearch;
+
+import org.jspecify.annotations.NullMarked;

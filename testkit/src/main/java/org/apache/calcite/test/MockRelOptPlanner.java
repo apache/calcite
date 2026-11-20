@@ -32,12 +32,14 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
@@ -46,10 +48,14 @@ import java.util.Map;
 public class MockRelOptPlanner extends AbstractRelOptPlanner {
   //~ Instance fields --------------------------------------------------------
 
+  /** Set by {@link #setRoot}, which every caller does first. */
+  @SuppressWarnings("NullAway.Init")
   private RelNode root;
 
   private @Nullable RelOptRule rule;
 
+  /** Set while a rule fires. */
+  @SuppressWarnings("NullAway.Init")
   private RelNode transformationResult;
 
   private long metadataTimestamp = 0L;
@@ -118,7 +124,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
       int ordinalInParent) {
     List<RelNode> bindings = new ArrayList<RelNode>();
     if (match(
-        rule.getOperand(),
+        requireNonNull(rule, "rule").getOperand(),
         rel,
         bindings)) {
       MockRuleCall call =
@@ -187,7 +193,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return rel;
   }
 
-  @Override public RelNode ensureRegistered(RelNode rel, RelNode equivRel) {
+  @Override public RelNode ensureRegistered(RelNode rel, @Nullable RelNode equivRel) {
     return rel;
   }
 

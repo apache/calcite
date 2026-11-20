@@ -224,32 +224,69 @@ push it.
 
 ## Null safety
 
-Apache Calcite uses the Checker Framework to avoid unexpected `NullPointerExceptions`.
-You might find a detailed documentation at https://checkerframework.org/
+Apache Calcite annotates its code with [JSpecify](https://jspecify.dev/) and verifies it with
+[NullAway](https://github.com/uber/NullAway) to avoid unexpected `NullPointerExceptions`.
 
-Note: only main code is verified for now, so nullness annotation is not enforced in test code.
+NullAway verifies the `main` and `jmh` source sets of the modules listed in `nullawayProjects` in
+the root `build.gradle.kts`; `:ubenchmark` keeps its code in `jmh`. Test code is not verified.
 
-To execute the Checker Framework locally please use the following command:
+Every package in those modules declares `@NullMarked` from `org.jspecify.annotations` in its
+`package-info.java`, which makes types non-nullable unless they are annotated `@Nullable`.
+A package annotation does not apply to subpackages, so a new package needs a `package-info.java`
+of its own:
 
-    ./gradlew -PjdkBuildVersion=11 -PenableCheckerframework :linq4j:classes :core:classes
+    @NullMarked
+    package org.apache.calcite.adapter.example;
 
-`-PjdkBuildVersion=11` compiles with JDK 11, as CI does; see
-[the JDK that compiles Calcite]({{ site.baseurl }}/docs/howto.html#the-jdk-that-compiles-calcite).
+    import org.jspecify.annotations.NullMarked;
+
+NullAway analyzes only `@NullMarked` code (`NullAway:OnlyNullMarked`). So that a forgotten
+`package-info.java` cannot leave a package unverified, the `RequireExplicitNullMarking` check fails
+the build when a class in a verified module is neither `@NullMarked` nor `@NullUnmarked`.
+
+To verify one more module, add it to `nullawayProjects` and declare `@NullMarked` in its packages.
+
+To execute NullAway locally, run the same command as CI:
+
+    ./gradlew -PenableErrorprone classes jmhClasses
 
 Here's a small introduction to null-safe programming:
 
 * By default, parameters, return values and fields are non-nullable, so refrain from using `@NonNull`
 * Local variables infer nullness from the expression, so you can write `Object v = ...` instead of `@Nullable Object v = ...`
 * Avoid the use of `javax.annotation.*` annotations. The annotations from `jsr305` do not support cases like `List<@Nullable String>`
-so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullable`.
-  Unfortunately, Guava (as of `29-jre`) has **both** `jsr305` and `checker-qual` dependencies at the same time,
-  so you might want to configure your IDE to exclude `javax.annotation.*` annotations from code completion.
+so it is better to stick with `org.jspecify.annotations.Nullable`.
+  You might want to configure your IDE to exclude `javax.annotation.*` annotations from code completion.
 
-* The Checker Framework verifies code method by method. That means, it can't account for method execution order.
+* An unannotated type variable such as `<T>` accepts only non-null type arguments. Declare
+  `<T extends @Nullable Object>` for a type variable whose type argument may be nullable, as `Linq4j` does:
+
+        // Enumerable<@Nullable String> is rejected
+        public static <T> Enumerable<T> singletonEnumerable(final T element)
+        // Enumerable<@Nullable String> is accepted
+        public static <T extends @Nullable Object> Enumerable<T> asEnumerable(final List<T> list)
+
+* `@Contract` from `org.apache.calcite.annotations` states how the nullness of a method's result
+  follows from its arguments. A clause lists one constraint per parameter, then `->` and the result;
+  `_` places no constraint on its argument. Calcite uses two forms:
+  * `@Contract("!null, _ -> !null")`, and likewise `"!null -> !null"` or `"!null, !null -> !null"`:
+    when every argument marked `!null` is non-null, the result is non-null. The clause says nothing
+    about the result for a null argument.
+  * `@Contract("null -> false")`: the method returns `false` for a null argument, so NullAway treats
+    the argument as non-null where the method returned `true`.
+
+  NullAway checks the clauses that end in `-> !null` against the method body
+  (`NullAway:CheckContracts`) and trusts the others, such as `null -> false`.
+  `@Contract` cannot describe a receiver parameter, a varargs method, or a type argument such as
+  `Enumerable<@Nullable T>`.
+
+* NullAway verifies code method by method. That means, it can't account for method execution order.
   That is why `@Nullable` fields should be verified in each method where they are used.
   If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
-  For fields that start as null and become non-null later, use `@MonotonicNonNull`.
-  For fields that have already been checked against null, use `@RequiresNonNull`.
+  For fields that start as null and become non-null later, use `org.apache.calcite.annotations.MonotonicNonNull`.
+  For fields that have already been checked against null, use `org.apache.calcite.annotations.RequiresNonNull`.
+  Those annotations come from the `calcite-annotations` artifact, which `calcite-linq4j` and `calcite-core` depend on,
+  and they are not retained at run time.
 
 * If you are absolutely sure the value is non-null, you might use `org.apache.calcite.linq4j.Nullness.castNonNull(T)`.
   The intention behind `castNonNull` is like `trustMeThisIsNeverNullHoweverTheVerifierCantTellYet(...)`
@@ -257,9 +294,9 @@ so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullab
 * If the expression is nullable, however, you need to pass it to a non-null method, use `Objects.requireNonNull`.
   It allows to have a better error message that includes context information.
 
-* The Checker Framework comes with an annotated JDK, however, there might be invalid annotations.
-  In that cases, stub files can be placed to `/src/main/config/checkerframework` to override the annotations.
-  It is important the files have `.astub` extension otherwise they will be ignored.
+* NullAway ships nullness models for the JDK and for popular libraries, so Calcite needs no stub
+  files of its own. When a third-party signature is modelled wrongly, add a
+  [library model](https://github.com/uber/NullAway/wiki/Library-Models) rather than a suppression.
 
 * In array types, a type annotation appears immediately before the type component (either the array or the array component) it refers to.
   This is explained in the [Java Language Specification](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.4).

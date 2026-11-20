@@ -31,7 +31,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -95,10 +95,9 @@ public class SqlRowOperator extends SqlSpecialOperator {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (int i = 0; i < opBinding.getOperandCount(); i++) {
+      final String givenName = fieldNames == null ? null : fieldNames.get(i);
       final String fieldName =
-          fieldNames != null && fieldNames.get(i) != null
-              ? fieldNames.get(i)
-              : SqlUtil.deriveAliasFromOrdinal(i);
+          givenName != null ? givenName : SqlUtil.deriveAliasFromOrdinal(i);
       builder.add(fieldName, opBinding.getOperandType(i));
     }
     final RelDataType recordType = builder.build();

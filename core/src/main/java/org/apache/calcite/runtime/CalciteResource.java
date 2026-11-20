@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static org.apache.calcite.runtime.Resources.BaseMessage;
 import static org.apache.calcite.runtime.Resources.ExInst;

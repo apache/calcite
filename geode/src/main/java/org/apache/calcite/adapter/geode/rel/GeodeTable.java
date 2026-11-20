@@ -46,7 +46,7 @@ import org.apache.geode.cache.query.SelectResults;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +91,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
   private final String regionName;
   private final RelDataType rowType;
 
-  GeodeTable(Region<?, ?> region) {
+  GeodeTable(Region<? extends Object, ? extends Object> region) {
     super(Object[].class);
     this.regionName = region.getName();
     this.rowType = GeodeUtils.autodetectRelTypeFromRegion(region);
@@ -157,7 +157,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
    * @param predicates  A list of predicates which should be used in the query
    * @return Enumerator of results
    */
-  public Enumerable<Object> query(final GemFireCache clientCache,
+  public Enumerable<@Nullable Object> query(final GemFireCache clientCache,
       final List<Map.Entry<String, Class>> fields,
       final List<Map.Entry<String, String>> selectFields,
       final List<Map.Entry<String, String>> aggregateFunctions,
@@ -278,8 +278,8 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     Hook.QUERY_PLAN.run(oqlQuery);
     LOGGER.info("OQL: " + oqlQuery);
 
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+    return new AbstractEnumerable<@Nullable Object>() {
+      @Override public Enumerator<@Nullable Object> enumerator() {
         final QueryService queryService = clientCache.getQueryService();
         try {
           SelectResults results = (SelectResults) queryService.newQuery(oqlQuery).execute();
@@ -343,7 +343,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
      * Called via code-generation.
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> query(
+    public Enumerable<@Nullable Object> query(
         List<Map.Entry<String, Class>> fields,
         List<Map.Entry<String, String>> selectFields,
         List<Map.Entry<String, String>> aggregateFunctions,

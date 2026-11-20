@@ -26,6 +26,7 @@ dependencies {
     api("com.fasterxml.jackson.core:jackson-core")
     api("com.fasterxml.jackson.core:jackson-databind")
     api("org.elasticsearch.client:elasticsearch-rest-client")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("com.google.guava:guava")
@@ -33,7 +34,6 @@ dependencies {
     implementation("org.apache.httpcomponents:httpasyncclient")
     implementation("org.apache.httpcomponents:httpclient")
     implementation("org.apache.httpcomponents:httpcore")
-    implementation("org.checkerframework:checker-qual")
 
     testImplementation("org.apache.logging.log4j:log4j-api")
     testImplementation("org.apache.logging.log4j:log4j-core")

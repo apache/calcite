@@ -270,4 +270,7 @@
  *     McKenna
  *     (1993)</a>.
  */
+@NullMarked
 package org.apache.calcite.plan.volcano;
+
+import org.jspecify.annotations.NullMarked;

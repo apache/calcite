@@ -25,9 +25,11 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ExecutionException;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Implementation of {@link MetadataFactory} that gets providers from a
@@ -57,14 +59,14 @@ public class MetadataFactoryImpl implements MetadataFactory {
     //noinspection RedundantTypeArguments
     return CacheLoader.<Pair<Class<RelNode>, Class<Metadata>>,
         UnboundMetadata<@Nullable Metadata>>from(key -> {
-          final UnboundMetadata<@Nullable Metadata> function =
+          final UnboundMetadata<Metadata> function =
               provider.apply(key.left, key.right);
           // Return DUMMY, not null, so the cache knows to not ask again.
           return function != null ? function : DUMMY;
         });
   }
 
-  @Override public <@Nullable M extends @Nullable Metadata> M query(
+  @Override public <M extends @Nullable Metadata> M query(
       RelNode rel, RelMetadataQuery mq,
       Class<M> metadataClazz) {
     try {
@@ -72,7 +74,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
       final Pair<Class<RelNode>, Class<Metadata>> key =
           Pair.of((Class<RelNode>) rel.getClass(), (Class<Metadata>) metadataClazz);
       final Metadata apply = cache.get(key).bind(rel, mq);
-      return metadataClazz.cast(apply);
+      return castNonNull(metadataClazz.cast(apply));
     } catch (UncheckedExecutionException | ExecutionException e) {
       throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }

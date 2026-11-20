@@ -22,7 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
@@ -78,7 +78,7 @@ enum FileFieldType {
     return typeFactory.createJavaType(clazz);
   }
 
-  public static FileFieldType of(String typeString) {
+  public static @Nullable FileFieldType of(String typeString) {
     return MAP.get(typeString);
   }
 }

@@ -73,7 +73,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -1104,7 +1104,7 @@ public class JdbcRules {
   /** Visitor that checks whether part of a projection is a user-defined
    * function (UDF). */
   private static class CheckingUserDefinedFunctionVisitor
-      extends RexVisitorImpl<Void> {
+      extends RexVisitorImpl<@Nullable Void> {
 
     private boolean containsUsedDefinedFunction = false;
 

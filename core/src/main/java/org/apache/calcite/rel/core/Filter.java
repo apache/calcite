@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -41,8 +42,7 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -78,7 +78,6 @@ public abstract class Filter extends SingleRel implements Hintable {
    * @param condition boolean expression which determines whether a row is
    *                  allowed to pass
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Filter(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -199,7 +198,7 @@ public abstract class Filter extends SingleRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  @EnsuresNonNullIf(expression = "#1", result = true)
+  @Contract("null -> false")
   protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;

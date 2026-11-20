@@ -43,7 +43,7 @@ import com.teradata.tpcds.Session;
 import com.teradata.tpcds.column.Column;
 import com.teradata.tpcds.column.ColumnType;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -182,13 +182,13 @@ public class TpcdsSchema extends AbstractSchema {
 
     /** Selector for {@link TpcdsSchema}. */
     private class TpcdsSchemaSelector
-        implements Function1<List<List<@Nullable String>>, Enumerable<@Nullable Object[]>> {
+        implements Function1<List<List<String>>, Enumerable<@Nullable Object[]>> {
       final Column[] columns = tpcdsTable.getColumns();
 
       @Override public Enumerable<@Nullable Object[]> apply(
-          List<List<@Nullable String>> inRows) {
+          List<List<String>> inRows) {
         final List<@Nullable Object[]> rows = new ArrayList<>();
-        for (List<@Nullable String> strings : inRows) {
+        for (List<String> strings : inRows) {
           final @Nullable Object[] values = new Object[columns.length];
           for (int i = 0; i < strings.size(); i++) {
             values[i] = convert(strings.get(i), columns[i]);

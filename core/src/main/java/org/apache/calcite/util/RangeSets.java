@@ -22,8 +22,6 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -374,7 +372,7 @@ public class RangeSets {
    * @param <V> Value type
    *
    * @see Handler */
-  public interface Consumer<@NonNull V> {
+  public interface Consumer<V> {
     void all();
     void atLeast(V lower);
     void atMost(V upper);

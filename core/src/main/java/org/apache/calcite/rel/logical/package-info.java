@@ -31,4 +31,7 @@
  *
  * </ul>
  */
+@NullMarked
 package org.apache.calcite.rel.logical;
+
+import org.jspecify.annotations.NullMarked;

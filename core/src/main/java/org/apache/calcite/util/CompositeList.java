@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.AbstractList;
 import java.util.List;
 
@@ -55,7 +57,7 @@ public class CompositeList<T> extends AbstractList<T> {
    * @return List consisting of all lists
    */
   @SafeVarargs
-  public static <T> CompositeList<T> of(List<? extends T>... lists) {
+  public static <T extends @Nullable Object> CompositeList<T> of(List<? extends T>... lists) {
     //noinspection unchecked
     return new CompositeList<T>((ImmutableList) ImmutableList.copyOf(lists));
   }
@@ -67,7 +69,7 @@ public class CompositeList<T> extends AbstractList<T> {
    * @param <T>   Element type
    * @return List consisting of all lists
    */
-  public static <T> CompositeList<T> ofCopy(Iterable<List<T>> lists) {
+  public static <T extends @Nullable Object> CompositeList<T> ofCopy(Iterable<List<T>> lists) {
     final ImmutableList<List<T>> list = ImmutableList.copyOf(lists);
     return new CompositeList<>(list);
   }
@@ -78,7 +80,7 @@ public class CompositeList<T> extends AbstractList<T> {
    * @param <T>   Element type
    * @return List consisting of all lists
    */
-  public static <T> List<T> of() {
+  public static <T extends @Nullable Object> List<T> of() {
     return ImmutableList.of();
   }
 
@@ -89,7 +91,7 @@ public class CompositeList<T> extends AbstractList<T> {
    * @param <T>   Element type
    * @return List consisting of all lists
    */
-  public static <T> List<T> of(List<T> list0) {
+  public static <T extends @Nullable Object> List<T> of(List<T> list0) {
     return list0;
   }
 
@@ -101,7 +103,7 @@ public class CompositeList<T> extends AbstractList<T> {
    * @param <T>   Element type
    * @return List consisting of all lists
    */
-  public static <T> CompositeList<T> of(List<? extends T> list0,
+  public static <T extends @Nullable Object> CompositeList<T> of(List<? extends T> list0,
       List<? extends T> list1) {
     //noinspection unchecked
     return new CompositeList<T>((ImmutableList) ImmutableList.of(list0, list1));
@@ -116,7 +118,7 @@ public class CompositeList<T> extends AbstractList<T> {
    * @param <T>   Element type
    * @return List consisting of all lists
    */
-  public static <T> CompositeList<T> of(List<? extends T> list0,
+  public static <T extends @Nullable Object> CompositeList<T> of(List<? extends T> list0,
       List<? extends T> list1,
       List<? extends T> list2) {
     //noinspection unchecked

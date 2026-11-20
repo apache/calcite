@@ -19,6 +19,7 @@ import org.gradle.internal.os.OperatingSystem
 
 dependencies {
     api(project(":core"))
+    api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")
     implementation("org.apache.arrow:arrow-memory-netty")

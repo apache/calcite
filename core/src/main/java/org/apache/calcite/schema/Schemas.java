@@ -47,7 +47,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -426,7 +426,7 @@ public final class Schemas {
       final DataContext dataContext,
       final CalciteSchema schema,
       final @Nullable List<String> schemaPath, final @Nullable List<String> objectPath_) {
-    final @Nullable ImmutableList<String> objectPath =
+    final ImmutableList<String> objectPath =
         objectPath_ == null ? null : ImmutableList.copyOf(objectPath_);
     return new CalcitePrepare.Context() {
       @Override public JavaTypeFactory getTypeFactory() {
@@ -536,7 +536,7 @@ public final class Schemas {
    */
   public static @Nullable CalciteSchema subSchema(CalciteSchema schema,
       Iterable<String> names) {
-    @Nullable CalciteSchema current = schema;
+    CalciteSchema current = schema;
     for (String string : names) {
       if (current == null) {
         return null;

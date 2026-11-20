@@ -18,7 +18,7 @@ package org.apache.calcite.schema.lookup;
 
 import org.apache.calcite.linq4j.function.Predicate1;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Locale;

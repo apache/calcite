@@ -18,8 +18,7 @@ package org.apache.calcite.jdbc;
 
 import org.apache.calcite.sql.SqlCollation;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.text.Collator;
@@ -59,7 +58,6 @@ public class JavaCollation extends SqlCollation {
   }
 
   @Override protected String generateCollationName(
-      @UnderInitialization JavaCollation this,
       Charset charset) {
     return super.generateCollationName(charset) + "$JAVA_COLLATOR";
   }

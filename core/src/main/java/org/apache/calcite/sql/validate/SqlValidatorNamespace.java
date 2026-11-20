@@ -21,8 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -127,7 +126,6 @@ public interface SqlValidatorNamespace {
    * includes all decorations. If there are no decorations, returns the same
    * as {@link #getNode()}.
    */
-  @Pure
   @Nullable SqlNode getEnclosingNode();
 
   /**
@@ -184,7 +182,7 @@ public interface SqlValidatorNamespace {
    * @return This namespace cast to desired type
    * @throws ClassCastException if no such interface is available
    */
-  <T> T unwrap(Class<T> clazz);
+  <T> @Nullable T unwrap(Class<T> clazz);
 
   /**
    * Returns whether this namespace implements a given interface, or wraps a

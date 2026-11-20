@@ -18,4 +18,7 @@
 /**
  * Query provider based on a MongoDB database.
  */
+@NullMarked
 package org.apache.calcite.adapter.mongodb;
+
+import org.jspecify.annotations.NullMarked;

@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
@@ -135,7 +137,7 @@ public class ElasticsearchSearchResult {
      * @param name attribute name
      * @return value from result (_source or fields)
      */
-    Object value(String name) {
+    @Nullable Object value(String name) {
       requireNonNull(name, "name");
 
       if (!sourceOrFields().containsKey(name)) {

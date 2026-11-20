@@ -28,7 +28,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -162,11 +162,12 @@ public class SqlBinaryOperator extends SqlOperator {
               collation1);
 
       if (SqlTypeUtil.inCharFamily(type)) {
+        final RelDataType charType = type;
         type =
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
-                    type,
-                    type.getCharset(),
+                    charType,
+                    requireNonNull(charType.getCharset(), () -> "charset for type " + charType),
                     requireNonNull(resultCol, "resultCol"));
       }
     }

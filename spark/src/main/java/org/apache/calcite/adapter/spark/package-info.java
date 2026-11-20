@@ -18,4 +18,7 @@
 /**
  * Adapter based on the Apache Spark data management system.
  */
+@NullMarked
 package org.apache.calcite.adapter.spark;
+
+import org.jspecify.annotations.NullMarked;

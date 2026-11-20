@@ -18,10 +18,15 @@ dependencies {
     api(project(":core"))
     api(project(":linq4j"))
     api("com.google.guava:guava")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.mongodb:mongodb-driver-sync")
+    // The driver's com.mongodb.lang.Nullable carries jsr305 @Nonnull(when = When.MAYBE).
+    // Error Prone makes javac read it, and without jsr305 javac warns
+    // "unknown enum constant When.MAYBE"
+    compileOnly("com.google.code.findbugs:jsr305")
 
     testImplementation(project(":testkit"))
     testImplementation("de.bwaldvogel:mongo-java-server-core")

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.redis;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Set the redis config.
  */
@@ -23,9 +25,9 @@ public class RedisConfig {
   private final String host;
   private final int port;
   private final int database;
-  private final String password;
+  private final @Nullable String password;
 
-  public RedisConfig(String host, int port, int database, String password) {
+  public RedisConfig(String host, int port, int database, @Nullable String password) {
     this.host = host;
     this.port = port;
     this.database = database;
@@ -44,7 +46,7 @@ public class RedisConfig {
     return database;
   }
 
-  public String getPassword() {
+  public @Nullable String getPassword() {
     return password;
   }
 }

@@ -24,6 +24,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
@@ -57,7 +59,7 @@ public enum SparkMethod {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }
 
-  public static SparkMethod lookup(Method method) {
+  public static @Nullable SparkMethod lookup(Method method) {
     return MAP.get(method);
   }
 }

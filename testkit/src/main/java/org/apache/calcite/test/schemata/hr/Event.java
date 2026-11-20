@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Timestamp;
 import java.util.Objects;
@@ -37,7 +37,7 @@ public class Event {
     return "Event [eventid: " + eventid + ", ts: " + ts + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof Event
         && eventid == ((Event) obj).eventid;

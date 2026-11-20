@@ -24,7 +24,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -55,7 +55,7 @@ public class SqlAnyValueAggFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(SqlSplittableAggFunction.SelfSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }

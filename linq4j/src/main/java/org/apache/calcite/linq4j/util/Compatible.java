@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -48,7 +48,7 @@ public interface Compatible {
           new Class<?>[]{Compatible.class},
           (proxy, method, args) -> {
             if ("isRecord".equals(method.getName())) {
-              return isRecord(requireNonNull(args[0], "args[0]"));
+              return isRecord(requireNonNull(requireNonNull(args, "args")[0], "args[0]"));
             }
             return null;
           });

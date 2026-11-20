@@ -21,7 +21,7 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -43,7 +43,7 @@ public class SqlAsofJoin extends SqlJoin {
     this.matchCondition = matchCondition;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(left, natural, joinType, right,
         conditionType, condition, matchCondition);
@@ -53,7 +53,7 @@ public class SqlAsofJoin extends SqlJoin {
     return ASOF_OPERATOR;
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -107,7 +107,7 @@ public class SqlAsofJoin extends SqlJoin {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
+    @SuppressWarnings("NullAway")
     @Override public SqlCall createCall(
         @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,

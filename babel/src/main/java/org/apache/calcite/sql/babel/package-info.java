@@ -18,4 +18,7 @@
 /**
  * Parse tree for SQL extensions used by the Babel parser.
  */
+@NullMarked
 package org.apache.calcite.sql.babel;
+
+import org.jspecify.annotations.NullMarked;

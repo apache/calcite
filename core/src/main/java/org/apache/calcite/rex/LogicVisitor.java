@@ -20,7 +20,7 @@ import org.apache.calcite.plan.RelOptUtil.Logic;
 
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;

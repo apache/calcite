@@ -31,7 +31,7 @@ import org.apache.calcite.schema.impl.AbstractTable;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -55,7 +55,7 @@ public class PigTable extends AbstractTable implements ScannableTable {
    * @param rowType Relational schema for the table
    * @param names Names of Pig table
    */
-  public static RelOptTable createRelOptTable(RelOptSchema schema,
+  public static RelOptTable createRelOptTable(@Nullable RelOptSchema schema,
       RelDataType rowType, List<String> names) {
     final PigTable pigTable = new PigTable(rowType);
     return RelOptTableImpl.create(schema, rowType, names, pigTable,

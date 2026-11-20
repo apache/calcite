@@ -20,7 +20,7 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -68,7 +68,7 @@ public interface RelMetadataProvider {
    *     provider cannot supply metadata of this type
    */
   @Deprecated // to be removed before 2.0
-  <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  <M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass);
 
   @Deprecated // to be removed before 2.0

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides functionality to evaluate queries against a specific data source
@@ -26,6 +26,6 @@ import org.checkerframework.framework.qual.Covariant;
  *
  * @param <T> Element type
  */
-@Covariant(0)
-public interface Queryable<T> extends RawQueryable<T>, ExtendedQueryable<T> {
+public interface Queryable<T extends @Nullable Object>
+    extends RawQueryable<T>, ExtendedQueryable<T> {
 }

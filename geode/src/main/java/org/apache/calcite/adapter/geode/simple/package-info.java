@@ -18,4 +18,7 @@
 /**
  * Query evaluation runtime for Apache Geode adapter.
  */
+@NullMarked
 package org.apache.calcite.adapter.geode.simple;
+
+import org.jspecify.annotations.NullMarked;

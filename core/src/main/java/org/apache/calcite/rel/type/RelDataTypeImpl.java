@@ -29,8 +29,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
@@ -353,8 +352,7 @@ public abstract class RelDataTypeImpl
    * This should be called in every non-abstract subclass
    * constructor once the type is fully defined.
    */
-  @SuppressWarnings("method.invocation.invalid")
-  protected void computeDigest(@UnknownInitialization RelDataTypeImpl this) {
+  protected void computeDigest() {
     digest = null;
     innerDigest = new InnerRelDataTypeDigest();
     if (!CalciteSystemProperty.DISABLE_GENERATE_REL_DATA_TYPE_DIGEST_STRING.value()) {

@@ -18,4 +18,7 @@
 /**
  * Classes for testing SQL.
  */
+@NullMarked
 package org.apache.calcite.sql.test;
+
+import org.jspecify.annotations.NullMarked;

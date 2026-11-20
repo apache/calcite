@@ -37,8 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -432,7 +431,6 @@ public abstract class SqlAbstractParserImpl {
    * @param operands          Operands to call
    * @return Call
    */
-  @SuppressWarnings("argument.type.incompatible")
   protected SqlCall createCall(
       SqlIdentifier funName,
       SqlParserPos pos,
@@ -741,7 +739,6 @@ public abstract class SqlAbstractParserImpl {
      * Initializes lists of keywords.
      */
     private void initList(
-        @UnderInitialization MetadataImpl this,
         SqlAbstractParserImpl parserImpl,
         Set<String> keywords,
         String name) {
@@ -788,7 +785,6 @@ public abstract class SqlAbstractParserImpl {
      * @return Result of calling method
      */
     private @Nullable Object virtualCall(
-        @UnderInitialization MetadataImpl this,
         SqlAbstractParserImpl parserImpl,
         String name) throws Throwable {
       Class<?> clazz = parserImpl.getClass();
@@ -804,8 +800,7 @@ public abstract class SqlAbstractParserImpl {
     /**
      * Builds a comma-separated list of JDBC reserved words.
      */
-    private String constructSql92ReservedWordList(
-        @UnderInitialization MetadataImpl this) {
+    private String constructSql92ReservedWordList() {
       StringBuilder sb = new StringBuilder();
       TreeSet<String> jdbcReservedSet = new TreeSet<>();
       jdbcReservedSet.addAll(tokenSet);

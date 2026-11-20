@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Function with two parameters.
  *
@@ -23,6 +25,7 @@ package org.apache.calcite.linq4j.function;
  * @param <T0> Type of argument #0
  * @param <T1> Type of argument #1
  */
-public interface Function2<T0, T1, R> extends Function<R> {
+public interface Function2<T0 extends @Nullable Object, T1 extends @Nullable Object,
+    R extends @Nullable Object> extends Function<R> {
   R apply(T0 v0, T1 v1);
 }

@@ -18,8 +18,7 @@ package org.apache.calcite.util.graph;
 
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -33,7 +32,7 @@ import java.util.List;
 public class AttributedDirectedGraph<V, E extends DefaultEdge>
     extends DefaultDirectedGraph<V, E> {
   /** Creates an attributed graph. */
-  public AttributedDirectedGraph(@UnknownInitialization AttributedEdgeFactory<V, E> edgeFactory) {
+  public AttributedDirectedGraph(AttributedEdgeFactory<V, E> edgeFactory) {
     super(edgeFactory);
   }
 

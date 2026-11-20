@@ -20,7 +20,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractSet;
 import java.util.ArrayDeque;
@@ -134,7 +134,6 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param ordering Ordering relation
    * @param collection Initial contents of partially-ordered set
    */
-  @SuppressWarnings("method.invocation.invalid")
   public PartiallyOrderedSet(Ordering<E> ordering, Collection<E> collection) {
     this(ordering, new HashMap<>(collection.size() * 3 / 2), null, null);
     addAll(collection);

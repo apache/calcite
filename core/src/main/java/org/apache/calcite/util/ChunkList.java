@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractSequentialList;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
    * Creates a ChunkList whose contents are a given Collection.
    */
   public ChunkList(Collection<E> collection) {
-    @SuppressWarnings({"method.invocation.invalid", "unused"})
+    @SuppressWarnings("unused")
     boolean ignore = addAll(collection);
   }
 
@@ -153,9 +153,12 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
 
   private static <E> E @Nullable [] prev(E[] chunk) {
     //noinspection unchecked
-    return (E @Nullable []) chunk[0];
+    return (E[]) chunk[0];
   }
 
+  // Slots 0 and 1 hold the neighbouring chunks rather than elements, and a chunk at
+  // either end has no neighbour.
+  @SuppressWarnings("NullAway")
   private static <E> void setPrev(E[] chunk, E @Nullable [] prev) {
     //noinspection unchecked
     chunk[0] = (E) prev;
@@ -163,9 +166,10 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
 
   private static <E> E @Nullable [] next(E[] chunk) {
     //noinspection unchecked
-    return (E @Nullable []) chunk[1];
+    return (E[]) chunk[1];
   }
 
+  @SuppressWarnings("NullAway")
   private static <E> void setNext(E[] chunk, E @Nullable [] next) {
     assert chunk != next;
     //noinspection unchecked
@@ -331,11 +335,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       if (r < start) {
         // Element we wish to eliminate is the last element in the previous
         // block.
-        E[] c = chunk;
-        if (c == null) {
-          c = last;
-        }
-        int o = occupied(castNonNull(c));
+        final E[] c = castNonNull(chunk == null ? last : chunk);
+        int o = occupied(c);
         if (o == 1) {
           // Block is now empty; remove it
           final E[] prev = prev(c);
@@ -375,8 +376,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       int s = start;
       if (p < start) {
         // The element is at the end of the previous chunk
-        c = prev(c);
-        s -= occupied(castNonNull(c));
+        c = castNonNull(prev(c));
+        s -= occupied(c);
       }
       setElement(c, HEADER_SIZE + p - s, e);
     }

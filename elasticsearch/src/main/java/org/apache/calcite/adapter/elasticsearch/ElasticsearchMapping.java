@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -112,7 +112,7 @@ class ElasticsearchMapping {
             .collect(Collectors.toSet());
 
     private final String name;
-    private final JsonNode missingValue;
+    private final @Nullable JsonNode missingValue;
 
     private Datatype(final String name) {
       this.name = requireNonNull(name, "name");

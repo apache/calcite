@@ -43,7 +43,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -68,7 +68,6 @@ public abstract class Calc extends SingleRel implements Hintable {
    * @param child Input relation
    * @param program Calc program
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,

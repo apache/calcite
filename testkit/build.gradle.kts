@@ -20,7 +20,7 @@ plugins {
 
 dependencies {
     api(project(":core"))
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
 
     implementation(platform("org.junit:junit-bom"))
     implementation(kotlin("stdlib-jdk8"))

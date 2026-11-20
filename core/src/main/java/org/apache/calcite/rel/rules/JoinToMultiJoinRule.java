@@ -36,8 +36,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -363,7 +363,7 @@ public class JoinToMultiJoinRule
       requireNonNull(destFields, "destFields");
       int[] adjustments = new int[srcFields.size()];
       Arrays.fill(adjustments, adjustmentAmount);
-      for (Pair<JoinRelType, @Nullable RexNode> src : srcJoinSpecs) {
+      for (Pair<JoinRelType, RexNode> src : srcJoinSpecs) {
         destJoinSpecs.add(
             Pair.of(
                 src.left,
@@ -560,7 +560,7 @@ public class JoinToMultiJoinRule
   /**
    * Visitor that keeps a reference count of the inputs used by an expression.
    */
-  private static class InputReferenceCounter extends RexVisitorImpl<Void> {
+  private static class InputReferenceCounter extends RexVisitorImpl<@Nullable Void> {
     private final int[] refCounts;
 
     InputReferenceCounter(int[] refCounts) {

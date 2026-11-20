@@ -84,4 +84,7 @@
  * <h2>Design Doc</h2>
  * <a href="https://docs.google.com/document/d/1mykz-w2t1Yw7CH6NjUWpWqCAf_6YNKxSc59gXafrNCs/edit?usp=sharing">Calcite SQL and Planner Hints Design</a>.
  */
+@NullMarked
 package org.apache.calcite.rel.hint;
+
+import org.jspecify.annotations.NullMarked;

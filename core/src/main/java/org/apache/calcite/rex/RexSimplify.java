@@ -53,7 +53,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -2548,7 +2548,8 @@ public class RexSimplify {
     }
   }
 
-  private Pair<Comparable, RuntimeException> evaluate(RexNode e, Map<RexNode, Comparable> map) {
+  private Pair<@Nullable Comparable, @Nullable RuntimeException> evaluate(RexNode e,
+      Map<RexNode, Comparable> map) {
     Comparable c = null;
     RuntimeException ex = null;
     try {
@@ -2592,8 +2593,8 @@ public class RexSimplify {
           continue assignment_loop;
         }
       }
-      Pair<Comparable, RuntimeException> p0 = evaluate(foo0.e, map);
-      Pair<Comparable, RuntimeException> p1 = evaluate(foo1.e, map);
+      Pair<@Nullable Comparable, @Nullable RuntimeException> p0 = evaluate(foo0.e, map);
+      Pair<@Nullable Comparable, @Nullable RuntimeException> p1 = evaluate(foo1.e, map);
       if (p0.right != null || p1.right != null) {
         if (p0.right == null || p1.right == null) {
           throw Util.first(p0.right, p1.right);
@@ -3304,7 +3305,7 @@ public class RexSimplify {
   /**
    * Visitor which finds all inputs used by an expressions.
    */
-  private static class VariableCollector extends RexVisitorImpl<Void> {
+  private static class VariableCollector extends RexVisitorImpl<@Nullable Void> {
     private final Set<RexInputRef> refs = new HashSet<>();
 
     VariableCollector() {
@@ -3550,7 +3551,6 @@ public class RexSimplify {
    * <p>Returns whether the value was found.
    */
   private static <E> boolean replaceLast(List<E> list, E oldVal, E newVal) {
-    @SuppressWarnings("argument.type.incompatible")
     final int index = list.lastIndexOf(oldVal);
     if (index < 0) {
       return false;
@@ -3859,11 +3859,12 @@ public class RexSimplify {
           () -> "Can't find leastRestrictive type among " + distinctTypes);
     }
 
-    @Override public <R> R accept(RexVisitor<R> visitor) {
+    @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+        RexBiVisitor<R, P> visitor, P arg) {
       throw new UnsupportedOperationException();
     }
 

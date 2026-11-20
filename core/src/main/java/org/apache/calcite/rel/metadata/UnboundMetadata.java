@@ -18,7 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Metadata that needs to be bound to a {@link RelNode} and
@@ -28,5 +28,5 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 @FunctionalInterface
 public interface UnboundMetadata<M extends @Nullable Metadata> {
-  M bind(RelNode rel, RelMetadataQuery mq);
+  @Nullable M bind(RelNode rel, RelMetadataQuery mq);
 }

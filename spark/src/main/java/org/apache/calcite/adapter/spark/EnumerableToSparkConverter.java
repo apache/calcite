@@ -32,9 +32,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -88,7 +90,7 @@ public class EnumerableToSparkConverter
             Expressions.call(
                 SparkMethod.CREATE_RDD.method,
                 sparkContext,
-                source));
+                castNonNull(source)));
     list.add(
         Expressions.return_(null, rdd));
     return implementor.result(physType, list.toBlock());

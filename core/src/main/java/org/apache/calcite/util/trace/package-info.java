@@ -18,4 +18,7 @@
 /**
  * Tracing services.
  */
+@NullMarked
 package org.apache.calcite.util.trace;
+
+import org.jspecify.annotations.NullMarked;

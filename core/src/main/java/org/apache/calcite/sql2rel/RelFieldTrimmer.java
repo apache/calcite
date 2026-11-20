@@ -79,7 +79,7 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -132,7 +132,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   public RelFieldTrimmer(@Nullable SqlValidator validator, RelBuilder relBuilder) {
     Util.discard(validator); // may be useful one day
     this.relBuilder = relBuilder;
-    @SuppressWarnings("argument.type.incompatible")
     ReflectUtil.MethodDispatcher<TrimResult> dispatcher =
         ReflectUtil.createMethodDispatcher(
             TrimResult.class,

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -43,7 +43,7 @@ public class ConditionalExpression extends AbstractNode {
     this.expressionList = requireNonNull(expressionList, "expressionList");
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

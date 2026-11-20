@@ -17,6 +17,7 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.annotations.EnsuresNonNull;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -61,8 +62,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Reader;
 import java.util.List;
@@ -104,7 +104,6 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
-  @SuppressWarnings("method.invocation.invalid")
   public PlannerImpl(FrameworkConfig config) {
     this.costFactory = config.getCostFactory();
     this.defaultSchema = config.getDefaultSchema();

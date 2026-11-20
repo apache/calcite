@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.spark;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -25,6 +24,7 @@ import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +40,7 @@ import java.util.Collections;
  * <p>Based on Spark HttpServer, wraps a Jetty server.
  */
 class HttpServer {
-  private static String localIpAddress;
+  private static @Nullable String localIpAddress;
 
   private final File resourceBase;
 

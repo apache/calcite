@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,7 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @param <E> Row value
  */
-public class MemoryEnumerator<@Nullable E> implements Enumerator<MemoryFactory.Memory<E>> {
+public class MemoryEnumerator<E extends @Nullable Object>
+    implements Enumerator<MemoryFactory.Memory<E>> {
   private final Enumerator<E> enumerator;
   private final MemoryFactory<E> memoryFactory;
   private final AtomicInteger prevCounter;

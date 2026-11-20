@@ -46,6 +46,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.AbstractList;
@@ -72,7 +73,7 @@ public class MongoRules {
   };
 
   /** Returns 'string' if it is a call to item['string'], null otherwise. */
-  static String isItem(RexCall call) {
+  static @Nullable String isItem(RexCall call) {
     if (call.getOperator() != SqlStdOperatorTable.ITEM) {
       return null;
     }
@@ -514,7 +515,7 @@ public class MongoRules {
       super(config);
     }
 
-    @Override public RelNode convert(RelNode rel) {
+    @Override public @Nullable RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet =
           agg.getTraitSet().replace(out);

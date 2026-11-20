@@ -19,7 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlIdentifier;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -58,7 +58,7 @@ public abstract class DelegatingSqlValidatorCatalogReader
     return catalogReader.getSchemaPaths();
   }
 
-  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
+  @Override public <C> @Nullable C unwrap(Class<C> aClass) {
     return catalogReader.unwrap(aClass);
   }
 }

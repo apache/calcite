@@ -27,7 +27,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
@@ -48,9 +48,9 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
     final KafkaTableOptions tableOptionBuilder = new KafkaTableOptions();
 
     tableOptionBuilder.setBootstrapServers(
-        (String) operand.getOrDefault(KafkaTableConstants.SCHEMA_BOOTSTRAP_SERVERS, null));
+        (String) operand.get(KafkaTableConstants.SCHEMA_BOOTSTRAP_SERVERS));
     tableOptionBuilder.setTopicName(
-        (String) operand.getOrDefault(KafkaTableConstants.SCHEMA_TOPIC_NAME, null));
+        (String) operand.get(KafkaTableConstants.SCHEMA_TOPIC_NAME));
 
     final KafkaRowConverter rowConverter;
     if (operand.containsKey(KafkaTableConstants.SCHEMA_ROW_CONVERTER)) {

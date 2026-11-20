@@ -18,4 +18,7 @@
 /**
  * Classes for testing SQL Parser.
  */
+@NullMarked
 package org.apache.calcite.sql.parser;
+
+import org.jspecify.annotations.NullMarked;

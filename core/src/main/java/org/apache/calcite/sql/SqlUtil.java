@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
@@ -57,8 +58,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -812,7 +812,7 @@ public abstract class SqlUtil {
             return true;
           }
           final SqlOperandMetadata operandMetadata = (SqlOperandMetadata) operandTypeChecker;
-          @SuppressWarnings("assignment.type.incompatible")
+          @SuppressWarnings("NullAway")
           final List<@Nullable RelDataType> paramTypes =
               operandMetadata.paramTypes(typeFactory);
           final List<@Nullable RelDataType> permutedArgTypes;
@@ -828,7 +828,7 @@ public abstract class SqlUtil {
               paramTypes.add(null);
             }
           }
-          for (Pair<@Nullable RelDataType, @Nullable RelDataType> p
+          for (Pair<RelDataType, RelDataType> p
               : Pair.zip(paramTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
@@ -1258,7 +1258,8 @@ public abstract class SqlUtil {
 
   /** If a node is "AS", returns the underlying expression; otherwise returns
    * the node. Returns null if and only if the node is null. */
-  public static @PolyNull SqlNode stripAs(@PolyNull SqlNode node) {
+  @Contract("!null -> !null")
+  public static @Nullable SqlNode stripAs(@Nullable SqlNode node) {
     if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);
     }
@@ -1460,9 +1461,9 @@ public abstract class SqlUtil {
   public static boolean containsCall(SqlNode node,
       Predicate<SqlCall> callPredicate) {
     try {
-      SqlVisitor<Void> visitor =
-          new SqlBasicVisitor<Void>() {
-            @Override public Void visit(SqlCall call) {
+      SqlVisitor<@Nullable Void> visitor =
+          new SqlBasicVisitor<@Nullable Void>() {
+            @Override public @Nullable Void visit(SqlCall call) {
               if (callPredicate.test(call)) {
                 throw new Util.FoundOne(call);
               }
@@ -1552,7 +1553,7 @@ public abstract class SqlUtil {
 
   /** Walks over a {@link org.apache.calcite.sql.SqlNode} tree and returns the
    * ancestry stack when it finds a given node. */
-  private static class Genealogist extends SqlBasicVisitor<Void> {
+  private static class Genealogist extends SqlBasicVisitor<@Nullable Void> {
     private final List<SqlNode> ancestors = new ArrayList<>();
     private final Predicate<SqlNode> predicate;
     private final Predicate<SqlNode> postPredicate;
@@ -1592,11 +1593,11 @@ public abstract class SqlUtil {
       ancestors.remove(ancestors.size() - 1);
     }
 
-    @Override public Void visit(SqlIdentifier id) {
+    @Override public @Nullable Void visit(SqlIdentifier id) {
       return check(id);
     }
 
-    @Override public Void visit(SqlCall call) {
+    @Override public @Nullable Void visit(SqlCall call) {
       preCheck(call);
       for (SqlNode node : call.getOperandList()) {
         visitChild(node);
@@ -1604,15 +1605,15 @@ public abstract class SqlUtil {
       return postCheck(call);
     }
 
-    @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+    @Override public @Nullable Void visit(SqlIntervalQualifier intervalQualifier) {
       return check(intervalQualifier);
     }
 
-    @Override public Void visit(SqlLiteral literal) {
+    @Override public @Nullable Void visit(SqlLiteral literal) {
       return check(literal);
     }
 
-    @Override public Void visit(SqlNodeList nodeList) {
+    @Override public @Nullable Void visit(SqlNodeList nodeList) {
       preCheck(nodeList);
       for (SqlNode node : nodeList) {
         visitChild(node);
@@ -1620,11 +1621,11 @@ public abstract class SqlUtil {
       return postCheck(nodeList);
     }
 
-    @Override public Void visit(SqlDynamicParam param) {
+    @Override public @Nullable Void visit(SqlDynamicParam param) {
       return check(param);
     }
 
-    @Override public Void visit(SqlDataTypeSpec type) {
+    @Override public @Nullable Void visit(SqlDataTypeSpec type) {
       return check(type);
     }
   }

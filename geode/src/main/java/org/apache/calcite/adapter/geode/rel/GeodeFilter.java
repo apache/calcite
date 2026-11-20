@@ -37,7 +37,7 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -261,8 +261,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private String translateOr(List<RexNode> disjunctions) {
       List<String> predicates = new ArrayList<>();
 
-      List<String> leftFieldNameList = new ArrayList<>();
-      List<String> inSetLeftFieldNameList = new ArrayList<>();
+      List<@Nullable String> leftFieldNameList = new ArrayList<>();
+      List<@Nullable String> inSetLeftFieldNameList = new ArrayList<>();
 
       for (RexNode node : disjunctions) {
         final String leftNodeFieldName = getLeftNodeFieldNameForNode(node);

@@ -22,4 +22,7 @@
  * directory appears as a table.  Full SQL operations are available on
  * those tables.
  */
+@NullMarked
 package org.apache.calcite.adapter.csv;
+
+import org.jspecify.annotations.NullMarked;

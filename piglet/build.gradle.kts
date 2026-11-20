@@ -28,10 +28,10 @@ dependencies {
     api(project(":linq4j"))
     api("com.google.guava:guava")
     api("org.apache.pig:pig::h2")
+    api("org.jspecify:jspecify")
 
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.hadoop:hadoop-common")
-    implementation("org.checkerframework:checker-qual")
     implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":testkit"))

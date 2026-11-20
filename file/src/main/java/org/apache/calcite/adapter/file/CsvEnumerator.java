@@ -31,7 +31,7 @@ import au.com.bytecode.opencsv.CSVReader;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -139,8 +139,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  static RowConverter<?> converter(List<RelDataType> fieldTypes,
-      List<Integer> fields) {
+  static RowConverter<? extends @Nullable Object> converter(
+      List<RelDataType> fieldTypes, List<Integer> fields) {
     if (fields.size() == 1) {
       final int field = fields.get(0);
       return new SingleColumnRowConverter(fieldTypes.get(field), field);
@@ -179,8 +179,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           String typeString = string.substring(colon + 1);
           Matcher decimalMatcher = DECIMAL_TYPE_PATTERN.matcher(typeString);
           if (decimalMatcher.matches()) {
-            int precision = parseInt(decimalMatcher.group(1));
-            int scale = parseInt(decimalMatcher.group(2));
+            int precision = parseInt(requireNonNull(decimalMatcher.group(1), "precision"));
+            int scale = parseInt(requireNonNull(decimalMatcher.group(2), "scale"));
             fieldType = parseDecimalSqlType(typeFactory, precision, scale);
           } else {
             switch (typeString) {
@@ -370,14 +370,14 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   /** Returns a field from a CSV row, or null if the row is too short. */
-  private static @Nullable String field(String[] strings, int index) {
+  private static @Nullable String field(@Nullable String[] strings, int index) {
     return index < strings.length ? strings[index] : null;
   }
 
   /** Row converter.
    *
    * @param <E> element type */
-  abstract static class RowConverter<E> {
+  abstract static class RowConverter<E extends @Nullable Object> {
     abstract E convertRow(@Nullable String[] rows);
 
     @Nullable RelDataType getFieldType(int index) {
@@ -550,7 +550,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   /** Single column row converter. */
-  private static class SingleColumnRowConverter extends RowConverter<Object> {
+  private static class SingleColumnRowConverter extends RowConverter<@Nullable Object> {
     private final RelDataType fieldType;
     private final int fieldIndex;
 

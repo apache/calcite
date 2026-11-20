@@ -38,7 +38,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -187,7 +187,7 @@ public abstract class Sort extends SingleRel implements Hintable {
     assert offsetValue >= 0 : "offset should not be negative:" + offsetValue;
 
     final double inCount = mq.getRowCount(input);
-    @Nullable Double fetchValue = doubleValue(fetch);
+    Double fetchValue = doubleValue(fetch);
     final double readCount;
     if (fetchValue == null) {
       readCount = inCount;

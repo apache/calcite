@@ -33,15 +33,15 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Table representing the PRODUCTS relation.
  */
 public class ProductsTable implements ScannableTable {
-  private final ImmutableList<Object[]> rows;
+  private final ImmutableList<@Nullable Object[]> rows;
 
-  public ProductsTable(ImmutableList<Object[]> rows) {
+  public ProductsTable(ImmutableList<@Nullable Object[]> rows) {
     this.rows = rows;
   }
 
