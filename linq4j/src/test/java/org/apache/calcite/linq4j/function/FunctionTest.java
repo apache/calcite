@@ -86,6 +86,33 @@ class FunctionTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7952">[CALCITE-7952]
+   * Functions.deepEquals and Functions.deepHashCode should ignore BigDecimal scale</a>. */
+  @Test void testDeepComparerBigDecimal() {
+    final BigDecimal a = new BigDecimal("1.0");
+    final BigDecimal b = new BigDecimal("1.00");
+    final EqualityComparer<Object> comparer = Functions.deepComparer();
+    assertTrue(comparer.equal(a, b));
+    assertThat(comparer.hashCode(a), is(comparer.hashCode(b)));
+    assertFalse(comparer.equal(a, new BigDecimal("1.01")));
+
+    final Object[] array = {map(a, a)};
+    final List<?> list = Collections.singletonList(map(b, b));
+    assertTrue(comparer.equal(array, list));
+    assertThat(comparer.hashCode(array), is(comparer.hashCode(list)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7952">[CALCITE-7952]
+   * Functions.deepEquals and Functions.deepHashCode should ignore BigDecimal scale</a>. */
+  @Test void testDeepComparerBigDecimalAtMinimumScale() {
+    final BigDecimal a = BigDecimal.valueOf(10, Integer.MIN_VALUE);
+    final BigDecimal b = BigDecimal.valueOf(100, Integer.MIN_VALUE + 1);
+    assertTrue(Functions.deepEquals(a, b));
+    assertThat(Functions.deepHashCode(a), is(Functions.deepHashCode(b)));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7837">[CALCITE-7837]
    * ARRAY_MIN, ARRAY_MAX and SORT_ARRAY throw ClassCastException for ROW elements</a>. */
   @Test void testCompareNumbersWithSpecialFloatingPointValues() {
