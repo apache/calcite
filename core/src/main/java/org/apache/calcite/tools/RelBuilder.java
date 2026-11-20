@@ -72,6 +72,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -741,9 +742,30 @@ public class RelBuilder {
 
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
+    final List<String> names = new ArrayList<>();
+    Iterables.addAll(names, fieldNames);
+    // If the input has its row type's fields, look the names up in the row
+    // type, which keeps a map from name to field if it has many fields
+    @Nullable RelDataType rowType = null;
+    if (names.size() > 2) {
+      final Frame frame = peek_(1, 0);
+      if (frame.rel.getRowType() instanceof RelRecordType
+          && frame.fields().equals(frame.rel.getRowType().getFieldList())) {
+        rowType = frame.rel.getRowType();
+      }
+    }
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (String fieldName : fieldNames) {
-      builder.add(field(fieldName));
+    for (String fieldName : names) {
+      final @Nullable RelDataTypeField field =
+          rowType == null ? null : rowType.getField(fieldName, true, false);
+      // For a name it does not have, getField may return a field with
+      // index -1 ("_extra") or another name (a dynamic star)
+      builder.add(
+          field != null
+              && field.getIndex() >= 0
+              && field.getName().equals(fieldName)
+              ? field(1, 0, field.getIndex())
+              : field(fieldName));
     }
     return builder.build();
   }

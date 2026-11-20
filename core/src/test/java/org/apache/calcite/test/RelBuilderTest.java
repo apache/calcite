@@ -120,6 +120,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -153,6 +154,7 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -847,6 +849,104 @@ public class RelBuilderTest {
           is("field ordinal [20] out of range; "
                   + "input fields are: [DEPTNO, DNAME, LOC]"));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>. After a join,
+   * the input's field names repeat, and {@code fields} returns the first
+   * field with each name, as {@link RelBuilder#field(String)} does. */
+  @Test void testFieldsByNameAfterJoin() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER, builder.literal(true));
+    assertThat(builder.fields(ImmutableList.of("DNAME", "DEPTNO", "LOC")),
+        hasToString("[$9, $7, $10]"));
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.fields(ImmutableList.of("DNAME", "DEPTNO", "DEPTNO0")));
+    assertThat(e.getMessage(),
+        is("field [DEPTNO0] not found; input fields are: [EMPNO, ENAME, "
+            + "JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, DEPTNO, DNAME, LOC]"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>. The row type
+   * returns its dynamic star field for a name it does not have, but
+   * {@code fields} throws, as {@link RelBuilder#field(String)} does. */
+  @Test void testFieldsByNameWithDynamicStar() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    final List<RexNode> projects = new ArrayList<>(builder.fields());
+    projects.add(
+        builder.getRexBuilder().makeNullLiteral(
+            builder.getTypeFactory().createSqlType(SqlTypeName.DYNAMIC_STAR)));
+    final List<String> names =
+        new ArrayList<>(builder.peek().getRowType().getFieldNames());
+    names.add("**");
+    builder.project(projects, names);
+    assertThat(builder.fields(ImmutableList.of("SAL", "ENAME", "**")),
+        hasToString("[$5, $1, $8]"));
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.fields(ImmutableList.of("SAL", "ENAME", "deptno")));
+    assertThat(e.getMessage(),
+        is("field [deptno] not found; input fields are: " + names));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>. If the last
+   * field is "_extra", the row type returns a field for any name, but
+   * {@code fields} throws for a name it does not have, as
+   * {@link RelBuilder#field(String)} does. */
+  @Test void testFieldsByNameWithExtraField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    final List<RexNode> projects = new ArrayList<>(builder.fields());
+    projects.add(builder.field("EMPNO"));
+    final List<String> names =
+        new ArrayList<>(builder.peek().getRowType().getFieldNames());
+    names.add("_extra");
+    builder.project(projects, names);
+    assertThat(builder.fields(ImmutableList.of("SAL", "ENAME", "_extra")),
+        hasToString("[$5, $1, $8]"));
+    final IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.fields(ImmutableList.of("SAL", "ENAME", "deptno")));
+    assertThat(e.getMessage(),
+        is("field [deptno] not found; input fields are: " + names));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7953">[CALCITE-7953]
+   * RelBuilder.fields(Iterable&lt;String&gt;) searches the input once per
+   * name, so resolving many fields by name is quadratic</a>.
+   *
+   * <p>Looking up all fields of a 100,000-field input takes about 25 seconds
+   * before the fix and 20 milliseconds after. */
+  @Test void testFieldsByNameOnWideInput() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final int n = 100_000;
+    builder.scan("EMP");
+    final List<RexNode> projects = new ArrayList<>();
+    final List<String> names = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      projects.add(builder.field(i % 8));
+      names.add("F" + i);
+    }
+    builder.project(projects, names);
+    final List<RexNode> fields =
+        assertTimeoutPreemptively(Duration.ofSeconds(2), () ->
+            builder.fields(names));
+    assertThat(fields, hasSize(n));
+    assertThat(fields.get(0), hasToString("$0"));
+    assertThat(fields.get(n - 1), hasToString("$" + (n - 1)));
   }
 
   @Test void testBadType() {
