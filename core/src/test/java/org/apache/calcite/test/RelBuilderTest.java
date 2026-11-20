@@ -120,6 +120,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -153,6 +154,7 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -925,12 +927,11 @@ public class RelBuilderTest {
    * RelBuilder.fields(Iterable&lt;String&gt;) is slow if the input has many
    * fields</a>.
    *
-   * <p>Since this is a performance problem, the result does not change, but
-   * the call to {@code fields} takes about 5 seconds before the fix and
-   * 20 milliseconds after. */
+   * <p>Looking up all fields of a 100,000-field input takes about 25 seconds
+   * before the fix and 20 milliseconds after. */
   @Test void testFieldsByNameOnWideInput() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final int n = 50_000;
+    final int n = 100_000;
     builder.scan("EMP");
     final List<RexNode> projects = new ArrayList<>();
     final List<String> names = new ArrayList<>();
@@ -939,7 +940,9 @@ public class RelBuilderTest {
       names.add("F" + i);
     }
     builder.project(projects, names);
-    final List<RexNode> fields = builder.fields(names);
+    final List<RexNode> fields =
+        assertTimeoutPreemptively(Duration.ofSeconds(2), () ->
+            builder.fields(names));
     assertThat(fields, hasSize(n));
     assertThat(fields.get(0), hasToString("$0"));
     assertThat(fields.get(n - 1), hasToString("$" + (n - 1)));
