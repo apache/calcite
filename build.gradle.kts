@@ -165,10 +165,6 @@ val jdkBuildVersion = props.int("jdkBuildVersion", 25)
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
-// Projects whose main code NullAway verifies. The other projects are not annotated well enough
-// yet, so NullAway would only produce noise there.
-val nullawayProjects = listOf(":annotations", ":linq4j", ":core", ":server", ":druid", ":file", ":kafka", ":spark", ":babel", ":redis", ":splunk", ":mongodb", ":cassandra", ":pig", ":arrow", ":innodb", ":piglet", ":geode", ":elasticsearch", ":plus", ":example:csv", ":example:function", ":testkit", ":ubenchmark")
-
 val hepLargePlanModeTestIncludes = mapOf(
     ":core" to listOf(
         "**/org/apache/calcite/test/HepPlannerTest.class",
@@ -873,7 +869,6 @@ allprojects {
                 "errorprone"("com.uber.nullaway:nullaway:${"nullaway".v}")
                 "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
             }
-            val nullawayEnabled = project.path in nullawayProjects
             tasks.withType<JavaCompile>().configureEach {
                 // :ubenchmark keeps its sources in the jmh source set, and they are
                 // the module's own code just as much as a main source set is
@@ -934,7 +929,7 @@ allprojects {
                         "UnusedMethod",
                         "UnusedVariable"
                     )
-                    if (nullawayEnabled && mainCode) {
+                    if (mainCode) {
                         // Nullness errors must fail the build, so the annotations stay trustworthy
                         error("NullAway")
                         // OnlyNullMarked skips a package that forgets @NullMarked rather than
