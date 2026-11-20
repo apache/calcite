@@ -18,19 +18,31 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.EnumerableValues;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
@@ -38,8 +50,10 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -213,6 +227,45 @@ class InterpreterTest {
 
   private Sql sql(String sql) {
     return fixture().withSql(sql);
+  }
+
+  private void checkEnumerableInputWithParameter(Function<RelNode, RelNode> converter,
+      boolean project) {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final Values values = (Values) b.values(new String[] {"X"}, 1, 2, 3).build();
+      final EnumerableValues input =
+          EnumerableValues.create(values.getCluster(), values.getRowType(), values.getTuples());
+      final RexBuilder rexBuilder = b.getRexBuilder();
+      final RelDataType type = b.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      final RexNode sequenceName = b.literal("interpreter_seq");
+      final RexNode next =
+          rexBuilder.makeCall(type, SqlStdOperatorTable.NEXT_VALUE, ImmutableList.of(sequenceName));
+      final RexProgramBuilder program = new RexProgramBuilder(input.getRowType(), rexBuilder);
+      program.addProject(rexBuilder.makeInputRef(input, 0), "X");
+      program.addProject(
+          b.call(SqlStdOperatorTable.PLUS, next,
+              rexBuilder.makeDynamicParam(type, 0)), "Y");
+      final EnumerableCalc calc = EnumerableCalc.create(input, program.getProgram());
+      final RelNode converted = converter.apply(calc);
+      return project ? b.push(converted).project(b.field(1)).build() : converted;
+    };
+    final RelNode rel = fixture().withRelBuilder(relFn);
+    final DataContext dataContext = new MyDataContext(rootSchema(), rel) {
+      @Override public @Nullable Object get(String name) {
+        return name.equals("?0") ? 7L : super.get(name);
+      }
+    };
+    SqlFunctions.resetThreadSequences();
+    try {
+      if (project) {
+        assertInterpret(rel, dataContext, true, "[8]", "[9]", "[10]");
+      } else {
+        assertInterpret(rel, dataContext, true, "[1, 8]", "[2, 9]", "[3, 10]");
+      }
+      assertThat(SqlFunctions.sequenceCurrentValue("interpreter_seq"), is(3L));
+    } finally {
+      SqlFunctions.resetThreadSequences();
+    }
   }
 
   private void reset() {
@@ -814,5 +867,57 @@ class InterpreterTest {
             .build();
     fixture().withRel(relFn)
         .returnsRows("[]", "[]");
+  }
+
+  /** Tests an Enumerable input with a dynamic parameter and a sequence
+   * (<a href="https://issues.apache.org/jira/browse/CALCITE-7895">[CALCITE-7895]</a>). */
+  @Test void testInterpretEnumerableInputWithParameter() {
+    checkEnumerableInputWithParameter(
+        input -> requireNonNull(EnumerableRules.TO_BINDABLE.convert(input)), true);
+  }
+
+  /** Tests an Enumerable subtree as the interpreter root
+   * (<a href="https://issues.apache.org/jira/browse/CALCITE-7895">[CALCITE-7895]</a>). */
+  @Test void testInterpretEnumerableInterpretableRootWithParameter() {
+    checkEnumerableInputWithParameter(input ->
+        new EnumerableInterpretable(input.getCluster(), input) { }, false);
+  }
+
+  /** Tests UNION ALL with different Enumerable inputs of the same row type
+   * (<a href="https://issues.apache.org/jira/browse/CALCITE-7895">[CALCITE-7895]</a>). */
+  @Test void testInterpretUnionAllWithEnumerableInputs() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      for (int value : new int[] {1, 10}) {
+        final Values values =
+            (Values) b.values(new String[] {"X"}, value, value * 2).build();
+        final EnumerableValues input =
+            EnumerableValues.create(values.getCluster(), values.getRowType(), values.getTuples());
+        b.push(requireNonNull(EnumerableRules.TO_BINDABLE.convert(input)));
+      }
+      return b.union(true).build();
+    };
+    fixture().withRel(relFn)
+        .returnsRowsUnordered("[1]", "[2]", "[10]", "[20]");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7895">[CALCITE-7895]
+   * Interpreter fails to execute plans containing EnumerableBindable inputs</a>.
+   *
+   * <p>Checks that the plan includes an Enumerable-to-Bindable conversion. */
+  @Test void testInterpretEnumerableSql() {
+    CalciteAssert.hr()
+        .query("select \"empid\" + 1 as x from \"hr\".\"emps\" order by x")
+        .withProperty(Hook.ENABLE_BINDABLE, true)
+        .withHook(Hook.PLANNER, (RelOptPlanner planner) -> {
+          planner.removeRule(Bindables.FROM_NONE_RULE);
+          planner.removeRule(Bindables.BINDABLE_PROJECT_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          planner.removeRule(EnumerableRules.TO_INTERPRETER);
+        })
+        .explainContains("BindableSort(sort0=[$0], dir0=[ASC])\n"
+            + "  EnumerableBindable\n"
+            + "    EnumerableCalc(")
+        .returns("X=101\nX=111\nX=151\nX=201\n");
   }
 }

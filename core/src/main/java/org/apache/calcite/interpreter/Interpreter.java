@@ -17,7 +17,8 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.DataContexts;
+import org.apache.calcite.adapter.enumerable.EnumerableBindable;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -30,8 +31,11 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -91,6 +95,17 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
   }
 
   private static RelNode optimize(RelNode rootRel) {
+    // The converters compile their inputs as Enumerable subtrees. Interpreter
+    // rules such as CALC_SPLIT can replace those inputs with logical nodes,
+    // which Enumerable code generation cannot handle.
+    rootRel = rootRel.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        if (isEnumerableBoundary(other)) {
+          return new EnumerableLeaf((InterpretableRel) other);
+        }
+        return super.visit(other);
+      }
+    });
     final HepProgram hepProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.CALC_SPLIT)
         .addRuleInstance(CoreRules.FILTER_SCAN)
@@ -101,8 +116,41 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
         .build();
     final HepPlanner planner = new HepPlanner(hepProgram);
     planner.setRoot(rootRel);
-    rootRel = planner.findBestExp();
-    return rootRel;
+    return planner.findBestExp().accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        if (other instanceof EnumerableLeaf) {
+          return ((EnumerableLeaf) other).rel;
+        }
+        return super.visit(other);
+      }
+    });
+  }
+
+  /** Converters that execute an Enumerable subtree without interpreter sources.
+   * Other InterpretableRel implementations may need their inputs compiled. */
+  private static boolean isEnumerableBoundary(RelNode rel) {
+    return rel instanceof EnumerableBindable
+        || rel instanceof EnumerableInterpretable;
+  }
+
+  /** Hides an Enumerable subtree during interpreter optimization. */
+  private static class EnumerableLeaf extends AbstractRelNode {
+    private final InterpretableRel rel;
+
+    EnumerableLeaf(InterpretableRel rel) {
+      super(rel.getCluster(), rel.getTraitSet());
+      this.rel = rel;
+    }
+
+    @Override protected RelDataType deriveRowType() {
+      return rel.getRowType();
+    }
+
+    @Override public RelWriter explainTerms(RelWriter pw) {
+      // Include the original identity so HepPlanner does not merge different
+      // subtrees hidden behind leaves with the same row type.
+      return super.explainTerms(pw).item("rel", rel.getId());
+    }
   }
 
   @Override public Enumerator<@Nullable Object[]> enumerator() {
@@ -324,6 +372,13 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     }
 
     @Override public void visit(RelNode p, int ordinal, @Nullable RelNode parent) {
+      if (isEnumerableBoundary(p)) {
+        // The converter executes its whole input subtree. Visiting its children
+        // here would also schedule them for interpreter execution.
+        final Node leafNode = implement((InterpretableRel) p);
+        requireNonNull(nodes.get(p)).node = leafNode;
+        return;
+      }
       for (;;) {
         rel = null;
         boolean found = dispatcher.invokeVisitor(this, p, REWRITE_METHOD_NAME);
@@ -368,11 +423,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       boolean found = dispatcher.invokeVisitor(this, p, VISIT_METHOD_NAME);
       if (!found) {
         if (p instanceof InterpretableRel) {
-          InterpretableRel interpretableRel = (InterpretableRel) p;
-          node =
-              interpretableRel.implement(
-                  new InterpretableRel.InterpreterImplementor(this, null,
-                      DataContexts.EMPTY));
+          node = implement((InterpretableRel) p);
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "
@@ -387,6 +438,12 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
           visit(input, i, p);
         }
       }
+    }
+
+    private Node implement(InterpretableRel rel) {
+      return rel.implement(
+          new InterpretableRel.InterpreterImplementor(this, null,
+              interpreter.dataContext));
     }
 
     /** Fallback rewrite method.
