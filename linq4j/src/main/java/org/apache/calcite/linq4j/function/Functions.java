@@ -496,7 +496,8 @@ public abstract class Functions {
    * {@code Object[]} arrays and {@link List}s are compared element-wise and
    * recursively, and compare equal to each other when their elements are
    * equal, regardless of container kind; primitive arrays are compared by
-   * content; {@code null} equals {@code null}.
+   * content; {@link BigDecimal} values are compared numerically, ignoring scale;
+   * {@code null} equals {@code null}.
    *
    * <p>This implements the SQL "not distinct" semantics used by
    * {@code GROUP BY}, {@code DISTINCT} and set operations. */
@@ -563,6 +564,9 @@ public abstract class Functions {
       // Primitive arrays (e.g. byte[] for BINARY values).
       return Arrays.deepEquals(new Object[] {v1}, new Object[] {v2});
     }
+    if (v1 instanceof BigDecimal && v2 instanceof BigDecimal) {
+      return ((BigDecimal) v1).compareTo((BigDecimal) v2) == 0;
+    }
     return v1.equals(v2);
   }
 
@@ -623,6 +627,15 @@ public abstract class Functions {
     }
     if (o.getClass().isArray()) {
       return Arrays.deepHashCode(new Object[] {o});
+    }
+    if (o instanceof BigDecimal) {
+      final BigDecimal decimal = (BigDecimal) o;
+      try {
+        return decimal.stripTrailingZeros().hashCode();
+      } catch (ArithmeticException e) {
+        // The fully stripped scale is below the minimum representable scale.
+        return decimal.setScale(Integer.MIN_VALUE).hashCode();
+      }
     }
     return o.hashCode();
   }
