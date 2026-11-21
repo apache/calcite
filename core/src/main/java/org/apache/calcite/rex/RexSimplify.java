@@ -2668,11 +2668,13 @@ public class RexSimplify {
       } else if (searchOperand instanceof RexLiteral) {
         // Subject is a constant; expand and re-simplify regardless of point count,
         // since a constant subject can always be fully evaluated.
-        return simplify(RexUtil.expandSearch(rexBuilder, null, call), unknownAs);
+        return simplify(
+            RexUtil.expandSearch(rexBuilder, null, call, -1, unknownAs),
+            unknownAs);
       } else if (sarg.isPoints() && sarg.pointCount <= 1) {
         // Expand "SEARCH(x, Sarg([point]))" to "x = point"
         // and "SEARCH(x, Sarg([]))" to "false".
-        return RexUtil.expandSearch(rexBuilder, null, call);
+        return RexUtil.expandSearch(rexBuilder, null, call, -1, unknownAs);
       }
     }
     return operandUnchanged
