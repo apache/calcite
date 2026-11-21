@@ -1061,6 +1061,21 @@ class JdbcAdapterTest {
         .runs();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7927">[CALCITE-7927]
+   * RexSimplify removes required casts around nested dynamic parameters</a>. */
+  @Test void testNestedDynamicParamCastTruncates() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB)
+        .query("select cast(cast(? as varchar(1)) as char(1)) as c\n"
+            + "from scott.dept where deptno = 10")
+        .consumesPreparedStatement(p -> p.setString(1, "longer-value"))
+        .returns("C=l\n")
+        .planHasSql("SELECT CAST(CAST(? AS VARCHAR(1)) AS CHAR(1)) AS \"C\"\n"
+            + "FROM \"SCOTT\".\"DEPT\"\n"
+            + "WHERE CAST(\"DEPTNO\" AS INTEGER) = 10");
+  }
+
   @Test void testLastValueOver() {
     CalciteAssert
         .model(FoodmartSchema.FOODMART_MODEL)
