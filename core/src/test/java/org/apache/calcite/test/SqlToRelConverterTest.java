@@ -2201,6 +2201,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4611">[CALCITE-4611]
+   * Ambiguous column exception occurred when a table function has same column
+   * name in its input and output column list</a>. */
+  @Test void testCollectionTableWithLateral4() {
+    sql("select T.* from dept, lateral table(DEDUP(deptno, name)) AS T(name)")
+        .ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4673">[CALCITE-4673]
    * If arguments to a table function use correlation variables,
    * SqlToRelConverter should eliminate duplicate variables</a>.
