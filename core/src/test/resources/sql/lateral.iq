@@ -641,6 +641,42 @@ order by d.deptno, t.s, t.x;
 
 !ok
 
+# [CALCITE-4611] Ambiguous column exception occurred when a table function
+!use aux
+select t.*
+from aux.simpletable st,
+  lateral table(aux.tblfun(intcol)) as t(intcol, strcol);
++--------+--------+
+| INTCOL | STRCOL |
++--------+--------+
+|      0 |        |
+|      0 |        |
+|      1 | a      |
+|      0 |        |
+|      1 | a      |
+|      2 | ab     |
++--------+--------+
+(6 rows)
+
+!ok
+
+select st.strcol, t."n", t."s"
+from aux.simpletable st,
+  lateral table(aux.tblfun(intcol)) as t;
++--------+---+----+
+| STRCOL | n | s  |
++--------+---+----+
+| ABC    | 0 |    |
+| DEF    | 0 |    |
+| DEF    | 1 | a  |
+| GHI    | 0 |    |
+| GHI    | 1 | a  |
+| GHI    | 2 | ab |
++--------+---+----+
+(6 rows)
+
+!ok
+
 # [CALCITE-4693] An aggregate without GROUP BY returns one row even for
 # empty input, so every department must appear.
 !use post
