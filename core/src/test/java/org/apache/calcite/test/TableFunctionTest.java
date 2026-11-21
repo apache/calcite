@@ -770,6 +770,41 @@ class TableFunctionTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4611">[CALCITE-4611]
+   * Ambiguous column exception occurred when a table function has same column
+   * name in its input and output column list</a>.
+   *
+   * <p>The argument {@code n} refers to the left item's column N; it must not
+   * be resolved against the table function's own output columns, which are
+   * also named N via the alias. */
+  @Test void testLateralTableFunctionWithSameColumnNameInInputAndOutput()
+      throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+
+      final String sql = "select t.*\n"
+          + "from (values 5, 3) as d(n),\n"
+          + "  lateral table(\"s\".\"GenerateStrings\"(n)) as t(n, c)";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      final String expected = "N=0; C=\n"
+          + "N=1; C=a\n"
+          + "N=2; C=ab\n"
+          + "N=3; C=abc\n"
+          + "N=4; C=abcd\n"
+          + "N=0; C=\n"
+          + "N=1; C=a\n"
+          + "N=2; C=ab\n";
+      assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
+    }
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2382">[CALCITE-2382]
    * Sub-query lateral joined to table function</a>. */
   @Test void testInlineViewLateralTableFunction() throws SQLException {
