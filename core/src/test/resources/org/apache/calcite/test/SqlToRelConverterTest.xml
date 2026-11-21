@@ -1061,6 +1061,19 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCollectionTableWithLateral4">
+    <Resource name="sql">
+      <![CDATA[select T.* from dept, lateral table(DEDUP(deptno, name)) AS T(name)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.NAME)], rowType=[RecordType(VARCHAR(1024) NAME)])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testColonFieldAccess">
     <Resource name="sql">
       <![CDATA[select cast(empno as variant):a.b['c'][0] from emp]]>
