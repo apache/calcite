@@ -6850,6 +6850,58 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5345">[CALCITE-5345]
+   * UnionPullUpConstantsRule could also pull up constants requiring a cast</a>. */
+  @Test void testPullConstantThroughUnionWithCast() {
+    final String sql = "select deptno, ename from emp where deptno = 1.0\n"
+        + "union all\n"
+        + "select deptno, ename from emp where deptno = 1.0";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testPullConstantThroughUnionWithCastOverflowConstant() {
+    // The constant cannot be represented as an INT, so the rule bails out.
+    final String sql = "select deptno, ename from emp where deptno = 20000000000000000\n"
+        + "union all\n"
+        + "select deptno, ename from emp where deptno = 20000000000000000";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  @Test void testPullConstantThroughUnionWithCastFractionalConstant() {
+    // 1.5 cannot be represented exactly as an INT, so the cast is not
+    // folded and the rule bails out.
+    final String sql = "select deptno, ename from emp where deptno = 1.5\n"
+        + "union all\n"
+        + "select deptno, ename from emp where deptno = 1.5";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  @Test void testPullConstantThroughUnionWithCastCharColumn() {
+    // The cast of the VARCHAR column to DECIMAL is not a widening cast, so
+    // the rule bails out (the constant cannot be pulled up safely).
+    final String sql = "select ename, deptno from emp where ename = 1.0\n"
+        + "union all\n"
+        + "select ename, deptno from emp where ename = 1.0";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
   /** Query over a UNION ALL where each branch pads the other branch's measure
    * with NULL, as produced by a "metrics" view. */
   private static String nullPaddedUnion(String select, String tail) {

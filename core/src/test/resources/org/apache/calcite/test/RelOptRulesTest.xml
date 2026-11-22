@@ -14852,6 +14852,98 @@ LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPullConstantThroughUnionWithCast">
+    <Resource name="sql">
+      <![CDATA[select deptno, ename from emp where deptno = 1.0
+union all
+select deptno, ename from emp where deptno = 1.0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=(CAST($1):DECIMAL(11, 1) NOT NULL, 1.0)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=(CAST($1):DECIMAL(11, 1) NOT NULL, 1.0)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[1], ENAME=[$0])
+  LogicalUnion(all=[true])
+    LogicalProject(ENAME=[$0])
+      LogicalFilter(condition=[=(CAST($1):DECIMAL(11, 1) NOT NULL, 1.0)])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0])
+      LogicalFilter(condition=[=(CAST($1):DECIMAL(11, 1) NOT NULL, 1.0)])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullConstantThroughUnionWithCastCharColumn">
+    <Resource name="sql">
+      <![CDATA[select ename, deptno from emp where ename = 1.0
+union all
+select ename, deptno from emp where ename = 1.0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalFilter(condition=[=(CAST($0):DECIMAL(19, 9) NOT NULL, 1.000000000)])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=(CAST($0):DECIMAL(19, 9) NOT NULL, 1.000000000)])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullConstantThroughUnionWithCastFractionalConstant">
+    <Resource name="sql">
+      <![CDATA[select deptno, ename from emp where deptno = 1.5
+union all
+select deptno, ename from emp where deptno = 1.5]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=(CAST($1):DECIMAL(11, 1) NOT NULL, 1.5)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=(CAST($1):DECIMAL(11, 1) NOT NULL, 1.5)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullConstantThroughUnionWithCastOverflowConstant">
+    <Resource name="sql">
+      <![CDATA[select deptno, ename from emp where deptno = 20000000000000000
+union all
+select deptno, ename from emp where deptno = 20000000000000000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=(CAST($1):BIGINT NOT NULL, 20000000000000000)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=(CAST($1):BIGINT NOT NULL, 20000000000000000)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPullFilterThroughAggregate">
     <Resource name="sql">
       <![CDATA[select ename, sal, deptno from (  select ename, sal, deptno  from emp  where sal > 5000)group by ename, sal, deptno]]>
