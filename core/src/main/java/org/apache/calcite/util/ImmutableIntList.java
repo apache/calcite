@@ -135,7 +135,6 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return Arrays.hashCode(ints);
   }
 
-  @SuppressWarnings("NullAway")
   @Override public boolean equals(@Nullable Object obj) {
     return ((this == obj)
         || (obj instanceof ImmutableIntList))

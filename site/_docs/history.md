@@ -157,6 +157,19 @@ character) as well as `%`, as the JDBC specification requires. Previously `_` ma
 For example, the pattern `EMP_DEPT` now also matches `EMPXDEPT`. To match a literal `_`, escape it
 as `\_`. The public method `LikePattern.likeToRegex` has been removed as part of this improvement.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7736">CALCITE-7736</a>]
+Calcite annotates nullness with [JSpecify](https://jspecify.dev/) instead of the Checker Framework.
+Published modules no longer depend on `org.checkerframework:checker-qual`; they depend on
+`org.jspecify:jspecify`, and `calcite-core` and `calcite-linq4j` also depend on the new
+`calcite-annotations` artifact. Code that imports `org.checkerframework` annotations and got
+`checker-qual` only through Calcite must declare that dependency itself.
+Kotlin 2.1 and later read JSpecify annotations strictly by default, so Kotlin code that passes `null` to a
+parameter Calcite does not declare `@Nullable`, or assigns a result Calcite declares `@Nullable` to a
+non-null type, no longer compiles; `-Xjspecify-annotations=warn` turns these errors into warnings.
+A class that overrides `ExtendedEnumerable.correlateJoin` must declare the parameter as
+`Function2<TSource, ? super @Nullable TInner, TResult>`.
+Erased method descriptors are unchanged, so code compiled against 1.42.0 still links.
+
 #### New features
 {: #new-features-1-43-0}
 

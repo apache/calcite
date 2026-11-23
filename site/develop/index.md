@@ -227,10 +227,10 @@ push it.
 Apache Calcite annotates its code with [JSpecify](https://jspecify.dev/) and verifies it with
 [NullAway](https://github.com/uber/NullAway) to avoid unexpected `NullPointerExceptions`.
 
-NullAway verifies the `main` and `jmh` source sets of the modules listed in `nullawayProjects` in
-the root `build.gradle.kts`; `:ubenchmark` keeps its code in `jmh`. Test code is not verified.
+NullAway verifies the `main` and `jmh` source sets of every module; `:ubenchmark` keeps its code
+in `jmh`. Test code is not verified.
 
-Every package in those modules declares `@NullMarked` from `org.jspecify.annotations` in its
+Every package in those source sets declares `@NullMarked` from `org.jspecify.annotations` in its
 `package-info.java`, which makes types non-nullable unless they are annotated `@Nullable`.
 A package annotation does not apply to subpackages, so a new package needs a `package-info.java`
 of its own:
@@ -244,7 +244,8 @@ NullAway analyzes only `@NullMarked` code (`NullAway:OnlyNullMarked`). So that a
 `package-info.java` cannot leave a package unverified, the `RequireExplicitNullMarking` check fails
 the build when a class in a verified module is neither `@NullMarked` nor `@NullUnmarked`.
 
-To verify one more module, add it to `nullawayProjects` and declare `@NullMarked` in its packages.
+A new module needs no build change to be verified, but `RequireExplicitNullMarking` fails its build
+until each of its packages declares `@NullMarked`.
 
 To execute NullAway locally, run the same command as CI:
 
@@ -258,23 +259,35 @@ Here's a small introduction to null-safe programming:
 so it is better to stick with `org.jspecify.annotations.Nullable`.
   You might want to configure your IDE to exclude `javax.annotation.*` annotations from code completion.
 
-* A type variable is non-nullable unless it is declared with a nullable bound. Write
-  `<T extends @Nullable Object>` for a type variable that a caller may instantiate with a nullable
-  type.
+* An unannotated type variable such as `<T>` accepts only non-null type arguments. Declare
+  `<T extends @Nullable Object>` for a type variable whose type argument may be nullable, as `Linq4j` does:
 
-* For a method that returns null exactly when an argument is null, annotate it
-  `@Contract("!null, _ -> !null")` from `org.apache.calcite.linq4j.annotations`. The clause lists one entry
-  per parameter, `!null` for the ones the result depends on and `_` for the rest. NullAway verifies
-  the clause against the body, and a caller that passes a non-null argument gets a non-null result.
-  The annotation does not apply to a receiver parameter, to a varargs method, or to a type argument
-  such as `Enumerable<@Nullable T>`.
+        // Enumerable<@Nullable String> is rejected
+        public static <T> Enumerable<T> singletonEnumerable(final T element)
+        // Enumerable<@Nullable String> is accepted
+        public static <T extends @Nullable Object> Enumerable<T> asEnumerable(final List<T> list)
+
+* `@Contract` from `org.apache.calcite.annotations` states how the nullness of a method's result
+  follows from its arguments. A clause lists one constraint per parameter, then `->` and the result;
+  `_` places no constraint on its argument. Calcite uses two forms:
+  * `@Contract("!null, _ -> !null")`, and likewise `"!null -> !null"` or `"!null, !null -> !null"`:
+    when every argument marked `!null` is non-null, the result is non-null. The clause says nothing
+    about the result for a null argument.
+  * `@Contract("null -> false")`: the method returns `false` for a null argument, so NullAway treats
+    the argument as non-null where the method returned `true`.
+
+  NullAway checks the clauses that end in `-> !null` against the method body
+  (`NullAway:CheckContracts`) and trusts the others, such as `null -> false`.
+  `@Contract` cannot describe a receiver parameter, a varargs method, or a type argument such as
+  `Enumerable<@Nullable T>`.
 
 * NullAway verifies code method by method. That means, it can't account for method execution order.
   That is why `@Nullable` fields should be verified in each method where they are used.
   If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
-  For fields that start as null and become non-null later, use `org.apache.calcite.linq4j.annotations.MonotonicNonNull`.
-  For fields that have already been checked against null, use `org.apache.calcite.linq4j.annotations.RequiresNonNull`.
-  Those annotations are not retained at run time.
+  For fields that start as null and become non-null later, use `org.apache.calcite.annotations.MonotonicNonNull`.
+  For fields that have already been checked against null, use `org.apache.calcite.annotations.RequiresNonNull`.
+  Those annotations come from the `calcite-annotations` artifact, which `calcite-linq4j` and `calcite-core` depend on,
+  and they are not retained at run time.
 
 * If you are absolutely sure the value is non-null, you might use `org.apache.calcite.linq4j.Nullness.castNonNull(T)`.
   The intention behind `castNonNull` is like `trustMeThisIsNeverNullHoweverTheVerifierCantTellYet(...)`

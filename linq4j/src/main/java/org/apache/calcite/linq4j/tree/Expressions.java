@@ -2754,7 +2754,6 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * without a default case.
    */
-  @SuppressWarnings("NullAway")
   public static SwitchStatement switch_(Expression switchValue,
       SwitchCase... cases) {
     return switch_(switchValue, null, null, toList(cases));
@@ -2764,7 +2763,6 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
-  @SuppressWarnings("NullAway")
   public static SwitchStatement switch_(Expression switchValue,
       Expression defaultBody, SwitchCase... cases) {
     return switch_(switchValue, defaultBody, null, toList(cases));

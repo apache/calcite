@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql.advise;
 
+import org.apache.calcite.annotations.EnsuresNonNull;
 import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlIdentifier;

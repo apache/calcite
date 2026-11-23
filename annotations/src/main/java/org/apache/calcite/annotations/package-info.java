@@ -29,6 +29,6 @@
  * {@code Nullness.isMonotonicNonNullAnnotation} in NullAway for the matching rules.
  */
 @NullMarked
-package org.apache.calcite.linq4j.annotations;
+package org.apache.calcite.annotations;
 
 import org.jspecify.annotations.NullMarked;

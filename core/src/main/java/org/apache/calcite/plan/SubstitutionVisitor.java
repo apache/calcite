@@ -1017,7 +1017,6 @@ public class SubstitutionVisitor {
 
   /** Abstract base class for implementing {@link UnifyRule}. */
   public abstract static class AbstractUnifyRule extends UnifyRule {
-    @SuppressWarnings("NullAway")
     protected AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
         int slotCount) {
       super(slotCount, queryOperand, targetOperand);

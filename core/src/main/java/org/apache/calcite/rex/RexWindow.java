@@ -72,7 +72,6 @@ public class RexWindow {
    * "ROWS BETWEEN 5 PRECEDING AND CURRENT ROW" is printed as
    * "ROWS 5 PRECEDING".
    */
-  @SuppressWarnings("NullAway")
   RexWindow(
       List<RexNode> partitionKeys,
       List<RexFieldCollation> orderKeys,

@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;

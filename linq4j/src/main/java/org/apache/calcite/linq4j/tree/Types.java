@@ -276,7 +276,6 @@ public abstract class Types {
    *
    * @return Whether parameter can be assigned from argument
    */
-  @SuppressWarnings("NullAway")
   private static boolean assignableFrom(Class<?> parameter, Class<?> argument) {
     return parameter.isAssignableFrom(argument)
            || parameter.isPrimitive()

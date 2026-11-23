@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.annotations.Contract;
+import org.apache.calcite.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
-import org.apache.calcite.linq4j.annotations.RequiresNonNull;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -346,7 +346,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder =
         new AggFinder(opTab, true, true, true, null, nameMatcher);
-    @SuppressWarnings("NullAway")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
 
@@ -6899,7 +6898,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @SuppressWarnings("RedundantCast")
       final ImmutableBitSet constrainedColumns =
           ImmutableBitSet.of((Iterable<Integer>) projectMap.keySet());
-      @SuppressWarnings("NullAway")
       List<Integer> constrainedTargetColumns =
           targetColumns.intersect(constrainedColumns).asList();
 

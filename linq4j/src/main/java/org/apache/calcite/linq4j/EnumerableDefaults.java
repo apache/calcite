@@ -567,7 +567,6 @@ public abstract class EnumerableDefaults {
     try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        @SuppressWarnings("NullAway")
         boolean unused = collection.remove(o);
       }
       return Linq4j.asEnumerable(collection);
@@ -1193,7 +1192,6 @@ public abstract class EnumerableDefaults {
       while (os.moveNext()) {
         TSource o = os.current();
         TKey key = keySelector.apply(o);
-        @SuppressWarnings("NullAway")
         TAccumulate accumulator = map.get(key);
         if (accumulator == null) {
           accumulator = accumulatorInitializer.apply();
@@ -1225,7 +1223,6 @@ public abstract class EnumerableDefaults {
         for (Function1<TSource, TKey> keySelector : keySelectors) {
           TSource o = os.current();
           TKey key = keySelector.apply(o);
-          @SuppressWarnings("NullAway")
           TAccumulate accumulator = map.get(key);
           if (accumulator == null) {
             accumulator = accumulatorInitializer.apply();
@@ -1285,7 +1282,6 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
-            @SuppressWarnings("NullAway")
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
@@ -1327,7 +1323,6 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
-            @SuppressWarnings("NullAway")
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
@@ -1372,7 +1367,6 @@ public abstract class EnumerableDefaults {
     try (Enumerator<TSource> os = source0.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        @SuppressWarnings("NullAway")
         boolean removed = set1.remove(o);
         if (removed) {
           resultCollection.add(o);
@@ -1563,7 +1557,6 @@ public abstract class EnumerableDefaults {
                   // not the left.
                   List<TInner> list = new ArrayList<>();
                   for (TKey key : unmatchedKeys) {
-                    @SuppressWarnings("NullAway")
                     Enumerable<TInner> innerValues = requireNonNull(innerLookup.get(key));
                     for (TInner tInner : innerValues) {
                       list.add(tInner);
@@ -2516,7 +2509,6 @@ public abstract class EnumerableDefaults {
 
         final Predicate1<TSource> predicate = v0 -> {
           TKey key = outerKeySelector.apply(v0);
-          @SuppressWarnings("NullAway")
           Enumerable<TInner> innersOfKey = key == null ? null : innerLookup.get().get(key);
           if (innersOfKey == null) {
             return anti;
@@ -4963,7 +4955,6 @@ public abstract class EnumerableDefaults {
 
     /** EntrySet for {@link WrapMap}. */
     private class WrapMapEntrySet extends AbstractSet<Entry<K, V>> {
-      @SuppressWarnings("NullAway")
       @Override public Iterator<Entry<K, V>> iterator() {
         final Iterator<Entry<Wrapped<K>, V>> iterator =
             map.entrySet().iterator();
@@ -5005,7 +4996,6 @@ public abstract class EnumerableDefaults {
       return map.get(wrap((K) key));
     }
 
-    @SuppressWarnings("NullAway")
     @Override public @Nullable V put(K key, V value) {
       return map.put(wrap(key), value);
     }
@@ -5092,7 +5082,6 @@ public abstract class EnumerableDefaults {
     private boolean remainingLeft;
     private TResult current = (TResult) DUMMY;
 
-    @SuppressWarnings("NullAway")
     MergeJoinEnumerator(Enumerable<TSource> leftEnumerable,
         Enumerable<TInner> rightEnumerable,
         Function1<TSource, TKey> outerKeySelector,

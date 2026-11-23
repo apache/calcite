@@ -744,7 +744,7 @@ public class RelBuilder {
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    @Nullable RelDataType rowType = null;
+    RelDataType rowType = null;
     int count = 0;
     for (String fieldName : fieldNames) {
       // From the third name, if the input has its row type's field names,
@@ -758,7 +758,7 @@ public class RelBuilder {
           rowType = frame.rel.getRowType();
         }
       }
-      final @Nullable RelDataTypeField field =
+      final RelDataTypeField field =
           rowType == null ? null : rowType.getField(fieldName, true, false);
       // For an unknown name, getField may return index -1 or the dynamic star
       builder.add(

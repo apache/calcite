@@ -27,6 +27,7 @@ dependencies {
 
     api("org.apache.cassandra:java-driver-core")
     api("com.google.guava:guava")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("org.apache.calcite.avatica:avatica-core")

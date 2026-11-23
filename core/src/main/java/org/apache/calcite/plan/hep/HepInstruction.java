@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan.hep;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.RelOptRule;
 
 import com.google.common.collect.ImmutableList;

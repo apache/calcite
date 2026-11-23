@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.core.AggregateCall;
 
