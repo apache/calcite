@@ -18,4 +18,7 @@
 /**
  * Utilities for Apache Geode adapter.
  */
+@NullMarked
 package org.apache.calcite.adapter.geode.util;
+
+import org.jspecify.annotations.NullMarked;

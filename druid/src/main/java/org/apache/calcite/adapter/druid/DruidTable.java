@@ -122,7 +122,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
-      List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
+      @Nullable List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection, Map<String, List<ComplexMetric>> complexMetrics) {
     requireNonNull(connection, "connection");
@@ -202,10 +202,11 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         && isValidParentKind(parent);
   }
 
-  private static boolean isValidParentKind(SqlNode node) {
-    return node.getKind() == SqlKind.SELECT
+  private static boolean isValidParentKind(@Nullable SqlNode node) {
+    return node != null
+            && (node.getKind() == SqlKind.SELECT
             || node.getKind() == SqlKind.FILTER
-            || isSupportedPostAggOperation(node.getKind());
+            || isSupportedPostAggOperation(node.getKind()));
   }
 
   private static boolean isCountDistinct(SqlCall call) {
@@ -239,7 +240,10 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    final RelDataType rowType = protoRowType.apply(typeFactory);
+    final RelDataType rowType =
+        requireNonNull(protoRowType,
+            () -> "protoRowType for Druid data source " + dataSource)
+            .apply(typeFactory);
     final List<String> fieldNames = rowType.getFieldNames();
     checkArgument(fieldNames.contains(timestampFieldName));
     checkArgument(fieldNames.containsAll(metricFieldNames));

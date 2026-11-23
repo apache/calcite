@@ -27,6 +27,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link TableFactory} for Redis.
  *
@@ -42,7 +44,10 @@ public class RedisTableFactory implements TableFactory {
   // name that is also the same name as a complex metric
   @Override public Table create(SchemaPlus schema, String tableName, Map operand,
       @Nullable RelDataType rowType) {
-    final RedisSchema redisSchema = schema.unwrap(RedisSchema.class);
+    final RedisSchema redisSchema =
+        requireNonNull(schema.unwrap(RedisSchema.class),
+            () -> "unable to unwrap RedisSchema from schema " + schema.getName()
+                + " for table " + tableName);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
     return RedisTable.create(redisSchema, tableName, operand, protoRowType);

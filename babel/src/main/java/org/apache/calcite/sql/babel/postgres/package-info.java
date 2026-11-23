@@ -18,4 +18,7 @@
 /**
  * Parse tree for PostgreSQL extensions used by the Babel parser.
  */
+@NullMarked
 package org.apache.calcite.sql.babel.postgres;
+
+import org.jspecify.annotations.NullMarked;

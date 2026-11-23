@@ -18,4 +18,7 @@
 /**
  * Redis adapter.
  */
+@NullMarked
 package org.apache.calcite.adapter.redis;
+
+import org.jspecify.annotations.NullMarked;

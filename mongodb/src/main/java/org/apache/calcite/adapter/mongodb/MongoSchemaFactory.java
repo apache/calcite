@@ -27,6 +27,10 @@ import com.mongodb.MongoCredential;
 
 import java.util.Map;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates a {@link MongoSchema}.
  *
@@ -40,7 +44,7 @@ public class MongoSchemaFactory implements SchemaFactory {
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     final String host = (String) operand.get("host");
-    final String database = (String) operand.get("database");
+    final String database = castNonNull((String) operand.get("database"));
     final String authMechanismName = (String) operand.get("authMechanism");
 
     final MongoClientSettings.Builder settings =
@@ -66,13 +70,19 @@ public class MongoSchemaFactory implements SchemaFactory {
     switch (authenticationMechanism) {
     case PLAIN:
       return MongoCredential.createPlainCredential(username, authDatabase,
-          password.toCharArray());
+          requireNonNull(password,
+              () -> "operand 'password' is required for authMechanism "
+                  + authMechanismName).toCharArray());
     case SCRAM_SHA_1:
       return MongoCredential.createScramSha1Credential(username, authDatabase,
-          password.toCharArray());
+          requireNonNull(password,
+              () -> "operand 'password' is required for authMechanism "
+                  + authMechanismName).toCharArray());
     case SCRAM_SHA_256:
       return MongoCredential.createScramSha256Credential(username, authDatabase,
-          password.toCharArray());
+          requireNonNull(password,
+              () -> "operand 'password' is required for authMechanism "
+                  + authMechanismName).toCharArray());
     case GSSAPI:
       return MongoCredential.createGSSAPICredential(username);
     case MONGODB_X509:

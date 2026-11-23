@@ -65,7 +65,7 @@ public class FoodmartSchema {
       this.prod_id = prod_id;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof SalesFact
           && cust_id == ((SalesFact) obj).cust_id

@@ -112,7 +112,7 @@ class ElasticsearchMapping {
             .collect(Collectors.toSet());
 
     private final String name;
-    private final JsonNode missingValue;
+    private final @Nullable JsonNode missingValue;
 
     private Datatype(final String name) {
       this.name = requireNonNull(name, "name");

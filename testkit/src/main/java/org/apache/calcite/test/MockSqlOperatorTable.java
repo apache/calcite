@@ -216,6 +216,9 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
   /** "TFRT" user-defined table function. */
   public static class TableFunctionReturnTableFunction extends SqlFunction
       implements SqlTableFunction {
+    /** Set by the constructor after the super call, which needs the operator
+     * to exist first. */
+    @SuppressWarnings("NullAway.Init")
     TableFunctionReturnTypeInference inference;
 
     public TableFunctionReturnTableFunction() {
@@ -283,7 +286,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return ScoreTableFunction::inferRowType;
     }
 
-    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+    @Override public @Nullable TableCharacteristic tableCharacteristic(int ordinal) {
       return tableParams.get(ordinal);
     }
 
@@ -356,7 +359,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return TopNTableFunction::inferRowType;
     }
 
-    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+    @Override public @Nullable TableCharacteristic tableCharacteristic(int ordinal) {
       return tableParams.get(ordinal);
     }
 
@@ -435,7 +438,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           .build();
     }
 
-    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+    @Override public @Nullable TableCharacteristic tableCharacteristic(int ordinal) {
       return tableParams.get(ordinal);
     }
 
@@ -505,7 +508,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           .build();
     }
 
-    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+    @Override public @Nullable TableCharacteristic tableCharacteristic(int ordinal) {
       return tableParams.get(ordinal);
     }
 

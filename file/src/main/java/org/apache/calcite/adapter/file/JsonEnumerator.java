@@ -84,7 +84,8 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       }
 
     } catch (MismatchedInputException e) {
-      if (!e.getMessage().contains("No content")) {
+      final String message = e.getMessage();
+      if (message == null || !message.contains("No content")) {
         throw new RuntimeException("Couldn't read " + source, e);
       }
     } catch (Exception e) {
@@ -123,7 +124,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     return new JsonDataConverter(relDataType, list);
   }
 
-  @Override public Object[] current() {
+  @Override public @Nullable Object[] current() {
     return enumerator.current();
   }
 

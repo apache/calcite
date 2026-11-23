@@ -78,7 +78,7 @@ enum FileFieldType {
     return typeFactory.createJavaType(clazz);
   }
 
-  public static FileFieldType of(String typeString) {
+  public static @Nullable FileFieldType of(String typeString) {
     return MAP.get(typeString);
   }
 }

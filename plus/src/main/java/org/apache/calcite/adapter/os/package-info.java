@@ -19,4 +19,7 @@
  * The OS adapter contains various table functions that let you query data
  * sources in your operating system and environment.
  */
+@NullMarked
 package org.apache.calcite.adapter.os;
+
+import org.jspecify.annotations.NullMarked;

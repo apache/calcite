@@ -72,7 +72,7 @@ class FileRowConverter {
 
   /** Creates a FileRowConverter. */
   FileRowConverter(FileReader fileReader,
-      List<Map<String, Object>> fieldConfigs) {
+      @Nullable List<Map<String, Object>> fieldConfigs) {
     this.fileReader = fileReader;
     this.fieldConfigs = fieldConfigs;
   }
@@ -106,14 +106,14 @@ class FileRowConverter {
           for (Map<String, Object> fieldConfig : this.fieldConfigs) {
 
             String thName = (String) fieldConfig.get("th");
+            Integer sourceIx = thName == null ? null : headerMap.get(thName);
+            if (thName == null || sourceIx == null) {
+              throw new Exception("bad source column name: '" + thName + "'");
+            }
             String name = thName;
             String newName;
             FileFieldType type = null;
             boolean skip = false;
-
-            if (!headerMap.containsKey(thName)) {
-              throw new Exception("bad source column name: '" + thName + "'");
-            }
             if ((newName = (String) fieldConfig.get("name")) != null) {
               name = newName;
             }
@@ -131,7 +131,6 @@ class FileRowConverter {
               skip = parseBoolean(sSkip);
             }
 
-            Integer sourceIx = headerMap.get(thName);
             colNames.add(name);
             sources.add(thName);
             if (!skip) {
@@ -170,7 +169,7 @@ class FileRowConverter {
   /** Converts a row of JSoup Elements to an array of java objects. */
   Object toRow(Elements rowElements, int[] projection) {
     initialize();
-    final Object[] objects = new Object[projection.length];
+    final @Nullable Object[] objects = new @Nullable Object[projection.length];
 
     for (int i = 0; i < projection.length; i++) {
       int field = projection[i];
@@ -262,7 +261,7 @@ class FileRowConverter {
         List<String> allMatches = new ArrayList<>();
         Matcher m = this.matchPattern.matcher(cellString);
         while (m.find()) {
-          allMatches.add(m.group());
+          allMatches.add(requireNonNull(m.group(), "m.group()"));
         }
         if (!allMatches.isEmpty()) {
           return allMatches.get(this.matchSeq);

@@ -19,4 +19,7 @@
  * Pig query provider.
  *
  */
+@NullMarked
 package org.apache.calcite.adapter.pig;
+
+import org.jspecify.annotations.NullMarked;

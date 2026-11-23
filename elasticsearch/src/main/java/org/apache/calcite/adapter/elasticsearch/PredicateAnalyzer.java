@@ -37,6 +37,8 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
@@ -54,6 +56,7 @@ import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.rangeQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.regexpQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termsQuery;
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -108,7 +111,8 @@ class PredicateAnalyzer {
    * @return search query which can be used to query ES cluster
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
-  static QueryBuilder analyze(RexNode expression) throws ExpressionNotAnalyzableException {
+  static @Nullable QueryBuilder analyze(RexNode expression)
+      throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
@@ -393,7 +397,7 @@ class PredicateAnalyzer {
       case LIKE:
         if (call.getOperands().size() == 3) {
           final Expression e = call.getOperands().get(2).accept(this);
-          LiteralExpression escape = expressAsLiteral(e);
+          LiteralExpression escape = castNonNull(expressAsLiteral(e));
           return QueryExpression.create(pair.getKey()).like(pair.getValue(), escape);
         }
         return QueryExpression.create(pair.getKey()).like(pair.getValue());
@@ -555,7 +559,7 @@ class PredicateAnalyzer {
     /**
      * Try to convert a generic expression into a literal expression.
      */
-    private static LiteralExpression expressAsLiteral(Expression exp) {
+    private static @Nullable LiteralExpression expressAsLiteral(Expression exp) {
 
       if (exp instanceof LiteralExpression) {
         return (LiteralExpression) exp;
@@ -795,7 +799,7 @@ class PredicateAnalyzer {
   static class SimpleQueryExpression extends QueryExpression {
 
     private final NamedFieldExpression rel;
-    private QueryBuilder builder;
+    private @Nullable QueryBuilder builder;
 
     private String getFieldReference() {
       return rel.getReference();
@@ -880,7 +884,7 @@ class PredicateAnalyzer {
     }
 
     @Override public QueryExpression gt(LiteralExpression literal) {
-      Object value = literal.value();
+      Object value = castNonNull(literal.value());
       builder =
           addFormatIfNecessary(literal,
               rangeQuery(getFieldReference()).gt(value));
@@ -888,19 +892,19 @@ class PredicateAnalyzer {
     }
 
     @Override public QueryExpression gte(LiteralExpression literal) {
-      Object value = literal.value();
+      Object value = castNonNull(literal.value());
       builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value));
       return this;
     }
 
     @Override public QueryExpression lt(LiteralExpression literal) {
-      Object value = literal.value();
+      Object value = castNonNull(literal.value());
       builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value));
       return this;
     }
 
     @Override public QueryExpression lte(LiteralExpression literal) {
-      Object value = literal.value();
+      Object value = castNonNull(literal.value());
       builder = addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value));
       return this;
     }
@@ -915,13 +919,13 @@ class PredicateAnalyzer {
     }
 
     @Override public QueryExpression in(LiteralExpression literal) {
-      Iterable<?> iterable = (Iterable<?>) literal.value();
+      Iterable<?> iterable = (Iterable<?>) castNonNull(literal.value());
       builder = termsQuery(getFieldReference(), iterable);
       return this;
     }
 
     @Override public QueryExpression notIn(LiteralExpression literal) {
-      Iterable<?> iterable = (Iterable<?>) literal.value();
+      Iterable<?> iterable = (Iterable<?>) castNonNull(literal.value());
       builder = boolQuery().mustNot(termsQuery(getFieldReference(), iterable));
       return this;
     }
@@ -1046,21 +1050,21 @@ class PredicateAnalyzer {
    */
   static final class NamedFieldExpression implements TerminalExpression {
 
-    private final String name;
+    private final @Nullable String name;
 
     private NamedFieldExpression() {
       this.name = null;
     }
 
-    private NamedFieldExpression(RexInputRef schemaField) {
+    private NamedFieldExpression(@Nullable RexInputRef schemaField) {
       this.name = schemaField == null ? null : schemaField.getName();
     }
 
-    private NamedFieldExpression(RexLiteral literal) {
+    private NamedFieldExpression(@Nullable RexLiteral literal) {
       this.name = literal == null ? null : RexLiteral.stringValue(literal);
     }
 
-    String getRootName() {
+    @Nullable String getRootName() {
       return name;
     }
 
@@ -1069,7 +1073,7 @@ class PredicateAnalyzer {
     }
 
     String getReference() {
-      return getRootName();
+      return castNonNull(getRootName());
     }
   }
 
@@ -1084,7 +1088,7 @@ class PredicateAnalyzer {
       this.literal = literal;
     }
 
-    Object value() {
+    @Nullable Object value() {
 
       if (isSarg()) {
         return sargValue();
@@ -1122,11 +1126,15 @@ class PredicateAnalyzer {
     }
 
     long longValue() {
-      return ((Number) literal.getValue()).longValue();
+      return ((Number)
+          requireNonNull(literal.getValue(), () -> "value of literal " + literal))
+          .longValue();
     }
 
     double doubleValue() {
-      return ((Number) literal.getValue()).doubleValue();
+      return ((Number)
+          requireNonNull(literal.getValue(), () -> "value of literal " + literal))
+          .doubleValue();
     }
 
     boolean booleanValue() {
@@ -1134,7 +1142,7 @@ class PredicateAnalyzer {
     }
 
     String stringValue() {
-      return RexLiteral.stringValue(literal);
+      return castNonNull(RexLiteral.stringValue(literal));
     }
 
     List<Object> sargValue() {
@@ -1164,7 +1172,7 @@ class PredicateAnalyzer {
       }
     }
 
-    Object rawValue() {
+    @Nullable Object rawValue() {
       return literal.getValue();
     }
   }
