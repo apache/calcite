@@ -72,6 +72,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -742,8 +743,29 @@ public class RelBuilder {
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    @Nullable RelDataType rowType = null;
+    int count = 0;
     for (String fieldName : fieldNames) {
-      builder.add(field(fieldName));
+      // From the third name, if the input has its row type's field names,
+      // look names up in the row type, which has a map from name to field if
+      // it is wide. The check reads every field, so skip it for 1 or 2 names.
+      if (++count == 3) {
+        final Frame frame = peek_(1, 0);
+        if (frame.rel.getRowType() instanceof RelRecordType
+            && Pair.left(frame.fields())
+                .equals(frame.rel.getRowType().getFieldNames())) {
+          rowType = frame.rel.getRowType();
+        }
+      }
+      final @Nullable RelDataTypeField field =
+          rowType == null ? null : rowType.getField(fieldName, true, false);
+      // For an unknown name, getField may return index -1 or the dynamic star
+      builder.add(
+          field != null
+              && field.getIndex() >= 0
+              && field.getName().equals(fieldName)
+              ? field(1, 0, field.getIndex())
+              : field(fieldName));
     }
     return builder.build();
   }
