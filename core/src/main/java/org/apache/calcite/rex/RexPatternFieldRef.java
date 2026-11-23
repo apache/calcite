@@ -19,6 +19,8 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Variable that references a field of an input relational expression.
  */
@@ -43,11 +45,12 @@ public class RexPatternFieldRef extends RexInputRef {
     return new RexPatternFieldRef(alpha, ref.getIndex(), ref.getType());
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitPatternFieldRef(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitPatternFieldRef(this, arg);
   }
 

@@ -26,7 +26,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.util.Static;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * @param <T> Element type
  */
-public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
+public class ResultSetEnumerable<T extends @Nullable Object> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
@@ -151,7 +151,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
 
   /** Executes a SQL query and returns the results as an enumerator, using a
    * row builder to convert JDBC column values into rows. */
-  public static <T> ResultSetEnumerable<T> of(
+  public static <T extends @Nullable Object> ResultSetEnumerable<T> of(
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory) {
@@ -163,7 +163,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
    *
    * <p>It uses a {@link PreparedStatement} for computing the query result,
    * and that means that it can bind parameters. */
-  public static <T> ResultSetEnumerable<T> of(
+  public static <T extends @Nullable Object> ResultSetEnumerable<T> of(
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory,

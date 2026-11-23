@@ -33,7 +33,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import com.alibaba.innodb.java.reader.Constants;
 import com.alibaba.innodb.java.reader.schema.KeyMeta;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;

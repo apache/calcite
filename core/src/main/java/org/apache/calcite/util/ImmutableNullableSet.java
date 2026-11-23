@@ -23,8 +23,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -151,7 +151,7 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
         objects[i] = NullSentinel.INSTANCE;
       }
     }
-    @SuppressWarnings({"nullness", "NullableProblems"})
+    @SuppressWarnings({"NullAway", "NullableProblems"})
     @NonNull Object[] nonNullObjects = objects;
     return new ImmutableNullableSet<E>(ImmutableSet.copyOf(nonNullObjects));
   }

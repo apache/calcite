@@ -20,8 +20,7 @@ package org.apache.calcite.runtime;
 // resource generation can use reflection.  That means it must have no
 // dependencies on other Calcite code.
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -125,7 +124,6 @@ public class CalciteContextException extends CalciteException {
    * @param endPosColumn 1-based end column number
    */
   public void setPosition(
-      @UnknownInitialization CalciteContextException this,
       int posLine,
       int posColumn,
       int endPosLine,

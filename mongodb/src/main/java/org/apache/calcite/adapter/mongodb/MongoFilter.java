@@ -40,7 +40,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -322,7 +322,7 @@ public class MongoFilter extends Filter implements MongoRel {
       final RexLiteral patternLiteral = (RexLiteral) right;
       final String sqlPattern = patternLiteral.getValue2().toString();
 
-      final @Nullable String escapeStr = escapeStr(call);
+      final String escapeStr = escapeStr(call);
       final String finalRegex = Like.sqlToRegexAnchored(sqlPattern, escapeStr);
 
       switch (left.getKind()) {
@@ -365,7 +365,7 @@ public class MongoFilter extends Filter implements MongoRel {
       final RexLiteral patternLiteral = (RexLiteral) right;
       final String sqlPattern = patternLiteral.getValue2().toString();
 
-      final @Nullable String escapeStr = escapeStr(call);
+      final String escapeStr = escapeStr(call);
       final String finalRegex = Like.sqlToRegexAnchored(sqlPattern, escapeStr);
 
       final String name;

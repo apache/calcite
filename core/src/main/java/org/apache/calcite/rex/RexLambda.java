@@ -22,7 +22,7 @@ import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -55,11 +55,12 @@ public class RexLambda extends RexNode {
     return SqlKind.LAMBDA;
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitLambda(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLambda(this, arg);
   }
 

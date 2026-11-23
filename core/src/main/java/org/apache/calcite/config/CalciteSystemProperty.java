@@ -18,7 +18,7 @@ package org.apache.calcite.config;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +43,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> the type of the property value
  */
-public final class CalciteSystemProperty<T> {
+public final class CalciteSystemProperty<T extends @Nullable Object> {
   /**
    * Holds all system properties related with the Calcite.
    *

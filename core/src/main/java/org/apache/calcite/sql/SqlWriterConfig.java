@@ -18,8 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 /** Configuration for {@link SqlWriter} and {@link SqlPrettyWriter}. */
 @Value.Immutable

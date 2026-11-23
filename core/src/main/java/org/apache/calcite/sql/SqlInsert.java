@@ -21,8 +21,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -35,7 +34,7 @@ import static java.util.Objects.requireNonNull;
 public class SqlInsert extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("INSERT", SqlKind.INSERT) {
-        @SuppressWarnings("argument.type.incompatible")
+        @SuppressWarnings("NullAway")
         @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
             SqlParserPos pos,
             @Nullable SqlNode... operands) {
@@ -77,7 +76,7 @@ public class SqlInsert extends SqlCall {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywords, targetTable, source, columnList);
   }
@@ -91,7 +90,7 @@ public class SqlInsert extends SqlCall {
     return getModifierNode(SqlInsertKeyword.UPSERT) != null;
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -134,7 +133,6 @@ public class SqlInsert extends SqlCall {
    * Returns the list of target column names, or null for all columns in the
    * target table.
    */
-  @Pure
   public @Nullable SqlNodeList getTargetColumnList() {
     return columnList;
   }

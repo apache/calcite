@@ -18,4 +18,7 @@
 /**
  * Support for algebraic maps.
  */
+@NullMarked
 package org.apache.calcite.util.mapping;
+
+import org.jspecify.annotations.NullMarked;

@@ -41,7 +41,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -101,7 +101,7 @@ public class SqlConvertFunction extends SqlFunction {
     super.validateQuantifier(validator, call);
   }
 
-  @Override public <R> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
+  @Override public <R extends @Nullable Object> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
       boolean onlyExpressions, SqlBasicVisitor.ArgHandler<R> argHandler) {
     if (onlyExpressions) {
       // Both operand[1] and operand[2] are not an expression, but Charset

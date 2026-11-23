@@ -19,7 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractSet;
 import java.util.Iterator;

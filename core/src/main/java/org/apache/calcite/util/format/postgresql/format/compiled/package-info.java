@@ -18,4 +18,7 @@
 /**
  * Classes for that represent components of a parsed date/time format.
  */
+@NullMarked
 package org.apache.calcite.util.format.postgresql.format.compiled;
+
+import org.jspecify.annotations.NullMarked;

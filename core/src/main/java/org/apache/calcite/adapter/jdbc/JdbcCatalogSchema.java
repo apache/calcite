@@ -36,7 +36,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -68,7 +68,7 @@ public class JdbcCatalogSchema extends JdbcBaseSchema implements Wrapper {
   private final Lookup<JdbcSchema> subSchemas;
 
   /** default schema name, lazily initialized. */
-  @SuppressWarnings({"method.invocation.invalid", "Convert2MethodRef"})
+  @SuppressWarnings({"NullAway", "Convert2MethodRef"})
   private final Supplier<Optional<String>> defaultSchemaName =
       Suppliers.memoize(() -> Optional.ofNullable(computeDefaultSchemaName()));
 
@@ -170,7 +170,7 @@ public class JdbcCatalogSchema extends JdbcBaseSchema implements Wrapper {
   }
 
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     }

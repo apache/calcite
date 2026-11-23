@@ -43,7 +43,7 @@ import com.teradata.tpcds.Session;
 import com.teradata.tpcds.column.Column;
 import com.teradata.tpcds.column.ColumnType;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

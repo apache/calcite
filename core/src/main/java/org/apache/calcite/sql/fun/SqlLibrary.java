@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -150,7 +150,7 @@ public enum SqlLibrary {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
     if (!libraryNameList.isEmpty()) {
       for (String libraryName : libraryNameList.split(",")) {
-        @Nullable SqlLibrary library = SqlLibrary.of(libraryName);
+        SqlLibrary library = SqlLibrary.of(libraryName);
         if (library == null) {
           throw new IllegalArgumentException("unknown library '" + libraryName
               + "'");

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Visitor over {@link MutableRel}. */
 public class MutableRelVisitor {

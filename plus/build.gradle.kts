@@ -19,7 +19,7 @@ dependencies {
     api(project(":linq4j"))
     api("net.hydromatic:quidem")
     api("org.apache.calcite.avatica:avatica-core")
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")
     implementation("com.teradata.tpcds:tpcds")

@@ -124,8 +124,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -296,7 +295,7 @@ public abstract class SqlImplementor {
 
   private void addSelect(List<SqlNode> selectList, SqlNode node,
       String name) {
-    @Nullable String alias = SqlValidatorUtil.alias(node);
+    String alias = SqlValidatorUtil.alias(node);
     if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }
@@ -482,7 +481,7 @@ public abstract class SqlImplementor {
         || aliases instanceof LinkedHashMap
         || aliases instanceof ImmutableMap
         : "must use a Map implementation that preserves order";
-    final @Nullable String alias2 = SqlValidatorUtil.alias(node);
+    final String alias2 = SqlValidatorUtil.alias(node);
     final String alias3 = alias2 != null ? alias2 : "t";
     final String alias4 =
         SqlValidatorUtil.uniquify(
@@ -1320,7 +1319,10 @@ public abstract class SqlImplementor {
         if (rexWindowBound.isUnbounded()) {
           return SqlWindow.createUnboundedPreceding(POS);
         } else {
-          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          SqlNode literal =
+              toSql(null,
+                  requireNonNull(rexWindowBound.getOffset(),
+                      () -> "offset for window bound " + rexWindowBound));
           return SqlWindow.createPreceding(literal, POS);
         }
       }
@@ -1328,7 +1330,10 @@ public abstract class SqlImplementor {
         if (rexWindowBound.isUnbounded()) {
           return SqlWindow.createUnboundedFollowing(POS);
         } else {
-          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          SqlNode literal =
+              toSql(null,
+                  requireNonNull(rexWindowBound.getOffset(),
+                      () -> "offset for window bound " + rexWindowBound));
           return SqlWindow.createFollowing(literal, POS);
         }
       }
@@ -1740,7 +1745,7 @@ public abstract class SqlImplementor {
         if (!defaultCharset.equals(charsetName)) {
           // Set the charset only if it is not the same as the default charset
           return SqlLiteral.createCharString(
-              castNonNull(value).getValue(), charsetName, POS);
+              value.getValue(), charsetName, POS);
         }
       }
       // Create a string without specifying a charset
@@ -2125,7 +2130,7 @@ public abstract class SqlImplementor {
         final String name = ((SqlIdentifier) node).getSimple();
         for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
           if (selectItem.i != ordinal) {
-            final @Nullable String alias =
+            final String alias =
                 SqlValidatorUtil.alias(selectItem.e);
             if (name.equalsIgnoreCase(alias) && dialect.getConformance().isSortByAlias()) {
               return SqlLiteral.createExactNumeric(
@@ -2298,7 +2303,7 @@ public abstract class SqlImplementor {
       final List<String> fieldNames = rowType.getFieldNames();
       // Project internal aliases back to the row type field names.
       for (int i = 0; i < context.fieldCount; i++) {
-        final @Nullable String name = SqlValidatorUtil.alias(context.field(i));
+        final String name = SqlValidatorUtil.alias(context.field(i));
         if (name == null || !name.equals(fieldNames.get(i))) {
           final List<SqlNode> selectList = new ArrayList<>();
           for (int j = 0; j < context.fieldCount; j++) {
@@ -2312,7 +2317,6 @@ public abstract class SqlImplementor {
 
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(
-        @UnknownInitialization Result this,
         RelNode rel, List<Clause> clauses,
         Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
@@ -2422,8 +2426,7 @@ public abstract class SqlImplementor {
      * Returns whether any grouping key of {@code aggregate} is represented by
      * a literal expression in this result's {@code SELECT} list.
      */
-    private boolean hasGroupByLiteral(
-        @UnknownInitialization Result this, Aggregate aggregate) {
+    private boolean hasGroupByLiteral(Aggregate aggregate) {
       if (!(node instanceof SqlSelect)) {
         return false;
       }
@@ -2452,8 +2455,7 @@ public abstract class SqlImplementor {
      *
      * @param sqlNode SqlNode to check
      */
-    private boolean hasSortByOrdinal(@UnknownInitialization Result this,
-                                     @Nullable SqlNode sqlNode) {
+    private boolean hasSortByOrdinal(@Nullable SqlNode sqlNode) {
       if (sqlNode == null) {
         return false;
       }
@@ -2480,14 +2482,13 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean containsOver(@UnknownInitialization Result this,
-        @Nullable SqlNode node) {
+    private boolean containsOver(@Nullable SqlNode node) {
       if (node == null) {
         return false;
       }
       final boolean[] result = {false};
-      node.accept(new SqlBasicVisitor<Void>() {
-        @Override public Void visit(SqlCall call) {
+      node.accept(new SqlBasicVisitor<@Nullable Void>() {
+        @Override public @Nullable Void visit(SqlCall call) {
           if (result[0]) {
             return null;
           }
@@ -2513,7 +2514,6 @@ public abstract class SqlImplementor {
      * @param operandPredicate Predicate for the nested operands
      * @return whether any nested operands matches the predicate */
     private boolean hasNested(
-        @UnknownInitialization Result this,
         Aggregate aggregate,
         Predicate<SqlNode> operandPredicate) {
       final boolean[] result = {false};

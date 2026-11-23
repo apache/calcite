@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Represents a control expression that handles multiple selections by passing
  * control to {@link SwitchCase}.
@@ -29,7 +31,7 @@ public class SwitchStatement extends Statement {
     return shuttle.visit(this);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

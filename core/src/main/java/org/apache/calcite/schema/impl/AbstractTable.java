@@ -25,7 +25,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Abstract base class for implementing {@link Table}.
@@ -48,7 +48,7 @@ public abstract class AbstractTable implements Table, Wrapper {
     return Schema.TableType.TABLE;
   }
 
-  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
+  @Override public <C> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }

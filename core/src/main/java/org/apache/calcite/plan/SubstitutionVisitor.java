@@ -74,7 +74,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1017,7 +1017,7 @@ public class SubstitutionVisitor {
 
   /** Abstract base class for implementing {@link UnifyRule}. */
   public abstract static class AbstractUnifyRule extends UnifyRule {
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("NullAway")
     protected AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
         int slotCount) {
       super(slotCount, queryOperand, targetOperand);
@@ -1483,7 +1483,7 @@ public class SubstitutionVisitor {
         try {
           // Fail the matching when filtering condition references
           // non-grouping columns in target.
-          qInputCond.accept(new RexVisitorImpl<Void>(true) {
+          qInputCond.accept(new RexVisitorImpl<@Nullable Void>(true) {
             @Override public Void visitInputRef(RexInputRef inputRef) {
               if (!target.groupSets.stream()
                   .allMatch(groupSet -> groupSet.get(inputRef.getIndex()))) {
@@ -1839,7 +1839,7 @@ public class SubstitutionVisitor {
     }
 
     try {
-      RexVisitor rexVisitor = new RexVisitorImpl<Void>(true) {
+      RexVisitor rexVisitor = new RexVisitorImpl<@Nullable Void>(true) {
         @Override public Void visitInputRef(RexInputRef inputRef) {
           if (!(projects.get(inputRef.getIndex()) instanceof RexInputRef)) {
             throw Util.FoundOne.NULL;

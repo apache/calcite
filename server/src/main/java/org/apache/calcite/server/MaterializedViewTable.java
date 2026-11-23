@@ -21,7 +21,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** A table that implements a materialized view. */
 class MaterializedViewTable
@@ -39,7 +39,7 @@ class MaterializedViewTable
     return Schema.TableType.MATERIALIZED_VIEW;
   }
 
-  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
+  @Override public <C> @Nullable C unwrap(Class<C> aClass) {
     if (MaterializationKey.class.isAssignableFrom(aClass)
         && aClass.isInstance(key)) {
       return aClass.cast(key);

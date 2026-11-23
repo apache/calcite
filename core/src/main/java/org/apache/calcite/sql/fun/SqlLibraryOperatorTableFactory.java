@@ -70,7 +70,7 @@ public class SqlLibraryOperatorTableFactory {
 
   /** A cache that returns an operator table for a given library (or set of
    * libraries). */
-  @SuppressWarnings("methodref.receiver.bound.invalid")
+  @SuppressWarnings("NullAway")
   private final LoadingCache<ImmutableSet<SqlLibrary>, SqlOperatorTable> cache =
       CacheBuilder.newBuilder().build(CacheLoader.from(this::create));
 

@@ -18,7 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.function.Function1;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

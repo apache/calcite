@@ -18,7 +18,7 @@ package org.apache.calcite.sql.advise;
 
 import org.apache.calcite.sql.validate.SqlMoniker;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

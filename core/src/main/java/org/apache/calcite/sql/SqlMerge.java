@@ -23,8 +23,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -85,13 +84,13 @@ public class SqlMerge extends SqlCall {
     return SqlKind.MERGE;
   }
 
-  @SuppressWarnings("nullness")
+  @SuppressWarnings("NullAway")
   @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCall,
         insertCall, sourceSelect, alias);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
+  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
@@ -105,13 +104,13 @@ public class SqlMerge extends SqlCall {
       source = operand;
       break;
     case 3:
-      updateCall = (@Nullable SqlUpdate) operand;
+      updateCall = (SqlUpdate) operand;
       break;
     case 4:
-      insertCall = (@Nullable SqlInsert) operand;
+      insertCall = (SqlInsert) operand;
       break;
     case 5:
-      sourceSelect = (@Nullable SqlSelect) operand;
+      sourceSelect = (SqlSelect) operand;
       break;
     case 6:
       alias = (SqlIdentifier) operand;
@@ -127,7 +126,6 @@ public class SqlMerge extends SqlCall {
   }
 
   /** Returns the alias for the target table of this MERGE. */
-  @Pure
   public @Nullable SqlIdentifier getAlias() {
     return alias;
   }

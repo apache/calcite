@@ -21,8 +21,8 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

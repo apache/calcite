@@ -54,7 +54,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -1441,7 +1441,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.MAP_FUNCTION,
           SqlFunctionCategory.SYSTEM);
 
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   private static RelDataType arrayAppendPrependReturnType(SqlOperatorBinding opBinding) {
     final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
     final RelDataType componentType = arrayType.getComponentType();
@@ -1493,7 +1493,7 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.EXISTS);
 
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   private static RelDataType arrayCompactReturnType(SqlOperatorBinding opBinding) {
     final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
     if (arrayType.getSqlTypeName() == SqlTypeName.NULL) {
@@ -1573,7 +1573,7 @@ public abstract class SqlLibraryOperators {
               OperandTypes.SAME_SAME,
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
-  @SuppressWarnings("argument.type.incompatible")
+  @SuppressWarnings("NullAway")
   private static RelDataType arrayInsertReturnType(SqlOperatorBinding opBinding) {
     final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
     final RelDataType arrayType = operandTypes.get(0);

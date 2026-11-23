@@ -33,9 +33,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Litmus;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -90,7 +88,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return this RelNode's CallingConvention
    */
-  @Pure
   @Nullable Convention getConvention();
 
   /**
@@ -213,7 +210,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *     return null from all methods)
    */
   @Deprecated // to be removed before 2.0
-  <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
+  <M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**
    * Describes the inputs and attributes of this relational expression.
@@ -297,7 +294,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
    */
-  @EnsuresNonNullIf(expression = "#1", result = true)
   boolean deepEquals(@Nullable Object obj);
 
   /**

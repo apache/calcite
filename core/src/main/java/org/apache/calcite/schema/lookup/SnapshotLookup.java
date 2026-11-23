@@ -19,7 +19,7 @@ package org.apache.calcite.schema.lookup;
 import org.apache.calcite.util.LazyReference;
 import org.apache.calcite.util.NameMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 

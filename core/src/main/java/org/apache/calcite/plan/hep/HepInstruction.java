@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.plan.hep;
 
+import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.RelOptRule;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;

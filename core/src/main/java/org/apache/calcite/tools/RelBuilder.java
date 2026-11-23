@@ -138,8 +138,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -245,8 +245,9 @@ public class RelBuilder {
    */
   private static RelOptTable.ViewExpander getViewExpander(RelOptCluster cluster,
       Context context) {
-    return context.maybeUnwrap(RelOptTable.ViewExpander.class)
-        .orElseGet(() -> ViewExpanders.simpleContext(cluster));
+    return requireNonNull(
+        context.maybeUnwrap(RelOptTable.ViewExpander.class)
+            .orElseGet(() -> ViewExpanders.simpleContext(cluster)));
   }
 
   /** Derives the Config to be used for this RelBuilder.
@@ -3675,8 +3676,9 @@ public class RelBuilder {
     final ImmutableList<ImmutableList<RexLiteral>> tupleList =
         tupleList(fieldNames.length, values);
     assert tupleList.size() == rowCount;
+    // Explicit type arguments work around https://github.com/uber/NullAway/issues/2179
     final List<String> fieldNameList =
-        Util.transformIndexed(Arrays.asList(fieldNames), (name, i) ->
+        Util.<@Nullable String, String>transformIndexed(Arrays.asList(fieldNames), (name, i) ->
             name != null ? name : SqlUtil.deriveAliasFromOrdinal(i));
     return values(tupleList, fieldNameList);
   }
@@ -3901,11 +3903,11 @@ public class RelBuilder {
    */
   public RelBuilder sortLimit(Number offset, Number fetch,
       Iterable<? extends RexNode> nodes) {
-    final @Nullable RexNode offsetNode =
+    final RexNode offsetNode =
         new BigDecimal(offset.toString()).compareTo(BigDecimal.ZERO) <= 0
             ? null
             : literal(offset);
-    final @Nullable RexNode fetchNode =
+    final RexNode fetchNode =
         new BigDecimal(fetch.toString()).compareTo(BigDecimal.ZERO) < 0
             ? null
             : literal(fetch);
@@ -4773,7 +4775,7 @@ public class RelBuilder {
       if (this.filter != null && !this.aggFunction.allowsFilter()) {
         throw new IllegalArgumentException("FILTER not allowed");
       }
-      final @Nullable ImmutableBitSet distinctKeys =
+      final ImmutableBitSet distinctKeys =
           this.distinctKeys == null
               ? null
               : ImmutableBitSet.of(
@@ -4836,7 +4838,7 @@ public class RelBuilder {
     }
 
     @Override public AggCall unique(@Nullable Iterable<RexNode> distinctKeys) {
-      final @Nullable ImmutableList<RexNode> distinctKeyList =
+      final ImmutableList<RexNode> distinctKeyList =
           distinctKeys == null ? null : ImmutableList.copyOf(distinctKeys);
       return Objects.equals(distinctKeyList, this.distinctKeys)
           ? this
@@ -5459,7 +5461,7 @@ public class RelBuilder {
     }
 
     @Override public boolean offer(Frame frame) {
-      checkEmptyRowType(castNonNull(config), frame.rel);
+      checkEmptyRowType(config, frame.rel);
       deque.push(frame);
       return true;
     }

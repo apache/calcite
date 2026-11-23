@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -94,12 +94,12 @@ final class BlackholeMap<K, V> extends AbstractMap<K, V> {
 
   private BlackholeMap() {}
 
-  @SuppressWarnings("contracts.postcondition.not.satisfied")
+  @SuppressWarnings("NullAway")
   @Override public @Nullable V put(K key, V value) {
     return null;
   }
 
-  @SuppressWarnings("override.return.invalid")
+  @SuppressWarnings("NullAway")
   @Override public Set<Entry<K, V>> entrySet() {
     return BHSet.of();
   }

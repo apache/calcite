@@ -19,4 +19,7 @@
  * Defines metadata interfaces and utilities for relational
  * expressions.
  */
+@NullMarked
 package org.apache.calcite.rel.metadata;
+
+import org.jspecify.annotations.NullMarked;

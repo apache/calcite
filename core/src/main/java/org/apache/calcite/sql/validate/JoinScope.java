@@ -20,7 +20,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWindow;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static org.apache.calcite.sql.JoinType.LEFT_ANTI_JOIN;
 import static org.apache.calcite.sql.JoinType.LEFT_SEMI_JOIN;

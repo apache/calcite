@@ -20,4 +20,7 @@
  *
  * @see org.apache.calcite.plan.visualizer.RuleMatchVisualizer
  */
+@NullMarked
 package org.apache.calcite.plan.visualizer;
+
+import org.jspecify.annotations.NullMarked;

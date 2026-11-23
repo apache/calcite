@@ -35,8 +35,8 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -145,7 +145,7 @@ public class ArrowRules {
 
     @Override public @Nullable RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
-      @Nullable List<Integer> fields =
+      List<Integer> fields =
           ArrowProject.getProjectFields(project.getProjects());
       if (fields == null) {
         // Project contains expressions more complex than just field references.

@@ -26,6 +26,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -42,7 +44,7 @@ import java.util.List;
  *
  * @param <R> Return type
  */
-public interface SqlVisitor<R> {
+public interface SqlVisitor<R extends @Nullable Object> {
   //~ Methods ----------------------------------------------------------------
 
   /**

@@ -18,7 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Source of metadata about relational expressions.
@@ -42,6 +42,6 @@ public interface MetadataFactory {
    * @param metadataClazz Metadata class
    * @return Metadata bound to {@code rel} and {@code query}
    */
-  <@Nullable M extends @Nullable Metadata> M query(RelNode rel, RelMetadataQuery mq,
+  <M extends @Nullable Metadata> M query(RelNode rel, RelMetadataQuery mq,
       Class<M> metadataClazz);
 }

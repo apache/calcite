@@ -18,4 +18,7 @@
 /**
  * SQL type system.
  */
+@NullMarked
 package org.apache.calcite.sql.type;
+
+import org.jspecify.annotations.NullMarked;
