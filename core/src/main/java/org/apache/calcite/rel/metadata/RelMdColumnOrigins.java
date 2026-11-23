@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -42,8 +43,7 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -277,8 +277,9 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  private static @PolyNull Set<RelColumnOrigin> createDerivedColumnOrigins(
-      @PolyNull Set<RelColumnOrigin> inputSet) {
+  @Contract("!null -> !null")
+  private static @Nullable Set<RelColumnOrigin> createDerivedColumnOrigins(
+      @Nullable Set<RelColumnOrigin> inputSet) {
     if (inputSet == null) {
       return null;
     }
@@ -297,8 +298,8 @@ public class RelMdColumnOrigins
   private static @Nullable Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
       final RelMetadataQuery mq) {
     final Set<RelColumnOrigin> set = new HashSet<>();
-    final RexVisitor<Void> visitor =
-        new RexVisitorImpl<Void>(true) {
+    final RexVisitor<@Nullable Void> visitor =
+        new RexVisitorImpl<@Nullable Void>(true) {
           @Override public Void visitInputRef(RexInputRef inputRef) {
             Set<RelColumnOrigin> inputSet =
                 mq.getColumnOrigins(input, inputRef.getIndex());

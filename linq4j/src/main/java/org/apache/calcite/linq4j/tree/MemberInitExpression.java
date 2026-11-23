@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Represents calling a constructor and initializing one or more members of the
  * new object.
@@ -29,7 +31,7 @@ public class MemberInitExpression extends Expression {
     return shuttle.visit(this);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override public <R extends @Nullable Object> @Nullable R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

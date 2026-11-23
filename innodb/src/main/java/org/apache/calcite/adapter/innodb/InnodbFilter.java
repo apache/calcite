@@ -29,7 +29,7 @@ import org.apache.calcite.rex.RexNode;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 

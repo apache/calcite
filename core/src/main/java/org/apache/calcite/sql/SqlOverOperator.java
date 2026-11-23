@@ -25,6 +25,8 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import org.jspecify.annotations.Nullable;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -164,7 +166,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
    *
    * @param visitor Visitor
    */
-  @Override public <R> void acceptCall(
+  @Override public <R extends @Nullable Object> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,

@@ -28,7 +28,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -287,7 +287,7 @@ public abstract class SqlNode implements Cloneable {
    * <p>The type parameter <code>R</code> must be consistent with the type
    * parameter of the visitor.
    */
-  public abstract <R> R accept(SqlVisitor<R> visitor);
+  public abstract <R extends @Nullable Object> R accept(SqlVisitor<R> visitor);
 
   /**
    * Returns whether this node is structurally equivalent to another node.
@@ -384,7 +384,8 @@ public abstract class SqlNode implements Cloneable {
       ArrayList<@Nullable SqlNode>, SqlNodeList> toList(SqlParserPos pos) {
     //noinspection RedundantTypeArguments
     return Collector.<T, ArrayList<@Nullable SqlNode>, SqlNodeList>of(
-        ArrayList::new, ArrayList::add, Util::combine,
+        () -> new ArrayList<@Nullable SqlNode>(), (list, e) -> list.add(e),
+        (list0, list1) -> Util.combine(list0, list1),
         (ArrayList<@Nullable SqlNode> list) -> SqlNodeList.of(pos, list));
   }
 }

@@ -30,7 +30,7 @@ import org.apache.calcite.util.Sarg;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -138,12 +138,12 @@ public class RexCall extends RexNode {
       if (SqlKind.SIMPLE_BINARY_OPS.contains(getKind())) {
         RexNode otherArg = operands.get(1 - i);
         if ((!(otherArg instanceof RexLiteral)
-            || digestSkipsType((RexLiteral) otherArg))
+            || ((RexLiteral) otherArg).digestIncludesType() == RexDigestIncludeType.NO_TYPE)
             && SqlTypeUtil.equalSansNullability(operand.getType(), otherArg.getType())) {
           includeType = RexDigestIncludeType.NO_TYPE;
         }
       }
-      operandDigests.add(computeDigest((RexLiteral) operand, includeType));
+      operandDigests.add(((RexLiteral) operand).computeDigest(includeType));
     }
     int totalLength = (operandDigests.size() - 1) * 2; // commas
     for (String s : operandDigests) {
@@ -157,18 +157,6 @@ public class RexCall extends RexNode {
       }
       sb.append(op);
     }
-  }
-
-  private static boolean digestSkipsType(RexLiteral literal) {
-    // This seems trivial, however, this method
-    // workarounds https://github.com/typetools/checker-framework/issues/3631
-    return literal.digestIncludesType() == RexDigestIncludeType.NO_TYPE;
-  }
-
-  private static String computeDigest(RexLiteral literal, RexDigestIncludeType includeType) {
-    // This seems trivial, however, this method
-    // workarounds https://github.com/typetools/checker-framework/issues/3631
-    return literal.computeDigest(includeType);
   }
 
   protected String computeDigest(boolean withType) {
@@ -204,11 +192,12 @@ public class RexCall extends RexNode {
     return isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION);
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R extends @Nullable Object> R accept(RexVisitor<R> visitor) {
     return visitor.visitCall(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R extends @Nullable Object, P extends @Nullable Object> R accept(
+      RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitCall(this, arg);
   }
 

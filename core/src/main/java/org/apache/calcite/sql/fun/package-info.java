@@ -27,4 +27,7 @@
  * which are not row-level (e.g. select and join) should be defined in package
  * {@link org.apache.calcite.sql} instead.
  */
+@NullMarked
 package org.apache.calcite.sql.fun;
+
+import org.jspecify.annotations.NullMarked;

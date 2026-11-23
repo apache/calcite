@@ -27,7 +27,7 @@ import org.apache.calcite.util.Sources;
 
 import au.com.bytecode.opencsv.CSVParser;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.util.Map;

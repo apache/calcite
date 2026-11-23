@@ -65,7 +65,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -294,9 +294,9 @@ public class Smalls {
       final @Nullable Object scalarValue,
       final @Nullable Integer literalValue,
       final @Nullable Integer columnValue) {
-    final @Nullable Integer normalizedScalarValue;
-    final @Nullable Integer rowValue0;
-    final @Nullable Integer rowValue1;
+    final Integer normalizedScalarValue;
+    final Integer rowValue0;
+    final Integer rowValue1;
     if (scalarValue == null) {
       normalizedScalarValue = null;
       rowValue0 = null;

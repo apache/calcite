@@ -23,7 +23,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -39,7 +39,6 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   private final RelDataTypeHolder holder;
 
   /** Creates a DynamicRecordTypeImpl. */
-  @SuppressWarnings("method.invocation.invalid")
   public DynamicRecordTypeImpl(RelDataTypeFactory typeFactory) {
     this.holder = new RelDataTypeHolder(typeFactory);
     computeDigest();

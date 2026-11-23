@@ -36,8 +36,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -105,7 +105,7 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     boolean changed = false;
     int newCallOrdinal = 0;
     for (AggregateCall oldCall : oldCalls) {
-      final @Nullable RexNode reduced = reduce(aggregate, oldCall, rexBuilder);
+      final RexNode reduced = reduce(aggregate, oldCall, rexBuilder);
       if (reduced != null) {
         projects.add(reduced);
         changed = true;
@@ -180,7 +180,7 @@ public class AggregateReduceFunctionsOnGroupKeysRule
       // For functions that return a constant value when applied to constant (GROUP BY key)
       // arguments, delegate to the function's own implementation
       if (isConstantValueAgg) {
-        final @Nullable RexNode constantResult =
+        final RexNode constantResult =
             ((SqlConstantValueAggFunction) call.getAggregation())
                 .getConstantResult(rexBuilder, call.getType());
         if (constantResult != null) {
@@ -223,7 +223,7 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     }
     // Check that all columns referenced in the expression are group-by keys.
     // This ensures that the expression value is constant within each group.
-    final @Nullable RexNode translated =
+    final RexNode translated =
         translateToGroupRefs(expr, project, aggregate);
     if (translated == null) {
       return null;
@@ -232,7 +232,7 @@ public class AggregateReduceFunctionsOnGroupKeysRule
     // For functions that return a constant value when applied to constant expressions,
     // delegate to the function's own implementation
     if (isConstantValueAgg) {
-      final @Nullable RexNode constantResult =
+      final RexNode constantResult =
           ((SqlConstantValueAggFunction) call.getAggregation())
               .getConstantResult(rexBuilder, call.getType());
       if (constantResult != null) {

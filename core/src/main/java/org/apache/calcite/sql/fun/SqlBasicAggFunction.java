@@ -32,7 +32,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -103,7 +103,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(staticFun)) {
       return clazz.cast(staticFun);
     }

@@ -33,7 +33,7 @@ dependencies {
     implementation("org.apache.httpcomponents:httpasyncclient")
     implementation("org.apache.httpcomponents:httpclient")
     implementation("org.apache.httpcomponents:httpcore")
-    implementation("org.checkerframework:checker-qual")
+    implementation("org.jspecify:jspecify")
 
     testImplementation("org.apache.logging.log4j:log4j-api")
     testImplementation("org.apache.logging.log4j:log4j-core")

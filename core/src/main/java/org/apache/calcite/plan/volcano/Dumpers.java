@@ -26,7 +26,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.Ordering;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

@@ -44,7 +44,7 @@ import org.apache.calcite.util.NlsString;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -272,13 +272,13 @@ public class SqlCallBinding extends SqlOperatorBinding {
     throw new AssertionError();
   }
 
-  @Override public <T extends Object> @Nullable T getOperandLiteralValue(int ordinal,
+  @Override public <T> @Nullable T getOperandLiteralValue(int ordinal,
       Class<T> clazz) {
     final SqlNode node = operand(ordinal);
     return valueAs(node, clazz);
   }
 
-  private <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
+  private <T> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
     final SqlLiteral literal;
     switch (node.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:

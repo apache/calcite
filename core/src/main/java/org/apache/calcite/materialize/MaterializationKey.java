@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.materialize;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.UUID;

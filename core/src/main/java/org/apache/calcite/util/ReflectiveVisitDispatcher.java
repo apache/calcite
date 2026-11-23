@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -35,7 +35,7 @@ import java.util.List;
  * @param <R> Return type
  */
 public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor,
-    E extends Object> {
+    E> {
   //~ Methods ----------------------------------------------------------------
 
   /**

@@ -35,7 +35,7 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
@@ -99,7 +99,7 @@ public class VisitorDataContext implements DataContext {
       List<? extends Pair<RexInputRef, ? extends @Nullable RexNode>> usageList) {
     final int size = rowType.getFieldList().size();
     final @Nullable Object[] values = new Object[size];
-    for (Pair<RexInputRef, ? extends @Nullable RexNode> elem : usageList) {
+    for (Pair<RexInputRef, ? extends RexNode> elem : usageList) {
       Pair<Integer, ?> value = getValue(elem.getKey(), elem.getValue());
       if (value == null) {
         LOGGER.warn("{} is not handled for {} for checking implication",
@@ -239,7 +239,7 @@ public class VisitorDataContext implements DataContext {
         if (value instanceof NlsString) {
           return Pair.of(index, ((NlsString) value).getValue());
         } else {
-          return Pair.of(index, value);
+          return Pair.<Integer, @Nullable Comparable>of(index, value);
         }
       }
     }

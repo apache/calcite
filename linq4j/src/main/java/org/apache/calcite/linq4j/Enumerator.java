@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.framework.qual.Covariant;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Supports a simple iteration over a collection.
@@ -28,8 +28,7 @@ import org.checkerframework.framework.qual.Covariant;
  *
  * @param <T> Element type
  */
-@Covariant(0)
-public interface Enumerator<T> extends AutoCloseable {
+public interface Enumerator<T extends @Nullable Object> extends AutoCloseable {
   /**
    * Gets the current element in the collection.
    *

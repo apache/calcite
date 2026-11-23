@@ -109,7 +109,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
@@ -3477,7 +3476,7 @@ public class RelBuilderTest {
 
   @Test void testCorrelationFails() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     try {
       builder.scan("EMP")
           .variable(v::set)
@@ -3494,7 +3493,7 @@ public class RelBuilderTest {
 
   @Test void testCorrelationWithCondition() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -3519,7 +3518,7 @@ public class RelBuilderTest {
 
   @Test void testTrivialCorrelation() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -3622,7 +3621,7 @@ public class RelBuilderTest {
     //     FROM dept
     //     WHERE deptno = emp.deptno)
     final Function<RelBuilder, RelNode> f = b -> {
-      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      final Holder<RexCorrelVariable> v = Holder.empty();
       return b.scan("EMP")
           .variable(v::set)
           .filter(ImmutableList.of(v.get().id),
@@ -5479,7 +5478,7 @@ public class RelBuilderTest {
   /** Tests filter builder with correlation variables. */
   @Test void testFilterWithCorrelationVariables() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -5721,7 +5720,7 @@ public class RelBuilderTest {
 
   @Test void testCorrelate() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")
@@ -5945,7 +5944,7 @@ public class RelBuilderTest {
   }
 
   private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type, RelBuilder builder) {
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
         .variable(v::set)
@@ -5963,7 +5962,7 @@ public class RelBuilderTest {
 
   private static RelNode buildCorrelateWithJoin(JoinRelType type, RelBuilder builder) {
     final RexBuilder rexBuilder = builder.getRexBuilder();
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
         .variable(v::set)
@@ -5981,7 +5980,7 @@ public class RelBuilderTest {
 
   @Test void testCorrelateWithComplexFields() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode root = builder.scan("EMP")
         .variable(v::set)
         .scan("DEPT")

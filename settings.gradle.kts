@@ -22,7 +22,6 @@ pluginManagement {
         idv("com.gradle.develocity")
         idv("com.gradle.common-custom-user-data-gradle-plugin")
         idv("com.autonomousapps.dependency-analysis")
-        idv("org.checkerframework")
         idv("com.github.autostyle")
         idv("com.github.johnrengelman.shadow")
         idv("com.github.spotbugs")

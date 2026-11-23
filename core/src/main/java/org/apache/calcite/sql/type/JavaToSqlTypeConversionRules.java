@@ -21,7 +21,7 @@ import org.apache.calcite.avatica.util.ByteString;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.jts.geom.Geometry;
 
 import java.math.BigDecimal;

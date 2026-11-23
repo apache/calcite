@@ -28,7 +28,6 @@ abstract class MutableBiRel extends MutableRel {
   protected MutableRel left;
   protected MutableRel right;
 
-  @SuppressWarnings("initialization.invalid.field.write.initialized")
   protected MutableBiRel(MutableRelType type, RelOptCluster cluster,
       RelDataType rowType, MutableRel left, MutableRel right) {
     super(cluster, rowType, type);

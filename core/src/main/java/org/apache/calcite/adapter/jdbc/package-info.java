@@ -18,4 +18,7 @@
 /**
  * Query provider based on a JDBC data source.
  */
+@NullMarked
 package org.apache.calcite.adapter.jdbc;
+
+import org.jspecify.annotations.NullMarked;

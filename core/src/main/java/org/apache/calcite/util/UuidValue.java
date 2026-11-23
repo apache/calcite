@@ -19,7 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.runtime.SqlFunctions;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 

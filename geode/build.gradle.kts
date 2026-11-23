@@ -25,7 +25,7 @@ dependencies {
     api(project(":core"))
     api(project(":linq4j"))
     api("org.apache.geode:geode-core")
-    api("org.checkerframework:checker-qual")
+    api("org.jspecify:jspecify")
     api("org.slf4j:slf4j-api")
 
     implementation("com.google.guava:guava")

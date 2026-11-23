@@ -26,8 +26,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -379,7 +378,6 @@ public abstract class RelOptRule {
    * @return Flattened list of operands
    */
   private List<RelOptRuleOperand> flattenOperands(
-      @UnderInitialization RelOptRule this,
       RelOptRuleOperand rootOperand) {
     final List<RelOptRuleOperand> operandList = new ArrayList<>();
 
@@ -400,7 +398,6 @@ public abstract class RelOptRule {
    * @param parentOperand Parent of this operand
    */
   private void flattenRecurse(
-      @UnderInitialization RelOptRule this,
       List<RelOptRuleOperand> operandList,
       RelOptRuleOperand parentOperand) {
     int k = 0;

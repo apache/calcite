@@ -18,4 +18,7 @@
 /**
  * Support for runtime type information.
  */
+@NullMarked
 package org.apache.calcite.runtime.rtti;
+
+import org.jspecify.annotations.NullMarked;

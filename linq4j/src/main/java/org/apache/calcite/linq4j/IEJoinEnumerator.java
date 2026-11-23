@@ -20,7 +20,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -128,8 +128,8 @@ final class IEJoinEnumerator<TLeft, TRight, TKey1, TKey2, TResult>
     try (Enumerator<TLeft> enumerator = left.enumerator()) {
       while (enumerator.moveNext()) {
         final TLeft row = enumerator.current();
-        final @Nullable TKey1 key1 = leftKeySelector1.apply(row);
-        final @Nullable TKey2 key2 = leftKeySelector2.apply(row);
+        final TKey1 key1 = leftKeySelector1.apply(row);
+        final TKey2 key2 = leftKeySelector2.apply(row);
         if (key1 != null && key2 != null) {
           final int rowIndex = leftRows.size();
           leftRows.add(row);
@@ -140,8 +140,8 @@ final class IEJoinEnumerator<TLeft, TRight, TKey1, TKey2, TResult>
     try (Enumerator<TRight> enumerator = right.enumerator()) {
       while (enumerator.moveNext()) {
         final TRight row = enumerator.current();
-        final @Nullable TKey1 key1 = rightKeySelector1.apply(row);
-        final @Nullable TKey2 key2 = rightKeySelector2.apply(row);
+        final TKey1 key1 = rightKeySelector1.apply(row);
+        final TKey2 key2 = rightKeySelector2.apply(row);
         if (key1 != null && key2 != null) {
           final int rowIndex = rightRows.size();
           rightRows.add(row);
@@ -186,10 +186,8 @@ final class IEJoinEnumerator<TLeft, TRight, TKey1, TKey2, TResult>
             || operator == ExpressionType.GreaterThan;
     final boolean leftSideFirst = isFirstOrder != strict;
     return (entry1, entry2) -> {
-      final TKey key1 =
-          castNonNull((TKey) (isFirstOrder ? entry1.key1 : entry1.key2));
-      final TKey key2 =
-          castNonNull((TKey) (isFirstOrder ? entry2.key1 : entry2.key2));
+      final TKey key1 = (TKey) (isFirstOrder ? entry1.key1 : entry1.key2);
+      final TKey key2 = (TKey) (isFirstOrder ? entry2.key1 : entry2.key2);
       final int c = descending
           ? comparator.compare(key2, key1)
           : comparator.compare(key1, key2);

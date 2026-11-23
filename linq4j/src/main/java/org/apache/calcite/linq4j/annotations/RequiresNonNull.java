@@ -14,16 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.common.base;
+package org.apache.calcite.linq4j.annotations;
 
-import org.checkerframework.checker.nullness.qual.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Guava has {@code Nullable} argument and return value by default.
- * Checkerframework cna infer nullability from the actual generic types.
+ * States which nullable fields a caller must have checked before calling the method.
  *
- * @param <T> argument type
+ * <p>Inside the method those fields count as non-null. The caller has to establish that, so this
+ * moves the check to the one place that can do it rather than repeating it in every method that
+ * reads the field.
  */
-public interface Predicate<T> {
-  boolean apply(T input);
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.METHOD)
+public @interface RequiresNonNull {
+  /** Returns the fields that must be non-null on entry.
+   *
+   * @return field names, optionally qualified with {@code this.} */
+  String[] value();
 }

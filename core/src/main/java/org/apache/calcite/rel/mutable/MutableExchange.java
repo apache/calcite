@@ -18,7 +18,7 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.RelDistribution;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 

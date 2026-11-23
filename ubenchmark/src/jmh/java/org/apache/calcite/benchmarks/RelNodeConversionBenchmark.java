@@ -179,7 +179,7 @@ public class RelNodeConversionBenchmark {
       try {
         sqlNode = p.validate(p.parse(sql));
       } catch (Exception e) {
-        e.printStackTrace();
+        throw new RuntimeException("while parsing " + sql, e);
       }
     }
 

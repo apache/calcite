@@ -40,7 +40,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RelMdNodeTypeCount supplies a default implementation of
