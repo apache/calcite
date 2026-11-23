@@ -68,7 +68,7 @@ public class JdbcCatalogSchema extends JdbcBaseSchema implements Wrapper {
   private final Lookup<JdbcSchema> subSchemas;
 
   /** default schema name, lazily initialized. */
-  @SuppressWarnings({"NullAway", "Convert2MethodRef"})
+  @SuppressWarnings("Convert2MethodRef")
   private final Supplier<Optional<String>> defaultSchemaName =
       Suppliers.memoize(() -> Optional.ofNullable(computeDefaultSchemaName()));
 

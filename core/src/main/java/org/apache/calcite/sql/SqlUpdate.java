@@ -95,7 +95,6 @@ public class SqlUpdate extends SqlCall {
         sourceExpressionList, condition, sourceSelect, alias);
   }
 
-  @SuppressWarnings("NullAway")
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelDigest;

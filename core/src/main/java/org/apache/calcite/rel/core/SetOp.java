@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;

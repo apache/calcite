@@ -132,7 +132,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   public RelFieldTrimmer(@Nullable SqlValidator validator, RelBuilder relBuilder) {
     Util.discard(validator); // may be useful one day
     this.relBuilder = relBuilder;
-    @SuppressWarnings("NullAway")
     ReflectUtil.MethodDispatcher<TrimResult> dispatcher =
         ReflectUtil.createMethodDispatcher(
             TrimResult.class,

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.linq4j.annotations.EnsuresNonNull;
+import org.apache.calcite.annotations.EnsuresNonNull;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.HintStrategyTable;

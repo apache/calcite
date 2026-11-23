@@ -581,7 +581,6 @@ public class XmlOutput {
      * Call this before attempting to escape strings; after this,
      * defineEscape may not be called again.
      */
-    @SuppressWarnings("NullAway")
     public void makeImmutable() {
       translationTable =
           requireNonNull(translationVector, "translationVector").toArray(new String[0]);

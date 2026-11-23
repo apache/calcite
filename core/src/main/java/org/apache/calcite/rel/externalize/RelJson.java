@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rel.externalize;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;

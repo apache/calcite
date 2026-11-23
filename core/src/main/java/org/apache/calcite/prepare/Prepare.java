@@ -18,11 +18,11 @@ package org.apache.calcite.prepare;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;

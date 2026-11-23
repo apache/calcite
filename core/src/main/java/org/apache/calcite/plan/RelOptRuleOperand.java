@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.linq4j.annotations.MonotonicNonNull;
+import org.apache.calcite.annotations.MonotonicNonNull;
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
@@ -168,7 +168,6 @@ public class RelOptRuleOperand {
    *
    * @param rule containing rule
    */
-  @SuppressWarnings("NullAway")
   public void setRule(RelOptRule rule) {
     this.rule = rule;
   }

@@ -40,7 +40,6 @@ public class RexSqlStandardConvertletTable
     extends RexSqlReflectiveConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
-  @SuppressWarnings("NullAway")
   public RexSqlStandardConvertletTable() {
     super();
 

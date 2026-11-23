@@ -70,7 +70,6 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return true;
   }
 
-  @SuppressWarnings("NullAway")
   @Override public boolean containsKey(@Nullable Object key) {
     for (Map<K, V> map : maps) {
       if (map.containsKey(key)) {
@@ -119,7 +118,6 @@ public class CompositeMap<K, V> implements Map<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  @SuppressWarnings("NullAway")
   @Override public Set<K> keySet() {
     final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
@@ -145,7 +143,6 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return combinedMap().values();
   }
 
-  @SuppressWarnings("NullAway")
   @Override public Set<Entry<K, V>> entrySet() {
     return combinedMap().entrySet();
   }

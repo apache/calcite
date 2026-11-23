@@ -39,7 +39,6 @@ public abstract class RexWindowBound {
    *
    * @return if the bound is unbounded
    */
-  @SuppressWarnings("NullAway")
   public boolean isUnbounded() {
     return false;
   }
@@ -77,7 +76,6 @@ public abstract class RexWindowBound {
    *
    * @return if the bound is CURRENT ROW
    */
-  @SuppressWarnings("NullAway")
   public boolean isCurrentRow() {
     return false;
   }

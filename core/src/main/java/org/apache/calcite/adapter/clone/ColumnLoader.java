@@ -17,11 +17,11 @@
 package org.apache.calcite.adapter.clone;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -67,7 +67,6 @@ class ColumnLoader<T> {
    * @param sourceTable Source data
    * @param protoRowType Logical row type
    * @param repList Physical row types, or null if not known */
-  @SuppressWarnings("NullAway")
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
@@ -202,7 +201,6 @@ class ColumnLoader<T> {
         // We have discovered a the first unique key in the table.
         sort[0] = pair.i;
         // map.keySet().size() == list.size() above implies list contains only non-null elements
-        @SuppressWarnings("NullAway")
         final Comparable[] values =
             valueSet.values.toArray(new Comparable[0]);
         final Kev[] kevs = new Kev[list.size()];

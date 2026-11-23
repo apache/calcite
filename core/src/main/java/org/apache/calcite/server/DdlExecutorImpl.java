@@ -31,7 +31,6 @@ public class DdlExecutorImpl implements DdlExecutor, ReflectiveVisitor {
 
   /** Dispatches calls to the appropriate method based on the type of the
    * first argument. */
-  @SuppressWarnings("NullAway")
   private final ReflectUtil.MethodDispatcher<Void> dispatcher =
       ReflectUtil.createMethodDispatcher(void.class, this, "execute",
           SqlNode.class, CalcitePrepare.Context.class);

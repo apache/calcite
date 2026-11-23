@@ -16,6 +16,7 @@
  */
 dependencies {
     api("org.apiguardian:apiguardian-api")
+    api(project(":annotations"))
     api("org.jspecify:jspecify")
 
     implementation("com.google.guava:guava")

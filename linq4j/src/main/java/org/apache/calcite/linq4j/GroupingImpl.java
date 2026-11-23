@@ -29,7 +29,6 @@ import static java.util.Objects.requireNonNull;
  * @param <K> Key type
  * @param <V> Value type
  */
-@SuppressWarnings("NullAway")
 class GroupingImpl<K, V> extends AbstractEnumerable<V>
     implements Grouping<K, V>, Map.Entry<K, Enumerable<V>> {
   private final K key;

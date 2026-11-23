@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.annotations.Contract;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -2576,7 +2576,6 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
-      @SuppressWarnings("NullAway")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -3006,7 +3005,6 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      @SuppressWarnings("NullAway")
       T current = moveNext();
       this.current = current;
     }

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.linq4j.annotations.Contract;
+import org.apache.calcite.annotations.Contract;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
