@@ -69,7 +69,11 @@ import static java.util.Objects.requireNonNull;
  *   <tr><td>HashJoinAnti</td><td>SemiJoin(A, B, anti)</td></tr>
  * </table>
  *
+ * <p>{@link org.apache.calcite.rel.CorrelateInvariantChecker} gives the
+ * invariants that the correlation variables of a plan obey.
+ *
  * @see CorrelationId
+ * @see org.apache.calcite.rel.CorrelateInvariantChecker
  */
 public abstract class Correlate extends BiRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
