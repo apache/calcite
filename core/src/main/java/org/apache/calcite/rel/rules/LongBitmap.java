@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Bitmap tool for dphyp.
@@ -105,36 +105,44 @@ public class LongBitmap {
    */
   public static class SubsetIterator implements Iterable<Long> {
 
-    private ArrayList<Long> subsetList;
+    private final long bitmap;
 
-    private int index;
+    private long current;
 
     public SubsetIterator(long bitmap) {
-      long curBiggestSubset = bitmap;
-      this.subsetList = new ArrayList<>();
-
-      while (curBiggestSubset != 0) {
-        subsetList.add(curBiggestSubset);
-        curBiggestSubset = (curBiggestSubset - 1) & bitmap;
-      }
-
-      this.index = subsetList.size() - 1;
+      this.bitmap = bitmap;
     }
 
     @Override public Iterator<Long> iterator() {
       return new Iterator<Long>() {
         @Override public boolean hasNext() {
-          return index >= 0;
+          return current != bitmap;
         }
 
         @Override public Long next() {
-          return subsetList.get(index--);
+          if (!hasNext()) {
+            throw new NoSuchElementException();
+          }
+          // Subset enumeration of Vance and Maier ("Rapid Bushy Join-order
+          // Optimization with Cartesian Products", SIGMOD 1996), which the
+          // DPhyp paper uses ("Dynamic Programming Strikes Back", SIGMOD 2008).
+          // The set bits of bitmap act as the digits of a binary counter, and
+          // this adds one to it. Since current has no bit in common with
+          // ~bitmap, current - bitmap equals (current | ~bitmap) + 1: the
+          // positions outside bitmap are set to 1, so the carry moves past
+          // them, and the mask clears them again. For example, with bitmap
+          // 0b1101 and current 0b0101 (low 4 bits shown):
+          //   current | ~bitmap   0111  (bit 1 is outside bitmap, set to 1)
+          //   + 1                 1000  (the carry moves past bit 1)
+          //   & bitmap            1000  (next subset)
+          current = (current - bitmap) & bitmap;
+          return current;
         }
       };
     }
 
     public void reset() {
-      index = subsetList.size() - 1;
+      current = 0;
     }
   }
 
