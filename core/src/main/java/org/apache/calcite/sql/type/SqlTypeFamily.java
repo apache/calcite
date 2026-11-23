@@ -233,6 +233,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.VARIANT);
     case JSON:
       return ImmutableList.of(SqlTypeName.JSON);
+    case GEOGRAPHY:
+      return ImmutableList.of(SqlTypeName.GEOGRAPHY);
     default:
       throw new IllegalArgumentException();
     }
@@ -275,6 +277,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
           new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));
     case GEO:
       return factory.createSqlType(SqlTypeName.GEOMETRY);
+    case GEOGRAPHY:
+      return factory.createSqlType(SqlTypeName.GEOGRAPHY);
     case MULTISET:
       return factory.createMultisetType(factory.createSqlType(SqlTypeName.ANY), -1);
     case ARRAY:
