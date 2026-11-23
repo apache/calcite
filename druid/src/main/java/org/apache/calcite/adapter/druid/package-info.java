@@ -18,4 +18,7 @@
 /**
  * Query provider based on a Druid database.
  */
+@NullMarked
 package org.apache.calcite.adapter.druid;
+
+import org.jspecify.annotations.NullMarked;

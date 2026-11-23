@@ -99,7 +99,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rexLiteral.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn =
+    final Pair<@Nullable String, @Nullable ExtractionFunction> druidColumn =
         DruidQuery.toDruidColumn(refNode, rowType, druidQuery);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
@@ -171,7 +171,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rexLiteral.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn =
+    final Pair<@Nullable String, @Nullable ExtractionFunction> druidColumn =
         DruidQuery.toDruidColumn(refNode, rowType, druidQuery);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
@@ -253,7 +253,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final RexCall rexCall = (RexCall) rexNode;
     final RexNode refNode = rexCall.getOperands().get(0);
-    Pair<String, ExtractionFunction> druidColumn = DruidQuery
+    Pair<@Nullable String, @Nullable ExtractionFunction> druidColumn = DruidQuery
         .toDruidColumn(refNode, rowType, druidQuery);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
@@ -287,7 +287,7 @@ abstract class DruidJsonFilter implements DruidJson {
         listBuilder.add(value);
       }
     }
-    Pair<String, ExtractionFunction> druidColumn = DruidQuery
+    Pair<@Nullable String, @Nullable ExtractionFunction> druidColumn = DruidQuery
         .toDruidColumn(((RexCall) e).getOperands().get(0),
         rowType, druidQuery);
     final String columnName = druidColumn.left;
@@ -303,7 +303,8 @@ abstract class DruidJsonFilter implements DruidJson {
     }
   }
 
-  protected static @Nullable DruidJsonFilter toNotDruidFilter(DruidJsonFilter druidJsonFilter) {
+  protected static @Nullable DruidJsonFilter toNotDruidFilter(
+      @Nullable DruidJsonFilter druidJsonFilter) {
     if (druidJsonFilter == null) {
       return null;
     }
@@ -331,7 +332,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = lhs.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rhs.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn = DruidQuery
+    final Pair<@Nullable String, @Nullable ExtractionFunction> druidColumn = DruidQuery
         .toDruidColumn(refNode, rowType, query);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
@@ -494,12 +495,12 @@ abstract class DruidJsonFilter implements DruidJson {
   private static class JsonSelector extends DruidJsonFilter {
     private final String dimension;
 
-    private final String value;
+    private final @Nullable String value;
 
-    private final ExtractionFunction extractionFunction;
+    private final @Nullable ExtractionFunction extractionFunction;
 
-    private JsonSelector(String dimension, String value,
-        ExtractionFunction extractionFunction) {
+    private JsonSelector(String dimension, @Nullable String value,
+        @Nullable ExtractionFunction extractionFunction) {
       super(Type.SELECTOR);
       this.dimension = dimension;
       this.value = value;
@@ -628,8 +629,8 @@ abstract class DruidJsonFilter implements DruidJson {
     }
   }
 
-  public static DruidJsonFilter getSelectorFilter(String column, String value,
-      ExtractionFunction extractionFunction) {
+  public static DruidJsonFilter getSelectorFilter(String column, @Nullable String value,
+      @Nullable ExtractionFunction extractionFunction) {
     requireNonNull(column, "column");
     return new JsonSelector(column, value, extractionFunction);
   }

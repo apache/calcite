@@ -38,7 +38,7 @@ import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValue
 /**
  * Enumerator that reads from a Geode Regions.
  */
-class GeodeEnumerator implements Enumerator<Object> {
+class GeodeEnumerator implements Enumerator<@Nullable Object> {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(GeodeEnumerator.class.getName());
 

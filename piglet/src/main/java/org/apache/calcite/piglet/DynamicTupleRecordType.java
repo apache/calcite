@@ -20,10 +20,13 @@ import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents Pig Tuples with unknown fields. The tuple field
@@ -37,7 +40,7 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
     super(typeFactory);
   }
 
-  @Override public RelDataTypeField getField(String fieldName,
+  @Override public @Nullable RelDataTypeField getField(String fieldName,
       boolean caseSensitive, boolean elideRecord) {
     final int index = nameToIndex(fieldName);
     if (index >= 0) {
@@ -70,7 +73,7 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
   private static int nameToIndex(String fieldName) {
     Matcher matcher = INDEX_PATTERN.matcher(fieldName);
     if (matcher.find()) {
-      return parseInt(matcher.group(1));
+      return parseInt(requireNonNull(matcher.group(1), "index"));
     }
     return -1;
   }

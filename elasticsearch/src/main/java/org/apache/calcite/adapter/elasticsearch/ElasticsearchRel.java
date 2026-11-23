@@ -23,6 +23,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Pair;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -91,16 +93,21 @@ public interface ElasticsearchRel extends RelNode {
      *
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-from-size.html">From/Size</a>
      */
-    Long offset;
+    @Nullable Long offset;
 
     /**
      * Number of records to return. Equivalent to {@code size} in ES query.
      *
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-from-size.html">From/Size</a>
      */
-    Long fetch;
+    @Nullable Long fetch;
 
+    /** Set by {@code ElasticsearchTableScan.implement} before anything reads it. */
+    @SuppressWarnings("NullAway.Init")
     RelOptTable table;
+
+    /** Set by {@code ElasticsearchTableScan.implement} before anything reads it. */
+    @SuppressWarnings("NullAway.Init")
     ElasticsearchTable elasticsearchTable;
 
     void add(String findOp) {

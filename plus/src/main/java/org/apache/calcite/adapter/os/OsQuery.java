@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -29,20 +30,20 @@ import java.util.Locale;
 /**
  * Enumerator that reads from OS's System.
  */
-public class OsQuery implements Enumerator<Object[]> {
+public class OsQuery implements Enumerator<@Nullable Object[]> {
   private static final Logger LOGGER = CalciteTrace.getParserTracer();
 
-  private final Enumerator<Object[]> enumerator;
+  private final Enumerator<@Nullable Object[]> enumerator;
 
   public OsQuery(String type) {
     this.enumerator = Linq4j.enumerator(eval(type));
   }
 
-  public Enumerator<Object[]> getEnumerator() {
+  public Enumerator<@Nullable Object[]> getEnumerator() {
     return enumerator;
   }
 
-  @Override public Object[] current() {
+  @Override public @Nullable Object[] current() {
     return enumerator.current();
   }
 

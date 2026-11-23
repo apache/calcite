@@ -49,6 +49,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +116,7 @@ public class InnodbTable extends AbstractQueryableTable
         .build();
   }
 
-  public Enumerable<Object> query(final TableReaderFactory tableReaderFactory) {
+  public Enumerable<@Nullable Object> query(final TableReaderFactory tableReaderFactory) {
     return query(tableReaderFactory, ImmutableList.of(), ImmutableList.of(),
         IndexCondition.EMPTY_CONDITION, true);
   }
@@ -130,7 +131,7 @@ public class InnodbTable extends AbstractQueryableTable
    * @param ascOrder           if scan ordering is ascending
    * @return Enumerator of results
    */
-  public Enumerable<Object> query(
+  public Enumerable<@Nullable Object> query(
       final TableReaderFactory tableReaderFactory,
       final List<Map.Entry<String, Class>> fields,
       final List<Map.Entry<String, String>> selectFields,
@@ -150,7 +151,7 @@ public class InnodbTable extends AbstractQueryableTable
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     final RelDataType rowType = getRowType(typeFactory);
 
-    Function1<String, Void> addField = fieldName -> {
+    Function1<String, @Nullable Void> addField = fieldName -> {
       final RelDataTypeField field =
           requireNonNull(rowType.getField(fieldName, true, false));
       RelDataType relDataType = field.getType();
@@ -174,8 +175,8 @@ public class InnodbTable extends AbstractQueryableTable
 
     TableReader tableReader = tableReaderFactory.createTableReader(tableName);
     tableReader.open();
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+    return new AbstractEnumerable<@Nullable Object>() {
+      @Override public Enumerator<@Nullable Object> enumerator() {
         Iterator<GenericRecord> resultIterator;
         LOGGER.debug("Create query iterator, queryType={}, indexName={}, "
                 + "pointQueryKey={}, projection={}, rangeQueryKey={}{} AND {}{}, "
@@ -273,7 +274,7 @@ public class InnodbTable extends AbstractQueryableTable
      * @see org.apache.calcite.adapter.innodb.InnodbMethod#INNODB_QUERYABLE_QUERY
      */
     @SuppressWarnings("UnusedDeclaration")
-    public Enumerable<Object> query(List<Map.Entry<String, Class>> fields,
+    public Enumerable<@Nullable Object> query(List<Map.Entry<String, Class>> fields,
         List<Map.Entry<String, String>> selectFields,
         IndexCondition condition, Boolean ascOrder) {
       return getTable().query(getTableReaderFactory(), fields, selectFields,

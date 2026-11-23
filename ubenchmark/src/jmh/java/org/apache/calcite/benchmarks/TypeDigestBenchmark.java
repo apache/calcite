@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
 @Threads(1)
+@SuppressWarnings("NullAway.Init") // set by the @Setup method
 public class TypeDigestBenchmark {
 
   @Param({"1", "50", "500", "5000", "50000"})

@@ -21,7 +21,11 @@ import java.util.List;
 
 /**
  * get the redis table's field info.
+ *
+ * <p>{@link RedisSchema#getTableFieldInfo} sets the table name, data format,
+ * and fields right after construction.
  */
+@SuppressWarnings("NullAway.Init")
 public class RedisTableFieldInfo {
   private String tableName;
   private String dataFormat;

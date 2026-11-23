@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,6 +30,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.function.Supplier;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -88,10 +92,10 @@ public class Processes {
           new InputStreamReader(bis, StandardCharsets.UTF_8);
       final BufferedReader br = new BufferedReader(isr);
       return new Enumerator<String>() {
-        private String line;
+        private @Nullable String line;
 
         @Override public String current() {
-          return line;
+          return castNonNull(line);
         }
 
         @Override public boolean moveNext() {
@@ -140,10 +144,10 @@ public class Processes {
       final BufferedReader br = new BufferedReader(isr);
       return new Enumerator<String>() {
         private final StringBuilder b = new StringBuilder();
-        private String line;
+        private @Nullable String line;
 
         @Override public String current() {
-          return line;
+          return castNonNull(line);
         }
 
         @Override public boolean moveNext() {

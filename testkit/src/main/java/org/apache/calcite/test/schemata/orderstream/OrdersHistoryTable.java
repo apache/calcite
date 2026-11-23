@@ -26,9 +26,9 @@ import org.jspecify.annotations.Nullable;
 
 /** Table representing the history of the ORDERS stream. */
 public class OrdersHistoryTable extends BaseOrderStreamTable {
-  private final ImmutableList<Object[]> rows;
+  private final ImmutableList<@Nullable Object[]> rows;
 
-  public OrdersHistoryTable(ImmutableList<Object[]> rows) {
+  public OrdersHistoryTable(ImmutableList<@Nullable Object[]> rows) {
     this.rows = rows;
   }
 

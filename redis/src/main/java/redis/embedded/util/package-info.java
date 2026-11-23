@@ -18,4 +18,7 @@
 /**
  * Utility classes for embedded Redis.
  */
+@NullMarked
 package redis.embedded.util;
+
+import org.jspecify.annotations.NullMarked;

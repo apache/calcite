@@ -45,7 +45,7 @@ public class Department {
         + ", employees: " + employees + ", location: " + location + "]";
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof Department
         && deptno == ((Department) obj).deptno;

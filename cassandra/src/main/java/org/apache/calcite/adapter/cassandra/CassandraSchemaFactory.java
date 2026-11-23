@@ -34,6 +34,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 import static java.lang.Integer.parseInt;
 
 /**
@@ -59,7 +61,7 @@ public class CassandraSchemaFactory implements SchemaFactory {
     final Map<String, Object> sessionMap = projectMapOverKeys(operand, SESSION_DEFINING_KEYS);
 
     INFO_TO_SESSION.computeIfAbsent(sessionMap, m -> {
-      String host = (String) m.get("host");
+      String host = castNonNull((String) m.get("host"));
       String username = (String) m.get("username");
       String password = (String) m.get("password");
       int port = getPort(m);

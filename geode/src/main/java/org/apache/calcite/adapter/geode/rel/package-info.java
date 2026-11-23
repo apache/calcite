@@ -18,4 +18,7 @@
 /**
  * Query provider based on Apache Geode (Gemfire) in-memory data grid.
  */
+@NullMarked
 package org.apache.calcite.adapter.geode.rel;
+
+import org.jspecify.annotations.NullMarked;

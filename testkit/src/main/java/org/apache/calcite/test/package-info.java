@@ -18,4 +18,7 @@
 /**
  * Classes for testing Calcite.
  */
+@NullMarked
 package org.apache.calcite.test;
+
+import org.jspecify.annotations.NullMarked;
