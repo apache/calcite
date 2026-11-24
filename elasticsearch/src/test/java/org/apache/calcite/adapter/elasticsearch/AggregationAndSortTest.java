@@ -557,6 +557,35 @@ class AggregationAndSortTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5589">[CALCITE-5589]
+   * ElasticsearchFilterRule cannot filter aggregate query</a>.
+   */
+  @Test void testFilterOnAggregateResult() {
+    // filter on the aggregated value cannot be pushed down; it is evaluated
+    // by Calcite on top of the aggregation
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select * from (select cat5, sum(val1) as s from view group by cat5) t where s > 1")
+        .returns("cat5=2; s=7.0\n");
+
+    // filter on a grouping column is transposed below the aggregate and can
+    // still be pushed down to Elasticsearch
+    CalciteAssert.that()
+        .with(AggregationAndSortTest::createConnection)
+        .query("select * from (select cat5, sum(val1) as s from view group by cat5) t"
+            + " where cat5 = 2")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+                "'query.constant_score.filter.term.cat5': 2",
+                "_source:false",
+                "size:0",
+                "'stored_fields': '_none_'",
+                "aggregations:{'g_cat5':{'terms':{'field':'cat5','missing':-2147483648},"
+                    + "'aggregations':{'s':{'sum':{'field':'val1'}}}}}"))
+        .returns("cat5=2; s=7.0\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6757">[CALCITE-6757]
    * Elasticsearch adapter returns wrong result when aggregating sub-query with aggregation</a>.
    */
