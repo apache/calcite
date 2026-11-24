@@ -104,6 +104,35 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     return false;
   }
 
+  /** Returns the fields of the correlation variable with the specified id
+   * that the nodes of a plan read. The uses in the right input of a nested
+   * Correlate that declares the same id refer to that Correlate, so they do
+   * not count. */
+  private static ImmutableBitSet correlationColumns(CorrelationId id, RelNode plan) {
+    final ImmutableBitSet.Builder columns = ImmutableBitSet.builder();
+    final RexShuttle fieldFinder = new RexShuttle() {
+      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (isDirectFieldAccess(fieldAccess, id)) {
+          columns.set(fieldAccess.getField().getIndex());
+          return fieldAccess;
+        }
+        return super.visitFieldAccess(fieldAccess);
+      }
+    };
+    plan.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        if (other instanceof Correlate
+            && ((Correlate) other).getCorrelationId().equals(id)) {
+          ((Correlate) other).getLeft().accept(this);
+          return other;
+        }
+        other.accept(fieldFinder);
+        return super.visit(other);
+      }
+    });
+    return columns.build();
+  }
+
   @Override public RelNode visit(LogicalCorrelate correlate) {
     RelNode left = correlate.getLeft().accept(this);
     RelNode right = correlate.getRight().accept(this);
@@ -163,19 +192,21 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
       }
     }
 
+    final int newLeft = builder.fields().size();
+    // Transform the expressions in the right side using the mapping constructed earlier.
+    right = replaceExpressionsUsingMap(right, transformMapping);
+
     // Select the required fields/columns from the left side of the correlation: the columns
-    // read by the direct field accesses plus the newly projected columns, which are at the
-    // end of the left relational expression.
+    // read by the direct field accesses, the newly projected columns, which are at the
+    // end of the left relational expression, and the columns that the other nodes of the
+    // right side read, for example the arguments of a table function.
     List<RexNode> requiredFields =
         builder.fields(
             requiredColumns
                 .set(oldLeft, oldLeft + callsWithCorrelationOverLeft.size())
+                .addAll(correlationColumns(correlate.getCorrelationId(), right))
                 .build()
                 .asList());
-
-    final int newLeft = builder.fields().size();
-    // Transform the expressions in the right side using the mapping constructed earlier.
-    right = replaceExpressionsUsingMap(right, transformMapping);
     builder.push(right);
 
     builder.correlate(correlate.getJoinType(), correlate.getCorrelationId(), requiredFields);

@@ -805,6 +805,23 @@ class TableFunctionTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7961">[CALCITE-7961]
+   * CorrelateProjectExtractor leaves out of requiredColumns a field that a
+   * table function call uses</a>. As {@link #testLeftOuterApply()}, but the
+   * query selects only N. Thus the field trimmer removes C, unless the
+   * required columns of the Correlate contain it. */
+  @Test void testLeftOuterApplySelectOnlyN() {
+    final String sql = "select n\n"
+        + "from (values 4) as t (c)\n"
+        + "left join lateral table(\"s\".\"fibonacci2\"(c)) as R(n) on c=n";
+    with()
+        .with(CalciteConnectionProperty.CONFORMANCE,
+            SqlConformanceEnum.LENIENT)
+        .query(sql)
+        .returnsUnordered("N=null");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2382">[CALCITE-2382]
    * Sub-query lateral joined to table function</a>. */
   @Test void testInlineViewLateralTableFunction() throws SQLException {
