@@ -135,9 +135,9 @@ class RelSet {
       if (node instanceof Converter) {
         continue;
       }
-      for (RelNode child : node.getInputs()) {
+      for (int i = 0, n = node.getInputCount(); i < n; i++) {
         RelSet childSet =
-            VolcanoPlanner.equivRoot(((RelSubset) child).getSet());
+            VolcanoPlanner.equivRoot(((RelSubset) node.getInput(i)).getSet());
         if (childSet.id != this.id) {
           childSets.add(childSet);
         }
@@ -409,7 +409,7 @@ class RelSet {
         // If otherRel is a enforcing operator e.g.
         // Sort, Exchange, do not prune it. Just in
         // case it is not marked as an enforcer.
-        if (otherRel.getInputs().size() != 1
+        if (otherRel.getInputCount() != 1
             || otherRel.getInput(0).getTraitSet()
                 .satisfies(otherRel.getTraitSet())) {
           planner.prune(otherRel);

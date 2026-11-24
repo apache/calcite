@@ -39,6 +39,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -860,6 +861,64 @@ class VolcanoPlannerTest {
     assertNotNull(leftRelSubset);
     RelNode leftParentSubset = leftRelSubset.getParentSubsets(planner).iterator().next();
     assertThat(joinSubset, is(leftParentSubset));
+  }
+
+  /**
+   * Tests {@link RelSubset#getParents()}, {@link RelSubset#getParentSubsets(VolcanoPlanner)},
+   * and {@link RelSubset#getParentRels()} across single-input, two-input, and multi-input
+   * parent relational expressions, including trait satisfaction.
+   */
+  @Test void testRelSubsetParentTraversal() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+
+    RelNode valuesA = relBuilder.values(new String[]{"id", "name"}, "1", "a").build();
+    RelNode valuesB = relBuilder.values(new String[]{"id", "name"}, "2", "b").build();
+    RelNode valuesC = relBuilder.values(new String[]{"id", "name"}, "3", "c").build();
+
+    // SingleRel parent (Project)
+    RelNode projectRel = relBuilder.push(valuesA)
+        .project(relBuilder.field("id"))
+        .build();
+    // BiRel parent (Join) with valuesA on the right side
+    RelNode joinRel = relBuilder.push(valuesB)
+        .push(valuesA)
+        .join(JoinRelType.INNER, "id")
+        .build();
+    // Multi-input parent (Union with 3 inputs, neither SingleRel nor BiRel)
+    RelNode unionRel = LogicalUnion.create(Arrays.asList(valuesB, valuesC, valuesA), true);
+
+    RelSubset projectSubset = planner.register(projectRel, null);
+    RelSubset joinSubset = planner.register(joinRel, null);
+    RelSubset unionSubset = planner.register(unionRel, null);
+
+    RelSubset valuesASubset = planner.getSubset(valuesA);
+    assertNotNull(valuesASubset);
+
+    RelNode registeredProject = projectSubset.getRelList().get(0);
+    RelNode registeredJoin = joinSubset.getRelList().get(0);
+    RelNode registeredUnion = unionSubset.getRelList().get(0);
+
+    List<RelNode> expectedParents =
+        Arrays.asList(registeredProject, registeredJoin, registeredUnion);
+    assertThat(new ArrayList<>(valuesASubset.getParents()), is(expectedParents));
+    assertThat(new ArrayList<>(valuesASubset.getParentRels()), is(expectedParents));
+    assertThat(new ArrayList<>(valuesASubset.getParentSubsets(planner)),
+        is(Arrays.asList(projectSubset, joinSubset, unionSubset)));
+
+    // A stricter subset (collation [0]) satisfies the empty-collation input subsets
+    // of all three parents, so getParentRels() returns them while getParents() and
+    // getParentSubsets() require an exact subset/trait match.
+    RelTraitSet sortedTraits = valuesASubset.getTraitSet()
+        .replace(RelCollations.of(0));
+    RelSubset sortedSubset =
+        valuesASubset.getSet().getOrCreateSubset(cluster, sortedTraits, false);
+    assertThat(sortedSubset.getParents().isEmpty(), is(true));
+    assertThat(sortedSubset.getParentSubsets(planner).isEmpty(), is(true));
+    assertThat(new ArrayList<>(sortedSubset.getParentRels()), is(expectedParents));
   }
 
   private void checkEvent(

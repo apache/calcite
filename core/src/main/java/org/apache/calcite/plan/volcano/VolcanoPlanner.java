@@ -737,8 +737,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       // cost must be positive, so nudge it
       cost = costFactory.makeTinyCost();
     }
-    for (RelNode input : rel.getInputs()) {
-      RelOptCost inputCost = getCost(input, mq);
+    for (int i = 0, n = rel.getInputCount(); i < n; i++) {
+      RelOptCost inputCost = getCost(rel.getInput(i), mq);
       if (inputCost == null) {
         return null;
       }
@@ -916,8 +916,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         RelSubset equivRelSubset = getSubsetNonNull(equivRel);
 
         // Remove back-links from children.
-        for (RelNode input : rel.getInputs()) {
-          ((RelSubset) input).set.parents.remove(rel);
+        for (int i = 0, n = rel.getInputCount(); i < n; i++) {
+          ((RelSubset) rel.getInput(i)).set.parents.remove(rel);
         }
 
         // Remove rel from its subset. (This may leave the subset
@@ -1112,10 +1112,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   private boolean fixUpInputs(RelNode rel) {
-    List<RelNode> inputs = rel.getInputs();
-    List<RelNode> newInputs = new ArrayList<>(inputs.size());
+    final int inputCount = rel.getInputCount();
+    List<RelNode> newInputs = new ArrayList<>(inputCount);
     int changeCount = 0;
-    for (RelNode input : inputs) {
+    for (int i = 0; i < inputCount; i++) {
+      RelNode input = rel.getInput(i);
       assert input instanceof RelSubset;
       final RelSubset subset = (RelSubset) input;
       RelSubset newSubset = canonize(subset);
@@ -1133,7 +1134,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       RelMdUtil.clearCache(rel);
       RelNode removed = mapDigestToRel.remove(rel.getRelDigest());
       assert removed == rel;
-      for (int i = 0; i < inputs.size(); i++) {
+      for (int i = 0; i < inputCount; i++) {
         rel.replaceInput(i, newInputs.get(i));
       }
       rel.recomputeDigest();
@@ -1397,8 +1398,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return subset;
     }
 
-    for (RelNode input : rel.getInputs()) {
-      RelSubset childSubset = (RelSubset) input;
+    for (int i = 0, n = rel.getInputCount(); i < n; i++) {
+      RelSubset childSubset = (RelSubset) rel.getInput(i);
       childSubset.set.parents.add(rel);
     }
 

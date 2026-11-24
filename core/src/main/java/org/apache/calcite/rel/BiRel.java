@@ -46,6 +46,21 @@ public abstract class BiRel extends AbstractRelNode {
     visitor.visit(right, 1, this);
   }
 
+  @Override public int getInputCount() {
+    return 2;
+  }
+
+  @Override public RelNode getInput(int i) {
+    switch (i) {
+    case 0:
+      return left;
+    case 1:
+      return right;
+    default:
+      throw new IndexOutOfBoundsException("Index: " + i + ", Size: 2");
+    }
+  }
+
   @Override public List<RelNode> getInputs() {
     return FlatLists.of(left, right);
   }

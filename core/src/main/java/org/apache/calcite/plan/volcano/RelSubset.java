@@ -26,9 +26,11 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -296,11 +298,27 @@ public class RelSubset extends AbstractRelNode {
   Set<RelNode> getParents() {
     final Set<RelNode> list = new LinkedHashSet<>();
     for (RelNode parent : set.getParentRels()) {
-      for (RelSubset rel : inputSubsets(parent)) {
+      // Fast-path SingleRel/BiRel and fall back to indexed getInputCount()/getInput(i)
+      // instead of for-each over getInputs(): avoids SingletonImmutableList/Flat2List
+      // and SingletonIterator allocations on hot parent-set scans, and avoids megamorphic
+      // invokeinterface dispatch across heterogeneous parent RelNodes in RelSet.parents
+      // (whose inputs are always RelSubsets).
+      if (parent instanceof SingleRel) {
         // see usage of this method in propagateCostImprovements0()
-        if (rel == this) {
+        if (((SingleRel) parent).getInput() == this) {
           list.add(parent);
-          break;
+        }
+      } else if (parent instanceof BiRel) {
+        final BiRel biRel = (BiRel) parent;
+        if (biRel.getLeft() == this || biRel.getRight() == this) {
+          list.add(parent);
+        }
+      } else {
+        for (int i = 0, n = parent.getInputCount(); i < n; i++) {
+          if (parent.getInput(i) == this) {
+            list.add(parent);
+            break;
+          }
         }
       }
     }
@@ -314,19 +332,36 @@ public class RelSubset extends AbstractRelNode {
   Set<RelSubset> getParentSubsets(VolcanoPlanner planner) {
     final Set<RelSubset> list = new LinkedHashSet<>();
     for (RelNode parent : set.getParentRels()) {
-      for (RelSubset rel : inputSubsets(parent)) {
-        if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
+      // See getParents() for why we fast-path SingleRel/BiRel and use indexed access.
+      if (parent instanceof SingleRel) {
+        if (matchesSubset(((SingleRel) parent).getInput())) {
           list.add(planner.getSubsetNonNull(parent));
-          break;
+        }
+      } else if (parent instanceof BiRel) {
+        final BiRel biRel = (BiRel) parent;
+        if (matchesSubset(biRel.getLeft()) || matchesSubset(biRel.getRight())) {
+          list.add(planner.getSubsetNonNull(parent));
+        }
+      } else {
+        for (int i = 0, n = parent.getInputCount(); i < n; i++) {
+          if (matchesSubset(parent.getInput(i))) {
+            list.add(planner.getSubsetNonNull(parent));
+            break;
+          }
         }
       }
     }
     return list;
   }
 
-  private static List<RelSubset> inputSubsets(RelNode parent) {
-    //noinspection unchecked
-    return (List<RelSubset>) (List) parent.getInputs();
+  private boolean matchesSubset(RelNode input) {
+    final RelSubset rel = (RelSubset) input;
+    return rel.set == set && rel.getTraitSet().equals(traitSet);
+  }
+
+  private boolean satisfiesInput(RelNode input) {
+    final RelSubset rel = (RelSubset) input;
+    return rel.set == set && traitSet.satisfies(rel.getTraitSet());
   }
 
   /**
@@ -335,12 +370,23 @@ public class RelSubset extends AbstractRelNode {
    */
   public Collection<RelNode> getParentRels() {
     final Set<RelNode> list = new LinkedHashSet<>();
-  parentLoop:
     for (RelNode parent : set.getParentRels()) {
-      for (RelSubset rel : inputSubsets(parent)) {
-        if (rel.set == set && traitSet.satisfies(rel.getTraitSet())) {
+      // See getParents() for why we fast-path SingleRel/BiRel and use indexed access.
+      if (parent instanceof SingleRel) {
+        if (satisfiesInput(((SingleRel) parent).getInput())) {
           list.add(parent);
-          continue parentLoop;
+        }
+      } else if (parent instanceof BiRel) {
+        final BiRel biRel = (BiRel) parent;
+        if (satisfiesInput(biRel.getLeft()) || satisfiesInput(biRel.getRight())) {
+          list.add(parent);
+        }
+      } else {
+        for (int i = 0, n = parent.getInputCount(); i < n; i++) {
+          if (satisfiesInput(parent.getInput(i))) {
+            list.add(parent);
+            break;
+          }
         }
       }
     }

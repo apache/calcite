@@ -59,6 +59,17 @@ public abstract class SingleRel extends AbstractRelNode {
     return input;
   }
 
+  @Override public int getInputCount() {
+    return 1;
+  }
+
+  @Override public RelNode getInput(int i) {
+    if (i == 0) {
+      return input;
+    }
+    throw new IndexOutOfBoundsException("Index: " + i + ", Size: 1");
+  }
+
   @Override public List<RelNode> getInputs() {
     return ImmutableList.of(input);
   }

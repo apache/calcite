@@ -28,7 +28,6 @@ import org.apache.calcite.rel.rules.TransformationRule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -306,19 +305,23 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             requireNonNull(operand.getParent(),
                 () -> "operand.getParent() for " + operand);
         final RelNode parentRel = rels[parentOperand.ordinalInRule];
-        final List<RelNode> inputs = parentRel.getInputs();
+        final int inputCount = parentRel.getInputCount();
         // if the child is unordered, then add all rels in all input subsets to the successors list
         // because unordered can match child in any ordinal
         if (parentOperand.childPolicy == RelOptRuleOperandChildPolicy.UNORDERED) {
           if (operand.getMatchedClass() == RelSubset.class) {
             // Find all the sibling subsets that satisfy this subset's traitSet
-            successors = inputs.stream()
-              .flatMap(subset -> ((RelSubset) subset).getSubsetsSatisfyingThis())
-              .collect(Collectors.toList());
+            List<RelSubset> subsets = new ArrayList<>();
+            for (int i = 0; i < inputCount; i++) {
+              RelSubset subset = (RelSubset) parentRel.getInput(i);
+              subset.getSubsetsSatisfyingThis().forEach(subsets::add);
+            }
+            successors = subsets;
           } else {
             List<RelNode> allRelsInAllSubsets = new ArrayList<>();
             Set<RelNode> duplicates = new HashSet<>();
-            for (RelNode input : inputs) {
+            for (int i = 0; i < inputCount; i++) {
+              RelNode input = parentRel.getInput(i);
               if (!duplicates.add(input)) {
                 // Ignore duplicate subsets
                 continue;
@@ -334,11 +337,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             }
             successors = allRelsInAllSubsets;
           }
-        } else if (operand.ordinalInParent < inputs.size()) {
+        } else if (operand.ordinalInParent < inputCount) {
           // child policy is not unordered
           // we need to find the exact input node based on child operand's ordinalInParent
           final RelSubset subset =
-              (RelSubset) inputs.get(operand.ordinalInParent);
+              (RelSubset) parentRel.getInput(operand.ordinalInParent);
           if (operand.getMatchedClass() == RelSubset.class) {
             // Find all the sibling subsets that satisfy this subset'straitSet
             successors =
@@ -364,7 +367,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         if (ascending && operand.childPolicy != RelOptRuleOperandChildPolicy.UNORDERED) {
           // We know that the previous operand was *a* child of its parent,
           // but now check that it is the *correct* child.
-          if (previousOperand.ordinalInParent >= rel.getInputs().size()) {
+          if (previousOperand.ordinalInParent >= rel.getInputCount()) {
             continue;
           }
           final RelSubset input =
@@ -390,13 +393,21 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           // RelSubsets? Random relations from those subsets?
           // For now, Calcite code does not use getChildRels, so the bug is just waiting its day
           if (ascending) {
-            final List<RelNode> inputs = Lists.newArrayList(rel.getInputs());
+            final int n = rel.getInputCount();
+            final List<RelNode> inputs = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+              inputs.add(rel.getInput(i));
+            }
             inputs.set(previousOperand.ordinalInParent, previous);
             setChildRels(rel, inputs);
           } else {
             List<RelNode> inputs = getChildRels(previous);
             if (inputs == null) {
-              inputs = Lists.newArrayList(previous.getInputs());
+              final int n = previous.getInputCount();
+              inputs = new ArrayList<>(n);
+              for (int i = 0; i < n; i++) {
+                inputs.add(previous.getInput(i));
+              }
             }
             inputs.set(operand.ordinalInParent, rel);
             setChildRels(previous, inputs);
