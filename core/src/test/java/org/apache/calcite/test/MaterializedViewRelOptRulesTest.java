@@ -1370,6 +1370,20 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7958">[CALCITE-7958]
+   * MaterializedViewAggregateRule should match a NOT NULL aggregate call of
+   * the view with a nullable aggregate call of the query</a>. */
+  @Test void testAggregateMaterializationGlobalAggregateOnGroupedView() {
+    sql("select \"deptno\", min(\"salary\") as m\n"
+            + "from \"emps\" group by \"deptno\"",
+        "select min(\"salary\") from \"emps\"")
+        .checkingThatResultContains(""
+            + "EnumerableAggregate(group=[{}], EXPR$0=[MIN($1)])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
   @Test public void testNpeInSplitFilterOfSubstitutionVisitor() {
     sql("select \"col1\", \"col2\""
             + " from \"nullables\""
