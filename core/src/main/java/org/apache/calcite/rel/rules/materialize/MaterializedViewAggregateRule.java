@@ -51,6 +51,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -491,7 +492,11 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         if (queryAggCall.getAggregation().getKind() != viewAggCall.getAggregation().getKind()
             || queryAggCall.isDistinct() != viewAggCall.isDistinct()
             || queryAggCall.getArgList().size() != viewAggCall.getArgList().size()
-            || queryAggCall.getType() != viewAggCall.getType()
+            || !SqlTypeUtil.equalSansNullability(rexBuilder.getTypeFactory(),
+                queryAggCall.getType(), viewAggCall.getType())
+            // A NOT NULL view call can answer a nullable query call, but a
+            // nullable view call can hold NULLs a NOT NULL one cannot
+            || viewAggCall.getType().isNullable() && !queryAggCall.getType().isNullable()
             || viewAggCall.filterArg >= 0) {
           // Continue
           continue;
