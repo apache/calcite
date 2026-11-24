@@ -52,6 +52,7 @@ public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataR
     super(rel.getCluster(), rel.getTraitSet());
     currentRel = requireNonNull(rel, "rel");
     checkArgument(!(rel instanceof HepRelVertex));
+    rowType = rel.getRowType();
   }
 
   //~ Methods ----------------------------------------------------------------
