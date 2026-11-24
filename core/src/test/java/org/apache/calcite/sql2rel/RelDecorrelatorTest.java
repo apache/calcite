@@ -26,6 +26,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -2635,114 +2636,215 @@ public class RelDecorrelatorTest {
         RuleSets.ofList(Collections.emptyList()));
   }
 
+  /** Converts a query to a plan with {@link Planner#rel}, which decorrelates
+   * the plan with {@link RelDecorrelator}. The plan keeps its sub-queries as
+   * {@code RexSubQuery} expressions. */
+  private static RelNode sqlToRel(String sql) {
+    final Planner planner = Frameworks.getPlanner(config().build());
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      return planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7962">[CALCITE-7962]
    * RelDecorrelator removes the variablesSet of a Filter whose input it
    * decorrelates</a>.
    *
-   * <p>A Filter declares a variable for its EXISTS sub-query, and its input is
-   * a Correlate. The decorrelator replaces the Correlate. The Filter must still
-   * declare its variable. */
+   * <p>The WHERE clause declares a variable for its EXISTS sub-query, and its
+   * input is a Correlate (the LATERAL). The decorrelator replaces the
+   * Correlate with a Join. The Filter must still declare its variable. */
   @Test void testFilterKeepsVariableAfterInputIsDecorrelated() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    builder.scan("DEPT").variable(v::set);
-    final RelNode dept = builder.build();
-    final RelNode maxSal = builder.scan("EMP")
-        .filter(builder.equals(builder.field("DEPTNO"), builder.field(v.get(), "DEPTNO")))
-        .aggregate(builder.groupKey(), builder.max("MAX_SAL", builder.field("SAL")))
-        .build();
-    final Holder<@Nullable RexCorrelVariable> w = Holder.empty();
-    builder.push(dept).push(maxSal)
-        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
-        .variable(w::set);
-    final RelNode plan = builder
-        .filter(ImmutableList.of(w.get().id),
-            builder.exists(b ->
-                b.scan("BONUS")
-                    .filter(b.equals(b.field("ENAME"), b.field(w.get(), "DNAME")))
-                    .build()))
-        .build();
-    final String planBefore = ""
-        + "LogicalFilter(condition=[EXISTS({\n"
-        + "LogicalFilter(condition=[=($0, $cor1.DNAME)])\n"
-        + "  LogicalTableScan(table=[[scott, BONUS]])\n"
+    final String sql = "select d.deptno, x.m\n"
+        + "from dept d,\n"
+        + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
+        + "where exists (select 1 from emp e2\n"
+        + "  where e2.deptno = d.deptno and e2.sal > 2900)";
+    final String plan = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4])\n"
+        + "  LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "})], variablesSet=[[$cor1]])\n"
-        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
-        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "    LogicalAggregate(group=[{}], MAX_SAL=[MAX($5)])\n"
-        + "      LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
-        + "        LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(plan, hasTree(planBefore));
-
-    final RelNode after = RelDecorrelator.decorrelateQuery(plan, builder);
-    final String planAfter = ""
-        + "LogicalFilter(condition=[EXISTS({\n"
-        + "LogicalFilter(condition=[=($0, $cor1.DNAME)])\n"
-        + "  LogicalTableScan(table=[[scott, BONUS]])\n"
-        + "})], variablesSet=[[$cor1]])\n"
-        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], MAX_SAL=[$4])\n"
-        + "    LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "      LogicalAggregate(group=[{0}], MAX_SAL=[MAX($1)])\n"
-        + "        LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-        + "          LogicalFilter(condition=[IS NOT NULL($7)])\n"
-        + "            LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(after, hasTree(planAfter));
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(sqlToRel(sql), hasTree(plan));
   }
 
   /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
    * decorrelator moves the field that the variable reads. */
   @Test void testFilterVariableFollowsMovedField() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    builder.scan("DEPT").variable(v::set);
-    final RelNode dept = builder.build();
-    final Holder<@Nullable RexCorrelVariable> w = Holder.empty();
-    builder.scan("EMP")
-        .filter(builder.equals(builder.field("DEPTNO"), builder.field(v.get(), "DEPTNO")))
-        .aggregate(builder.groupKey(), builder.max("MAX_SAL", builder.field("SAL")))
-        .variable(w::set);
-    final RelNode maxSal = builder
-        .filter(ImmutableList.of(w.get().id),
-            builder.exists(b ->
-                b.scan("EMP")
-                    .filter(b.equals(b.field("SAL"), b.field(w.get(), "MAX_SAL")))
-                    .build()))
-        .build();
-    final RelNode plan = builder.push(dept).push(maxSal)
-        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
-        .build();
-    final String planBefore = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
-        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "  LogicalFilter(condition=[EXISTS({\n"
-        + "LogicalFilter(condition=[=($5, $cor1.MAX_SAL)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n"
-        + "})], variablesSet=[[$cor1]])\n"
-        + "    LogicalAggregate(group=[{}], MAX_SAL=[MAX($5)])\n"
-        + "      LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
-        + "        LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(plan, hasTree(planBefore));
-
-    final RelNode after = RelDecorrelator.decorrelateQuery(plan, builder);
-    final String planAfter = ""
-        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], MAX_SAL=[$4])\n"
-        + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+    final String sql = "select d.deptno, x.m\n"
+        + "from dept d,\n"
+        + "  lateral (select t.m\n"
+        + "    from (select max(sal) as m from emp e where e.deptno = d.deptno) t\n"
+        + "    where exists (select 1 from emp e2\n"
+        + "      where e2.sal = t.m and e2.job = 'ANALYST')) x";
+    final String plan = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3])\n"
+        + "  LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "    LogicalFilter(condition=[EXISTS({\n"
-        + "LogicalFilter(condition=[=($5, $cor1.MAX_SAL)])\n"
+        + "    LogicalProject(M=[$1], DEPTNO=[$0])\n"
+        + "      LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "})], variablesSet=[[$cor1]])\n"
-        + "      LogicalAggregate(group=[{0}], MAX_SAL=[MAX($1)])\n"
-        + "        LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-        + "          LogicalFilter(condition=[IS NOT NULL($7)])\n"
-        + "            LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(after, hasTree(planAfter));
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n";
+    final RelNode rel = sqlToRel(sql);
+    assertThat(rel, hasTree(plan));
 
-    // The plans print $cor1.MAX_SAL by name. MAX_SAL is field 0 of the old
-    // input of the Filter, and field 1 of the new input, after DEPTNO.
-    assertThat(RelOptUtil.correlationColumns(w.get().id, plan), is(ImmutableBitSet.of(0)));
-    assertThat(RelOptUtil.correlationColumns(w.get().id, after), is(ImmutableBitSet.of(1)));
+    // The plan prints $cor1.M by name. Before decorrelation, M is field 0 of
+    // the input of the Filter (an Aggregate). Now it is field 1, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(new CorrelationId("$cor1"), rel),
+        is(ImmutableBitSet.of(1)));
+  }
+
+  /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
+   * EXISTS sub-query is in the SELECT clause, so a Project declares the
+   * variable. */
+  @Test void testProjectKeepsVariableAfterInputIsDecorrelated() {
+    final String sql = "select d.deptno, x.m,\n"
+        + "  exists (select 1 from emp e2\n"
+        + "    where e2.deptno = d.deptno and e2.sal > 2900) as rich\n"
+        + "from dept d,\n"
+        + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x";
+    final String plan = ""
+        + "LogicalProject(variablesSet=[[$cor1]], DEPTNO=[$0], M=[$4], RICH=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(sqlToRel(sql), hasTree(plan));
+  }
+
+  /** As {@link #testProjectKeepsVariableAfterInputIsDecorrelated()}, but the
+   * decorrelator moves the field that the variable reads. */
+  @Test void testProjectVariableFollowsMovedField() {
+    final String sql = "select d.deptno, x.m, x.analyst\n"
+        + "from dept d,\n"
+        + "  lateral (select t.m,\n"
+        + "      exists (select 1 from emp e2\n"
+        + "        where e2.sal = t.m and e2.job = 'ANALYST') as analyst\n"
+        + "    from (select max(sal) as m from emp e where e.deptno = d.deptno) t) x";
+    final String plan = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ANALYST=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(variablesSet=[[$cor1]], M=[$1], ANALYST=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], DEPTNO=[$0])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    final RelNode rel = sqlToRel(sql);
+    assertThat(rel, hasTree(plan));
+
+    // The plan prints $cor1.M by name. Before decorrelation, M is field 0 of
+    // the input of the Project (an Aggregate). Now it is field 1, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(new CorrelationId("$cor1"), rel),
+        is(ImmutableBitSet.of(1)));
+  }
+
+  /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
+   * EXISTS sub-query is in the ON clause, so a Join declares the variable. */
+  @Test void testJoinKeepsVariableAfterInputIsDecorrelated() {
+    final String sql = "select d.deptno, x.m, b.ename\n"
+        + "from dept d\n"
+        + "  cross join lateral\n"
+        + "    (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
+        + "  left join bonus b\n"
+        + "    on exists (select 1 from emp e2\n"
+        + "      where e2.deptno = d.deptno and e2.sal > 2900)";
+    final String plan = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4], ENAME=[$5])\n"
+        + "  LogicalJoin(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], joinType=[left], variablesSet=[[$cor1]])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(sqlToRel(sql), hasTree(plan));
+  }
+
+  /** As {@link #testJoinKeepsVariableAfterInputIsDecorrelated()}, but the
+   * decorrelator moves the field that the variable reads. The Join is in the
+   * LATERAL, where the decorrelator must not treat the variable of the Join
+   * as a variable of an enclosing query. */
+  @Test void testJoinVariableFollowsMovedField() {
+    final String sql = "select d.deptno, x.m, x.ename\n"
+        + "from dept d,\n"
+        + "  lateral (select t.m, b.ename\n"
+        + "    from (select max(sal) as m from emp e where e.deptno = d.deptno) t\n"
+        + "      left join bonus b\n"
+        + "        on exists (select 1 from emp e2\n"
+        + "          where e2.sal = t.m and e2.job = 'ANALYST')) x";
+    final String plan = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ENAME=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], ENAME=[$2], DEPTNO=[$0])\n"
+        + "      LogicalJoin(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], joinType=[left], variablesSet=[[$cor1]])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n";
+    final RelNode rel = sqlToRel(sql);
+    assertThat(rel, hasTree(plan));
+
+    // The plan prints $cor1.M by name. Before decorrelation, M is field 0 of
+    // the joined row. Now it is field 1, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(new CorrelationId("$cor1"), rel),
+        is(ImmutableBitSet.of(1)));
   }
 }

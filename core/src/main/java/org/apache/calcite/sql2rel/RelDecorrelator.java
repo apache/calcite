@@ -87,6 +87,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RuleSet;
@@ -1454,9 +1455,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
     int newPos;
     for (newPos = 0; newPos < oldProjects.size(); newPos++) {
-      projects.add(newPos,
+      final RexNode project =
           decorrelateExpr(requireNonNull(currentRel, "currentRel"),
-              map, cm, oldProjects.get(newPos)),
+              map, cm, oldProjects.get(newPos));
+      projects.add(newPos,
+          moveVariableFields(project, rel.getVariablesSet(), frame.r.getRowType(),
+              frame.oldToNewOutputs),
           relOutput.get(newPos).getName());
       mapOldToNewOutputs.put(newPos, newPos);
     }
@@ -1471,7 +1475,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     RelNode newProject = relBuilder.push(frame.r)
-        .projectNamed(projects.leftList(), projects.rightList(), true)
+        .projectNamed(projects.leftList(), projects.rightList(), true,
+            rel.getVariablesSet())
         .build();
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
@@ -1917,16 +1922,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return decorrelateRel((Filter) rel, isCorVarDefined, parentPropagatesNullValues);
   }
 
-  /** Returns a condition whose sub-queries use the variables of a node at the
-   * new positions of the fields.
+  /** Returns an expression whose sub-queries use the variables of a node at
+   * the new positions of the fields.
    *
-   * <p>The variables of a node refer to the row of its input. After the
-   * input is decorrelated, field {@code i} of that row is field
-   * {@code frame.oldToNewOutputs.get(i)} of the row of {@code frame.r}. */
-  private RexNode moveVariableFields(RexNode condition, Set<CorrelationId> variablesSet,
-      Frame frame) {
+   * <p>The variables of a Filter or Project refer to the row of its input,
+   * and the variables of a Join refer to the joined row. After decorrelation,
+   * field {@code i} of that row is field {@code oldToNewFields.get(i)} of a
+   * row of type {@code newRowType}. */
+  private RexNode moveVariableFields(RexNode e, Set<CorrelationId> variablesSet,
+      RelDataType newRowType, Map<Integer, Integer> oldToNewFields) {
     if (variablesSet.isEmpty()) {
-      return condition;
+      return e;
     }
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     final CorrelationReferenceFinder finder = new CorrelationReferenceFinder() {
@@ -1936,12 +1942,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
           return fieldAccess;
         }
         final int newField =
-            requireNonNull(frame.oldToNewOutputs.get(fieldAccess.getField().getIndex()));
-        return rexBuilder.makeFieldAccess(
-            rexBuilder.makeCorrel(frame.r.getRowType(), id), newField);
+            requireNonNull(oldToNewFields.get(fieldAccess.getField().getIndex()));
+        return rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(newRowType, id), newField);
       }
     };
-    return condition.accept(new RexShuttle() {
+    return e.accept(new RexShuttle() {
       @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
         final RelNode subQueryRel = subQuery.rel.accept(finder);
         return super.visitSubQuery(
@@ -1988,7 +1993,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         decorrelateExpr(castNonNull(currentRel), map, cm2, rel.getCondition());
     relBuilder.push(frame.r)
         .filter(rel.getVariablesSet(),
-            moveVariableFields(condition, rel.getVariablesSet(), frame));
+            moveVariableFields(condition, rel.getVariablesSet(), frame.r.getRowType(),
+                frame.oldToNewOutputs));
 
     // Filter does not change the input ordering.
     // Filter rel does not permute the input.
@@ -2161,9 +2167,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     //    value generators if necessary (e.g., for the nullable side of an outer join).
     // 3. Constructs a new join condition that includes the original condition and
     //    equality conditions for the correlated variables.
-    // 4. For {@link JoinRelType#FULL}, adds a projection on top of the join to coalesce
+    // 4. Updates the output mapping to reflect the new join structure.
+    // 5. For {@link JoinRelType#FULL}, adds a projection on top of the join to coalesce
     //    correlated variables that might be null on one side due to the join nature.
-    // 5. Updates the output mapping to reflect the new join structure.
     //
 
     final RelNode oldLeft = rel.getInput(0);
@@ -2234,6 +2240,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
         ? relBuilder.literal(true)
         : RexUtil.composeConjunction(relBuilder.getRexBuilder(), joinConditions);
 
+    // 4. Output Mapping. The condition of the new Join uses it.
+    int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
+    int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
+    int oldRightFieldCount = oldRight.getRowType().getFieldCount();
+
+    Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>(newLeftFrame.oldToNewOutputs);
+    for (int i = 0; i < oldRightFieldCount; i++) {
+      mapOldToNewOutputs.put(i + oldLeftFieldCount,
+          requireNonNull(newRightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
+    }
+
     relBuilder.push(newLeftFrame.r).push(newRightFrame.r);
     if (rel instanceof AsofJoin) {
       final RexNode matchCondition =
@@ -2241,13 +2258,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
               ((AsofJoin) rel).getMatchCondition());
       relBuilder.asofJoin(rel.getJoinType(), finalCondition, matchCondition);
     } else {
-      relBuilder.join(rel.getJoinType(), finalCondition, ImmutableSet.of());
+      // The sub-queries of the condition can still use the variables of the
+      // Join, which refer to the joined row.
+      final RelDataType joinedRowType =
+          SqlValidatorUtil.createJoinType(relBuilder.getTypeFactory(),
+              newLeftFrame.r.getRowType(), newRightFrame.r.getRowType(), null,
+              ImmutableList.of());
+      relBuilder.join(rel.getJoinType(),
+          moveVariableFields(finalCondition, rel.getVariablesSet(), joinedRowType,
+              mapOldToNewOutputs),
+          rel.getVariablesSet());
     }
     RelNode newJoin = relBuilder.build();
 
-    // 4. Handle Full Join Projections (Coalesce)
+    // 5. Handle Full Join Projections (Coalesce)
     NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>(newLeftFrame.corDefOutputs);
-    int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
     if (rel.getJoinType() == JoinRelType.FULL && isCorVarDefined) {
       //
       // SELECT
@@ -2282,13 +2307,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
       //         LogicalTableScan(table=[[scott, DEPT]])
       List<RelDataTypeField> joinFields = newJoin.getRowType().getFieldList();
 
-      // 4.1. Pass through existing fields
+      // 5.1. Pass through existing fields
       final PairList<RexNode, String> projects = PairList.of();
       for (int i = 0; i < joinFields.size(); i++) {
         RexInputRef.add2(projects, i, joinFields);
       }
 
-      // 4.2. Build Coalesced CorVars
+      // 5.2. Build Coalesced CorVars
       NavigableMap<CorDef, Integer> mergedCorDefOutputs = new TreeMap<>(corDefOutputs);
       int projectedIndex = joinFields.size();
       boolean appended = false;
@@ -2352,16 +2377,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
           corDefOutputs.put(entry.getKey(), shifted);
         }
       }
-    }
-
-    // 5. Output Mapping
-    int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
-    int oldRightFieldCount = oldRight.getRowType().getFieldCount();
-
-    Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>(newLeftFrame.oldToNewOutputs);
-    for (int i = 0; i < oldRightFieldCount; i++) {
-      mapOldToNewOutputs.put(i + oldLeftFieldCount,
-          requireNonNull(newRightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
     }
 
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
@@ -4260,9 +4275,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   private static List<CorRef> collectExternalCorVars(RelNode rel) {
     final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
+    final Set<CorrelationId> freeVariables = RelOptUtil.getVariablesUsed(rel);
     final List<CorRef> corVarList = new ArrayList<>();
     for (CorRef corVar : localCorelMap.mapRefRelToCorRef.values()) {
-      if (!localCorelMap.mapCorToCorRel.containsKey(corVar.corr)) {
+      if (freeVariables.contains(corVar.corr)) {
         corVarList.add(corVar);
       }
     }

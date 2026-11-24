@@ -702,4 +702,93 @@ order by d.deptno;
 
 !ok
 
+# [CALCITE-7962] As the first query, but the EXISTS sub-query is in the
+# SELECT clause, so a Project declares the variable.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m,
+  exists (select 1 from emp e2
+          where e2.deptno = d.deptno and e2.sal > 2900) as rich
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+order by d.deptno;
++--------+---------+-------+
+| DEPTNO | M       | RICH  |
++--------+---------+-------+
+|     10 | 5000.00 | true  |
+|     20 | 3000.00 | true  |
+|     30 | 2850.00 | false |
+|     40 |         | false |
++--------+---------+-------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As above, but the decorrelator moves the field that the
+# sub-query reads.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m, x.analyst
+from dept d,
+  lateral (select t.m,
+      exists (select 1 from emp e2
+              where e2.sal = t.m and e2.job = 'ANALYST') as analyst
+    from (select max(sal) as m from emp e where e.deptno = d.deptno) t) x
+order by d.deptno;
++--------+---------+---------+
+| DEPTNO | M       | ANALYST |
++--------+---------+---------+
+|     10 | 5000.00 | false   |
+|     20 | 3000.00 | true    |
+|     30 | 2850.00 | false   |
+|     40 |         | false   |
++--------+---------+---------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As the first query, but the EXISTS sub-query is in the ON
+# clause, so a Join declares the variable.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m, b.ename
+from dept d
+  cross join lateral
+    (select max(sal) as m from emp e where e.deptno = d.deptno) x
+  left join bonus b
+    on exists (select 1 from emp e2
+               where e2.deptno = d.deptno and e2.sal > 2900)
+order by d.deptno;
++--------+---------+-------+
+| DEPTNO | M       | ENAME |
++--------+---------+-------+
+|     10 | 5000.00 |       |
+|     20 | 3000.00 |       |
+|     30 | 2850.00 |       |
+|     40 |         |       |
++--------+---------+-------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As above, but the decorrelator moves the field that the
+# sub-query reads, and the Join is in the LATERAL.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m, x.ename
+from dept d,
+  lateral (select t.m, b.ename
+    from (select max(sal) as m from emp e where e.deptno = d.deptno) t
+      left join bonus b
+        on exists (select 1 from emp e2
+                   where e2.sal = t.m and e2.job = 'ANALYST')) x
+order by d.deptno;
++--------+---------+-------+
+| DEPTNO | M       | ENAME |
++--------+---------+-------+
+|     10 | 5000.00 |       |
+|     20 | 3000.00 |       |
+|     30 | 2850.00 |       |
+|     40 |         |       |
++--------+---------+-------+
+(4 rows)
+
+!ok
+
 # End lateral.iq
