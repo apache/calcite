@@ -20,8 +20,6 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -292,7 +290,11 @@ public class RelFieldCollation {
   }
 
   @Override public int hashCode() {
-    return Objects.hash(fieldIndex, direction, nullDirection);
+    int h = 1;
+    h = 31 * h + fieldIndex;
+    h = 31 * h + direction.hashCode();
+    h = 31 * h + nullDirection.hashCode();
+    return h;
   }
 
   public int getFieldIndex() {

@@ -162,10 +162,16 @@ public class RelCollationImpl implements RelCollation {
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    return this == trait
-        || trait instanceof RelCollationImpl
-        && Util.startsWith(fieldCollations,
-            ((RelCollationImpl) trait).fieldCollations);
+    if (this == trait) {
+      return true;
+    }
+    if (trait instanceof RelCollationImpl) {
+      final ImmutableList<RelFieldCollation> thatCollations =
+          ((RelCollationImpl) trait).fieldCollations;
+      return thatCollations.isEmpty()
+          || Util.startsWith(fieldCollations, thatCollations);
+    }
+    return false;
   }
 
   /** Returns a string representation of this collation, suitably terse given

@@ -45,7 +45,11 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   private final Cache cache;
   private final RelTrait[] traits;
+  private final byte conventionIndex;
+  private final byte collationIndex;
+  private final byte distributionIndex;
   private @Nullable String string;
+  private @Nullable RelTraitSet defaultSansConvention;
   /** Caches the hash code for the traits. */
   private int hash; // Default to 0
 
@@ -64,6 +68,26 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     //   the caller has made a copy.
     this.cache = cache;
     this.traits = traits;
+    byte conventionIdx = -1;
+    byte collationIdx = -1;
+    byte distributionIdx = -1;
+    final int limit = Math.min(traits.length, Byte.MAX_VALUE + 1);
+    for (int i = 0; i < limit; i++) {
+      final RelTrait trait = traits[i];
+      if (trait != null) {
+        final RelTraitDef traitDef = trait.getTraitDef();
+        if (traitDef == ConventionTraitDef.INSTANCE && conventionIdx < 0) {
+          conventionIdx = (byte) i;
+        } else if (traitDef == RelCollationTraitDef.INSTANCE && collationIdx < 0) {
+          collationIdx = (byte) i;
+        } else if (traitDef == RelDistributionTraitDef.INSTANCE && distributionIdx < 0) {
+          distributionIdx = (byte) i;
+        }
+      }
+    }
+    this.conventionIndex = conventionIdx;
+    this.collationIndex = collationIdx;
+    this.distributionIndex = distributionIdx;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -309,10 +333,12 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * are default trait value.
    */
   public boolean isDefaultSansConvention() {
-    for (final RelTrait trait : traits) {
-      if (trait.getTraitDef() == ConventionTraitDef.INSTANCE) {
+    final int convIndex = conventionIndex();
+    for (int i = 0; i < traits.length; i++) {
+      if (i == convIndex) {
         continue;
       }
+      final RelTrait trait = traits[i];
       if (trait != trait.getTraitDef().getDefault()) {
         return false;
       }
@@ -328,11 +354,12 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (this == other) {
       return true;
     }
-    if (this.size() != other.size()) {
+    if (traits.length != other.traits.length) {
       return false;
     }
+    final int convIndex = conventionIndex();
     for (int i = 0; i < traits.length; i++) {
-      if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
+      if (i == convIndex) {
         continue;
       }
       // each trait should be canonized already
@@ -349,6 +376,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * trait value.
    */
   public RelTraitSet getDefault() {
+    if (isDefault()) {
+      return this;
+    }
     RelTrait[] newTraits = new RelTrait[traits.length];
     for (int i = 0; i < traits.length; i++) {
       newTraits[i] = traits[i].getTraitDef().getDefault();
@@ -363,15 +393,26 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * remains the same with current traitSet.
    */
   public RelTraitSet getDefaultSansConvention() {
-    RelTrait[] newTraits = new RelTrait[traits.length];
-    for (int i = 0; i < traits.length; i++) {
-      if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
-        newTraits[i] = traits[i];
-      } else {
-        newTraits[i] = traits[i].getTraitDef().getDefault();
-      }
+    RelTraitSet result = this.defaultSansConvention;
+    if (result != null) {
+      return result;
     }
-    return cache.getOrAdd(new RelTraitSet(cache, newTraits));
+    if (isDefaultSansConvention()) {
+      result = this;
+    } else {
+      final int convIndex = conventionIndex();
+      RelTrait[] newTraits = new RelTrait[traits.length];
+      for (int i = 0; i < traits.length; i++) {
+        if (i == convIndex) {
+          newTraits[i] = traits[i];
+        } else {
+          newTraits[i] = traits[i].getTraitDef().getDefault();
+        }
+      }
+      result = cache.getOrAdd(new RelTraitSet(cache, newTraits));
+    }
+    this.defaultSansConvention = result;
+    return result;
   }
 
   /**
@@ -381,7 +422,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * in this traitSet.
    */
   public @Nullable Convention getConvention() {
-    return getTrait(ConventionTraitDef.INSTANCE);
+    final int index = conventionIndex();
+    return index >= 0 ? (Convention) getTrait(index) : null;
   }
 
   /**
@@ -397,7 +439,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelDistribution> @Nullable T getDistribution() {
-    return (@Nullable T) getTrait(RelDistributionTraitDef.INSTANCE);
+    final int index = distributionIndex();
+    return index >= 0 ? (T) getTrait(index) : null;
   }
 
   /**
@@ -410,7 +453,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public List<RelDistribution> getDistributions() {
-    int index = findIndex(RelDistributionTraitDef.INSTANCE);
+    final int index = distributionIndex();
     if (index < 0) {
       return ImmutableList.of();
     }
@@ -430,7 +473,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelCollation> @Nullable T getCollation() {
-    return (@Nullable T) getTrait(RelCollationTraitDef.INSTANCE);
+    final int index = collationIndex();
+    return index >= 0 ? (T) getTrait(index) : null;
   }
 
   /**
@@ -443,7 +487,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public List<RelCollation> getCollations() {
-    int index = findIndex(RelCollationTraitDef.INSTANCE);
+    final int index = collationIndex();
     if (index < 0) {
       return ImmutableList.of();
     }
@@ -554,6 +598,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     for (int i = 0; i < n; i++) {
       RelTrait thisTrait = this.traits[i];
       RelTrait thatTrait = that.traits[i];
+      if (thisTrait == thatTrait) {
+        continue;
+      }
       if (!thisTrait.satisfies(thatTrait)) {
         return false;
       }
@@ -671,6 +718,24 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return s.toString();
   }
 
+  private int conventionIndex() {
+    return conventionIndex >= 0 || traits.length <= Byte.MAX_VALUE + 1
+        ? conventionIndex
+        : findIndexLinear(ConventionTraitDef.INSTANCE, Byte.MAX_VALUE + 1);
+  }
+
+  private int collationIndex() {
+    return collationIndex >= 0 || traits.length <= Byte.MAX_VALUE + 1
+        ? collationIndex
+        : findIndexLinear(RelCollationTraitDef.INSTANCE, Byte.MAX_VALUE + 1);
+  }
+
+  private int distributionIndex() {
+    return distributionIndex >= 0 || traits.length <= Byte.MAX_VALUE + 1
+        ? distributionIndex
+        : findIndexLinear(RelDistributionTraitDef.INSTANCE, Byte.MAX_VALUE + 1);
+  }
+
   /**
    * Finds the index of a trait of a given type in this set.
    *
@@ -678,7 +743,20 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @return index of trait, or -1 if not found
    */
   private int findIndex(RelTraitDef traitDef) {
-    for (int i = 0; i < traits.length; i++) {
+    if (traitDef == ConventionTraitDef.INSTANCE) {
+      return conventionIndex();
+    }
+    if (traitDef == RelCollationTraitDef.INSTANCE) {
+      return collationIndex();
+    }
+    if (traitDef == RelDistributionTraitDef.INSTANCE) {
+      return distributionIndex();
+    }
+    return findIndexLinear(traitDef, 0);
+  }
+
+  private int findIndexLinear(RelTraitDef traitDef, int startIndex) {
+    for (int i = startIndex; i < traits.length; i++) {
       RelTrait trait = traits[i];
       if ((trait != null) && (trait.getTraitDef() == traitDef)) {
         return i;

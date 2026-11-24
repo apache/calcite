@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -30,6 +31,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -40,9 +42,12 @@ import static org.apache.calcite.rel.RelFieldCollation.Direction.CLUSTERED;
 import static org.apache.calcite.rel.RelFieldCollation.Direction.DESCENDING;
 import static org.apache.calcite.rel.RelFieldCollation.Direction.STRICTLY_ASCENDING;
 import static org.apache.calcite.rel.RelFieldCollation.Direction.STRICTLY_DESCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.NullDirection.FIRST;
+import static org.apache.calcite.rel.RelFieldCollation.NullDirection.LAST;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -215,6 +220,40 @@ class RelCollationTest {
     assertThat(collation9.apply(mapping(n, 1)), is(EMPTY));
     assertThat(collation9.apply(mapping(n, 2)), is(EMPTY));
     assertThat(collation9.apply(mapping(n, n - 1)), is(collation(0)));
+  }
+
+  /**
+   * Unit test for {@link RelFieldCollation#hashCode()} and
+   * {@link RelCollationImpl#satisfies(org.apache.calcite.plan.RelTrait)}.
+   */
+  @Test void testFieldCollationHashCodeAndSatisfies() {
+    final RelFieldCollation f0AscLast = new RelFieldCollation(0, ASCENDING, LAST);
+    final RelFieldCollation f0AscLastCopy = new RelFieldCollation(0, ASCENDING, LAST);
+    final RelFieldCollation f0AscFirst = new RelFieldCollation(0, ASCENDING, FIRST);
+    final RelFieldCollation f0DescFirst = new RelFieldCollation(0, DESCENDING, FIRST);
+    final RelFieldCollation f1AscLast = new RelFieldCollation(1, ASCENDING, LAST);
+
+    assertThat(f0AscLast, is(f0AscLastCopy));
+    assertThat(f0AscLast.hashCode(), is(f0AscLastCopy.hashCode()));
+    assertThat(f0AscLast.hashCode(), is(Objects.hash(0, ASCENDING, LAST)));
+    assertThat(f0AscFirst.hashCode(), is(Objects.hash(0, ASCENDING, FIRST)));
+    assertThat(f0DescFirst.hashCode(), is(Objects.hash(0, DESCENDING, FIRST)));
+    assertThat(f1AscLast.hashCode(), is(Objects.hash(1, ASCENDING, LAST)));
+    assertThat(f0AscLast, not(is(f0AscFirst)));
+    assertThat(f0AscLast, not(is(f0DescFirst)));
+    assertThat(f0AscLast, not(is(f1AscLast)));
+
+    final RelCollation c01 = collation(0, 1);
+    final RelCollation c0 = collation(0);
+    final RelCollation c1 = collation(1);
+    assertThat(c01.satisfies(c01), is(true));
+    assertThat(c01.satisfies(EMPTY), is(true));
+    assertThat(EMPTY.satisfies(EMPTY), is(true));
+    assertThat(c01.satisfies(c0), is(true));
+    assertThat(c0.satisfies(c01), is(false));
+    assertThat(c01.satisfies(c1), is(false));
+    assertThat(EMPTY.satisfies(c0), is(false));
+    assertThat(c01.satisfies(Convention.NONE), is(false));
   }
 
   /**

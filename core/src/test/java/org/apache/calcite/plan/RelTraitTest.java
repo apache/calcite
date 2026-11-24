@@ -20,6 +20,8 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -27,13 +29,17 @@ import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -78,18 +84,114 @@ class RelTraitTest {
     traits = traits.plus(Convention.NONE).plus(RelCollations.EMPTY);
     assertThat(traits, hasSize(2));
     assertTrue(traits.isDefault());
+    assertThat(traits.getDefault(), sameInstance(traits));
     traits = traits.replace(EnumerableConvention.INSTANCE);
     assertFalse(traits.isDefault());
     assertTrue(traits.isDefaultSansConvention());
+    assertThat(traits.getDefaultSansConvention(), sameInstance(traits));
     traits = traits.replace(RelCollations.of(0));
     assertFalse(traits.isDefault());
     assertFalse(traits.replace(Convention.NONE).isDefaultSansConvention());
     assertTrue(traits.getDefault().isDefault());
-    traits = traits.getDefaultSansConvention();
+    RelTraitSet defaultSansConv = traits.getDefaultSansConvention();
+    assertThat(traits.getDefaultSansConvention(), sameInstance(defaultSansConv));
+    traits = defaultSansConv;
     assertFalse(traits.isDefault());
     assertThat(EnumerableConvention.INSTANCE, is(traits.getConvention()));
     assertTrue(traits.isDefaultSansConvention());
     assertThat("ENUMERABLE.[]", is(traits.toString()));
+  }
+
+  @Test void testBuiltInTraitLookupAndFallback() {
+    final RelTraitSet empty = RelTraitSet.createEmpty();
+    assertThat(empty.getConvention(), nullValue());
+    assertThat(empty.getCollation(), nullValue());
+    assertThat(empty.getDistribution(), nullValue());
+    assertThat(empty.getCollations(), empty());
+    assertThat(empty.getDistributions(), empty());
+    assertThat(empty.getDefault(), sameInstance(empty));
+    assertThat(empty.getDefaultSansConvention(), sameInstance(empty));
+
+    // Fill 129 custom traits so built-in traits sit past Byte.MAX_VALUE.
+    RelTraitSet many = RelTraitSet.createEmpty();
+    for (int i = 0; i <= Byte.MAX_VALUE + 1; i++) {
+      final CustomTraitDef def = new CustomTraitDef("custom" + i);
+      many = many.plus(def.getDefault());
+    }
+    final RelCollation collation = RelCollations.of(0);
+    final RelDistribution distribution = RelDistributions.hash(ImmutableList.of(0));
+    many = many.plus(EnumerableConvention.INSTANCE).plus(collation).plus(distribution);
+
+    assertThat(many.getConvention(), is(EnumerableConvention.INSTANCE));
+    assertThat(many.getCollation(), is(collation));
+    assertThat(many.getDistribution(), is(distribution));
+    assertThat(many.getCollations(), is(ImmutableList.of(collation)));
+    assertThat(many.getDistributions(), is(ImmutableList.of(distribution)));
+    assertFalse(many.isDefaultSansConvention());
+    assertTrue(many.equalsSansConvention(many.replace(Convention.NONE)));
+    assertFalse(many.equalsSansConvention(many.replace(RelCollations.EMPTY)));
+
+    final RelTraitSet defaultSansConv = many.getDefaultSansConvention();
+    assertThat(defaultSansConv.getConvention(), is(EnumerableConvention.INSTANCE));
+    assertThat(defaultSansConv.getCollation(), is(RelCollations.EMPTY));
+    assertThat(defaultSansConv.getDistribution(), is(RelDistributions.ANY));
+    assertTrue(defaultSansConv.isDefaultSansConvention());
+    assertThat(many.getDefaultSansConvention(), sameInstance(defaultSansConv));
+    assertTrue(many.satisfies(defaultSansConv));
+    assertFalse(defaultSansConv.satisfies(many));
+  }
+
+  /** Minimal custom trait definition for testing linear fallback. */
+  private static final class CustomTraitDef extends RelTraitDef<CustomTrait> {
+    private final String name;
+    private final CustomTrait defaultTrait;
+
+    CustomTraitDef(String name) {
+      this.name = name;
+      this.defaultTrait = new CustomTrait(this);
+    }
+
+    @Override public Class<CustomTrait> getTraitClass() {
+      return CustomTrait.class;
+    }
+
+    @Override public String getSimpleName() {
+      return name;
+    }
+
+    @Override public @Nullable RelNode convert(RelOptPlanner planner, RelNode rel,
+        CustomTrait toTrait, boolean allowInfiniteCostConverters) {
+      return rel;
+    }
+
+    @Override public boolean canConvert(RelOptPlanner planner,
+        CustomTrait fromTrait, CustomTrait toTrait) {
+      return true;
+    }
+
+    @Override public CustomTrait getDefault() {
+      return defaultTrait;
+    }
+  }
+
+  /** Minimal custom trait instance for {@link CustomTraitDef}. */
+  private static final class CustomTrait implements RelTrait {
+    private final CustomTraitDef def;
+
+    CustomTrait(CustomTraitDef def) {
+      this.def = def;
+    }
+
+    @Override public RelTraitDef getTraitDef() {
+      return def;
+    }
+
+    @Override public boolean satisfies(RelTrait trait) {
+      return this == trait;
+    }
+
+    @Override public void register(RelOptPlanner planner) {
+    }
   }
 
   @Test void testTraitSetEqual() {
