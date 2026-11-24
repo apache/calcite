@@ -288,6 +288,20 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return newRootRel;
   }
 
+  /** Trims the right input, preserving its output fields and the left input.
+   *
+   * <p>If the RHS changes and passes the determinism check, creates an equivalent
+   * Correlate. Passes it to the rule's planner through
+   * {@link RelOptRuleCall#transformTo(RelNode)}. */
+  private void trimRightInput(RelOptRuleCall call, Correlate correlate, RelNode right) {
+    final RelNode trimmed = RelFieldTrimmer.trimPreservingBindings(right, relBuilder);
+    if (!right.deepEquals(trimmed) && RelOptUtil.isDeterministic(trimmed)) {
+      call.transformTo(
+          correlate.copy(correlate.getTraitSet(),
+          ImmutableList.of(correlate.getLeft(), trimmed)));
+    }
+  }
+
   private void setCurrent(@Nullable RelNode root, @Nullable Correlate corRel) {
     currentRel = corRel;
     if (corRel != null) {
@@ -297,6 +311,30 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   protected RelBuilderFactory relBuilderFactory() {
     return RelBuilder.proto(relBuilder);
+  }
+
+  /** Returns whether {@code rel}'s expressions are supported by the scalar
+   * correlation rewrite. Local bindings and sub-queries are not supported.
+   * This checks expression structure only, not determinism. */
+  private static boolean canRewriteScalarExpressions(RelNode rel) {
+    if (!rel.getVariablesSet().isEmpty()) {
+      return false;
+    }
+    if (rel instanceof Project) {
+      return !RexUtil.SubQueryFinder.containsSubQuery((Project) rel);
+    }
+    if (rel instanceof Filter) {
+      return !RexUtil.SubQueryFinder.containsSubQuery((Filter) rel);
+    }
+    if (rel instanceof Aggregate) {
+      for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+        if (RexUtil.SubQueryFinder.find(call.rexList) != null) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   protected RelNode decorrelate(RelNode root) {
@@ -1083,10 +1121,18 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *
    * @param parentPropagatesNullValues True if the parent RelNode produces null
    *                                   when all of its inputs fields are null.
+   * @return Rewritten frame, or null if the rewrite is not supported
    */
   public @Nullable Frame getInvoke(RelNode r, boolean isCorVarDefined,
       @Nullable RelNode parent, boolean parentPropagatesNullValues) {
-    final Frame frame = dispatcher.invoke(r, isCorVarDefined, parentPropagatesNullValues);
+    final Frame frame;
+    if (!(r instanceof Correlate) && !r.getVariablesSet().isEmpty()) {
+      // Input rewrites can change field positions. References through the node's
+      // correlation variables would still use the old positions.
+      frame = null;
+    } else {
+      frame = dispatcher.invoke(r, isCorVarDefined, parentPropagatesNullValues);
+    }
     currentRel = parent;
     if (frame != null) {
       map.put(r, frame);
@@ -1968,6 +2014,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   public @Nullable Frame decorrelateRel(Correlate rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
+    if (!rel.getJoinType().projectsRight()) {
+      return null;
+    }
     //
     // Rewrite logic:
     //
@@ -1992,12 +2041,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
         getInvoke(oldRight, true, rel, rel.getJoinType() == JoinRelType.LEFT);
     frameStack.pop();
 
-    if (rightFrame == null || rightFrame.corDefOutputs.isEmpty()) {
+    if (rightFrame == null) {
       return null;
     }
-
-    assert rel.getRequiredColumns().cardinality()
-        <= rightFrame.corDefOutputs.keySet().size();
+    // The rewritten right input contains any copied correlation inputs as well
+    // as the computations being shared. Trimming preserves its output fields,
+    // so the frame's field mappings remain valid.
+    RelNode right = rightFrame.r;
+    if (!RelOptUtil.isDeterministic(right)) {
+      right = RelFieldTrimmer.trimPreservingBindings(right, relBuilder);
+      if (!RelOptUtil.isDeterministic(right)) {
+        return null;
+      }
+    }
+    // The replacement Join does not define this binding.
+    // Reject right inputs that may still use it.
+    if (CorrelationReferences.mayUse(right, rel.getCorrelationId())) {
+      return null;
+    }
 
     // In a LEFT correlate, the right input gives the values of the variables of
     // enclosing correlates, and they are NULL in the rows that the join pads.
@@ -2030,7 +2091,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int newLeftFieldCount = newLeftOutput.size();
 
     final List<RelDataTypeField> newRightOutput =
-        rightFrame.r.getRowType().getFieldList();
+        right.getRowType().getFieldList();
 
     for (Map.Entry<CorDef, Integer> rightOutput
         : new ArrayList<>(corDefOutputs.entrySet())) {
@@ -2044,7 +2105,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // Using `equals` instead of `IS NOT DISTINCT FROM` is an optimization
       // for non-nullable fields. However, `IS NOT DISTINCT FROM` is always
       // the correct choice in all cases.
-      if (isFieldNotNull(rightFrame.r, newRightPos)) {
+      if (isFieldNotNull(right, newRightPos)) {
         conditions.add(
             relBuilder.equals(RexInputRef.of(newLeftPos, newLeftOutput),
                 new RexInputRef(newLeftFieldCount + newRightPos,
@@ -2063,7 +2124,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // the two copies must have the same value.
     conditions.addAll(
         buildCorDefJoinConditions(newLeftFrame.corDefOutputs, corDefOutputs,
-            newLeftFrame.r, rightFrame.r, relBuilder));
+            newLeftFrame.r, right, relBuilder));
 
     // Update the output position for the corVars: only pass on the cor
     // vars that are not used in the join key.
@@ -2097,7 +2158,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final RexNode condition =
         RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
-    RelNode newJoin = relBuilder.push(newLeftFrame.r).push(rightFrame.r)
+    RelNode newJoin = relBuilder.push(newLeftFrame.r).push(right)
         .join(rel.getJoinType(), condition).build();
 
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
@@ -2791,7 +2852,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
         return newRexNode;
       }
-      return fieldAccess;
+      return rexBuilder.makeFieldAccess(
+          fieldAccess.getReferenceExpr().accept(this), fieldAccess.getField().getIndex());
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -3154,14 +3216,43 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check this project only projects one expression, i.e. scalar
       // sub-queries.
-      if (project.getProjects().size() != 1) {
+      if (project.getProjects().size() != 1
+          || !canRewriteScalarExpressions(project)
+          || !canRewriteScalarExpressions(aggregate)) {
+        return;
+      }
+
+      // This rewrite shares the right input between outer rows.
+      final RelNode rightPlan = RelOptUtil.stripAll(correlate.getRight());
+      if (!RelOptUtil.isDeterministic(rightPlan)) {
+        d.trimRightInput(call, correlate, rightPlan);
         return;
       }
 
       int nullIndicatorPos;
 
-      if ((right instanceof Filter)
-          && d.cm.mapRefRelToCorRef.containsKey(right)) {
+      final @Nullable Filter filter;
+      if (right instanceof Filter && d.cm.mapRefRelToCorRef.containsKey(right)) {
+        filter = (Filter) right;
+        if (!canRewriteScalarExpressions(filter)) {
+          return;
+        }
+        right = filter.getInput();
+        assert right instanceof HepRelVertex;
+        right = right.stripped();
+      } else if (d.cm.mapRefRelToCorRef.containsKey(project)) {
+        filter = null;
+      } else {
+        return;
+      }
+
+      // The selected scalar rewrite requires an uncorrelated source.
+      if (!CorrelationReferences.isUncorrelated(RelOptUtil.stripAll(right))) {
+        d.trimRightInput(call, correlate, rightPlan);
+        return;
+      }
+
+      if (filter != null) {
         // rightInput has this shape:
         //
         //       Filter (references corVar)
@@ -3170,17 +3261,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         // If rightInput is a filter and contains correlated
         // reference, make sure the correlated keys in the filter
         // condition forms a unique key of the RHS.
-
-        Filter filter = (Filter) right;
-        right = filter.getInput();
-
-        assert right instanceof HepRelVertex;
-        right = right.stripped();
-
-        // check filter input contains no correlation
-        if (!RelOptUtil.getVariablesUsed(right).isEmpty()) {
-          return;
-        }
 
         // extract the correlation out of the filter
 
@@ -3246,12 +3326,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         nullIndicatorPos =
             left.getRowType().getFieldCount()
                 + rightJoinKeys.get(0).getIndex();
-      } else if (d.cm.mapRefRelToCorRef.containsKey(project)) {
-        // check filter input contains no correlation
-        if (!RelOptUtil.getVariablesUsed(right).isEmpty()) {
-          return;
-        }
-
+      } else {
         if (!d.checkCorVars(correlate, project, null, null)) {
           return;
         }
@@ -3280,8 +3355,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         nullIndicatorPos =
             left.getRowType().getFieldCount()
                 + right.getRowType().getFieldCount() - 1;
-      } else {
-        return;
       }
 
       // make the new join rel
@@ -3354,7 +3427,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check aggOutputProject projects only one expression
       final List<RexNode> aggOutputProjects = aggOutputProject.getProjects();
-      if (aggOutputProjects.size() != 1) {
+      if (aggOutputProjects.size() != 1
+          || !canRewriteScalarExpressions(aggOutputProject)
+          || !canRewriteScalarExpressions(aggInputProject)
+          || !canRewriteScalarExpressions(aggregate)) {
         return;
       }
 
@@ -3369,6 +3445,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check that the agg is on the entire input
       if (!aggregate.getGroupSet().isEmpty()) {
+        return;
+      }
+
+      // This rewrite shares the right input between outer rows.
+      final RelNode rightPlan = RelOptUtil.stripAll(correlate.getRight());
+      if (!RelOptUtil.isDeterministic(rightPlan)) {
+        d.trimRightInput(call, correlate, rightPlan);
         return;
       }
 
@@ -3388,23 +3471,32 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
       }
 
-      if ((right instanceof Filter)
-          && d.cm.mapRefRelToCorRef.containsKey(right)) {
+      final @Nullable Filter filter;
+      if (right instanceof Filter && d.cm.mapRefRelToCorRef.containsKey(right)) {
+        filter = (Filter) right;
+        if (!canRewriteScalarExpressions(filter)) {
+          return;
+        }
+        right = filter.getInput();
+        assert right instanceof HepRelVertex;
+        right = right.stripped();
+      } else if (d.cm.mapRefRelToCorRef.containsKey(aggInputProject)) {
+        filter = null;
+      } else {
+        return;
+      }
+
+      // The selected scalar rewrite requires an uncorrelated source.
+      if (!CorrelationReferences.isUncorrelated(RelOptUtil.stripAll(right))) {
+        d.trimRightInput(call, correlate, rightPlan);
+        return;
+      }
+
+      if (filter != null) {
         // rightInput has this shape:
         //
         //       Filter (references corVar)
         //         filterInput
-        Filter filter = (Filter) right;
-        right = filter.getInput();
-
-        assert right instanceof HepRelVertex;
-        right = right.stripped();
-
-        // check filter input contains no correlation
-        if (!RelOptUtil.getVariablesUsed(right).isEmpty()) {
-          return;
-        }
-
         // check filter condition type First extract the correlation out
         // of the filter
 
@@ -3502,12 +3594,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
         // first change the filter condition into a join condition
         joinCond = d.removeCorrelationExpr(filter.getCondition(), false);
-      } else if (d.cm.mapRefRelToCorRef.containsKey(aggInputProject)) {
-        // check rightInput contains no correlation
-        if (!RelOptUtil.getVariablesUsed(right).isEmpty()) {
-          return;
-        }
-
+      } else {
         // check corVar references are valid
         if (!d.checkCorVars(correlate, aggInputProject, null, null)) {
           return;
@@ -3564,8 +3651,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         //         Project (everything from rightInput plus
         //                     the nullIndicator "true")
         //           rightInput
-      } else {
-        return;
       }
 
       RelDataType leftInputFieldType = left.getRowType();
@@ -3775,7 +3860,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check aggOutputProj projects only one expression
       List<RexNode> aggOutputProjExprs = aggOutputProject.getProjects();
-      if (aggOutputProjExprs.size() != 1) {
+      if (aggOutputProjExprs.size() != 1 || !canRewriteScalarExpressions(aggOutputProject)) {
         return;
       }
 
