@@ -50,10 +50,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.Collections;
 import java.util.List;
 
+import static org.apache.calcite.test.Matchers.hasFieldNames;
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -909,4 +912,35 @@ class RelFieldTrimmerTest {
     assertThat(trimmed, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7963">[CALCITE-7963]
+   * RelFieldTrimmer incorrectly includes right-side fields in the output mapping
+   * for SEMI and ANTI correlates</a>. */
+  @ParameterizedTest
+  @EnumSource(value = JoinRelType.class, names = {"SEMI", "ANTI"})
+  void testTrimSemiAntiCorrelate(JoinRelType joinType) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    // SELECT t.k FROM (VALUES (99, 1)) AS t(unused, k)
+    // WHERE EXISTS (SELECT 1 FROM dept AS d WHERE d.deptno = t.k)
+    // The ANTI case uses NOT EXISTS.
+    final RelNode root = builder.values(new String[] {"UNUSED", "K"}, 99, 1)
+        .variable(v::set)
+        .scan("DEPT")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.field(v.get(), "K")))
+        .correlate(joinType, v.get().id, builder.field(2, 0, "K"))
+        .project(builder.field("K"))
+        .build();
+
+    final RelNode trimmed = new RelFieldTrimmer(null, builder).trim(root);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[" + joinType.lowerName
+        + "], requiredColumns=[{0}])\n"
+        + "  LogicalValues(tuples=[[{ 1 }]])\n"
+        + "  LogicalFilter(condition=[=($0, $cor0.K)])\n"
+        + "    LogicalProject(DEPTNO=[$0])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(trimmed, hasTree(expected));
+    assertThat(trimmed, hasFieldNames("[K]"));
+  }
 }

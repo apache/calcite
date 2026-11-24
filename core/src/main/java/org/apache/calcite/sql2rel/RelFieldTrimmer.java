@@ -1502,7 +1502,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           Mappings.createIdentity(correlate.getRowType().getFieldCount()));
     }
 
-    Mapping mapping = Mappings.concatenateMappings(inputMappings);
+    final Mapping mapping = correlate.getJoinType().projectsRight()
+        ? Mappings.concatenateMappings(inputMappings) : inputMappings.get(0);
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
     RelNode newLeft = newInputs.get(0);
