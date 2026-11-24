@@ -1917,6 +1917,39 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return decorrelateRel((Filter) rel, isCorVarDefined, parentPropagatesNullValues);
   }
 
+  /** Returns a condition whose sub-queries use the variables of a node at the
+   * new positions of the fields.
+   *
+   * <p>The variables of a node refer to the row of its input. After the
+   * input is decorrelated, field {@code i} of that row is field
+   * {@code frame.oldToNewOutputs.get(i)} of the row of {@code frame.r}. */
+  private RexNode moveVariableFields(RexNode condition, Set<CorrelationId> variablesSet,
+      Frame frame) {
+    if (variablesSet.isEmpty()) {
+      return condition;
+    }
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final CorrelationReferenceFinder finder = new CorrelationReferenceFinder() {
+      @Override protected RexNode handle(RexFieldAccess fieldAccess) {
+        final CorrelationId id = ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id;
+        if (!variablesSet.contains(id)) {
+          return fieldAccess;
+        }
+        final int newField =
+            requireNonNull(frame.oldToNewOutputs.get(fieldAccess.getField().getIndex()));
+        return rexBuilder.makeFieldAccess(
+            rexBuilder.makeCorrel(frame.r.getRowType(), id), newField);
+      }
+    };
+    return condition.accept(new RexShuttle() {
+      @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+        final RelNode subQueryRel = subQuery.rel.accept(finder);
+        return super.visitSubQuery(
+            subQueryRel == subQuery.rel ? subQuery : subQuery.clone(subQueryRel));
+      }
+    });
+  }
+
   public @Nullable Frame decorrelateRel(Filter rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
     //
@@ -1949,9 +1982,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final CorelMap cm2 = new CorelMapBuilder().build(rel);
 
     // Replace the filter expression to reference output of the join
-    // Map filter to the new filter over join
+    // Map filter to the new filter over join. The sub-queries of the
+    // condition can still use the variables of the Filter.
+    final RexNode condition =
+        decorrelateExpr(castNonNull(currentRel), map, cm2, rel.getCondition());
     relBuilder.push(frame.r)
-        .filter(decorrelateExpr(castNonNull(currentRel), map, cm2, rel.getCondition()));
+        .filter(rel.getVariablesSet(),
+            moveVariableFields(condition, rel.getVariablesSet(), frame));
 
     // Filter does not change the input ordering.
     // Filter rel does not permute the input.

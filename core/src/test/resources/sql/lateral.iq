@@ -662,4 +662,44 @@ from dept as k,
 
 !ok
 
+# [CALCITE-7962] RelDecorrelator removes the variablesSet of a Filter whose
+# input it decorrelates.
+# Result validated with PostgreSQL 14.13.
+!use scott
+select d.deptno, x.m
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+where exists (select 1 from emp e2
+              where e2.deptno = d.deptno and e2.sal > 2900)
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     10 | 5000.00 |
+|     20 | 3000.00 |
++--------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7962] As above, but the decorrelator moves the field that the
+# sub-query reads: t.m is field 0 of the input of the WHERE before
+# decorrelation, and field 1 after.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m
+from dept d,
+  lateral (select t.m
+    from (select max(sal) as m from emp e where e.deptno = d.deptno) t
+    where exists (select 1 from emp e2
+                  where e2.sal = t.m and e2.job = 'ANALYST')) x
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     20 | 3000.00 |
++--------+---------+
+(1 row)
+
+!ok
+
 # End lateral.iq

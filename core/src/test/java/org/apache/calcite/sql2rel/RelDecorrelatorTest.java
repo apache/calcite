@@ -20,6 +20,7 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.prepare.CalciteCatalogReader;
@@ -47,6 +48,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -59,6 +61,7 @@ import java.util.Properties;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import static java.util.Objects.requireNonNull;
@@ -2630,5 +2633,116 @@ public class RelDecorrelatorTest {
     RelDecorrelator.decorrelateQuery(before, builder,
         RuleSets.ofList(Collections.emptyList()),
         RuleSets.ofList(Collections.emptyList()));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7962">[CALCITE-7962]
+   * RelDecorrelator removes the variablesSet of a Filter whose input it
+   * decorrelates</a>.
+   *
+   * <p>A Filter declares a variable for its EXISTS sub-query, and its input is
+   * a Correlate. The decorrelator replaces the Correlate. The Filter must still
+   * declare its variable. */
+  @Test void testFilterKeepsVariableAfterInputIsDecorrelated() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    builder.scan("DEPT").variable(v::set);
+    final RelNode dept = builder.build();
+    final RelNode maxSal = builder.scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.field(v.get(), "DEPTNO")))
+        .aggregate(builder.groupKey(), builder.max("MAX_SAL", builder.field("SAL")))
+        .build();
+    final Holder<@Nullable RexCorrelVariable> w = Holder.empty();
+    builder.push(dept).push(maxSal)
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .variable(w::set);
+    final RelNode plan = builder
+        .filter(ImmutableList.of(w.get().id),
+            builder.exists(b ->
+                b.scan("BONUS")
+                    .filter(b.equals(b.field("ENAME"), b.field(w.get(), "DNAME")))
+                    .build()))
+        .build();
+    final String planBefore = ""
+        + "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($0, $cor1.DNAME)])\n"
+        + "  LogicalTableScan(table=[[scott, BONUS]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalAggregate(group=[{}], MAX_SAL=[MAX($5)])\n"
+        + "      LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(plan, hasTree(planBefore));
+
+    final RelNode after = RelDecorrelator.decorrelateQuery(plan, builder);
+    final String planAfter = ""
+        + "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($0, $cor1.DNAME)])\n"
+        + "  LogicalTableScan(table=[[scott, BONUS]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], MAX_SAL=[$4])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalAggregate(group=[{0}], MAX_SAL=[MAX($1)])\n"
+        + "        LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "          LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
+   * decorrelator moves the field that the variable reads. */
+  @Test void testFilterVariableFollowsMovedField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    builder.scan("DEPT").variable(v::set);
+    final RelNode dept = builder.build();
+    final Holder<@Nullable RexCorrelVariable> w = Holder.empty();
+    builder.scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.field(v.get(), "DEPTNO")))
+        .aggregate(builder.groupKey(), builder.max("MAX_SAL", builder.field("SAL")))
+        .variable(w::set);
+    final RelNode maxSal = builder
+        .filter(ImmutableList.of(w.get().id),
+            builder.exists(b ->
+                b.scan("EMP")
+                    .filter(b.equals(b.field("SAL"), b.field(w.get(), "MAX_SAL")))
+                    .build()))
+        .build();
+    final RelNode plan = builder.push(dept).push(maxSal)
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($5, $cor1.MAX_SAL)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "    LogicalAggregate(group=[{}], MAX_SAL=[MAX($5)])\n"
+        + "      LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(plan, hasTree(planBefore));
+
+    final RelNode after = RelDecorrelator.decorrelateQuery(plan, builder);
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], MAX_SAL=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($5, $cor1.MAX_SAL)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "      LogicalAggregate(group=[{0}], MAX_SAL=[MAX($1)])\n"
+        + "        LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "          LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+
+    // The plans print $cor1.MAX_SAL by name. MAX_SAL is field 0 of the old
+    // input of the Filter, and field 1 of the new input, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(w.get().id, plan), is(ImmutableBitSet.of(0)));
+    assertThat(RelOptUtil.correlationColumns(w.get().id, after), is(ImmutableBitSet.of(1)));
   }
 }
