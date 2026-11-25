@@ -23,21 +23,19 @@ import org.locationtech.jts.geom.Geometry;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Java value supplied by adapters for the structural GEOGRAPHY accessors.
+ * JTS-backed representation of a SQL {@code GEOGRAPHY} value for local structural accessors.
  *
- * <p>The adapter supplies a valid geography value. This wrapper and its
- * accessors do not validate CRS, transform coordinates, or perform geodetic
- * measurements.
- *
- * <p>The geometry is retained by reference. The adapter owns it and must not
- * mutate it after publishing this value to a query, including through aliases
- * or coordinate sequences.
+ * @see <a href="https://calcite.apache.org/docs/adapter.html#geography-values">
+ *     Adapter ownership and validity requirements</a>
  */
 @Strict
 public final class GeographyValue {
   private final Geometry geometry;
 
-  /** Wraps an adapter-supplied geometry by reference, without copying or validation. */
+  /**
+   * Retains the supplied JTS geometry by reference, without a defensive copy or validation.
+   * The caller must keep the geometry and its coordinate sequences stable during query use.
+   */
   public GeographyValue(Geometry geometry) {
     this.geometry = requireNonNull(geometry, "geometry");
   }

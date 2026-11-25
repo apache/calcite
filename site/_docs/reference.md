@@ -1493,11 +1493,13 @@ Nullability follows the corresponding expression or set operation.
 Geography can be an element of an `ARRAY` or `MULTISET`, a `MAP` value,
 or a `ROW` field. A nested geography leaf retains its type and nullability.
 
-Equality between two geography expressions can be validated. Ordinary equality
+The SQL validator accepts equality comparisons between two `GEOGRAPHY`
+expressions. Calcite's local executor rejects these comparisons. Ordinary equality
 produces nullable `BOOLEAN` when an operand is nullable, while
-`IS [NOT] DISTINCT FROM` produces non-nullable `BOOLEAN`. Calcite's local
-execution rejects geography equality and equality-dependent collection
-operations. Ordering operators and ordering keys reject geography, including
+`IS [NOT] DISTINCT FROM` produces non-nullable `BOOLEAN`.
+
+Equality-dependent collection operations reject geography in local execution.
+Ordering operators and ordering keys reject geography, including
 nested geography leaves. Geography is also rejected as a key for `DISTINCT`,
 `GROUP BY`, deduplicating set operations, window partitioning, and `MAP` keys.
 
@@ -1505,13 +1507,6 @@ The local engine can return a typed NULL and run the
 [structural geography accessors](spatial.html#geography-type) on values
 supplied by a geography-aware table. Non-NULL SQL literals and non-NULL
 default values are unsupported.
-`GEOGRAPHY` has its own type identity and uses the JDBC type code `Types.OTHER`.
-
-Calcite preserves its generic cast eligibility rules for `ANY`, `UNKNOWN`,
-and `VARIANT`. Type-level eligibility does not establish an executable
-local conversion between geography and a VARIANT value. Likewise, JDBC
-`Types.OTHER` describes type metadata; non-NULL geography transport through
-JDBC or Avatica requires an adapter-specific value contract.
 
 ### Non-scalar types
 

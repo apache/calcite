@@ -83,60 +83,12 @@ The shape names are `POINT`, `LINESTRING`, `POLYGON`, `MULTIPOINT`,
 `MULTILINESTRING`, `MULTIPOLYGON`, and `GEOMETRYCOLLECTION`.
 Both accessors return SQL NULL for a SQL NULL argument and a non-NULL
 result for an empty value. The result type is nullable when the argument
-type is nullable. The accessors leave the coordinates unchanged.
+type is nullable.
 
-For local execution, a table can implement
-[`GeographyTable`]({{ site.apiRoot }}/org/apache/calcite/schema/GeographyTable.html)
-and supply
-[`GeographyValue`]({{ site.apiRoot }}/org/apache/calcite/runtime/GeographyValue.html)
-objects backed by JTS. The accessors use the same shape names and emptiness
-rules as the corresponding `GEOMETRY` overloads. Measurement functions such
-as `ST_Area` accept geometry arguments. SQL WKT and WKB conversion
-functions operate on geometry.
-
-Adapters supply valid geography values. The wrapper and accessors do not
-validate CRS or perform geodetic measurements. `GeographyValue` retains the
-JTS object by reference. The adapter must not mutate that object or its
-coordinate sequences after publishing it to a query.
-
-For example, an adapter table can implement `GeographyTable`, declare a
-`GEOGRAPHY` column in `getRowType`, and return rows containing a value
-such as the following.
-
-{% highlight java %}
-GeometryFactory geometries = new GeometryFactory();
-GeographyValue point =
-    new GeographyValue(geometries.createPoint(new Coordinate(1, 2)));
-class PlacesTable extends AbstractTable implements GeographyTable {
-  public RelDataType getRowType(RelDataTypeFactory factory) {
-    return factory.builder().add("G", SqlTypeName.GEOGRAPHY).build();
-  }
-
-  public Enumerable<Object[]> scan(DataContext context) {
-    return Linq4j.asEnumerable(new Object[][] {{point}});
-  }
-}
-{% endhighlight %}
-
-Enable geography syntax and the spatial operator table when configuring
-the planner.
-
-{% highlight java %}
-SchemaPlus adapterSchema = Frameworks.createRootSchema(true);
-adapterSchema.add("PLACES", new PlacesTable());
-FrameworkConfig config = Frameworks.newConfigBuilder()
-    .defaultSchema(adapterSchema)
-    .parserConfig(SqlParser.config().withConformance(SqlConformanceEnum.LENIENT))
-    .operatorTable(SqlOperatorTables.chain(
-        SqlStdOperatorTable.instance(), SqlOperatorTables.spatialInstance()))
-    .build();
-{% endhighlight %}
-
-With that table registered as `PLACES` and the column named `G`,
-`SELECT ST_IsEmpty(g), ST_GeometryType(g) FROM places` returns `FALSE`
-and `POINT` for the supplied value. This setup exercises structural
-accessors; an adapter defines its own non-NULL JDBC or Avatica value
-transport.
+The accessors use the same shape names and emptiness rules as the
+corresponding GEOMETRY overloads. Measurement functions such as
+ST_Area and SQL WKT/WKB conversion functions accept geometry arguments.
+For local geography values, see the [adapter guide](adapter.html#geography-values).
 
 ## Query rewrites
 
