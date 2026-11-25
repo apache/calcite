@@ -31,6 +31,8 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.BiRel;
+import org.apache.calcite.rel.CorrelateInvariantChecker;
+import org.apache.calcite.rel.DuplicateCorrelationIdRemover;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
@@ -90,6 +92,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -249,19 +252,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
   public static RelNode decorrelateQuery(RelNode rootRel,
       RelBuilder relBuilder, @Nullable RuleSet decorrelationRules,
       @Nullable RuleSet preDecorrelateRules) {
-    final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
+    // Make sure each correlateId is used only once in the plan
+    final RelNode plan = DuplicateCorrelationIdRemover.makeIdsUnique(rootRel);
+    if (Bug.CALCITE_7961_FIXED) {
+      CorrelateInvariantChecker.isValid(plan, Litmus.THROW);
+    }
+    final CorelMap corelMap = new CorelMapBuilder().build(plan);
     if (!corelMap.hasCorrelation()) {
-      return rootRel;
+      return plan;
     }
 
-    final RelOptCluster cluster = rootRel.getCluster();
+    final RelOptCluster cluster = plan.getCluster();
     final RelDecorrelator decorrelator =
         new RelDecorrelator(corelMap,
             cluster.getPlanner().getContext(), relBuilder);
 
     RelNode newRootRel = decorrelationRules == null
-        ? decorrelator.removeCorrelationViaRule(rootRel)
-        : decorrelator.removeCorrelationViaRule(rootRel, decorrelationRules);
+        ? decorrelator.removeCorrelationViaRule(plan)
+        : decorrelator.removeCorrelationViaRule(plan, decorrelationRules);
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug(
@@ -273,9 +281,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newRootRel = decorrelator.decorrelate(newRootRel, preDecorrelateRules);
     }
     Litmus.THROW.check(
-        rootRel.getRowType().equalsSansFieldNames(newRootRel.getRowType()),
+        plan.getRowType().equalsSansFieldNames(newRootRel.getRowType()),
         "Decorrelation produced a relation with a different type; before: "
-            + rootRel.getRowType() + " after: " + newRootRel.getRowType());
+            + plan.getRowType() + " after: " + newRootRel.getRowType());
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug(
@@ -285,6 +293,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Re-propagate the hints.
     newRootRel = RelOptUtil.propagateRelHints(newRootRel, true);
+    if (Bug.CALCITE_7961_FIXED && Bug.CALCITE_7962_FIXED) {
+      CorrelateInvariantChecker.isValid(newRootRel, Litmus.THROW);
+    }
     return newRootRel;
   }
 

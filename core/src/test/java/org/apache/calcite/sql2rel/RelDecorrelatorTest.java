@@ -47,6 +47,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.TestUtil;
 
@@ -60,7 +61,9 @@ import java.util.Properties;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
 
@@ -2745,5 +2748,44 @@ public class RelDecorrelatorTest {
     RelDecorrelator.decorrelateQuery(before, builder,
         RuleSets.ofList(Collections.emptyList()),
         RuleSets.ofList(Collections.emptyList()));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7340">[CALCITE-7340]
+   * The rules governing the use of CorrelationId values in plans are not fully
+   * specified</a>. Each decorrelator rejects a plan that uses a variable that
+   * no node declares; RelDecorrelator only after
+   * {@link Bug#CALCITE_7961_FIXED}. */
+  @Test void testDecorrelatorsRejectUseWithNoDeclaration() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> notDeclared = Holder.empty();
+    builder.scan("DEPT").variable(notDeclared::set);
+    builder.build();
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    builder.scan("DEPT").variable(v::set);
+    final RelNode dept = builder.build();
+    final RelNode plan = builder.push(dept)
+        .scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.field(v.get(), "DEPTNO")),
+            builder.equals(builder.field("ENAME"), builder.field(notDeclared.get(), "DNAME")))
+        .correlate(JoinRelType.INNER, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), =($1, $cor0.DNAME))])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(plan, hasTree(planBefore));
+
+    if (Bug.CALCITE_7961_FIXED) {
+      final AssertionError e1 =
+          assertThrows(AssertionError.class,
+              () -> RelDecorrelator.decorrelateQuery(plan, builder));
+      assertThat(e1.getMessage(), containsString("$cor0 is used in LogicalFilter"));
+    }
+    final AssertionError e2 =
+        assertThrows(AssertionError.class,
+            () -> TopDownGeneralDecorrelator.decorrelateQuery(plan, builder));
+    assertThat(e2.getMessage(), containsString("$cor0 is used in LogicalFilter"));
   }
 }

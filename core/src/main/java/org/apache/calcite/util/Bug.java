@@ -185,6 +185,24 @@ public abstract class Bug {
    * is fixed. */
   public static final boolean CALCITE_6611_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7961">[CALCITE-7961]
+   * CorrelateProjectExtractor leaves out of requiredColumns a field that a
+   * table function call uses</a> is fixed. Until then,
+   * {@link org.apache.calcite.sql2rel.RelDecorrelator} does not check its input
+   * plan and its output plan with
+   * {@link org.apache.calcite.rel.CorrelateInvariantChecker}. The input can be
+   * the output of an earlier decorrelation. */
+  public static final boolean CALCITE_7961_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7962">[CALCITE-7962]
+   * RelDecorrelator removes the variablesSet of a Filter whose input it
+   * decorrelates</a> is fixed. Until then,
+   * {@link org.apache.calcite.sql2rel.RelDecorrelator} does not check its
+   * output plan with {@link org.apache.calcite.rel.CorrelateInvariantChecker}. */
+  public static final boolean CALCITE_7962_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
