@@ -186,6 +186,14 @@ public abstract class Bug {
   public static final boolean CALCITE_6611_FIXED = false;
 
   /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7955">[CALCITE-7955]
+   * EnumerableBatchNestedLoopJoin abuses correlation id in its
+   * implementation</a> is fixed. Until then, plans with an
+   * EnumerableBatchNestedLoopJoin do not obey the rules for correlation
+   * variables of {@link org.apache.calcite.rel.CorrelateInvariantChecker}. */
+  public static final boolean CALCITE_7955_FIXED = false;
+
+  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7961">[CALCITE-7961]
    * CorrelateProjectExtractor leaves out of requiredColumns a field that a
    * table function call uses</a> is fixed. Until then,
@@ -202,6 +210,12 @@ public abstract class Bug {
    * {@link org.apache.calcite.sql2rel.RelDecorrelator} does not check its
    * output plan with {@link org.apache.calcite.rel.CorrelateInvariantChecker}. */
   public static final boolean CALCITE_7962_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7966">[CALCITE-7966]
+   * Many optimizer rules produce invalid plans when a Project, Filter or Join
+   * has a correlated sub-query</a> is fixed. */
+  public static final boolean CALCITE_7966_FIXED = false;
 
   /**
    * Use this to flag temporary code.

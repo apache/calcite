@@ -23,6 +23,7 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.util.Bug;
 
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
@@ -781,7 +782,7 @@ class TopDownOptTest {
       p.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
       p.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
       p.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
-    }).check();
+    }).withCheckCorrelations(Bug.CALCITE_7955_FIXED).check();
   }
 
   // Collation can be derived from left input so that top Sort is removed.
@@ -796,7 +797,7 @@ class TopDownOptTest {
       p.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
       p.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
       p.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
-    }).check();
+    }).withCheckCorrelations(Bug.CALCITE_7955_FIXED).check();
   }
 
   void initPlanner(VolcanoPlanner planner) {
