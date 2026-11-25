@@ -1011,7 +1011,7 @@ allprojects {
                 // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
                 // checkers.add("org.checkerframework.checker.regex.RegexChecker")
                 // https://checkerframework.org/manual/#creating-debugging-options-progress
-                extraJavacArgs.add("-Afilenames")
+                // extraJavacArgs.add("-Afilenames")
                 extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
                 // Consider Java assert statements for nullness and other checks
                 extraJavacArgs.add("-AassumeAssertionsAreEnabled")
