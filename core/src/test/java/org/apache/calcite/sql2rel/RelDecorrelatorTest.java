@@ -2071,7 +2071,7 @@ public class RelDecorrelatorTest {
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
         + "LogicalProject(DEPTNO=[$0], I0=[$3], I1=[$4])\n"
-        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalCorrelate(correlation=[$cor3], joinType=[left], requiredColumns=[{0}])\n"
         + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n"
         + "      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])\n"
@@ -2080,7 +2080,7 @@ public class RelDecorrelatorTest {
         + "            LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])\n"
         + "      LogicalProject($f0=[0])\n"
-        + "        LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'), >(CAST($cor0.DEPTNO):INTEGER NOT NULL, 0))])\n"
+        + "        LogicalFilter(condition=[AND(=($7, $cor3.DEPTNO), =($1, 'SMITH'), >(CAST($cor3.DEPTNO):INTEGER NOT NULL, 0))])\n"
         + "          LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(before, hasTree(planBefore));
 

@@ -1055,14 +1055,14 @@ class TpchTest {
             Collections.emptyList(), Collections.emptyList());
     final String planBefore = ""
         + "LogicalProject(EXPR$0=[$5], EXPR$1=[$6])\n"
-        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])\n"
         + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
         + "      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
         + "      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
         + "        LogicalFilter(condition=[=($0, $cor0.PS_PARTKEY)])\n"
         + "          LogicalTableScan(table=[[TPCH, PART]])\n"
         + "    LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-        + "      LogicalFilter(condition=[=(CAST($0):BIGINT, CASE(>(CAST($5):DOUBLE, CAST(0):DOUBLE NOT NULL), +($cor0.PS_PARTKEY, 1), 1234:BIGINT))])\n"
+        + "      LogicalFilter(condition=[=(CAST($0):BIGINT, CASE(>(CAST($5):DOUBLE, CAST(0):DOUBLE NOT NULL), +($cor2.PS_PARTKEY, 1), 1234:BIGINT))])\n"
         + "        LogicalTableScan(table=[[TPCH, SUPPLIER]])\n";
     assertThat(before, hasTree(planBefore));
 
