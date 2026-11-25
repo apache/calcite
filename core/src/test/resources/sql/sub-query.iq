@@ -11603,3 +11603,25 @@ from (values (1, 2), (3, 4)) as v("c", "d");
 (2 rows)
 
 !ok
+
+# [CALCITE-7931] RelDecorrelator gives wrong results for a correlated
+# sub-query with GROUPING SETS that contain a constant key
+# Each department with employees has 2 groups, ('a') and (). DEPT 40 has
+# no employees, so only the () group remains. PostgreSQL 14 gives the same
+# result (with 'a'::text).
+select deptno,
+  (select count(*) from
+     (select count(*) as n from emp where emp.deptno = dept.deptno
+      group by grouping sets (('a'), ())) as t) as g
+from dept;
++--------+---+
+| DEPTNO | G |
++--------+---+
+|     10 | 2 |
+|     20 | 2 |
+|     30 | 2 |
+|     40 | 1 |
++--------+---+
+(4 rows)
+
+!ok
