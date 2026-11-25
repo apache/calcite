@@ -245,6 +245,22 @@ class SqlTypeUtilTest {
     assertThat(integerRangeContains(intType, dec10Scale1), is(false));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7968">[CALCITE-7968]
+   * RexUtil.isLosslessCast returns true for a cast from DECIMAL(19, 0) to
+   * BIGINT</a>. */
+  @Test void testIntegerBoundDecimalBeyondBigint() {
+    final RelDataType bigint = f.typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType dec18 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 18, 0);
+    final RelDataType dec19 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 0);
+    final BigInteger max19 = new BigInteger("9999999999999999999");
+
+    assertThat(integerBound(dec19, true), is(max19));
+    assertThat(integerBound(dec19, false), is(max19.negate()));
+    assertThat(integerRangeContains(bigint, dec18), is(true));
+    assertThat(integerRangeContains(bigint, dec19), is(false));
+  }
+
   @Test void testIntegerBound() {
     RelDataType intType = f.typeFactory.createSqlType(SqlTypeName.INTEGER);
     RelDataType uIntType = f.typeFactory.createSqlType(SqlTypeName.UINTEGER);
