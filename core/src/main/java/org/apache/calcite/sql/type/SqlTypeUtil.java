@@ -1408,7 +1408,8 @@ public abstract class SqlTypeUtil {
       final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
       final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
       typeNameSpec =
-          new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
+          new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO,
+              containsGeography(type));
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);

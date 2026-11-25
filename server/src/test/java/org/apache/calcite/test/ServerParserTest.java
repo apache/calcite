@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.ddl.SqlColumnDeclaration;
@@ -42,6 +44,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -134,6 +137,21 @@ class ServerParserTest extends SqlParserTest {
       assertEquals(expectedTypes[i], column.dataType.deriveType(validator));
       assertEquals(expectedTypes[i], reparsedColumn.dataType.deriveType(validator));
     }
+  }
+
+  @Test void testLegacyMapTypeSpecRendering() {
+    final RelDataTypeFactory types = fixture().factory.createValidator().getTypeFactory();
+    final RelDataType map =
+        types.createMapType(types.createSqlType(SqlTypeName.INTEGER), types.createSqlType(SqlTypeName.VARCHAR, 20));
+    final SqlDataTypeSpec legacy = SqlTypeUtil.convertTypeToSpec(map);
+    assertEquals("MAP< INTEGER, VARCHAR(20) CHARACTER SET `ISO-8859-1` >",
+        legacy.toSqlString(AnsiSqlDialect.DEFAULT).getSql());
+    final SqlMapTypeNameSpec name = (SqlMapTypeNameSpec) legacy.getTypeNameSpec();
+    final SqlMapTypeNameSpec explicit =
+        new SqlMapTypeNameSpec(name.getKeyType(), name.getValType(), SqlParserPos.ZERO, true);
+    assertEquals("MAP< INTEGER NOT NULL, VARCHAR(20) CHARACTER SET `ISO-8859-1` NOT NULL >",
+        new SqlDataTypeSpec(explicit, SqlParserPos.ZERO)
+            .toSqlString(AnsiSqlDialect.DEFAULT).getSql());
   }
 
   @Test void testOrdinaryMapNullabilityRoundTrip() {

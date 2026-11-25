@@ -7034,7 +7034,7 @@ SqlTypeNameSpec MapTypeName() :
         return new SqlMapTypeNameSpec(
             keyNullable == null ? keyType : keyType.withNullable(keyNullable),
             valueNullable == null ? valType : valType.withNullable(valueNullable),
-            getPos());
+            getPos(), true);
     }
 }
 

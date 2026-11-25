@@ -33,6 +33,7 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
 
   private final SqlDataTypeSpec keyType;
   private final SqlDataTypeSpec valType;
+  private final boolean preserveEntryNullability;
 
   /**
    * Creates a {@code SqlMapTypeNameSpec}.
@@ -42,9 +43,17 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
    * @param pos the parser position
    */
   public SqlMapTypeNameSpec(SqlDataTypeSpec keyType, SqlDataTypeSpec valType, SqlParserPos pos) {
+    this(keyType, valType, pos, false);
+  }
+
+  /** Creates a map type specification with optional explicit NOT NULL rendering.
+   * Existing callers retain the three-argument constructor's rendering. */
+  public SqlMapTypeNameSpec(SqlDataTypeSpec keyType, SqlDataTypeSpec valType,
+      SqlParserPos pos, boolean preserveEntryNullability) {
     super(new SqlIdentifier(SqlTypeName.MAP.getName(), pos), pos);
     this.keyType = keyType;
     this.valType = valType;
+    this.preserveEntryNullability = preserveEntryNullability;
   }
 
   public SqlDataTypeSpec getKeyType() {
@@ -84,7 +93,7 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
     type.unparse(writer, leftPrec, rightPrec);
     if (Boolean.TRUE.equals(type.getNullable())) {
       writer.keyword("NULL");
-    } else if (Boolean.FALSE.equals(type.getNullable())) {
+    } else if (preserveEntryNullability && Boolean.FALSE.equals(type.getNullable())) {
       writer.keyword("NOT NULL");
     }
   }
