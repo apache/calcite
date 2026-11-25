@@ -791,4 +791,46 @@ order by d.deptno;
 
 !ok
 
+# [CALCITE-7962] As the first query, but with NOT EXISTS.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+where not exists (select 1 from emp e2
+                  where e2.deptno = d.deptno and e2.sal > 2900)
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     30 | 2850.00 |
+|     40 |         |
++--------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7962] As the first query, but the EXISTS sub-query contains an
+# EXISTS sub-query, which reads a column of each enclosing query: e2.empno
+# and d.deptno.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+where exists (select 1 from emp e2
+              where e2.deptno = d.deptno
+                and exists (select 1 from emp e3
+                            where e3.mgr = e2.empno
+                              and e3.deptno = d.deptno))
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     10 | 5000.00 |
+|     20 | 3000.00 |
+|     30 | 2850.00 |
++--------+---------+
+(3 rows)
+
+!ok
+
 # End lateral.iq
