@@ -73,6 +73,7 @@ public interface RexBiVisitor<R extends @Nullable Object, P extends @Nullable Ob
 
   /** Visits a list and returns a list of the results.
    * The resulting list is immutable and does not contain nulls. */
+  @SuppressWarnings("NullAway")
   default List<R> visitList(Iterable<? extends RexNode> exprs, P arg) {
     final List<R> out = new ArrayList<>();
     visitList(exprs, arg, out);

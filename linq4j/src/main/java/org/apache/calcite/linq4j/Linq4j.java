@@ -109,7 +109,7 @@ public abstract class Linq4j {
    *
    * @return enumerator
    */
-  public static <T> Enumerator<T> iterableEnumerator(
+  public static <T extends @Nullable Object> Enumerator<T> iterableEnumerator(
       final Iterable<? extends T> iterable) {
     if (iterable instanceof Enumerable) {
       @SuppressWarnings("unchecked") final Enumerable<T> enumerable =

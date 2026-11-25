@@ -3154,7 +3154,7 @@ public abstract class Expressions {
   }
 
   /** Converts an Iterable to a List. */
-  private static <T> List<T> toList(Iterable<? extends T> iterable) {
+  private static <T extends @Nullable Object> List<T> toList(Iterable<? extends T> iterable) {
     if (iterable instanceof List) {
       return (List<T>) iterable;
     }
