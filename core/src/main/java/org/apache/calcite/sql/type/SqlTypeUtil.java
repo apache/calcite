@@ -1407,10 +1407,8 @@ public abstract class SqlTypeUtil {
           requireNonNull(type.getValueType(), () -> "valueType of " + type);
       final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
       final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
-      final boolean preserveEntryNullability = containsGeography(type);
       typeNameSpec =
-          new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO,
-              preserveEntryNullability);
+          new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);

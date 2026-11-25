@@ -33,7 +33,6 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
 
   private final SqlDataTypeSpec keyType;
   private final SqlDataTypeSpec valType;
-  private final boolean unparseNotNull;
 
   /**
    * Creates a {@code SqlMapTypeNameSpec}.
@@ -43,16 +42,9 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
    * @param pos the parser position
    */
   public SqlMapTypeNameSpec(SqlDataTypeSpec keyType, SqlDataTypeSpec valType, SqlParserPos pos) {
-    this(keyType, valType, pos, false);
-  }
-
-  /** Creates a map type specification with optional explicit NOT NULL rendering. */
-  public SqlMapTypeNameSpec(SqlDataTypeSpec keyType, SqlDataTypeSpec valType,
-      SqlParserPos pos, boolean unparseNotNull) {
     super(new SqlIdentifier(SqlTypeName.MAP.getName(), pos), pos);
     this.keyType = keyType;
     this.valType = valType;
-    this.unparseNotNull = unparseNotNull;
   }
 
   public SqlDataTypeSpec getKeyType() {
@@ -67,6 +59,7 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
     boolean keyCanBeNullable = validator.getTypeFactory().getTypeSystem().mapKeysCanBeNullable();
     RelDataType kType =
         keyType.deriveType(validator, keyCanBeNullable);
+
     SqlValidatorUtil.validateGeographyHashKey(validator, keyType, kType, "MAP");
 
     RelDataType valueType = valType.deriveType(validator, true);
@@ -91,7 +84,7 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
     type.unparse(writer, leftPrec, rightPrec);
     if (Boolean.TRUE.equals(type.getNullable())) {
       writer.keyword("NULL");
-    } else if (unparseNotNull && Boolean.FALSE.equals(type.getNullable())) {
+    } else if (Boolean.FALSE.equals(type.getNullable())) {
       writer.keyword("NOT NULL");
     }
   }

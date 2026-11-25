@@ -8095,10 +8095,11 @@ public class SqlParserTest {
     f.sql("geography ^'POINT(1 2)'^").fails("(?s).*Encountered.*");
   }
 
-  @Test void testGeographyMapEntryNullability() {
-    expr("cast(null as map<integer not null, geography null>)")
-        .withConformance(SqlConformanceEnum.LENIENT)
-        .ok("CAST(NULL AS MAP< INTEGER NOT NULL, GEOGRAPHY NULL >)");
+  @Test void testMapEntryNullability() {
+    expr("cast(null as map<integer not null, varchar(20) null>)")
+        .ok("CAST(NULL AS MAP< INTEGER NOT NULL, VARCHAR(20) NULL >)");
+    expr("cast(null as map<integer null, varchar(20) not null>)")
+        .ok("CAST(NULL AS MAP< INTEGER NULL, VARCHAR(20) NOT NULL >)");
   }
 
   @Test void testIntervalArithmetics() {
