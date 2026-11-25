@@ -1856,7 +1856,7 @@ typeName:
   |   compoundIdentifier
 
 mapTypeName:
-  MAP '<' type ',' type '>'
+  MAP '<' type [ NULL | NOT NULL ] ',' type [ NULL | NOT NULL ] '>'
 
 sqlTypeName:
       char [ precision ] [ charSet ]
