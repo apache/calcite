@@ -108,6 +108,10 @@ public class AggregateReduceFunctionsRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  private static final Set<SqlKind> VARIANCE_FUNCTIONS =
+      ImmutableSet.of(SqlKind.VAR_POP, SqlKind.VAR_SAMP,
+          SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP);
+
   private static void validateFunction(SqlKind function) {
     if (!isValid(function)) {
       throw new IllegalArgumentException("AggregateReduceFunctionsRule doesn't "
@@ -181,7 +185,13 @@ public class AggregateReduceFunctionsRule
 
   /** Returns whether this rule can reduce a given aggregate function call. */
   public boolean canReduce(AggregateCall call) {
-    return functionsToReduce.contains(call.getAggregation().getKind())
+    final SqlKind kind = call.getAggregation().getKind();
+    // Expand DISTINCT on x before reducing variance or standard deviation.
+    // SUM(DISTINCT x * x) would count the squares of x and -x only once.
+    if (call.isDistinct() && VARIANCE_FUNCTIONS.contains(kind)) {
+      return false;
+    }
+    return functionsToReduce.contains(kind)
         && config.extraCondition().test(call);
   }
 
