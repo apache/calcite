@@ -2658,7 +2658,49 @@ public class RelDecorrelatorTest {
    * <p>The WHERE clause declares a variable for its EXISTS sub-query, and its
    * input is a Correlate (the LATERAL). The decorrelator replaces the
    * Correlate with a Join. The Filter must still declare its variable. */
-  @Test void testFilterKeepsVariableAfterInputIsDecorrelated() {
+@Test void testFilterKeepsVariableAfterInputIsDecorrelated() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "select d.deptno, x.m\n"
+        + "from dept d,\n"
+        + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
+        + "where exists (select 1 from emp e2\n"
+        + "  where e2.deptno = d.deptno and e2.sal > 2900)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = "";  // need change
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = "";  // this need change
+    assertThat(after, hasTree(planAfter));
+  }
     final String sql = "select d.deptno, x.m\n"
         + "from dept d,\n"
         + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
