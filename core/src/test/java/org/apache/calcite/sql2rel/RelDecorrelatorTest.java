@@ -31,6 +31,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -204,6 +205,120 @@ public class RelDecorrelatorTest {
         + "SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+(10, $7)])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Builds and decorrelates
+   * {@code outer LEFT JOIN LATERAL (SELECT COUNT(*) FROM EMP
+   * WHERE EMP.innerColumn = outer.outerColumn
+   * GROUP BY GROUPING SETS ((EMP.key), ()))}.
+   * The Aggregate reads the Filter directly, with no Project between them,
+   * so the group key keeps its position in EMP. */
+  private static RelNode decorrelateGroupingSets(String outer,
+      String outerColumn, String innerColumn, String key) {
+    final RelBuilder builder = RelBuilder.create(config().build())
+        .transform(c -> c.withPruneInputOfAggregate(false));
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    builder.scan(outer)
+        .variable(v::set)
+        .scan("EMP")
+        .filter(
+            builder.equals(builder.field(innerColumn),
+                builder.field(v.get(), outerColumn)));
+    final RexNode keyField = builder.field(key);
+    final RelNode before = builder
+        .aggregate(
+            builder.groupKey(ImmutableList.of(keyField),
+                ImmutableList.of(ImmutableList.of(keyField), ImmutableList.of())),
+            builder.count())
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, outerColumn))
+        .build();
+    return RelDecorrelator.decorrelateQuery(before, builder);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7931">[CALCITE-7931]
+   * RelDecorrelator gives wrong results for a correlated sub-query with
+   * GROUPING SETS that contain a constant key</a>.
+   * The group key JOB is not the first field of EMP. */
+  @Test void testGroupingSetsKeyNotInFront() {
+    final RelNode after =
+        decorrelateGroupingSets("DEPT", "DEPTNO", "DEPTNO", "JOB");
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], JOB=[$4], $f2=[$5])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(DEPTNO=[$0], JOB=[$1], $f2=[CASE(IS NOT NULL($3), $3, 0)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        // The groups are (JOB, DEPTNO) and (DEPTNO): each grouping set has
+        // the correlation column DEPTNO, so () gives one group per department
+        + "        LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}]], "
+        + "agg#0=[COUNT()])\n"
+        + "          LogicalProject(JOB=[$2], DEPTNO=[$7], EMPNO=[$0], ENAME=[$1], "
+        + "MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7931">[CALCITE-7931]
+   * RelDecorrelator gives wrong results for a correlated sub-query with
+   * GROUPING SETS that contain a constant key</a>.
+   * The group key DEPTNO is the correlation column, and it is not the first
+   * field of EMP. */
+  @Test void testGroupingSetsKeyIsCorrelationColumnNotInFront() {
+    final RelNode after =
+        decorrelateGroupingSets("DEPT", "DEPTNO", "DEPTNO", "DEPTNO");
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO0=[$4], $f2=[$5])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(DEPTNO1=[$0], DEPTNO=[$1], $f2=[CASE(IS NOT NULL($3), $3, 0)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        // The groups are (DEPTNO, DEPTNO1) and (DEPTNO1). The correlation
+        // value DEPTNO1 is a copy of the key DEPTNO, because the key is NULL
+        // in the () group
+        + "        LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}]], "
+        + "agg#0=[COUNT()])\n"
+        + "          LogicalProject(DEPTNO=[$7], DEPTNO1=[$7], EMPNO=[$0], ENAME=[$1], "
+        + "JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7931">[CALCITE-7931]
+   * RelDecorrelator gives wrong results for a correlated sub-query with
+   * GROUPING SETS that contain a constant key</a>.
+   * The group key EMPNO is the correlation column, and it is the first field
+   * of EMP. */
+  @Test void testGroupingSetsKeyIsCorrelationColumnInFront() {
+    final RelNode after =
+        decorrelateGroupingSets("EMP", "MGR", "EMPNO", "EMPNO");
+    final String planAfter = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
+        + "SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO0=[$9], $f2=[$10])\n"
+        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $8)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(EMPNO1=[$0], EMPNO=[$1], $f2=[CASE(IS NOT NULL($3), $3, 0)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject(MGR=[$3])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n"
+        // The groups are (EMPNO, EMPNO1) and (EMPNO1). Before the fix the
+        // groups were (EMPNO) and (), so () counted all of EMP, not one
+        // manager
+        + "        LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}]], "
+        + "agg#0=[COUNT()])\n"
+        + "          LogicalProject(EMPNO=[$0], EMPNO1=[$0], ENAME=[$1], JOB=[$2], "
+        + "MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
   }
 

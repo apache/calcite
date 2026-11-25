@@ -729,8 +729,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // If decorrelation adds no correlation key, keep the constant keys:
     // GROUP BY TRUE gives no row for an empty input, but GROUP BY ()
     // gives one row.
-    final boolean keepConstantKeys = frame.corDefOutputs.isEmpty();
+    // Also keep them if there are grouping sets: if 'a' is removed from
+    // GROUPING SETS (('a'), ()), the two sets become equal.
+    final boolean hasGroupingSets =
+        rel.getGroupType() != Aggregate.Group.SIMPLE;
+    final boolean keepConstantKeys =
+        frame.corDefOutputs.isEmpty() || hasGroupingSets;
     final NavigableMap<Integer, RexLiteral> omittedConstants = new TreeMap<>();
+    // Maps each group key field of the old input to its new position
+    final Map<Integer, Integer> newKeyPositions = new HashMap<>();
     for (int i = 0; i < oldGroupKeyCount; i++) {
       final int idx = groupKeyIndices.get(i);
       final RexLiteral constant =
@@ -744,6 +751,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // add mapping of group keys.
       outputMap.put(i, newPos);
+      newKeyPositions.put(idx, newPos);
       int newInputPos = requireNonNull(frame.oldToNewOutputs.get(idx));
       RexInputRef.add2(projects, newInputPos, newInputOutput);
       mapNewInputToProjOutputs.put(newInputPos, newPos);
@@ -761,10 +769,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
         // Verify if the CorDef position was already added to the mapNewInputToProjOutputs
         // during the previous group key processing
         final Integer pos = mapNewInputToProjOutputs.get(entry.getValue());
-        if (pos == null) {
+        // With grouping sets, a group key column is NULL in the groups that
+        // do not contain it, so it cannot also hold the correlation value.
+        if (pos == null || hasGroupingSets) {
           RexInputRef.add2(projects, entry.getValue(), newInputOutput);
           corDefOutputs.put(entry.getKey(), newPos);
-          mapNewInputToProjOutputs.put(entry.getValue(), newPos);
+          mapNewInputToProjOutputs.putIfAbsent(entry.getValue(), newPos);
           newPos++;
         } else {
           corDefOutputs.put(entry.getKey(), pos);
@@ -819,12 +829,20 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if (rel.getGroupType() == Aggregate.Group.SIMPLE) {
       newGroupSets = null;
     } else {
-      final ImmutableBitSet addedGroupSet =
-          ImmutableBitSet.range(oldGroupKeyCount, newGroupKeyCount);
+      // Move each grouping set to the new key positions, and add the
+      // correlation keys to it, so that each group is computed per outer row
+      final ImmutableBitSet correlationKeys =
+          ImmutableBitSet.of(corDefOutputs.values());
       newGroupSets =
           ImmutableBitSet.ORDERING.immutableSortedCopy(
               Util.transform(rel.getGroupSets(),
-                  bitSet -> bitSet.union(addedGroupSet)));
+                  bitSet -> bitSet.permute(newKeyPositions)
+                      .union(correlationKeys)));
+      // Two grouping sets that become equal would give one group, not two
+      Litmus.THROW.check(
+          ImmutableSet.copyOf(newGroupSets).size() == rel.getGroupSets().size(),
+          "Decorrelation merges grouping sets {} into {}",
+          rel.getGroupSets(), newGroupSets);
     }
 
     int oldInputOutputFieldCount = rel.getGroupSet().cardinality();
