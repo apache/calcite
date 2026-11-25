@@ -104,35 +104,6 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     return false;
   }
 
-  /** Returns the fields of the correlation variable with the specified id
-   * that the nodes of a plan read. The uses in the right input of a nested
-   * Correlate that declares the same id refer to that Correlate, so they do
-   * not count. */
-  private static ImmutableBitSet correlationColumns(CorrelationId id, RelNode plan) {
-    final ImmutableBitSet.Builder columns = ImmutableBitSet.builder();
-    final RexShuttle fieldFinder = new RexShuttle() {
-      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-        if (isDirectFieldAccess(fieldAccess, id)) {
-          columns.set(fieldAccess.getField().getIndex());
-          return fieldAccess;
-        }
-        return super.visitFieldAccess(fieldAccess);
-      }
-    };
-    plan.accept(new RelHomogeneousShuttle() {
-      @Override public RelNode visit(RelNode other) {
-        if (other instanceof Correlate
-            && ((Correlate) other).getCorrelationId().equals(id)) {
-          ((Correlate) other).getLeft().accept(this);
-          return other;
-        }
-        other.accept(fieldFinder);
-        return super.visit(other);
-      }
-    });
-    return columns.build();
-  }
-
   @Override public RelNode visit(LogicalCorrelate correlate) {
     RelNode left = correlate.getLeft().accept(this);
     RelNode right = correlate.getRight().accept(this);
@@ -192,21 +163,19 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
       }
     }
 
-    final int newLeft = builder.fields().size();
-    // Transform the expressions in the right side using the mapping constructed earlier.
-    right = replaceExpressionsUsingMap(right, transformMapping);
-
     // Select the required fields/columns from the left side of the correlation: the columns
-    // read by the direct field accesses, the newly projected columns, which are at the
-    // end of the left relational expression, and the columns that the other nodes of the
-    // right side read, for example the arguments of a table function.
+    // read by the direct field accesses plus the newly projected columns, which are at the
+    // end of the left relational expression.
     List<RexNode> requiredFields =
         builder.fields(
             requiredColumns
                 .set(oldLeft, oldLeft + callsWithCorrelationOverLeft.size())
-                .addAll(correlationColumns(correlate.getCorrelationId(), right))
                 .build()
                 .asList());
+
+    final int newLeft = builder.fields().size();
+    // Transform the expressions in the right side using the mapping constructed earlier.
+    right = replaceExpressionsUsingMap(right, transformMapping);
     builder.push(right);
 
     builder.correlate(correlate.getJoinType(), correlate.getCorrelationId(), requiredFields);
@@ -235,19 +204,46 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   }
 
   /**
-   * Traverses a plan and finds all simply correlated row expressions with the specified id.
+   * Traverses a plan and finds the row expressions that use the correlation
+   * variable with the specified id: the simply correlated expressions in a
+   * Project or Filter, and the direct field accesses in the other nodes, such
+   * as the call of a table function or the condition of a Join. The extractor
+   * moves only the expressions in a Project or Filter to the left side.
    */
   private static Set<RexNode> findCorrelationDependentCalls(CorrelationId corrId, RelNode plan) {
     SimpleCorrelationCollector finder = new SimpleCorrelationCollector(corrId);
+    final RexShuttle fieldFinder = new RexShuttle() {
+      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (isDirectFieldAccess(fieldAccess, corrId)) {
+          finder.correlations.add(fieldAccess);
+          return fieldAccess;
+        }
+        return super.visitFieldAccess(fieldAccess);
+      }
+    };
     plan.accept(new RelHomogeneousShuttle() {
+      /** Whether we are visiting a node in the left input of a Correlate that
+       * reuses this id. That Correlate can be any ancestor, not only the
+       * parent. The uses there refer to the variable of the outer Correlate,
+       * also when such Correlates are nested, so we collect only the direct
+       * field accesses, and move no expression from there. */
+      private boolean inLeftDescendantOfCorrelate = false;
+
       @Override public RelNode visit(RelNode other) {
-        // Don't descend into a nested correlate that reuses this id: the refs below belong to it.
+        // Don't descend into the right input of a nested correlate that reuses
+        // this id: the refs there belong to it.
         if (other instanceof Correlate
             && ((Correlate) other).getCorrelationId().equals(corrId)) {
+          final boolean outer = inLeftDescendantOfCorrelate;
+          inLeftDescendantOfCorrelate = true;
+          ((Correlate) other).getLeft().accept(this);
+          inLeftDescendantOfCorrelate = outer;
           return other;
         }
-        if (other instanceof Project || other instanceof Filter) {
+        if (!inLeftDescendantOfCorrelate && (other instanceof Project || other instanceof Filter)) {
           other.accept(finder);
+        } else {
+          other.accept(fieldFinder);
         }
         return super.visit(other);
       }

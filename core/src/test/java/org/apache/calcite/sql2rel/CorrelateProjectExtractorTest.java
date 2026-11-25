@@ -299,4 +299,50 @@ public class CorrelateProjectExtractorTest {
         + "rowType=[RecordType(INTEGER I)])\n";
     assertThat(after, hasTree(planAfter));
   }
+
+  /** As {@link #testCorrelationInTableFunctionAndFilter()}, but the right side
+   * reads EMPNO of the variable in the condition of a Join. */
+  @Test void testCorrelationInJoinConditionAndFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    RelNode before = builder.scan("EMP")
+        .variable(v::set)
+        .scan("DEPT")
+        .scan("BONUS")
+        .join(JoinRelType.INNER,
+            builder.equals(builder.field(2, 0, "DEPTNO"),
+                builder.field(v.get(), "EMPNO")))
+        .filter(
+            builder.equals(builder.field(0),
+                builder.call(
+                    SqlStdOperatorTable.PLUS,
+                    builder.literal(10),
+                    builder.field(v.get(), "DEPTNO"))))
+        .correlate(JoinRelType.LEFT, v.get().id,
+            builder.field(2, 0, "EMPNO"), builder.field(2, 0, "DEPTNO"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "    LogicalJoin(condition=[=($0, $cor0.EMPNO)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelNode after = before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
+    final String planAfter = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+        + "COMM=[$6], DEPTNO=[$7], DEPTNO0=[$9], DNAME=[$10], LOC=[$11], ENAME0=[$12], "
+        + "JOB0=[$13], SAL0=[$14], COMM0=[$15])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 8}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
+        + "SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+(10, $7)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, $cor0.$f8)])\n"
+        + "      LogicalJoin(condition=[=($0, $cor0.EMPNO)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }

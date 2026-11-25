@@ -698,4 +698,128 @@ from dept as k,
 
 !ok
 
+# [CALCITE-7961] CorrelateProjectExtractor leaves out of requiredColumns a
+# field that a table function call uses.
+# Result validated on Postgres, on a temporary table with the rows of DEPT
+!use scott
+select d.dname, x.n
+from (select dname, deptno + 0 as dn, array[deptno + 0, deptno + 5] as a from dept) as d,
+  lateral (select u.n
+           from unnest(d.a) as u (n) join (values (1)) as v (k) on u.n + v.k > d.dn + 1
+           where u.n < d.dn * 2) x;
++------------+----+
+| DNAME      | N  |
++------------+----+
+| ACCOUNTING | 15 |
+| OPERATIONS | 45 |
+| RESEARCH   | 25 |
+| SALES      | 35 |
++------------+----+
+(4 rows)
+
+!ok
+
+# [CALCITE-7961] Correlated expressions in the arguments of a table function.
+# The decorrelator keeps the Correlate, so it computes the arguments for each
+# row. AUX.TBLFUN(k) returns the rows (N, S) for N from 0 to k - 1, where S
+# is the first N letters of 'abcdefghijklm'.
+# Postgres has no AUX.TBLFUN. The results below were validated on Postgres
+# with "the model of AUX.TBLFUN": the SQL function pg_temp.tblfun below, which
+# returns the same rows as AUX.TBLFUN for the same argument. Each query calls
+# pg_temp.tblfun(...) in place of table(aux.tblfun(...)):
+#   create function pg_temp.tblfun(k int) returns table (n int, s text)
+#   language sql as $$ select g, substr('abcdefghijklm', 1, g)
+#                      from generate_series(0, k - 1) as g $$;
+!use aux
+
+# Result validated on Postgres with the model of AUX.TBLFUN
+select v.c, t.n, t.s
+from (values 1, 2) as v (c),
+  lateral table(aux.tblfun(v.c + 1)) as t (n, s);
++---+---+----+
+| C | N | S  |
++---+---+----+
+| 1 | 0 |    |
+| 1 | 1 | a  |
+| 2 | 0 |    |
+| 2 | 1 | a  |
+| 2 | 2 | ab |
++---+---+----+
+(5 rows)
+
+!ok
+
+# COALESCE of a column that is NULL in one row.
+# Result validated on Postgres with the model of AUX.TBLFUN
+select v.c, t.n
+from (values (1), (cast(null as integer))) as v (c),
+  lateral table(aux.tblfun(coalesce(v.c, 3))) as t (n, s);
++---+---+
+| C | N |
++---+---+
+| 1 | 0 |
+|   | 0 |
+|   | 1 |
+|   | 2 |
++---+---+
+(4 rows)
+
+!ok
+
+# CASE of a column that is NULL in one row.
+# Result validated on Postgres with the model of AUX.TBLFUN
+select v.c, t.n
+from (values (1), (cast(null as integer))) as v (c),
+  lateral table(aux.tblfun(case when v.c is null then 1 else v.c * 2 end)) as t (n, s);
++---+---+
+| C | N |
++---+---+
+| 1 | 0 |
+| 1 | 1 |
+|   | 0 |
++---+---+
+(3 rows)
+
+!ok
+
+# The extractor moves coalesce(v.c, 2) * 2 to the left side; the argument of
+# the table function stays.
+# Result validated on Postgres with the model of AUX.TBLFUN
+select v.c, x.n
+from (values (1), (cast(null as integer))) as v (c),
+  lateral (select t.n
+           from table(aux.tblfun(coalesce(v.c, 3))) as t (n, s)
+           where t.n < coalesce(v.c, 2) * 2) as x;
++---+---+
+| C | N |
++---+---+
+| 1 | 0 |
+|   | 0 |
+|   | 1 |
+|   | 2 |
++---+---+
+(4 rows)
+
+!ok
+
+# As the previous query, but it selects only N, so the field trimmer removes C
+# unless the required columns of the Correlate contain it.
+# Result validated on Postgres with the model of AUX.TBLFUN
+select x.n
+from (values (1), (cast(null as integer))) as v (c),
+  lateral (select t.n
+           from table(aux.tblfun(coalesce(v.c, 3))) as t (n, s)
+           where t.n < coalesce(v.c, 2) * 2) as x;
++---+
+| N |
++---+
+| 0 |
+| 0 |
+| 1 |
+| 2 |
++---+
+(4 rows)
+
+!ok
+
 # End lateral.iq
