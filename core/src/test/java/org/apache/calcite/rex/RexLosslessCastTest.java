@@ -322,6 +322,33 @@ class RexLosslessCastTest extends RexProgramTestBase {
         is(false));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7968">[CALCITE-7968]
+   * RexUtil.isLosslessCast returns true for a cast from DECIMAL(19, 0) to
+   * BIGINT</a>. */
+  @Test void testLosslessCastDecimalToBigint() {
+    final RelDataType bigIntType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType dec_18_0 = typeFactory.createSqlType(SqlTypeName.DECIMAL, 18, 0);
+    final RelDataType dec_19_0 = typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 0);
+    assertThat(RexUtil.isLosslessCast(dec_18_0, bigIntType), is(true));
+    assertThat(RexUtil.isLosslessCast(dec_19_0, bigIntType), is(false));
+  }
+
+  /** Unit test for {@link RexUtil#isLosslessCast(RelDataType, RelDataType)}
+   * with a DECIMAL precision greater than 19, in a type system that allows it. */
+  @Test void testLosslessCastDecimalLargePrecisionToBigint() {
+    final RelDataTypeSystem typeSystem = new RelDataTypeSystemImpl() {
+      @Override public int getMaxPrecision(SqlTypeName typeName) {
+        return typeName == SqlTypeName.DECIMAL ? 38 : super.getMaxPrecision(typeName);
+      }
+    };
+    final JavaTypeFactoryImpl factory = new JavaTypeFactoryImpl(typeSystem);
+    final RelDataType bigIntType = factory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType dec_38_0 = factory.createSqlType(SqlTypeName.DECIMAL, 38, 0);
+    assertThat(dec_38_0.getPrecision(), is(38));
+    assertThat(RexUtil.isLosslessCast(dec_38_0, bigIntType), is(false));
+  }
+
   // DECIMAL(s = 0) -> APPROX: lossless iff precision <= target digits
   @Test void testLosslessCastDecimalToApproximate() {
     final RelDataType realType = typeFactory.createSqlType(SqlTypeName.REAL);

@@ -602,18 +602,6 @@ public enum SqlTypeName {
         return null;
       }
 
-      switch (limit) {
-      case OVERFLOW:
-        final BigDecimal other =
-            (BigDecimal) BIGINT.getLimit(sign, limit, beyond, -1, -1);
-        if (other != null && decimal.compareTo(other) == (sign ? 1 : -1)) {
-          decimal = other;
-        }
-        break;
-      default:
-        break;
-      }
-
       // Apply scale.
       if (scale == 0) {
         // do nothing
