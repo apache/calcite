@@ -211,6 +211,12 @@ public abstract class SemiJoinRule
           .withOperandFor(projectClass, joinClass, aggregateClass));
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      // This rule does not preserve correlation variables; see guideline 6 in RelRule
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public void onMatch(RelOptRuleCall call) {
       final Project project = call.rel(0);
       final Join join = call.rel(1);
@@ -311,6 +317,11 @@ public abstract class SemiJoinRule
       final Project project = call.rel(0);
       final Join join = call.rel(1);
       final RelNode left = call.rel(2);
+      // This rule does not preserve correlation variables; see guideline 6 in RelRule
+      if (!project.getVariablesSet().isEmpty()
+          || !join.getVariablesSet().isEmpty()) {
+        return false;
+      }
 
       final ImmutableBitSet bits = getUsedFields(project);
       final ImmutableBitSet rightBits =

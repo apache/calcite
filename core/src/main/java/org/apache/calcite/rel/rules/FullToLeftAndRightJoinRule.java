@@ -72,6 +72,12 @@ public class FullToLeftAndRightJoinRule
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Join join = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return join.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Join join = call.rel(0);
     RelBuilder relBuilder = call.builder();

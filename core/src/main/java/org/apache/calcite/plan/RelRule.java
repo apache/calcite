@@ -114,6 +114,24 @@ import static java.util.Objects.requireNonNull;
  *     CsvProjectTableScanRule.Config.DEFAULT.toRule();
  * </code></pre></blockquote>
  *
+ * <p>6. If your rule matches a {@link org.apache.calcite.rel.core.Project},
+ * {@link org.apache.calcite.rel.core.Filter} or
+ * {@link org.apache.calcite.rel.core.Join}, make sure that it preserves the
+ * correlation variables of the node. Such a node can contain a correlated
+ * sub-query ({@link org.apache.calcite.rex.RexSubQuery}). The node then
+ * declares the variable of the sub-query in
+ * {@link org.apache.calcite.rel.RelNode#getVariablesSet()}. The variable
+ * refers to the input row of the node; for a Join, to the joined row.
+ * To keep a variable, the node that holds the sub-query after the rule must
+ * declare it, and the variable must refer to a row with the same fields.
+ * Many rules assume that
+ * {@link org.apache.calcite.rel.rules.SubQueryRemoveRule} has removed all
+ * sub-queries, and do not keep the variables. Such a rule must override
+ * {@link #matches(RelOptRuleCall)} and return false when a matched node
+ * declares a variable. Do not use an operand predicate for this check:
+ * {@code withOperandFor} and {@code withOperandSupplier} replace the
+ * operands, and then the check is lost.
+ *
  * @param <C> Configuration type
  */
 public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {

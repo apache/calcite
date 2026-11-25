@@ -135,7 +135,9 @@ public class JoinToMultiJoinRule
 
   @Override public boolean matches(RelOptRuleCall call) {
     final Join origJoin = call.rel(0);
-    return origJoin.getJoinType().projectsRight();
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return origJoin.getJoinType().projectsRight()
+        && origJoin.getVariablesSet().isEmpty();
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

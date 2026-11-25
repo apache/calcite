@@ -64,6 +64,12 @@ public class ProjectSetOpTransposeRule
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return project.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Project origProject = call.rel(0);
     final SetOp setOp = call.rel(1);
