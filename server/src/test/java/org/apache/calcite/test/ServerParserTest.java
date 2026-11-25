@@ -141,8 +141,9 @@ class ServerParserTest extends SqlParserTest {
 
   @Test void testLegacyMapTypeSpecRendering() {
     final RelDataTypeFactory types = fixture().factory.createValidator().getTypeFactory();
-    final RelDataType map =
-        types.createMapType(types.createSqlType(SqlTypeName.INTEGER), types.createSqlType(SqlTypeName.VARCHAR, 20));
+    final RelDataType key = types.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType value = types.createSqlType(SqlTypeName.VARCHAR, 20);
+    final RelDataType map = types.createMapType(key, value);
     final SqlDataTypeSpec legacy = SqlTypeUtil.convertTypeToSpec(map);
     assertEquals("MAP< INTEGER, VARCHAR(20) CHARACTER SET `ISO-8859-1` >",
         legacy.toSqlString(AnsiSqlDialect.DEFAULT).getSql());
