@@ -71,8 +71,8 @@ SELECT ST_PointFromText('POINT(-71.064544 42.28787)');
 
 ## GEOGRAPHY type
 
-The spatial function library provides two structural accessors for
-[`GEOGRAPHY`](reference.html#geography).
+The spatial function library supports the following
+[`GEOGRAPHY`](reference.html#geography) signatures.
 
 | Signature | Result |
 | --- | --- |
@@ -86,8 +86,8 @@ result for an empty value. The result type is nullable when the argument
 type is nullable.
 
 The accessors use the same shape names and emptiness rules as the
-corresponding GEOMETRY overloads. Measurement functions such as
-ST_Area and SQL WKT/WKB conversion functions accept geometry arguments.
+corresponding `GEOMETRY` overloads. Measurement functions such as
+`ST_Area` and SQL WKT/WKB conversion functions accept geometry arguments.
 For local geography values, see the [adapter guide](adapter.html#geography-values).
 
 ## Query rewrites
