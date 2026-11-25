@@ -24535,6 +24535,20 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testVarianceStddevWithDistinct">
+    <Resource name="sql">
+      <![CDATA[select deptno, var_pop(distinct sal), var_samp(distinct sal),
+stddev_pop(distinct sal), stddev_samp(distinct sal)
+from sales.emp group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[VAR_POP(DISTINCT $1)], EXPR$2=[VAR_SAMP(DISTINCT $1)], EXPR$3=[STDDEV_POP(DISTINCT $1)], EXPR$4=[STDDEV_SAMP(DISTINCT $1)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testVarianceStddevWithFilter">
     <Resource name="sql">
       <![CDATA[select name, stddev_pop(deptno) filter (where deptno > 10), stddev_samp(deptno) filter (where deptno > 20), var_pop(deptno) filter (where deptno > 30), var_samp(deptno) filter (where deptno > 40), avg(deptno) filter (where deptno > 50)

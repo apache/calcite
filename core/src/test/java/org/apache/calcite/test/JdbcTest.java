@@ -3286,6 +3286,25 @@ public class JdbcTest {
         .returns("c0=1997; m0=85452\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7970">[CALCITE-7970]
+   * AggregateReduceFunctionsRule produces incorrect results for DISTINCT
+   * variance and standard deviation</a>. */
+  @Test void testDistinctVarianceReduction() {
+    final String sql = "select var_pop(distinct x) as vp, var_samp(distinct x) as vs,\n"
+        + " var_samp(distinct x) filter (where x > 0) as positive_vs,\n"
+        + " sum(x) as s, count(*) as n\n"
+        + "from (values (cast(-1 as double)), (1), (1), (null)) as t(x)";
+    // Try reduction first to exercise the rule order that used to lose a square.
+    final Program program =
+        Programs.hep(ImmutableList.of(CoreRules.AGGREGATE_REDUCE_FUNCTIONS),
+            true, DefaultRelMetadataProvider.INSTANCE);
+    CalciteAssert.that()
+        .query(sql)
+        .withHook(Hook.PROGRAM, Hook.propertyJ(Programs.sequence(program, Programs.standard())))
+        .returns("VP=1.0; VS=2.0; POSITIVE_VS=null; S=1.0; N=4\n");
+  }
+
   @Test void testAggregateFilter() {
     final String s = "select \"the_month\",\n"
         + " count(*) as \"c\",\n"
