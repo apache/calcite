@@ -229,28 +229,6 @@ class SqlTypeFactoryTest {
     }
   }
 
-  @Test void testOrdinaryRowCommonTypeWithNull() {
-    final RelDataTypeFactory factory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataType row = factory.builder().add("I", SqlTypeName.INTEGER)
-        .add("S", SqlTypeName.VARCHAR, 20).nullable(true).build();
-    final RelDataType nullType = factory.createSqlType(SqlTypeName.NULL);
-    final RelDataType expected = factory.createTypeWithNullability(row, true);
-    assertFalse(row.isNullable());
-    assertFalse(row.getFieldList().get(0).getType().isNullable());
-    assertTrue(row.getFieldList().get(1).getType().isNullable());
-    for (List<RelDataType> inputs : ImmutableList.of(ImmutableList.of(row, nullType),
-        ImmutableList.of(nullType, row))) {
-      final RelDataType result = factory.leastRestrictive(inputs);
-      assertEquals(expected, result);
-      assertTrue(result.isNullable());
-      assertTrue(result.getFieldList().get(0).getType().isNullable());
-      assertTrue(result.getFieldList().get(1).getType().isNullable());
-    }
-    final RelDataType incompatible = factory.builder().add("I", SqlTypeName.INTEGER).build();
-    assertNull(factory.leastRestrictive(ImmutableList.of(row, nullType, incompatible)));
-    assertNull(factory.leastRestrictive(ImmutableList.of(incompatible, nullType, row)));
-  }
-
   @Test void testLeastRestrictiveWithAny() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =

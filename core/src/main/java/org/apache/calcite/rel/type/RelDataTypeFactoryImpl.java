@@ -216,28 +216,24 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   protected @Nullable RelDataType leastRestrictiveStructuredType(
       final List<RelDataType> types) {
-    // NULL contributes nullability without contributing any field types.
-    final List<RelDataType> records = new ArrayList<>();
-    boolean isNullable = false;
-    for (RelDataType type : types) {
-      if (type.getSqlTypeName() == SqlTypeName.NULL) {
-        isNullable = true;
-      } else if (!type.isStruct()) {
-        return null;
-      } else {
-        records.add(type);
-        isNullable |= type.isNullable();
-      }
-    }
-    if (records.isEmpty()) {
+    final RelDataType type0 = types.get(0);
+    // precheck that fieldCount is present
+    if (!type0.isStruct()) {
       return null;
     }
-    final RelDataType type0 = records.get(0);
     final int fieldCount = type0.getFieldCount();
-    for (RelDataType type : records) {
+
+    // precheck that all types are structs with same number of fields
+    // and register desired nullability for the result
+    boolean isNullable = false;
+    for (RelDataType type : types) {
+      if (!type.isStruct()) {
+        return null;
+      }
       if (type.getFieldList().size() != fieldCount) {
         return null;
       }
+      isNullable |= type.isNullable();
     }
 
     // recursively compute column-wise least restrictive
@@ -250,7 +246,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
       RelDataType type =
           leastRestrictive(
-              Util.transform(records, t -> t.getFieldList().get(k).getType()));
+              Util.transform(types, t -> t.getFieldList().get(k).getType()));
       if (type == null) {
         return null;
       }
