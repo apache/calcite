@@ -159,11 +159,11 @@ class ServerParserTest extends SqlParserTest {
     for (boolean nullableKeys : new boolean[] {false, true}) {
       final SqlParserFixture f = fixture().withConfig(c -> c.withQuoting(Quoting.BACK_TICK))
           .withFactory(factory ->
-          factory.withTypeSystem(system -> new DelegatingTypeSystem(system) {
-            @Override public boolean mapKeysCanBeNullable() {
-              return nullableKeys;
-            }
-          }));
+              factory.withTypeSystem(system -> new DelegatingTypeSystem(system) {
+                @Override public boolean mapKeysCanBeNullable() {
+                  return nullableKeys;
+                }
+              }));
       final SqlValidator validator = f.factory.createValidator();
       final String[] declarations = {
           "map<integer, varchar(20)>",
