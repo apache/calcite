@@ -449,6 +449,20 @@ natural join (select * from clerk
 
 !ok
 
+# [CALCITE-7973] RelBuilder can incorrectly skip DISTINCT when getMaxRowCount
+# underestimates FULL JOIN cardinality
+select distinct 6 as v
+from (values (1)) as l(k)
+full join (values (2)) as r(k) on l.k = r.k;
++---+
+| V |
++---+
+| 6 |
++---+
+(1 row)
+
+!ok
+
 # Full join with USING
 select *
 from (select * from emp where deptno <> 10) as e
