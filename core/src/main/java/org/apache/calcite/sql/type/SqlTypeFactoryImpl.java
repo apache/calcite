@@ -351,7 +351,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       return createTypeWithNullability(createSqlType(SqlTypeName.ANY),
           nullCount > 0 || nullableCount > 0);
     }
-    // Date/time shortcuts below can return before checking every input family.
+    // For [INTEGER, DATE, GEOGRAPHY], the numeric/date shortcut below returns
+    // DATE while processing INTEGER, without reaching the GEOGRAPHY operand.
+    // Reject mixed GEOGRAPHY inputs before these early returns can skip the
+    // family check for a later operand.
     if (geographyCount > 0 && geographyCount + nullCount < types.size()) {
       return null;
     }
