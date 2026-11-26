@@ -30,6 +30,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -40,9 +41,12 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.immutables.value.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Rule that converts a {@link Correlate} over an {@link Uncollect} into a
@@ -53,9 +57,10 @@ import java.util.List;
  * <pre>
  * LogicalCorrelate(cor=[$cor0], joinType=[inner|left])
  *   left (any RelNode)
- *   Uncollect
- *     LogicalProject($cor0.f_i, $cor0.f_j, ...)  (innerProject)
- *       LogicalValues
+ *   LogicalProject($i, $j, ...)  (optional; field references only)
+ *     Uncollect
+ *       LogicalProject($cor0.f_i, $cor0.f_j, ...)  (innerProject)
+ *         LogicalValues
  * </pre>
  *
  * <p>Converted to:
@@ -76,6 +81,11 @@ import java.util.List;
  * direct field access on the correlation variable (no nested struct paths,
  * no computed collections).  This can be done using {@link CorrelateProjectExtractor}.
  *
+ * <p>The merge accepts a {@code Project} between the {@code Correlate} and
+ * the {@code Uncollect} (for example, a {@code Project} that renames the
+ * unnested columns) if each expression of the {@code Project} is a field
+ * reference.
+ *
  * <p>With {@link Config#OUTER} ({@link CoreRules#CORRELATE_UNCOLLECT_OUTER})
  * the rule instead performs a smaller rewrite that has no such requirement:
  * it moves the outer join semantics of a LEFT correlate onto the
@@ -93,6 +103,50 @@ public class CorrelateUncollectMergeRule
     super(config);
   }
 
+  /** The right input of a Correlate that this rule can convert. */
+  private static class RightInput {
+    /** Project between the Correlate and the Uncollect, or null. */
+    final @Nullable Project project;
+    final Uncollect uncollect;
+    /** Input of the Uncollect. */
+    final Project innerProject;
+
+    private RightInput(@Nullable Project project, Uncollect uncollect,
+        Project innerProject) {
+      this.project = project;
+      this.uncollect = uncollect;
+      this.innerProject = innerProject;
+    }
+
+    /** Returns the parts of a right input that has the form
+     * [Project] - Uncollect - Project - Values with one row, or null.
+     * The operands of the rule do not check this form, because they cannot
+     * describe an optional Project. */
+    static @Nullable RightInput of(RelNode right) {
+      RelNode rel = right.stripped();
+      Project project = null;
+      if (rel instanceof Project) {
+        project = (Project) rel;
+        rel = project.getInput().stripped();
+      }
+      if (!(rel instanceof Uncollect)) {
+        return null;
+      }
+      final Uncollect uncollect = (Uncollect) rel;
+      rel = uncollect.getInput().stripped();
+      if (!(rel instanceof Project)) {
+        return null;
+      }
+      final Project innerProject = (Project) rel;
+      rel = innerProject.getInput().stripped();
+      if (!(rel instanceof LogicalValues)
+          || ((LogicalValues) rel).getTuples().size() != 1) {
+        return null;
+      }
+      return new RightInput(project, uncollect, innerProject);
+    }
+  }
+
   @Override public boolean matches(RelOptRuleCall call) {
     // Only INNER and LEFT join types should be possible.
     // Other kinds of join should have been rejected by the validator.
@@ -103,9 +157,9 @@ public class CorrelateUncollectMergeRule
         : joinType != JoinRelType.INNER && joinType != JoinRelType.LEFT) {
       return false;
     }
-    // Both rewrites assume the Uncollect's input produces is "LogicalValues { 0 }".
-    final LogicalValues values = call.rel(4);
-    return values.getTuples().size() == 1;
+    final RightInput right = RightInput.of(correlate.getRight());
+    // The outer rewrite needs the Uncollect directly below the Correlate
+    return right != null && (!config.outerOnly() || right.project == null);
   }
 
   /** Returns the number of output columns produced by unnesting a collection
@@ -137,8 +191,10 @@ public class CorrelateUncollectMergeRule
   private static void merge(RelOptRuleCall call) {
     final Correlate correlate = call.rel(0);
     final RelNode left = call.rel(1);
-    final Uncollect uncollect = call.rel(2);
-    final Project innerProject = call.rel(3);
+    final RightInput right = requireNonNull(RightInput.of(correlate.getRight()));
+    final Project rightProject = right.project;
+    final Uncollect uncollect = right.uncollect;
+    final Project innerProject = right.innerProject;
     final JoinRelType joinType = correlate.getJoinType();
 
     final CorrelationId corId = correlate.getCorrelationId();
@@ -185,20 +241,37 @@ public class CorrelateUncollectMergeRule
     }
     final int mergedOrdinality = nextStart;
 
+    // For each output column of the right input, the source column that produces it
+    List<Integer> rightSource = new ArrayList<>();
+    for (int c : collectionFieldIndices) {
+      final int width = expansionWidth(leftFields.get(c).getType(), expandStructFields);
+      for (int j = 0; j < width; j++) {
+        rightSource.add(blockStart[c] + j);
+      }
+    }
+    if (uncollect.withOrdinality) {
+      rightSource.add(mergedOrdinality);
+    }
+    if (rightProject != null) {
+      // The NULL values that a LEFT correlate adds for an empty collection
+      // are the same before and after a field reference, but not before and
+      // after other expressions
+      final List<Integer> projectSource = new ArrayList<>();
+      for (RexNode expr : rightProject.getProjects()) {
+        if (!(expr instanceof RexInputRef)) {
+          return;
+        }
+        projectSource.add(rightSource.get(((RexInputRef) expr).getIndex()));
+      }
+      rightSource = projectSource;
+    }
+
     // For each output column the source column that produces it
     final List<Integer> outputSource = new ArrayList<>();
     for (int i = 0; i < leftCount; i++) {
       outputSource.add(i);
     }
-    for (int c : collectionFieldIndices) {
-      final int width = expansionWidth(leftFields.get(c).getType(), expandStructFields);
-      for (int j = 0; j < width; j++) {
-        outputSource.add(blockStart[c] + j);
-      }
-    }
-    if (uncollect.withOrdinality) {
-      outputSource.add(mergedOrdinality);
-    }
+    outputSource.addAll(rightSource);
 
     final List<RelDataTypeField> corFields = correlate.getRowType().getFieldList();
     if (outputSource.size() != corFields.size()) {
@@ -248,7 +321,8 @@ public class CorrelateUncollectMergeRule
     if (correlate.getJoinType() != JoinRelType.LEFT) {
       return;
     }
-    final Uncollect uncollect = call.rel(2);
+    final Uncollect uncollect =
+        requireNonNull(RightInput.of(correlate.getRight())).uncollect;
     // Note: this is correct even if uncollect(isOuter=[true]) already
     final Uncollect outerUncollect =
         Uncollect.create(uncollect.getTraitSet(), uncollect.getInput(),
@@ -266,14 +340,16 @@ public class CorrelateUncollectMergeRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
+    /** The operands check only the top of the right input, because the
+     * Project above the Uncollect is optional; {@link #matches} checks the
+     * rest. */
     Config DEFAULT = ImmutableCorrelateUncollectMergeRule.Config.of()
         .withOperandSupplier(b0 -> b0.operand(Correlate.class)
             .inputs(
                 b1 -> b1.operand(RelNode.class).anyInputs(),
-                b2 -> b2.operand(Uncollect.class)
-                    .oneInput(b3 -> b3.operand(Project.class)
-                        .oneInput(b4 -> b4.operand(LogicalValues.class)
-                            .anyInputs()))))
+                b2 -> b2.operand(RelNode.class)
+                    .predicate(r -> r instanceof Project || r instanceof Uncollect)
+                    .anyInputs()))
         .as(Config.class);
 
     /** Configuration that only moves the outer join semantics of a LEFT

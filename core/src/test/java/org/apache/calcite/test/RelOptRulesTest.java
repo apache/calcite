@@ -854,6 +854,45 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5847">[CALCITE-5847]
+   * RelDecorrelator does not decorrelate a CROSS JOIN UNNEST</a>.
+   * {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} fires when a Project that
+   * renames the unnested column is between the Correlate and the Uncollect. */
+  @Test void testCorrelateProjectUncollectMerge() {
+    final String sql = "select *\n"
+        + "from DEPT_NESTED_EXPANDED as t1,\n"
+        + "unnest(t1.admins) as t2(admin)";
+    sql(sql)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** As {@link #testCorrelateProjectUncollectMerge()}, with a LEFT Correlate;
+   * the merged Uncollect is outer. */
+  @Test void testCorrelateProjectUncollectMergeLeft() {
+    final String sql = "select *\n"
+        + "from DEPT_NESTED_EXPANDED as t1\n"
+        + "left join unnest(t1.admins) as t2(admin) on true";
+    sql(sql)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .check();
+  }
+
+  /** Tests that {@link CoreRules#CORRELATE_UNCOLLECT_MERGE} does not fire
+   * when the Project between the Correlate and the Uncollect computes an
+   * expression: the rule moves only field references above the merged
+   * Uncollect. */
+  @Test void testCorrelateProjectUncollectMergeExpression() {
+    final String sql = "select *\n"
+        + "from DEPT_NESTED_EXPANDED as t1\n"
+        + "left join lateral (select upper(admin) as a\n"
+        + "  from unnest(t1.admins) as t2(admin)) as t3 on true";
+    sql(sql)
+        .withRule(CoreRules.CORRELATE_UNCOLLECT_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
    * Add the planner rule that pushes the Filter past a Sample</a>. */
   @Test void testFilterSampleTransposeWithBernoulli() {

@@ -355,7 +355,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
           + RelOptUtil.toString(root));
     }
     root = root.accept(new CorrelateProjectExtractor(f));
-    // Necessary to update cm (CorrelMap) since CorrelateProjectExtractor above may modify the plan
+    // Decorrelation does not support Uncollect; merge each Correlate over an
+    // Uncollect into an Uncollect with pass-through fields
+    root =
+        applyHepProgram(root,
+            HepProgram.builder()
+                .addRuleInstance(
+                    CoreRules.CORRELATE_UNCOLLECT_MERGE.config
+                        .withRelBuilderFactory(f)
+                        .toRule())
+                .build());
+    // Necessary to update cm (CorrelMap) since the rewrites above may modify the plan
     this.cm = new CorelMapBuilder().build(root);
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"

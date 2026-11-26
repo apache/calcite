@@ -2506,13 +2506,13 @@ class RelToSqlConverterTest {
         + "    \"foodmart\".\"department\",\n"
         + "    UNNEST(SPLIT (\"department_description\", ',')) AS UNNESTVALUES";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", "
-        + "SPLIT(\"$cor0\".\"department_description\", ','), \"t10\".\"col_0\" AS \"UNNESTALIAS\"\n"
+    final String expected = "SELECT \"$cor1\".\"department_id\", "
+        + "SPLIT(\"$cor1\".\"department_description\", ','), \"t10\".\"$f2\" AS \"UNNESTALIAS\"\n"
         + "FROM (SELECT \"department_id\", \"department_description\", "
         + "SPLIT(\"department_description\", ',') AS \"$f2\"\n"
-        + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
-        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f2\"\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"col_0\")";
+        + "FROM \"foodmart\".\"department\") AS \"$cor1\",\n"
+        + "LATERAL UNNEST((SELECT \"$cor1\".\"$f2\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"$f2\")";
     sql(sql).withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
   }
 

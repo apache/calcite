@@ -2746,4 +2746,21 @@ public class RelDecorrelatorTest {
         RuleSets.ofList(Collections.emptyList()),
         RuleSets.ofList(Collections.emptyList()));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5847">[CALCITE-5847]
+   * RelDecorrelator does not decorrelate a CROSS JOIN UNNEST</a>. */
+  @Test void testDecorrelateCrossJoinUnnest() {
+    final String sql = "SELECT val\n"
+        + "FROM (SELECT DISTINCT vals FROM (VALUES (ARRAY[2])) t(vals)\n"
+        + "      WHERE false) tmp\n"
+        + "CROSS JOIN UNNEST(tmp.vals) tt(val)";
+    // The Uncollect reads the left input, and passes its field VALS through
+    final String planAfter = ""
+        + "LogicalProject(VAL=[$1])\n"
+        + "  Uncollect(passthrough=[{0}], collectionFields=[{0}])\n"
+        + "    LogicalProject(VALS=[ARRAY(2)])\n"
+        + "      LogicalValues(tuples=[[]])\n";
+    assertThat(decorrelateSql(sql), hasTree(planAfter));
+  }
 }
