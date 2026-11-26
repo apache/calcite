@@ -3052,6 +3052,31 @@ SYY DOUBLE(15)
 
 !ok
 
+# [CALCITE-7976] AggregateReduceFunctionsRule produces incorrect results for
+# DISTINCT covariance and regression functions
+# The FILTER keeps the pairs (0, 1), (2, 3) and (NULL, 5). The functions
+# ignore (NULL, 5), because X is NULL. Before the fix, each filtered column
+# had the value of the unfiltered column next to it.
+# Result validated with DuckDB 2.0 and PostgreSQL 14 (the same up to rounding).
+select covar_pop(x, y) as cp,
+  covar_pop(x, y) filter (where y = x + 1 or x is null) as cpf,
+  covar_samp(x, y) as cs,
+  covar_samp(x, y) filter (where y = x + 1 or x is null) as csf,
+  regr_sxx(x, y) as sxx,
+  regr_sxx(x, y) filter (where y = x + 1 or x is null) as sxxf,
+  regr_syy(x, y) as syy,
+  regr_syy(x, y) filter (where y = x + 1 or x is null) as syyf
+from (values (cast(0 as double), cast(0 as double)),
+  (0, 1), (2, 1), (2, 3), (null, 5)) as t(x, y);
++------+-----+-----+-----+------+------+-----+------+
+| CP   | CPF | CS  | CSF | SXX  | SXXF | SYY | SYYF |
++------+-----+-----+-----+------+------+-----+------+
+| 0.75 | 1.0 | 1.0 | 2.0 | 4.75 |  2.0 | 4.0 |  2.0 |
++------+-----+-----+-----+------+------+-----+------+
+(1 row)
+
+!ok
+
 # [CALCITE-1776, CALCITE-2402] REGR_COUNT with group by
 SELECT SAL, regr_count(COMM, SAL) as "REGR_COUNT(COMM, SAL)",
    regr_count(EMPNO, SAL) as "REGR_COUNT(EMPNO, SAL)"

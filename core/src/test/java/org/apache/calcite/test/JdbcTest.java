@@ -3305,6 +3305,28 @@ public class JdbcTest {
         .returns("VP=1.0; VS=2.0; POSITIVE_VS=null; S=1.0; N=4\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7976">[CALCITE-7976]
+   * AggregateReduceFunctionsRule produces incorrect results for DISTINCT
+   * covariance and regression functions</a>. */
+  @Test void testDistinctCovarianceReduction() {
+    // DISTINCT applies to the (x, y) pairs, so the duplicate (2, 3) counts once.
+    // Result validated with DuckDB 2.0, and with PostgreSQL 14 up to rounding
+    // (CP=0.7499999999999999, CS=0.9999999999999999).
+    final String sql = "select covar_pop(distinct x, y) as cp,\n"
+        + " covar_samp(distinct x, y) as cs,\n"
+        + " regr_sxx(distinct x, y) as sxx, regr_syy(distinct x, y) as syy\n"
+        + "from (values (cast(0 as double), cast(0 as double)),\n"
+        + " (0, 1), (2, 1), (2, 3), (2, 3)) as t(x, y)";
+    final Program program =
+        Programs.hep(ImmutableList.of(CoreRules.AGGREGATE_REDUCE_FUNCTIONS),
+            true, DefaultRelMetadataProvider.INSTANCE);
+    CalciteAssert.that()
+        .query(sql)
+        .withHook(Hook.PROGRAM, Hook.propertyJ(Programs.sequence(program, Programs.standard())))
+        .returns("CP=0.75; CS=1.0; SXX=4.75; SYY=4.0\n");
+  }
+
   @Test void testAggregateFilter() {
     final String s = "select \"the_month\",\n"
         + " count(*) as \"c\",\n"

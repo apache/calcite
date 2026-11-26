@@ -3670,6 +3670,21 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCovarianceRegrWithDistinct">
+    <Resource name="sql">
+      <![CDATA[select deptno, covar_pop(distinct sal, comm),
+covar_samp(distinct sal, comm), regr_sxx(distinct sal, comm),
+regr_syy(distinct sal, comm)
+from sales.emp group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COVAR_POP(DISTINCT $1, $2)], EXPR$2=[COVAR_SAMP(DISTINCT $1, $2)], EXPR$3=[REGR_SXX(DISTINCT $1, $2)], EXPR$4=[REGR_SYY(DISTINCT $1, $2)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCrossJoinWithTimeStampSingleRowOnLeft">
     <Resource name="sql">
       <![CDATA[select e.empno, e.ename, c.* from (select 5, current_timestamp) c cross join emp e ]]>

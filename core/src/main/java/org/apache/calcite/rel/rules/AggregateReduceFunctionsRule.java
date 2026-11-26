@@ -108,9 +108,11 @@ public class AggregateReduceFunctionsRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Set<SqlKind> VARIANCE_FUNCTIONS =
-      ImmutableSet.of(SqlKind.VAR_POP, SqlKind.VAR_SAMP,
-          SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP);
+  /** Functions whose reduction keeps DISTINCT on the original argument;
+   * for example AVG(DISTINCT x) becomes
+   * SUM(DISTINCT x) / COUNT(DISTINCT x). */
+  private static final Set<SqlKind> DISTINCT_SAFE_FUNCTIONS =
+      ImmutableSet.of(SqlKind.AVG, SqlKind.SUM);
 
   private static void validateFunction(SqlKind function) {
     if (!isValid(function)) {
@@ -186,9 +188,11 @@ public class AggregateReduceFunctionsRule
   /** Returns whether this rule can reduce a given aggregate function call. */
   public boolean canReduce(AggregateCall call) {
     final SqlKind kind = call.getAggregation().getKind();
-    // Expand DISTINCT on x before reducing variance or standard deviation.
-    // SUM(DISTINCT x * x) would count the squares of x and -x only once.
-    if (call.isDistinct() && VARIANCE_FUNCTIONS.contains(kind)) {
+    // Other reductions apply DISTINCT to new arguments, not to the original
+    // ones: SUM(DISTINCT x * x) counts the squares of x and -x only once, and
+    // SUM(DISTINCT x) for COVAR_POP(DISTINCT x, y) ignores y. Expand DISTINCT
+    // first.
+    if (call.isDistinct() && !DISTINCT_SAFE_FUNCTIONS.contains(kind)) {
       return false;
     }
     return functionsToReduce.contains(kind)
@@ -490,7 +494,7 @@ public class AggregateReduceFunctionsRule
             oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.hasEmptyGroup(),
-            oldAggRel,
+            oldAggRel.getInput(),
             null,
             null);
 
@@ -608,7 +612,7 @@ public class AggregateReduceFunctionsRule
             oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.hasEmptyGroup(),
-            oldAggRel,
+            oldAggRel.getInput(),
             null,
             null);
 
@@ -743,7 +747,7 @@ public class AggregateReduceFunctionsRule
             oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.hasEmptyGroup(),
-            oldAggRel,
+            oldAggRel.getInput(),
             null,
             null);
 
@@ -752,6 +756,18 @@ public class AggregateReduceFunctionsRule
         newCalls,
         aggCallMapping,
         oldAggRel.getInput()::fieldIsNullable);
+  }
+
+  /** Returns {@code notNullFilter}, AND the FILTER of {@code oldCall} if it
+   * has one. */
+  private static RexNode withCallFilter(RexBuilder rexBuilder,
+      SqlParserPos pos, AggregateCall oldCall, List<RexNode> inputExprs,
+      RexNode notNullFilter) {
+    if (!oldCall.hasFilter()) {
+      return notNullFilter;
+    }
+    return rexBuilder.makeCall(pos, SqlStdOperatorTable.AND,
+        inputExprs.get(oldCall.filterArg), notNullFilter);
   }
 
   private static RexNode reduceRegrSzz(
@@ -796,7 +812,9 @@ public class AggregateReduceFunctionsRule
                 rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argY)),
         rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argNullFilter));
     final int argXAndYNotNullFilterOrdinal =
-        lookupOrAdd(inputExprs, argXAndYNotNullFilter);
+        lookupOrAdd(inputExprs,
+            withCallFilter(rexBuilder, pos, oldCall, inputExprs,
+                argXAndYNotNullFilter));
     final RexNode sumXY =
         getSumAggregatedRexNodeWithBinding(oldAggRel, oldCall, newCalls,
             aggCallMapping, argXArgY.getType(),
@@ -869,7 +887,9 @@ public class AggregateReduceFunctionsRule
             rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argX),
             rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argY));
     final int argXAndYNotNullFilterOrdinal =
-        lookupOrAdd(inputExprs, argXAndYNotNullFilter);
+        lookupOrAdd(inputExprs,
+            withCallFilter(rexBuilder, pos, oldCall, inputExprs,
+                argXAndYNotNullFilter));
     final RexNode argXY =
         rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, argX, argY);
     final int argXYOrdinal = lookupOrAdd(inputExprs, argXY);
