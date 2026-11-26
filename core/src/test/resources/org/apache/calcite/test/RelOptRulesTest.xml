@@ -3275,6 +3275,77 @@ MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]]
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelateProjectUncollectMerge">
+    <Resource name="sql">
+      <![CDATA[select *
+from DEPT_NESTED_EXPANDED as t1,
+unnest(t1.admins) as t2(admin)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], ADMIN=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(ADMIN=[$0])
+      Uncollect
+        LogicalProject(ADMINS=[$cor0.ADMINS])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], ADMIN=[$5])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], ADMIN=[$5])
+    Uncollect(passthrough=[{0, 1, 2, 3, 4}], collectionFields=[{3}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateProjectUncollectMergeExpression">
+    <Resource name="sql">
+      <![CDATA[select *
+from DEPT_NESTED_EXPANDED as t1
+left join lateral (select upper(admin) as a
+  from unnest(t1.admins) as t2(admin)) as t3 on true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], A=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(A=[UPPER($0)])
+      Uncollect
+        LogicalProject(ADMINS=[$cor0.ADMINS])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateProjectUncollectMergeLeft">
+    <Resource name="sql">
+      <![CDATA[select *
+from DEPT_NESTED_EXPANDED as t1
+left join unnest(t1.admins) as t2(admin) on true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], ADMIN=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalProject(ADMIN=[$0])
+      Uncollect
+        LogicalProject(ADMINS=[$cor0.ADMINS])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], ADMIN=[$5])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EMPLOYEES=[$2], ADMINS=[$3], OFFICES=[$4], ADMIN=[$5])
+    Uncollect(passthrough=[{0, 1, 2, 3, 4}], collectionFields=[{3}], isOuter=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelateUncollectMergeOrdinality">
     <Resource name="sql">
       <![CDATA[select t2.admin, t2.rn

@@ -1056,6 +1056,8 @@ ORDER BY d."deptno";
 # CorrelateUncollectOuterRule converts the LEFT correlate over an Uncollect
 # into an INNER correlate over an outer Uncollect; UnnestDecorrelateRule
 # then eliminates the correlate entirely, padding included.
+# RelDecorrelator runs before these rules, and merges the correlate into an
+# outer Uncollect itself, so with RelDecorrelator the plan is different.
 !set hep-rules "
 +CoreRules.CORRELATE_UNCOLLECT_OUTER
 +CoreRules.UNNEST_DECORRELATE"
@@ -1080,6 +1082,17 @@ ORDER BY u.x;
 !ok
 
 # The correlate is gone
+!if (use_old_decorr) {
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableCalc(expr#0..2=[{inputs}], X=[$t2])
+    EnumerableUncollect(passthrough=[{0, 1}], collectionFields=[{1}], isOuter=[true])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[10], expr#3=[20], expr#4=[ARRAY($t2, $t3)], EXPR$0=[$t1], EXPR$1=[$t4])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableValues(tuples=[[{ 3, null }]])
+!plan
+!}
+!if (use_new_decorr) {
 EnumerableSort(sort0=[$0], dir0=[ASC])
   EnumerableUncollect(isOuter=[true])
     EnumerableUnion(all=[true])
@@ -1088,6 +1101,7 @@ EnumerableSort(sort0=[$0], dir0=[ASC])
       EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1])
         EnumerableValues(tuples=[[{ 3, null }]])
 !plan
+!}
 
 # The same elimination for an array of single-field ROW values.
 WITH t(id, arr) AS (
@@ -1134,6 +1148,8 @@ ORDER BY u.x;
 # Tests for [CALCITE-7608] Enhance Uncollect to support pass-through fields
 # The following rules ensure that plans use an Uncollect operator that
 # carries pass-through fields.
+# RelDecorrelator runs before these rules, and merges the Correlates itself,
+# so some plans are different for the two decorrelators.
 !use scott
 !set hep-rules "
 +CoreRules.CORRELATE_UNCOLLECT_MERGE
@@ -1320,10 +1336,17 @@ LEFT JOIN UNNEST(d."employees") as e ON TRUE;
 (4 rows)
 
 !ok
+!if (use_old_decorr) {
+EnumerableUncollect(passthrough=[{1}], collectionFields=[{2}], isOuter=[true])
+  EnumerableTableScan(table=[[hr, depts]])
+!plan
+!}
+!if (use_new_decorr) {
 EnumerableUncollect(passthrough=[{0}], collectionFields=[{1}], isOuter=[true])
   EnumerableCalc(expr#0..3=[{inputs}], name=[$t1], employees=[$t2])
     EnumerableTableScan(table=[[hr, depts]])
 !plan
+!}
 
 # depts LEFT JOIN UNNEST(employees) WITH ORDINALITY.
 # Marketing (empty employees) is preserved; its ORDINALITY is NULL.
@@ -1441,11 +1464,19 @@ UNNEST(d."employees") as e(emp);
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$t1.name], expr#3=[$t1.empid], DEPT=[$t0], ENAME=[$t2], EMPID=[$t3])
+  EnumerableUncollect(passthrough=[{1}], collectionFields=[{2}], expandStructFields=[false])
+    EnumerableTableScan(table=[[hr, depts]])
+!plan
+!}
+!if (use_new_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$t1.name], expr#3=[$t1.empid], DEPT=[$t0], ENAME=[$t2], EMPID=[$t3])
   EnumerableUncollect(passthrough=[{0}], collectionFields=[{1}], expandStructFields=[false])
     EnumerableCalc(expr#0..3=[{inputs}], name=[$t1], employees=[$t2])
       EnumerableTableScan(table=[[hr, depts]])
 !plan
+!}
 
 # LEFT JOIN UNNEST with a NULL struct column.
 select d."name" as dept, e.emp."name" as ename
@@ -1477,11 +1508,19 @@ UNNEST(d."employees") WITH ORDINALITY as e(emp, rn);
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$t0.name], ENAME=[$t2], RN=[$t1])
+  EnumerableUncollect(collectionFields=[{2}], withOrdinality=[true], expandStructFields=[false])
+    EnumerableTableScan(table=[[hr, depts]])
+!plan
+!}
+!if (use_new_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$t0.name], ENAME=[$t2], RN=[$t1])
   EnumerableUncollect(withOrdinality=[true], expandStructFields=[false])
     EnumerableCalc(expr#0..3=[{inputs}], employees=[$t2])
       EnumerableTableScan(table=[[hr, depts]])
 !plan
+!}
 
 # Output a whole struct column
 select d."name" as dept, e.emp as emp
@@ -1497,10 +1536,17 @@ UNNEST(d."employees") as e(emp);
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
+EnumerableUncollect(passthrough=[{1}], collectionFields=[{2}], expandStructFields=[false])
+  EnumerableTableScan(table=[[hr, depts]])
+!plan
+!}
+!if (use_new_decorr) {
 EnumerableUncollect(passthrough=[{0}], collectionFields=[{1}], expandStructFields=[false])
   EnumerableCalc(expr#0..3=[{inputs}], name=[$t1], employees=[$t2])
     EnumerableTableScan(table=[[hr, depts]])
 !plan
+!}
 
 # The 3 following tests cannot be decorrelate if Uncollect does not support pass-through fields
 !use scott
@@ -1545,6 +1591,17 @@ FROM exploded AS e1 JOIN exploded AS e2 ON e1.x = e2.x;
 (2 rows)
 
 !ok
+!if (use_old_decorr) {
+EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
+  EnumerableUncollect(passthrough=[{0}], collectionFields=[{1}])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[10], expr#3=[20], expr#4=[ARRAY($t2, $t3)], EXPR$0=[$t1], EXPR$1=[$t4])
+      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableUncollect(collectionFields=[{1}])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[10], expr#3=[20], expr#4=[ARRAY($t2, $t3)], EXPR$0=[$t1], EXPR$1=[$t4])
+      EnumerableValues(tuples=[[{ 0 }]])
+!plan
+!}
+!if (use_new_decorr) {
 EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
   EnumerableUncollect(passthrough=[{0}], collectionFields=[{1}])
     EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[10], expr#3=[20], expr#4=[ARRAY($t2, $t3)], EXPR$0=[$t1], EXPR$1=[$t4])
@@ -1553,9 +1610,10 @@ EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
     EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=[20], expr#3=[ARRAY($t1, $t2)], EXPR$1=[$t3])
       EnumerableValues(tuples=[[{ 0 }]])
 !plan
+!}
 
-# lateral.iq documents this query as impossible to fully
-# decorrelate; with pass-through fields the Correlate disappears.
+# The same query is in lateral.iq. With pass-through fields the Correlate
+# disappears.
 # Validated on PostgreSQL 14 (dept replaced by inline VALUES): same result.
 select d.deptno, t.x
 from (select deptno,
@@ -1577,8 +1635,8 @@ order by d.deptno, t.x;
 !ok
 !if (use_old_decorr) {
 EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
-  EnumerableUncollect(passthrough=[{0}], collectionFields=[{1}])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[10], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[+($t0, $t6)], expr#8=[ARRAY($t3, $t7)], expr#9=[null:INTEGER NOT NULL ARRAY], expr#10=[CASE($t5, $t8, $t9)], expr#11=[IS NOT NULL($t10)], expr#12=[CAST($t10):INTEGER NOT NULL ARRAY NOT NULL], expr#13=[CAST($t12):INTEGER ARRAY NOT NULL], expr#14=[null:INTEGER], expr#15=[ARRAY($t14)], expr#16=[CASE($t11, $t13, $t15)], DEPTNO=[$t0], $f2=[$t16])
+  EnumerableUncollect(passthrough=[{0}], collectionFields=[{2}])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[10], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[+($t0, $t6)], expr#8=[ARRAY($t3, $t7)], expr#9=[null:INTEGER NOT NULL ARRAY], expr#10=[CASE($t5, $t8, $t9)], expr#11=[IS NOT NULL($t10)], expr#12=[CAST($t10):INTEGER NOT NULL ARRAY NOT NULL], expr#13=[CAST($t12):INTEGER ARRAY NOT NULL], expr#14=[null:INTEGER], expr#15=[ARRAY($t14)], expr#16=[CASE($t11, $t13, $t15)], DEPTNO=[$t0], PATH=[$t10], $f2=[$t16])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 !}
@@ -1591,5 +1649,34 @@ EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
 !}
 
 !set hep-rules original
+
+# [CALCITE-5847] RelDecorrelator does not decorrelate a CROSS JOIN UNNEST
+# Both decorrelators remove the Correlate.
+# Result validated with PostgreSQL 14 and DuckDB 2.0.
+SELECT val
+FROM (SELECT DISTINCT vals FROM (VALUES (ARRAY[2, 3])) t(vals)) tmp
+CROSS JOIN UNNEST(tmp.vals) tt(val);
++-----+
+| VAL |
++-----+
+|   2 |
+|   3 |
++-----+
+(2 rows)
+
+!ok
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], VAL=[$t1])
+  EnumerableUncollect(passthrough=[{0}], collectionFields=[{0}])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[2], expr#2=[3], expr#3=[ARRAY($t1, $t2)], VALS=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+!plan
+!}
+!if (use_new_decorr) {
+EnumerableUncollect
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[2], expr#2=[3], expr#3=[ARRAY($t1, $t2)], VALS=[$t3])
+    EnumerableValues(tuples=[[{ 0 }]])
+!plan
+!}
 
 # End unnest.iq

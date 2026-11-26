@@ -422,16 +422,13 @@ order by d.deptno, t.x;
 !ok
 !if (use_old_decorr) {
 # The entire CASE produced by COALESCE has been extracted into the left input of the
-# EnumerableCorrelate, as $f2.  The right input reads the array through $cor0.$f2.
-# The query cannot be decorrelated because of the remaining Uncollect.
+# Correlate, as $f2. Then the Correlate is merged into an Uncollect that
+# unnests $f2 and passes the other fields through, so no Correlate remains.
 EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
-  EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0], X=[$t2])
-    EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[10], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[+($t0, $t6)], expr#8=[ARRAY($t3, $t7)], expr#9=[null:INTEGER NOT NULL ARRAY], expr#10=[CASE($t5, $t8, $t9)], expr#11=[IS NOT NULL($t10)], expr#12=[CAST($t10):INTEGER NOT NULL ARRAY NOT NULL], expr#13=[CAST($t12):INTEGER ARRAY NOT NULL], expr#14=[null:INTEGER], expr#15=[ARRAY($t14)], expr#16=[CASE($t11, $t13, $t15)], DEPTNO=[$t0], $f2=[$t16])
+  EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t0], X=[$t3])
+    EnumerableUncollect(passthrough=[{0, 1, 2}], collectionFields=[{2}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[10], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[+($t0, $t6)], expr#8=[ARRAY($t3, $t7)], expr#9=[null:INTEGER NOT NULL ARRAY], expr#10=[CASE($t5, $t8, $t9)], expr#11=[IS NOT NULL($t10)], expr#12=[CAST($t10):INTEGER NOT NULL ARRAY NOT NULL], expr#13=[CAST($t12):INTEGER ARRAY NOT NULL], expr#14=[null:INTEGER], expr#15=[ARRAY($t14)], expr#16=[CASE($t11, $t13, $t15)], DEPTNO=[$t0], PATH=[$t10], $f2=[$t16])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableUncollect
-        EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.$f2], EXPR$0=[$t2])
-          EnumerableValues(tuples=[[{ 0 }]])
 !plan
 !}
 
