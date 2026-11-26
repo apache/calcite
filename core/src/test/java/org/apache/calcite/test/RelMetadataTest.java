@@ -139,6 +139,8 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -1737,6 +1739,27 @@ public class RelMetadataTest {
   @Test void testRowCountAggregateEmptyKeyOnEmptyTable() {
     final String sql = "select count(*) from (select * from emp limit 0)";
     sql(sql).assertThatRowCount(is(1D), is(1D), is(1D));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7973">[CALCITE-7973]
+   * RelBuilder can incorrectly skip DISTINCT when getMaxRowCount underestimates
+   * FULL JOIN cardinality</a>. */
+  @ParameterizedTest
+  @CsvSource(useHeadersInDisplayName = true, value = {
+      "leftLimit, rightLimit, maxRowCount",
+      "1, 1, 2",
+      "1, 3, 4",
+      "2, 3, 6",
+      "0, 3, 3",
+      "0, 0, 0",
+      "0, ALL, Infinity",
+      "ALL, 0, Infinity"
+  })
+  void testMaxRowCountFullJoin(String leftLimit, String rightLimit, double maxRowCount) {
+    final String sql = "select * from (select deptno from emp limit " + leftLimit + ") e\n"
+        + "full join (select deptno from dept limit " + rightLimit + ") d on e.deptno = d.deptno";
+    sql(sql).assertThatRowCount(notNullValue(Number.class), is(0D), is(maxRowCount));
   }
 
   // ----------------------------------------------------------------------

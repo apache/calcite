@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
@@ -180,6 +181,13 @@ public class RelMdMaxRowCount
     Double right = mq.getMaxRowCount(rel.getRight());
     if (left == null || right == null) {
       return null;
+    }
+    if (rel.getJoinType() == JoinRelType.FULL) {
+      if (left.isInfinite() || right.isInfinite()) {
+        return Double.POSITIVE_INFINITY;
+      }
+      // With no matches, each input row is returned once, giving at most left + right rows.
+      return Math.max(left * right, left + right);
     }
     if (left < 1D && rel.getJoinType().generatesNullsOnLeft()) {
       left = 1D;
