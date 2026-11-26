@@ -2726,6 +2726,20 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7976">[CALCITE-7976]
+   * AggregateReduceFunctionsRule produces incorrect results for DISTINCT
+   * covariance and regression functions</a>. */
+  @Test void testCovarianceRegrWithDistinct() {
+    final String sql = "select deptno, covar_pop(distinct sal, comm),\n"
+        + "covar_samp(distinct sal, comm), regr_sxx(distinct sal, comm),\n"
+        + "regr_syy(distinct sal, comm)\n"
+        + "from sales.emp group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .checkUnchanged();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7192">[CALCITE-7192]
    * AggregateReduceFunctionsRule lost FILTER condition in STDDEV/VAR function decomposition</a>. */
   @Test void testVarianceStddevWithFilter() {
