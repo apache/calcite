@@ -279,6 +279,28 @@ reporting {
     }
 }
 
+fun Javadoc.setAggregateSources(sourceSets: List<Provider<SourceSet>>) {
+    setSource(sourceSets.map { set ->
+        set.map { it.allJava.matching { exclude("**/package-info.java") } }
+    })
+    // Split packages must have only one annotation declaration in aggregate Javadoc.
+    // Prefer main-source documentation over test-source documentation.
+    source(provider {
+        val packageInfos = linkedMapOf<String, File>()
+        sourceSets.sortedBy { it.get().name != SourceSet.MAIN_SOURCE_SET_NAME }
+            .forEach { set ->
+                set.get().allJava.matching { include("**/package-info.java") }.visit {
+                    if (!isDirectory) {
+                        packageInfos.putIfAbsent(relativePath.pathString, file)
+                    }
+                }
+            }
+        packageInfos.values
+    })
+    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
+        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
+}
+
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
@@ -292,9 +314,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
         .map { it.named("main") }
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
-    setSource(sourceSets.map { set -> set.map { it.allJava } })
-    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
-        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
+    setAggregateSources(sourceSets)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregate")))
 }
 
@@ -312,9 +332,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
         .flatMap { listOf(it.named("main"), it.named("test")) }
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
-    setSource(sourceSets.map { set -> set.map { it.allJava } })
-    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
-        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
+    setAggregateSources(sourceSets)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregateIncludingTests")))
 }
 
@@ -986,46 +1004,6 @@ allprojects {
                         // fails that job alone and leaves the test jobs reporting test failures
                         disable("NullAway")
                     }
-                }
-            }
-        }
-        if (enableCheckerframework) {
-            apply(plugin = "org.checkerframework")
-            dependencies {
-                "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
-                // CheckerFramework annotations might be used in the code as follows:
-                // dependencies {
-                //     "compileOnly"("org.checkerframework:checker-qual")
-                //     "testCompileOnly"("org.checkerframework:checker-qual")
-                // }
-                if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
-                    // only needed for JDK 8
-                    "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8")
-                }
-            }
-            configure<org.checkerframework.gradle.plugin.CheckerFrameworkExtension> {
-                skipVersionCheck = true
-                // See https://checkerframework.org/manual/#introduction
-                checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
-                // Below checkers take significant time and they do not provide much value :-/
-                // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
-                // checkers.add("org.checkerframework.checker.regex.RegexChecker")
-                // https://checkerframework.org/manual/#creating-debugging-options-progress
-                // extraJavacArgs.add("-Afilenames")
-                extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
-                // Consider Java assert statements for nullness and other checks
-                extraJavacArgs.add("-AassumeAssertionsAreEnabled")
-                // https://checkerframework.org/manual/#stub-using
-                extraJavacArgs.add("-Astubs=" +
-                        fileTree("$rootDir/src/main/config/checkerframework") {
-                            include("**/*.astub")
-                        }.asPath
-                )
-                if (project.path == ":core") {
-                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
-                }
-                if (project.path == ":server") {
-                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.ddl\\.")
                 }
             }
         }
