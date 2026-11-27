@@ -20,11 +20,13 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -48,6 +50,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -60,6 +63,7 @@ import java.util.Properties;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import static java.util.Objects.requireNonNull;
@@ -2745,5 +2749,479 @@ public class RelDecorrelatorTest {
     RelDecorrelator.decorrelateQuery(before, builder,
         RuleSets.ofList(Collections.emptyList()),
         RuleSets.ofList(Collections.emptyList()));
+  }
+
+  /** Converts a query to a plan with {@link Planner#rel}, which decorrelates
+   * the plan with {@link RelDecorrelator}. The plan keeps its sub-queries as
+   * {@code RexSubQuery} expressions. */
+  private static RelNode sqlToRel(String sql) {
+    final Planner planner = Frameworks.getPlanner(config().build());
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      return planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  /** Converts a query with {@link #sqlToRel}, replaces its sub-queries with
+   * Correlates, then decorrelates it with {@link RelDecorrelator} and no
+   * rules. Checks the plan after each of the three steps.
+   *
+   * @return The plan after the first step */
+  private static RelNode checkDecorrelation(String sql, String planOriginal,
+      String planBefore, String planAfter) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelOptCluster cluster = builder.getCluster();
+    final RelNode originalRel = sqlToRel(sql);
+    assertThat(originalRel, hasTree(planOriginal));
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    assertThat(after, hasTree(planAfter));
+    return originalRel;
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7962">[CALCITE-7962]
+   * RelDecorrelator removes the variablesSet of a Filter whose input it
+   * decorrelates</a>.
+   *
+   * <p>The WHERE clause declares a variable for its EXISTS sub-query, and its
+   * input is a Correlate (the LATERAL). The decorrelator replaces the
+   * Correlate with a Join. The Filter must still declare its variable. */
+  @Test void testFilterKeepsVariableAfterInputIsDecorrelated() {
+    final String sql = "select d.deptno, x.m\n"
+        + "from dept d,\n"
+        + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
+        + "where exists (select 1 from emp e2\n"
+        + "  where e2.deptno = d.deptno and e2.sal > 2900)";
+    // Planner.rel decorrelates the LATERAL; the Filter keeps its variable
+    final String planOriginal = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4])\n"
+        + "  LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO0=[$3], M=[$4])\n"
+        + "    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
+        + "      LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(i=[true])\n"
+        + "          LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f1=[true])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(DEPTNO=[$7])\n"
+        + "          LogicalFilter(condition=[AND(>(CAST($5):DECIMAL(12, 2), 2900.00), IS NOT NULL($7))])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    checkDecorrelation(sql, planOriginal, planBefore, planAfter);
+  }
+
+  /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
+   * decorrelator moves the field that the variable reads. */
+  @Test void testFilterVariableFollowsMovedField() {
+    final String sql = "select d.deptno, x.m\n"
+        + "from dept d,\n"
+        + "  lateral (select t.m\n"
+        + "    from (select max(sal) as m from emp e where e.deptno = d.deptno) t\n"
+        + "    where exists (select 1 from emp e2\n"
+        + "      where e2.sal = t.m and e2.job = 'ANALYST')) x";
+    final String planOriginal = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3])\n"
+        + "  LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], DEPTNO=[$0])\n"
+        + "      LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3])\n"
+        + "  LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], DEPTNO=[$0])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$1])\n"
+        + "        LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])\n"
+        + "          LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "              LogicalProject(DEPTNO=[$0])\n"
+        + "                LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "              LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "                LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                  LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "          LogicalAggregate(group=[{0}])\n"
+        + "            LogicalProject(i=[true])\n"
+        + "              LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3])\n"
+        + "  LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], DEPTNO=[$0])\n"
+        + "      LogicalJoin(condition=[=($1, $2)], joinType=[inner])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalProject(SAL=[$0], $f1=[true])\n"
+        + "          LogicalAggregate(group=[{0}])\n"
+        + "            LogicalProject(SAL=[$5])\n"
+        + "              LogicalFilter(condition=[AND(=($2, 'ANALYST'), IS NOT NULL($5))])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    final RelNode rel = checkDecorrelation(sql, planOriginal, planBefore, planAfter);
+
+    // The plan prints $cor1.M by name. Before decorrelation, M is field 0 of
+    // the input of the Filter (an Aggregate). Now it is field 1, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(new CorrelationId("$cor1"), rel),
+        is(ImmutableBitSet.of(1)));
+  }
+
+  /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
+   * EXISTS sub-query is in the SELECT clause, so a Project declares the
+   * variable. */
+  @Test void testProjectKeepsVariableAfterInputIsDecorrelated() {
+    final String sql = "select d.deptno, x.m,\n"
+        + "  exists (select 1 from emp e2\n"
+        + "    where e2.deptno = d.deptno and e2.sal > 2900) as rich\n"
+        + "from dept d,\n"
+        + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x";
+    final String planOriginal = ""
+        + "LogicalProject(variablesSet=[[$cor1]], DEPTNO=[$0], M=[$4], RICH=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4], RICH=[IS NOT NULL($5)])\n"
+        + "  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalAggregate(group=[{0}])\n"
+        + "      LogicalProject(i=[true])\n"
+        + "        LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4], RICH=[IS NOT NULL($6)])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[left])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f1=[true])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(DEPTNO=[$7])\n"
+        + "          LogicalFilter(condition=[AND(>(CAST($5):DECIMAL(12, 2), 2900.00), IS NOT NULL($7))])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    checkDecorrelation(sql, planOriginal, planBefore, planAfter);
+  }
+
+  /** As {@link #testProjectKeepsVariableAfterInputIsDecorrelated()}, but the
+   * decorrelator moves the field that the variable reads. */
+  @Test void testProjectVariableFollowsMovedField() {
+    final String sql = "select d.deptno, x.m, x.analyst\n"
+        + "from dept d,\n"
+        + "  lateral (select t.m,\n"
+        + "      exists (select 1 from emp e2\n"
+        + "        where e2.sal = t.m and e2.job = 'ANALYST') as analyst\n"
+        + "    from (select max(sal) as m from emp e where e.deptno = d.deptno) t) x";
+    final String planOriginal = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ANALYST=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(variablesSet=[[$cor1]], M=[$1], ANALYST=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], DEPTNO=[$0])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ANALYST=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], ANALYST=[IS NOT NULL($2)], DEPTNO=[$0])\n"
+        + "      LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{1}])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject(i=[true])\n"
+        + "            LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ANALYST=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], ANALYST=[IS NOT NULL($3)], DEPTNO=[$0])\n"
+        + "      LogicalJoin(condition=[=($1, $2)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalProject(SAL=[$0], $f1=[true])\n"
+        + "          LogicalAggregate(group=[{0}])\n"
+        + "            LogicalProject(SAL=[$5])\n"
+        + "              LogicalFilter(condition=[AND(=($2, 'ANALYST'), IS NOT NULL($5))])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    final RelNode rel = checkDecorrelation(sql, planOriginal, planBefore, planAfter);
+
+    // The plan prints $cor1.M by name. Before decorrelation, M is field 0 of
+    // the input of the Project (an Aggregate). Now it is field 1, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(new CorrelationId("$cor1"), rel),
+        is(ImmutableBitSet.of(1)));
+  }
+
+  /** As {@link #testFilterKeepsVariableAfterInputIsDecorrelated()}, but the
+   * EXISTS sub-query is in the ON clause, so a Join declares the variable. */
+  @Test void testJoinKeepsVariableAfterInputIsDecorrelated() {
+    final String sql = "select d.deptno, x.m, b.ename\n"
+        + "from dept d\n"
+        + "  cross join lateral\n"
+        + "    (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
+        + "  left join bonus b\n"
+        + "    on exists (select 1 from emp e2\n"
+        + "      where e2.deptno = d.deptno and e2.sal > 2900)";
+    final String planOriginal = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4], ENAME=[$5])\n"
+        + "  LogicalJoin(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], joinType=[left], variablesSet=[[$cor1]])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4], ENAME=[$5])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO0=[$3], M=[$4], ENAME=[$6], JOB=[$7], SAL=[$8], COMM=[$9])\n"
+        + "    LogicalJoin(condition=[IS NOT NULL($5)], joinType=[left])\n"
+        + "      LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])\n"
+        + "        LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "              LogicalProject(DEPTNO=[$0])\n"
+        + "                LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "              LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "                LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                  LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject(i=[true])\n"
+        + "            LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalTableScan(table=[[scott, BONUS]])\n";
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4], ENAME=[$7])\n"
+        + "  LogicalJoin(condition=[IS NOT NULL($6)], joinType=[left])\n"
+        + "    LogicalJoin(condition=[=($0, $5)], joinType=[left])\n"
+        + "      LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalProject(DEPTNO=[$0], $f1=[true])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject(DEPTNO=[$7])\n"
+        + "            LogicalFilter(condition=[AND(>(CAST($5):DECIMAL(12, 2), 2900.00), IS NOT NULL($7))])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    checkDecorrelation(sql, planOriginal, planBefore, planAfter);
+  }
+
+  /** As {@link #testJoinKeepsVariableAfterInputIsDecorrelated()}, but the
+   * decorrelator moves the field that the variable reads. The Join is in the
+   * LATERAL, where the decorrelator must not treat the variable of the Join
+   * as a variable of an enclosing query. */
+  @Test void testJoinVariableFollowsMovedField() {
+    final String sql = "select d.deptno, x.m, x.ename\n"
+        + "from dept d,\n"
+        + "  lateral (select t.m, b.ename\n"
+        + "    from (select max(sal) as m from emp e where e.deptno = d.deptno) t\n"
+        + "      left join bonus b\n"
+        + "        on exists (select 1 from emp e2\n"
+        + "          where e2.sal = t.m and e2.job = 'ANALYST')) x";
+    final String planOriginal = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ENAME=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], ENAME=[$2], DEPTNO=[$0])\n"
+        + "      LogicalJoin(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], joinType=[left], variablesSet=[[$cor1]])\n"
+        + "        LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n";
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ENAME=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], ENAME=[$2], DEPTNO=[$0])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$1], ENAME=[$3], JOB=[$4], SAL=[$5], COMM=[$6])\n"
+        + "        LogicalJoin(condition=[IS NOT NULL($2)], joinType=[left])\n"
+        + "          LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{1}])\n"
+        + "            LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "              LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "                LogicalProject(DEPTNO=[$0])\n"
+        + "                  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "                LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "                  LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                    LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "            LogicalAggregate(group=[{0}])\n"
+        + "              LogicalProject(i=[true])\n"
+        + "                LogicalFilter(condition=[AND(=($5, $cor1.M), =($2, 'ANALYST'))])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "          LogicalTableScan(table=[[scott, BONUS]])\n";
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3], ENAME=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(M=[$1], ENAME=[$4], DEPTNO=[$0])\n"
+        + "      LogicalJoin(condition=[IS NOT NULL($3)], joinType=[left])\n"
+        + "        LogicalJoin(condition=[=($1, $2)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "              LogicalProject(DEPTNO=[$0])\n"
+        + "                LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "              LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "                LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                  LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "          LogicalProject(SAL=[$0], $f1=[true])\n"
+        + "            LogicalAggregate(group=[{0}])\n"
+        + "              LogicalProject(SAL=[$5])\n"
+        + "                LogicalFilter(condition=[AND(=($2, 'ANALYST'), IS NOT NULL($5))])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n";
+    final RelNode rel = checkDecorrelation(sql, planOriginal, planBefore, planAfter);
+
+    // The plan prints $cor1.M by name. Before decorrelation, M is field 0 of
+    // the joined row. Now it is field 1, after DEPTNO.
+    assertThat(RelOptUtil.correlationColumns(new CorrelationId("$cor1"), rel),
+        is(ImmutableBitSet.of(1)));
   }
 }
