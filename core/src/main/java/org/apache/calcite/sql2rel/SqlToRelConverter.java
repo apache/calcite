@@ -31,6 +31,7 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.BiRel;
+import org.apache.calcite.rel.DuplicateCorrelationIdRemover;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -45,6 +46,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -1404,6 +1406,17 @@ public class SqlToRelConverter {
     }
   }
 
+  /** Returns a copy of a Correlate that declares a new id. The uses of its
+   * variable in its right input get the new id. */
+  private Correlate withNewCorrelationId(Correlate correlate) {
+    final CorrelationId newId = cluster.createCorrel();
+    final RelNode right =
+        DuplicateCorrelationIdRemover.renameFreeIds(correlate.getRight(),
+            ImmutableMap.of(correlate.getCorrelationId(), newId));
+    return correlate.copy(correlate.getTraitSet(), correlate.getLeft(), right,
+        newId, correlate.getRequiredColumns(), correlate.getJoinType());
+  }
+
   private void substituteSubQuery(Blackboard bb, SubQuery subQuery) {
     if (subQuery.expr != null) {
       // Already done.
@@ -1549,10 +1562,15 @@ public class SqlToRelConverter {
                         false, false, ImmutableList.of(), args,
                         -1, null, RelCollations.EMPTY, longType, null)));
         // seek may reference the outer query; createJoin then returns
-        // a Correlate that binds the variable.
-        final RelNode join =
+        // a Correlate that binds the variable. The join with converted.r
+        // below declares the same variable, so this Correlate declares a
+        // new id.
+        final RelNode countJoin =
             createJoin(bb, bb.root(), aggregate, rexBuilder.makeLiteral(true),
                 JoinRelType.INNER);
+        final RelNode join = countJoin instanceof Correlate
+            ? withNewCorrelationId((Correlate) countJoin)
+            : countJoin;
         // As in Blackboard.register, keep the group by mapping for the new root
         final Map<Integer, Integer> projection =
             bb.mapRootRelToFieldProjection.get(bb.root());

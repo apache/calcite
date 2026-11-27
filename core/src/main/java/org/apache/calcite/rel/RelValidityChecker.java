@@ -30,7 +30,13 @@ import java.util.Set;
 /**
  * Visitor that checks that every {@link RelNode} in a tree is valid.
  *
+ * <p>This visitor only checks for correlation variables that a node
+ * using a is "below" a node that declares the variable. This
+ * visitor does not inspect into sub-queries. {@link CorrelateInvariantChecker}
+ * checks additional invariants of correlation variables.
+ *
  * @see RelNode#isValid(Litmus, RelNode.Context)
+ * @see CorrelateInvariantChecker
  */
 public class RelValidityChecker extends RelVisitor
     implements RelNode.Context {

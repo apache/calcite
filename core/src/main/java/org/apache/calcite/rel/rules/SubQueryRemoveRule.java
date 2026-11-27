@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.DuplicateCorrelationIdRemover;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
@@ -51,12 +53,16 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -117,6 +123,68 @@ public class SubQueryRemoveRule
     default:
       throw new AssertionError(e.getKind());
     }
+  }
+
+  /** Returns a map from each id in {@code ids} to a new id. */
+  private static Map<CorrelationId, CorrelationId> newIds(Iterable<CorrelationId> ids,
+      RelOptCluster cluster) {
+    final Map<CorrelationId, CorrelationId> renaming = new HashMap<>();
+    for (CorrelationId id : ids) {
+      renaming.put(id, cluster.createCorrel());
+    }
+    return renaming;
+  }
+
+  /** Returns {@code e}, or a copy of {@code e} with new ids for some of its
+   * variables, so that each Correlate uses fresh ids.
+   *
+   * <p>The rule replaces each sub-query of a node with a Correlate that
+   * declares the variables of the sub-query. When two sub-queries of one node
+   * use the same variable, the first Correlate declares its id, and this
+   * method gives the variable a new id in the second sub-query.
+   *
+   * @param e            Sub-query
+   * @param variablesSet Variables of the sub-query
+   * @param declared     Ids already declared; this
+   *                     method adds to this set the ids of the sub-query
+   * @return The sub-query with the new ids, or {@code e} if no id changes
+   */
+  private static RexSubQuery withNewIds(RexSubQuery e,
+      Set<CorrelationId> variablesSet, Set<CorrelationId> declared,
+      RelOptCluster cluster) {
+    final Set<CorrelationId> redeclared = new HashSet<>(variablesSet);
+    redeclared.retainAll(declared);
+    declared.addAll(variablesSet);
+    if (redeclared.isEmpty()) {
+      return e;
+    }
+    final Map<CorrelationId, CorrelationId> renaming = newIds(redeclared, cluster);
+    variablesSet.removeAll(renaming.keySet());
+    variablesSet.addAll(renaming.values());
+    declared.addAll(renaming.values());
+    return e.clone(DuplicateCorrelationIdRemover.renameFreeIds(e.rel, renaming));
+  }
+
+  /** Pushes a copy of a sub-query in which the variables have new ids. A
+   * rewrite uses it when it builds a second Correlate for the same sub-query.
+   *
+   * @param builder      Builder; this method pushes the copy onto its stack
+   * @param rel          Plan of the sub-query
+   * @param variablesSet Variables of the sub-query that the first Correlate
+   *                     declares
+   * @return The variables of the copy: a new id for each id of
+   *         {@code variablesSet}, or {@code variablesSet} if it is empty
+   */
+  private static Set<CorrelationId> pushWithNewIds(RelBuilder builder, RelNode rel,
+      Set<CorrelationId> variablesSet) {
+    if (variablesSet.isEmpty()) {
+      builder.push(rel);
+      return variablesSet;
+    }
+    final Map<CorrelationId, CorrelationId> renaming =
+        newIds(variablesSet, builder.getCluster());
+    builder.push(DuplicateCorrelationIdRemover.renameFreeIds(rel, renaming));
+    return ImmutableSet.copyOf(renaming.values());
   }
 
   /**
@@ -828,6 +896,7 @@ public class SubQueryRemoveRule
         builder.getRexBuilder().makeNullLiteral(trueLiteral.getType());
     boolean needsNullSafety = false;
     boolean needsNullRowJoin = false;
+    Set<CorrelationId> dtVariablesSet = variablesSet;
     if (allLiterals) {
       final List<RexNode> conditions =
           Pair.zip(expressionOperands, fields).stream()
@@ -919,7 +988,8 @@ public class SubQueryRemoveRule
             builder.join(JoinRelType.INNER, trueLiteral, variablesSet);
           }
           offset += 2;
-          builder.push(e.rel);
+          // The join with "ct" declares the variables; the join with "dt" needs new ids
+          dtVariablesSet = pushWithNewIds(builder, e.rel, variablesSet);
         }
         // fall through
       default:
@@ -965,13 +1035,13 @@ public class SubQueryRemoveRule
     }
     switch (logic) {
     case TRUE:
-      builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
+      builder.join(JoinRelType.INNER, builder.and(conditions), dtVariablesSet);
       return trueLiteral;
     default:
       break;
     }
     // Now the left join
-    builder.join(JoinRelType.LEFT, builder.and(conditions), variablesSet);
+    builder.join(JoinRelType.LEFT, builder.and(conditions), dtVariablesSet);
 
     final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
     RexLiteral b = trueLiteral;
@@ -1084,6 +1154,7 @@ public class SubQueryRemoveRule
       RelOptRuleCall call) {
     final Project project = call.rel(0);
     final Set<CorrelationId> projectVariablesSet = project.getVariablesSet();
+    final Set<CorrelationId> declared = new HashSet<>();
     final RelBuilder builder = call.builder();
     builder.push(project.getInput());
     // Rewrite all sub-queries in one call, as matchFilter does. If only one
@@ -1107,7 +1178,8 @@ public class SubQueryRemoveRule
       // Only consider the correlated variables which originated from this sub-query level.
       variablesSet.retainAll(projectVariablesSet);
       final RexNode target =
-          rule.apply(e, variablesSet, logic,
+          rule.apply(withNewIds(e, variablesSet, declared, project.getCluster()),
+              variablesSet, logic,
               builder, 1, builder.peek().getRowType().getFieldCount(), count);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
       projects = shuttle.apply(projects);
@@ -1120,6 +1192,7 @@ public class SubQueryRemoveRule
       RelOptRuleCall call) {
     final Filter filter = call.rel(0);
     final Set<CorrelationId> filterVariablesSet = filter.getVariablesSet();
+    final Set<CorrelationId> declared = new HashSet<>();
     final RelBuilder builder = call.builder();
     builder.push(filter.getInput());
     int count = 0;
@@ -1138,7 +1211,8 @@ public class SubQueryRemoveRule
       // Only consider the correlated variables which originated from this sub-query level.
       variablesSet.retainAll(filterVariablesSet);
       final RexNode target =
-          rule.apply(e, variablesSet, logic,
+          rule.apply(withNewIds(e, variablesSet, declared, filter.getCluster()),
+              variablesSet, logic,
               builder, 1, builder.peek().getRowType().getFieldCount(), count);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
       c = c.accept(shuttle);
@@ -1441,6 +1515,7 @@ public class SubQueryRemoveRule
   private List<RexNode> applyEnableMarkJoin(Set<CorrelationId> variablesSetOfRelNode,
       List<RexNode> expressions, RelBuilder builder) {
     List<RexNode> newExpressions = new ArrayList<>(expressions);
+    final Set<CorrelationId> declared = new HashSet<>();
     int count = 0;
     while (true) {
       final RexSubQuery e = RexUtil.SubQueryFinder.find(newExpressions);
@@ -1453,6 +1528,7 @@ public class SubQueryRemoveRule
       // Only keep the correlation that are defined in the current RelNode level, to avoid creating
       // wrong Correlate node.
       variablesSet.retainAll(variablesSetOfRelNode);
+      final RexSubQuery e2 = withNewIds(e, variablesSet, declared, builder.getCluster());
 
       RexNode target;
       // rewrite EXISTS/IN/SOME to left mark join/correlate
@@ -1461,23 +1537,23 @@ public class SubQueryRemoveRule
       case IN:
       case SOME:
         target =
-            rewriteToMarkJoin(e, variablesSet, builder,
+            rewriteToMarkJoin(e2, variablesSet, builder,
                 builder.peek().getRowType().getFieldCount());
         break;
       case SCALAR_QUERY:
         target =
-            rewriteScalarQuery(e, variablesSet, builder, 1,
+            rewriteScalarQuery(e2, variablesSet, builder, 1,
                 builder.peek().getRowType().getFieldCount());
         break;
       case ARRAY_QUERY_CONSTRUCTOR:
       case MAP_QUERY_CONSTRUCTOR:
       case MULTISET_QUERY_CONSTRUCTOR:
         target =
-            rewriteCollection(e, variablesSet, builder, 1,
+            rewriteCollection(e2, variablesSet, builder, 1,
                 builder.peek().getRowType().getFieldCount());
         break;
       case UNIQUE:
-        target = rewriteUnique(e, builder);
+        target = rewriteUnique(e2, builder);
         break;
       default:
         throw new AssertionError(e.getKind());

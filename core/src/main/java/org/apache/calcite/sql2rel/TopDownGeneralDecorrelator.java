@@ -23,6 +23,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.rel.CorrelateInvariantChecker;
+import org.apache.calcite.rel.DuplicateCorrelationIdRemover;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -56,6 +58,7 @@ import org.apache.calcite.sql2rel.RelDecorrelator.CorDef;
 import org.apache.calcite.sql2rel.RelDecorrelator.Frame;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
@@ -198,6 +201,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
    * @return  Equivalent node without correlation
    */
   public static RelNode decorrelateQuery(RelNode rel, RelBuilder builder) {
+    // Code outside Calcite can give one id to two variables
+    final RelNode plan = DuplicateCorrelationIdRemover.makeIdsUnique(rel);
+    CorrelateInvariantChecker.isValid(plan, Litmus.THROW);
+
     // Use a custom FILTER_PROJECT_TRANSPOSE that does not push filters through
     // projects containing V2M (measure) expressions. Pushing a filter past a
     // V2M-carrying project changes the scope of the measure computation and
@@ -229,7 +236,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     HepPlanner prePlanner =
         new HepPlanner(preProgram, null, true,
             null, RelOptCostImpl.FACTORY);
-    prePlanner.setRoot(rel);
+    prePlanner.setRoot(plan);
     RelNode preparedRel = prePlanner.findBestExp();
 
     // Extract computations over correlated variables from the right side of
@@ -273,7 +280,9 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
         .build();
     HepPlanner postPlanner = new HepPlanner(postProgram);
     postPlanner.setRoot(decorrelateNode);
-    return postPlanner.findBestExp();
+    final RelNode result = postPlanner.findBestExp();
+    CorrelateInvariantChecker.isValid(result, Litmus.THROW);
+    return result;
   }
 
   /** Returns whether correlated Sorts in a tree have OFFSET and FETCH values

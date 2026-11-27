@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.CorrelateInvariantChecker;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelValidityChecker;
 import org.apache.calcite.rel.hint.Hintable;
@@ -226,6 +227,27 @@ public class Matchers {
         RelValidityChecker checker = new RelValidityChecker();
         checker.go(rel);
         return checker.invalidCount() == 0;
+      }
+    };
+  }
+
+  /** Matcher that matches a {@link RelNode} if the {@code RelNode} obeys the
+   * rules for correlation variables of {@link CorrelateInvariantChecker}. */
+  public static Matcher<RelNode> hasValidCorrelations() {
+    return new TypeSafeMatcher<RelNode>() {
+      @Override public void describeTo(Description description) {
+        description.appendText("rel obeys the rules for correlation variables");
+      }
+
+      @Override protected boolean matchesSafely(RelNode rel) {
+        return CorrelateInvariantChecker.violations(rel).isEmpty();
+      }
+
+      @Override protected void describeMismatchSafely(RelNode rel,
+          Description description) {
+        description.appendValueList("", "\n", "\n",
+                CorrelateInvariantChecker.violations(rel))
+            .appendText(RelOptUtil.toString(rel));
       }
     };
   }

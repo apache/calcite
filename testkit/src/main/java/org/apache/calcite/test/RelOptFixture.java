@@ -58,6 +58,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import static org.apache.calcite.test.Matchers.hasValidCorrelations;
 import static org.apache.calcite.test.Matchers.relIsValid;
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
@@ -82,7 +83,7 @@ public class RelOptFixture {
   static final RelOptFixture DEFAULT =
       new RelOptFixture(SqlToRelFixture.TESTER, SqlTestFactory.INSTANCE,
           null, RelSupplier.NONE, null, null,
-          ImmutableMap.of(), (f, r) -> r, (f, r) -> r, false, false, false)
+          ImmutableMap.of(), (f, r) -> r, (f, r) -> r, false, false, false, true)
           .withFactory(f ->
               f.withValidatorConfig(c -> c.withIdentifierExpansion(true))
                   .withSqlToRelConfig(c -> c.withExpand(false)))
@@ -104,6 +105,9 @@ public class RelOptFixture {
   final boolean decorrelate;
   final boolean lateDecorrelate;
   final boolean topDownGeneralDecorrelate;
+  /** Whether to check that each plan obeys the rules for correlation
+   * variables of {@link org.apache.calcite.rel.CorrelateInvariantChecker}. */
+  final boolean checkCorrelations;
 
   RelOptFixture(SqlTester tester, SqlTestFactory factory,
       @Nullable DiffRepository diffRepos, RelSupplier relSupplier,
@@ -111,7 +115,8 @@ public class RelOptFixture {
       ImmutableMap<Hook, Consumer<Object>> hooks,
       BiFunction<RelOptFixture, RelNode, RelNode> before,
       BiFunction<RelOptFixture, RelNode, RelNode> after,
-      boolean decorrelate, boolean lateDecorrelate, boolean topDownGeneralDecorrelate) {
+      boolean decorrelate, boolean lateDecorrelate, boolean topDownGeneralDecorrelate,
+      boolean checkCorrelations) {
     this.tester = requireNonNull(tester, "tester");
     this.factory = factory;
     this.diffRepos = diffRepos;
@@ -124,6 +129,7 @@ public class RelOptFixture {
     this.decorrelate = decorrelate;
     this.lateDecorrelate = lateDecorrelate;
     this.topDownGeneralDecorrelate = topDownGeneralDecorrelate;
+    this.checkCorrelations = checkCorrelations;
   }
 
   public RelOptFixture withDiffRepos(DiffRepository diffRepos) {
@@ -132,7 +138,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withRelSupplier(RelSupplier relSupplier) {
@@ -141,7 +147,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture sql(String sql) {
@@ -159,7 +165,7 @@ public class RelOptFixture {
         (sql, r) -> transform.apply(this, before0.apply(this, r));
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withAfter(
@@ -169,7 +175,7 @@ public class RelOptFixture {
         (sql, r) -> transform.apply(this, after0.apply(this, r));
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withDynamicTable() {
@@ -183,7 +189,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withPre(HepProgram preProgram) {
@@ -192,7 +198,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withPreRule(RelOptRule... rules) {
@@ -209,7 +215,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withProgram(HepProgram program) {
@@ -238,7 +244,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public <V> RelOptFixture withProperty(Hook hook, V value) {
@@ -273,7 +279,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withTopDownGeneralDecorrelate(final boolean topDownGeneralDecorrelate) {
@@ -282,7 +288,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withDecorrelate(final boolean decorrelate) {
@@ -291,7 +297,18 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, topDownGeneralDecorrelate);
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
+  }
+
+  /** Returns a fixture that optionally checks that each plan obeys
+   * the invariants for correlation variables. The check is on by default. */
+  public RelOptFixture withCheckCorrelations(final boolean checkCorrelations) {
+    if (checkCorrelations == this.checkCorrelations) {
+      return this;
+    }
+    return new RelOptFixture(tester, factory, diffRepos, relSupplier,
+        preProgram, planner, hooks, before, after, decorrelate,
+        lateDecorrelate, topDownGeneralDecorrelate, checkCorrelations);
   }
 
   public RelOptFixture withTrim(final boolean trim) {
@@ -319,6 +336,15 @@ public class RelOptFixture {
 
   public RelNode toRel() {
     return relSupplier.apply(this);
+  }
+
+  /** Checks that a plan is valid, and, unless the test turned the check off,
+   * that it obeys the rules for correlation variables. */
+  private void assertValid(RelNode rel) {
+    assertThat(rel, relIsValid());
+    if (checkCorrelations) {
+      assertThat(rel, hasValidCorrelations());
+    }
   }
 
   /**
@@ -381,7 +407,7 @@ public class RelOptFixture {
     final String planBefore = NL + relToString(relBefore);
     final DiffRepository diffRepos = diffRepos();
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    assertThat(relBefore, relIsValid());
+    assertValid(relBefore);
 
     final RelNode r2;
     if (planner instanceof VolcanoPlanner) {
@@ -402,7 +428,7 @@ public class RelOptFixture {
     if (lateDecorrelate) {
       final String planMid = NL + relToString(r3);
       diffRepos.assertEquals("planMid", "${planMid}", planMid);
-      assertThat(r3, relIsValid());
+      assertValid(r3);
       final RelBuilder relBuilder =
           RelFactories.LOGICAL_BUILDER.create(cluster, null);
       r4 =
@@ -428,7 +454,7 @@ public class RelOptFixture {
             + "You must use unchanged=true or call checkUnchanged");
       }
     }
-    assertThat(relAfter, relIsValid());
+    assertValid(relAfter);
   }
 
   /** Converts a {@code RelNode} to a string, masking differences between
