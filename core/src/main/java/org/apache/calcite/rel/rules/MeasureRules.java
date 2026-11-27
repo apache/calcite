@@ -132,6 +132,10 @@ public abstract class MeasureRules {
 
     @Override public void onMatch(RelOptRuleCall call) {
       final Aggregate aggregate = call.rel(0);
+      if (aggregate.getAggCallList().stream().anyMatch(c ->
+          c.getAggregation().kind == SqlKind.AGG_M2V && c.hasFilter())) {
+        return;
+      }
       final RelBuilder b = call.builder();
       b.push(aggregate.getInput());
       final List<Function<RelBuilder, RelBuilder.AggCall>> aggCallList =

@@ -134,7 +134,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1421,15 +1420,16 @@ public abstract class SqlImplementor {
       return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
           Util.transform(aggCall.rexList, e -> toSql(null, e)),
           Util.transform(aggCall.getArgList(), this::field),
-          aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
+          aggCall.filterArg, aggCall.distinctKeys, aggCall.collation,
+          aggCall.isApproximate());
     }
 
     /** Converts a call to an aggregate function, with a given list of operands,
      * to an expression. */
     private SqlNode toSql(SqlOperator op, boolean distinct,
         List<SqlNode> preOperandList, List<SqlNode> operandList,
-        int filterArg, RelCollation collation,
-        boolean approximate) {
+        int filterArg, @Nullable ImmutableBitSet distinctKeys,
+        RelCollation collation, boolean approximate) {
       final SqlLiteral qualifier =
           distinct ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
 
@@ -1440,7 +1440,7 @@ public abstract class SqlImplementor {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node =
             toSql(SqlStdOperatorTable.SUM, distinct, preOperandList,
-                operandList, filterArg, collation, approximate);
+                operandList, filterArg, distinctKeys, collation, approximate);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
 
@@ -1465,7 +1465,7 @@ public abstract class SqlImplementor {
           newOperandList.addAll(Util.skip(operandList));
         }
         return toSql(op, distinct, preOperandList, newOperandList, -1,
-            collation, approximate);
+            distinctKeys, collation, approximate);
       }
 
       if (op instanceof SqlCountAggFunction && operandList.isEmpty()) {
@@ -1473,8 +1473,13 @@ public abstract class SqlImplementor {
         // to it.
         operandList = ImmutableList.of(SqlIdentifier.STAR);
       }
-      final SqlCall call =
+      final SqlCall call0 =
           op.createCall(qualifier, POS, operandList);
+      final SqlCall call = distinctKeys == null
+          ? call0
+          : SqlStdOperatorTable.WITHIN_DISTINCT.createCall(POS, call0,
+              new SqlNodeList(Util.transform(distinctKeys.asList(), this::field),
+                  POS));
 
       // Handle filter by generating FILTER (WHERE ...)
       final SqlCall call2;
@@ -1500,7 +1505,7 @@ public abstract class SqlImplementor {
       }
       final List<SqlNode> orderByList = new ArrayList<>();
       for (RelFieldCollation field : collation.getFieldCollations()) {
-        addOrderItem(orderByList, field);
+        addOrderItem(orderByList, field, false);
       }
       return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call,
           new SqlNodeList(orderByList, POS));
@@ -2520,10 +2525,9 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
-          final Set<Integer> aggregatesArgs = new HashSet<>();
-          for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-            aggregatesArgs.addAll(aggregateCall.getArgList());
-          }
+          final Set<Integer> aggregatesArgs =
+              RelOptUtil.getAllFields2(ImmutableBitSet.of(),
+                  aggregate.getAggCallList());
           for (int aggregatesArg : aggregatesArgs) {
             if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
               final SqlBasicCall call = (SqlBasicCall) selectList.get(aggregatesArg);

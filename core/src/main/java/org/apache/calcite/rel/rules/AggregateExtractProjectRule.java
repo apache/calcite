@@ -18,10 +18,10 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rex.RexNode;
@@ -85,19 +85,10 @@ public class AggregateExtractProjectRule
   @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final RelNode input = call.rel(1);
-    // Compute which input fields are used.
-    // 1. group fields are always used
-    final ImmutableBitSet.Builder inputFieldsUsed =
-        aggregate.getGroupSet().rebuild();
-    // 2. agg functions
-    for (AggregateCall aggCall : aggregate.getAggCallList()) {
-      for (int i : aggCall.getArgList()) {
-        inputFieldsUsed.set(i);
-      }
-      if (aggCall.filterArg >= 0) {
-        inputFieldsUsed.set(aggCall.filterArg);
-      }
-    }
+    // Compute which input fields are used: the group keys, and the arguments,
+    // filters, WITHIN DISTINCT keys and sort keys of the aggregate calls
+    final ImmutableBitSet inputFieldsUsed =
+        ImmutableBitSet.of(RelOptUtil.getAllFields(aggregate));
     final RelBuilder relBuilder = call.builder().push(input);
     final List<RexNode> projects = new ArrayList<>();
     final Mapping mapping =
@@ -105,7 +96,7 @@ public class AggregateExtractProjectRule
             aggregate.getInput().getRowType().getFieldCount(),
             inputFieldsUsed.cardinality());
     int j = 0;
-    for (int i : inputFieldsUsed.build()) {
+    for (int i : inputFieldsUsed) {
       projects.add(relBuilder.field(i));
       mapping.set(i, j++);
     }

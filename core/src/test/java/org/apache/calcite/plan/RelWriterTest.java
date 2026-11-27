@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableModify;
@@ -1265,6 +1266,87 @@ class RelWriterTest {
       throw new AssertionError();
     }
     assertThat(s, isLinux(expected));
+  }
+
+  /** RelJsonWriter does not write the FILTER, WITHIN DISTINCT and WITHIN
+   * GROUP of an aggregate call, so the plan that RelJsonReader reads back
+   * computes other values. */
+  @Test void testAggregateCallFieldsRoundTrip() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    // Equivalent SQL:
+    //   SELECT deptno,
+    //     COUNT(*) FILTER (WHERE comm IS NOT NULL) AS c,
+    //     SUM(sal) WITHIN DISTINCT (job) AS s,
+    //     COLLECT(ename) WITHIN GROUP (ORDER BY sal) AS l
+    //   FROM emp
+    //   GROUP BY deptno
+    final RelNode rel = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey("DEPTNO"),
+            builder.count()
+                .filter(builder.isNotNull(builder.field("COMM"))).as("C"),
+            builder.sum(builder.field("SAL"))
+                .unique(builder.field("JOB")).as("S"),
+            builder.aggregateCall(SqlStdOperatorTable.COLLECT,
+                builder.field("ENAME")).sort(builder.field("SAL")).as("L"))
+        .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{3}], C=[COUNT() FILTER $4], "
+        + "S=[SUM($2) WITHIN DISTINCT ($1)], "
+        + "L=[COLLECT($0) WITHIN GROUP ([2])])\n"
+        + "  LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], DEPTNO=[$7], "
+        + "$f8=[IS NOT NULL($6)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(RelOptUtil.toString(rel), isLinux(expected));
+    final RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    final String s =
+        deserializeAndDumpToTextFormat(getSchema(rel), jsonWriter.asString());
+    assertThat(s, isLinux(expected));
+  }
+
+  /** Describes the calls of an Aggregate, including IGNORE NULLS, which
+   * {@link AggregateCall#toString()} does not print. */
+  private static String describeAggCalls(RelNode rel) {
+    final StringBuilder b = new StringBuilder();
+    for (AggregateCall call : ((Aggregate) rel).getAggCallList()) {
+      b.append(call).append(call.ignoreNulls() ? " IGNORE NULLS" : "")
+          .append("\n");
+    }
+    return b.toString();
+  }
+
+  /** RelJsonWriter does not write APPROXIMATE and IGNORE NULLS of an
+   * aggregate call. */
+  @Test void testAggregateCallFlagsRoundTrip() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey("DEPTNO"),
+            builder.count(true, "C", builder.field("JOB")).approximate(true),
+            builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG,
+                builder.field("COMM")).ignoreNulls(true).as("A"))
+        .build();
+    final String expected = "COUNT(APPROXIMATE DISTINCT $2)\n"
+        + "ARRAY_AGG($6) IGNORE NULLS\n";
+    assertThat(describeAggCalls(rel), is(expected));
+    final RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    final String relJson = jsonWriter.asString();
+    final String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader =
+              new RelJsonReader(cluster, getSchema(rel), rootSchema,
+                  RelJson::withLibraryOperatorTable);
+          try {
+            return describeAggCalls(reader.read(relJson));
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+    assertThat(s, is(expected));
   }
 
   /** Test case for

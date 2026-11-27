@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
@@ -109,7 +108,7 @@ public class AggregateFilterToCaseRule
 
   private static AggregateCall transform(AggregateCall call,
       RexBuilder rexBuilder, RelDataTypeFactory typeFactory, List<RexNode> newProjects) {
-    if (!call.hasFilter()) {
+    if (!call.hasFilter() || !call.getAggregation().skipsNullInputs()) {
       return call;
     }
     final SqlKind kind = call.getAggregation().getKind();
@@ -137,7 +136,7 @@ public class AggregateFilterToCaseRule
     newProjects.add(caseWhen);
     return AggregateCall.create(call.getParserPosition(), call.getAggregation(), call.isDistinct(),
         call.isApproximate(), call.ignoreNulls(), call.rexList,
-        ImmutableList.of(newProjects.size() - 1), -1, call.distinctKeys, RelCollations.EMPTY,
+        ImmutableList.of(newProjects.size() - 1), -1, call.distinctKeys, call.collation,
         call.getType(), call.getName());
   }
 

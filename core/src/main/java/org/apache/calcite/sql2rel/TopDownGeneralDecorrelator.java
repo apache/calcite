@@ -601,7 +601,9 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     Map<Integer, Integer> oldToNewOutputs = new HashMap<>();
     for (int groupKey : aggregate.getGroupSet()) {
       int oriIndex = aggregate.getGroupSet().indexOf(groupKey);
-      int newIndex = newGroupSet.indexOf(groupKey);
+      int newIndex =
+          newGroupSet.indexOf(
+              requireNonNull(inputUnnestedQuery.oldToNewOutputs.get(groupKey)));
       oldToNewOutputs.put(oriIndex, newIndex);
     }
     for (int i = 0; i < aggregate.getAggCallList().size(); i++) {

@@ -5085,3 +5085,57 @@ order by deptno nulls last, ename nulls first;
 # Nested forms and restrictions are in
 # SqlValidatorTest.testGroupingSetsStarNested.
 !use post
+
+# [CALCITE-7974] Many query rewrites lose the WITHIN GROUP sort order and/or
+# FILTER and/or WITHIN DISTINCT of an Aggregate
+# AggregateCaseToFilterRule changes AGG(CASE WHEN c THEN x END) to
+# AGG(x) FILTER (WHERE c). It must keep the WITHIN GROUP sort order.
+# Result validated with PostgreSQL 14, using
+# STRING_AGG(CASE WHEN deptno = 20 THEN ename END, ',' ORDER BY ename DESC).
+!use scott
+SELECT LISTAGG(CASE WHEN deptno = 20 THEN ename END)
+  WITHIN GROUP (ORDER BY ename DESC) AS names
+FROM emp;
++------------------------------+
+| NAMES                        |
++------------------------------+
+| SMITH,SCOTT,JONES,FORD,ADAMS |
++------------------------------+
+(1 row)
+
+!ok
+
+# The rule does not change a call with WITHIN DISTINCT. Before, it dropped
+# WITHIN DISTINCT and the result was 80 (department 20 has two clerks).
+# Result validated with PostgreSQL 14, using
+# SUM(DISTINCT CASE WHEN job = 'CLERK' THEN deptno END).
+SELECT SUM(CASE WHEN job = 'CLERK' THEN deptno END)
+  WITHIN DISTINCT (deptno) AS s
+FROM emp;
++----+
+| S  |
++----+
+| 60 |
++----+
+(1 row)
+
+!ok
+
+# The validator fails on FILTER after WITHIN GROUP in PERCENTILE_DISC
+# (UnsupportedOperationException in SqlOperatorBinding.getCollationType)
+# Result validated with PostgreSQL 14.
+select percentile_disc(0.5) within group (order by sal)
+    filter (where deptno = 10) as p,
+  percentile_disc(0.5) within group (order by sal desc)
+    filter (where deptno = 10) as pd,
+  percentile_cont(0.5) within group (order by sal)
+    filter (where deptno = 10) as pc
+from emp;
++---------+---------+---------+
+| P       | PD      | PC      |
++---------+---------+---------+
+| 2450.00 | 2450.00 | 2450.00 |
++---------+---------+---------+
+(1 row)
+
+!ok

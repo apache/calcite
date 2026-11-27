@@ -7409,6 +7409,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** AggregateFilterToCaseRule must not change FILTER into CASE for an
+   * aggregate function that does not skip NULL inputs. The CASE gives NULL
+   * for the rows that FILTER removes, and the function would see these NULL
+   * values. */
+  @Test void testAggregateFilterToCaseWithCustomNullAwareUdaf() {
+    final SqlAggFunction nullAwareAgg =
+        new SqlAggFunction("NULL_AWARE_SUM", null, SqlKind.SUM, ReturnTypes.ARG0_NULLABLE, null,
+        OperandTypes.NUMERIC, SqlFunctionCategory.NUMERIC, false, false,
+        Optionality.FORBIDDEN) {
+      @Override public boolean skipsNullInputs() {
+        return false; // NULL values are semantically relevant
+      }
+    };
+
+    final String sql = "select null_aware_sum(sal) filter (where deptno > 10)\n"
+        + "from emp";
+
+    sql(sql)
+        .withFactory(t ->
+            t.withOperatorTable(opTab ->
+                SqlOperatorTables.chain(opTab,
+                    SqlOperatorTables.of(ImmutableList.of(nullAwareAgg)))))
+        .withRule(CoreRules.AGGREGATE_FILTER_TO_CASE)
+        .checkUnchanged();
+  }
+
   @Test void testPullAggregateThroughUnion() {
     final String sql = "select deptno, job from"
         + " (select deptno, job from emp as e1"

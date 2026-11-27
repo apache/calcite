@@ -333,6 +333,19 @@ LogicalProject(SUM0_MATCH=[$3], SUM_DISTINCT_NOT_MATCH=[$0], COUNT_DISTINCT_MATC
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateFilterToCaseWithCustomNullAwareUdaf">
+    <Resource name="sql">
+      <![CDATA[select null_aware_sum(sal) filter (where deptno > 10)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[NULL_AWARE_SUM($0) FILTER $1])
+  LogicalProject(SAL=[$5], $f1=[>($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateGroupingSetsProjectMerge">
     <Resource name="sql">
       <![CDATA[select x, sum(z), y from (

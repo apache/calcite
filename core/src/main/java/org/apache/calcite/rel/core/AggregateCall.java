@@ -541,6 +541,7 @@ public class AggregateCall {
         && distinct == ((AggregateCall) o).distinct
         && approximate == ((AggregateCall) o).approximate
         && ignoreNulls == ((AggregateCall) o).ignoreNulls
+        && rexList.equals(((AggregateCall) o).rexList)
         && argList.equals(((AggregateCall) o).argList)
         && filterArg == ((AggregateCall) o).filterArg
         && Objects.equals(distinctKeys, ((AggregateCall) o).distinctKeys)

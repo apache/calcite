@@ -963,4 +963,79 @@ FROM FriendStates;
 
 !ok
 
+# AggregateMergeRule merges SUM over SUM WITHIN DISTINCT, and the merged
+# call loses WITHIN DISTINCT (gave 60)
+# Result validated with PostgreSQL 14, using SUM(DISTINCT deptno) for the
+# inner call.
+!use scott
+select sum(s) as c
+from (select job, sum(cast(deptno as integer)) within distinct (deptno) as s
+  from emp group by job);
++-----+
+| C   |
++-----+
+| 180 |
++-----+
+(1 row)
+
+!ok
+
+# AggregateExpandDistinctAggregatesRule keeps the WITHIN DISTINCT keys of
+# the old input, so a DISTINCT call next to a WITHIN DISTINCT call crashed.
+# ENAME and EMPNO are unique, so WITHIN DISTINCT has no effect.
+# Results validated with PostgreSQL 14, without WITHIN DISTINCT.
+select sum(distinct sal) within distinct (ename) as s from emp;
++----------+
+| S        |
++----------+
+| 24775.00 |
++----------+
+(1 row)
+
+!ok
+
+select count(distinct sal) as c, max(sal) within distinct (ename) as m
+from emp;
++----+---------+
+| C  | M       |
++----+---------+
+| 12 | 5000.00 |
++----+---------+
+(1 row)
+
+!ok
+
+select count(distinct deptno) as c,
+  count(comm) within distinct (job, ename, empno) as n
+from emp;
++---+---+
+| C | N |
++---+---+
+| 3 | 4 |
++---+---+
+(1 row)
+
+!ok
+
+# AggregateExpandWithinDistinctRule drops the WITHIN GROUP sort order of a
+# DISTINCT call next to a WITHIN DISTINCT call
+# Result validated with PostgreSQL 14, using
+# STRING_AGG(DISTINCT job, ',' ORDER BY job DESC) and SUM(sal).
+select deptno,
+  listagg(distinct job, ',') within group (order by job desc) as jobs,
+  sum(sal) within distinct (ename) as s
+from emp
+group by deptno
+order by deptno;
++--------+-------------------------+----------+
+| DEPTNO | JOBS                    | S        |
++--------+-------------------------+----------+
+|     10 | PRESIDENT,MANAGER,CLERK |  8750.00 |
+|     20 | MANAGER,CLERK,ANALYST   | 10875.00 |
+|     30 | SALESMAN,MANAGER,CLERK  |  9400.00 |
++--------+-------------------------+----------+
+(3 rows)
+
+!ok
+
 # End within-distinct.iq

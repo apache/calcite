@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -427,7 +428,14 @@ public class AggregateExpandWithinDistinctRule
         // aggregate.
         aggCall =
             b.aggregateCall(c.getParserPosition(), c.getAggregation(),
-                b.fields(registrar.fields(c.getArgList(), c.filterArg)));
+                    b.fields(registrar.fields(c.getArgList(), c.filterArg)))
+                .sort(
+                    b.fields(
+                        RelCollations.of(
+                            Util.transform(c.collation.getFieldCollations(),
+                                fc -> fc.withFieldIndex(
+                                    registrar.field(fc.getFieldIndex(),
+                                        c.filterArg))))));
 
         if (mustBeCounted(c)) {
           filters.add(

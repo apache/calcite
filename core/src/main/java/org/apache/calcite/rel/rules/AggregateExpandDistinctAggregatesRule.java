@@ -310,6 +310,9 @@ public final class AggregateExpandDistinctAggregatesRule
     // In this case, we are assuming that there is a single distinct function.
     // So make sure that argLists is of size one.
     checkArgument(argLists.size() == 1);
+    if (aggregate.getAggCallList().stream().anyMatch(c -> c.distinctKeys != null)) {
+      return null;
+    }
 
     // Check if any DISTINCT aggregate has ORDER BY columns not in GROUP BY or args.
     // If so, we cannot safely apply this optimization because it would violate DISTINCT
@@ -706,7 +709,7 @@ public final class AggregateExpandDistinctAggregatesRule
               AggregateCall.create(aggCall.getParserPosition(),
                   SqlStdOperatorTable.MIN, false, aggCall.isApproximate(),
                   aggCall.ignoreNulls(), aggCall.rexList, args, newFilterArg,
-                  aggCall.distinctKeys, remappedCollation, aggregate.hasEmptyGroup(),
+                  null, remappedCollation, aggregate.hasEmptyGroup(),
                   relBuilder.peek(), null, upperAggName);
           upperAggCalls.add(newCall);
           ordinals.add(topGroupCount + upperAggCalls.size() - 1);
@@ -729,7 +732,7 @@ public final class AggregateExpandDistinctAggregatesRule
               AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   aggCall.rexList, newArgList, newFilterArg,
-                  aggCall.distinctKeys, remappedCollation,
+                  null, remappedCollation,
                   aggregate.hasEmptyGroup(), relBuilder.peek(), null, upperAggName);
           upperAggCalls.add(newCall);
           ordinals.add(topGroupCount + upperAggCalls.size() - 1);
@@ -1103,7 +1106,7 @@ public final class AggregateExpandDistinctAggregatesRule
       final AggregateCall newAggCall =
           AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(), aggCall.rexList,
-              newArgs, -1, aggCall.distinctKeys, remapCollation(aggCall.collation, sourceOf),
+              newArgs, -1, null, remapCollation(aggCall.collation, sourceOf),
               aggCall.getType(), aggCall.getName());
       assert refs.get(i) == null;
       if (leftFields == null) {
@@ -1192,7 +1195,7 @@ public final class AggregateExpandDistinctAggregatesRule
           AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(),
               aggCall.rexList, newArgs, -1,
-              aggCall.distinctKeys, remapCollation(aggCall.collation, sourceOf),
+              null, remapCollation(aggCall.collation, sourceOf),
               aggCall.getType(), aggCall.getName());
       newAggCalls.set(i, newAggCall);
     }

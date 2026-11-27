@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -138,13 +139,20 @@ public class AggregateJoinTransposeRule
       return false;
     }
     // If any aggregate functions do not support splitting, bail out
-    // If any aggregate call has a filter or is distinct, bail out
+    // If any aggregate call has a filter, is distinct, or has WITHIN DISTINCT,
+    // bail out
+    // BIT_XOR is not supported. It uses SelfSplitter, which ignores how many
+    // rows of the other input join to each row. That is correct for MIN, MAX,
+    // BIT_AND and BIT_OR, where a repeated value does not change the result,
+    // but x XOR x is 0.
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
       if (aggregateCall.getAggregation().unwrap(SqlSplittableAggFunction.class)
           == null) {
         return false;
       }
-      if (aggregateCall.filterArg >= 0 || aggregateCall.isDistinct()) {
+      if (aggregateCall.filterArg >= 0 || aggregateCall.isDistinct()
+          || aggregateCall.distinctKeys != null
+          || aggregateCall.getAggregation().getKind() == SqlKind.BIT_XOR) {
         return false;
       }
     }

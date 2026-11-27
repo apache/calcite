@@ -2393,6 +2393,64 @@ class RelToSqlConverterTest {
     relFn(relFn).withOracle().ok(expectedOracle);
   }
 
+  /** Tests that RelToSqlConverter keeps a sub-query when the FILTER or the
+   * WITHIN GROUP sort key of an aggregate call is a column that contains a
+   * windowed aggregate. If the converter writes the expression of that column
+   * in place of the column, the generated query has a window function in the
+   * FILTER or in the sort key, which is not valid. */
+  @Test void testAggregateFilterAndSortOnWindowFunction() {
+    // Equivalent SQL:
+    //   SELECT COUNT(*) FILTER (WHERE f) AS c
+    //   FROM (SELECT ROW_NUMBER() OVER (ORDER BY sal) > 1 AS f
+    //     FROM emp) AS t
+    final Function<RelBuilder, RelNode> filterFn = b -> b
+        .scan("EMP")
+        .project(
+            b.alias(
+                b.greaterThan(
+                    b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                        .over()
+                        .orderBy(b.field("SAL"))
+                        .toRex(),
+                    b.literal(1)),
+                "F"))
+        .aggregate(b.groupKey(), b.count().filter(b.field("F")).as("C"))
+        .build();
+    // PostgreSQL does not allow a window function in FILTER.
+    // The expected query was run on PostgreSQL 14, with "scott"."EMP"
+    // changed to a table emp, and gives 13.
+    final String expectedPostgresql = "SELECT COUNT(*) FILTER (WHERE \"F\") AS \"C\"\n"
+        + "FROM (SELECT (ROW_NUMBER() OVER (ORDER BY \"SAL\")) > 1 AS \"F\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"";
+    relFn(filterFn).withPostgresql().ok(expectedPostgresql);
+
+    // Equivalent SQL:
+    //   SELECT LISTAGG(ename) WITHIN GROUP (ORDER BY r DESC) AS l
+    //   FROM (SELECT ename, ROW_NUMBER() OVER (ORDER BY sal) AS r
+    //     FROM emp) AS t
+    final Function<RelBuilder, RelNode> sortFn = b -> b
+        .scan("EMP")
+        .project(b.field("ENAME"),
+            b.alias(
+                b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                    .over()
+                    .orderBy(b.field("SAL"))
+                    .toRex(),
+                "R"))
+        .aggregate(b.groupKey(),
+            b.aggregateCall(SqlStdOperatorTable.LISTAGG, b.field("ENAME"))
+                .sort(b.desc(b.field("R")))
+                .as("L"))
+        .build();
+    // MySQL does not allow a window function in an aggregate function.
+    final String expectedMysql = "SELECT GROUP_CONCAT(`ENAME` "
+        + "ORDER BY `R` IS NULL DESC, `R` DESC) AS `L`\n"
+        + "FROM (SELECT `ENAME`, "
+        + "ROW_NUMBER() OVER (ORDER BY `SAL` IS NULL, `SAL`) AS `R`\n"
+        + "FROM `scott`.`EMP`) AS `t`";
+    relFn(sortFn).withMysql().ok(expectedMysql);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7655">[CALCITE-7655]
    * RelToSqlConverter incorrectly removes a subquery when grouping by a window function
@@ -9022,6 +9080,44 @@ class RelToSqlConverterTest {
         + "from \"product\" group by \"product_class_id\"";
     final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
         + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  /** RelToSqlConverter writes a WITHIN GROUP sort key that is an expression
+   * as an ordinal, so the generated query sorts by a constant. */
+  @Test void testWithinGroupExpression() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" + 1) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" + 1)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  /** RelToSqlConverter drops WITHIN DISTINCT. */
+  @Test void testWithinDistinct() {
+    final String query = "select \"product_class_id\", sum(\"net_weight\") "
+        + "within distinct (\"brand_name\") "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", SUM(\"net_weight\") "
+        + "WITHIN DISTINCT (\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  /** As {@link #testWithinDistinct()}, with a FILTER. FILTER must be outside
+   * WITHIN DISTINCT, so that the parser can read the query back. */
+  @Test void testWithinDistinctFilter() {
+    final String query = "select \"product_class_id\", sum(\"net_weight\") "
+        + "within distinct (\"brand_name\") filter (where \"low_fat\") "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", SUM(\"net_weight\") "
+        + "WITHIN DISTINCT (\"brand_name\") FILTER (WHERE \"low_fat\" IS TRUE)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
     sql(query).ok(expected);

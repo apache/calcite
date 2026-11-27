@@ -11625,3 +11625,124 @@ from dept;
 (4 rows)
 
 !ok
+
+# [CALCITE-7974] Many query rewrites lose the WITHIN GROUP sort order and/or
+# FILTER and/or WITHIN DISTINCT of an Aggregate
+# All results validated with PostgreSQL 14.
+# PostgreSQL query: STRING_AGG(e.ename, ',' ORDER BY e.ename DESC).
+SELECT d.deptno,
+  (SELECT LISTAGG(e.ename) WITHIN GROUP (ORDER BY e.ename DESC)
+   FROM emp e WHERE e.deptno = d.deptno) AS names
+FROM dept d
+ORDER BY d.deptno;
++--------+--------------------------------------+
+| DEPTNO | NAMES                                |
++--------+--------------------------------------+
+|     10 | MILLER,KING,CLARK                    |
+|     20 | SMITH,SCOTT,JONES,FORD,ADAMS         |
+|     30 | WARD,TURNER,MARTIN,JAMES,BLAKE,ALLEN |
+|     40 |                                      |
++--------+--------------------------------------+
+(4 rows)
+
+!ok
+
+# Same, with an expression over the aggregate
+SELECT d.deptno,
+  (SELECT LOWER(LISTAGG(e.ename) WITHIN GROUP (ORDER BY e.ename DESC))
+   FROM emp e WHERE e.deptno = d.deptno) AS names
+FROM dept d
+ORDER BY d.deptno;
++--------+--------------------------------------+
+| DEPTNO | NAMES                                |
++--------+--------------------------------------+
+|     10 | miller,king,clark                    |
+|     20 | smith,scott,jones,ford,adams         |
+|     30 | ward,turner,martin,james,blake,allen |
+|     40 |                                      |
++--------+--------------------------------------+
+(4 rows)
+
+!ok
+
+# The type of PERCENTILE_DISC is the type of its sort key. A wrong sort
+# key gave "Decorrelation produced a relation with a different type".
+SELECT d.deptno,
+  (SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY e.sal)
+   FROM emp e WHERE e.deptno = d.deptno) AS median_sal
+FROM dept d
+ORDER BY d.deptno;
++--------+------------+
+| DEPTNO | MEDIAN_SAL |
++--------+------------+
+|     10 |    2450.00 |
+|     20 |    2975.00 |
+|     30 |    1250.00 |
+|     40 |            |
++--------+------------+
+(4 rows)
+
+!ok
+
+# ENAME is unique, so SUM(e.sal) WITHIN DISTINCT (e.ename) is SUM(e.sal).
+# With the wrong key it was SUM(DISTINCT e.sal): 7875.00 for DEPTNO 20.
+# PostgreSQL query: SUM(x.sal) FROM (SELECT DISTINCT e.ename, e.sal ...) AS x.
+SELECT d.deptno,
+  (SELECT SUM(e.sal) WITHIN DISTINCT (e.ename)
+   FROM emp e WHERE e.deptno = d.deptno) AS total_sal
+FROM dept d
+ORDER BY d.deptno;
++--------+-----------+
+| DEPTNO | TOTAL_SAL |
++--------+-----------+
+|     10 |   8750.00 |
+|     20 |  10875.00 |
+|     30 |   9400.00 |
+|     40 |           |
++--------+-----------+
+(4 rows)
+
+!ok
+
+# Same, with an expression over the aggregate
+SELECT d.deptno,
+  (SELECT CAST(SUM(e.sal) WITHIN DISTINCT (e.ename) AS INTEGER)
+   FROM emp e WHERE e.deptno = d.deptno) AS total_sal
+FROM dept d
+ORDER BY d.deptno;
++--------+-----------+
+| DEPTNO | TOTAL_SAL |
++--------+-----------+
+|     10 |      8750 |
+|     20 |     10875 |
+|     30 |      9400 |
+|     40 |           |
++--------+-----------+
+(4 rows)
+
+!ok
+
+# TopDownGeneralDecorrelator gives a wrong result when the input of an
+# Aggregate is a Join whose left input gets the correlation columns.
+# The correlation columns move the columns of the right input, but the
+# decorrelator finds the group key at its old position. Here DNO was read
+# from the correlation column D.DEPTNO, which gave 20 for DEPTNO 10 and 20.
+# Result validated with PostgreSQL 14.
+SELECT d.deptno,
+  (SELECT SUM(t.dno)
+   FROM (SELECT DISTINCT e.deptno, d2.deptno AS dno
+         FROM (SELECT deptno FROM emp WHERE deptno > d.deptno) AS e
+         JOIN dept AS d2 ON e.deptno = d2.deptno) AS t) AS s
+FROM dept AS d
+ORDER BY d.deptno;
++--------+----+
+| DEPTNO | S  |
++--------+----+
+|     10 | 50 |
+|     20 | 30 |
+|     30 |    |
+|     40 |    |
++--------+----+
+(4 rows)
+
+!ok

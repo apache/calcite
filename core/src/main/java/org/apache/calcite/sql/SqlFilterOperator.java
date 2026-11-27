@@ -107,6 +107,12 @@ public class SqlFilterOperator extends SqlBinaryOperator {
       @Override public boolean hasEmptyGroup() {
         return true;
       }
+
+      @Override public RelDataType getCollationType() {
+        final SqlNodeList orderList =
+            requireNonNull(flat.orderList, "orderList");
+        return SqlTypeUtil.deriveType(this, orderList.get(0));
+      }
     };
 
     RelDataType ret = aggCall.getOperator().inferReturnType(opBinding);
