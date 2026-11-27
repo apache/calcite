@@ -42,6 +42,7 @@ import static org.apache.calcite.test.Matchers.isRangeSet;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
@@ -159,6 +160,13 @@ class RangeSetTest {
         isRangeSet("[[0..2), (5..+\u221e)]"));
     assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)),
         isRangeSet("[[0..2), (7..+\u221e)]"));
+
+    // Empty or disjoint subtraction returns the original instance without copying.
+    assertThat(RangeSets.minus(setNone, Range.singleton(1)), sameInstance(setNone));
+    assertThat(RangeSets.minus(setGt2, Range.singleton(1)), sameInstance(setGt2));
+    assertThat(RangeSets.minus(setGt1, Range.singleton(1)), sameInstance(setGt1));
+    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)), sameInstance(setComplex));
+    assertThat(RangeSets.minus(setComplex, Range.openClosed(1, 1)), sameInstance(setComplex));
   }
 
   /** Tests {@link RangeSets#isPoint(Range)}. */

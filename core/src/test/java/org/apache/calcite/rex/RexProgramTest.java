@@ -1959,6 +1959,88 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(sarg.isComplementedPoints(), is(true));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7977">[CALCITE-7977]
+   * Avoid repeated TreeRangeSet splitting and allocations in
+   * RexSimplify.residue</a>. Verifies deferred hole flushing, operand order,
+   * and finite point narrowing with many {@code <>} predicates. */
+  @Test void testSimplifyNotEqualsWithManyPredicates() {
+    final RexNode x = vIntNotNull();
+
+    // Many <> predicates on a non-point target keep the expression unchanged.
+    final List<RexNode> manyNe = new ArrayList<>();
+    for (int i = 0; i < 400; i++) {
+      manyNe.add(ne(x, literal(i)));
+    }
+    checkSimplifyFilter(ne(x, literal(999)),
+        RelOptPredicateList.of(rexBuilder, manyNe),
+        "<>(?0.notNullInt0, 999)");
+
+    // First predicate matches target <> -> simplifies to true.
+    checkSimplifyFilter(ne(x, literal(10)),
+        RelOptPredicateList.of(rexBuilder, ImmutableList.of(ne(x, literal(10)), ne(x, literal(5)))),
+        "true");
+
+    // Different <> predicate precedes matching <> -> order is preserved (not folded to true).
+    checkSimplifyFilter(ne(x, literal(10)),
+        RelOptPredicateList.of(rexBuilder, ImmutableList.of(ne(x, literal(5)), ne(x, literal(10)))),
+        "<>(?0.notNullInt0, 10)");
+
+    // Deferred hole before a non-<> predicate: hole 15 is inside (10, +inf),
+    // so x > 0 is not implied by x > 10 after flushing holes {5, 15}.
+    checkSimplifyFilter(gt(x, literal(0)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(ne(x, literal(5)), ne(x, literal(15)), gt(x, literal(10)))),
+        ">(?0.notNullInt0, 0)");
+
+    // Reversed literal operands behave identically during deferred hole flush.
+    checkSimplifyFilter(gt(x, literal(0)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(ne(literal(5), x), ne(literal(15), x), lt(literal(10), x))),
+        ">(?0.notNullInt0, 0)");
+
+    // All deferred holes {5, 8} are outside (10, +inf), so x > 10 implies x > 0.
+    checkSimplifyFilter(gt(x, literal(0)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(ne(x, literal(5)), ne(x, literal(8)), gt(x, literal(10)))),
+        "true");
+
+    // Narrowing to a single point and removing it with <> collapses to false.
+    checkSimplifyFilter(ge(x, literal(2)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(le(x, literal(2)), ne(x, literal(2)))),
+        "false");
+
+    // Narrowing to a single point with a disjoint <> simplifies to equality.
+    checkSimplifyFilter(ge(x, literal(2)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(le(x, literal(2)), ne(x, literal(3)))),
+        "=(?0.notNullInt0, 2)");
+
+    // BigDecimal values equal by compareTo (1 vs 1.0) collapse to false when removed.
+    final RexNode dec = vDecimalNotNull();
+    final RexLiteral decOne = rexBuilder.makeExactLiteral(new BigDecimal("1"));
+    final RexLiteral decOnePointZero = rexBuilder.makeExactLiteral(new BigDecimal("1.0"));
+    checkSimplifyFilter(ge(dec, decOne),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(le(dec, decOnePointZero), ne(dec, decOnePointZero))),
+        "false");
+
+    // Large OR with duplicate equality terms still deduplicates properly.
+    final List<RexNode> orWithDups = new ArrayList<>();
+    for (int i = 0; i < 300; i++) {
+      orWithDups.add(eq(x, literal(i)));
+    }
+    orWithDups.add(eq(x, literal(0)));
+    orWithDups.add(eq(x, literal(150)));
+    final RexNode simplifiedOr = simplify.simplifyPreservingType(or(orWithDups));
+    assertThat(simplifiedOr.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> orSarg =
+        ((RexLiteral) ((RexCall) simplifiedOr).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(orSarg.pointCount, is(300));
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
    * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
