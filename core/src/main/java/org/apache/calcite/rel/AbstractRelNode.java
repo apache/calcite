@@ -264,19 +264,24 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Override public RelNode onRegister(RelOptPlanner planner) {
-    List<RelNode> oldInputs = getInputs();
-    List<RelNode> inputs = new ArrayList<>(oldInputs.size());
-    for (final RelNode input : oldInputs) {
+    final int inputCount = getInputCount();
+    List<RelNode> inputs = new ArrayList<>(inputCount);
+    boolean changed = false;
+    for (int i = 0; i < inputCount; i++) {
+      final RelNode input = getInput(i);
       RelNode e = planner.ensureRegistered(input, null);
       assert e == input || RelOptUtil.equal("rowtype of rel before registration",
           input.getRowType(),
           "rowtype of rel after registration",
           e.getRowType(),
           Litmus.THROW);
+      if (e != input) {
+        changed = true;
+      }
       inputs.add(e);
     }
     RelNode r = this;
-    if (!Util.equalShallow(oldInputs, inputs)) {
+    if (changed) {
       r = copy(getTraitSet(), inputs);
     }
     r.recomputeDigest();

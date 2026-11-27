@@ -406,7 +406,7 @@ class TopDownRuleDriver implements RuleDriver {
       // 1. explore input.
       // 2. apply other rules.
       tasks.push(new ApplyRules(mExpr, group, explore));
-      for (int i = mExpr.getInputs().size() - 1; i >= 0; --i) {
+      for (int i = mExpr.getInputCount() - 1; i >= 0; --i) {
         tasks.push(new ExploreInput(mExpr, i));
       }
     }
@@ -557,8 +557,9 @@ class TopDownRuleDriver implements RuleDriver {
       rel = passThroughRel;
     }
     boolean unProcess = false;
-    for (RelNode input : rel.getInputs()) {
-      RelOptCost winner = ((RelSubset) input).getWinnerCost();
+    final int inputCount = rel.getInputCount();
+    for (int i = 0; i < inputCount; i++) {
+      RelOptCost winner = ((RelSubset) rel.getInput(i)).getWinnerCost();
       if (winner == null) {
         unProcess = true;
         break;
@@ -570,7 +571,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
     // If part of the inputs are not optimized, schedule for the node an OptimizeInput task,
     // which tried to optimize the inputs first and derive traits for further execution.
-    if (rel.getInputs().size() == 1) {
+    if (inputCount == 1) {
       return new OptimizeInput1(rel, group);
     }
     return new OptimizeInputs(rel, group);
@@ -679,7 +680,7 @@ class TopDownRuleDriver implements RuleDriver {
       this.group = group;
       this.upperBound = group.upperBound;
       this.upperForInput = planner.infCost;
-      this.childCount = rel.getInputs().size();
+      this.childCount = rel.getInputCount();
       this.processingChild = 0;
     }
 
@@ -702,8 +703,8 @@ class TopDownRuleDriver implements RuleDriver {
             upperForInput = planner.upperBoundForInputs(mExpr, upperBound);
           }
           List<RelOptCost> lowerBounds = this.lowerBounds = new ArrayList<>(childCount);
-          for (RelNode input : mExpr.getInputs()) {
-            RelOptCost lb = planner.getLowerBound(input);
+          for (int i = 0; i < childCount; i++) {
+            RelOptCost lb = planner.getLowerBound(mExpr.getInput(i));
             lowerBounds.add(lb);
             lowerBoundSum = lowerBoundSum == null ? lb : lowerBoundSum.plus(lb);
           }
@@ -835,9 +836,8 @@ class TopDownRuleDriver implements RuleDriver {
     }
 
     @Override public void perform() {
-      List<RelNode> inputs = mExpr.getInputs();
-      for (RelNode input : inputs) {
-        if (((RelSubset) input).getWinnerCost() == null) {
+      for (int i = 0, n = mExpr.getInputCount(); i < n; i++) {
+        if (((RelSubset) mExpr.getInput(i)).getWinnerCost() == null) {
           // Fail to optimize input, then no need to deliver traits.
           return;
         }
@@ -861,7 +861,7 @@ class TopDownRuleDriver implements RuleDriver {
 
       PhysicalNode rel = (PhysicalNode) mExpr;
       DeriveMode mode = rel.getDeriveMode();
-      int arity = rel.getInputs().size();
+      int arity = rel.getInputCount();
       // For OMAKASE.
       List<List<RelTraitSet>> inputTraits = new ArrayList<>(arity);
 

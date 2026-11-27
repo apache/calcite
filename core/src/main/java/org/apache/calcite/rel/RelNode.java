@@ -108,6 +108,19 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode getInput(int i);
 
   /**
+   * Returns the number of input relational expressions.
+   *
+   * <p>The default implementation returns {@code getInputs().size()}.
+   * Sub-classes such as {@link SingleRel} and {@link BiRel} override this
+   * method to avoid allocating a list.
+   *
+   * @return Number of inputs
+   */
+  default int getInputCount() {
+    return getInputs().size();
+  }
+
+  /**
    * Returns the type of the rows returned by this relational expression.
    */
   @Override RelDataType getRowType();
