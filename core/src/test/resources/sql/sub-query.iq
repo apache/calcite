@@ -8891,8 +8891,8 @@ order by 1,2,3,4,5;
 !ok
 
 !if (use_old_decorr) {
-EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$3], sort4=[$4], dir0=[ASC], dir1=[ASC], dir2=[ASC], dir3=[ASC], dir4=[ASC])
-  EnumerableCalc(expr#0..5=[{inputs}], proj#0..4=[{exprs}])
+EnumerableCalc(expr#0..5=[{inputs}], proj#0..4=[{exprs}])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$3], sort4=[$4], dir0=[ASC], dir1=[ASC], dir2=[ASC], dir3=[ASC], dir4=[ASC])
     EnumerableHashJoin(condition=[=($1, $5)], joinType=[inner])
       EnumerableValues(tuples=[[{ 'val1a', 6, 8, 10 }, { 'val1b', 8, 16, 19 }, { 'val1a', 16, 12, 21 }, { 'val1a', 16, 12, 10 }, { 'val1c', 8, 16, 19 }, { 'val1d', null, 16, 22 }, { 'val1d', null, 16, 19 }, { 'val1e', 10, null, 25 }, { 'val1e', 10, null, 19 }, { 'val1d', 10, null, 12 }, { 'val1a', 6, 8, 10 }, { 'val1e', 10, null, 19 }]])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0:BIGINT], expr#5=[>($t2, $t4)], expr#6=[null:SMALLINT], expr#7=[CASE($t5, $t3, $t6)], WINDOW_SUM=[$t7], T1B=[$t1])

@@ -77,6 +77,38 @@ public class RelDecorrelatorTest {
         .traitDefs((List<RelTraitDef>) null);
   }
 
+  /** Converts SQL to a relational expression, stopping before sub-query
+   * removal and decorrelation.
+   *
+   * <p>Unlike {@link Planner#rel}, this method neither removes sub-queries nor
+   * decorrelates: the caller must run the sub-query rules first and only then
+   * {@link RelDecorrelator}, because the decorrelator must not see a mixture of
+   * {@code RexSubQuery} expressions and {@code Correlate} nodes. */
+  private static RelNode convertSql(String sql) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
+    final CalciteConnectionConfig connectionConfig =
+        new CalciteConnectionConfigImpl(new Properties());
+    final SqlTestFactory factory = SqlTestFactory.INSTANCE
+        .withCatalogReader((typeFactory, caseSensitive) ->
+            new CalciteCatalogReader(
+                CalciteSchema.from(rootSchema),
+                ImmutableList.of("scott"),
+                typeFactory,
+                connectionConfig))
+        // Match the validator that PlannerImpl creates.
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true));
+    final SqlToRelConverter converter = factory.createSqlToRelConverter();
+    assert converter.validator != null;
+    try {
+      final SqlNode parsed = factory.createParser(sql).parseQuery();
+      final SqlNode validated = converter.validator.validate(parsed);
+      return converter.convertQuery(validated, false, true).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7058">[CALCITE-7058]
    * Decorrelator may produce different column names</a>. */
   @Test void testDecorrelatorNames() throws SqlParseException {
@@ -328,7 +360,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "select\n"
         + " (select ename || ' from dept '\n"
@@ -336,14 +367,7 @@ public class RelDecorrelatorTest {
         + "       from emp\n"
         + "    ) as ename_from_dept\n"
         + "from (values (7369), (7499)) as empnos(empno) order by 1";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -426,19 +450,11 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "SELECT deptno, "
         + "(SELECT CASE WHEN SUM(sal) > 10 then 'VIP' else 'Regular' END expr "
         + " FROM emp e WHERE d.deptno = e.deptno) a "
         + "FROM dept d";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -492,7 +508,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "SELECT deptno\n"
         + "FROM emp e\n"
         + "WHERE EXISTS (\n"
@@ -504,14 +519,7 @@ public class RelDecorrelatorTest {
         + "    WHERE b.ename = e.ename\n"
         + "    AND b.job = d.dname\n"
         + "    AND d.deptno = e.deptno))";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -576,7 +584,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "select d.dname,\n"
         + "  (select count(*)\n"
@@ -591,14 +598,7 @@ public class RelDecorrelatorTest {
         + "  ) as c\n"
         + "from dept d\n"
         + "order by d.dname";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -708,7 +708,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT *,\n"
         + "    (SELECT COUNT(*)\n"
@@ -719,14 +718,7 @@ public class RelDecorrelatorTest {
         + "        WHERE emp.deptno = dept.deptno) AS sub\n"
         + "    GROUP BY deptno) AS num_dept_groups\n"
         + "FROM dept";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -812,7 +804,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "SELECT ename,\n"
         + "    (SELECT sum(c)\n"
         + "    FROM\n"
@@ -825,14 +816,7 @@ public class RelDecorrelatorTest {
         + "    ) AS correlated_sum\n"
         + "FROM emp\n"
         + "ORDER BY ename";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -898,7 +882,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "SELECT ename,\n"
         + "    (SELECT sum(c)\n"
         + "    FROM\n"
@@ -913,14 +896,7 @@ public class RelDecorrelatorTest {
         + "FROM emp\n"
         + "ORDER BY ename";
 
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -988,7 +964,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "SELECT d.dname\n"
         + "FROM dept d\n"
         + "WHERE EXISTS (\n"
@@ -1007,14 +982,7 @@ public class RelDecorrelatorTest {
         + "        WHERE e2.deptno = d.deptno\n"
         + "    ) t\n"
         + "  ) > 5)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1112,7 +1080,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "SELECT d.dname\n"
         + "FROM dept d\n"
         + "WHERE EXISTS (\n"
@@ -1130,14 +1097,7 @@ public class RelDecorrelatorTest {
         + "        WHERE e2.deptno = d.deptno\n"
         + "    ) t\n"
         + "  ) > 5)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1238,19 +1198,11 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "WITH agg_sal AS"
         + " (SELECT deptno, sum(sal) AS total FROM emp GROUP BY deptno)\n"
         + " SELECT 1 FROM agg_sal s1"
         + " WHERE s1.total > (SELECT avg(total) FROM agg_sal s2 WHERE s1.deptno = s2.deptno)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1313,20 +1265,12 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "select ROW("
         + "(select deptno\n"
         + "from dept\n"
         + "where dept.deptno = emp.deptno), emp.ename)\n"
         + "from emp";
-    final RelNode parsedRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      parsedRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode parsedRel = convertSql(sql);
 
     // Convert SubQuery into Correlate
     final HepProgram hepProgram = HepProgram.builder()
@@ -1393,19 +1337,11 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT dname FROM  dept WHERE 2000 > (\n"
         + "SELECT emp.sal FROM  emp where dept.deptno = emp.deptno\n"
         + "ORDER BY year(hiredate), emp.sal limit 1)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1456,7 +1392,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT *\n"
         + "FROM dept d\n"
@@ -1469,14 +1404,7 @@ public class RelDecorrelatorTest {
         + ")\n"
         + "LIMIT 2\n"
         + "OFFSET 1";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1530,19 +1458,11 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT deptno FROM dept WHERE 1000.00 >\n"
         + "(SELECT sal FROM emp WHERE dept.deptno = emp.deptno\n"
         + "order by emp.sal limit 1 offset 10)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1597,19 +1517,11 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT E1.DEPTNO\n"
         + "FROM EMP E1\n"
         + "WHERE E1.SAL > (SELECT B1.COMM FROM BONUS B1 WHERE E1.ENAME = B1.ENAME LIMIT 2)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1662,7 +1574,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT E1.* \n"
         + "FROM\n"
@@ -1671,14 +1582,7 @@ public class RelDecorrelatorTest {
         + "  E1.EMPNO = (\n"
         + "    SELECT D1.DEPTNO FROM DEPT D1\n"
         + "    WHERE E1.ENAME IN (SELECT B1.ENAME FROM BONUS B1))";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1736,7 +1640,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "WITH\n"
         + "  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),\n"
@@ -1747,14 +1650,7 @@ public class RelDecorrelatorTest {
         + "LEFT JOIN\n"
         + "(SELECT * FROM t3 WHERE t3.a = t1.a) foo\n"
         + "ON t2.a = foo.a)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1823,7 +1719,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT\n"
         + "    d.dname,\n"
@@ -1835,14 +1730,7 @@ public class RelDecorrelatorTest {
         + "        ON sub.mgr = e.mgr\n"
         + "    ) as matched_subordinate_count\n"
         + "FROM dept d";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -1928,15 +1816,7 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
             ImmutableList.of(
@@ -1961,21 +1841,13 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT d.deptno FROM dept d WHERE EXISTS (\n"
         + "  SELECT *\n"
         + "  FROM (SELECT * FROM emp e WHERE e.deptno = d.deptno) l\n"
         + "  JOIN (SELECT * FROM dept d2 WHERE d2.deptno = d.deptno) r\n"
         + "  ON TRUE)";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -2036,21 +1908,13 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "select deptno,\n"
         + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
         + "  (select min(0) from emp where deptno = d.deptno and "
         + "ename = 'SMITH' and d.deptno > 0) as i1\n"
         + "from dept as d";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -2126,7 +1990,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT deptno,\n"
         + "       (SELECT SUM(cnt)\n"
@@ -2137,14 +2000,7 @@ public class RelDecorrelatorTest {
         + "          GROUP BY GROUPING SETS ((deptno), ())\n"
         + "))\n"
         + "FROM dept";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -2192,6 +2048,80 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7962">[CALCITE-7962]
+   * RelDecorrelator removes the variablesSet of a Filter whose input it
+   * decorrelates</a>.
+   *
+   * <p>The WHERE clause declares a variable for its EXISTS sub-query, and its
+   * input is a Correlate (the LATERAL). The decorrelator replaces the
+   * Correlate with a Join. The Filter must still declare its variable. */
+  @Test void testFilterKeepsVariableAfterInputIsDecorrelated() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final String sql = "select d.deptno, x.m\n"
+        + "from dept d,\n"
+        + "  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x\n"
+        + "where exists (select 1 from emp e2\n"
+        + "  where e2.deptno = d.deptno and e2.sal > 2900)";
+    final RelNode originalRel = convertSql(sql);
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$3])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], M=[$3])\n"
+        + "    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalAggregate(group=[{}], M=[MAX($0)])\n"
+        + "          LogicalProject(SAL=[$5])\n"
+        + "            LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(i=[true])\n"
+        + "          LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), >(CAST($5):DECIMAL(12, 2), 2900.00))])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], M=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO=[$0], M=[$2])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}], M=[MAX($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f1=[true])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(DEPTNO=[$7])\n"
+        + "          LogicalFilter(condition=[AND(>(CAST($5):DECIMAL(12, 2), 2900.00), IS NOT NULL($7))])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7540">[CALCITE-7540]
    * Correlated outer reference in HAVING of grouped subquery is incorrectly reported as not
    * grouped</a>. */
@@ -2199,7 +2129,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = ""
         + "SELECT *\n"
         + "FROM dept d\n"
@@ -2211,14 +2140,7 @@ public class RelDecorrelatorTest {
         + "    GROUP BY e2.job\n"
         + "    HAVING MIN(e2.deptno) = d.deptno\n"
         + "  )";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
@@ -2277,7 +2199,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "select e.empno, d.dname, b.ename\n"
         + "from emp e\n"
         + "inner join dept d\n"
@@ -2290,14 +2211,7 @@ public class RelDecorrelatorTest {
         + "    where b2.ename = b.ename)\n"
         + "where e.sal > 1000 and d.dname = 'SALES'";
 
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(ImmutableList.of(CoreRules.FILTER_INTO_JOIN))
@@ -2379,7 +2293,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "select e.empno, d.dname, b.ename\n"
         + "from emp e\n"
         + "inner join dept d\n"
@@ -2393,14 +2306,7 @@ public class RelDecorrelatorTest {
         + "    and b2.job = b.job)\n"
         + "where e.sal > 1000 and d.dname = 'SALES'";
 
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(ImmutableList.of(CoreRules.FILTER_INTO_JOIN))
@@ -2480,7 +2386,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     final String sql = "select e1.empno \n"
         + "from emp e1, \n"
         + "lateral(\n"
@@ -2491,14 +2396,7 @@ public class RelDecorrelatorTest {
         + "  )\n"
         + ")";
 
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(ImmutableList.of(CoreRules.JOIN_CONDITION_PUSH))
@@ -2581,7 +2479,6 @@ public class RelDecorrelatorTest {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
     final RelOptCluster cluster = builder.getCluster();
-    final Planner planner = Frameworks.getPlanner(frameworkConfig);
     // Minimal case: outer FROM is an Aggregate, correlated subquery
     // references the aggregate result field (s) in the correlation
     // condition, triggering isFieldNotNullRecursive on an Aggregate with
@@ -2592,14 +2489,7 @@ public class RelDecorrelatorTest {
         + "     and e.sal > t.s)\n"
         + "from (select deptno, sum(sal) as s\n"
         + "      from emp group by deptno) t";
-    final RelNode originalRel;
-    try {
-      final SqlNode parse = planner.parse(sql);
-      final SqlNode validate = planner.validate(parse);
-      originalRel = planner.rel(validate).rel;
-    } catch (Exception e) {
-      throw TestUtil.rethrow(e);
-    }
+    final RelNode originalRel = convertSql(sql);
 
     final HepProgram hepProgram = HepProgram.builder()
         .addRuleCollection(
