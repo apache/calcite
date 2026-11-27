@@ -8074,6 +8074,13 @@ public class SqlParserTest {
         .ok("CAST(NULL AS GEOMETRY)");
   }
 
+  @Test void testMapEntryNullability() {
+    expr("cast(null as map<integer not null, varchar(20) null>)")
+        .ok("CAST(NULL AS MAP< INTEGER NOT NULL, VARCHAR(20) NULL >)");
+    expr("cast(null as map<integer null, varchar(20) not null>)")
+        .ok("CAST(NULL AS MAP< INTEGER NULL, VARCHAR(20) NOT NULL >)");
+  }
+
   @Test void testIntervalArithmetics() {
     expr("TIME '23:59:59' - interval '1' hour ")
         .ok("(TIME '23:59:59' - INTERVAL '1' HOUR)");
