@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.materialize.TileKey;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -29,10 +31,12 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -499,6 +503,98 @@ class LatticeTest {
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
         .sameResultWithMaterializationsDisabled();
+  }
+
+  /** Returns a model with a lattice on the table "emps" of
+   * {@link MaterializationTest.HrFKUKSchema}, which has one tile with the
+   * measure COUNT(*). The lattice does not create other tiles.
+   *
+   * @param dimensions Dimensions of the tile, for example
+   *                   {@code "'deptno'"} */
+  private static CalciteAssert.AssertThat hrModelWithOneTile(
+      String dimensions) {
+    return CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [ {\n"
+        + "    name: 'hr',\n"
+        + "    type: 'custom',\n"
+        + "    factory: '" + ReflectiveSchema.Factory.class.getName() + "',\n"
+        + "    operand: {class: '"
+        + MaterializationTest.HrFKUKSchema.class.getName() + "'}\n"
+        + "  }, {\n"
+        + "    name: 'adhoc',\n"
+        + "    lattices: [ {\n"
+        + "      name: 'star',\n"
+        + "      sql: 'select 1 from \"hr\".\"emps\"',\n"
+        + "      auto: false,\n"
+        + "      tiles: [ {\n"
+        + "        dimensions: [ " + dimensions + " ],\n"
+        + "        measures: [ { agg: 'count' } ]\n"
+        + "      } ]\n"
+        + "    } ]\n"
+        + "  } ]\n"
+        + "}");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7974">[CALCITE-7974]
+   * Many query rewrites lose the WITHIN GROUP sort order and/or FILTER and/or
+   * WITHIN DISTINCT of an Aggregate</a>.
+   *
+   * <p>The tile has the measure COUNT(*). AggregateStarTableRule uses this
+   * measure for COUNT(*) WITHIN DISTINCT (salary), because
+   * Lattice.toMeasure ignores WITHIN DISTINCT. Department 10 has 3
+   * employees and 2 distinct salaries (gave 3).
+   *
+   * <p>The first query makes sure that the planner uses the tile.
+   * Result validated with PostgreSQL 14, using COUNT(DISTINCT salary). */
+  @Test void testTileWithinDistinct() {
+    final CalciteAssert.AssertThat with = hrModelWithOneTile("'deptno'");
+    with.query("select \"deptno\", count(*) as c\n"
+            + "from \"hr\".\"emps\" group by \"deptno\"")
+        .enableMaterializations(true)
+        .explainContains("EnumerableTableScan(table=[[adhoc, m{1}]])")
+        .returnsUnordered("deptno=10; C=3", "deptno=20; C=1");
+    with.query("select \"deptno\", count(*) within distinct (\"salary\") as c\n"
+            + "from \"hr\".\"emps\" group by \"deptno\"")
+        .enableMaterializations(true)
+        .returnsUnordered("deptno=10; C=2", "deptno=20; C=1");
+  }
+
+  /** The tile groups by DEPTNO and SALARY. A request for a tile that groups
+   * by DEPTNO must get this tile, because AggregateStarTableRule can roll it
+   * up. Since CALCITE-6763, MaterializationService.defineTile chose the best
+   * tile for the roll-up but did not return it, so AggregateStarTableRule
+   * never rolled up a tile.
+   *
+   * <p>The query checks that the roll-up does not answer
+   * COUNT(*) WITHIN DISTINCT (salary) from the COUNT(*) of the tile.
+   * Result validated with PostgreSQL 14, using COUNT(DISTINCT salary). */
+  @Test void testTileRollUp() throws Exception {
+    final CalciteAssert.AssertThat with =
+        hrModelWithOneTile("'deptno', 'salary'");
+    with.doWithConnection(c -> {
+      final SchemaPlus adhoc =
+          requireNonNull(c.getRootSchema().subSchemas().get("adhoc"));
+      final CalciteSchema adhocSchema =
+          requireNonNull(adhoc.unwrap(CalciteSchema.class));
+      final Lattice lattice =
+          requireNonNull(adhocSchema.getLatticeMap().firstEntry())
+              .getValue().getLattice();
+      final Lattice.Tile tile = Iterables.getOnlyElement(lattice.computeTiles());
+      // Field 1 is DEPTNO, field 3 is SALARY
+      assertThat(tile.bitSet(), is(ImmutableBitSet.of(1, 3)));
+      final Pair<CalciteSchema.TableEntry, TileKey> pair =
+          MaterializationService.instance().defineTile(lattice,
+              ImmutableBitSet.of(1), tile.measures, adhocSchema, false, false);
+      assertThat(pair == null ? null : pair.right.dimensions,
+          is(tile.bitSet()));
+    });
+    with.query("select \"deptno\", count(*) within distinct (\"salary\") as c\n"
+            + "from \"hr\".\"emps\" group by \"deptno\"")
+        .enableMaterializations(true)
+        .returnsUnordered("deptno=10; C=2", "deptno=20; C=1");
   }
 
   /** Tests a model that uses an algorithm to generate an initial set of

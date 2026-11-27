@@ -4299,6 +4299,10 @@ public class RelBuilder {
       aggCalls.forEach(aggCall -> {
         final String alias2 = alias + "_" + ((AggCallPlus) aggCall).alias();
         final List<RexNode> filters = new ArrayList<>();
+        final RexNode filter = ((AggCallPlus) aggCall).filterCondition();
+        if (filter != null) {
+          filters.add(filter);
+        }
         Pair.forEach(axisList, expressionList, (axis, expression) ->
             filters.add(equals(axis, expression)));
         multipliedAggCalls.add(aggCall.filter(and(filters)).as(alias2));
@@ -4576,6 +4580,9 @@ public class RelBuilder {
     /** Returns the alias. */
     @Nullable String alias();
 
+    /** Returns the FILTER condition, or null. */
+    @Nullable RexNode filterCondition();
+
     /** Returns an {@link AggregateCall} that is approximately equivalent
      * to this {@code AggCall} and is good for certain things, such as deriving
      * field names. */
@@ -4757,6 +4764,10 @@ public class RelBuilder {
       return alias;
     }
 
+    @Override public @Nullable RexNode filterCondition() {
+      return filter;
+    }
+
     @Override public AggregateCall aggregateCall() {
       // Use dummy values for collation and type. This method only promises to
       // return a call that is "approximately equivalent ... and is good for
@@ -4793,12 +4804,15 @@ public class RelBuilder {
               ? null
               : ImmutableBitSet.of(
                   registrar.registerExpressions(this.distinctKeys));
+      // collation() gives the direction; the field is the one that register()
+      // projected for the sort key
       final RelCollation collation =
           RelCollations.of(this.orderKeys
               .stream()
               .map(orderKey ->
                   collation(orderKey, RelFieldCollation.Direction.ASCENDING,
-                      null, Collections.emptyList()))
+                      null, new ArrayList<>())
+                      .withFieldIndex(registrar.registerExpression(orderKey)))
               .collect(Collectors.toList()));
       if (aggFunction instanceof SqlCountAggFunction && !distinct) {
         args = args.stream()
@@ -4833,6 +4847,17 @@ public class RelBuilder {
     }
 
     @Override public OverCall over() {
+      checkArgument(filter == null,
+          "FILTER is not supported in a windowed aggregate call: %s", this);
+      checkArgument(distinctKeys == null,
+          "WITHIN DISTINCT is not supported in a windowed aggregate call: %s",
+          this);
+      checkArgument(orderKeys.isEmpty(),
+          "WITHIN GROUP is not supported in a windowed aggregate call: %s",
+          this);
+      checkArgument(preOperands.isEmpty(),
+          "pre-operands are not supported in a windowed aggregate call: %s",
+          this);
       return new OverCallImpl(pos, aggFunction, distinct, operands, ignoreNulls,
           alias);
     }
@@ -4926,6 +4951,10 @@ public class RelBuilder {
 
     @Override public @Nullable String alias() {
       return aggregateCall.name;
+    }
+
+    @Override public @Nullable RexNode filterCondition() {
+      throw new UnsupportedOperationException();
     }
 
     @Override public AggregateCall aggregateCall() {

@@ -47,11 +47,14 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.MeasureRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -3325,6 +3328,189 @@ public class JdbcTest {
         .query(sql)
         .withHook(Hook.PROGRAM, Hook.propertyJ(Programs.sequence(program, Programs.standard())))
         .returns("CP=0.75; CS=1.0; SXX=4.75; SYY=4.0\n");
+  }
+
+  /** Runs a query on the scott schema; a Hep program applies {@code rules}
+   * before the standard program, so that the rules see the plan that
+   * SqlToRelConverter produces. */
+  private static CalciteAssert.AssertQuery queryAfterHepRules(String sql,
+      RelOptRule... rules) {
+    final Program program =
+        Programs.hep(ImmutableList.copyOf(rules), true,
+            DefaultRelMetadataProvider.INSTANCE);
+    return CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query(sql)
+        .withHook(Hook.PROGRAM,
+            Hook.propertyJ(Programs.sequence(program, Programs.standard())));
+  }
+
+  /** AggregateFilterToCaseRule drops the WITHIN GROUP sort order.
+   * Result validated with PostgreSQL 14, using
+   * STRING_AGG(ename, ',' ORDER BY ename DESC) FILTER (WHERE sal > 1000). */
+  @Test void testAggregateFilterToCaseKeepsSortOrder() {
+    final String sql = "select deptno,\n"
+        + " listagg(ename) within group (order by ename desc)\n"
+        + "   filter (where sal > 1000) as l\n"
+        + "from emp group by deptno order by deptno";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_FILTER_TO_CASE)
+        .returns("DEPTNO=10; L=MILLER,KING,CLARK\n"
+            + "DEPTNO=20; L=SCOTT,JONES,FORD,ADAMS\n"
+            + "DEPTNO=30; L=WARD,TURNER,MARTIN,BLAKE,ALLEN\n");
+  }
+
+  /** AggregateExtractProjectRule removes the WITHIN GROUP sort key SAL from
+   * the new Project, because SAL is not an argument.
+   * Result validated with PostgreSQL 14, using
+   * STRING_AGG(ename, ',' ORDER BY sal, ename). */
+  @Test void testAggregateExtractProjectKeepsSortKey() {
+    final String sql = "select deptno,\n"
+        + " listagg(ename) within group (order by sal, ename) as l\n"
+        + "from emp group by deptno order by deptno";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_PROJECT_MERGE,
+        AggregateExtractProjectRule.SCAN)
+        .returns("DEPTNO=10; L=MILLER,CLARK,KING\n"
+            + "DEPTNO=20; L=SMITH,ADAMS,JONES,FORD,SCOTT\n"
+            + "DEPTNO=30; L=JAMES,MARTIN,WARD,TURNER,ALLEN,BLAKE\n");
+  }
+
+  /** AggregateExtractProjectRule removes the WITHIN DISTINCT key ENAME from
+   * the new Project, and fails to map it.
+   * ENAME is unique, so the result is SUM(sal).
+   * Result validated with PostgreSQL 14, using SUM(sal). */
+  @Test void testAggregateExtractProjectKeepsWithinDistinctKey() {
+    final String sql = "select deptno, sum(sal) within distinct (ename) as s\n"
+        + "from emp group by deptno order by deptno";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_PROJECT_MERGE,
+        AggregateExtractProjectRule.SCAN)
+        .returns("DEPTNO=10; S=8750.00\n"
+            + "DEPTNO=20; S=10875.00\n"
+            + "DEPTNO=30; S=9400.00\n");
+  }
+
+  /** AggregateFilterTransposeRule rolls up COUNT WITHIN DISTINCT as if it
+   * were a plain COUNT.
+   * Result validated with PostgreSQL 14, using COUNT(DISTINCT job). */
+  @Test void testAggregateFilterTransposeWithinDistinct() {
+    final String sql = "select deptno, count(*) within distinct (job) as c\n"
+        + "from emp where mgr > 7000 group by deptno order by deptno";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_FILTER_TRANSPOSE)
+        .returns("DEPTNO=10; C=2\n"
+            + "DEPTNO=20; C=3\n"
+            + "DEPTNO=30; C=3\n");
+  }
+
+  /** AggregateUnionTransposeRule splits SUM WITHIN DISTINCT across the
+   * inputs of a UNION ALL, and keeps the WITHIN DISTINCT keys of the old
+   * input in the top Aggregate.
+   * Departments 10 and 20 each contribute every employee once.
+   * Result validated with PostgreSQL 14, using SUM(sal) over the distinct
+   * (ename, sal) pairs. */
+  @Test void testAggregateUnionTransposeWithinDistinct() {
+    final String sql = "select sum(sal) within distinct (ename) as s\n"
+        + "from (select ename, sal from emp where deptno = 10\n"
+        + "  union all\n"
+        + "  select ename, sal from emp where deptno <= 20)";
+    queryAfterHepRules(sql, CoreRules.PROJECT_SET_OP_TRANSPOSE,
+        CoreRules.PROJECT_MERGE, CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .returns("S=19625.00\n");
+  }
+
+  /** AggregateJoinTransposeRule splits SUM WITHIN DISTINCT across the inputs
+   * of a join, and keeps the WITHIN DISTINCT keys of the old input.
+   * Result validated with PostgreSQL 14, using SUM(DISTINCT d.deptno). */
+  @Test void testAggregateJoinTransposeWithinDistinct() {
+    final String sql = "select d.dname,\n"
+        + " sum(d.deptno) within distinct (d.deptno) as s\n"
+        + "from dept d join emp e on d.deptno = e.deptno\n"
+        + "group by d.dname order by d.dname";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .returns("DNAME=ACCOUNTING; S=10\n"
+            + "DNAME=RESEARCH; S=20\n"
+            + "DNAME=SALES; S=30\n");
+  }
+
+  /** AggregateJoinTransposeRule pushes BIT_XOR below a join, but it does not
+   * count the rows of the other input that join to each row.
+   * The XOR of a value with itself is 0, thus this count changes the result.
+   * Department 30 has 6 employees. Each EMPNO occurs 6 times, thus the
+   * correct BIT_XOR is 0. Departments 10 and 20 have an odd number of
+   * employees, thus their results do not change.
+   * Result validated with PostgreSQL 14. */
+  @Test void testAggregateJoinTransposeBitXor() {
+    final String sql = "select e.deptno, bit_xor(e.empno) as x\n"
+        + "from emp e join emp f on e.deptno = f.deptno\n"
+        + "group by e.deptno order by e.deptno";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .returns("DEPTNO=10; X=7687\n"
+            + "DEPTNO=20; X=7985\n"
+            + "DEPTNO=30; X=0\n");
+  }
+
+  /** AggregateExpandDistinctAggregatesRule, in the configuration that uses a
+   * join, splits SUM WITHIN DISTINCT into a bottom and a top Aggregate, and
+   * keeps the WITHIN DISTINCT keys of the old input in the top Aggregate.
+   * Result validated with PostgreSQL 14, using COUNT(DISTINCT mgr) and the
+   * sum of CHAR_LENGTH(job) over the distinct jobs of each department. */
+  @Test void testAggregateExpandDistinctToJoinWithinDistinct() {
+    final String sql = "select deptno, count(distinct mgr) as c,\n"
+        + " sum(char_length(job)) within distinct (job) as s\n"
+        + "from emp group by deptno order by deptno";
+    queryAfterHepRules(sql,
+        CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .returns("DEPTNO=10; C=2; S=21\n"
+            + "DEPTNO=20; C=4; S=19\n"
+            + "DEPTNO=30; C=2; S=20\n");
+  }
+
+  /** AggregateExpandDistinctAggregatesRule keeps the WITHIN DISTINCT keys of
+   * the old input when it rewrites a DISTINCT call next to COUNT(*), in both
+   * configurations: with grouping sets and with a join.
+   * ENAME is unique, so the result is SUM(DISTINCT sal).
+   * Result validated with PostgreSQL 14, using SUM(DISTINCT sal). */
+  @Test void testAggregateExpandDistinctDistinctWithinDistinct() {
+    final String sql = "select deptno, count(*) as c,\n"
+        + " sum(distinct sal) within distinct (ename) as s\n"
+        + "from emp group by deptno order by deptno";
+    final String expected = "DEPTNO=10; C=3; S=8750.00\n"
+        + "DEPTNO=20; C=5; S=7875.00\n"
+        + "DEPTNO=30; C=6; S=8150.00\n";
+    queryAfterHepRules(sql, CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .returns(expected);
+    queryAfterHepRules(sql,
+        CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .returns(expected);
+  }
+
+  /** MeasureRules.AGGREGATE drops the FILTER of AGGREGATE(c), so each job
+   * gets the count of all its employees. The default programs use
+   * MeasureRules.AGGREGATE2, which keeps the FILTER.
+   * Result validated with PostgreSQL 14, using
+   * COUNT(*) FILTER (WHERE deptno = 20). */
+  @Test void testMeasureAggregateRuleKeepsFilter() {
+    final String sql = "select job,\n"
+        + " aggregate(c) filter (where deptno = 20) as c2\n"
+        + "from (select *, count(*) as measure c from emp)\n"
+        + "group by job order by job";
+    final Program program =
+        Programs.hep(
+            ImmutableList.of(MeasureRules.AGGREGATE, CoreRules.PROJECT_MERGE,
+                MeasureRules.PROJECT),
+            true, DefaultRelMetadataProvider.INSTANCE);
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .with(CalciteConnectionProperty.FUN, "calcite")
+        .query(sql)
+        .withHook(Hook.PROGRAM,
+            Hook.propertyJ(Programs.sequence(program, Programs.standard())))
+        .returns("JOB=ANALYST; C2=2\n"
+            + "JOB=CLERK; C2=2\n"
+            + "JOB=MANAGER; C2=1\n"
+            + "JOB=PRESIDENT; C2=0\n"
+            + "JOB=SALESMAN; C2=0\n");
   }
 
   @Test void testAggregateFilter() {

@@ -103,6 +103,11 @@ public class AggregateStarTableRule
       // populate a materialization
       return;
     }
+    if (aggregate.getAggCallList().stream().anyMatch(c ->
+        c.hasFilter() || c.distinctKeys != null
+            || !c.collation.getFieldCollations().isEmpty())) {
+      return;
+    }
     final RelOptCluster cluster = scan.getCluster();
     final RelOptTable table = scan.getTable();
     final RelOptLattice lattice =

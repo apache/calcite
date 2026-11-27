@@ -32,6 +32,7 @@ import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
@@ -877,8 +878,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
       }
       newAggCalls.add(
-          oldAggCall.adaptTo(newProject, aggArgs, filterArg,
-              rel.hasEmptyGroup(), newHasEmptyGroup));
+          oldAggCall
+              .withDistinctKeys(oldAggCall.distinctKeys == null ? null
+                  : oldAggCall.distinctKeys.permute(combinedMap))
+              .withCollation(RelCollations.permute(oldAggCall.collation, combinedMap))
+              .adaptTo(newProject, aggArgs, filterArg,
+                  rel.hasEmptyGroup(), newHasEmptyGroup));
 
       // The old to new output position mapping will be the same as that
       // of newProject, plus any aggregates that the oldAgg produces.
@@ -3666,8 +3671,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
             aggCall.filterArg < 0 ? aggCall.filterArg
                 : aggCall.filterArg + groupCount;
         newAggCalls.add(
-            aggCall.adaptTo(joinOutputProject, argList, filterArg,
-                aggregate.hasEmptyGroup(), groupCount == 0));
+            aggCall
+                .withDistinctKeys(aggCall.distinctKeys == null ? null
+                    : aggCall.distinctKeys.shift(groupCount))
+                .withCollation(RelCollations.shift(aggCall.collation, groupCount))
+                .adaptTo(joinOutputProject, argList, filterArg,
+                    aggregate.hasEmptyGroup(), groupCount == 0));
       }
 
       ImmutableBitSet groupSet =

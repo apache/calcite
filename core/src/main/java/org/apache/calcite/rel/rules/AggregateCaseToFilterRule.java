@@ -138,7 +138,7 @@ public class AggregateCaseToFilterRule
   private static @Nullable AggregateCall transform(AggregateCall call,
       Project project, List<RexNode> newProjects) {
     final int singleArg = soleArgument(call);
-    if (singleArg < 0) {
+    if (singleArg < 0 || call.distinctKeys != null) {
       return null;
     }
 
@@ -238,7 +238,7 @@ public class AggregateCaseToFilterRule
       newProjects.add(filter);
       return AggregateCall.create(pos, call.getAggregation(), false,
           false, false, call.rexList, ImmutableList.of(newProjects.size() - 2),
-          newProjects.size() - 1, null, RelCollations.EMPTY,
+          newProjects.size() - 1, null, call.collation,
           call.getType(), call.getName());
     } else {
       return null;

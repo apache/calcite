@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
+import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Smalls;
@@ -54,6 +55,7 @@ import java.util.Collections;
  * </pre>
  * </blockquote>
  */
+@ReflectiveSchema.Input
 public class HrSchema {
   @Override public String toString() {
     return "HrSchema";

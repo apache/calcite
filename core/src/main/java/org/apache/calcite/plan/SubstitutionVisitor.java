@@ -1967,7 +1967,7 @@ public class SubstitutionVisitor {
       for (AggregateCall aggregateCall : query.aggCalls) {
         AggregateCall newAggCall = null;
         // 1. try to find rollup agg-call.
-        if (!aggregateCall.isDistinct()) {
+        if (!aggregateCall.isDistinct() && aggregateCall.distinctKeys == null) {
           int i = target.aggCalls.indexOf(aggregateCall);
           if (i >= 0) {
             // When an SqlAggFunction does not support roll up, it will return null,
@@ -2030,6 +2030,15 @@ public class SubstitutionVisitor {
       }
       newArgList.add(newArgIndex);
     }
+    final int newFilterArg;
+    if (queryAggCall.hasFilter()) {
+      newFilterArg = targetGroupByIndexes.indexOf(queryAggCall.filterArg);
+      if (newFilterArg < 0) {
+        return null;
+      }
+    } else {
+      newFilterArg = -1;
+    }
     final boolean isAllowBuild;
     if (newArgList.isEmpty()) {
       // Size of agg-call's args is empty, we stop to build a new agg-call,
@@ -2051,7 +2060,7 @@ public class SubstitutionVisitor {
     return AggregateCall.create(queryAggCall.getParserPosition(), aggregation,
         queryAggCall.isDistinct(), queryAggCall.isApproximate(),
         queryAggCall.ignoreNulls(), queryAggCall.rexList,
-        newArgList, -1, queryAggCall.distinctKeys,
+        newArgList, newFilterArg, queryAggCall.distinctKeys,
         queryAggCall.collation, queryAggCall.type,
         queryAggCall.name);
   }

@@ -259,6 +259,12 @@ public class MaterializationService {
           }
         }
       }
+      // Return the roll-up tile with the fewest rows.
+      // Without this return the loop above has no effect and
+      // AggregateStarTableRule never rolls up a tile.
+      if (bestCandidate != null) {
+        return bestCandidate;
+      }
     }
 
     // What we need is not there. If we can't create, we're done.

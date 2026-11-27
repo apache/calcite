@@ -344,15 +344,28 @@ public class RelJsonReader {
         requireNonNull((List<Integer>) jsonAggCall.get("operands"),
             "jsonAggCall.operands");
     final Integer filterOperand = (Integer) jsonAggCall.get("filter");
+    final boolean approximate =
+        Boolean.TRUE.equals(jsonAggCall.get("approximate"));
+    final boolean ignoreNulls =
+        Boolean.TRUE.equals(jsonAggCall.get("ignoreNulls"));
+    @SuppressWarnings("unchecked")
+    final List<Integer> jsonDistinctKeys =
+        (List<Integer>) jsonAggCall.get("distinctKeys");
+    @SuppressWarnings("unchecked")
+    final List<Map<String, Object>> jsonCollation =
+        (List<Map<String, Object>>) jsonAggCall.get("collation");
     final Object jsonAggType =
         requireNonNull(jsonAggCall.get("type"), "jsonAggCall.type");
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggType);
     final String name = (String) jsonAggCall.get("name");
-    return AggregateCall.create(aggregation, distinct, false, false,
+    return AggregateCall.create(aggregation, distinct, approximate, ignoreNulls,
         ImmutableList.of(), operands,
         filterOperand == null ? -1 : filterOperand,
-        null, RelCollations.EMPTY, type, name);
+        jsonDistinctKeys == null ? null : ImmutableBitSet.of(jsonDistinctKeys),
+        jsonCollation == null ? RelCollations.EMPTY
+            : relJson.toCollation(jsonCollation),
+        type, name);
   }
 
   private RelNode lookupInput(String jsonInput) {

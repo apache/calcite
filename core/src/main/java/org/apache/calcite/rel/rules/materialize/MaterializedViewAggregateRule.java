@@ -479,7 +479,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         continue;
       }
       final AggregateCall queryAggCall = ord.e;
-      if (queryAggCall.filterArg >= 0) {
+      if (queryAggCall.filterArg >= 0
+          || queryAggCall.distinctKeys != null
+          || queryAggCall.hasCollation()) {
         // Not supported currently
         return null;
       }
@@ -497,7 +499,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
             // A NOT NULL view call can answer a nullable query call, but a
             // nullable view call can hold NULLs a NOT NULL one cannot
             || viewAggCall.getType().isNullable() && !queryAggCall.getType().isNullable()
-            || viewAggCall.filterArg >= 0) {
+            || viewAggCall.filterArg >= 0
+            || viewAggCall.distinctKeys != null) {
           // Continue
           continue;
         }

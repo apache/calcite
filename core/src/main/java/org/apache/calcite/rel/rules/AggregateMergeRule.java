@@ -71,6 +71,7 @@ public class AggregateMergeRule
     if (aggCall.isDistinct()
         || aggCall.hasFilter()
         || aggCall.isApproximate()
+        || aggCall.distinctKeys != null
         || aggCall.getArgList().size() > 1) {
       return false;
     }

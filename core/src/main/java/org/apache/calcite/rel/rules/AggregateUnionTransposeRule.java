@@ -118,6 +118,7 @@ public class AggregateUnionTransposeRule
 
     for (AggregateCall aggCall : aggRel.getAggCallList()) {
       if (aggCall.isDistinct()
+          || aggCall.distinctKeys != null
           || !SUPPORTED_AGGREGATES.containsKey(aggCall.getAggregation()
               .getClass())) {
         return;

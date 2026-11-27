@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Combine;
 import org.apache.calcite.rel.core.Correlate;
@@ -128,6 +129,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1398,6 +1400,34 @@ public class RelBuilderTest {
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
+  /** Tests that {@link RelBuilder.AggCall#over()} rejects an aggregate call
+   * that has a FILTER, WITHIN DISTINCT keys, a WITHIN GROUP sort or
+   * pre-operands. The windowed call cannot keep them, and if it drops them
+   * the query gives wrong results: for example,
+   * {@code SUM(sal) FILTER (WHERE job = 'CLERK') OVER (PARTITION BY deptno)}
+   * gave the sum of all the salaries in the department. */
+  @Test void testOverRejectsFilterAndSort() {
+    final RelBuilder b = RelBuilder.create(config().build());
+    b.scan("EMP");
+    final Map<String, RelBuilder.AggCall> calls =
+        ImmutableMap.of("FILTER is not supported",
+            b.sum(b.field("SAL"))
+                .filter(b.equals(b.field("JOB"), b.literal("CLERK"))),
+            "WITHIN DISTINCT is not supported",
+            b.sum(b.field("SAL")).unique(b.field("JOB")),
+            "WITHIN GROUP is not supported",
+            b.aggregateCall(SqlStdOperatorTable.LISTAGG, b.field("ENAME"))
+                .sort(b.field("SAL")),
+            "pre-operands are not supported",
+            b.literalAgg(1));
+    calls.forEach((message, call) -> {
+      final IllegalArgumentException e =
+          assertThrows(IllegalArgumentException.class, call::over);
+      assertThat(e.getMessage(),
+          is(message + " in a windowed aggregate call: " + call));
+    });
+  }
+
   @Test void testRename() {
     final RelBuilder builder = RelBuilder.create(config().build());
 
@@ -2087,6 +2117,51 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Tests that two calls to {@code LITERAL_AGG} with different values are
+   * not equal. {@link AggregateCall#hashCode()} uses the values, so
+   * {@link AggregateCall#equals(Object)} must use them too. */
+  @Test void testLiteralAggCallEquals() {
+    final RelBuilder b = RelBuilder.create(config().build());
+    final RelNode root = b.scan("EMP")
+        .aggregate(b.groupKey("DEPTNO"),
+            b.literalAgg(1).as("A"),
+            b.literalAgg(2).as("B"))
+        .build();
+    final List<AggregateCall> calls = ((Aggregate) root).getAggCallList();
+    // The calls return different values, so they are not equal
+    assertThat(calls.get(0).equals(calls.get(1)), is(false));
+    assertThat(calls.get(1).equals(calls.get(0)), is(false));
+  }
+
+  /** Tests that {@link RelBuilder#aggregate} does not merge calls to
+   * {@code LITERAL_AGG} that have different values. */
+  @Test void testAggregateDuplicateLiteralAggCalls() throws Exception {
+    // Equivalent SQL, if LITERAL_AGG(v) returns the constant v:
+    //   SELECT deptno, LITERAL_AGG(1) AS a, LITERAL_AGG(2) AS b,
+    //     LITERAL_AGG(2) AS c
+    //   FROM emp
+    //   GROUP BY deptno
+    //   ORDER BY deptno
+    final RelBuilder b = RelBuilder.create(config().build());
+    final RelNode root = b.scan("EMP")
+        .aggregate(b.groupKey("DEPTNO"),
+            b.literalAgg(1).as("A"),
+            b.literalAgg(2).as("B"),
+            b.literalAgg(2).as("C"))
+        .sort(b.field("DEPTNO"))
+        .build();
+    // C is a copy of B. If C is taken from A, the value of C is 1.
+    final String expected = ""
+        + "DEPTNO=10; A=1; B=2; C=2\n"
+        + "DEPTNO=20; A=1; B=2; C=2\n"
+        + "DEPTNO=30; A=1; B=2; C=2\n";
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
+      final String s =
+          CalciteAssert.toString(preparedStatement.executeQuery());
+      assertThat(s, is(expected));
+    }
+  }
+
   /**
    * Test reproducing issue CALCITE-6261.
    */
@@ -2278,6 +2353,29 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
         hasTree(expected2));
+  }
+
+  /** RelBuilder fails with UnsupportedOperationException on a WITHIN GROUP
+   * sort key that is an expression. */
+  @Test void testAggregateCallSortByExpression() {
+    // Equivalent SQL:
+    //   SELECT COLLECT(ename) WITHIN GROUP (ORDER BY sal + 1)
+    //   FROM emp
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root = builder.scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.aggregateCall(SqlStdOperatorTable.COLLECT,
+                    builder.field("ENAME"))
+                .sort(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field("SAL"), builder.literal(1))))
+        .build();
+    // The sort key of COLLECT is the input field that computes SAL + 1
+    final Aggregate aggregate = (Aggregate) root;
+    final Project project = (Project) aggregate.getInput();
+    final int key = aggregate.getAggCallList().get(0).collation
+        .getFieldCollations().get(0).getFieldIndex();
+    assertThat(project.getProjects().get(key), hasToString("+($5, 1)"));
   }
 
   /** Tests that {@link RelBuilder#aggregate} on top of a {@link Project} prunes
@@ -5203,6 +5301,46 @@ public class RelBuilderTest {
         + "$f9=[IS TRUE(AND(=($2, 'MANAGER'), =($7, 20)))])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  /** Tests that {@link RelBuilder#pivot} keeps the FILTER of an aggregate
+   * call, and adds the condition on the axis to it. */
+  @Test void testPivotKeepsFilter() throws Exception {
+    // Equivalent SQL (the SQL validator rejects FILTER in PIVOT):
+    //   SELECT *
+    //   FROM (SELECT deptno, job, sal FROM emp)
+    //   PIVOT (SUM(sal) FILTER (WHERE job = 'CLERK') AS s
+    //       FOR deptno IN (10 AS d10, 20 AS d20))
+    //
+    // translates to
+    //   SELECT
+    //     SUM(sal) FILTER (WHERE job = 'CLERK' AND deptno = 10) AS d10_s,
+    //     SUM(sal) FILTER (WHERE job = 'CLERK' AND deptno = 20) AS d20_s
+    //   FROM emp
+    final RelBuilder b = RelBuilder.create(config().build());
+    final RelNode root = b.scan("EMP")
+        .pivot(b.groupKey(),
+            Collections.singletonList(
+                b.sum(b.field("SAL"))
+                    .filter(b.equals(b.field("JOB"), b.literal("CLERK")))
+                    .as("S")),
+            Collections.singletonList(b.field("DEPTNO")),
+            ImmutableMap.<String, List<RexNode>>builder()
+                .put("D10", Collections.singletonList(b.literal(10)))
+                .put("D20", Collections.singletonList(b.literal(20)))
+                .build()
+                .entrySet())
+        .build();
+    // Each value is the sum of the salaries of the clerks in the department.
+    // If the FILTER is lost, the values are the sums of all the salaries in
+    // the department (8750.00 and 10875.00).
+    // Result validated with PostgreSQL 14.
+    final String expected = "D10_S=1300.00; D20_S=1900.00\n";
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
+      final String s =
+          CalciteAssert.toString(preparedStatement.executeQuery());
+      assertThat(s, is(expected));
+    }
   }
 
   @Test void testUnpivot() {

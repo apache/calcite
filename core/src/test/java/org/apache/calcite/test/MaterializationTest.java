@@ -128,6 +128,117 @@ public class MaterializationTest {
         .sameResultWithMaterializationsDisabled();
   }
 
+  /** Model with a clone of the scott schema. */
+  private static final String SCOTT_CLONE_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "  defaultSchema: 'SCOTT_CLONE',\n"
+      + "  schemas: [ {\n"
+      + "    name: 'SCOTT_CLONE',\n"
+      + "    type: 'custom',\n"
+      + "    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',\n"
+      + "    operand: {\n"
+      + "      jdbcDriver: '" + JdbcTest.SCOTT.driver + "',\n"
+      + "      jdbcUser: '" + JdbcTest.SCOTT.username + "',\n"
+      + "      jdbcPassword: '" + JdbcTest.SCOTT.password + "',\n"
+      + "      jdbcUrl: '" + JdbcTest.SCOTT.url + "',\n"
+      + "      jdbcSchema: 'SCOTT'\n"
+      + "   } } ]\n"
+      + "}";
+
+  /** Runs {@code query} with the materialized view {@code mv} on the scott
+   * schema, and checks the result. */
+  private static void checkScottMaterialization(String mv, String query,
+      String expected) {
+    CalciteAssert.that()
+        .withMaterializations(SCOTT_CLONE_MODEL, "m0", mv)
+        .query(query)
+        .enableMaterializations(true)
+        .returns(expected);
+  }
+
+  /** MaterializedViewAggregateRule answers SUM WITHIN DISTINCT from a plain
+   * SUM in the view (gave 310).
+   * Result validated with PostgreSQL 14, using SUM(DISTINCT deptno). */
+  @Test void testMaterializationWithinDistinct() {
+    checkScottMaterialization(
+        "select deptno, empno, sum(cast(deptno as integer)) as s\n"
+            + "from emp group by deptno, empno",
+        "select sum(cast(deptno as integer)) within distinct (deptno) as s\n"
+            + "from emp",
+        "S=60\n");
+  }
+
+  /** MaterializedViewAggregateRule answers LISTAGG WITHIN GROUP from an
+   * unordered LISTAGG in the view.
+   * Result validated with PostgreSQL 14, using
+   * STRING_AGG(ename, ',' ORDER BY sal DESC, ename). */
+  @Test void testMaterializationWithinGroup() {
+    checkScottMaterialization(
+        "select deptno, listagg(ename) as l from emp group by deptno",
+        "select deptno,\n"
+            + " listagg(ename) within group (order by sal desc, ename) as l\n"
+            + "from emp group by deptno order by deptno",
+        "DEPTNO=10; L=KING,CLARK,MILLER\n"
+            + "DEPTNO=20; L=FORD,SCOTT,JONES,ADAMS,SMITH\n"
+            + "DEPTNO=30; L=BLAKE,ALLEN,TURNER,MARTIN,WARD,JAMES\n");
+  }
+
+  /** Materialized view substitution rolls up COUNT WITHIN DISTINCT from the
+   * view as if it were a plain COUNT (gave 14).
+   * Result validated with PostgreSQL 14, using COUNT(DISTINCT deptno). */
+  @Test void testMaterializationRollUpWithinDistinct() {
+    checkScottMaterialization(
+        "select empno, count(*) within distinct (deptno) as c\n"
+            + "from emp group by empno",
+        "select count(*) within distinct (deptno) as c from emp",
+        "C=3\n");
+  }
+
+  /** MaterializedViewAggregateRule answers a plain COUNT from a COUNT WITHIN
+   * DISTINCT in the view.
+   * Result validated with PostgreSQL 14, using COUNT(*). */
+  @Test void testMaterializationViewWithinDistinct() {
+    checkScottMaterialization(
+        "select deptno, count(*) within distinct (job) as c\n"
+            + "from emp group by deptno",
+        "select deptno, count(*) as c from emp group by deptno order by deptno",
+        "DEPTNO=10; C=3\n"
+            + "DEPTNO=20; C=5\n"
+            + "DEPTNO=30; C=6\n");
+  }
+
+  /** The view groups by DEPTNO; the query has no GROUP BY.
+   * SubstitutionVisitor rolls up COUNT WITHIN DISTINCT with SUM0 over the
+   * column C of the view, and keeps the WITHIN DISTINCT key of the query.
+   * In the view, the field index of that key is the column C. Each
+   * department has 3 jobs, so the result was 3.
+   * Result validated with PostgreSQL 14, using COUNT(DISTINCT job). */
+  @Test void testMaterializationRollUpWithinDistinctKey() {
+    checkScottMaterialization(
+        "select deptno, count(*) within distinct (job) as c\n"
+            + "from emp group by deptno",
+        "select count(*) within distinct (job) as c from emp",
+        "C=5\n");
+  }
+
+  /** The view groups by DEPTNO, SAL and B. SubstitutionVisitor computes
+   * MIN(sal) and COUNT(DISTINCT sal) from the column SAL of the view, and
+   * drops the FILTER (gave 800 and 4 for department 20).
+   * Result validated with PostgreSQL 14. */
+  @Test void testMaterializationRollUpFilter() {
+    final String from =
+        "from (select deptno, sal, empno > 7700 as b from emp)\n";
+    checkScottMaterialization(
+        "select deptno, sal, b\n"
+            + from + "group by deptno, sal, b",
+        "select deptno, min(sal) filter (where b) as m,\n"
+            + " count(distinct sal) filter (where b) as c\n"
+            + from + "group by deptno order by deptno",
+        "DEPTNO=10; M=1300.00; C=3\n"
+            + "DEPTNO=20; M=1100.00; C=2\n"
+            + "DEPTNO=30; M=950.00; C=2\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7636">[CALCITE-7636]
    * Materialized view union rewriting drops rows when the view filter is not
@@ -410,6 +521,7 @@ public class MaterializationTest {
   /**
    * Hr schema with FK-UK relationship.
    */
+  @ReflectiveSchema.Input
   public static class HrFKUKSchema {
     @Override public String toString() {
       return "HrFKUKSchema";

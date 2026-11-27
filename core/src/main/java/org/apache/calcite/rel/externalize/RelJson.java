@@ -457,6 +457,21 @@ public class RelJson {
     map.put("distinct", node.isDistinct());
     map.put("operands", node.getArgList());
     map.put("name", node.getName());
+    if (node.isApproximate()) {
+      map.put("approximate", true);
+    }
+    if (node.ignoreNulls()) {
+      map.put("ignoreNulls", true);
+    }
+    if (node.filterArg >= 0) {
+      map.put("filter", node.filterArg);
+    }
+    if (node.distinctKeys != null) {
+      map.put("distinctKeys", toJson(node.distinctKeys));
+    }
+    if (!node.collation.getFieldCollations().isEmpty()) {
+      map.put("collation", toJson(node.collation));
+    }
     return map;
   }
 

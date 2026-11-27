@@ -136,7 +136,7 @@ public class AggregateFilterTransposeRule
       int i = newGroupSet.cardinality();
       for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
         final SqlAggFunction rollup = aggregateCall.getAggregation().getRollup();
-        if (rollup == null) {
+        if (rollup == null || aggregateCall.distinctKeys != null) {
           // This aggregate cannot be rolled up.
           return;
         }
