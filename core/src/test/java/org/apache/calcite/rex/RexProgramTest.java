@@ -1959,6 +1959,43 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(sarg.isComplementedPoints(), is(true));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3178">[CALCITE-3178]
+   * RexSimplify takes quadratic time on large OR expressions</a>. While
+   * simplifying each term of an OR, RexSimplify used to add the negation of
+   * every preceding term as a predicate, so a large IN list (which Druid, for
+   * example, expands into an OR) took a long time to plan. Above a threshold,
+   * RexSimplify no longer does this. If the threshold stops working, this test
+   * will become noticeably slow. */
+  @Test void testSimplifyLargeOr() {
+    final int n = 20_000;
+    final List<RexNode> terms = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      terms.add(eq(vIntNotNull(), literal(i)));
+    }
+    final RexNode simplified = simplify.simplifyPreservingType(or(terms));
+    assertThat(simplified.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> sarg =
+        ((RexLiteral) ((RexCall) simplified).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(sarg.pointCount, is(n));
+  }
+
+  /** As {@link #testSimplifyLargeOr()}, but for a large AND in a filter. */
+  @Test void testSimplifyLargeAnd() {
+    final int n = 20_000;
+    final List<RexNode> terms = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      terms.add(ne(vInt(), literal(i)));
+    }
+    final RexNode simplified = simplify.simplifyUnknownAsFalse(and(terms));
+    assertThat(simplified.getKind(), is(SqlKind.SEARCH));
+    final Sarg<?> sarg =
+        ((RexLiteral) ((RexCall) simplified).getOperands().get(1))
+            .getValueAs(Sarg.class);
+    assertThat(sarg.isComplementedPoints(), is(true));
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
    * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */

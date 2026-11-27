@@ -96,6 +96,19 @@ public class RexSimplify {
   /** Maximum number of terms for which to apply the absorption law. */
   private static final int MAX_TERMS_FOR_ABSORPTION = 20;
 
+  /** Maximum number of terms in an AND or OR for which to use each term as a
+   * predicate while simplifying the other terms.
+   *
+   * <p>Doing so is quadratic in the number of terms, because each term adds a
+   * predicate and each predicate is examined when simplifying later terms.
+   * Above this threshold, each term is simplified independently. Large lists
+   * of comparisons, such as an expanded IN list, are still combined into a
+   * Sarg afterwards.
+   *
+   * <p>See [CALCITE-3178] RexSimplify takes quadratic time on large OR
+   * expressions. */
+  private static final int MAX_TERMS_FOR_PREDICATE_ELIMINATION = 100;
+
   /**
    * Creates a RexSimplify.
    *
@@ -926,6 +939,10 @@ public class RexSimplify {
   }
 
   private void simplifyAndTerms(List<RexNode> terms, RexUnknownAs unknownAs) {
+    if (terms.size() > MAX_TERMS_FOR_PREDICATE_ELIMINATION) {
+      simplifyList(terms, unknownAs);
+      return;
+    }
     RexSimplify simplify = this;
     for (int i = 0; i < terms.size(); i++) {
       RexNode t = terms.get(i);
@@ -948,6 +965,10 @@ public class RexSimplify {
   }
 
   private void simplifyOrTerms(List<RexNode> terms, RexUnknownAs unknownAs) {
+    if (terms.size() > MAX_TERMS_FOR_PREDICATE_ELIMINATION) {
+      simplifyList(terms, unknownAs);
+      return;
+    }
     // Suppose we are processing "e1(x) OR e2(x) OR e3(x)". When we are
     // visiting "e3(x)" we know both "e1(x)" and "e2(x)" are not true (they
     // may be unknown), because if either of them were true we would have
