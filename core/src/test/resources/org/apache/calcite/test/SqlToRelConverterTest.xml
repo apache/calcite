@@ -9874,6 +9874,36 @@ LogicalProject(DEPTNO=[$0], X=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableFunctionAliasLeftJoin">
+    <Resource name="sql">
+      <![CDATA[select rmp, rmp.i
+from dept
+left join table(ramp(3)) as rmp on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(RMP=[$2], I=[$2])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionAliasRightJoin">
+    <Resource name="sql">
+      <![CDATA[select rmp, rmp.i
+from table(ramp(3)) as rmp
+right join dept on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(RMP=[$0], I=[$0])
+  LogicalJoin(condition=[true], joinType=[right])
+    LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableFunctionHop">
     <Resource name="sql">
       <![CDATA[select *
@@ -10852,6 +10882,39 @@ LogicalProject(EXPR$0=[$0])
       <![CDATA[select*from unnest(multiset[1,2])]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnnestAliasOrdinalityResolvesToOrdinalityColumn">
+    <Resource name="sql">
+      <![CDATA[select ordinality
+from unnest(cast(array[row(1)] as row(a integer) array))
+  with ordinality as ordinality]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ORDINALITY=[$1])
+  Uncollect(withOrdinality=[true])
+    LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestAnonymousRowNaturalJoin">
+    <Resource name="sql">
+      <![CDATA[select * from unnest(array[row(1)]) as a
+natural join unnest(array[row(2)]) as b]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(A=[$0], B=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    Uncollect
+      LogicalProject(EXPR$0=[ARRAY(ROW(1))])
+        LogicalValues(tuples=[[{ 0 }]])
+    Uncollect
+      LogicalProject(EXPR$0=[ARRAY(ROW(2))])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnnestArray">
     <Resource name="sql">
       <![CDATA[select*from unnest(array(select*from dept))]]>
@@ -11007,6 +11070,194 @@ LogicalProject(EXPR$0=[$0])
         Collect(field=[EXPR$0])
           LogicalProject(EXPR$0=[$cor0.DEPTNO])
             LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowAliasKeepsFieldName">
+    <Resource name="sql">
+      <![CDATA[select d, d.a
+from unnest(cast(array[row(1)] as row(a integer) array)) as d]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$0], A=[$0])
+  Uncollect
+    LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowAliasWithOrdinalityCorrelatedOffset">
+    <Resource name="sql">
+      <![CDATA[select t.name
+from unnest(cast(array[row(1)] as row(a integer) array))
+  with ordinality as d, dept as t
+where exists (select 1 from emp e
+  where e.deptno = t.deptno and e.empno = d.ordinality)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$3])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($0, $cor0.ORDINALITY))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      Uncollect(withOrdinality=[true])
+        LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+          LogicalValues(tuples=[[{ 0 }]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowLeftJoinAlias">
+    <Resource name="sql">
+      <![CDATA[select d
+from dept
+left join unnest(cast(array[row(1)] as row(a integer) array)) as d on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$2])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Uncollect
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowLeftJoinField">
+    <Resource name="sql">
+      <![CDATA[select d.a
+from dept
+left join unnest(cast(array[row(1)] as row(a integer) array)) as d on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(A=[$2])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Uncollect
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowLeftJoinOrdinalityAlias">
+    <Resource name="sql">
+      <![CDATA[select d
+from dept
+left join unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$2])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Uncollect(withOrdinality=[true])
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowLeftJoinOrdinalityField">
+    <Resource name="sql">
+      <![CDATA[select d.a
+from dept
+left join unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(A=[$2])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Uncollect(withOrdinality=[true])
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowRightJoinAlias">
+    <Resource name="sql">
+      <![CDATA[select d
+from unnest(cast(array[row(1)] as row(a integer) array)) as d
+right join dept on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$0])
+  LogicalJoin(condition=[true], joinType=[right])
+    Uncollect
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowRightJoinField">
+    <Resource name="sql">
+      <![CDATA[select d.a
+from unnest(cast(array[row(1)] as row(a integer) array)) as d
+right join dept on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(A=[$0])
+  LogicalJoin(condition=[true], joinType=[right])
+    Uncollect
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowRightJoinOrdinalityAlias">
+    <Resource name="sql">
+      <![CDATA[select d
+from unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d
+right join dept on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$0])
+  LogicalJoin(condition=[true], joinType=[right])
+    Uncollect(withOrdinality=[true])
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowRightJoinOrdinalityField">
+    <Resource name="sql">
+      <![CDATA[select d.a
+from unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d
+right join dept on true]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(A=[$0])
+  LogicalJoin(condition=[true], joinType=[right])
+    Uncollect(withOrdinality=[true])
+      LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+        LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestSingleFieldRowWithOrdinalityAllColumns">
+    <Resource name="sql">
+      <![CDATA[select d, d.a, d.ordinality
+from unnest(cast(array[row(1)] as row(a integer) array))
+  with ordinality as d]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(D=[$0], A=[$0], ORDINALITY=[$1])
+  Uncollect(withOrdinality=[true])
+    LogicalProject(EXPR$0=[CAST(ARRAY(ROW(1))):RecordType(INTEGER NOT NULL A) NOT NULL ARRAY NOT NULL])
+      LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>

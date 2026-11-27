@@ -150,6 +150,18 @@ and `GeodeSimpleSchemaFactory`) now requires the operator-level opt-in system pr
 `-Dcalcite.geode.pdxSerializablePackagePath.allowed=true`. A model that sets the operand
 without the opt-in will fail. Java callers of `GeodeUtils.createClientCache` are unaffected.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7791">CALCITE-7791</a>]
+Under the default conformance, `select *` over an aliased UNNEST of single-field
+ROW values (plain, `WITH ORDINALITY`, sub-query operand, or MULTISET) now returns
+the declared field name instead of the alias: `select * from unnest(cast(array[row(1)]
+as row(a integer) array)) as d` returns column `A`, not `D`. `NATURAL JOIN` matches
+the field name, and `USING` accepts either the field name or the alias; the alias
+still qualifies the field (`d.a`). When the field name is generated (for example
+`ROW(1)`), the alias still names the column, as before. Conformances where
+`allowAliasUnnestItems` is true, such as `PRESTO` and `BIG_QUERY`, are unaffected.
+To keep the alias as the output column name, write `AS d (d)`; a `USING (d)`
+join can still refer to the column by the alias, but its output keeps the field name.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7906">CALCITE-7906</a>]
 `LikePattern`, which handles the patterns passed to JDBC `DatabaseMetaData` methods such as
 `getTables` and `getColumns` and to `Lookup.getNames`, now supports the `_` wildcard (any single

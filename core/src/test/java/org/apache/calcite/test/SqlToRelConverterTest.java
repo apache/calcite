@@ -2438,6 +2438,212 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   */
+  @Test void testUnnestSingleFieldRowAliasKeepsFieldName() {
+    final String sql = "select d, d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   */
+  @Test void testUnnestAliasOrdinalityResolvesToOrdinalityColumn() {
+    // Alias equals ORDINALITY: unqualified "ordinality" must project
+    // the ordinality column, not the data column named by the alias.
+    final String sql = "select ordinality\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as ordinality";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   */
+  @Test void testUnnestSingleFieldRowWithOrdinalityAllColumns() {
+    final String sql = "select d, d.a, d.ordinality\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowLeftJoinAlias() {
+    final String sql = "select d\n"
+        + "from dept\n"
+        + "left join unnest(cast(array[row(1)] as row(a integer) array)) as d on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowLeftJoinField() {
+    final String sql = "select d.a\n"
+        + "from dept\n"
+        + "left join unnest(cast(array[row(1)] as row(a integer) array)) as d on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowLeftJoinOrdinalityAlias() {
+    final String sql = "select d\n"
+        + "from dept\n"
+        + "left join unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowLeftJoinOrdinalityField() {
+    final String sql = "select d.a\n"
+        + "from dept\n"
+        + "left join unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowRightJoinAlias() {
+    final String sql = "select d\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "right join dept on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowRightJoinField() {
+    final String sql = "select d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) as d\n"
+        + "right join dept on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowRightJoinOrdinalityAlias() {
+    final String sql = "select d\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d\n"
+        + "right join dept on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The aliased UNNEST is on the null-generating side of an outer join,
+   * so its columns must become nullable. */
+  @Test void testUnnestSingleFieldRowRightJoinOrdinalityField() {
+    final String sql = "select d.a\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array)) with ordinality as d\n"
+        + "right join dept on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>A {@code TABLE(...) AS alias} on the null-generating side of an outer
+   * join becomes nullable. */
+  @Test void testTableFunctionAliasLeftJoin() {
+    final String sql = "select rmp, rmp.i\n"
+        + "from dept\n"
+        + "left join table(ramp(3)) as rmp on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>As {@link #testTableFunctionAliasLeftJoin()} but a RIGHT JOIN. */
+  @Test void testTableFunctionAliasRightJoin() {
+    final String sql = "select rmp, rmp.i\n"
+        + "from table(ramp(3)) as rmp\n"
+        + "right join dept on true";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The element's field name is generated, so NATURAL JOIN of two aliased
+   * UNNESTs has no common column and is a cross join. */
+  @Test void testUnnestAnonymousRowNaturalJoin() {
+    final String sql = "select * from unnest(array[row(1)]) as a\n"
+        + "natural join unnest(array[row(2)]) as b";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7791">[CALCITE-7791]
+   * UNNEST of a single-field ROW array loses the field name when aliased</a>.
+   *
+   * <p>The correlation field of a table to the right of an aliased ROW-element
+   * UNNEST WITH ORDINALITY is offset by the UNNEST's field count, so this pins
+   * {@code SingleColumnAliasRelDataType.getFieldCount()}. */
+  @Test void testUnnestSingleFieldRowAliasWithOrdinalityCorrelatedOffset() {
+    final String sql = "select t.name\n"
+        + "from unnest(cast(array[row(1)] as row(a integer) array))\n"
+        + "  with ordinality as d, dept as t\n"
+        + "where exists (select 1 from emp e\n"
+        + "  where e.deptno = t.deptno and e.empno = d.ordinality)";
+    sql(sql).withDecorrelate(false).withExpand(false).ok();
+  }
+
   @Test void testUnnestSubQuery() {
     final String sql = "select*from unnest(multiset(select*from dept))";
     sql(sql).ok();
