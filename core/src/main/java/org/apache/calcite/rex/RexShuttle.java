@@ -159,19 +159,30 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * @param exprs  List of expressions
    * @param update If not null, sets this to true if any of the expressions
    *               was modified
-   * @return Array of visited expressions
+   * @return Immutable list of visited expressions; may be {@code exprs}
+   *         itself if no expression was modified
    */
   protected List<RexNode> visitList(
       List<? extends RexNode> exprs, boolean @Nullable [] update) {
-    ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
+    ImmutableList.@Nullable Builder<RexNode> newOperands = null;
+    int i = 0;
     for (RexNode operand : exprs) {
       RexNode clonedOperand = operand.accept(this);
-      if ((clonedOperand != operand) && (update != null)) {
-        update[0] = true;
+      if (clonedOperand != operand && newOperands == null) {
+        newOperands = ImmutableList.builder();
+        newOperands.addAll(exprs.subList(0, i));
+        if (update != null) {
+          update[0] = true;
+        }
       }
-      clonedOperands.add(clonedOperand);
+      if (newOperands != null) {
+        newOperands.add(clonedOperand);
+      }
+      i++;
     }
-    return clonedOperands.build();
+    return newOperands != null
+        ? newOperands.build()
+        : ImmutableList.copyOf(exprs);
   }
 
   /**
