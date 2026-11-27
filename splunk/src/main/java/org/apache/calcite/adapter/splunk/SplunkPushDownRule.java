@@ -298,6 +298,7 @@ public class SplunkPushDownRule
           field = topFields.get(i);
         }
         newFields.add(field);
+        i++;
       }
     }
 
