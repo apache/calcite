@@ -40,10 +40,12 @@ public class RangeSets {
   /** Subtracts a range from a range set. */
   public static <C extends Comparable<C>> RangeSet<C> minus(RangeSet<C> rangeSet,
       Range<C> range) {
+    if (range.isEmpty() || rangeSet.subRangeSet(range).isEmpty()) {
+      return rangeSet;
+    }
     final TreeRangeSet<C> mutableRangeSet = TreeRangeSet.create(rangeSet);
     mutableRangeSet.remove(range);
-    return mutableRangeSet.equals(rangeSet) ? rangeSet
-        : ImmutableRangeSet.copyOf(mutableRangeSet);
+    return ImmutableRangeSet.copyOf(mutableRangeSet);
   }
 
   /** Returns the unrestricted range set. */

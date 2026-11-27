@@ -2276,16 +2276,36 @@ public class RexSimplify {
    *
    * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
    * </ul>
+   *
+   * <p>Note that the caller ({@link #simplifyUsingPredicates}) only distinguishes
+   * five outcomes: empty, unchanged ({@code r0}), unrestricted ({@code ALL}),
+   * a single point, or any other proper reduction (which keeps the original
+   * term). When narrowing a non-point range set with consecutive {@code <>}
+   * predicates, we defer point removals after the first confirmed hole until a
+   * non-{@code <>} predicate on {@code ref} is seen, avoiding repeated
+   * {@link TreeRangeSet} interval splits and copies.
    */
   private static <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
       RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
-    // Narrow a single mutable range set in place. Copying the range set for
-    // every predicate is quadratic per call, and cubic over a large OR or AND,
-    // because simplifyOrTerms and simplifyAndTerms pass one predicate per
-    // preceding term.
-    final TreeRangeSet<C> result = TreeRangeSet.create(r0);
-    for (RexNode predicate : predicates) {
-      switch (predicate.getKind()) {
+    RangeSet<C> current = r0;
+    @Nullable TreeRangeSet<C> mutable = null;
+    boolean hasNonPointRange = hasNonPointRange(r0);
+    // Once a non-point range set has one confirmed missing point c1 (where
+    // !enclosesNotEquals(current, c1) && current.contains(c1)), current already
+    // lacks some point p != c1. Removing c1 leaves at least two missing points
+    // {p, c1}, so no subsequent <> predicate on ref can satisfy
+    // enclosesNotEquals, and removing finitely many points from a continuous
+    // non-point range set can never make it empty, ALL, equal to r0, or a
+    // single point. We therefore defer applying subsequent <> predicates
+    // starting at pendingStartIndex and flush them in order only if a non-<>
+    // predicate on ref appears later.
+    @Nullable C confirmedHole = null;
+    int pendingStartIndex = -1;
+    final int predicateCount = predicates.size();
+    for (int i = 0; i < predicateCount; i++) {
+      final RexNode predicate = predicates.get(i);
+      final SqlKind predicateKind = predicate.getKind();
+      switch (predicateKind) {
       case EQUALS:
       case NOT_EQUALS:
       case LESS_THAN:
@@ -2293,44 +2313,160 @@ public class RexSimplify {
       case GREATER_THAN:
       case GREATER_THAN_OR_EQUAL:
         final RexCall call = (RexCall) predicate;
-        final Comparison comparison = Comparison.of(call);
-        if (comparison != null && comparison.ref.equals(ref)) {
-          final C c1 = comparison.literal.getValueAs(clazz);
+        final RexNode left = call.getOperands().get(0);
+        final RexNode right = call.getOperands().get(1);
+        final SqlKind kind;
+        final RexLiteral literal;
+        if (right.getKind() == SqlKind.LITERAL) {
+          if (!left.equals(ref)) {
+            continue;
+          }
+          kind = predicateKind;
+          literal = (RexLiteral) right;
+        } else if (left.getKind() == SqlKind.LITERAL && right.equals(ref)) {
+          kind = predicateKind.reverse();
+          literal = (RexLiteral) left;
+        } else {
+          continue;
+        }
+        if (kind == SqlKind.NOT_EQUALS) {
+          if (confirmedHole != null) {
+            if (literal.getValue() == null) {
+              throw new AssertionError("value must not be null in " + literal);
+            }
+            continue;
+          }
+          final C c1 = literal.getValueAs(clazz);
           if (c1 == null) {
-            throw new AssertionError("value must not be null in "
-                + comparison.literal);
+            throw new AssertionError("value must not be null in " + literal);
           }
-          switch (predicate.getKind()) {
-          case NOT_EQUALS:
-            // We want to intersect result with the range set of everything but
-            // c1. We subtract the point c1 from result, which is equivalent.
-            final Range<C> pointRange = range(SqlKind.EQUALS, c1);
-            final RangeSet<C> notEqualsRangeSet =
-                ImmutableRangeSet.of(pointRange).complement();
-            if (result.enclosesAll(notEqualsRangeSet)) {
-              return RangeSets.rangeSetAll();
-            }
-            result.remove(pointRange);
-            break;
-          default:
-            final Range<C> r1 = range(comparison.kind, c1);
-            if (result.encloses(r1)) {
-              // Given these predicates, term is always satisfied.
-              // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
-              return RangeSets.rangeSetAll();
-            }
-            result.removeAll(ImmutableRangeSet.of(r1).complement());
+          if (hasNonPointRange && enclosesNotEquals(current, c1)) {
+            return RangeSets.rangeSetAll();
           }
-          if (result.isEmpty()) {
+          if (!current.contains(c1)) {
+            continue;
+          }
+          if (hasNonPointRange) {
+            confirmedHole = c1;
+            pendingStartIndex = i + 1;
+            continue;
+          }
+          if (current.asRanges().size() == 1) {
+            // current is a single point and contains c1, so removing c1 empties it.
+            return ImmutableRangeSet.of();
+          }
+          if (mutable == null) {
+            mutable = TreeRangeSet.create(current);
+            current = mutable;
+          }
+          mutable.remove(range(SqlKind.EQUALS, c1));
+          if (mutable.isEmpty()) {
             return ImmutableRangeSet.of(); // short-cut
           }
+        } else {
+          if (confirmedHole != null) {
+            if (mutable == null) {
+              mutable = TreeRangeSet.create(current);
+              current = mutable;
+            }
+            mutable.remove(range(SqlKind.EQUALS, confirmedHole));
+            confirmedHole = null;
+            flushPendingNotEquals(mutable, ref, predicates, pendingStartIndex,
+                i, clazz);
+            pendingStartIndex = -1;
+          }
+          final C c1 = literal.getValueAs(clazz);
+          if (c1 == null) {
+            throw new AssertionError("value must not be null in " + literal);
+          }
+          final Range<C> r1 = range(kind, c1);
+          if (current.encloses(r1)) {
+            // Given these predicates, term is always satisfied.
+            // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
+            return RangeSets.rangeSetAll();
+          }
+          if (mutable == null) {
+            mutable = TreeRangeSet.create(current);
+            current = mutable;
+          }
+          retainRange(mutable, r1);
+          if (mutable.isEmpty()) {
+            return ImmutableRangeSet.of(); // short-cut
+          }
+          hasNonPointRange = hasNonPointRange(mutable);
         }
         break;
       default:
         break;
       }
     }
-    return ImmutableRangeSet.copyOf(result);
+    if (confirmedHole != null) {
+      if (mutable == null) {
+        return RangeSets.minus(current, range(SqlKind.EQUALS, confirmedHole));
+      }
+      mutable.remove(range(SqlKind.EQUALS, confirmedHole));
+    }
+    return mutable == null ? r0 : ImmutableRangeSet.copyOf(mutable);
+  }
+
+  private static <C extends Comparable<C>> boolean hasNonPointRange(
+      RangeSet<C> rangeSet) {
+    for (Range<C> r : rangeSet.asRanges()) {
+      if (!RangeSets.isPoint(r)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static <C extends Comparable<C>> boolean enclosesNotEquals(
+      RangeSet<C> rangeSet, C value) {
+    return rangeSet.encloses(Range.lessThan(value))
+        && rangeSet.encloses(Range.greaterThan(value));
+  }
+
+  private static <C extends Comparable<C>> void retainRange(
+      TreeRangeSet<C> rangeSet, Range<C> range) {
+    if (range.hasLowerBound()) {
+      rangeSet.remove(range.lowerBoundType() == BoundType.CLOSED
+          ? Range.lessThan(range.lowerEndpoint())
+          : Range.atMost(range.lowerEndpoint()));
+    }
+    if (range.hasUpperBound()) {
+      rangeSet.remove(range.upperBoundType() == BoundType.CLOSED
+          ? Range.greaterThan(range.upperEndpoint())
+          : Range.atLeast(range.upperEndpoint()));
+    }
+  }
+
+  private static <C extends Comparable<C>> void flushPendingNotEquals(
+      TreeRangeSet<C> mutable, RexNode ref, List<RexNode> predicates,
+      int startIndex, int endIndex, Class<C> clazz) {
+    for (int j = startIndex; j < endIndex; j++) {
+      final RexNode predicate = predicates.get(j);
+      if (predicate.getKind() != SqlKind.NOT_EQUALS) {
+        continue;
+      }
+      final RexCall call = (RexCall) predicate;
+      final RexNode left = call.getOperands().get(0);
+      final RexNode right = call.getOperands().get(1);
+      final RexLiteral literal;
+      if (right.getKind() == SqlKind.LITERAL) {
+        if (!left.equals(ref)) {
+          continue;
+        }
+        literal = (RexLiteral) right;
+      } else if (left.getKind() == SqlKind.LITERAL && right.equals(ref)) {
+        literal = (RexLiteral) left;
+      } else {
+        continue;
+      }
+      final C c1 = literal.getValueAs(clazz);
+      if (c1 == null) {
+        throw new AssertionError("value must not be null in " + literal);
+      }
+      mutable.remove(range(SqlKind.EQUALS, c1));
+    }
   }
 
   /** Simplifies OR(x, x) into x, and similar.
