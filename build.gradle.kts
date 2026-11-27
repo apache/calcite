@@ -279,9 +279,34 @@ reporting {
     }
 }
 
+fun Javadoc.setAggregateSources(sourceSets: List<Provider<SourceSet>>) {
+    setSource(sourceSets.map { set ->
+        set.map { it.allJava.matching { exclude("**/package-info.java") } }
+    })
+    // Split packages must have only one annotation declaration in aggregate Javadoc.
+    // Prefer main-source documentation over test-source documentation.
+    source(provider {
+        val packageInfos = linkedMapOf<String, File>()
+        sourceSets.sortedBy { it.get().name != SourceSet.MAIN_SOURCE_SET_NAME }
+            .forEach { set ->
+                set.get().allJava.matching { include("**/package-info.java") }.visit {
+                    if (!isDirectory) {
+                        packageInfos.putIfAbsent(relativePath.pathString, file)
+                    }
+                }
+            }
+        packageInfos.values
+    })
+    (options as StandardJavadocDocletOptions).addStringOption("sourcepath",
+        files(sourceSets.map { set -> set.map { it.allJava.srcDirs } }).asPath)
+}
+
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
+    dependsOn(subprojects.map { project ->
+        project.tasks.matching { it.name == "processJandexIndex" }
+    })
 
     val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
@@ -289,7 +314,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
         .map { it.named("main") }
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
-    setSource(sourceSets.map { set -> set.map { it.allJava } })
+    setAggregateSources(sourceSets)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregate")))
 }
 
@@ -297,6 +322,9 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
  * CI uses this target to validate javadoc (e.g. checking for broken links). */
 val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
+    dependsOn(subprojects.map { project ->
+        project.tasks.matching { it.name == "processJandexIndex" }
+    })
 
     val sourceSets = subprojects
         .filter { it.name != "bom" }
@@ -304,7 +332,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
         .flatMap { listOf(it.named("main"), it.named("test")) }
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
-    setSource(sourceSets.map { set -> set.map { it.allJava } })
+    setAggregateSources(sourceSets)
     setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregateIncludingTests")))
 }
 

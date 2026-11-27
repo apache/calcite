@@ -129,6 +129,7 @@ parser: {
     "G"
     "GENERAL"
     "GENERATED"
+    "GEOGRAPHY"
     "GEOMETRY"
     "GO"
     "GOTO"

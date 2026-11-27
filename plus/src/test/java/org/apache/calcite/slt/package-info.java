@@ -78,7 +78,7 @@
  *     io}, id = 48549
  *       JdbcAggregate(group=[{}], EXPR$0=[COUNT()]): rowcount = 1.0, cumulative cost = {231.125
  *       rows, 281.0 cpu, 0.0 io}, id = 48547
- *         JdbcFilter(condition=[<($0, $cor0.B)]): rowcount = 50.0, cumulative cost = {230.0
+ *         JdbcFilter(condition=[&lt;($0, $cor0.B)]): rowcount = 50.0, cumulative cost = {230.0
  *         rows, 281.0 cpu, 0.0 io}, id = 48545
  *           JdbcProject(B=[$1]): rowcount = 100.0, cumulative cost = {180.0 rows, 181.0 cpu, 0.0
  *           io}, id = 48543

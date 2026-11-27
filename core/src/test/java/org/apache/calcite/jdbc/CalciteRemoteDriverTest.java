@@ -65,6 +65,7 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -324,10 +325,12 @@ class CalciteRemoteDriverTest {
 
   @Test void testRemoteTypeInfo() {
     // TypeInfo does not include internal types (NULL, SYMBOL, ANY, etc.)
+    final String geographyType = "TYPE_NAME=GEOGRAPHY; DATA_TYPE=" + Types.OTHER;
     CalciteAssert.hr()
         .with(CalciteRemoteDriverTest::getRemoteConnection)
         .metaData(CalciteRemoteDriverTest::getTypeInfo)
-        .returns(CalciteAssert.checkResultCount(is(49)));
+        .returns(CalciteAssert.checkResultCount(is(50)))
+        .returns(CalciteAssert.checkResultContains(geographyType));
   }
 
   @Test void testRemoteTableTypes() {

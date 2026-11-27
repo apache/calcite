@@ -390,6 +390,10 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowGeography() {
+    return this == BABEL || this == LENIENT;
+  }
+
   @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     switch (this) {
     case PRAGMATIC_99:

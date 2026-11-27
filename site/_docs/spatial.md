@@ -69,6 +69,27 @@ SELECT ST_PointFromText('POINT(-71.064544 42.28787)');
 1 row selected (0.323 seconds)
 {% endhighlight %}
 
+## GEOGRAPHY type
+
+The spatial function library supports the following
+[`GEOGRAPHY`](reference.html#geography) signatures.
+
+| Signature | Result |
+| --- | --- |
+| `ST_IsEmpty(GEOGRAPHY)` → `BOOLEAN` | Returns true if the value is empty. A collection is empty if all its members are empty. |
+| `ST_GeometryType(GEOGRAPHY)` → `VARCHAR` | Returns the value's shape name, including for an empty value. |
+
+The shape names are `POINT`, `LINESTRING`, `POLYGON`, `MULTIPOINT`,
+`MULTILINESTRING`, `MULTIPOLYGON`, and `GEOMETRYCOLLECTION`.
+Both accessors return SQL NULL for a SQL NULL argument and a non-NULL
+result for an empty value. The result type is nullable when the argument
+type is nullable.
+
+The accessors use the same shape names and emptiness rules as the
+corresponding `GEOMETRY` overloads. Measurement functions such as
+`ST_Area` and SQL WKT/WKB conversion functions accept geometry arguments.
+For local geography values, see the [adapter guide](adapter.html#geography-values).
+
 ## Query rewrites
 
 One class of rewrites uses

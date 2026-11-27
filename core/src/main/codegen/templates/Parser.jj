@@ -6742,6 +6742,14 @@ SqlTypeNameSpec SqlTypeName1(Span s) :
 }
 {
     (
+        <GEOGRAPHY> {
+            if (!this.conformance.allowGeography()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.geographyDisabled());
+            }
+            s.add(this);
+            sqlTypeName = SqlTypeName.GEOGRAPHY;
+        }
+    |
         <GEOMETRY> {
             if (!this.conformance.allowGeometry()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.geometryDisabled());
@@ -7008,19 +7016,38 @@ SqlTypeNameSpec RowTypeName() :
 
 SqlTypeNameSpec MapTypeName() :
 {
-    SqlDataTypeSpec keyType = null;
-    SqlDataTypeSpec valType = null;
+    final SqlDataTypeSpec keyType;
+    final SqlDataTypeSpec valType;
+    final Boolean keyNullable;
+    final Boolean valueNullable;
 }
 {
     <MAP>
     <LT>
     keyType = DataType()
+    keyNullable = MapNullabilityOpt()
     <COMMA>
     valType = DataType()
+    valueNullable = MapNullabilityOpt()
     <GT>
     {
-        return new SqlMapTypeNameSpec(keyType, valType, getPos());
+        return new SqlMapTypeNameSpec(
+            keyNullable == null ? keyType : keyType.withNullable(keyNullable),
+            valueNullable == null ? valType : valType.withNullable(valueNullable),
+            getPos(), true);
     }
+}
+
+/** Preserves the type system's default when a MAP entry omits nullability. */
+Boolean MapNullabilityOpt() :
+{
+}
+{
+    <NULL> { return true; }
+|
+    <NOT> <NULL> { return false; }
+|
+    { return null; }
 }
 
 /**
@@ -9175,6 +9202,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < G: "G" >
 |   < GENERAL: "GENERAL" >
 |   < GENERATED: "GENERATED" >
+|   < GEOGRAPHY: "GEOGRAPHY" >
 |   < GEOMETRY: "GEOMETRY" >
 |   < GET: "GET" >
 |   < GLOBAL: "GLOBAL" >

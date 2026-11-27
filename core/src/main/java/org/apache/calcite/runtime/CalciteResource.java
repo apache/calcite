@@ -78,6 +78,15 @@ public interface CalciteResource {
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
 
+  @BaseMessage("The GEOGRAPHY data type is not enabled in the current SQL conformance")
+  ExInst<SqlValidatorException> geographyDisabled();
+
+  @BaseMessage("GEOGRAPHY cannot be used as an ordering key")
+  ExInst<SqlValidatorException> geographyOrderKey();
+
+  @BaseMessage("GEOGRAPHY cannot be used as a key in {0}")
+  ExInst<SqlValidatorException> geographyHashKey(String a0);
+
   @BaseMessage("Support for UNSIGNED data types is not enabled")
   ExInst<SqlValidatorException> unsignedDisabled();
 

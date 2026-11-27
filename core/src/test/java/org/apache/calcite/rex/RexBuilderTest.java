@@ -15,11 +15,20 @@
  * limitations under the License.
  */
 package org.apache.calcite.rex;
+import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.EnumerableValues;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.interpreter.JaninoRexCompiler;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -27,6 +36,7 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.runtime.GeographyValue;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -49,9 +59,11 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -61,6 +73,7 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.TimeZone;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -85,6 +98,105 @@ import static org.junit.jupiter.params.provider.Arguments.of;
  * Test for {@link RexBuilder}.
  */
 class RexBuilderTest {
+
+  @Test void testGeographyLiteralBoundary() {
+    final JavaTypeFactoryImpl factory = new JavaTypeFactoryImpl();
+    final RexBuilder builder = new RexBuilder(factory);
+    final RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    assertThat(factory.getJavaClass(geography), is(GeographyValue.class));
+    assertFalse(factory.createType(Object.class).getSqlTypeName() == SqlTypeName.GEOGRAPHY);
+    final RexLiteral literal = builder.makeNullLiteral(geography);
+    assertTrue(literal.isNull());
+    assertTrue(literal.getType().isNullable());
+    assertThat(literal.getType().getSqlTypeName(), is(SqlTypeName.GEOGRAPHY));
+    assertUnsupported(() -> builder.makeLiteral("POINT (1 2)", geography),
+        "Non-null GEOGRAPHY literals");
+    assertUnsupported(() -> builder.makeLiteral(ByteString.EMPTY, geography),
+        "Non-null GEOGRAPHY literals");
+    assertUnsupported(() -> builder.makeZeroLiteral(geography),
+        "GEOGRAPHY has no non-null default value");
+    assertUnsupported(() -> builder.makeZeroRexNode(geography),
+        "GEOGRAPHY has no non-null default value");
+  }
+
+  @Test void testGeographyLocalComparisonBoundary() {
+    final RexBuilder builder = RexBuilder.DEFAULT;
+    final RelDataType row = builder.getTypeFactory().builder()
+        .add("G", SqlTypeName.GEOGRAPHY).nullable(true)
+        .add("H", SqlTypeName.GEOGRAPHY).nullable(true)
+        .build();
+    final RexNode left = builder.makeInputRef(row.getFieldList().get(0).getType(), 0);
+    final RexNode right = builder.makeInputRef(row.getFieldList().get(1).getType(), 1);
+    final JaninoRexCompiler compiler = new JaninoRexCompiler(builder);
+    final RexNode equals = builder.makeCall(SqlStdOperatorTable.EQUALS, left, right);
+    final RexNode distinct = builder.makeCall(SqlStdOperatorTable.IS_DISTINCT_FROM, left, right);
+    for (RexNode call : ImmutableList.of(equals, distinct)) {
+      assertUnsupported(() -> compiler.compile(ImmutableList.of(call), row),
+          "Local GEOGRAPHY comparison is not supported");
+    }
+  }
+
+  @Test void testGeographyLocalCollectionEqualityBoundary() {
+    final JavaTypeFactoryImpl factory = new JavaTypeFactoryImpl();
+    final RexBuilder builder = new RexBuilder(factory);
+    final JaninoRexCompiler compiler = new JaninoRexCompiler(builder);
+    final RelDataType geography = factory.createSqlType(SqlTypeName.GEOGRAPHY);
+    final RelDataType integer = factory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType geographyArray = factory.createArrayType(geography, -1);
+    for (RelDataType element : ImmutableList.of(geography, geographyArray, integer)) {
+      final RelDataType array = factory.createArrayType(element, -1);
+      final RelDataType row = factory.builder().add("A", array).add("B", array)
+          .add("E", element).build();
+      final RexNode left = builder.makeInputRef(array, 0);
+      final RexNode right = builder.makeInputRef(array, 1);
+      final RexNode value = builder.makeInputRef(element, 2);
+      final List<RexNode> calls =
+          ImmutableList.of(builder.makeCall(SqlLibraryOperators.ARRAY_DISTINCT, left),
+          builder.makeCall(SqlLibraryOperators.ARRAY_INTERSECT, left, right),
+          builder.makeCall(SqlLibraryOperators.ARRAY_UNION, left, right),
+          builder.makeCall(SqlLibraryOperators.ARRAY_EXCEPT, left, right),
+          builder.makeCall(SqlLibraryOperators.ARRAYS_OVERLAP, left, right),
+          builder.makeCall(SqlLibraryOperators.ARRAY_CONTAINS, left, value),
+          builder.makeCall(SqlLibraryOperators.ARRAY_POSITION, left, value),
+          builder.makeCall(SqlLibraryOperators.ARRAY_REMOVE, left, value));
+      if (element == integer) {
+        compiler.compile(calls, row);
+      } else {
+        for (RexNode call : calls) {
+          assertUnsupported(() -> compiler.compile(ImmutableList.of(call), row),
+              "on collections containing GEOGRAPHY requires GEOGRAPHY equality");
+        }
+      }
+      final RexNode compact = builder.makeCall(SqlLibraryOperators.ARRAY_COMPACT, left);
+      compiler.compile(ImmutableList.of(compact), row);
+    }
+  }
+
+  @Test void testGeographyLocalHashJoinBoundary() {
+    final RexBuilder builder = new RexBuilder(new JavaTypeFactoryImpl());
+    final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), builder);
+    final RelDataType row = builder.getTypeFactory().builder()
+        .add("G", SqlTypeName.GEOGRAPHY).nullable(true).build();
+    final RelDataType geography = row.getFieldList().get(0).getType();
+    final RexLiteral literal = builder.makeNullLiteral(geography);
+    final EnumerableValues values =
+        EnumerableValues.create(cluster, row, ImmutableList.of(ImmutableList.of(literal)));
+    final RexNode left = builder.makeInputRef(values, 0);
+    final RexNode right = builder.makeInputRef(geography, 1);
+    final RexNode equality = builder.makeCall(SqlStdOperatorTable.EQUALS, left, right);
+    final EnumerableHashJoin join =
+        EnumerableHashJoin.create(values, values, equality, ImmutableSet.of(), JoinRelType.INNER);
+    final EnumerableRelImplementor implementor =
+        new EnumerableRelImplementor(builder, ImmutableMap.of());
+    assertUnsupported(() -> join.implement(implementor, EnumerableRel.Prefer.ARRAY),
+        "Local GEOGRAPHY join keys are not supported");
+  }
+
+  private static void assertUnsupported(Executable call, String message) {
+    final UnsupportedOperationException error =
+        assertThrows(UnsupportedOperationException.class, call);
+    assertThat(error.getMessage(), containsString(message));
+  }
 
   private static final int PRECISION = 256;
 

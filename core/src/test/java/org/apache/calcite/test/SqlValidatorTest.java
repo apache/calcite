@@ -19,17 +19,34 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -41,6 +58,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -49,6 +67,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -115,6 +134,9 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1649,6 +1671,469 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select cast(null as ^geometry^) as g from emp")
         .withConformance(SqlConformanceEnum.STRICT_2003).fails(err)
         .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testGeographyType() {
+    final String cast = "select cast(null as geography)";
+    sql(cast).withConformance(SqlConformanceEnum.BABEL).columnType("GEOGRAPHY");
+    sql(cast).withConformance(SqlConformanceEnum.LENIENT).columnType("GEOGRAPHY");
+    sql(cast).withConformance(new SqlDelegatingConformance(SqlConformanceEnum.LENIENT) { })
+        .columnType("GEOGRAPHY");
+
+    final SqlConformance geographyOnly = new SqlAbstractConformance() {
+      @Override public boolean allowGeography() {
+        return true;
+      }
+    };
+    sql(cast).withConformance(geographyOnly).columnType("GEOGRAPHY");
+    sql("select cast(null as ^geometry^)").withConformance(geographyOnly)
+        .fails("Geo-spatial extensions and the GEOMETRY data type are not enabled");
+
+    final SqlConformance disabled = new SqlDelegatingConformance(new SqlAbstractConformance() {
+      @Override public boolean allowGeometry() {
+        return true;
+      }
+    }) { };
+    sql("select cast(null as ^geography^)").withConformance(disabled)
+        .fails("The GEOGRAPHY data type is not enabled in the current SQL conformance");
+    sql("select cast(null as geometry)").withConformance(disabled).columnType("GEOMETRY");
+  }
+
+  @Test void testGeographyAccessorTypes() {
+    final SqlValidatorFixture f = geographyFixture(true)
+        .withOperatorTable(
+            SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
+            SqlOperatorTables.spatialInstance()));
+    f.withSql("select st_isempty(n) from geo.places").columnType("BOOLEAN NOT NULL");
+    f.withSql("select st_isempty(g) from geo.places").columnType("BOOLEAN");
+    f.withSql("select st_geometrytype(n) from geo.places").columnType("VARCHAR NOT NULL");
+    f.withSql("select st_geometrytype(g) from geo.places").columnType("VARCHAR");
+    f.withSql("select st_isempty(cast(null as geometry))").columnType("BOOLEAN");
+    f.withSql("select st_geometrytype(cast(null as geometry))").columnType("VARCHAR");
+    f.withSql("select ^st_isempty(1)^").fails("(?s).*ST_ISEMPTY.*");
+    f.withSql("select ^st_geometrytype(1)^").fails("(?s).*ST_GEOMETRYTYPE.*");
+    f.withSql("select ^st_area(g)^ from geo.places").fails("(?s).*ST_AREA.*");
+  }
+
+  @Test void testGeographyTypeSpec() {
+    final SqlValidator validator = fixture().factory.createValidator();
+    final RelDataType type = validator.getTypeFactory().createSqlType(SqlTypeName.GEOGRAPHY);
+    final SqlDataTypeSpec spec = SqlTypeUtil.convertTypeToSpec(type);
+    assertThat(spec, hasToString("GEOGRAPHY"));
+    assertThat(spec.deriveType(validator), is(type));
+  }
+
+  @Test void testGeographyIdentifiers() {
+    for (SqlConformance conformance
+        : ImmutableList.of(SqlConformanceEnum.DEFAULT, SqlConformanceEnum.BABEL,
+            SqlConformanceEnum.LENIENT)) {
+      final SqlValidatorFixture f = fixture().withConformance(conformance);
+      f.withSql("with labels(geography) as (values (1)) select geography from labels")
+          .columnType("INTEGER NOT NULL");
+      f.withSql("with labels(geography) as (values (1)) select GeOgRaPhY from labels")
+          .columnType("INTEGER NOT NULL");
+      f.withSql("with labels(\"Geography\") as (values (1)) select \"Geography\" from labels")
+          .columnType("INTEGER NOT NULL");
+      f.withSql("select 1 as geography").type("RecordType(INTEGER NOT NULL GEOGRAPHY) NOT NULL");
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testGeographyCasts(boolean coerce) {
+    final SqlValidatorFixture f = geographyFixture(coerce);
+    f.withSql("select cast(cast(null as geography) as geography)").columnType("GEOGRAPHY");
+    f.withSql("select cast(n as geography) from geo.places").columnType("GEOGRAPHY NOT NULL");
+    final String error = "Cast function cannot convert value of type .* to type .*";
+    for (String type : ImmutableList.of("geometry", "varchar", "varbinary",
+        "geometry array", "map<integer, geometry>", "row(g geometry)", "geometry multiset")) {
+      final String geography = type.contains("geometry")
+          ? type.replace("geometry", "geography") : "geography";
+      f.withSql("select ^cast(cast(null as " + type + ") as " + geography + ")^").fails(error);
+      f.withSql("select ^cast(cast(null as " + geography + ") as " + type + ")^").fails(error);
+    }
+    f.withSql("select ^cast('[]' as geography array)^").fails(error);
+    f.withSql("select ^cast('{}' as map<integer, geography>)^").fails(error);
+    f.withSql("select cast('1' as integer)").columnType("INTEGER NOT NULL");
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testGeographyCommonType(boolean coerce) {
+    for (boolean rewrite : new boolean[] {false, true}) {
+      final SqlValidatorFixture f = geographyFixture(coerce)
+          .withValidatorConfig(c -> c.withCallRewrite(rewrite));
+      final String from = " from (select cast(null as geography) as g,"
+          + " cast(null as row(v geography not null)) as r)";
+      f.withSql("select case when g is null then g else null end" + from).columnType("GEOGRAPHY");
+      f.withSql("select coalesce(g, cast(null as geography))" + from).columnType("GEOGRAPHY");
+      f.withSql("select coalesce(g, n) from geo.places").columnType("GEOGRAPHY NOT NULL");
+      for (String column : ImmutableList.of("N", "G")) {
+        final String sql = "select coalesce(" + column + ", null) from geo.places";
+        final String control = "select coalesce("
+            + (column.equals("N") ? "empno" : "mgr") + ", null) from sales.emp";
+        if (!coerce && !rewrite) {
+          f.withSql(sql.replace(", null", ", ^null^")).fails("Illegal use of 'NULL'");
+          f.withSql(control.replace(", null", ", ^null^")).fails("Illegal use of 'NULL'");
+          continue;
+        }
+        final RelDataType validated =
+            f.tester.validateAndApply(f.factory, StringAndPos.of(sql),
+                (sap, validator, node) -> validator.getValidatedNodeType(node)
+                    .getFieldList().get(0).getType());
+        final RelDataType scalar =
+            f.tester.validateAndApply(f.factory, StringAndPos.of(control),
+                (sap, validator, node) -> validator.getValidatedNodeType(node)
+                    .getFieldList().get(0).getType());
+        assertEquals(SqlTypeName.GEOGRAPHY, validated.getSqlTypeName());
+        assertEquals(SqlTypeName.INTEGER, scalar.getSqlTypeName());
+        assertEquals(scalar.isNullable(), validated.isNullable());
+        final Project project = (Project) geographyRel(f, sql);
+        final Project scalarProject = (Project) geographyRel(f, control);
+        final RelDataType relType = project.getRowType().getFieldList().get(0).getType();
+        assertEquals(SqlTypeName.GEOGRAPHY, relType.getSqlTypeName());
+        assertEquals(scalarProject.getRowType().getFieldList().get(0).getType().isNullable(),
+            relType.isNullable());
+        assertEquals(scalarProject.getProjects().get(0).getType().isNullable(),
+            project.getProjects().get(0).getType().isNullable());
+        assertEquals(SqlTypeName.GEOGRAPHY,
+            project.getProjects().get(0).getType().getSqlTypeName());
+      }
+      final String nonNullCase =
+          "select case when g is null then n else n end from geo.places";
+      f.withSql(nonNullCase).columnType("GEOGRAPHY NOT NULL");
+      assertThat(geographyRel(f, nonNullCase).getRowType().getFieldList().get(0)
+          .getType().getFullTypeString(), is("GEOGRAPHY NOT NULL"));
+      f.withSql("select n from geo.places union all select cast(null as geography)")
+          .columnType("GEOGRAPHY");
+      f.withSql("select cast(null as geography) union all select n from geo.places")
+          .columnType("GEOGRAPHY");
+      f.withSql("select case when g is null then r else null end" + from)
+          .columnType("RecordType(GEOGRAPHY V)");
+
+      for (String type : ImmutableList.of("geometry", "varchar", "varbinary")) {
+        final String other = "cast(null as " + type + ")";
+        f.withSql("select ^case when true then g else " + other + " end^" + from)
+            .fails("Illegal mixing of types in CASE or COALESCE statement");
+        f.withSql("select ^coalesce(g, " + other + ")^" + from)
+            .fails("(?s).* (?:types in CASE or COALESCE statement|of the same type).*");
+        f.withSql("select ^case when true then " + other + " else g end^" + from)
+            .fails("Illegal mixing of types in CASE or COALESCE statement");
+        f.withSql("select ^coalesce(" + other + ", g)^" + from)
+            .fails("(?s).* (?:types in CASE or COALESCE statement|of the same type).*");
+        f.withSql("select ^g^" + from + " union all select " + other)
+            .fails("Type mismatch in column 1 of UNION ALL");
+        f.withSql("select ^" + other + "^ union all select g" + from)
+            .fails("Type mismatch in column 1 of UNION ALL");
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testGeographyConstructors(boolean coerce) {
+    final SqlValidatorFixture f = geographyFixture(coerce);
+    final String g = "cast(null as geography)";
+    f.withSql("select array[" + g + ", null]").columnType("GEOGRAPHY ARRAY NOT NULL");
+    f.withSql("select array[" + g + ", null][1]").columnType("GEOGRAPHY");
+    f.withSql("select map[1, " + g + "][1]").columnType("GEOGRAPHY");
+    f.withSql("select t.r.g from (select cast(row(" + g
+        + ") as row(g geography null)) as r) as t").columnType("GEOGRAPHY");
+    f.withSql("select multiset[" + g + ", null]").columnType("GEOGRAPHY MULTISET NOT NULL");
+    f.withSql("select ^array[" + g + ", null, cast(null as geometry)]^")
+        .fails("Parameters must be of the same type");
+    f.withSql("select ^multiset[" + g + ", cast(null as geometry)]^")
+        .fails("Parameters must be of the same type");
+
+    final SqlValidatorFixture spark = f.withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    spark.withSql("select array(n, " + g + ") from geo.places")
+        .columnType("GEOGRAPHY ARRAY NOT NULL");
+    spark.withSql("select ^array(" + g + ", cast(null as geometry))^")
+        .fails("Parameters must be of the same type");
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testGeographyInsert(boolean coerce) {
+    final SqlValidatorFixture f = geographyFixture(coerce);
+    f.withSql("insert into geo.places (g, m, n) select cast(null as geography),"
+        + " map[1, cast(null as geography)], n from geo.places").ok();
+    f.withSql("insert into geo.places (^g^, m, n)"
+        + " select cast(null as geometry), m, n from geo.places")
+        .fails("(?s).*Cannot assign to target field 'G' of type GEOGRAPHY.*");
+    f.withSql("insert into geo.places (g, ^m^, n) select cast(null as geography),"
+        + " map[1, cast(null as geometry)], n from geo.places")
+        .fails("(?s).*Cannot assign to target field 'M'.*");
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testGeographyEquality(boolean coerce) {
+    final SqlValidatorFixture f = geographyFixture(coerce);
+    f.withSql("select n = n from geo.places").columnType("BOOLEAN NOT NULL");
+    f.withSql("select g = n from geo.places").columnType("BOOLEAN");
+    f.withSql("select n <> cast(null as geography) from geo.places").columnType("BOOLEAN");
+    f.withSql("select g is not distinct from n from geo.places").columnType("BOOLEAN NOT NULL");
+    f.withSql("select n is distinct from cast(null as geography) from geo.places")
+        .columnType("BOOLEAN NOT NULL");
+    f.withSql("select row(n, g) = row(n, g) from geo.places").columnType("BOOLEAN");
+    f.withSql("select n in (g, n) from geo.places").columnType("BOOLEAN");
+    f.withSql("select ^g = cast(null as geometry)^ from geo.places")
+        .fails("(?s)Cannot apply '=' to arguments.*");
+    f.withSql("select ^cast(null as geometry) is distinct from g^ from geo.places")
+        .fails("(?s)Cannot apply 'IS DISTINCT FROM' to arguments.*");
+  }
+
+  @Test void testGeographyOrderingOperators() {
+    final SqlValidatorFixture f = geographyFixture(true);
+    f.withSql("select ^n < n^ from geo.places").fails("(?s)Cannot apply '<' to arguments.*");
+    f.withSql("select ^array[n] >= array[n]^ from geo.places")
+        .fails("(?s)Cannot apply '>=' to arguments.*");
+    f.withSql("select ^n between g and n^ from geo.places")
+        .fails("(?s)Cannot apply 'BETWEEN.*");
+    f.withSql("select ^n < some (select g from geo.places^) from geo.places")
+        .fails("GEOGRAPHY cannot be used as an ordering key");
+    f.withSql("select ^n < some (array[g])^ from geo.places")
+        .fails("GEOGRAPHY cannot be used as an ordering key");
+    f.withSql("select ^min(g)^ from geo.places").fails("(?s)Cannot apply 'MIN' to arguments.*");
+    f.withSql("select ^max(row(n))^ from geo.places")
+        .fails("(?s)Cannot apply 'MAX' to arguments.*");
+    f.withSql("select ^arg_max(1, n)^ from geo.places")
+        .fails("(?s)Cannot apply 'ARG_MAX' to arguments.*");
+    f.withSql("select count(g) from geo.places").columnType("BIGINT NOT NULL");
+    f.withSql("select arg_max(g, 1) from geo.places").columnType("GEOGRAPHY");
+    f.withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .withSql("select ^sort_array(array[g])^ from geo.places")
+        .fails("GEOGRAPHY cannot be used as an ordering key");
+    f.withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .withSql("select ^greatest(g, n)^ from geo.places")
+        .fails("GEOGRAPHY cannot be used as an ordering key");
+  }
+
+  @Test void testGeographyOrderedAggregate() {
+    final SqlValidatorFixture f =
+        geographyFixture(true).withOperatorTable(operatorTableFor(SqlLibrary.MYSQL));
+    f.withSql("select group_concat(distinct cast(n is null as varchar)"
+        + " order by cast(n is null as varchar) separator ';') from geo.places").ok();
+    f.withSql("select group_concat('x' order by ^g^ separator ';') from geo.places")
+        .fails("GEOGRAPHY cannot be used as an ordering key");
+  }
+
+  @Test void testGeographyArrayExtrema() {
+    for (SqlLibrary library : ImmutableList.of(SqlLibrary.SPARK, SqlLibrary.HIVE)) {
+      final SqlValidatorFixture f =
+          geographyFixture(true).withOperatorTable(operatorTableFor(library));
+      for (String function : ImmutableList.of("array_min", "array_max")) {
+        final String error = "GEOGRAPHY cannot be used as an ordering key";
+        f.withSql("select ^" + function + "(array[g])^ from geo.places").fails(error);
+        f.withSql("select ^" + function + "(array[array[g]])^ from geo.places").fails(error);
+        f.withSql("select " + function + "(array[1, 2])").columnType("INTEGER");
+      }
+    }
+  }
+
+  @Test void testGeographyOrderingClauses() {
+    final SqlValidatorFixture f = geographyFixture(true);
+    final String error = "GEOGRAPHY cannot be used as an ordering key";
+    f.withSql("select g from geo.places order by ^g^").fails(error);
+    f.withSql("select g as x from geo.places order by ^x^ desc nulls first").fails(error);
+    f.withSql("select g as x from geo.places order by ^1^ desc nulls last").fails(error);
+    f.withSql("select array[g] as x from geo.places order by ^x^").fails(error);
+    f.withSql("select row_number() over (order by ^g^ nulls last) from geo.places").fails(error);
+    f.withSql("select row_number() over w from geo.places window w as (order by ^m^)").fails(error);
+    f.withSql("select percentile_disc(0.5) within group (order by ^g^) from geo.places")
+        .fails(error);
+    f.withSql("select g from geo.places order by g is null").ok();
+  }
+
+  @Test void testGeographyHashKeys() {
+    final SqlValidatorFixture f = geographyFixture(true);
+    f.withSql("select ^distinct^ g from geo.places")
+        .fails("GEOGRAPHY cannot be used as a key in DISTINCT");
+    f.withSql("select count(*) from geo.places group by row^(n)^")
+        .fails("GEOGRAPHY cannot be used as a key in GROUP BY");
+    f.withSql("select count(*) from geo.places group by grouping sets (^(g)^, ())")
+        .fails("GEOGRAPHY cannot be used as a key in GROUP BY");
+    f.withSql("^select g from geo.places union select n from geo.places^")
+        .fails("GEOGRAPHY cannot be used as a key in UNION");
+    f.withSql("select g from geo.places union all select n from geo.places")
+        .columnType("GEOGRAPHY");
+    f.withSql("select count(distinct ^n^) from geo.places")
+        .fails("GEOGRAPHY cannot be used as a key in COUNT");
+    f.withSql("select row_number() over (partition by ^g^) from geo.places")
+        .fails("GEOGRAPHY cannot be used as a key in PARTITION BY");
+    f.withSql("select ^map[g, 1]^ from geo.places")
+        .fails("GEOGRAPHY cannot be used as a key in MAP");
+    f.withSql("select cast(null as map<^geography^, integer>)")
+        .fails("GEOGRAPHY cannot be used as a key in MAP");
+    f.withSql("select ^map[row(g), 1]^ from geo.places")
+        .fails("GEOGRAPHY cannot be used as a key in MAP");
+    f.withSql("select map[1, g][1] from geo.places").columnType("GEOGRAPHY");
+    f.withSql("select distinct g is null from geo.places").columnType("BOOLEAN NOT NULL");
+  }
+
+  @Test void testGeographyComparisonSqlToRel() {
+    final SqlValidatorFixture f = geographyFixture(true);
+    final String unionAll = "select g from geo.places union all select n from geo.places";
+    final RelDataType unionType =
+        geographyRel(f, unionAll).getRowType().getFieldList().get(0).getType();
+    assertThat(unionType.getSqlTypeName(), is(SqlTypeName.GEOGRAPHY));
+    assertTrue(unionType.isNullable());
+    final String equality = "select g = n from geo.places";
+    final RelDataType equalityType =
+        geographyRel(f, equality).getRowType().getFieldList().get(0).getType();
+    assertThat(equalityType.getSqlTypeName(), is(SqlTypeName.BOOLEAN));
+    assertTrue(equalityType.isNullable());
+
+    for (String query : ImmutableList.of("select distinct g from geo.places",
+        "select g from geo.places group by g",
+        "select g from geo.places union select n from geo.places")) {
+      final CalciteContextException e =
+          assertThrows(CalciteContextException.class, () -> geographyRel(f, query));
+      assertThat(e.getMessage(), containsString("GEOGRAPHY cannot be used as a key"));
+    }
+  }
+
+  @Test void testGeographyPlannerTypes() {
+    final SqlValidatorFixture f = geographyFixture(true);
+    final RelNode rel = geographyRel(f, "select n, g, array[n] as a, m,"
+        + " row(n, g) as r, multiset[n] as s from geo.places");
+    final List<RelDataType> types = RelOptUtil.getFieldTypeList(rel.getRowType());
+    final RelDataType notNull = types.get(0);
+    final RelDataType nullable = types.get(1);
+    assertThat(notNull.getFullTypeString(), is("GEOGRAPHY NOT NULL"));
+    assertThat(nullable.getFullTypeString(), is("GEOGRAPHY"));
+    assertThat(types.get(2).getComponentType(), is(notNull));
+    assertThat(types.get(3).getValueType(), is(nullable));
+    assertThat(types.get(4).getFieldList().get(0).getType(), is(notNull));
+    assertThat(types.get(4).getFieldList().get(1).getType(), is(nullable));
+    assertThat(types.get(5).getComponentType(), is(notNull));
+    final SqlValidator validator = f.factory.createValidator();
+    for (RelDataType type : types) {
+      assertThat(SqlTypeUtil.convertTypeToSpec(type).deriveType(validator), is(type));
+    }
+
+    final RelNode join = geographyRel(f, "select l.n as left_n, r.n as right_n"
+        + " from geo.places l left join geo.places r on l.g is null");
+    assertThat(join.getRowType().getFieldList().get(0).getType(), is(notNull));
+    assertThat(join.getRowType().getFieldList().get(1).getType(), is(nullable));
+
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final RexLiteral literal = rexBuilder.makeNullLiteral(notNull);
+    assertTrue(literal.isNull());
+    assertThat(literal.getType(), is(nullable));
+    final Project project =
+        (Project) geographyRel(f, "select cast(null as geography) as g from geo.places");
+    final RexLiteral projected = assertInstanceOf(RexLiteral.class, project.getProjects().get(0));
+    assertTrue(projected.isNull());
+    assertThat(projected.getType(), is(nullable));
+  }
+
+  @Test void testGeographySqlRoundTrip() {
+    final SqlValidatorFixture f = geographyFixture(true);
+    for (String sql : ImmutableList.of(
+        "select cast(null as geography) as g from geo.places",
+        "values (cast(null as geography))",
+        "select array[cast(null as geography)] as a from geo.places",
+        "select cast(null as geography array) as a,"
+            + " cast(null as map<integer, geography>) as m,"
+            + " cast(null as map<integer, geography not null>) as mn,"
+            + " cast(null as row(g geography null)) as r from geo.places",
+        "select n as g from geo.places union all select cast(null as geography) from geo.places")) {
+      final RelNode rel = geographyRel(f, sql);
+      final RelToSqlConverter converter = new RelToSqlConverter(CalciteSqlDialect.DEFAULT);
+      final String emitted = converter.visitRoot(rel).asStatement()
+          .toSqlString(CalciteSqlDialect.DEFAULT).getSql();
+      assertThat(emitted, containsString("GEOGRAPHY"));
+      assertThat(RelOptUtil.getFieldTypeList(geographyRel(f, emitted).getRowType()),
+          is(RelOptUtil.getFieldTypeList(rel.getRowType())));
+    }
+  }
+
+  @Test void testGeographyPlannerRewrites() {
+    final RelNode input = geographyRel(geographyFixture(true), "select * from geo.places");
+    final RelNode scan = input instanceof Project ? ((Project) input).getInput() : input;
+    final RexBuilder rex = scan.getCluster().getRexBuilder();
+    final List<RexNode> bottomFields =
+        ImmutableList.of(rex.makeInputRef(scan, 2), rex.makeInputRef(scan, 0),
+            rex.makeInputRef(scan, 1));
+    final Project bottom =
+        LogicalProject.create(scan, ImmutableList.of(), bottomFields,
+            ImmutableList.of("N", "G", "M"), ImmutableSet.of());
+    final List<RexNode> topFields =
+        ImmutableList.of(rex.makeInputRef(bottom, 2), rex.makeInputRef(bottom, 0));
+    final Project top =
+        LogicalProject.create(bottom, ImmutableList.of(), topFields,
+            ImmutableList.of("MAP_VALUE", "NOT_NULL_GEOGRAPHY"), ImmutableSet.of());
+    final Project merged = (Project) applyGeographyRule(top, CoreRules.PROJECT_MERGE);
+    assertFalse(merged.getInput() instanceof Project);
+    assertThat(merged.getRowType(), is(top.getRowType()));
+    assertThat(merged.getProjects().get(0).getType(), is(top.getProjects().get(0).getType()));
+
+    final List<String> names = ImmutableList.of("G");
+    final List<RexNode> notNullFields = ImmutableList.of(rex.makeInputRef(scan, 2));
+    final List<RexNode> nullableFields = ImmutableList.of(rex.makeInputRef(scan, 0));
+    final RelNode notNull =
+        LogicalProject.create(scan, ImmutableList.of(), notNullFields, names, ImmutableSet.of());
+    final RelNode nullable =
+        LogicalProject.create(scan, ImmutableList.of(), nullableFields, names, ImmutableSet.of());
+    final Union inner = LogicalUnion.create(ImmutableList.of(notNull, nullable), true);
+    final Union union = LogicalUnion.create(ImmutableList.of(inner, notNull), true);
+    final Union flattened = (Union) applyGeographyRule(union, CoreRules.UNION_MERGE);
+    assertEquals(3, flattened.getInputs().size());
+    assertThat(flattened.getRowType(), is(union.getRowType()));
+    assertThat(flattened.getRowType().getFieldList().get(0).getType().getFullTypeString(),
+        is("GEOGRAPHY"));
+  }
+
+  @Test void testGeographyFilterProjectTranspose() {
+    final RelNode input =
+        geographyRel(geographyFixture(true), "select g, n from geo.places");
+    final RexBuilder rex = input.getCluster().getRexBuilder();
+    final RelNode filter =
+        LogicalFilter.create(input,
+            rex.makeCall(SqlStdOperatorTable.IS_NULL, rex.makeInputRef(input, 0)));
+    final RelNode transformed = applyGeographyRule(filter, CoreRules.FILTER_PROJECT_TRANSPOSE);
+    assertTrue(transformed instanceof Project);
+    assertTrue(((Project) transformed).getInput() instanceof Filter);
+    assertThat(transformed.getRowType(), is(filter.getRowType()));
+    assertThat(transformed.getRowType().getFieldList().get(0).getType().getFullTypeString(),
+        is("GEOGRAPHY"));
+    assertThat(transformed.getRowType().getFieldList().get(1).getType().getFullTypeString(),
+        is("GEOGRAPHY NOT NULL"));
+  }
+
+  private static RelNode geographyRel(SqlValidatorFixture f, String sql) {
+    return f.tester.convertSqlToRel(f.factory, sql, false, false).rel;
+  }
+
+  private static RelNode applyGeographyRule(RelNode rel, RelOptRule rule) {
+    final HepPlanner planner =
+        new HepPlanner(new HepProgramBuilder().addRuleInstance(rule).build());
+    planner.setRoot(rel);
+    return planner.findBestExp();
+  }
+
+  private SqlValidatorFixture geographyFixture(boolean coerce) {
+    return fixture().withConformance(SqlConformanceEnum.LENIENT)
+        .withTypeCoercion(coerce)
+        .withCatalogReader((typeFactory, caseSensitive) ->
+            new MockCatalogReaderSimple(typeFactory, caseSensitive) {
+              @Override public MockCatalogReaderSimple init() {
+                super.init();
+                final MockSchema schema = new MockSchema("GEO");
+                registerSchema(schema);
+                final MockTable table = MockTable.create(this, schema, "PLACES", false, 1);
+                final RelDataType g = typeFactory.createSqlType(SqlTypeName.GEOGRAPHY);
+                table.addColumn("G", typeFactory.createTypeWithNullability(g, true));
+                table.addColumn("M",
+                    typeFactory.createMapType(typeFactory.createSqlType(SqlTypeName.INTEGER),
+                        typeFactory.createTypeWithNullability(g, true)));
+                table.addColumn("N", g);
+                registerTable(table);
+                return this;
+              }
+            }.init());
   }
 
   @Test void testDateTime() {

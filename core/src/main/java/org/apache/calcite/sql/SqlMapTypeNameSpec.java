@@ -20,11 +20,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 
 /**
- * Parse SQL MAP type, i.e. MAP&lt;INT NOT NULL, TIMESTAMP NULL&gt;, the key and value can specify a
- * suffix to indicate if the type is nullable, default is not null.
+ * SQL MAP type, for example MAP&lt;INT NOT NULL, TIMESTAMP NULL&gt;.
+ * The key defaults to the type system's map-key nullability and the value defaults to nullable.
  *
  * <p>MAP type does not belong to standard SQL.
  */
@@ -32,6 +33,7 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
 
   private final SqlDataTypeSpec keyType;
   private final SqlDataTypeSpec valType;
+  private final boolean preserveEntryNullability;
 
   /**
    * Creates a {@code SqlMapTypeNameSpec}.
@@ -41,9 +43,17 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
    * @param pos the parser position
    */
   public SqlMapTypeNameSpec(SqlDataTypeSpec keyType, SqlDataTypeSpec valType, SqlParserPos pos) {
+    this(keyType, valType, pos, false);
+  }
+
+  /** Creates a map type specification with optional explicit NOT NULL rendering.
+   * Existing callers retain the three-argument constructor's rendering. */
+  public SqlMapTypeNameSpec(SqlDataTypeSpec keyType, SqlDataTypeSpec valType,
+      SqlParserPos pos, boolean preserveEntryNullability) {
     super(new SqlIdentifier(SqlTypeName.MAP.getName(), pos), pos);
     this.keyType = keyType;
     this.valType = valType;
+    this.preserveEntryNullability = preserveEntryNullability;
   }
 
   public SqlDataTypeSpec getKeyType() {
@@ -59,6 +69,8 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
     RelDataType kType =
         keyType.deriveType(validator, keyCanBeNullable);
 
+    SqlValidatorUtil.validateGeographyHashKey(validator, keyType, kType, "MAP");
+
     RelDataType valueType = valType.deriveType(validator, true);
 
     return validator
@@ -70,18 +82,20 @@ public class SqlMapTypeNameSpec extends SqlTypeNameSpec {
     writer.keyword("MAP");
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "<", ">");
     writer.sep(","); // configures the writer
-    keyType.unparse(writer, leftPrec, rightPrec);
-    // Default is not null.
-    if (Boolean.TRUE.equals(keyType.getNullable())) {
-      writer.keyword("NULL");
-    }
+    unparseEntryType(writer, leftPrec, rightPrec, keyType);
     writer.sep(",");
-    valType.unparse(writer, leftPrec, rightPrec);
-    // Default is not null.
-    if (Boolean.TRUE.equals(valType.getNullable())) {
-      writer.keyword("NULL");
-    }
+    unparseEntryType(writer, leftPrec, rightPrec, valType);
     writer.endList(frame);
+  }
+
+  private void unparseEntryType(SqlWriter writer, int leftPrec, int rightPrec,
+      SqlDataTypeSpec type) {
+    type.unparse(writer, leftPrec, rightPrec);
+    if (Boolean.TRUE.equals(type.getNullable())) {
+      writer.keyword("NULL");
+    } else if (preserveEntryNullability && Boolean.FALSE.equals(type.getNullable())) {
+      writer.keyword("NOT NULL");
+    }
   }
 
   @Override public boolean equalsDeep(SqlTypeNameSpec spec, Litmus litmus) {

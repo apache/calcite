@@ -396,11 +396,71 @@ To customize what SQL extensions the parser should accept, implement
 or use one of the built-in values in
 [<code>enum SqlConformanceEnum</code>]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformanceEnum.html).
 
+The `BABEL` and `LENIENT` conformance levels enable
+[`GEOGRAPHY` type syntax](reference.html#geography). Custom conformance can opt in
+through
+[`allowGeography()`]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeography()).
+This flag applies independently of `allowGeometry()` and the choice of
+parser factory.
+
 To control how SQL is generated for an external database (usually via the JDBC
 adapter), use
 [<code>class SqlDialect</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlDialect.html).
 The dialect also describes the engine's capabilities, such as whether it
 supports `OFFSET` and `FETCH` clauses.
+
+### Geography values
+
+For local execution, a table can implement
+[`GeographyTable`]({{ site.apiRoot }}/org/apache/calcite/schema/GeographyTable.html)
+and supply
+[`GeographyValue`]({{ site.apiRoot }}/org/apache/calcite/runtime/GeographyValue.html)
+objects backed by JTS for the
+[structural accessors](spatial.html#geography-type).
+
+Adapters supply valid geography values. The wrapper and accessors do not
+validate CRS or perform geodetic measurements. `GeographyValue` retains the
+JTS object by reference. The adapter must not mutate that object or its
+coordinate sequences after publishing it to a query.
+
+For example, an adapter table can implement `GeographyTable`, declare a
+`GEOGRAPHY` column in `getRowType`, and return rows containing a value
+such as the following.
+
+{% highlight java %}
+GeometryFactory geometries = new GeometryFactory();
+GeographyValue point =
+    new GeographyValue(geometries.createPoint(new Coordinate(1, 2)));
+class PlacesTable extends AbstractTable implements GeographyTable {
+  public RelDataType getRowType(RelDataTypeFactory factory) {
+    return factory.builder().add("G", SqlTypeName.GEOGRAPHY).build();
+  }
+
+  public Enumerable<Object[]> scan(DataContext context) {
+    return Linq4j.asEnumerable(new Object[][] {{point}});
+  }
+}
+{% endhighlight %}
+
+Enable geography syntax and the spatial operator table when configuring
+the planner.
+
+{% highlight java %}
+SchemaPlus adapterSchema = Frameworks.createRootSchema(true);
+adapterSchema.add("PLACES", new PlacesTable());
+FrameworkConfig config = Frameworks.newConfigBuilder()
+    .defaultSchema(adapterSchema)
+    .parserConfig(SqlParser.config().withConformance(SqlConformanceEnum.LENIENT))
+    .operatorTable(SqlOperatorTables.chain(
+        SqlStdOperatorTable.instance(), SqlOperatorTables.spatialInstance()))
+    .build();
+{% endhighlight %}
+
+With that table registered as `PLACES` and the column named `G`,
+`SELECT ST_IsEmpty(g), ST_GeometryType(g) FROM places` returns `FALSE`
+and `POINT` for the supplied value. This setup exercises structural
+accessors; an adapter defines its own non-NULL JDBC or Avatica value
+transport.
 
 ### Defining a custom schema
 

@@ -47,6 +47,8 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -57,6 +59,7 @@ import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -99,6 +102,18 @@ import static java.util.Objects.requireNonNull;
  * style.
  */
 public class EnumUtils {
+  /** Checks join keys before generating Java equality, hashing, or ordering. */
+  static void checkGeographyJoinKeys(Join join) {
+    final JoinInfo info = join.analyzeCondition();
+    if (info.leftKeys.stream().anyMatch(i ->
+        SqlTypeUtil.containsGeography(join.getLeft().getRowType().getFieldList().get(i).getType()))
+        || info.rightKeys.stream().anyMatch(i ->
+            SqlTypeUtil.containsGeography(
+                join.getRight().getRowType().getFieldList().get(i).getType()))) {
+      throw new UnsupportedOperationException("Local GEOGRAPHY join keys are not supported");
+    }
+  }
+
 
   private EnumUtils() {}
 

@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.util.Util;
 
 import org.jspecify.annotations.Nullable;
@@ -126,10 +127,15 @@ public class SetopNamespace extends AbstractNamespace {
         filterGroups.addAll(operandNamespace.getFilterRequirement().groups);
       }
       filterRequirement = new FilterRequirement(filterGroups);
-      return call.getOperator().deriveType(
-          validator,
+      final SqlSetOperator op = (SqlSetOperator) call.getOperator();
+      final RelDataType type =
+          op.deriveType(validator,
           scope,
           call);
+      if (!op.isAll() || call.getKind() != SqlKind.UNION) {
+        SqlValidatorUtil.validateGeographyHashKey(validator, call, type, op.getName());
+      }
+      return type;
     default:
       throw new AssertionError("Not a query: " + call.getKind());
     }

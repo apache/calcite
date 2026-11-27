@@ -146,6 +146,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowGeometry();
   }
 
+  @Override public boolean allowGeography() {
+    return delegate.allowGeography();
+  }
+
   @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     return delegate.shouldConvertRaggedUnionTypesToVarying();
   }

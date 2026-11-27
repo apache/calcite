@@ -309,6 +309,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     if (SqlTypeUtil.equalSansNullability(factory, fromType, toType)) {
       return false;
     }
+    if (SqlTypeUtil.containsGeography(toType) || SqlTypeUtil.containsGeography(fromType)) {
+      return SqlTypeUtil.canCastFrom(toType, fromType, mappingRule);
+    }
     // Should keep sync with rules in SqlTypeCoercionRule.
     assert SqlTypeUtil.canCastFrom(toType, fromType, mappingRule);
     return true;
@@ -975,6 +978,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     if (validator.config().conformance().allowLenientCoercion()
         && SqlTypeUtil.isString(fromType)
         && SqlTypeUtil.isArray(targetType)
+        && !SqlTypeUtil.containsGeography(targetType)
         && operand instanceof SqlCharStringLiteral) {
       try {
         SqlNode arrayValue =

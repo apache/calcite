@@ -176,6 +176,10 @@ public class SqlInOperator extends SqlBinaryOperator {
             rightType,
             null);
 
+    if (this instanceof SqlQuantifyOperator) {
+      ((SqlQuantifyOperator) this).validateGeographyOrdering(validator, call,
+          leftRowType, rightRowType);
+    }
     final ComparableOperandTypeChecker checker =
         (ComparableOperandTypeChecker)
             OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED;

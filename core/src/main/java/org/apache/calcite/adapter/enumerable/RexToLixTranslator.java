@@ -60,13 +60,17 @@ import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpatialTypeOperatorTable;
 import org.apache.calcite.sql.SqlWindowTableFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
@@ -75,6 +79,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.jspecify.annotations.Nullable;
 import org.locationtech.jts.geom.Geometry;
@@ -116,6 +121,27 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
           .put(BuiltInMethod.CHAR_LENGTH.method, CHAR_LENGTH)
           .put(BuiltInMethod.TRANSLATE3.method, TRANSLATE3)
           .build();
+
+  private static final ImmutableSet<SqlOperator> COLLECTION_EQUALITY_OPERATORS =
+      ImmutableSet.of(
+          SqlLibraryOperators.ARRAY_CONTAINS,
+          SqlLibraryOperators.ARRAY_DISTINCT,
+          SqlLibraryOperators.ARRAY_EXCEPT,
+          SqlLibraryOperators.ARRAY_INTERSECT,
+          SqlLibraryOperators.ARRAY_POSITION,
+          SqlLibraryOperators.ARRAY_REMOVE,
+          SqlLibraryOperators.ARRAY_UNION,
+          SqlLibraryOperators.ARRAYS_OVERLAP,
+          SqlStdOperatorTable.IS_A_SET,
+          SqlStdOperatorTable.IS_NOT_A_SET,
+          SqlStdOperatorTable.MEMBER_OF,
+          SqlStdOperatorTable.MULTISET_EXCEPT,
+          SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT,
+          SqlStdOperatorTable.MULTISET_INTERSECT,
+          SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT,
+          SqlStdOperatorTable.MULTISET_UNION_DISTINCT,
+          SqlStdOperatorTable.NOT_SUBMULTISET_OF,
+          SqlStdOperatorTable.SUBMULTISET_OF);
 
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;
@@ -335,6 +361,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       Expression operand,
       boolean safe,
       ConstantExpression format) {
+    if ((SqlTypeUtil.containsGeography(sourceType) || SqlTypeUtil.containsGeography(targetType))
+        && !valueIsAlwaysNull(sourceType) && !SqlTypeUtil.sameNamedType(sourceType, targetType)) {
+      throw new UnsupportedOperationException("Local casts involving GEOGRAPHY are not supported");
+    }
     Expression convert = getConvertExpression(sourceType, targetType, operand, format);
     Expression convert2 = checkExpressionPadTruncate(convert, sourceType, targetType);
     Expression convert3 = scaleValue(sourceType, targetType, convert2);
@@ -1619,7 +1649,29 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     if (cached != null) {
       return cached;
     }
+    if ((SqlKind.COMPARISON.contains(call.getKind()) || call.getKind() == SqlKind.SEARCH
+        || call.getKind() == SqlKind.IS_DISTINCT_FROM
+        || call.getKind() == SqlKind.IS_NOT_DISTINCT_FROM)
+        && call.getOperands().stream()
+            .anyMatch(operand -> SqlTypeUtil.containsGeography(operand.getType()))) {
+      throw new UnsupportedOperationException("Local GEOGRAPHY comparison is not supported");
+    }
     final SqlOperator operator = call.getOperator();
+    if (COLLECTION_EQUALITY_OPERATORS.contains(operator)
+        && call.getOperands().stream()
+            .anyMatch(operand -> SqlTypeUtil.containsGeography(operand.getType()))) {
+      throw new UnsupportedOperationException(
+          "Local " + operator.getName() + " on collections containing GEOGRAPHY "
+              + "requires GEOGRAPHY equality, which is not supported");
+    }
+    if (operator instanceof SqlUserDefinedFunction
+        && (SqlTypeUtil.containsGeography(call.getType())
+            || call.getOperands().stream()
+                .anyMatch(operand -> SqlTypeUtil.containsGeography(operand.getType())))
+        && !SqlSpatialTypeOperatorTable.isGeographyAccessor(operator)) {
+      throw new UnsupportedOperationException(
+          "Local Java functions involving GEOGRAPHY are not supported");
+    }
     if (operator == PREV) {
       return implementPrev(call);
     }
@@ -1813,6 +1865,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   @Override public Result visitDynamicParam(RexDynamicParam dynamicParam) {
+    if (SqlTypeUtil.containsGeography(dynamicParam.getType())) {
+      throw new UnsupportedOperationException("Local GEOGRAPHY parameters are not supported");
+    }
     final Pair<RexNode, @Nullable Type> key =
         Pair.of(dynamicParam, currentStorageType);
     final Result cached = rexWithStorageTypeResultMap.get(key);
