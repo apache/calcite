@@ -64,6 +64,41 @@ public interface SqlNameMatcher {
    */
   @Nullable RelDataTypeField field(RelDataType rowType, String fieldName);
 
+  /** Returns all declared fields matching a name, in field order.
+   *
+   * <p>Duplicate matches are retained. This method does not synthesize matches
+   * for dynamic stars or extra fields, or search nested record fields.
+   * The default implementation uses {@link #matches}, preserving custom name
+   * matching policies. The returned list is immutable.
+   *
+   * @param rowType Row type whose declared fields are inspected
+   * @param fieldName Name to match
+   * @return All matching fields, or an empty list
+   */
+  default List<RelDataTypeField> fields(RelDataType rowType, String fieldName) {
+    final ImmutableList.Builder<RelDataTypeField> fields = ImmutableList.builder();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      if (matches(field.getName(), fieldName)) {
+        fields.add(field);
+      }
+    }
+    return fields.build();
+  }
+
+  /** Counts occurrences of a field name among a row type's declared fields.
+   *
+   * <p>The default implementation delegates to {@link #frequency} using the
+   * row type's field names, preserving existing custom frequency policies.
+   * Nested fields and dynamic-star or extra-field fallbacks are not searched.
+   *
+   * @param rowType Row type whose declared field names are counted
+   * @param fieldName Name to count
+   * @return Number of matching field names according to this matcher
+   */
+  default int fieldFrequency(RelDataType rowType, String fieldName) {
+    return frequency(rowType.getFieldNames(), fieldName);
+  }
+
   /** Returns how many times a string occurs in a collection.
    *
    * <p>Similar to {@link java.util.Collections#frequency}. */
