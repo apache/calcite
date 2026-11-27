@@ -37,6 +37,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -624,6 +625,37 @@ class PlannerTest {
         + "          EnumerableTableScan(table=[[hr, emps]])\n"
         + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
         + "        EnumerableTableScan(table=[[hr, depts]])\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7902">[CALCITE-7902]
+   * Planning fails with "is a PhysicalNode, which is not allowed in
+   * JoinAssociateRule" when calcite.enable.join.commute=true</a>.
+   *
+   * <p>{@link CoreRules#JOIN_ASSOCIATE} is a transformation rule; it must not
+   * match a physical join, even when the join is reached through a subset of
+   * the same convention. */
+  @Test void testJoinAssociateDoesNotMatchPhysicalJoin() throws Exception {
+    RuleSet ruleSet =
+        RuleSets.ofList(CoreRules.JOIN_ASSOCIATE,
+            AbstractConverter.ExpandConversionRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_JOIN_RULE,
+            EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE);
+    Planner planner = getPlanner(null, Programs.of(ruleSet));
+    final String sql = "select * from \"emps\" e\n"
+        + "join \"depts\" d on e.\"deptno\" = d.\"deptno\"\n"
+        + "join \"dependents\" p on e.\"empid\" = p.\"empid\"";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).project();
+    RelTraitSet traitSet = convert.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat(toString(transform), containsString("Join("));
   }
 
   /** Unit test that parses, validates, converts and
