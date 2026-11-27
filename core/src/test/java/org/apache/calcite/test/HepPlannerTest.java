@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptUtil;
@@ -29,6 +30,8 @@ import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -43,6 +46,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -351,6 +355,32 @@ class HepPlannerTest {
     planner.setRoot(
         sql("select upper(name) from dept where deptno=20").toRel());
     planner.findBestExp();
+  }
+
+  @Test void testClearCacheDoesNotCreateMetadataQuery() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(CoreRules.UNION_MERGE)
+        .build();
+    final RelNode root = unionPlan();
+    final RelOptCluster cluster = root.getCluster();
+    final AtomicInteger created = new AtomicInteger();
+    cluster.setMetadataQuerySupplier(() -> {
+      created.incrementAndGet();
+      return RelMetadataQuery.instance();
+    });
+    cluster.invalidateMetadataQuery();
+
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(root);
+    final RelNode best = planner.findBestExp();
+
+    assertThat(best, instanceOf(LogicalUnion.class));
+    assertThat(best.getInputs(), hasSize(3));
+    assertThat(created.get(), is(0));
+
+    cluster.getMetadataQuery().getRowCount(best);
+    assertThat(RelMdUtil.clearCache(best), is(true));
+    assertThat(RelMdUtil.clearCache(best), is(false));
   }
 
   @Test void testRelNodeCacheWithDigest() {
