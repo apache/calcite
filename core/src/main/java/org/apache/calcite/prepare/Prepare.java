@@ -304,8 +304,13 @@ public abstract class Prepare {
     root = root.withRel(flattenTypes(root.rel, true));
 
     // TopDownGeneralDecorrelator cannot be used until the subquerys are completely removed.
+    // Likewise, if the sub-queries were not expanded during sql-to-rel, defer
+    // decorrelation to the program: RelDecorrelator must not run before the
+    // sub-queries are removed, otherwise it leaves dangling correlation
+    // variables. The program removes the sub-queries first.
     if (this.context.config().forceDecorrelate()
-        && !this.context.config().topDownGeneralDecorrelationEnabled()) {
+        && !this.context.config().topDownGeneralDecorrelationEnabled()
+        && configHolder.get().isExpand()) {
       // Sub-query decorrelation.
       root = root.withRel(decorrelate(sqlToRelConverter, sqlQuery, root.rel));
     }

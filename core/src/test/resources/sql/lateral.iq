@@ -386,14 +386,14 @@ where d.dname = 'SALES';
 # replaces the Correlate with a join.
 EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
   EnumerableHashJoin(condition=[AND(=($3, $5), =($4, $6))], joinType=[semi])
-    EnumerableCalc(expr#0..2=[{inputs}], proj#0..2=[{exprs}], DEPTNO=[$t0], $f3=[$t1])
+    EnumerableCalc(expr#0..2=[{inputs}], proj#0..2=[{exprs}], DEPTNO=[$t0], $f2=[$t1])
       EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t0, $t3)], expr#5=['SALES':VARCHAR(14)], expr#6=[=($t1, $t5)], DEPTNO=[$t0], $f3=[$t4], $condition=[$t6])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t0, $t3)], expr#5=['SALES':VARCHAR(14)], expr#6=[=($t1, $t5)], DEPTNO=[$t0], $f2=[$t4], $condition=[$t6])
           EnumerableTableScan(table=[[scott, DEPT]])
         EnumerableUncollect
           EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ARRAY($t1, $t2)], EXPR$0=[$t3])
             EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t0, $t3)], expr#5=['SALES':VARCHAR(14)], expr#6=[=($t1, $t5)], DEPTNO=[$t0], $f3=[$t4], $condition=[$t6])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t0, $t3)], expr#5=['SALES':VARCHAR(14)], expr#6=[=($t1, $t5)], DEPTNO=[$t0], $f2=[$t4], $condition=[$t6])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 !}
@@ -695,6 +695,177 @@ from dept as k,
 |     40 |           |
 +--------+-----------+
 (4 rows)
+
+!ok
+
+# [CALCITE-7962] RelDecorrelator removes the variablesSet of a Filter whose
+# input it decorrelates.
+# Result validated with PostgreSQL 14.13.
+!use scott
+select d.deptno, x.m
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+where exists (select 1 from emp e2
+              where e2.deptno = d.deptno and e2.sal > 2900)
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     10 | 5000.00 |
+|     20 | 3000.00 |
++--------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7962] As above, but the decorrelator moves the field that the
+# sub-query reads: t.m is field 0 of the input of the WHERE before
+# decorrelation, and field 1 after.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m
+from dept d,
+  lateral (select t.m
+    from (select max(sal) as m from emp e where e.deptno = d.deptno) t
+    where exists (select 1 from emp e2
+                  where e2.sal = t.m and e2.job = 'ANALYST')) x
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     20 | 3000.00 |
++--------+---------+
+(1 row)
+
+!ok
+
+# [CALCITE-7962] As the first query, but the EXISTS sub-query is in the
+# SELECT clause, so a Project declares the variable.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m,
+  exists (select 1 from emp e2
+          where e2.deptno = d.deptno and e2.sal > 2900) as rich
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+order by d.deptno;
++--------+---------+-------+
+| DEPTNO | M       | RICH  |
++--------+---------+-------+
+|     10 | 5000.00 | true  |
+|     20 | 3000.00 | true  |
+|     30 | 2850.00 | false |
+|     40 |         | false |
++--------+---------+-------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As above, but the decorrelator moves the field that the
+# sub-query reads.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m, x.analyst
+from dept d,
+  lateral (select t.m,
+      exists (select 1 from emp e2
+              where e2.sal = t.m and e2.job = 'ANALYST') as analyst
+    from (select max(sal) as m from emp e where e.deptno = d.deptno) t) x
+order by d.deptno;
++--------+---------+---------+
+| DEPTNO | M       | ANALYST |
++--------+---------+---------+
+|     10 | 5000.00 | false   |
+|     20 | 3000.00 | true    |
+|     30 | 2850.00 | false   |
+|     40 |         | false   |
++--------+---------+---------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As the first query, but the EXISTS sub-query is in the ON
+# clause, so a Join declares the variable.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m, b.ename
+from dept d
+  cross join lateral
+    (select max(sal) as m from emp e where e.deptno = d.deptno) x
+  left join bonus b
+    on exists (select 1 from emp e2
+               where e2.deptno = d.deptno and e2.sal > 2900)
+order by d.deptno;
++--------+---------+-------+
+| DEPTNO | M       | ENAME |
++--------+---------+-------+
+|     10 | 5000.00 |       |
+|     20 | 3000.00 |       |
+|     30 | 2850.00 |       |
+|     40 |         |       |
++--------+---------+-------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As above, but the decorrelator moves the field that the
+# sub-query reads, and the Join is in the LATERAL.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m, x.ename
+from dept d,
+  lateral (select t.m, b.ename
+    from (select max(sal) as m from emp e where e.deptno = d.deptno) t
+      left join bonus b
+        on exists (select 1 from emp e2
+                   where e2.sal = t.m and e2.job = 'ANALYST')) x
+order by d.deptno;
++--------+---------+-------+
+| DEPTNO | M       | ENAME |
++--------+---------+-------+
+|     10 | 5000.00 |       |
+|     20 | 3000.00 |       |
+|     30 | 2850.00 |       |
+|     40 |         |       |
++--------+---------+-------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7962] As the first query, but with NOT EXISTS.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+where not exists (select 1 from emp e2
+                  where e2.deptno = d.deptno and e2.sal > 2900)
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     30 | 2850.00 |
+|     40 |         |
++--------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7962] As the first query, but the EXISTS sub-query contains an
+# EXISTS sub-query, which reads a column of each enclosing query: e2.empno
+# and d.deptno.
+# Result validated with PostgreSQL 14.13.
+select d.deptno, x.m
+from dept d,
+  lateral (select max(sal) as m from emp e where e.deptno = d.deptno) x
+where exists (select 1 from emp e2
+              where e2.deptno = d.deptno
+                and exists (select 1 from emp e3
+                            where e3.mgr = e2.empno
+                              and e3.deptno = d.deptno))
+order by d.deptno;
++--------+---------+
+| DEPTNO | M       |
++--------+---------+
+|     10 | 5000.00 |
+|     20 | 3000.00 |
+|     30 | 2850.00 |
++--------+---------+
+(3 rows)
 
 !ok
 
