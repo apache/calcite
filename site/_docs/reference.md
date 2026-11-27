@@ -324,7 +324,7 @@ tablePrimary:
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   [ LATERAL ] functionName '(' expression [, expression ]* ')'
-  |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
+  |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName [ '(' [ expression [, expression ]* ] ')' ] ')'
 
 columnDecl:
       column type [ NOT NULL ]
@@ -434,6 +434,9 @@ be present.
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowExtend--);
 in those same conformance levels, any *column* in *insert* may be replaced by
 *columnDecl*, which has a similar effect to including it in an EXTEND clause.
+
+In *tablePrimary*, a table function with no arguments may be invoked as
+`TABLE(functionName)` or `TABLE(functionName())`.
 
 In *tableExpression*, JOIN binds tighter than comma, as in the SQL standard:
 "FROM a, b JOIN c ON c.x = b.x" is equivalent to
