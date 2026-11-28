@@ -49,6 +49,12 @@ public class JoinToHyperGraphRule
     super(config);
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Join join = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return join.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Join origJoin = call.rel(0);
     final RelNode left = call.rel(1);

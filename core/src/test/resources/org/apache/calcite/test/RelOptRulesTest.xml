@@ -12251,11 +12251,11 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 5)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-  LogicalFilter(condition=[EXISTS({
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[=($6, $cor0.COMM)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})])
-    LogicalProject(DEPTNO=[$7])
+})], variablesSet=[[$cor0]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalFilter(condition=[=($0, 10)])
     LogicalProject(DEPTNO=[$0])
@@ -12274,11 +12274,11 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-  LogicalFilter(condition=[EXISTS({
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[=($6, $cor0.COMM)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})])
-    LogicalProject(DEPTNO=[$7])
+})], variablesSet=[[$cor0]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

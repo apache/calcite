@@ -43,6 +43,12 @@ public class ProjectOverSumToSum0Rule
     super(config);
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return project.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(final RelOptRuleCall call) {
     Project project = call.rel(0);
     assert project.containsOver();

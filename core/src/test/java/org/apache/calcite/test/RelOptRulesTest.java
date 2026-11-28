@@ -144,6 +144,8 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -13611,6 +13613,348 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.PROJECT_MERGE)
         .checkUnchanged();
+  }
+
+  /** Fires {@code rule} on the plan of {@code sql}, with sub-queries kept,
+   * and describes each match of the operands of the rule: the matched
+   * relational expressions, and whether {@link RelOptRule#matches} accepted
+   * them. A relational expression that declares variables shows them, for
+   * example {@code LogicalFilter[$cor0]}. */
+  private static String describeMatches(String sql, RelOptRule rule) {
+    final RelNode rel = Fixtures.forSqlToRel().withSql(sql)
+        .withExpand(false).withDecorrelate(false).toRel();
+    final MockRelOptPlanner planner = new MockRelOptPlanner(Contexts.empty());
+    planner.addRule(rule);
+    planner.setRoot(rel);
+    planner.findBestExp();
+    final List<String> list = new ArrayList<>();
+    for (Pair<List<RelNode>, Boolean> match : planner.getMatches()) {
+      final List<String> rels =
+          Util.transform(match.left, r -> r.getRelTypeName()
+              + (r.getVariablesSet().isEmpty() ? "" : r.getVariablesSet()));
+      list.add(rels + (match.right ? " accepted" : " rejected"));
+    }
+    return String.join("; ", list);
+  }
+
+  /** Test cases of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7966">[CALCITE-7966]
+   * Many optimizer rules produce invalid plans when a Project, Filter or Join
+   * has a correlated sub-query</a>.
+   *
+   * <p>In each query, a Filter declares {@code $cor0}, the variable of the
+   * EXISTS sub-query. Each rule matches the Filter, and rejects it. */
+  @Test void testRulesRejectFilterWithVariable() {
+    final String exists =
+        "exists (select 1 from dept d where d.deptno = t.deptno)";
+
+    final String filterOnScan = "select t.ename from emp t where " + exists;
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.PROJECT_FILTER_TRANSPOSE,
+            CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS,
+            CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS)) {
+      assertThat(describeMatches(filterOnScan, rule),
+          is("[LogicalProject, LogicalFilter[$cor0]] rejected"));
+    }
+
+    // FILTER_PROJECT_TRANSPOSE does not match a Filter that contains a
+    // correlation variable; this rule has no such operand predicate
+    final RelOptRule filterProjectTranspose =
+        FilterProjectTransposeRule.Config.DEFAULT
+            .withOperandFor(Filter.class, f -> true, Project.class, p -> true)
+            .toRule();
+    final String filterOnProject =
+        "select * from (select ename, deptno from emp) t where " + exists;
+    assertThat(describeMatches(filterOnProject, filterProjectTranspose),
+        is("[LogicalFilter[$cor0], LogicalProject] rejected"));
+
+    final String filterOnAggregate = "select * from (\n"
+        + "  select deptno, count(*) as c from emp group by deptno) t\n"
+        + "where " + exists;
+    assertThat(
+        describeMatches(filterOnAggregate,
+            CoreRules.FILTER_AGGREGATE_TRANSPOSE),
+        is("[LogicalFilter[$cor0], LogicalAggregate] rejected"));
+
+    final String filterOnUnion = "select * from (\n"
+        + "  select deptno from emp union all select deptno from dept) t\n"
+        + "where " + exists;
+    assertThat(
+        describeMatches(filterOnUnion, CoreRules.FILTER_SET_OP_TRANSPOSE),
+        is("[LogicalFilter[$cor0], LogicalUnion] rejected"));
+
+    // The input has only rows with "sal > 1000", so the rule can simplify
+    // "t.sal > 500" to TRUE. It rejects the Filter with the variable, and
+    // accepts the Filter below it.
+    final String reducible = "select t.ename\n"
+        + "from (select * from emp where sal > 1000) t\n"
+        + "where t.sal > 500 and " + exists;
+    assertThat(
+        describeMatches(reducible, CoreRules.FILTER_REDUCE_EXPRESSIONS),
+        is("[LogicalFilter[$cor0]] rejected; [LogicalFilter] accepted"));
+  }
+
+  /** Test cases of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7966">[CALCITE-7966]
+   * Many optimizer rules produce invalid plans when a Project, Filter or Join
+   * has a correlated sub-query</a>.
+   *
+   * <p>In each query, a Project declares {@code $cor0}, the variable of the
+   * EXISTS sub-query in the SELECT clause. Each rule matches the Project, and
+   * rejects it. */
+  @Test void testRulesRejectProjectWithVariable() {
+    final String projectOnFilter = "select e.ename,\n"
+        + "  exists (select 1 from dept d where d.deptno = e.deptno)\n"
+        + "from emp e\n"
+        + "where e.sal > 1000";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.PROJECT_FILTER_TRANSPOSE,
+            CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS,
+            CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS)) {
+      assertThat(describeMatches(projectOnFilter, rule),
+          is("[LogicalProject[$cor0], LogicalFilter] rejected"));
+    }
+
+    final String filterOnProject = "select * from (\n"
+        + "  select e.ename,\n"
+        + "    exists (select 1 from dept d where d.deptno = e.deptno) as b\n"
+        + "  from emp e) t\n"
+        + "where t.b";
+    assertThat(
+        describeMatches(filterOnProject, CoreRules.FILTER_PROJECT_TRANSPOSE),
+        is("[LogicalFilter, LogicalProject[$cor0]] rejected"));
+
+    // The sub-query reads "d.name", a field of the right input of the Join
+    final String projectOnJoin = "select e.ename,\n"
+        + "  exists (select 1 from bonus b where b.job = d.name)\n"
+        + "from emp e join dept d on e.deptno = d.deptno";
+    assertThat(
+        describeMatches(projectOnJoin, CoreRules.PROJECT_JOIN_TRANSPOSE),
+        is("[LogicalProject[$cor0], LogicalJoin] rejected"));
+    assertThat(
+        describeMatches(projectOnJoin, CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN),
+        is("[LogicalProject[$cor0], LogicalJoin, LogicalTableScan, "
+            + "LogicalTableScan] rejected"));
+
+    final String projectOnLeftJoin = "select e.ename,\n"
+        + "  exists (select 1 from bonus b where b.job = d.name)\n"
+        + "from emp e left join dept d on e.deptno = d.deptno";
+    assertThat(
+        describeMatches(projectOnLeftJoin, CoreRules.PROJECT_JOIN_REMOVE),
+        is("[LogicalProject[$cor0], LogicalJoin] rejected"));
+
+    final String projectOnAggregateJoin = "select e.ename,\n"
+        + "  exists (select 1 from bonus b where b.job = d.name)\n"
+        + "from emp e join (\n"
+        + "  select deptno, max(name) as name from dept group by deptno) d\n"
+        + "on e.deptno = d.deptno";
+    assertThat(
+        describeMatches(projectOnAggregateJoin, CoreRules.PROJECT_TO_SEMI_JOIN),
+        is("[LogicalProject[$cor0], LogicalJoin, LogicalTableScan, "
+            + "LogicalAggregate] rejected"));
+
+    final String projectOnAggregate = "select t.deptno,\n"
+        + "  exists (select 1 from dept d where d.deptno = t.deptno)\n"
+        + "from (select deptno, count(*) as c from emp group by deptno) t";
+    assertThat(
+        describeMatches(projectOnAggregate, CoreRules.PROJECT_AGGREGATE_MERGE),
+        is("[LogicalProject[$cor0], LogicalAggregate] rejected"));
+
+    final String projectOnUnion = "select t.deptno,\n"
+        + "  exists (select 1 from dept d where d.deptno = t.deptno)\n"
+        + "from (select deptno from emp union all select deptno from dept) t";
+    assertThat(
+        describeMatches(projectOnUnion, CoreRules.PROJECT_SET_OP_TRANSPOSE),
+        is("[LogicalProject[$cor0], LogicalUnion] rejected"));
+
+    final String projectOnCorrelate = "select t.ename,\n"
+        + "  exists (select 1 from dept d where d.deptno = t.deptno)\n"
+        + "from emp t,\n"
+        + "  lateral (select * from bonus b where b.ename = t.ename)";
+    assertThat(
+        describeMatches(projectOnCorrelate,
+            CoreRules.PROJECT_CORRELATE_TRANSPOSE),
+        is("[LogicalProject[$cor1], LogicalCorrelate[$cor0]] rejected"));
+
+    final String projectWithWindow = "select t.ename,\n"
+        + "  sum(t.sal) over (partition by t.deptno),\n"
+        + "  exists (select 1 from dept d where d.deptno = t.deptno)\n"
+        + "from emp t";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE,
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)) {
+      assertThat(describeMatches(projectWithWindow, rule),
+          is("[LogicalProject[$cor0]] rejected"));
+    }
+
+    // The input has only rows with "sal > 1000", so the rule can simplify
+    // "t.sal > 1000" to TRUE. It rejects the Project with the variable, and
+    // accepts the Project below it.
+    final String reducible = "select t.sal > 1000,\n"
+        + "  exists (select 1 from dept d where d.deptno = t.deptno)\n"
+        + "from (select * from emp where sal > 1000) t";
+    assertThat(
+        describeMatches(reducible, CoreRules.PROJECT_REDUCE_EXPRESSIONS),
+        is("[LogicalProject[$cor0]] rejected; [LogicalProject] accepted"));
+
+    // The Project is the left input of the Join
+    final String joinOnProject = "select * from (\n"
+        + "  select t.deptno,\n"
+        + "    exists (select 1 from dept d where d.deptno = t.deptno) as b\n"
+        + "  from emp t) x\n"
+        + "join dept y on x.deptno = y.deptno";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER)) {
+      assertThat(describeMatches(joinOnProject, rule),
+          is("[LogicalJoin, LogicalProject[$cor0]] rejected"));
+    }
+
+    // The Project is the right input of the Join
+    final String joinOnRightProject = "select * from dept y join (\n"
+        + "  select t.deptno,\n"
+        + "    exists (select 1 from dept d where d.deptno = t.deptno) as b\n"
+        + "  from emp t) x\n"
+        + "on x.deptno = y.deptno";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)) {
+      assertThat(describeMatches(joinOnRightProject, rule),
+          is("[LogicalJoin, LogicalTableScan, LogicalProject[$cor0]] "
+              + "rejected"));
+    }
+  }
+
+  /** Test cases of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7966">[CALCITE-7966]
+   * Many optimizer rules produce invalid plans when a Project, Filter or Join
+   * has a correlated sub-query</a>.
+   *
+   * <p>The Join declares {@code $cor0}, the variable of the EXISTS sub-query
+   * in the ON clause. Each rule matches the Join, and rejects it. */
+  @Test void testRulesRejectJoinWithVariable() {
+    final String sql = "select e.ename from emp e join dept d\n"
+        + "on e.deptno = d.deptno\n"
+        + "and exists (select 1 from bonus b where b.job = d.name)";
+    assertThat(describeMatches(sql, CoreRules.PROJECT_JOIN_TRANSPOSE),
+        is("[LogicalProject, LogicalJoin[$cor0]] rejected"));
+    assertThat(describeMatches(sql, CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN),
+        is("[LogicalProject, LogicalJoin[$cor0], LogicalTableScan, "
+            + "LogicalTableScan] rejected"));
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_EXTRACT_FILTER,
+            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
+            CoreRules.JOIN_TO_CORRELATE)) {
+      assertThat(describeMatches(sql, rule),
+          is("[LogicalJoin[$cor0]] rejected"));
+    }
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_TO_MULTI_JOIN,
+            CoreRules.JOIN_TO_HYPER_GRAPH)) {
+      assertThat(describeMatches(sql, rule),
+          is("[LogicalJoin[$cor0], LogicalTableScan, LogicalTableScan] "
+              + "rejected"));
+    }
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_COMMUTE,
+            CoreRules.JOIN_COMMUTE_OUTER)) {
+      assertThat(describeMatches(sql, rule),
+          is("[LogicalJoin[$cor0]] rejected"));
+    }
+
+    final String rightJoin = "select e.ename from emp e right join dept d\n"
+        + "on e.deptno = d.deptno\n"
+        + "and exists (select 1 from bonus b where b.job = d.name)";
+    assertThat(
+        describeMatches(rightJoin, CoreRules.JOIN_COMMUTE_RIGHT_TO_LEFT),
+        is("[LogicalJoin[$cor0]] rejected"));
+
+    final String fullJoin = "select e.ename from emp e full join dept d\n"
+        + "on e.deptno = d.deptno\n"
+        + "and exists (select 1 from bonus b where b.job = d.name)";
+    assertThat(
+        describeMatches(fullJoin, CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN),
+        is("[LogicalJoin[$cor0]] rejected"));
+
+    // The top Join declares the variable
+    final String topJoin = "select e.ename\n"
+        + "from emp e\n"
+        + "join dept d on e.deptno = d.deptno\n"
+        + "join bonus b on b.ename = e.ename\n"
+        + "and exists (select 1 from dept d2 where d2.name = b.job)";
+    assertThat(describeMatches(topJoin, CoreRules.JOIN_ASSOCIATE),
+        is("[LogicalJoin[$cor0], LogicalJoin, LogicalTableScan] rejected"));
+
+    // The bottom Join declares the variable
+    final String bottomJoin = "select e.ename\n"
+        + "from emp e\n"
+        + "join dept d on e.deptno = d.deptno\n"
+        + "and exists (select 1 from bonus b where b.job = d.name)\n"
+        + "join bonus b2 on b2.ename = e.ename";
+    assertThat(describeMatches(bottomJoin, CoreRules.JOIN_ASSOCIATE),
+        is("[LogicalJoin, LogicalJoin[$cor0], LogicalTableScan] rejected"));
+
+    final String joinOfProjects = "select e.ename\n"
+        + "from (select ename, deptno from emp) e\n"
+        + "join (select deptno, name from dept) d\n"
+        + "on e.deptno = d.deptno\n"
+        + "and exists (select 1 from bonus b where b.job = d.name)";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE_INCLUDE_OUTER,
+            CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)) {
+      assertThat(describeMatches(joinOfProjects, rule),
+          is("[LogicalJoin[$cor0], LogicalProject, LogicalProject] rejected"));
+    }
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER)) {
+      assertThat(describeMatches(joinOfProjects, rule),
+          is("[LogicalJoin[$cor0], LogicalProject] rejected"));
+    }
+  }
+
+  /** Test cases of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7966">[CALCITE-7966]
+   * Many optimizer rules produce invalid plans when a Project, Filter or Join
+   * has a correlated sub-query</a>.
+   *
+   * <p>In each query, a Project contains an uncorrelated EXISTS sub-query.
+   * Each rule puts the expressions of the Project into a
+   * {@link org.apache.calcite.rex.RexProgram}, which cannot contain a
+   * sub-query. Each rule matches the Project, and rejects it. */
+  @Test void testRulesRejectProjectWithSubQuery() {
+    final String exists = "exists (select 1 from dept)";
+
+    final String projectWithWindow = "select t.ename,\n"
+        + "  sum(t.sal) over (partition by t.deptno),\n"
+        + "  " + exists + "\n"
+        + "from emp t";
+    assertThat(
+        describeMatches(projectWithWindow,
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW),
+        is("[LogicalProject] rejected"));
+
+    final String joinOnLeftProject = "select * from (\n"
+        + "  select t.deptno, " + exists + " as b from emp t) x\n"
+        + "join dept y on x.deptno = y.deptno";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER)) {
+      assertThat(describeMatches(joinOnLeftProject, rule),
+          is("[LogicalJoin, LogicalProject] rejected"));
+    }
+
+    final String joinOnRightProject = "select * from dept y join (\n"
+        + "  select t.deptno, " + exists + " as b from emp t) x\n"
+        + "on x.deptno = y.deptno";
+    for (RelOptRule rule
+        : Arrays.asList(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)) {
+      assertThat(describeMatches(joinOnRightProject, rule),
+          is("[LogicalJoin, LogicalTableScan, LogicalProject] rejected"));
+    }
   }
 
   /** Test case of

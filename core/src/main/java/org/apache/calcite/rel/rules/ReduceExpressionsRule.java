@@ -147,6 +147,12 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
           .as(FilterReduceExpressionsRuleConfig.class));
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Filter filter = call.rel(0);
+      // This rule does not preserve correlation variables; see guideline 6 in RelRule
+      return filter.getVariablesSet().isEmpty();
+    }
+
     @Override public void onMatch(RelOptRuleCall call) {
       final Filter filter = call.rel(0);
       final List<RexNode> expList =
@@ -303,6 +309,12 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
           .withOperandFor(projectClass)
           .withMatchNullability(matchNullability)
           .as(ProjectReduceExpressionsRuleConfig.class));
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      // This rule does not preserve correlation variables; see guideline 6 in RelRule
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public void onMatch(RelOptRuleCall call) {

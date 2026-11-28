@@ -67,6 +67,12 @@ public class ProjectAggregateMergeRule
     super(config);
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return project.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Project project = call.rel(0);
     final Aggregate aggregate = call.rel(1);

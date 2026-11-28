@@ -145,6 +145,10 @@ public class JoinCommuteRule
 
   @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    if (!join.getVariablesSet().isEmpty()) {
+      return false;
+    }
     // SEMI and ANTI join cannot be swapped.
     if (!join.getJoinType().projectsRight()) {
       return false;

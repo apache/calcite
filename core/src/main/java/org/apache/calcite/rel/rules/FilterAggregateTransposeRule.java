@@ -87,6 +87,12 @@ public class FilterAggregateTransposeRule
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Filter filter = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return filter.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Filter filterRel = call.rel(0);
     final Aggregate aggRel = call.rel(1);

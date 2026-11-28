@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -148,6 +149,13 @@ public abstract class ProjectToWindowRule
       this(ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT
           .withRelBuilderFactory(relBuilderFactory)
           .as(ProjectToLogicalProjectAndWindowRuleConfig.class));
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      // This rule puts expressions in a RexProgram, which cannot contain a
+      // sub-query
+      return !RexUtil.SubQueryFinder.containsSubQuery(project);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {

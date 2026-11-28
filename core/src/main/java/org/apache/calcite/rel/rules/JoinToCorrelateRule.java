@@ -89,7 +89,9 @@ public class JoinToCorrelateRule
 
   @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
-    return !join.getJoinType().generatesNullsOnLeft();
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return !join.getJoinType().generatesNullsOnLeft()
+        && join.getVariablesSet().isEmpty();
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

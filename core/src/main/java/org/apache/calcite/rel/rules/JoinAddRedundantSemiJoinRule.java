@@ -61,6 +61,12 @@ public class JoinAddRedundantSemiJoinRule
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Join join = call.rel(0);
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    return join.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     Join origJoinRel = call.rel(0);
     if (origJoinRel.isSemiJoinDone()) {

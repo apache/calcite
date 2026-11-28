@@ -89,6 +89,18 @@ public class ProjectFilterTransposeRule
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    // This rule does not preserve correlation variables; see guideline 6 in RelRule
+    if (call.rels.length >= 2) {
+      final Project project = call.rel(0);
+      final Filter filter = call.rel(1);
+      return project.getVariablesSet().isEmpty()
+          && filter.getVariablesSet().isEmpty();
+    }
+    final Filter filter = call.rel(0);
+    return filter.getVariablesSet().isEmpty();
+  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Project origProject;
     final Filter filter;

@@ -60,6 +60,10 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
 
   private long metadataTimestamp = 0L;
 
+  /** For each match of the operands of the rule, the matched relational
+   * expressions and whether {@link RelOptRule#matches} accepted them. */
+  private final List<Pair<List<RelNode>, Boolean>> matches = new ArrayList<>();
+
   //~ Methods ----------------------------------------------------------------
 
   /** Creates MockRelOptPlanner. */
@@ -109,6 +113,13 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
+  /** Returns each match of the operands of the rule, in the order that
+   * {@link #findBestExp} found them: the matched relational expressions, and
+   * whether {@link RelOptRule#matches} accepted them. */
+  public List<Pair<List<RelNode>, Boolean>> getMatches() {
+    return ImmutableList.copyOf(matches);
+  }
+
   /**
    * Recursively matches a rule.
    *
@@ -132,7 +143,9 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
               this,
               rule.getOperand(),
               bindings.toArray(new RelNode[0]));
-      if (rule.matches(call)) {
+      final boolean accepted = rule.matches(call);
+      matches.add(Pair.of(ImmutableList.copyOf(bindings), accepted));
+      if (accepted) {
         rule.onMatch(call);
       }
     }
@@ -175,9 +188,10 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     default:
       // fall through
     }
+    // As in HepPlanner, the child operands match the first inputs
     List<RelOptRuleOperand> childOperands = operand.getChildOperands();
     List<? extends RelNode> childRels = rel.getInputs();
-    if (childOperands.size() != childRels.size()) {
+    if (childRels.size() < childOperands.size()) {
       return false;
     }
     for (Pair<RelOptRuleOperand, ? extends RelNode> pair
