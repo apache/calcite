@@ -23,11 +23,13 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
@@ -250,6 +252,97 @@ public class CorrelateProjectExtractorTest {
         // lambda; E has a value only inside the lambda
         + "    LogicalFilter(condition=[EXISTS(ARRAY($0), (E) -> =(E, $cor0.$f8))])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7961">[CALCITE-7961]
+   * CorrelateProjectExtractor leaves out of requiredColumns a field that a
+   * table function call uses</a>. The right side of a Correlate reads EMPNO of
+   * the variable in a table function, and DEPTNO in a Filter. The extractor
+   * moves the call of the Filter to the left side. The required columns must
+   * still contain EMPNO, because the table function reads it. */
+  @Test void testCorrelationInTableFunctionAndFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    final SqlOperator rampFunction = new MockSqlOperatorTable.RampFunction();
+    RelNode before = builder.scan("EMP")
+        .variable(v::set)
+        .functionScan(rampFunction, 0, builder.field(v.get(), "EMPNO"))
+        .filter(
+            builder.equals(builder.field(0),
+                builder.call(
+                    SqlStdOperatorTable.PLUS,
+                    builder.literal(10),
+                    builder.field(v.get(), "DEPTNO"))))
+        .correlate(JoinRelType.LEFT, v.get().id,
+            builder.field(2, 0, "EMPNO"), builder.field(2, 0, "DEPTNO"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], "
+        + "rowType=[RecordType(INTEGER I)])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelNode after = before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
+    final String planAfter = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+        + "COMM=[$6], DEPTNO=[$7], I=[$9])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 8}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
+        + "SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+(10, $7)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, $cor0.$f8)])\n"
+        + "      LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], "
+        + "rowType=[RecordType(INTEGER I)])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** As {@link #testCorrelationInTableFunctionAndFilter()}, but the right side
+   * reads EMPNO of the variable in the condition of a Join. */
+  @Test void testCorrelationInJoinConditionAndFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    RelNode before = builder.scan("EMP")
+        .variable(v::set)
+        .scan("DEPT")
+        .scan("BONUS")
+        .join(JoinRelType.INNER,
+            builder.equals(builder.field(2, 0, "DEPTNO"),
+                builder.field(v.get(), "EMPNO")))
+        .filter(
+            builder.equals(builder.field(0),
+                builder.call(
+                    SqlStdOperatorTable.PLUS,
+                    builder.literal(10),
+                    builder.field(v.get(), "DEPTNO"))))
+        .correlate(JoinRelType.LEFT, v.get().id,
+            builder.field(2, 0, "EMPNO"), builder.field(2, 0, "DEPTNO"))
+        .build();
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "    LogicalJoin(condition=[=($0, $cor0.EMPNO)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    RelNode after = before.accept(new CorrelateProjectExtractor(RelFactories.LOGICAL_BUILDER));
+    final String planAfter = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+        + "COMM=[$6], DEPTNO=[$7], DEPTNO0=[$9], DNAME=[$10], LOC=[$11], ENAME0=[$12], "
+        + "JOB0=[$13], SAL0=[$14], COMM0=[$15])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 8}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
+        + "SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+(10, $7)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, $cor0.$f8)])\n"
+        + "      LogicalJoin(condition=[=($0, $cor0.EMPNO)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n";
     assertThat(after, hasTree(planAfter));
   }
 }
