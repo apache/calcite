@@ -68,6 +68,35 @@ class ElasticsearchRules {
   private ElasticsearchRules() {}
 
   /**
+   * Checks if the relational expression or any of its inputs
+   * is an Aggregate (LogicalAggregate or ElasticsearchAggregate).
+   */
+  static boolean containsAggregate(RelNode node) {
+    // Handle RelSubset by checking its best or original node
+    if (node instanceof RelSubset) {
+      RelSubset subset = (RelSubset) node;
+      RelNode best = subset.getBest();
+      if (best != null) {
+        return containsAggregate(best);
+      }
+      RelNode original = subset.getOriginal();
+      if (original != null) {
+        return containsAggregate(original);
+      }
+      return false;
+    }
+    if (node instanceof Aggregate) {
+      return true;
+    }
+    for (RelNode input : node.getInputs()) {
+      if (containsAggregate(input)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Returns 'string' if it is a call to item['string'], null otherwise.
    *
    * @param call current relational expression
@@ -299,7 +328,10 @@ class ElasticsearchRules {
       // time, so a condition that references them cannot be translated into
       // an Elasticsearch query. Keep such filters above the adapter and let
       // Calcite evaluate them once the parameters are bound.
-      return !RexUtil.containsDynamicParam(filter.getCondition());
+      if (RexUtil.containsDynamicParam(filter.getCondition())) {
+        return false;
+      }
+      return !containsAggregate(filter.getInput());
     }
 
     @Override public RelNode convert(RelNode relNode) {
@@ -324,35 +356,6 @@ class ElasticsearchRules {
 
     protected ElasticsearchAggregateRule(Config config) {
       super(config);
-    }
-
-    /**
-     * Checks if the relational expression or any of its inputs
-     * is an Aggregate (LogicalAggregate or ElasticsearchAggregate).
-     */
-    private static boolean containsAggregate(RelNode node) {
-      // Handle RelSubset by checking its best or original node
-      if (node instanceof RelSubset) {
-        RelSubset subset = (RelSubset) node;
-        RelNode best = subset.getBest();
-        if (best != null) {
-          return containsAggregate(best);
-        }
-        RelNode original = subset.getOriginal();
-        if (original != null) {
-          return containsAggregate(original);
-        }
-        return false;
-      }
-      if (node instanceof Aggregate) {
-        return true;
-      }
-      for (RelNode input : node.getInputs()) {
-        if (containsAggregate(input)) {
-          return true;
-        }
-      }
-      return false;
     }
 
     @Override public @Nullable RelNode convert(RelNode rel) {
