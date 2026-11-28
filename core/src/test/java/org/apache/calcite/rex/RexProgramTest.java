@@ -73,6 +73,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
+import static org.apache.calcite.test.Matchers.hasRex;
 import static org.apache.calcite.test.Matchers.isRangeSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -4593,6 +4594,42 @@ class RexProgramTest extends RexProgramTestBase {
     values.add(unknown);
     values.add(falseSarg);
     assertThat(values, hasSize(2));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6787">[CALCITE-6787]
+   * Simplification process fails to remove the 'is not null' predicate</a>. */
+  @Test void testExpandSearchUnknownAs() {
+    final RexNode ref = input(tInt(true), 0);
+    final Sarg<BigDecimal> nullAsFalseSarg =
+        Sarg.of(
+            RexUnknownAs.FALSE, ImmutableRangeSet.of(
+            Range.closed(BigDecimal.ZERO, new BigDecimal(100))));
+    final RexNode nullAsFalseSearch =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, ref,
+        rexBuilder.makeSearchArgumentLiteral(nullAsFalseSarg, ref.getType()));
+    // Treating UNKNOWN as UNKNOWN requires the 'IS NOT NULL' guard
+    assertThat(RexUtil.expandSearch(rexBuilder, null, nullAsFalseSearch),
+        hasRex("AND(IS NOT NULL($0), AND(>=($0, 0), <=($0, 100)))"));
+    // Treating UNKNOWN as FALSE makes the 'IS NOT NULL' guard redundant
+    assertThat(
+        RexUtil.expandSearch(rexBuilder, null, nullAsFalseSearch, -1,
+            RexUnknownAs.FALSE),
+        hasRex("AND(>=($0, 0), <=($0, 100))"));
+
+    final Sarg<BigDecimal> nullAsTrueSarg =
+        Sarg.of(RexUnknownAs.TRUE, ImmutableRangeSet.of(Range.greaterThan(BigDecimal.ZERO)));
+    final RexNode nullAsTrueSearch =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, ref,
+        rexBuilder.makeSearchArgumentLiteral(nullAsTrueSarg, ref.getType()));
+    // Treating UNKNOWN as UNKNOWN requires the 'IS NULL' disjunct
+    assertThat(RexUtil.expandSearch(rexBuilder, null, nullAsTrueSearch),
+        hasRex("OR(IS NULL($0), >($0, 0))"));
+    // Treating UNKNOWN as TRUE makes the 'IS NULL' disjunct redundant
+    assertThat(
+        RexUtil.expandSearch(rexBuilder, null, nullAsTrueSearch, -1,
+            RexUnknownAs.TRUE),
+        hasRex(">($0, 0)"));
   }
 
   @Test void testInterpreter() {

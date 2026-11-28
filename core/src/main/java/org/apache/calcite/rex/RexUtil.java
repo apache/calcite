@@ -616,7 +616,24 @@ public class RexUtil {
    * whose complexity is greater than {@code maxComplexity} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
        @Nullable RexProgram program, RexNode node, int maxComplexity) {
-    return node.accept(searchShuttle(rexBuilder, program, maxComplexity));
+    return expandSearch(rexBuilder, program, node, maxComplexity,
+        RexUnknownAs.UNKNOWN);
+  }
+
+  /** Expands calls to {@link SqlStdOperatorTable#SEARCH}
+   * whose complexity is greater than {@code maxComplexity} in an expression,
+   * treating UNKNOWN values as {@code unknownAs}.
+   *
+   * <p>When {@code unknownAs} is {@link RexUnknownAs#FALSE} (for example, in
+   * a {@code FILTER} condition) the generated expression does not contain
+   * redundant {@code IS NOT NULL} predicates, because comparisons against
+   * NULL evaluate to UNKNOWN, which is already treated as FALSE. */
+  public static RexNode expandSearch(RexBuilder rexBuilder,
+       @Nullable RexProgram program, RexNode node, int maxComplexity,
+       RexUnknownAs unknownAs) {
+    return node.accept(
+        searchShuttle(rexBuilder, program, maxComplexity,
+        unknownAs));
   }
 
   /** Creates a shuttle that expands calls to
@@ -629,7 +646,20 @@ public class RexUtil {
    * such as {@code x IN (3, 5, 7) OR x IS NULL} as a Sarg. */
   public static RexShuttle searchShuttle(RexBuilder rexBuilder,
       @Nullable RexProgram program, int maxComplexity) {
-    return new SearchExpandingShuttle(program, rexBuilder, maxComplexity);
+    return searchShuttle(rexBuilder, program, maxComplexity,
+        RexUnknownAs.UNKNOWN);
+  }
+
+  /** Creates a shuttle that expands calls to
+   * {@link SqlStdOperatorTable#SEARCH}, treating UNKNOWN values as
+   * {@code unknownAs}.
+   *
+   * @see #expandSearch(RexBuilder, RexProgram, RexNode, int, RexUnknownAs) */
+  public static RexShuttle searchShuttle(RexBuilder rexBuilder,
+      @Nullable RexProgram program, int maxComplexity,
+      RexUnknownAs unknownAs) {
+    return new SearchExpandingShuttle(program, rexBuilder, maxComplexity,
+        unknownAs);
   }
 
   public static <C extends Comparable<C>> RexNode sargRef(SqlParserPos pos, RexBuilder rexBuilder,
@@ -639,7 +669,12 @@ public class RexUtil {
     }
     final List<RexNode> orList = new ArrayList<>();
     if (sarg.nullAs == RexUnknownAs.TRUE
-        && unknownAs == RexUnknownAs.UNKNOWN) {
+        && (unknownAs != RexUnknownAs.TRUE
+            || sarg.rangeSet.isEmpty())) {
+      // If unknownAs is TRUE, the comparisons yield UNKNOWN for a NULL ref,
+      // which is treated as TRUE; 'IS NULL' would be redundant. The 'IS NULL'
+      // disjunct is still required if the range set is empty, for it is the
+      // only way to match NULL.
       orList.add(rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NULL, ref));
     }
     if (sarg.isPoints()) {
@@ -665,7 +700,9 @@ public class RexUtil {
     }
     RexNode node = composeDisjunction(rexBuilder, orList);
     if (sarg.nullAs == RexUnknownAs.FALSE
-        && unknownAs == RexUnknownAs.UNKNOWN) {
+        && unknownAs != RexUnknownAs.FALSE) {
+      // If unknownAs is FALSE, the comparison yields UNKNOWN for a NULL ref,
+      // which is treated as FALSE; 'IS NOT NULL' would be redundant.
       node =
           rexBuilder.makeCall(pos, SqlStdOperatorTable.AND,
               rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, ref),
@@ -3810,12 +3847,14 @@ public class RexUtil {
     private final RexBuilder rexBuilder;
     private final @Nullable RexProgram program;
     private final int maxComplexity;
+    private final RexUnknownAs unknownAs;
 
     SearchExpandingShuttle(@Nullable RexProgram program, RexBuilder rexBuilder,
-        int maxComplexity) {
+        int maxComplexity, RexUnknownAs unknownAs) {
       this.program = program;
       this.rexBuilder = rexBuilder;
       this.maxComplexity = maxComplexity;
+      this.unknownAs = requireNonNull(unknownAs, "unknownAs");
     }
 
     @Override public RexNode visitCall(RexCall call) {
@@ -3844,7 +3883,7 @@ public class RexUtil {
         final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
         if (maxComplexity < 0 || sarg.complexity() < maxComplexity) {
           return sargRef(call.pos, rexBuilder, ref, sarg, literal.getType(),
-              RexUnknownAs.UNKNOWN);
+              unknownAs);
         }
         // Sarg is complex (therefore useful); fall through
       default:
